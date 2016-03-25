@@ -1,3 +1,45 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mag.cpp
+ *
+ * Driver for the ak8963 magnetometer within the Invensense mpu9250
+ *
+ * @author Robert Dickenson
+ *
+ */
+
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -13,18 +55,20 @@
 #include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
-//#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 
 #include "mag.h"
 #include "mpu9250.h"
 
 
+/* we are using the continuous fixed sampling rate of 100Hz */
+
+#define MPU9250_AK8963_SAMPLE_RATE 100
+
+
 /* mpu9250 master i2c bus specific register address and bit definitions */
 
-#define MPUREG_I2C_MST_STATUS		0x36
-
+#define MPUREG_I2C_MST_STATUS       0x36
 
 #define BIT_I2C_READ_FLAG           0x80
 
@@ -97,17 +141,7 @@
 MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
 	CDev("MPU9250_mag", path),
 	_parent(parent),
-	_mag_reading_data(false),
-	_last_x(0),
-	_last_y(0),
-	_last_z(0),
-	_rru(0),
-	dxh(0),
-	dxl(0),
-	dyh(0),
-	dyl(0),
-	dzh(0),
-	dzl(0)
+	_last_mag_data{}
 {
 }
 
@@ -135,164 +169,56 @@ printf("sizeof(struct ak8963_regs) = %d\n", sizeof(struct ak8963_regs));
 	return ret;
 }
 
-int32_t period = 0;
-
-int16_t x_raw = 0;
-int16_t y_raw = 0;
-int16_t z_raw = 0;
-
-uint8_t cnt0 = 0;
-uint8_t cnt1 = 0;
-uint8_t cnt2 = 0;
-uint8_t cnt3 = 0;
-uint8_t cnt4 = 0;
-/*
-	struct ak8963_regs {
-		uint8_t id;
-		uint8_t info;
-		uint8_t st1;
-		int16_t x;
-		int16_t y;
-		int16_t z;
-		uint8_t st2;
-	};
- */
-	uint64_t		_ts;
-	uint64_t		_ts_last;
-
-int glitched = 0;
-
-bool
-MPU9250_mag::measure(struct ak8963_regs data)
+bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
 {
-	/* monitor for if data overrun flag is ever set */
-	if (data.st1 & 0x02) {
-//		printf("overrun\n");
-		cnt4++;
-	}
-	/* monitor for if magnetic sensor overflow flag is ever set noting that st2
-	 * is usually not even refreshed, but will always be in the same place in the
-	 * mpu's buffers regardless, hence the actual count would be bogus
-	 */
-	if (data.st2 & 0x08) {
-		printf("overflow\n");
-//		cnt4++;
-	}
-
-	uint8_t err = _parent->read_reg(MPUREG_I2C_MST_STATUS);
-	if (err & BIT_I2C_SLV0_NACK) {
-		printf("i2c nack\n");
-		cnt4++;
-	}
-
-	if (data.st1 & 0x01) {
-		if (false == _mag_reading_data) {
-			cnt1++;
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLV0_EN | sizeof(struct ak8963_regs));
-			_mag_reading_data = true;
-			return false;
-
-		} else {
-			cnt2++;
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLV0_EN | 1);
-			_mag_reading_data = false;
-//			if (0 == _rru) {
-//				return false;  // this prevents the rapid repeat update
-//			}
-		}
+	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
+		// it isn't new data - wait for next timer
+		return true;
 
 	} else {
-		if (true == _mag_reading_data) {
-			cnt3++;
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLV0_EN | 1);
-			_mag_reading_data = false;
-		} else {
-//			cnt4++;
-			_rru++;
-		}
-
+		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
 		return false;
 	}
 
-//	cnt4++;
+//	return _got_duplicate;
+}
 
-	_ts = hrt_absolute_time();
-	period = _ts - _ts_last;
-	_ts_last = _ts;
 
-	x_raw = data.x;
-	y_raw = data.y;
-	z_raw = data.z;
+uint64_t _ts = 0;
+uint64_t _ts_last = 0;
+uint8_t count = 0;
 
-	_rru = 0;
+bool
+MPU9250_mag::measure(struct ak8963_regs data, struct Report &report)
+{
+	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
+		return false;
+	}
+	data.st1 |= 0x04;
 
-#define DELTA 200
+	report.cnt1 = data.st1;
 
-	if (data.x > (_last_x + DELTA)) {
-		glitched = 1;
-		printf("glitch +x\n");
-		if (dxh++ < 3) {
-			data.x = data.x - 256;
-		}
+	/* monitor for if data overrun flag is set */
+	if (data.st1 & 0x02) {
+//		printf("overrun\n");
+		report.cnt2++;
+	}
+	/* monitor for if magnetic sensor overflow flag is set */
+	if (data.st2 & 0x08) {
+//		printf("overflow\n");
+		report.cnt3++;
+	}
+
+	if (data.st1 & 0x07) {
+		_ts = hrt_absolute_time();
+		report.period = _ts - _ts_last;
+		_ts_last = _ts;
 	} else {
-		dxh = 0;
-	}
-	if (data.x < (_last_x - DELTA)) {
-		glitched = 2;
-		printf("glitch -x\n");
-		if (dxl++ < 3) {
-			data.x = data.x + 256;
-		}
-	} else {
-		dxl = 0;
+		report.period = 0;
+//		return false; // while debugging we want to capture every updates data
 	}
 
-	if (data.y > (_last_y + DELTA)) {
-		glitched = 3;
-		printf("glitch +y\n");
-		if (dyh++ < 3) {
-			data.y = data.y - 256;
-		}
-	} else {
-		dyh = 0;
-	}
-	if (data.y < (_last_y - DELTA)) {
-		glitched = 4;
-		printf("glitch -y\n");
-		if (dyl++ < 3) {
-			data.y = data.y + 256;
-		}
-	} else {
-		dyl = 0;
-	}
-
-	if (data.z > (_last_z + DELTA)) {
-		glitched = 5;
-		printf("glitch +z\n");
-		if (dzh++ < 3) {
-			data.z = data.z - 256;
-		}
-	} else {
-		dzh = 0;
-	}
-	if (data.z < (_last_z - DELTA)) {
-		glitched = 6;
-		printf("glitch -z\n");
-		if (dzl++ < 3) {
-			data.z = data.z + 256;
-		}
-	} else {
-		dzl = 0;
-	}
-
-	_last_x = data.x;
-	_last_y = data.y;
-	_last_z = data.z;
-
-	if ((period < 8000) || (period > 12000)) {
-		glitched = 7;
-		printf("glitch dt %u\n", period);
-	}
+	report.cnt4 = count++;
 
 	return true;
 }
@@ -351,6 +277,7 @@ MPU9250_mag::ak8963_check_id(void)
 
 	return false;
 }
+
 /*
  * 400kHz I2C bus speed = 2.5us per bit = 25us per byte
  */
@@ -375,15 +302,16 @@ MPU9250_mag::ak8963_setup(void)
 	// enable the I2C master to slaves on the aux bus
 	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
 	_parent->write_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
-	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BITS_I2C_MST_CLOCK_400HZ);
+//	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BITS_I2C_MST_CLOCK_400HZ);
 //	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_258HZ);
+	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 
 //	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_MULT_MST_EN | BITS_I2C_MST_CLOCK_400HZ);
 
 	/* Hard-code divider (9) for internal sample rate, 1 kHz, resulting in a
 	 * slave sampling rate of 100Hz
 	 */
-//	_parent->write_reg(MPUREG_I2C_SLV4_CTRL, 1);
+//	_parent->write_reg(MPUREG_I2C_SLV4_CTRL, 2);
 //	_parent->write_reg(MPUREG_I2C_MST_DELAY_CTRL, BIT_I2C_SLV0_DLY_EN);
 
 	if (!ak8963_check_id()) {
@@ -395,9 +323,8 @@ MPU9250_mag::ak8963_setup(void)
 	passthrough_write(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 //	passthrough_write(AK8963REG_CNTL1, AK8963_SINGLE_MEAS_MODE | AK8963_16BIT_ADC);
 
-	set_passthrough(AK8963REG_ST1, 1);
-//	set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
-//	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLV0_EN | sizeof(struct ak8963_regs));
+//	set_passthrough(AK8963REG_ST1, 1); // only read the status 1 register until data ready flag set
+	set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
 
 	return true;
 }

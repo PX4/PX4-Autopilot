@@ -1,3 +1,46 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mpu9250.cpp
+ *
+ * Driver for the Invensense MPU9250 connected via SPI.
+ *
+ * @author Andrew Tridgell
+ *
+ * based on the mpu6000 driver
+ */
+
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -5,17 +48,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
 #include <stdio.h>
-#include <math.h>
-#include <unistd.h>
 #include <getopt.h>
 
-#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
 
@@ -26,16 +64,10 @@
 #include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
-//#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
 
 #include "mag.h"
-//#include "gyro.h"
 #include "mpu9250.h"
 
 #define DIR_READ			0x80
@@ -131,14 +163,15 @@
 
 #define MPU_WHOAMI_9250			0x71
 
-
-MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device) :
-	SPI("MPU9250", path_accel, bus, device, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
-	_mag(new MPU9250_mag(this, path_mag)),
+MPU9250::MPU9250(int filter) :
+	SPI("MPU9250", "/dev/mpu9250_accel", PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_MPU, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
+	_mag(new MPU9250_mag(this, "/dev/mpu9250_mag")),
 	_whoami(0),
 	_call{},
 	_last_accel_data{},
-	_got_duplicate(false)
+	_got_duplicate(false),
+	_filter(filter)
+//	mag()
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -172,30 +205,29 @@ MPU9250::init()
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI setup failed");
-		return ret;
+		goto out;
 	}
 
 	ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("MPU9250 probe failed");
-		return ret;
-	}
-
-	if (reset() != OK) {
 		goto out;
 	}
 
-	/* do CDev init for the mag device node, keep it optional */
-	ret = _mag->init();
+	ret = reset();
 
-	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
-		return ret;
+		DEVICE_DEBUG("MPU9250 reset failed");
+		goto out;
 	}
 
-	measure();
+	ret = _mag->init();
+
+	if (ret != OK) {
+		DEVICE_DEBUG("mag init failed");
+		goto out;
+	}
 
 out:
 	return ret;
@@ -219,8 +251,16 @@ int MPU9250::reset()
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
-	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_41HZ);
+	switch (_filter) {
+		case 1:
+			break;
+		case 0:
+		default:
+			write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_41HZ);
+			break;
+	}
 	usleep(1000);
+
 
 	// Gyro scale 2000 deg/s ()
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -231,10 +271,10 @@ int MPU9250::reset()
 	usleep(1000);
 
 	// INT CFG => Interrupt on Data Ready
-//	write_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
-//	usleep(1000);
-//	write_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
-//	usleep(1000);
+	write_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+	usleep(1000);
+	write_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
+	usleep(1000);
 
 	return OK;
 }
@@ -321,24 +361,16 @@ MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 }
 
 void
-MPU9250::start(int rate)
+MPU9250::start(int interval)
 {
-	/* convert hz to hrt interval via microseconds */
-	unsigned ticks = 1000000 / rate;
-
-	/* check against maximum sane rate */
-//	if (ticks < 500) {
-//		ticks = 500;
-//	}
-
 	/* make sure we are stopped first */
 	stop();
 
-	/* start polling at the specified rate */
+	/* start polling at the specified interval */
 	hrt_call_every(&_call,
 		       1000,
-			   ticks,
-			   (hrt_callout)&MPU9250::measure_trampoline, this);
+		       interval,
+		       (hrt_callout)&MPU9250::measure_trampoline, this);
 }
 
 void
@@ -347,15 +379,20 @@ MPU9250::stop()
 	hrt_cancel(&_call);
 }
 
-bool measured = false;
+void measure_callback(struct Report &report);
 
 void
 MPU9250::measure_trampoline(void *arg)
 {
 	MPU9250 *dev = reinterpret_cast<MPU9250 *>(arg);
 
+	struct Report report;
+
 	/* make another measurement */
-	measured = dev->measure();
+	memset(&report, 0, sizeof(report));
+	if (dev->measure(report)) {
+		measure_callback(report);
+	}
 }
 
 void MPU9250::set_frequency_high()
@@ -386,10 +423,8 @@ bool MPU9250::check_duplicate(uint8_t *accel_data)
 	return _got_duplicate;
 }
 
-struct Report report;
-
 bool
-MPU9250::measure()
+MPU9250::measure(struct Report &report)
 {
 	bool ret = false;
 	struct MPUReport mpu_report;
@@ -399,29 +434,25 @@ MPU9250::measure()
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
-	// sensor transfer at high clock speed
-//	set_frequency(MPU9250_HIGH_BUS_SPEED);
-//	set_frequency(MPU9250_LOW_BUS_SPEED);
-
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
 		printf("SPI transfer error\n");
 		return false;
 	}
 
-	if (check_duplicate(&mpu_report.accel_x[0])) {
-extern uint8_t cnt0;
-cnt0++;
+	if (mpu_report.status & 0x01) {
+	} else {
+//		duplicates++;
 		return false;
 	}
 
-//	ret = true;
-
-	if (_mag->measure(mpu_report.mag)) {
+	// pass the report structure in for debugging (update dbg cnt's)
+	if (_mag->measure(mpu_report.mag, report)) {
 		report.mag_x = mpu_report.mag.x;
 		report.mag_y = mpu_report.mag.y;
 		report.mag_z = mpu_report.mag.z;
 		ret = true;
 	}
+	ret = true; // while debugging we want to capture every updates data
 
 
 	/*

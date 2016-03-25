@@ -7,21 +7,42 @@
 #define MPU9250_LOW_BUS_SPEED				1000*1000
 #define MPU9250_HIGH_BUS_SPEED				11*1000*1000
 
+struct Report {
+	int16_t		accel_x;
+	int16_t		accel_y;
+	int16_t		accel_z;
+	int16_t		temp;
+	int16_t		gyro_x;
+	int16_t		gyro_y;
+	int16_t		gyro_z;
+	int16_t		mag_x;
+	int16_t		mag_y;
+	int16_t		mag_z;
+
+int32_t period;
+uint8_t cnt0;
+uint8_t cnt1;
+uint8_t cnt2;
+uint8_t cnt3;
+uint8_t cnt4;
+
+};
+
 class MPU9250_mag;
 
 class MPU9250 : public device::SPI
 {
 public:
-	MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device);
+	MPU9250(int filter);
 	virtual ~MPU9250();
 
 	virtual int		init();
 
 	void			set_frequency_high();
 	void			print_registers();
-	bool			measure();
+	bool			measure(struct Report &report);
 
-	void			start(int rate);
+	void			start(int interval);
 	void			stop();
 	int				reset();
 
@@ -31,7 +52,7 @@ protected:
 	friend class MPU9250_mag;
 
 private:
-	MPU9250_mag     *_mag;
+	MPU9250_mag		*_mag;
 	uint8_t			_whoami;	/** whoami result */
 
 	struct hrt_call		_call;
@@ -41,6 +62,7 @@ private:
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6];
 	bool			_got_duplicate;
+	int 			_filter;
 
 	static void		measure_trampoline(void *arg);
 
@@ -75,17 +97,4 @@ private:
 		struct ak8963_regs mag;
 	};
 #pragma pack(pop)
-};
-
-struct Report {
-	int16_t		accel_x;
-	int16_t		accel_y;
-	int16_t		accel_z;
-	int16_t		temp;
-	int16_t		gyro_x;
-	int16_t		gyro_y;
-	int16_t		gyro_z;
-	int16_t		mag_x;
-	int16_t		mag_y;
-	int16_t		mag_z;
 };

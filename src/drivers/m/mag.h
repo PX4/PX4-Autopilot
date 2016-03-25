@@ -35,6 +35,7 @@ class MPU9250;
 
 #pragma pack(push, 1)
 struct ak8963_regs {
+//	uint8_t		cmd;
 	uint8_t st1;
 	int16_t x;
 	int16_t y;
@@ -62,23 +63,19 @@ public:
 	void ak8963_reset(void);
 	bool ak8963_setup(void);
 	bool ak8963_check_id(void);
-	bool ak8963_read_adjustments(void);
 
 protected:
 	friend class MPU9250;
 
-	bool measure(struct ak8963_regs data);
+	bool measure(struct ak8963_regs data, struct Report &report);
 
 private:
 	MPU9250 *_parent;
-	bool _mag_reading_data;
-	int16_t _last_x;
-	int16_t _last_y;
-	int16_t _last_z;
-	int8_t _rru;
-	int8_t  dxh, dxl;
-	int8_t  dyh, dyl;
-	int8_t  dzh, dzl;
+
+	bool check_duplicate(uint8_t *mag_data);
+
+	// keep last accel reading for duplicate detection
+	uint8_t			_last_mag_data[6];
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250_mag(const MPU9250_mag &);

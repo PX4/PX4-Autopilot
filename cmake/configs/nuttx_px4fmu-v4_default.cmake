@@ -17,7 +17,7 @@ set(config_module_list
 	drivers/boards/px4fmu-v4
 	drivers/rgbled
 	drivers/mpu6000
-	drivers/mpu9250
+#	drivers/mpu9250
 	drivers/hmc5883
 	drivers/ms5611
 	drivers/mb12xx
@@ -43,6 +43,7 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
+	drivers/m
 
 	#
 	# System commands
