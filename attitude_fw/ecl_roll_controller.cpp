@@ -128,12 +128,12 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 			id = math::min(id, 0.0f);
 		}
 
-		_integrator += id;
+		_integrator += id * _k_i;
 	}
 
 	/* integrator limit */
 	//xxx: until start detection is available: integral part in control signal is limited here
-	float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
+	float integrator_constrained = math::constrain(_integrator, -_integrator_max, _integrator_max);
 	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
