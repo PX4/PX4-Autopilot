@@ -87,19 +87,19 @@ else
 	if ver hwcmp PX4FMU_V4
 	then
 		# External I2C bus
-		if hmc5883 -C -T -X start
-		then
-		fi
+#		if hmc5883 -C -T -X start
+#		then
+#		fi
 
 		# Internal SPI bus is rotated 90 deg yaw
-		if hmc5883 -C -T -S -R 2 start
-		then
-		fi
+#		if hmc5883 -C -T -S -R 2 start
+#		then
+#		fi
 
 		# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-		if mpu6000 -R 2 -T 20608 start
-		then
-		fi
+#		if mpu6000 -R 2 -T 20608 start
+#		then
+#		fi
 
 		# Internal SPI bus mpu9250 is rotated 90 deg yaw
 		if mpu9250 -R 2 start
