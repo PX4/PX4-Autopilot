@@ -1629,7 +1629,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	_receive_thread = MavlinkReceiver::receive_start(this);
+	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -1988,6 +1988,9 @@ Mavlink::task_main(int argc, char *argv[])
 		_task_running = true;
 	}
 
+	/* first wait for threads to complete before tearing down anything */
+	pthread_join(_receive_thread, NULL);
+
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
@@ -2015,10 +2018,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_subscriptions = nullptr;
 
-	/* wait for threads to complete */
-	pthread_join(_receive_thread, NULL);
-
-	if (_uart_fd >= 0) {
+	if (_uart_fd >= 0 && !_is_usb_uart) {
 		/* reset the UART flags to original state */
 		tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
 

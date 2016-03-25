@@ -1918,7 +1918,7 @@ MavlinkReceiver::receive_thread(void *arg)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void MavlinkReceiver::print_status()
@@ -1951,15 +1951,15 @@ void *MavlinkReceiver::start_helper(void *context)
 
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
 
-	rcv->receive_thread(NULL);
+	void* ret = rcv->receive_thread(NULL);
 
 	delete rcv;
 
-	return nullptr;
+	return ret;
 }
 
-pthread_t
-MavlinkReceiver::receive_start(Mavlink *parent)
+void
+MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
@@ -1976,9 +1976,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2100);
-	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
+	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
-	return thread;
 }
