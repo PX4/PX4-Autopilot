@@ -50,11 +50,11 @@
  *
  * @min 0
  * @max 4
- * @value 0 none
- * @value 1 warning
- * @value 2 loiter
- * @value 3 return
- * @value 4 terminate
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Loiter
+ * @value 3 Return
+ * @value 4 Terminate
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 1);

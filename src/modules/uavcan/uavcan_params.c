@@ -49,10 +49,10 @@
  *
  * @min 0
  * @max 3
- * @value 0 disabled
- * @value 1 enabled
- * @value 2 update
- * @value 3 motors/update
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @value 2 Dynamic ID/Update
+ * @value 3 Motors/Update
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);

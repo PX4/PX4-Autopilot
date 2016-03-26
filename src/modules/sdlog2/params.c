@@ -58,9 +58,9 @@ PARAM_DEFINE_INT32(SDLOG_RATE, -1);
  *
  * @min -1
  * @max  1
- * @value -1 command line
- * @value 0 disable
- * @value 1 enable
+ * @value -1 Command Line
+ * @value 0 Disable
+ * @value 1 Enable
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_EXT, -1);

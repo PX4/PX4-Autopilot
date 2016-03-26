@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  * Defines the number of cells the attached battery consists of.
  *
  * @group Battery Calibration
- * @unit cells
+ * @unit S
  * @min 2
  * @max 10
  * @value 2 2S Battery
