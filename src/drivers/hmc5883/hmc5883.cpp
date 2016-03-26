@@ -1024,6 +1024,7 @@ HMC5883::collect()
 		} else {
 			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
 							 &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+			warnx("_orb_class_instance %d", _orb_class_instance);
 
 			if (_mag_topic == nullptr) {
 				DEVICE_DEBUG("ADVERT FAIL");
