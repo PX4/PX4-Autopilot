@@ -316,7 +316,6 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * of directly forwarding the manual input data.
  *
  * @group Commander
- * @unit enum
  * @min 0
  * @max 2
  * @value 0 RC Transmitter
@@ -347,7 +346,6 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -370,7 +368,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -393,7 +390,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -416,7 +412,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -439,7 +434,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -457,12 +451,11 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 
 /**
- * Sixt flightmode slot (1800-2000)
+ * Sixth flightmode slot (1800-2000)
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude

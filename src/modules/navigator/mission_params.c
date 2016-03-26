@@ -99,7 +99,6 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  * 1: the system will follow a first order hold altitude setpoint
  * values follow the definition in enum mission_altitude_mode
  *
- * @unit enum
  * @min 0
  * @max 1
  * @value 0 Zero Order Hold
@@ -113,7 +112,6 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  *
  * The values are defined in the enum mission_altitude_mode
  *
- * @unit enum
  * @min 0
  * @max 3
  * @value 0 Heading as set by waypoint

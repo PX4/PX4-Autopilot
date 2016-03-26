@@ -90,7 +90,6 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  * 921600: enables onboard mode at 921600 baud, 8N1. 57600: enables onboard mode at 57600 baud, 8N1.
  * 157600: enables OSD mode at 57600 baud, 8N1.
  *
- * @unit enum
  * @value 921600 Companion Link (921600 baud, 8N1)
  * @value 57600 Companion Link (57600 baud, 8N1)
  * @value 157600 OSD (57600 baud, 8N1)

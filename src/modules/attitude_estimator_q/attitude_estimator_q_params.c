@@ -107,7 +107,6 @@ PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
  * Set to 2 to use heading from motion capture.
  *
  * @group Attitude Q estimator
- * @unit enum
  * @value 0 none
  * @value 1 vision
  * @value 2 motion capture

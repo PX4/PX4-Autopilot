@@ -48,7 +48,6 @@
  *
  * 0 = none, 1 = warning (default), 2 = loiter, 3 = return to launch, 4 = fight termination
  *
- * @unit enum
  * @min 0
  * @max 4
  * @value 0 none
@@ -66,7 +65,6 @@ PARAM_DEFINE_INT32(GF_ACTION, 1);
  * Select which altitude reference should be used
  * 0 = WGS84, 1 = AMSL
  *
- * @unit enum
  * @min 0
  * @max 1
  * @value 0 WGS84
@@ -82,7 +80,6 @@ PARAM_DEFINE_INT32(GF_ALTMODE, 0);
  * no dependence on the position estimator
  * 0 = global position, 1 = GPS
  *
- * @unit enum
  * @min 0
  * @max 1
  * @value 0 GPOS

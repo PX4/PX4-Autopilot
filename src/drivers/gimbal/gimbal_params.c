@@ -63,7 +63,6 @@ PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
  * Switch on means the gimbal can move freely, and landing gear
  * will be retracted if applicable.
  *
- * @unit enum
  * @value 0 disable
  * @value 1 aux1
  * @value 2 aux2

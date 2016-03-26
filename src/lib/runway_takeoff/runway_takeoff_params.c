@@ -54,7 +54,6 @@ PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
  *
  * 0: airframe heading, 1: heading towards takeoff waypoint
  *
- * @unit enum
  * @value 0 airframe
  * @value 1 waypoint
  * @min 0

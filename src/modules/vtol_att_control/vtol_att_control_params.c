@@ -172,7 +172,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
 /**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
- * @unit enum
  * @value 0 Tailsitter
  * @value 1 Tiltrotor
  * @value 2 Standard

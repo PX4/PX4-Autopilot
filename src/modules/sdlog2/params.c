@@ -56,7 +56,6 @@ PARAM_DEFINE_INT32(SDLOG_RATE, -1);
  * parameter is only read out before logging starts
  * (which commonly is before arming).
  *
- * @unit enum
  * @min -1
  * @max  1
  * @value -1 command line

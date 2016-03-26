@@ -47,7 +47,6 @@
  *  2 - Enabled support for dynamic node ID allocation and firmware update.
  *  3 - Sets the motor control outputs to UAVCAN and enables support for dynamic node ID allocation and firmware update.
  *
- * @unit enum
  * @min 0
  * @max 3
  * @value 0 disabled
