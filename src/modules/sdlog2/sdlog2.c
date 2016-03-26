@@ -634,8 +634,6 @@ static void *logwriter_thread(void *arg)
 			pthread_cond_wait(&logbuffer_cond, &logbuffer_mutex);
 		}
 
-		pthread_mutex_lock(&logbuffer_mutex);
-
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
 		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
