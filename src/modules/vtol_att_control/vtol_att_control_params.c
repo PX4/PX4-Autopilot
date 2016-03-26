@@ -129,6 +129,20 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
 
 /**
+ * Fixed wing roll trim
+ *
+ * This parameter allows to adjust the neutral aileron position in fixed wing mode.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_ROLL_TRIM, 0.0f);
+
+
+/**
  * Motor max power
  *
  * Indicates the maximum power the motor is able to produce. Used to calculate

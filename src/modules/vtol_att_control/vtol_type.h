@@ -54,6 +54,7 @@ struct Params {
 	float mc_airspeed_trim;		// trim airspeed in multicopter mode
 	float mc_airspeed_max;		// max airpseed in multicopter mode
 	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
+	float fw_roll_trim;			// trim for neutral roll position in fw mode
 	float power_max;			// maximum power of one engine
 	float prop_eff;				// factor to calculate prop efficiency
 	float arsp_lp_gain;			// total airspeed estimate low pass gain

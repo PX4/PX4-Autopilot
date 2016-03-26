@@ -127,6 +127,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
 	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
 	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
+	_params_handles.fw_roll_trim = param_find("VT_FW_ROLL_TRIM");
 	_params_handles.power_max = param_find("VT_POWER_MAX");
 	_params_handles.prop_eff = param_find("VT_PROP_EFF");
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
@@ -529,6 +530,10 @@ VtolAttitudeControl::parameters_update()
 	/* vtol pitch trim for fw mode */
 	param_get(_params_handles.fw_pitch_trim, &v);
 	_params.fw_pitch_trim = v;
+
+	/* vtol roll trim for fw mode */
+	param_get(_params_handles.fw_roll_trim, &v);
+	_params.fw_roll_trim = v;
 
 	/* vtol maximum power engine can produce */
 	param_get(_params_handles.power_max, &v);
