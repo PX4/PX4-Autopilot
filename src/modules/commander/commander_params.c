@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  * Defines the number of cells the attached battery consists of.
  *
  * @group Battery Calibration
- * @unit enum
+ * @unit S
  * @min 2
  * @max 10
  * @value 2 2S Battery
@@ -178,7 +178,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * Set to 1 to enable actions triggered when the datalink is lost.
  *
  * @group Commander
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
@@ -303,7 +303,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * being sticky. Developers can default it to off.
  *
  * @group Commander
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 
@@ -316,7 +316,6 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * of directly forwarding the manual input data.
  *
  * @group Commander
- * @unit enum
  * @min 0
  * @max 2
  * @value 0 RC Transmitter
@@ -347,7 +346,6 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -370,7 +368,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -393,7 +390,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -416,7 +412,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -439,7 +434,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -457,12 +451,11 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 
 /**
- * Sixt flightmode slot (1800-2000)
+ * Sixth flightmode slot (1800-2000)
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
- * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude

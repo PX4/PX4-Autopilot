@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
  *
- * @unit boolean
+ * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
@@ -99,16 +99,10 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  * 1: the system will follow a first order hold altitude setpoint
  * values follow the definition in enum mission_altitude_mode
  *
- * @unit enum
  * @min 0
  * @max 1
-<<<<<<< e22e0b28b61a7b4f7d10756678b8f4b533b3622e
  * @value 0 Zero Order Hold
  * @value 1 First Order Hold
-=======
- * @value 0 zero order
- * @value 1 first order
->>>>>>> mission param @unit
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
@@ -118,20 +112,12 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  *
  * The values are defined in the enum mission_altitude_mode
  *
- * @unit enum
  * @min 0
  * @max 3
-<<<<<<< e22e0b28b61a7b4f7d10756678b8f4b533b3622e
  * @value 0 Heading as set by waypoint
  * @value 1 Heading towards waypoint
  * @value 2 Heading towards home
  * @value 3 Heading away from home
-=======
- * @value 0 destination
- * @value 1 next
- * @value 2 home
- * @value 3 home back
->>>>>>> mission param @unit
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
@@ -144,9 +130,9 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
  * yaw in wind. Disabled by default.
  *
+ * @unit s
  * @min -1
  * @max 20
- * @unit second
  * @increment 1
  * @group Mission
  */
@@ -158,7 +144,6 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @unit deg
  * @min 0
  * @max 90
- * @unit degree
  * @increment 1
  * @group Mission
  */
