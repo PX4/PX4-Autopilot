@@ -16,6 +16,9 @@ LogWriter::LogWriter(uint8_t *buffer, size_t buffer_size) :
 {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
+	/* allocate write performance counters */
+	perf_write = perf_alloc(PC_ELAPSED, "sd write");
+	perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
 }
 
 void LogWriter::start_log(const char *filename)
@@ -133,10 +136,14 @@ void LogWriter::run()
 				}
 
 #endif
+				perf_begin(perf_write);
 				written = ::write(_fd, read_ptr, available);
+				perf_end(perf_write);
 
 				if (++poll_count >= 100) {
+					perf_begin(perf_fsync);
 					::fsync(_fd);
+					perf_end(perf_fsync);
 					poll_count = 0;
 				}
 
