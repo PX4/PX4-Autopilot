@@ -69,7 +69,7 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
  *
  * If set to 1 the behaviour on data link loss is set to a mode according to the Outback Challenge (OBC) rules
  *
- * @unit boolean
+ * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
@@ -79,7 +79,7 @@ PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
  *
  * If set to 1 the behaviour on data link loss is set to a mode according to the Outback Challenge (OBC) rules
  *
- * @unit boolean
+ * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);

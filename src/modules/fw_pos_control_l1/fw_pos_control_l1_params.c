@@ -461,7 +461,7 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
  *
  * 0: disabled, 1: enabled
  *
- * @unit boolean
+ * @boolean
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_USETER, 0);

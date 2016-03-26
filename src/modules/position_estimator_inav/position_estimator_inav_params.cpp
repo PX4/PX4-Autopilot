@@ -306,7 +306,7 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
  *
  * Disable mocap
  *
- * @unit boolean
+ * @boolean
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
@@ -316,7 +316,7 @@ PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
  *
  * Enable LIDAR for altitude estimation
  *
- * @unit boolean
+ * @boolean
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_LIDAR_EST, 0);
@@ -352,7 +352,7 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
  * Else the system uses the combined attitude / position
  * filter framework.
  *
- * @unit boolean
+ * @boolean
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_INT32(INAV_ENABLED, 1);

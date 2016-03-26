@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
  *
- * @unit boolean
+ * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);

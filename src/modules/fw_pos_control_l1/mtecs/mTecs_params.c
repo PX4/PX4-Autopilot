@@ -47,7 +47,7 @@
  *
  * Set to 1 to enable mTECS
  *
- * @unit boolean
+ * @boolean
  * @group mTECS
  */
 PARAM_DEFINE_INT32(MT_ENABLED, 0);

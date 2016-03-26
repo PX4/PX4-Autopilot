@@ -47,7 +47,7 @@
 /**
  * Enable launch detection.
  *
- * @unit boolean
+ * @boolean
  * @min 0
  * @max 1
  * @group Launch detection

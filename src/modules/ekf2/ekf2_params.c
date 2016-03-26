@@ -387,7 +387,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
  * replay messages for logging.
  *
  * @group EKF2
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 

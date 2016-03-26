@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
  * to only use the time stamp if a 3D GPS lock is
  * present.
  *
- * @unit boolean
+ * @boolean
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);

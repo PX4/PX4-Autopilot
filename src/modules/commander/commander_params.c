@@ -178,7 +178,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * Set to 1 to enable actions triggered when the datalink is lost.
  *
  * @group Commander
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
@@ -303,7 +303,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * being sticky. Developers can default it to off.
  *
  * @group Commander
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 

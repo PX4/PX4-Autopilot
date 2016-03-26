@@ -1992,7 +1992,7 @@ PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
  * indicates that the threshold value where automatically set by the ground
  * station software. It is only meant for ground station use.
  *
- * @unit boolean
+ * @boolean
  * @group Radio Calibration
  */
 
@@ -2888,7 +2888,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  *
  * @reboot_required true
  *
- * @unit boolean
+ * @boolean
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);

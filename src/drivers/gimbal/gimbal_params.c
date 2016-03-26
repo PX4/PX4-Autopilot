@@ -48,7 +48,7 @@
  *
  * If set to 1, mount mode will be enforced.
  *
- * @unit boolean
+ * @boolean
  * @group Gimbal
  */
 PARAM_DEFINE_INT32(GMB_USE_MNT, 0);

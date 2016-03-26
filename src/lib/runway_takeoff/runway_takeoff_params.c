@@ -44,7 +44,7 @@
  *
  * 0: disabled, 1: enabled
  *
- * @unit boolean
+ * @boolean
  * @group Runway Takeoff
  */
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);

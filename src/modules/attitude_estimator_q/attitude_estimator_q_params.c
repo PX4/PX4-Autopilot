@@ -97,7 +97,7 @@ PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
  * Enable automatic GPS based declination compensation
  *
  * @group Attitude Q estimator
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
 
@@ -121,7 +121,7 @@ PARAM_DEFINE_INT32(ATT_EXT_HDG_M, 0);
  * velocity.
  *
  * @group Attitude Q estimator
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
 

@@ -110,7 +110,7 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM, 10.0f);
  * If set to one this parameter will cause permanent attitude stabilization in fw mode.
  * This parameter has been introduced for pure convenience sake.
  *
- * @unit boolean
+ * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
@@ -188,7 +188,7 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  *
  * If set to 1 the elevons are locked in multicopter mode
  *
- * @unit boolean
+ * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
@@ -252,7 +252,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Enable optimal recovery strategy for pitch-weak tailsitters
  *
- * @unit boolean
+ * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
@@ -260,7 +260,7 @@ PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
 /**
  * Enable weather-vane mode landings for missions
  *
- * @unit boolean
+ * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
@@ -282,7 +282,7 @@ PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
 /**
  * Enable weather-vane mode for loiter
  *
- * @unit boolean
+ * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
