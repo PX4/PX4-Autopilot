@@ -449,10 +449,11 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 
 		item->lat = target.lat;
 		item->lon = target.lon;
-		item->altitude = target.alt + _navigator->get_home_position()->alt;
 
-		if (((min_clearance > 0.0f) && (item->altitude < _navigator->get_home_position()->alt + min_clearance)) || PX4_ISFINITE(target.alt)) {
-			item->altitude = _navigator->get_home_position()->alt + min_clearance;
+		item->altitude = _navigator->get_global_position()->alt;
+
+		if (min_clearance > 0.0f) {
+			item->altitude += min_clearance;
 		}
 	}
 
