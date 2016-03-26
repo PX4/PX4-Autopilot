@@ -116,6 +116,7 @@ enum class MessageType : uint8_t {
 	PARAMETER = 'P',
 };
 
+/* declare message data structs with byte alignment (no padding) */
 #pragma pack(push, 1)
 struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
@@ -135,10 +136,10 @@ struct message_data_header_s {
 	//uint64_t timestamp;	// this field already included in each data struct
 };
 
-// apparently unused
+// currently unused
 struct message_info_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t key_len;
 	char key[255];
@@ -300,15 +301,24 @@ void Logger::run()
 			int msg_id = 0;
 
 			for (LoggerSubscription &sub : _subscriptions) {
+				/* each message consists of a header followed by an orb data object
+				 * The size of the data object is given by orb_metadata.o_size
+				 */
 				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
 				uint8_t buffer[msg_size];
 				bool updated = false;
 				orb_check(sub.fd, &updated);
 
 				if (updated) {
+					/* copy the current topic data into the buffer after the header */
 					orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
+
+					/* fill the message header struct in-place at the front of the buffer,
+					 * accessing the unaligned (packed) structure properly
+					 */
 					message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 					header->msg_type = static_cast<uint8_t>(MessageType::DATA);
+					/* the ORB metadata object has 2 unused trailing bytes? */
 					header->msg_size = static_cast<uint16_t>(msg_size - 2);
 					header->msg_id = msg_id;
 					header->multi_id = 0x80;	// Non multi, active
