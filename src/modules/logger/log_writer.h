@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
+#include <systemlib/perf_counter.h>
 
 namespace px4
 {
@@ -62,6 +63,8 @@ private:
 	bool		_should_run = false;
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
+	perf_counter_t perf_write;
+	perf_counter_t perf_fsync;
 };
 
 }
