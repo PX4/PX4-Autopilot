@@ -770,6 +770,8 @@ Mission::heading_sp_update()
 {
 	/* we don't want to be yawing during takeoff, landing or aligning for a transition */
 	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF			
+			|| _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+			|| _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 			|| _mission_item.nav_cmd == NAV_CMD_LAND
 			|| _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
 			|| _work_item_type == WORK_ITEM_TYPE_ALIGN) {
