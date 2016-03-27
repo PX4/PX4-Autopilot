@@ -765,6 +765,8 @@ then
 
 		# Arm straightaway.
 		pwm arm
+		# Use 400 Hz PWM on all channels.
+		pwm rate -a -r 400
 	fi
 
 	unset MIXER
