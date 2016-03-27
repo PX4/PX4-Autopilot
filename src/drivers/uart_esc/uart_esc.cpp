@@ -440,14 +440,10 @@ void task_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-			PX4_INFO("armed: %s, pre-armed; %s",
-				 _armed.armed ? "true" : "false",
-				 _armed.prearmed ? "true" : "false");
 		}
 	}
 
 	uart_deinitialize();
-	close(_fd_pwm);
 	orb_unsubscribe(_controls_sub);
 	orb_unsubscribe(_armed_sub);
 
