@@ -56,7 +56,7 @@ private:
 	int			_fd;
 	uint8_t 	*_buffer;
 	const size_t	_buffer_size;
-	const size_t	_min_write_chunk;
+	const size_t	_min_write_chunk;	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
 	size_t			_head = 0;
 	size_t			_count = 0;
 	size_t		_total_written = 0;
