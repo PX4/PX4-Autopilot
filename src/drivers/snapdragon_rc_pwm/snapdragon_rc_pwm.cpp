@@ -212,6 +212,7 @@ void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls)
 				PX4_ERR("PWM_SERVO_SET(%d)", i);
 			}
 		}
+
 	} else {
 		for (unsigned i = 0; i < sizeof(actuator_controls->controls) / sizeof(actuator_controls->controls[0]); i++) {
 			if (!isnan(actuator_controls->controls[i])) {
