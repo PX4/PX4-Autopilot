@@ -1098,8 +1098,6 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 		}
 
 		dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
-
-		mavlink_and_console_log_info(_navigator->get_mavlink_fd(), "mission reset");
 	}
 
 	dm_unlock(DM_KEY_MISSION_STATE);
