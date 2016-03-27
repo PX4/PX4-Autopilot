@@ -151,6 +151,11 @@ public:
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
 
 	/**
+	 * Returns the default acceptance radius defined by the parameter
+	 */
+	float get_default_acceptance_radius();
+
+	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used

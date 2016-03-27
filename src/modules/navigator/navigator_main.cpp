@@ -611,6 +611,12 @@ Navigator::publish_position_setpoint_triplet()
 }
 
 float
+Navigator::get_default_acceptance_radius()
+{
+	return _param_acceptance_radius.get();
+}
+
+float
 Navigator::get_acceptance_radius()
 {
 	return get_acceptance_radius(_param_acceptance_radius.get());
