@@ -2257,13 +2257,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* RC input check */
-#ifndef __PX4_QURT
 		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
 		    (hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f))) {
-#else
-		// HACK: remove old data check due to timestamp issue in QURT
-		if (!status.rc_input_blocked && sp_man.timestamp != 0) {
-#endif
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
