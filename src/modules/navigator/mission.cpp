@@ -80,6 +80,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
+	_need_mission_reset(false),
 	_missionFeasibilityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
@@ -108,6 +109,12 @@ Mission::on_inactive()
 		bool offboard_updated = false;
 		orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 		if (offboard_updated) {
+			update_offboard_mission();
+		}
+
+		/* reset the current offboard mission if needed */
+		if (need_to_reset_mission(false)) {
+			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
 		}
 
@@ -162,6 +169,13 @@ Mission::on_active()
 	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 	if (offboard_updated) {
 		update_offboard_mission();
+	}
+
+	/* reset the current offboard mission if needed */
+	if (need_to_reset_mission(true)) {
+		reset_offboard_mission(_offboard_mission);
+		update_offboard_mission();
+		offboard_updated = true;
 	}
 
 	/* reset mission items if needed */
@@ -1037,4 +1051,72 @@ Mission::check_mission_valid()
 	}
 
 	return _navigator->get_mission_result()->valid;
+}
+
+void
+Mission::reset_offboard_mission(struct mission_s &mission)
+{
+	dm_lock(DM_KEY_MISSION_STATE);
+
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
+			/* set current item to 0 */
+			mission.current_seq = 0;
+
+			/* reset jump counters */
+			if (mission.count > 0) {
+				dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(mission.dataman_id);
+
+				for (int index = 0; index < mission.count; index++) {
+					struct mission_item_s item;
+					const ssize_t len = sizeof(struct mission_item_s);
+
+					if (dm_read(dm_current, index, &item, len) != len) {
+						PX4_WARN("could not read mission item during reset");
+						break;
+					}
+
+					if (item.nav_cmd == NAV_CMD_DO_JUMP) {
+						item.do_jump_current_count = 0;
+
+						if (dm_write(dm_current, index, DM_PERSIST_POWER_ON_RESET,
+							     &item, len) != len) {
+							PX4_WARN("could not save mission item during reset");
+							break;
+						}
+					}
+				}
+			}
+
+		} else {
+			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "ERROR: could not read mission");
+
+			/* initialize mission state in dataman */
+			mission.dataman_id = 0;
+			mission.count = 0;
+			mission.current_seq = 0;
+		}
+
+		dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+
+		mavlink_and_console_log_info(_navigator->get_mavlink_fd(), "mission reset");
+	}
+
+	dm_unlock(DM_KEY_MISSION_STATE);
+}
+
+bool
+Mission::need_to_reset_mission(bool active)
+{
+	/* reset mission state when disarmed */
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+		_need_mission_reset = false;
+		return true;
+
+	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
+		/* mission is running, need reset after disarm */
+		_need_mission_reset = true;
+	}
+
+	return false;
 }

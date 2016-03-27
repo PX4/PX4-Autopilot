@@ -203,6 +203,16 @@ private:
 	 */
 	bool check_mission_valid();
 
+	/**
+	 * Reset offboard mission
+	 */
+	void reset_offboard_mission(struct mission_s &mission);
+
+	/**
+	 * Returns true if we need to reset the mission
+	 */
+	bool need_to_reset_mission(bool active);
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
@@ -224,6 +234,7 @@ private:
 
 	bool _inited;
 	bool _home_inited;
+	bool _need_mission_reset;
 
 	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
