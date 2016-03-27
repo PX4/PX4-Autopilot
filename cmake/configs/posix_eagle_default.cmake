@@ -7,7 +7,7 @@ set(CONFIG_SHMEM "1")
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the Snapdragon.
-set(added_definitions
+add_definitions(
 	-D__PX4_POSIX_EAGLE
 	)
 
