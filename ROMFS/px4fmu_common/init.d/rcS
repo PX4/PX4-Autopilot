@@ -842,11 +842,7 @@ then
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
 else
-	# Don't start mavlink in passthrough mode because we currently can't seem to stop it.
-	if [ $VEHICLE_TYPE != passthrough ]
-	then
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
 
