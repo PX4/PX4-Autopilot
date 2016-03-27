@@ -13,6 +13,7 @@ namespace logger
 
 class LogWriter
 {
+	friend class Logger;
 public:
 	LogWriter(uint8_t *buffer, size_t buffer_size);
 
@@ -58,7 +59,6 @@ private:
 	const size_t	_min_write_chunk;
 	size_t			_head = 0;
 	size_t			_count = 0;
-	size_t	_highWater = 0;
 	size_t		_total_written = 0;
 	bool		_should_run = false;
 	pthread_mutex_t		_mtx;

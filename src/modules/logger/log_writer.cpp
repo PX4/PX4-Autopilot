@@ -2,8 +2,6 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define DBGPRINT
-
 namespace px4
 {
 namespace logger
@@ -12,7 +10,7 @@ namespace logger
 LogWriter::LogWriter(uint8_t *buffer, size_t buffer_size) :
 	_buffer(buffer),
 	_buffer_size(buffer_size),
-	_min_write_chunk(_buffer_size / 8)
+	_min_write_chunk(4096)
 {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
@@ -86,9 +84,6 @@ void LogWriter::run()
 			}
 		}
 
-		int poll_count = 0;
-		int written = 0;
-
 		_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 		if (_fd < 0) {
@@ -101,45 +96,40 @@ void LogWriter::run()
 
 		_should_run = true;
 
-#ifdef DBGPRINT
-		hrt_abstime reportTime = 0;
-		size_t highWater = 0;
-#endif
+		int poll_count = 0;
+		int written = 0;
 
 		while (true) {
 			size_t available = 0;
 			void *read_ptr = nullptr;
 			bool is_part = false;
 
+			/* lock _buffer
+			 * wait for sufficient data, cycle on notify()
+			 */
 			pthread_mutex_lock(&_mtx);
-			mark_read(written);
-			written = 0;
-
-			/* wait for sufficient data or ? or termination */
 			while (true) {
 				available = get_read_ptr(&read_ptr, &is_part);
 
+				/* if sufficient data available or partial read or terminating, exit this wait loop */
 				if ((available > _min_write_chunk) || is_part || !_should_run) {
+					/* GOTO end of block */
 					break;
 				}
 
+				/* wait for a call to notify()
+				 * this call unlocks the mutex while waiting, and returns with the mutex locked
+				 */
 				pthread_cond_wait(&_cv, &_mtx);
 			}
-
 			pthread_mutex_unlock(&_mtx);
 
 			if (available > 0) {
-#ifdef DBGPRINT
-
-				if (available > highWater) {
-					highWater = available;
-				}
-
-#endif
 				perf_begin(perf_write);
 				written = ::write(_fd, read_ptr, available);
 				perf_end(perf_write);
 
+				/* call fsync periodically to minimize potential loss of data */
 				if (++poll_count >= 100) {
 					perf_begin(perf_fsync);
 					::fsync(_fd);
@@ -150,22 +140,17 @@ void LogWriter::run()
 				if (written < 0) {
 					warn("error writing log file");
 					_should_run = false;
+					/* GOTO end of block */
 					break;
 				}
 
+				pthread_mutex_lock(&_mtx);
+				/* subtract bytes written from number in _buffer (_count -= written) */
+				mark_read(written);
+				pthread_mutex_unlock(&_mtx);
+
 				_total_written += written;
 			}
-
-#ifdef DBGPRINT
-			double deltat = (double)(hrt_absolute_time() - reportTime)  * 1e-6;
-
-			if (deltat > 1.0) {
-				warnx("highWater mark: %u bytes", (unsigned)highWater);
-				highWater = 0;
-				reportTime = hrt_absolute_time();
-			}
-
-#endif
 
 			if (!_should_run && written == static_cast<int>(available) && !is_part) {
 				// Stop only when all data written
@@ -191,21 +176,7 @@ bool LogWriter::write(void *ptr, size_t size)
 	// Bytes available to write
 	size_t available = _buffer_size - _count;
 
-#ifdef DBGPRINT
-
-	if (_count > _highWater) { _highWater = _count; }
-
-	if (available < 1000) {
-		warnx("highWater: %d", _highWater);
-	}
-
-//	warnx("writing %d bytes, available: %d", size, available);
-#endif
-
 	if (size > available) {
-#ifdef DBGPRINT
-		printf("ovf: %d\n", size - available);
-#endif
 		// buffer overflow
 		return false;
 	}
