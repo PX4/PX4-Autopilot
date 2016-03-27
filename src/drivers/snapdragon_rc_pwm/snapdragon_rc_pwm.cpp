@@ -76,6 +76,8 @@ int _pwm_fd = -1;
 static bool _flow_control_enabled = false;
 int _rc_sub = -1;
 
+hrt_abstime _last_actuator_controls_received = 0;
+
 struct input_rc_s _rc = {};
 
 // Print out the usage information
@@ -88,11 +90,15 @@ void stop();
 
 int initialise_uart();
 
+int deinitialize_uart();
+
 int enable_flow_control(bool enabled);
 
 void send_rc_mavlink();
 
 void handle_message(mavlink_message_t *msg);
+
+void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls);
 
 /** task main trampoline function */
 void task_main_trampoline(int argc, char *argv[]);
@@ -163,8 +169,15 @@ void task_main(int argc, char *argv[])
 			// send mavlink message
 			send_rc_mavlink();
 		}
+
+		// Turn motors off after timeout of 0.1s.
+		if (hrt_elapsed_time(&_last_actuator_controls_received) > 100000) {
+			set_pwm_output(nullptr);
+		}
 	}
 
+	deinitialize_uart();
+	close(_pwm_fd);
 
 }
 
@@ -177,16 +190,32 @@ void handle_message(mavlink_message_t *msg)
 		//static unsigned counter = 0;
 		//if (counter++ % 250 == 0) {
 		//	PX4_INFO("got motor controls %.2f %.2f %.2f %.2f",
-		//		 (double)_actuators.control[0],
-		//		 (double)_actuators.control[1],
-		//		 (double)_actuators.control[2],
-		//		 (double)_actuators.control[3]);
+		//		 (double)actuator_controls.controls[0],
+		//		 (double)actuator_controls.controls[1],
+		//		 (double)actuator_controls.controls[2],
+		//		 (double)actuator_controls.controls[3]);
 		//}
-		//
-		//
-		for (unsigned i = 0; i < sizeof(actuator_controls.controls) / sizeof(actuator_controls.controls[0]); i++) {
-			if (!isnan(actuator_controls.controls[i])) {
-				long unsigned pwm = actuator_controls.controls[i];
+		set_pwm_output(&actuator_controls);
+
+		_last_actuator_controls_received = hrt_absolute_time();
+	}
+}
+
+void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls)
+{
+	if (actuator_controls == nullptr) {
+		// Without valid argument, set all channels to 0
+		for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
+			int ret = ::ioctl(_pwm_fd, PWM_SERVO_SET(i), 0);
+
+			if (ret != OK) {
+				PX4_ERR("PWM_SERVO_SET(%d)", i);
+			}
+		}
+	} else {
+		for (unsigned i = 0; i < sizeof(actuator_controls->controls) / sizeof(actuator_controls->controls[0]); i++) {
+			if (!isnan(actuator_controls->controls[i])) {
+				long unsigned pwm = actuator_controls->controls[i];
 				int ret = ::ioctl(_pwm_fd, PWM_SERVO_SET(i), pwm);
 
 				if (ret != OK) {
@@ -326,6 +355,11 @@ int enable_flow_control(bool enabled)
 	}
 
 	return ret;
+}
+
+int deinitialize_uart()
+{
+	return close(_uart_fd);
 }
 
 // uart_esc main entrance
