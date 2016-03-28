@@ -68,12 +68,12 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/geo/geo.h>
 #include <lib/ecl/validation/data_validator_group.h>
-#include <mavlink/mavlink_log.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
@@ -192,7 +192,7 @@ private:
 	bool		_vibration_warning = false;
 	bool		_ext_hdg_good = false;
 
-	int		_mavlink_fd = -1;
+	orb_advert_t	_mavlink_log_pub = nullptr;
 
 	perf_counter_t _update_perf;
 	perf_counter_t _loop_perf;
@@ -326,15 +326,6 @@ void AttitudeEstimatorQ::task_main()
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, 1, 1000);
 
-#ifndef __PX4_QURT
-
-		if (_mavlink_fd < 0) {
-			/* TODO: This call currently stalls the thread on QURT */
-			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-		}
-
-#endif
-
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
@@ -422,7 +413,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_gyro.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Gyro #%i failure :%s%s%s%s%s!",
 									  _voter_gyro.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -434,7 +425,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_accel.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_accel.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Accel #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Accel #%i failure :%s%s%s%s%s!",
 									  _voter_accel.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -446,7 +437,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_mag.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_mag.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Mag #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Mag #%i failure :%s%s%s%s%s!",
 									  _voter_mag.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -456,7 +447,7 @@ void AttitudeEstimatorQ::task_main()
 				}
 
 				if (_failsafe) {
-					mavlink_and_console_log_emergency(_mavlink_fd, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
 				}
 			}
 
@@ -469,7 +460,7 @@ void AttitudeEstimatorQ::task_main()
 
 				} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 					_vibration_warning = true;
-					mavlink_and_console_log_critical(_mavlink_fd, "HIGH VIBRATION! g: %d a: %d m: %d",
+					mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
 									 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
 									 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
 									 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));

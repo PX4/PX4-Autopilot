@@ -329,7 +329,6 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
- * @unit enum
  * @value -1 Internal mag
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -536,7 +535,6 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
- * @unit enum
  * @value -1 Internal mag
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -735,7 +733,6 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  *
  * This parameter defines the rotation of the FMU board relative to the platform.
  *
- * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -773,7 +770,6 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * This parameter defines the rotation of the PX4FLOW board relative to the platform.
  * Zero rotation is defined as Y on flow board pointing towards front of vehicle
  *
- * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -825,7 +821,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 /**
  * External magnetometer rotation
  *
- * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -860,7 +855,6 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 /**
  * Select primary magnetometer
  *
- * @unit enum
  * @min 0
  * @max 2
  * @value 0 Auto-select Mag
@@ -1921,7 +1915,6 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 /**
  * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
  *
- * @unit enum
  * @min 0
  * @max 1
  * @value 0 Disabled
@@ -1933,7 +1926,6 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 /**
  * DSM binding trigger.
  *
- * @unit enum
  * @value -1 Inactive
  * @value 0 Start DSM2 bind
  * @value 1 Start DSMX bind
@@ -1992,7 +1984,7 @@ PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
  * indicates that the threshold value where automatically set by the ground
  * station software. It is only meant for ground station use.
  *
- * @unit boolean
+ * @boolean
  * @group Radio Calibration
  */
 
@@ -2005,7 +1997,6 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  * which channel should be used for reading roll inputs from.
  * A value of zero indicates the switch is not assigned.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2038,7 +2029,6 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
  * which channel should be used for reading pitch inputs from.
  * A value of zero indicates the switch is not assigned.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2071,7 +2061,6 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  * If 0, whichever channel is mapped to throttle is used
  * otherwise the value indicates the specific rc channel to use
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2103,7 +2092,6 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  * which channel should be used for reading throttle inputs from.
  * A value of zero indicates the switch is not assigned.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2136,7 +2124,6 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
  * which channel should be used for reading yaw inputs from.
  * A value of zero indicates the switch is not assigned.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2168,7 +2155,6 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
  * If this parameter is non-zero, flight modes are only selected
  * by this channel and are assigned to six slots.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2202,7 +2188,6 @@ PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
  * which channel should be used for deciding about the main mode.
  * A value of zero indicates the switch is not assigned.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2231,7 +2216,6 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 /**
  * Return switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2260,7 +2244,6 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 /**
  * Rattitude switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2289,7 +2272,6 @@ PARAM_DEFINE_INT32(RC_MAP_RATT_SW, 0);
 /**
  * Position Control switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2318,7 +2300,6 @@ PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 /**
  * Loiter switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2347,7 +2328,6 @@ PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 /**
  * Acro switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2376,7 +2356,6 @@ PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 /**
  * Offboard switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2405,7 +2384,6 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 /**
  * Kill switch channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2434,7 +2412,6 @@ PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 /**
  * Flaps channel
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -2465,7 +2442,6 @@ PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
  *
  * Default function: Camera pitch
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2496,7 +2472,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
  *
  * Default function: Camera roll
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2527,7 +2502,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
  *
  * Default function: Camera azimuth / yaw
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2559,7 +2533,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel.
  * Set to 0 to deactivate *
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2591,7 +2564,6 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel.
  * Set to 0 to deactivate *
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2623,7 +2595,6 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel.
  * Set to 0 to deactivate *
  *
- * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -2832,7 +2803,6 @@ PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
  *
  * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
  *
- * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
@@ -2888,7 +2858,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  *
  * @reboot_required true
  *
- * @unit boolean
+ * @boolean
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);

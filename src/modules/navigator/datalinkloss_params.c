@@ -119,6 +119,6 @@ PARAM_DEFINE_INT32(NAV_DLL_N, 2);
  * airfield home
  *
  * @group Data Link Loss
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(NAV_DLL_CHSK, 0);

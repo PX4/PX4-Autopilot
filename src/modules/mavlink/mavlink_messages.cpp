@@ -75,10 +75,11 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 #include <mathlib/mathlib.h>
 
@@ -186,7 +187,13 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 			break;
-
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+			*mavlink_base_mode 	|= MAV_MODE_FLAG_AUTO_ENABLED
+								| MAV_MODE_FLAG_STABILIZE_ENABLED
+								| MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_FOLLOW_TARGET;
+			break;
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			/* fallthrough */
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
@@ -360,58 +367,65 @@ public:
 	}
 
 	unsigned get_size() {
-		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+		return _mavlink->get_logbuffer()->empty() ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
-	FILE *fp = nullptr;
+
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
+#ifndef __PX4_QURT
+	FILE *fp = nullptr;
+#endif
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
 	~MavlinkStreamStatustext() {
+#ifndef __PX4_QURT
 		if (fp) {
 			fclose(fp);
 		}
+#endif
 	}
 
-#ifndef __PX4_QURT
+
 	void send(const hrt_abstime t)
 	{
-		if (!mavlink_logbuffer_is_empty(_mavlink->get_logbuffer())) {
-			struct mavlink_logmessage logmsg;
-			int lb_ret = mavlink_logbuffer_read(_mavlink->get_logbuffer(), &logmsg);
+		if (!_mavlink->get_logbuffer()->empty()) {
 
-			if (lb_ret == OK) {
+			struct mavlink_log_s mavlink_log;
+			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
+
 				mavlink_statustext_t msg;
-
-				msg.severity = logmsg.severity;
-				strncpy(msg.text, logmsg.text, sizeof(msg.text));
+				msg.severity = mavlink_log.severity;
+				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
 
 				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
 
-				/* write log messages in first instance to disk */
-				if (_mavlink->get_instance_id() == 0) {
-					if (fp) {
-						if (EOF == fputs(msg.text, fp)) {
-							write_err_count++;
-						} else {
-							write_err_count = 0;
-						}
 
-						if (write_err_count >= write_err_threshold) {
-							(void)fclose(fp);
-							fp = nullptr;
-						} else {
-							(void)fputs("\n", fp);
-							(void)fsync(fileno(fp));
-						}
+// TODO: the logging doesn't work on Snapdragon yet because of file paths.
+#ifndef __PX4_POSIX_EAGLE
+			/* write log messages in first instance to disk */
+			if (_mavlink->get_instance_id() == 0) {
+				if (fp) {
+					if (EOF == fputs(msg.text, fp)) {
+						write_err_count++;
+					} else {
+						write_err_count = 0;
+					}
+
+					if (write_err_count >= write_err_threshold) {
+						(void)fclose(fp);
+						fp = nullptr;
+					} else {
+						(void)fputs("\n", fp);
+						(void)fsync(fileno(fp));
+					}
 
 					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
@@ -434,16 +448,15 @@ protected:
 							/* write first message */
 							fputs(msg.text, fp);
 							fputs("\n", fp);
-						}
-						else {
-							warn("Failed to open %s errno=%d", log_file_path, errno);
+						} else {
+							PX4_WARN("Failed to open %s errno=%d", log_file_path, errno);
 						}
 					}
 				}
+#endif
 			}
 		}
 	}
-#endif
 };
 
 class MavlinkStreamCommandLong : public MavlinkStream
@@ -2699,7 +2712,7 @@ protected:
 
 			if (land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
-			
+
 			} else {
 				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
 			}

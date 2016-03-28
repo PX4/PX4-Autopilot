@@ -1,9 +1,11 @@
 #include "BlockLocalPositionEstimator.hpp"
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
 
+// required number of samples for sensor
+// to initialize
 static const int 		REQ_BARO_INIT_COUNT = 100;
 static const int 		REQ_FLOW_INIT_COUNT = 20;
 static const int 		REQ_GPS_INIT_COUNT = 10;
@@ -12,6 +14,7 @@ static const int 		REQ_SONAR_INIT_COUNT = 20;
 static const int 		REQ_VISION_INIT_COUNT = 20;
 static const int 		REQ_MOCAP_INIT_COUNT = 20;
 
+// timeouts for sensors in microseconds
 static const uint32_t 		BARO_TIMEOUT = 1000000;		// 1.0 s
 static const uint32_t 		FLOW_TIMEOUT = 500000;		// 0.5 s
 static const uint32_t 		GPS_TIMEOUT = 1000000; 		// 1.0 s
@@ -20,14 +23,23 @@ static const uint32_t 		VISION_TIMEOUT = 500000;	// 0.5 s
 static const uint32_t 		MOCAP_TIMEOUT = 200000;		// 0.2 s
 static const uint32_t 		EST_SRC_TIMEOUT = 500000; // 0.5 s
 
-// for fault detection
-// chi squared distribution, false alarm probability 0.005
-// http://sites.stat.psu.edu/~mga/401/tables/Chi-square-table.pdf
-static const float BETA_TABLE[7] = {0, 7.879, 10.597,
-				    12.838, 14.860, 16.750, 18.548
-				   };
+// change this to set when
+// the system will abort correcting a measurement
+// given a fault has been detected
+static fault_t fault_lvl_disable = FAULT_SEVERE;
 
-using namespace std;
+// for fault detection
+// chi squared distribution, false alarm probability 0.0001
+// see fault_table.py
+// note skip 0 index so we can use degree of freedom as index
+static const float BETA_TABLE[7] = {0,
+				    8.82050518214,
+				    12.094592431,
+				    13.9876612368,
+				    16.0875642296,
+				    17.8797700658,
+				    19.6465647819,
+				   };
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
@@ -57,7 +69,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
-	//_pub_filtered_flow(ORB_ID(filtered_bottom_flow), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
 
 	// map projection
@@ -72,6 +83,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_accel_xy_stddev(this, "ACC_XY"),
 	_accel_z_stddev(this, "ACC_Z"),
 	_baro_stddev(this, "BAR_Z"),
+	_gps_delay(this, "GPS_DELAY"),
 	_gps_xy_stddev(this, "GPS_XY"),
 	_gps_z_stddev(this, "GPS_Z"),
 	_gps_vxy_stddev(this, "GPS_VXY"),
@@ -86,10 +98,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
-	_pn_p_noise_power(this, "PN_P"),
-	_pn_v_noise_power(this, "PN_V"),
-	_pn_b_noise_power(this, "PN_B"),
-	_pn_t_noise_power(this, "PN_T"),
+	_pn_p_noise_density(this, "PN_P"),
+	_pn_v_noise_density(this, "PN_V"),
+	_pn_b_noise_density(this, "PN_B"),
+	_pn_t_noise_density(this, "PN_T"),
 
 	// flow gyro
 	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
@@ -105,14 +117,13 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsStats(this, ""),
 
 	// stats
-	//_xDelay(this, ""),
-	//_PDelay(this, ""),
-	//_tDelay(this, ""),
+	_xDelay(this, ""),
+	_tDelay(this, ""),
 
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
-	//_time_last_hist(0),
+	_time_last_hist(0),
 	_time_last_xy(0),
 	_time_last_z(0),
 	_time_last_tz(0),
@@ -123,9 +134,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_sonar(0),
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
-
-	// mavlink log
-	_mavlink_fd(open(MAVLINK_LOG_DEVICE, 0)),
 
 	// initialization flags
 	_baroInitialized(false),
@@ -157,6 +165,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_canEstimateXY(false),
 	_canEstimateZ(false),
 	_canEstimateT(false),
+	_canEstimateGlobal(true),
 	_xyTimeout(true),
 	_zTimeout(true),
 	_tzTimeout(true),
@@ -282,15 +291,15 @@ void BlockLocalPositionEstimator::update()
 
 	// determine if we should start estimating
 	_canEstimateZ =
-		(_baroInitialized && _baroFault < FAULT_SEVERE);
+		(_baroInitialized && _baroFault < fault_lvl_disable);
 	_canEstimateXY =
-		(_gpsInitialized && _gpsFault < FAULT_SEVERE) ||
-		(_flowInitialized && _flowFault < FAULT_SEVERE) ||
-		(_visionInitialized && _visionFault < FAULT_SEVERE) ||
-		(_mocapInitialized && _mocapFault < FAULT_SEVERE);
+		(_gpsInitialized && _gpsFault < fault_lvl_disable) ||
+		(_flowInitialized && _flowFault < fault_lvl_disable) ||
+		(_visionInitialized && _visionFault < fault_lvl_disable) ||
+		(_mocapInitialized && _mocapFault < fault_lvl_disable);
 	_canEstimateT =
-		(_lidarInitialized && _lidarFault < FAULT_SEVERE) ||
-		(_sonarInitialized && _sonarFault < FAULT_SEVERE);
+		(_lidarInitialized && _lidarFault < fault_lvl_disable) ||
+		(_sonarInitialized && _sonarFault < fault_lvl_disable);
 
 	if (_canEstimateXY) {
 		_time_last_xy = _timeStamp;
@@ -319,7 +328,7 @@ void BlockLocalPositionEstimator::update()
 		// should we do a reinit
 		// of sensors here?
 		// don't want it to take too long
-		if (!isfinite(_x(i))) {
+		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
 			break;
 		}
@@ -330,7 +339,7 @@ void BlockLocalPositionEstimator::update()
 			_x(i) = 0;
 		}
 
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit x");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] reinit x");
 		warnx("[lpe] reinit x");
 	}
 
@@ -339,7 +348,7 @@ void BlockLocalPositionEstimator::update()
 
 	for (int i = 0; i < n_x; i++) {
 		for (int j = 0; j < n_x; j++) {
-			if (!isfinite(_P(i, j))) {
+			if (!PX4_ISFINITE(_P(i, j))) {
 				reinit_P = true;
 				break;
 			}
@@ -349,7 +358,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	if (reinit_P) {
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit P");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] reinit P");
 		warnx("[lpe] reinit P");
 		initP();
 	}
@@ -430,7 +439,10 @@ void BlockLocalPositionEstimator::update()
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
-		publishGlobalPos();
+
+		if (_canEstimateGlobal) {
+			publishGlobalPos();
+		}
 
 	} else if (!_zTimeout && _altHomeInitialized) {
 		// publish only Z estimate
@@ -438,6 +450,17 @@ void BlockLocalPositionEstimator::update()
 		publishEstimatorStatus();
 	}
 
+	// propagate delayed state, no matter what
+	// if state is frozen, delayed state still
+	// needs to be propagated with frozen state
+	float dt_hist = 1.0e-6f * (_timeStamp - _time_last_hist);
+
+	if (_time_last_hist == 0 ||
+	    (dt_hist > HIST_STEP)) {
+		_tDelay.update(Scalar<uint64_t>(_timeStamp));
+		_xDelay.update(_x);
+		_time_last_hist = _timeStamp;
+	}
 }
 
 void BlockLocalPositionEstimator::checkTimeouts()
@@ -445,40 +468,46 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_xy > EST_SRC_TIMEOUT) {
 		if (!_xyTimeout) {
 			_xyTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] xy timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] xy timeout ");
 			warnx("[lpe] xy timeout ");
 		}
 
-	} else {
+	} else if (_xyTimeout) {
+		mavlink_log_info(_mavlink_fd, "[lpe] xy resume ");
+		warnx("[lpe] xy resume ");
 		_xyTimeout = false;
 	}
 
 	if (_timeStamp - _time_last_z > EST_SRC_TIMEOUT) {
 		if (!_zTimeout) {
 			_zTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] z timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] z timeout ");
 			warnx("[lpe] z timeout ");
 		}
 
-	} else {
+	} else if (_zTimeout) {
+		mavlink_log_info(_mavlink_fd, "[lpe] z resume ");
+		warnx("[lpe] z resume ");
 		_zTimeout = false;
 	}
 
 	if (_timeStamp - _time_last_tz > EST_SRC_TIMEOUT) {
 		if (!_tzTimeout) {
 			_tzTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] tz timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] tz timeout ");
 			warnx("[lpe] tz timeout ");
 		}
 
-	} else {
+	} else if (_tzTimeout) {
+		mavlink_log_info(_mavlink_fd, "[lpe] tz resume ");
+		warnx("[lpe] tz resume ");
 		_tzTimeout = false;
 	}
 
 	if (_timeStamp - _time_last_baro > BARO_TIMEOUT) {
 		if (_baroInitialized) {
 			_baroInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] baro timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] baro timeout ");
 			warnx("[lpe] baro timeout ");
 		}
 	}
@@ -486,7 +515,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_gps > GPS_TIMEOUT) {
 		if (_gpsInitialized) {
 			_gpsInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] GPS timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] GPS timeout ");
 			warnx("[lpe] GPS timeout ");
 		}
 	}
@@ -494,7 +523,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_flow > FLOW_TIMEOUT) {
 		if (_flowInitialized) {
 			_flowInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] flow timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] flow timeout ");
 			warnx("[lpe] flow timeout ");
 		}
 	}
@@ -502,7 +531,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_sonar > RANGER_TIMEOUT) {
 		if (_sonarInitialized) {
 			_sonarInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] sonar timeout ");
 			warnx("[lpe] sonar timeout ");
 		}
 	}
@@ -510,7 +539,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_lidar > RANGER_TIMEOUT) {
 		if (_lidarInitialized) {
 			_lidarInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] lidar timeout ");
 			warnx("[lpe] lidar timeout ");
 		}
 	}
@@ -518,7 +547,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_vision_p > VISION_TIMEOUT) {
 		if (_visionInitialized) {
 			_visionInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] vision position timeout ");
 			warnx("[lpe] vision position timeout ");
 		}
 	}
@@ -526,7 +555,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	if (_timeStamp - _time_last_mocap > MOCAP_TIMEOUT) {
 		if (_mocapInitialized) {
 			_mocapInitialized = false;
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap timeout ");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] mocap timeout ");
 			warnx("[lpe] mocap timeout ");
 		}
 	}
@@ -542,9 +571,12 @@ void BlockLocalPositionEstimator::updateHome()
 	// like gps and baro to be off, need to allow it
 	// to reset by resetting covariance
 	initP();
-
-	mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
-	warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+	mavlink_log_info(&_mavlink_log_pub, "[lpe] home "
+			 "lat %6.2f lon %6.2f alt %5.1f m",
+			 lat, lon, double(alt));
+	warnx("[lpe] home "
+	      "lat %6.2f lon %6.2f alt %5.1f m",
+	      lat, lon, double(alt));
 	map_projection_init(&_map_ref, lat, lon);
 	float delta_alt = alt - _altHome;
 	_altHomeInitialized = true;
@@ -563,11 +595,11 @@ void BlockLocalPositionEstimator::initBaro()
 
 	if (_baroStats.getCount() > REQ_BARO_INIT_COUNT) {
 		_baroAltHome = _baroStats.getMean()(0);
-		mavlink_log_info(_mavlink_fd,
-				 "[lpe] baro offs: %d m stddev %d cm",
+		mavlink_log_info(&_mavlink_log_pub,
+				 "[lpe] baro init %d m std %d cm",
 				 (int)_baroStats.getMean()(0),
 				 (int)(100 * _baroStats.getStdDev()(0)));
-		warnx("[lpe] baro offs: %d m stddev %d cm",
+		warnx("[lpe] baro init %d m std %d cm",
 		      (int)_baroStats.getMean()(0),
 		      (int)(100 * _baroStats.getStdDev()(0)));
 		_baroInitialized = true;
@@ -608,16 +640,18 @@ void BlockLocalPositionEstimator::initGps()
 		_gpsAltHome = _gpsStats.getMean()(2);
 		map_projection_init(&_map_ref,
 				    _gpsLatHome, _gpsLonHome);
-		mavlink_log_info(_mavlink_fd, "[lpe] gps init: "
-				 "lat %d, lon %d, alt %d m",
-				 int(_gpsLatHome),
-				 int(_gpsLonHome),
-				 int(_gpsAltHome));
-		warnx("[lpe] gps init: lat %d, lon %d, alt %d m",
-		      int(_gpsLatHome),
-		      int(_gpsLonHome),
-		      int(_gpsAltHome));
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] gps init "
+				 "lat %6.2f lon %6.2f alt %5.1f m",
+				 _gpsLatHome,
+				 _gpsLonHome,
+				 double(_gpsAltHome));
+		warnx("[lpe] gps init "
+		      "lat %6.2f lon %6.2f alt %5.1f m",
+		      _gpsLatHome,
+		      _gpsLonHome,
+		      double(_gpsAltHome));
 		_gpsInitialized = true;
+		_canEstimateGlobal = true;
 		_gpsStats.reset();
 
 		if (!_altHomeInitialized) {
@@ -654,12 +688,12 @@ void BlockLocalPositionEstimator::initLidar()
 		}
 
 		// not, might want to hard code this to zero
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
-				 "mean %d cm, stddev %d cm",
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] lidar init: "
+				 "mean %d cm stddev %d cm",
 				 int(100 * _lidarStats.getMean()(0)),
 				 int(100 * _lidarStats.getStdDev()(0)));
 		warnx("[lpe] lidar init: "
-		      "mean %d cm, stddev %d cm",
+		      "mean %d cm std %d cm",
 		      int(100 * _lidarStats.getMean()(0)),
 		      int(100 * _lidarStats.getStdDev()(0)));
 		_lidarInitialized = true;
@@ -694,12 +728,12 @@ void BlockLocalPositionEstimator::initSonar()
 		}
 
 		// not, might want to hard code this to zero
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar init: "
-				 "mean %d cm, stddev %d cm",
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] sonar init "
+				 "mean %d cm std %d cm",
 				 int(100 * _sonarStats.getMean()(0)),
 				 int(100 * _sonarStats.getStdDev()(0)));
-		warnx("[lpe] sonar init: "
-		      "mean %d cm, stddev %d cm",
+		warnx("[lpe] sonar init "
+		      "mean %d cm std %d cm",
 		      int(100 * _sonarStats.getMean()(0)),
 		      int(100 * _sonarStats.getStdDev()(0)));
 		_sonarInitialized = true;
@@ -721,12 +755,12 @@ void BlockLocalPositionEstimator::initFlow()
 	_time_last_flow = _timeStamp;
 
 	if (_flowQStats.getCount() > REQ_FLOW_INIT_COUNT) {
-		mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
-				 "quality %d stddev %d",
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] flow init: "
+				 "quality %d std %d",
 				 int(_flowQStats.getMean()(0)),
 				 int(_flowQStats.getStdDev()(0)));
 		warnx("[lpe] flow init: "
-		      "quality %d stddev %d",
+		      "quality %d std %d",
 		      int(_flowQStats.getMean()(0)),
 		      int(_flowQStats.getStdDev()(0)));
 		_flowInitialized = true;
@@ -748,8 +782,8 @@ void BlockLocalPositionEstimator::initVision()
 
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
 		_visionHome = _visionStats.getMean();
-		mavlink_log_info(_mavlink_fd, "[lpe] vision position init: "
-				 "%f, %f, %f m std dev. %f, %f, %f m",
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] vision position init: "
+				 "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
 				 double(_visionStats.getMean()(0)),
 				 double(_visionStats.getMean()(1)),
 				 double(_visionStats.getMean()(2)),
@@ -757,7 +791,7 @@ void BlockLocalPositionEstimator::initVision()
 				 double(_visionStats.getStdDev()(1)),
 				 double(_visionStats.getStdDev()(2)));
 		warnx("[lpe] vision position init: "
-		      "%f, %f, %f m std dev. %f, %f, %f m",
+		      "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
 		      double(_visionStats.getMean()(0)),
 		      double(_visionStats.getMean()(1)),
 		      double(_visionStats.getMean()(2)),
@@ -788,8 +822,8 @@ void BlockLocalPositionEstimator::initMocap()
 
 	if (_mocapStats.getCount() > REQ_MOCAP_INIT_COUNT) {
 		_mocapHome = _mocapStats.getMean();
-		mavlink_log_info(_mavlink_fd, "[lpe] mocap position init: "
-				 "%f, %f, %f m std dev. %f, %f, %f m",
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] mocap position init: "
+				 "%5.2f, %5.2f, %5.2f m std %5.2f, %5.2f, %5.2f m",
 				 double(_mocapStats.getMean()(0)),
 				 double(_mocapStats.getMean()(1)),
 				 double(_mocapStats.getMean()(2)),
@@ -797,7 +831,7 @@ void BlockLocalPositionEstimator::initMocap()
 				 double(_mocapStats.getStdDev()(1)),
 				 double(_mocapStats.getStdDev()(2)));
 		warnx("[lpe] mocap position init: "
-		      "%f, %f, %f m std dev. %f, %f, %f m",
+		      "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
 		      double(_mocapStats.getMean()(0)),
 		      double(_mocapStats.getMean()(1)),
 		      double(_mocapStats.getMean()(2)),
@@ -817,9 +851,9 @@ void BlockLocalPositionEstimator::initMocap()
 void BlockLocalPositionEstimator::publishLocalPos()
 {
 	// publish local position
-	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
-	    isfinite(_x(X_vx)) && isfinite(_x(X_vy))
-	    && isfinite(_x(X_vz))) {
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
+	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_lpos.get().timestamp = _timeStamp;
 		_pub_lpos.get().xy_valid = _canEstimateXY;
 		_pub_lpos.get().z_valid = _canEstimateZ;
@@ -850,9 +884,9 @@ void BlockLocalPositionEstimator::publishLocalPos()
 
 void BlockLocalPositionEstimator::publishEstimatorStatus()
 {
-	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
-	    isfinite(_x(X_vx)) && isfinite(_x(X_vy))
-	    && isfinite(_x(X_vz))) {
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
+	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_est_status.get().timestamp = _timeStamp;
 
 		for (int i = 0; i < n_x; i++) {
@@ -863,13 +897,13 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 		_pub_est_status.get().n_states = n_x;
 		_pub_est_status.get().nan_flags = 0;
 		_pub_est_status.get().health_flags =
-			((_baroFault > 0) << SENSOR_BARO)
-			+ ((_gpsFault > 0) << SENSOR_GPS)
-			+ ((_lidarFault > 0) << SENSOR_LIDAR)
-			+ ((_flowFault > 0) << SENSOR_FLOW)
-			+ ((_sonarFault > 0) << SENSOR_SONAR)
-			+ ((_visionFault > 0) << SENSOR_VISION)
-			+ ((_mocapFault > 0) << SENSOR_MOCAP);
+			((_baroFault > fault_lvl_disable) << SENSOR_BARO)
+			+ ((_gpsFault > fault_lvl_disable) << SENSOR_GPS)
+			+ ((_lidarFault > fault_lvl_disable) << SENSOR_LIDAR)
+			+ ((_flowFault > fault_lvl_disable) << SENSOR_FLOW)
+			+ ((_sonarFault > fault_lvl_disable) << SENSOR_SONAR)
+			+ ((_visionFault > fault_lvl_disable) << SENSOR_VISION)
+			+ ((_mocapFault > fault_lvl_disable) << SENSOR_MOCAP);
 		_pub_est_status.get().timeout_flags =
 			(_baroInitialized << SENSOR_BARO)
 			+ (_gpsInitialized << SENSOR_GPS)
@@ -890,9 +924,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
 	float alt = -_x(X_z) + _altHome;
 
-	if (isfinite(lat) && isfinite(lon) && isfinite(alt) &&
-	    isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
-	    isfinite(_x(X_vz))) {
+	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy)) &&
+	    PX4_ISFINITE(_x(X_vz))) {
 		_pub_gpos.get().timestamp = _timeStamp;
 		_pub_gpos.get().time_utc_usec = _sub_gps.get().time_utc_usec;
 		_pub_gpos.get().lat = lat;
@@ -911,17 +945,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.update();
 	}
 }
-
-//void BlockLocalPositionEstimator::publishFilteredFlow()
-//{
-//// publish filtered flow
-//if (isfinite(_pub_filtered_flow.get().sumx) &&
-//isfinite(_pub_filtered_flow.get().sumy) &&
-//isfinite(_pub_filtered_flow.get().vx) &&
-//isfinite(_pub_filtered_flow.get().vy)) {
-//_pub_filtered_flow.update();
-//}
-//}
 
 void BlockLocalPositionEstimator::initP()
 {
@@ -994,22 +1017,26 @@ void BlockLocalPositionEstimator::predict()
 	// process noise power matrix
 	Matrix<float, n_x, n_x>  Q;
 	Q.setZero();
-	Q(X_x, X_x) = _pn_p_noise_power.get();
-	Q(X_y, X_y) = _pn_p_noise_power.get();
-	Q(X_z, X_z) = _pn_p_noise_power.get();
-	Q(X_vx, X_vx) = _pn_v_noise_power.get();
-	Q(X_vy, X_vy) = _pn_v_noise_power.get();
-	Q(X_vz, X_vz) = _pn_v_noise_power.get();
+	float pn_p_sq = _pn_p_noise_density.get() * _pn_p_noise_density.get();
+	float pn_v_sq = _pn_v_noise_density.get() * _pn_v_noise_density.get();
+	Q(X_x, X_x) = pn_p_sq;
+	Q(X_y, X_y) = pn_p_sq;
+	Q(X_z, X_z) = pn_p_sq;
+	Q(X_vx, X_vx) = pn_v_sq;
+	Q(X_vy, X_vy) = pn_v_sq;
+	Q(X_vz, X_vz) = pn_v_sq;
 
 	// technically, the noise is in the body frame,
 	// but the components are all the same, so
 	// ignoring for now
-	Q(X_bx, X_bx) = _pn_b_noise_power.get();
-	Q(X_by, X_by) = _pn_b_noise_power.get();
-	Q(X_bz, X_bz) = _pn_b_noise_power.get();
+	float pn_b_sq = _pn_b_noise_density.get() * _pn_b_noise_density.get();
+	Q(X_bx, X_bx) = pn_b_sq;
+	Q(X_by, X_by) = pn_b_sq;
+	Q(X_bz, X_bz) = pn_b_sq;
 
 	// terrain random walk noise
-	Q(X_tz, X_tz) = _pn_t_noise_power.get();
+	float pn_t_sq = _pn_t_noise_density.get() * _pn_t_noise_density.get();
+	Q(X_tz, X_tz) = pn_t_sq;
 
 	// continuous time kalman filter prediction
 	Vector<float, n_x> dx = (A * _x + B * _u) * getDt();
@@ -1032,13 +1059,6 @@ void BlockLocalPositionEstimator::predict()
 	_x += dx;
 	_P += (A * _P + _P * A.transpose() +
 	       B * R * B.transpose() + Q) * getDt();
-
-	// propagate delayed state
-	//if (_time_last_hist == 0 || _time_last_hist - _timeStamp > 1000) {
-	//_xDelay.update(_x);
-	//_PDelay.update(_P);
-	//_tDelay.update(Scalar<uint64_t>(_timeStamp));
-	//}
 }
 
 void BlockLocalPositionEstimator::correctFlow()
@@ -1048,7 +1068,7 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	if (qual < _flow_min_q.get()) {
 		if (_flowFault < FAULT_SEVERE) {
-			mavlink_log_info(_mavlink_fd, "[lpe] low flow quality %d", int(qual));
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] low flow quality %d", int(qual));
 			warnx("[lpe] low flow quality %d", int(qual));
 			_flowFault = FAULT_SEVERE;
 		}
@@ -1062,18 +1082,18 @@ void BlockLocalPositionEstimator::correctFlow()
 	// calculate range to center of image for flow
 	float d = 0;
 
-	if (_lidarInitialized && _lidarFault < FAULT_SEVERE) {
+	if (_lidarInitialized && _lidarFault < fault_lvl_disable) {
 		d = _sub_lidar->get().current_distance
 		    + (_lidar_z_offset.get() - _flow_z_offset.get());
 
-	} else if (_sonarInitialized && _sonarFault < FAULT_SEVERE) {
+	} else if (_sonarInitialized && _sonarFault < fault_lvl_disable) {
 		d = _sub_sonar->get().current_distance
 		    + (_sonar_z_offset.get() - _flow_z_offset.get());
 
 	} else {
 		// no valid distance sensor, so return
 		if (_flowFault < FAULT_SEVERE) {
-			mavlink_log_info(_mavlink_fd, "[lpe] no distance for flow");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] no distance for flow");
 			warnx("[lpe] no distance for flow");
 			_flowFault = FAULT_SEVERE;
 		}
@@ -1127,13 +1147,6 @@ void BlockLocalPositionEstimator::correctFlow()
 	_flowX += delta_n(0);
 	_flowY += delta_n(1);
 
-	/* update filtered flow */
-	//float dt_flow = _sub_flow.get().integration_timespan / 1.0e6;
-	//_pub_filtered_flow.get().sumx = delta_n(0);
-	//_pub_filtered_flow.get().sumy = delta_n(1);
-	//_pub_filtered_flow.get().vx = delta_n(0) / dt_flow;
-	//_pub_filtered_flow.get().vy = delta_n(1) / dt_flow;
-
 	// measurement
 	Vector<float, 2> y;
 	y(0) = _flowX;
@@ -1151,19 +1164,18 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	if (beta > BETA_TABLE[n_y_flow]) {
 		if (_flowFault < FAULT_MINOR) {
-			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] flow fault,  beta %5.2f", double(beta));
 			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
 			_flowFault = FAULT_MINOR;
 		}
 
 	} else if (_flowFault) {
 		_flowFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] flow OK");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] flow OK");
 		warnx("[lpe] flow OK");
 	}
 
-	// kalman filter correction if no fault
-	if (_flowFault < FAULT_SEVERE) {
+	if (_flowFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_flow> K =
 			_P * C.transpose() * S_I;
 		_x += K * r;
@@ -1187,14 +1199,12 @@ void BlockLocalPositionEstimator::correctSonar()
 	float max_dist = _sub_sonar->get().max_distance - eps;
 
 	if (d < min_dist) {
-		//mavlink_log_info(_mavlink_fd, "[lpe] sonar min dist");
-		warnx("[lpe] sonar min dist");
 		// can't correct, so return
 		return;
 
 	} else if (d > max_dist) {
 		if (_sonarFault < FAULT_SEVERE) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar max distance");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] sonar max distance");
 			warnx("[lpe] sonar max distance");
 			_sonarFault = FAULT_SEVERE;
 		}
@@ -1206,7 +1216,7 @@ void BlockLocalPositionEstimator::correctSonar()
 	_time_last_sonar = _timeStamp;
 
 	// do not use sonar if lidar is active
-	if (_lidarInitialized && _lidarFault < FAULT_SEVERE) { return; }
+	if (_lidarInitialized && _lidarFault < fault_lvl_disable) { return; }
 
 	// calculate covariance
 	float cov = _sub_sonar->get().covariance;
@@ -1247,19 +1257,27 @@ void BlockLocalPositionEstimator::correctSonar()
 
 	if (beta > BETA_TABLE[n_y_sonar]) {
 		if (_sonarFault < FAULT_MINOR) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+			// avoid printing messages near ground
+			if (_x(X_tz) > 1.0f) {
+				mavlink_log_info(&_mavlink_log_pub, "[lpe] sonar fault,  beta %5.2f", double(beta));
+				warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+			}
+
 			_sonarFault = FAULT_MINOR;
 		}
 
 	} else if (_sonarFault) {
 		_sonarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
-		warnx("[lpe] sonar OK");
+
+		// avoid printing messages near ground
+		if (_x(X_tz) > 1.0f) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] sonar OK");
+			warnx("[lpe] sonar OK");
+		}
 	}
 
 	// kalman filter correction if no fault
-	if (_sonarFault < FAULT_SEVERE) {
+	if (_sonarFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
@@ -1303,22 +1321,21 @@ void BlockLocalPositionEstimator::correctBaro()
 
 	if (beta > BETA_TABLE[n_y_baro]) {
 		if (_baroFault < FAULT_MINOR) {
-			mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
-			warnx("[lpe] baro fault, beta %5.2f", double(beta));
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
+					 double(r(0)), double(beta));
+			warnx("[lpe] baro fault, r %5.2f m, beta %5.2f",
+			      double(r(0)), double(beta));
 			_baroFault = FAULT_MINOR;
 		}
 
-		// lower baro trust
-		S_I = inv<float, n_y_baro>((C * _P * C.transpose()) + R * 10);
-
 	} else if (_baroFault) {
 		_baroFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] baro OK");
 		warnx("[lpe] baro OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_baroFault < FAULT_SEVERE) {
+	if (_baroFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 
@@ -1343,9 +1360,13 @@ void BlockLocalPositionEstimator::correctLidar()
 	float max_dist = _sub_lidar->get().max_distance - eps;
 
 	// if out of range, this is an error
-	if (d < min_dist || d > max_dist) {
+	if (d < min_dist) {
+		// can't correct, so return
+		return;
+
+	} else if (d > max_dist) {
 		if (_lidarFault < FAULT_SEVERE) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] lidar out of range");
 			warnx("[lpe] lidar out of range");
 			_lidarFault = FAULT_SEVERE;
 		}
@@ -1389,19 +1410,31 @@ void BlockLocalPositionEstimator::correctLidar()
 
 	if (beta > BETA_TABLE[n_y_lidar]) {
 		if (_lidarFault < FAULT_MINOR) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
-			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
+			// only print message if above 1 meter, avoids
+			// message clutter when on ground
+			if (_x(X_tz) > 1.0f) {
+				mavlink_log_info(&_mavlink_log_pub, "[lpe] lidar fault, r %5.2f m, beta %5.2f",
+						 double(r(0)), double(beta));
+				warnx("[lpe] lidar fault, r %5.2f m, beta %5.2f",
+				      double(r(0)), double(beta));
+			}
+
 			_lidarFault = FAULT_MINOR;
 		}
 
 	} else if (_lidarFault) { // disable fault if ok
 		_lidarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar OK");
-		warnx("[lpe] lidar OK");
+
+		// only print message if above 1 meter, avoids
+		// message clutter when on ground
+		if (_x(X_tz) > 1.0f) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] lidar OK");
+			warnx("[lpe] lidar OK");
+		}
 	}
 
 	// kalman filter correction if no fault
-	if (_lidarFault < FAULT_SEVERE) {
+	if (_lidarFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 
@@ -1424,8 +1457,8 @@ void BlockLocalPositionEstimator::correctGps()
 	float eph = _sub_gps.get().eph;
 
 	if (nSat < 6 || eph > _gps_eph_max.get()) {
-		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
+		if (_gpsFault < FAULT_SEVERE) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
 			warnx("[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
 			_gpsFault = FAULT_SEVERE;
 		}
@@ -1488,35 +1521,42 @@ void BlockLocalPositionEstimator::correctGps()
 	R(5, 5) = var_vz;
 
 	// get delayed x and P
-	//uint64_t t_delay = 0;
-	//int i = 0;
+	float t_delay = 0;
+	int i = 0;
 
-	//for (i = 0; i < HIST_LEN; i++) {
-	//t_delay += _tDelay.get(i)(0, 0);
+	for (i = 1; i < HIST_LEN; i++) {
+		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i)(0, 0));
 
-	//if (t_delay > 2000) {
-	//break;
-	//}
-	//}
+		if (t_delay > _gps_delay.get()) {
+			break;
+		}
+	}
 
-	//Vector<float, n_x> x0 = _xDelay.get(i);
-	//Matrix<float, n_x, n_x> P0 = _PDelay.get(i);
+	// if you are 3 steps past the delay you wanted, this
+	// data is probably too old to use
+	if (t_delay > GPS_DELAY_MAX) {
+		warnx("[lpe] gps delayed data too old: %8.4f", double(t_delay));
+		mavlink_log_info(_mavlink_fd, "[lpe] gps delayed data too old: %8.4f", double(t_delay));
+		return;
+	}
+
+	Vector<float, n_x> x0 = _xDelay.get(i);
 
 	// residual
-	Vector<float, n_y_gps> r = y - C * _x;
+	Vector<float, n_y_gps> r = y - C * x0;
 	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * _P * C.transpose() + R);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_gps]) {
-		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
+		if (_gpsFault < FAULT_MINOR) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] gps fault, beta: %5.2f", double(beta));
 			warnx("[lpe] gps fault, beta: %5.2f", double(beta));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(r(0)),  double(r(1)), double(r(2)),
 					 double(r(3)), double(r(4)), double(r(5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
 					 double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
 			warnx("[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
@@ -1530,12 +1570,12 @@ void BlockLocalPositionEstimator::correctGps()
 
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] GPS OK");
 		warnx("[lpe] GPS OK");
 	}
 
 	// kalman filter correction if no hard fault
-	if (_gpsFault < FAULT_SEVERE) {
+	if (_gpsFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
@@ -1574,23 +1614,20 @@ void BlockLocalPositionEstimator::correctVision()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_vision]) {
-		if (!_visionFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position fault, beta %5.2f", double(beta));
+		if (_visionFault < FAULT_MINOR) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] vision position fault, beta %5.2f", double(beta));
 			warnx("[lpe] vision position fault, beta %5.2f", double(beta));
 			_visionFault = FAULT_MINOR;
 		}
 
-		// trust less
-		S_I = inv<float, n_y_vision>((C * _P * C.transpose()) + R * 10);
-
 	} else if (_visionFault) {
 		_visionFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] vision position OK");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] vision position OK");
 		warnx("[lpe] vision position OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_visionFault <  FAULT_SEVERE) {
+	if (_visionFault <  fault_lvl_disable) {
 		Matrix<float, n_x, n_y_vision> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
@@ -1631,23 +1668,20 @@ void BlockLocalPositionEstimator::correctMocap()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_mocap]) {
-		if (!_mocapFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap fault, beta %5.2f", double(beta));
+		if (_mocapFault < FAULT_MINOR) {
+			mavlink_log_info(&_mavlink_log_pub, "[lpe] mocap fault, beta %5.2f", double(beta));
 			warnx("[lpe] mocap fault, beta %5.2f", double(beta));
 			_mocapFault = FAULT_MINOR;
 		}
 
-		// trust less
-		S_I = inv<float, n_y_mocap>((C * _P * C.transpose()) + R * 10);
-
 	} else if (_mocapFault) {
 		_mocapFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] mocap OK");
+		mavlink_log_info(&_mavlink_log_pub, "[lpe] mocap OK");
 		warnx("[lpe] mocap OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_mocapFault <  FAULT_SEVERE) {
+	if (_mocapFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;

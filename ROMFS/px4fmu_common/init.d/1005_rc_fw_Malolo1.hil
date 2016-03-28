@@ -14,7 +14,8 @@ then
 	param set FW_AIRSPD_MIN 12
 	param set FW_AIRSPD_TRIM 25
 	param set FW_AIRSPD_MAX 40
-	param set FW_ATT_TC 0.3
+	param set FW_R_TC 0.3
+	param set FW_P_TC 0.3
 	param set FW_L1_DAMPING 0.74
 	param set FW_L1_PERIOD 15
 	param set FW_PR_FF 0.8

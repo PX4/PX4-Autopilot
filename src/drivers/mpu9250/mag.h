@@ -79,12 +79,21 @@ private:
 	int _mag_class_instance;
 	bool _mag_reading_data;
 	ringbuffer::RingBuffer *_mag_reports;
-	struct mag_scale _mag_scale;
+	struct mag_calibration_s _mag_scale;
 	float _mag_range_scale;
 	perf_counter_t _mag_reads;
+	perf_counter_t _mag_errors;
+	perf_counter_t _mag_overruns;
+	perf_counter_t _mag_overflows;
+	perf_counter_t _mag_duplicates;
 	float _mag_asa_x;
 	float _mag_asa_y;
 	float _mag_asa_z;
+
+	bool check_duplicate(uint8_t *mag_data);
+
+	// keep last mag reading for duplicate detection
+	uint8_t			_last_mag_data[6];
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250_mag(const MPU9250_mag &);

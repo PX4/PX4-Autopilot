@@ -45,7 +45,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
@@ -79,6 +79,7 @@ Loiter::on_activation()
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.velocity_valid = false;
 	pos_sp_triplet->previous.valid = false;
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;

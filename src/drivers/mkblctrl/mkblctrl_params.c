@@ -46,7 +46,6 @@
 /**
  * Enables testmode (Identify) of MKBLCTRL Driver
  *
- * @unit enum
  * @value 0 Disabled
  * @value 1 Enabled
  * @min 0

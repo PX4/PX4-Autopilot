@@ -917,7 +917,7 @@ PX4FMU::cycle()
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
-		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
+		stm32_unconfiggpio(GPIO_PPM_IN);
 #endif
 
 		_initialized = true;
@@ -1347,7 +1347,7 @@ PX4FMU::cycle()
 
 		} else {
 			// disable CPPM input by mapping it away from the timer capture input
-			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
+			stm32_unconfiggpio(GPIO_PPM_IN);
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SBUS);
 		}
@@ -1434,7 +1434,8 @@ PX4FMU::control_callback(uintptr_t handle,
 
 	/* motor spinup phase - lock throttle to zero */
 	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
-		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
@@ -1445,7 +1446,8 @@ PX4FMU::control_callback(uintptr_t handle,
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (arm_nothrottle()) {
-		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
 			input = NAN_VALUE;
@@ -2622,18 +2624,18 @@ void
 PX4FMU::dsm_bind_ioctl(int dsmMode)
 {
 	if (!_armed.armed) {
-//      mavlink_log_info(_mavlink_fd, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+//      mavlink_log_info(&_mavlink_log_pub, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
 		if (ret) {
-//            mavlink_log_critical(_mavlink_fd, "binding failed.");
+//            mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
 			warnx("binding failed.");
 		}
 
 	} else {
-//        mavlink_log_info(_mavlink_fd, "[FMU] system armed, bind request rejected");
+//        mavlink_log_info(&_mavlink_log_pub, "[FMU] system armed, bind request rejected");
 		warnx("[FMU] system armed, bind request rejected");
 	}
 }

@@ -157,7 +157,7 @@ private:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-	mag_scale		_scale;
+	struct mag_calibration_s	_scale;
 	float 			_range_scale;
 	float 			_range_ga;
 	bool			_collect_phase;
@@ -737,14 +737,14 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
-		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
 		/* check calibration, but not actually return an error */
 		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
-		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
 	case MAGIOCCALIBRATE:
@@ -1075,23 +1075,21 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	// XXX do something smarter here
 	int fd = (int)enable;
 
-	struct mag_scale mscale_previous = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct mag_calibration_s mscale_previous;
+	mscale_previous.x_offset = 0.0f;
+	mscale_previous.x_scale = 1.0f;
+	mscale_previous.y_offset = 0.0f;
+	mscale_previous.y_scale = 1.0f;
+	mscale_previous.z_offset = 0.0f;
+	mscale_previous.z_scale = 1.0f;
 
-	struct mag_scale mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct mag_calibration_s mscale_null;
+	mscale_null.x_offset = 0.0f;
+	mscale_null.x_scale = 1.0f;
+	mscale_null.y_offset = 0.0f;
+	mscale_null.y_scale = 1.0f;
+	mscale_null.z_offset = 0.0f;
+	mscale_null.z_scale = 1.0f;
 
 	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
 

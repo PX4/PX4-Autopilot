@@ -52,7 +52,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <dataman/dataman.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <lib/mathlib/mathlib.h>
@@ -80,6 +80,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
+	_need_mission_reset(false),
 	_missionFeasibilityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
@@ -108,6 +109,12 @@ Mission::on_inactive()
 		bool offboard_updated = false;
 		orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 		if (offboard_updated) {
+			update_offboard_mission();
+		}
+
+		/* reset the current offboard mission if needed */
+		if (need_to_reset_mission(false)) {
+			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
 		}
 
@@ -162,6 +169,13 @@ Mission::on_active()
 	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 	if (offboard_updated) {
 		update_offboard_mission();
+	}
+
+	/* reset the current offboard mission if needed */
+	if (need_to_reset_mission(true)) {
+		reset_offboard_mission(_offboard_mission);
+		update_offboard_mission();
+		offboard_updated = true;
 	}
 
 	/* reset mission items if needed */
@@ -257,7 +271,7 @@ Mission::update_offboard_mission()
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
 		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-		failed = !_missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
+		failed = !_missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_log_pub(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
@@ -351,7 +365,7 @@ Mission::set_mission_items()
 	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "onboard mission now running");
 			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
@@ -360,7 +374,7 @@ Mission::set_mission_items()
 	} else if (prepare_mission_items(false, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "offboard mission now running");
 			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
@@ -368,7 +382,7 @@ Mission::set_mission_items()
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
 			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, loitering");
 			user_feedback_done = true;
 
 			/* use last setpoint for loiter */
@@ -400,9 +414,9 @@ Mission::set_mission_items()
 			if (_navigator->get_vstatus()->condition_landed) {
 				/* landed, refusing to take off without a mission */
 
-				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, refusing takeoff");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, refusing takeoff");
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, loitering");
 			}
 
 			user_feedback_done = true;
@@ -432,7 +446,7 @@ Mission::set_mission_items()
 
 			float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
 
-			mavlink_log_info(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 			_mission_item.lat = _navigator->get_global_position()->lat;
@@ -821,7 +835,7 @@ Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item
 	int offset = 1;
 
 	if (read_mission_item(onboard, 0, mission_item)) {
-		
+
 		first_res = true;
 
 		/* trying to find next position mission item */
@@ -873,7 +887,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if (*mission_index_ptr != (int)mission->count) {
-				mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
+				mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			}
 			return false;
 		}
@@ -886,8 +900,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(),
-			                     "ERROR waypoint could not be read");
+			mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
 			return false;
 		}
 
@@ -906,8 +919,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 					    &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
-						mavlink_log_critical(_navigator->get_mavlink_fd(),
-								     "ERROR DO JUMP waypoint could not be written");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
 					report_do_jump_mission_changed(*mission_index_ptr,
@@ -919,8 +931,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 
 			} else {
 				if (offset == 0) {
-					mavlink_log_info(_navigator->get_mavlink_fd(),
-							     "DO JUMP repetitions completed");
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed");
 				}
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
 				(*mission_index_ptr)++;
@@ -934,8 +945,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 	}
 
 	/* we have given up, we don't want to cycle forever */
-	mavlink_log_critical(_navigator->get_mavlink_fd(),
-			     "ERROR DO JUMP is cycling, giving up");
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP is cycling, giving up");
 	return false;
 }
 
@@ -957,7 +967,7 @@ Mission::save_offboard_mission_state()
 			if (mission_state.current_seq != _current_offboard_mission_index) {
 				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
 					warnx("ERROR: can't save mission state");
-					mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: can't save mission state");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
 				}
 			}
 		}
@@ -969,12 +979,12 @@ Mission::save_offboard_mission_state()
 		mission_state.current_seq = _current_offboard_mission_index;
 
 		warnx("ERROR: invalid mission state");
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: invalid mission state");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: invalid mission state");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
 			warnx("ERROR: can't save mission state");
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: can't save mission state");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
 		}
 	}
 
@@ -1027,7 +1037,7 @@ Mission::check_mission_valid()
 
 		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-		_navigator->get_mission_result()->valid = _missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
+		_navigator->get_mission_result()->valid = _missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_log_pub(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
@@ -1041,4 +1051,70 @@ Mission::check_mission_valid()
 	}
 
 	return _navigator->get_mission_result()->valid;
+}
+
+void
+Mission::reset_offboard_mission(struct mission_s &mission)
+{
+	dm_lock(DM_KEY_MISSION_STATE);
+
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
+			/* set current item to 0 */
+			mission.current_seq = 0;
+
+			/* reset jump counters */
+			if (mission.count > 0) {
+				dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(mission.dataman_id);
+
+				for (int index = 0; index < mission.count; index++) {
+					struct mission_item_s item;
+					const ssize_t len = sizeof(struct mission_item_s);
+
+					if (dm_read(dm_current, index, &item, len) != len) {
+						PX4_WARN("could not read mission item during reset");
+						break;
+					}
+
+					if (item.nav_cmd == NAV_CMD_DO_JUMP) {
+						item.do_jump_current_count = 0;
+
+						if (dm_write(dm_current, index, DM_PERSIST_POWER_ON_RESET,
+							     &item, len) != len) {
+							PX4_WARN("could not save mission item during reset");
+							break;
+						}
+					}
+				}
+			}
+
+		} else {
+			mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: could not read mission");
+
+			/* initialize mission state in dataman */
+			mission.dataman_id = 0;
+			mission.count = 0;
+			mission.current_seq = 0;
+		}
+
+		dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+	}
+
+	dm_unlock(DM_KEY_MISSION_STATE);
+}
+
+bool
+Mission::need_to_reset_mission(bool active)
+{
+	/* reset mission state when disarmed */
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+		_need_mission_reset = false;
+		return true;
+
+	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
+		/* mission is running, need reset after disarm */
+		_need_mission_reset = true;
+	}
+
+	return false;
 }

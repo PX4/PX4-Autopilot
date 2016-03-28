@@ -49,7 +49,7 @@
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
 #include <uORB/uORB.h>
@@ -233,7 +233,7 @@ MissionBlock::is_mission_item_reached()
 			_time_first_inside_orbit = now;
 
 			// if (_mission_item.time_inside > 0.01f) {
-			// 	mavlink_log_critical(_mavlink_fd, "waypoint reached, wait for %.1fs",
+			// 	mavlink_log_critical(_mavlink_log_pub, "waypoint reached, wait for %.1fs",
 			// 		(double)_mission_item.time_inside);
 			// }
 		}
@@ -318,11 +318,13 @@ bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-			item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
-			item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-			item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
+	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
+		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_REPEAT_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		return false;
 	}
 
@@ -433,6 +435,41 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 }
 
 void
+MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
+{
+	if (_navigator->get_vstatus()->condition_landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
+
+	} else {
+
+		item->nav_cmd = NAV_CMD_FOLLOW_TARGET;
+
+		/* use current target position */
+
+		item->lat = target.lat;
+		item->lon = target.lon;
+		item->altitude = _navigator->get_home_position()->alt;
+
+		if (min_clearance > 0.0f) {
+			item->altitude += min_clearance;
+		} else {
+			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
+		}
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = yaw;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
 MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
@@ -484,7 +521,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = _navigator->get_global_position()->lat;
 		item->lon = _navigator->get_global_position()->lon;
-	
+
 	/* use home position */
 	} else {
 		item->lat = _navigator->get_home_position()->lat;
@@ -493,6 +530,24 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
+	item->yaw = NAN;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::set_current_position_item(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_WAYPOINT;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude_is_relative = false;
+	item->altitude = _navigator->get_global_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;

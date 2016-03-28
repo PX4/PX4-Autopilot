@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,15 +32,15 @@
 ############################################################################
 
 #
-# ARM CMSIS DSP library
+# Send shell commands to qurt
 #
 
-ifeq ($(CONFIG_ARCH),CORTEXM4F)
-PREBUILT_LIB		:= libarm_cortexM4lf_math.a
-else ifeq ($(CONFIG_ARCH),CORTEXM4)
-PREBUILT_LIB		:= libarm_cortexM4l_math.a
-else ifeq ($(CONFIG_ARCH),CORTEXM3)
-PREBUILT_LIB		:= libarm_cortexM3l_math.a
-else
-$(error CONFIG_ARCH value '$(CONFIG_ARCH)' not supported by the DSP library)
-endif
+MODULE_COMMAND	= qshell
+
+SRCS		= \
+		  qshell_start_qurt.cpp \
+		  qshell.cpp
+
+INCLUDE_DIRS    += $(PX4_BASE)/src/modules/uORB  \
+                  $(PX4_BASE)/src/platforms \
+                  $(PX4_BASE)/src/modules
