@@ -15,8 +15,6 @@ sercon
 #
 set MODE autostart
 
-set FRC /fs/microsd/etc/rc.txt
-set FCONFIG /fs/microsd/etc/config.txt
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 
@@ -50,6 +48,7 @@ fi
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
+set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
 	echo "[i] Executing script: $FRC"
@@ -104,37 +103,6 @@ then
 	#fi
 
 	#
-	# Set default values
-	#
-	set HIL no
-	set VEHICLE_TYPE none
-	set MIXER none
-	set MIXER_AUX none
-	set OUTPUT_MODE none
-	set PWM_OUT none
-	set PWM_RATE none
-	set PWM_DISARMED none
-	set PWM_MIN none
-	set PWM_MAX none
-	set PWM_AUX_OUT none
-	set PWM_AUX_RATE none
-	set PWM_ACHDIS none
-	set PWM_AUX_DISARMED none
-	set PWM_AUX_MIN none
-	set PWM_AUX_MAX none
-	set FAILSAFE_AUX none
-	set MK_MODE none
-	set FMU_MODE pwm
-	set AUX_MODE pwm
-	set MAVLINK_F default
-	set EXIT_ON_END no
-	set MAV_TYPE none
-	set LOAD_DAPPS yes
-	set GPS yes
-	set GPS_FAKE no
-	set FAILSAFE none
-
-	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
 	#
 	if param compare SYS_AUTOCONFIG 1
@@ -162,6 +130,34 @@ then
 	fi
 
 	#
+	# Set default values
+	#
+	set HIL no
+	set VEHICLE_TYPE none
+	set MIXER none
+	set MIXER_AUX none
+	set OUTPUT_MODE none
+	set PWM_OUT none
+	set PWM_RATE none
+	set PWM_DISARMED none
+	set PWM_MIN none
+	set PWM_MAX none
+	set PWM_AUX_OUT none
+	set PWM_AUX_RATE none
+	set PWM_ACHDIS none
+	set PWM_AUX_DISARMED none
+	set PWM_AUX_MIN none
+	set PWM_AUX_MAX none
+	set FAILSAFE_AUX none
+	set MK_MODE none
+	set FMU_MODE pwm
+	set AUX_MODE pwm
+	set MAVLINK_F default
+	set EXIT_ON_END no
+	set MAV_TYPE none
+	set FAILSAFE none
+
+	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
 	if param compare SYS_AUTOSTART 0
@@ -182,6 +178,7 @@ then
 	#
 	# Override parameters from user configuration file
 	#
+	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
 		echo "[i] Custom config: $FCONFIG"
@@ -297,13 +294,15 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
+		unset HIL
+	else
+		unset HIL
+		gps start
 	fi
-	unset HIL
 
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
@@ -315,19 +314,6 @@ then
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
-
-	if [ $GPS == yes ]
-	then
-		if [ $GPS_FAKE == yes ]
-		then
-			echo "[i] Faking GPS"
-			gps start -f
-		else
-			gps start
-		fi
-	fi
-	unset GPS
-	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
 	commander start
@@ -549,9 +535,25 @@ then
 	fi
 
 	#
-	# UAVCAN
+	# Starting stuff according to UAVCAN_ENABLE value
 	#
-	sh /etc/init.d/rc.uavcan
+	if param greater UAVCAN_ENABLE 0
+	then
+		if uavcan start
+		then
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
+
+	if param greater UAVCAN_ENABLE 1
+	then
+		if uavcan start fw
+		then
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
 
 	#
 	# Logging
@@ -591,10 +593,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard fixedwing apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.fw_apps
-		fi
+		sh /etc/init.d/rc.fw_apps
 	fi
 
 	#
@@ -659,10 +658,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard multicopter apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.mc_apps
-		fi
+		sh /etc/init.d/rc.mc_apps
 	fi
 
 	#
@@ -707,10 +703,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard vtol apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.vtol_apps
-		fi
+		sh /etc/init.d/rc.vtol_apps
 	fi
 
 	#
@@ -725,10 +718,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard rover apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.axialracing_ax10_apps
-		fi
+		sh /etc/init.d/rc.axialracing_ax10_apps
 
 		param set MAV_TYPE 10
 	fi
