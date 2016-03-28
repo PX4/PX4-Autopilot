@@ -58,7 +58,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/i2c.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/perf_counter.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
 #include <drivers/drv_gps.h>
