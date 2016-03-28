@@ -119,6 +119,7 @@ static void usage(void);
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
+	_device_name("/dev/ttyS1"),
 	_task_should_exit(false),
 	next(nullptr),
 	_instance_id(0),
