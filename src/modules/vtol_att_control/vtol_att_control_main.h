@@ -202,6 +202,7 @@ private:
 		param_t mc_airspeed_trim;
 		param_t mc_airspeed_max;
 		param_t fw_pitch_trim;
+		param_t fw_roll_trim;
 		param_t power_max;
 		param_t prop_eff;
 		param_t arsp_lp_gain;
