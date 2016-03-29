@@ -335,9 +335,18 @@ void
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
 	/* set the correct setpoint for vtol transition */
-	if(item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+
+	if(item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && PX4_ISFINITE(item->yaw)) {
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,
+										   _navigator->get_global_position()->lon,
+										   item->yaw,
+										   1000000.0f,
+										   &sp->lat,
+										   &sp->lon);
+		sp->alt = _navigator->get_global_position()->alt;
 	}
+
 
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
