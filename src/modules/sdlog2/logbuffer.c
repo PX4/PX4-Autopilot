@@ -156,3 +156,10 @@ void logbuffer_free(struct logbuffer_s *lb)
 		perf_free(lb->perf_dropped);
 	}
 }
+
+void logbuffer_reset(struct logbuffer_s *lb)
+{
+	// Keep the buffer but reset the pointers.
+	lb->write_ptr = 0;
+	lb->read_ptr = 0;
+}
