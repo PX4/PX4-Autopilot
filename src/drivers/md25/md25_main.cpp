@@ -53,7 +53,7 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
-
+#include <uORB/topics/encoders.h> // encoders
 #include <arch/board/board.h>
 #include "md25.hpp"
 
@@ -111,12 +111,14 @@ int md25_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
+
 		deamon_task = px4_task_spawn_cmd("md25",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
 						 2048,
 						 md25_thread_main,
-						 (const char **)argv);
+						 (char *const *)argv);
+
 		exit(0);
 	}
 
@@ -126,6 +128,11 @@ int md25_main(int argc, char *argv[])
 			printf("usage: md25 test bus address\n");
 			exit(0);
 		}
+		if (thread_running) {
+		            printf("md25 already running\n");
+		            /* this is not an error */
+		            exit(0);
+		        }
 
 		const char *deviceName = "/dev/md25";
 
@@ -280,7 +287,7 @@ int md25_thread_main(int argc, char *argv[])
 {
 	printf("[MD25] starting\n");
 
-	if (argc < 5) {
+	if (argc < 4) {
 		// extra md25 in arg list since this is a thread
 		printf("usage: md25 start bus address\n");
 		exit(0);
@@ -293,19 +300,21 @@ int md25_thread_main(int argc, char *argv[])
 	uint8_t address = strtoul(argv[4], nullptr, 0);
 
 	// start
+
 	MD25 md25(deviceName, bus, address);
+
 
 	thread_running = true;
 
 	// loop
+
 	while (!thread_should_exit) {
 		md25.update();
 	}
+
 
 	// exit
 	printf("[MD25] exiting.\n");
 	thread_running = false;
 	return 0;
 }
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

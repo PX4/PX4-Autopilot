@@ -39,11 +39,13 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include "params.h"
+#include "rover_params.h"
 
 /* controller parameters, use max. 15 characters for param name! */
 
 /**
  *
  */
-//PARAM_DEFINE_FLOAT(RV_YAW_P, 0.1f);
+PARAM_DEFINE_FLOAT(RV_YAW_P, 0.1f);
+
+PARAM_DEFINE_FLOAT(RV_THR_CRUISE, 0.7f);

@@ -356,6 +356,7 @@ then
 	then
 		set FMU_MODE gpio_serial
 	fi
+    
 
 	if [ $HIL == yes ]
 	then
@@ -479,6 +480,18 @@ then
 		fi
 		unset MK_MODE
 
+        if [ $OUTPUT_MODE == md25 ]
+         then
+            echo "[init] Use md25 as primary output"
+            if md25 start 1 0x58
+            then
+                echo "[init] md25 started"
+            else
+                echo "[init] ERROR: md25 start failed"
+                tone_alarm $TUNE_OUT_ERROR
+            fi
+        fi
+    
 		if [ $OUTPUT_MODE == hil ]
 		then
 			if pwm_out_sim mode_port2_pwm8
@@ -770,19 +783,15 @@ then
 	#
 	if [ $VEHICLE_TYPE == rover ]
 	then
-		# 10 is MAV_TYPE_GROUND_ROVER
-		set MAV_TYPE 10
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
+		param set MAV_TYPE 10
+		# set MAV_TYPE 10
 		# Start standard rover apps
 		if [ $LOAD_DAPPS == yes ]
 		then
 			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
 
-		param set MAV_TYPE 10
+		
 	fi
 
 	unset MIXER

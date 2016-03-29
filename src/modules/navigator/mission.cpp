@@ -56,7 +56,6 @@
 #include <geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <navigator/navigation.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -163,12 +162,14 @@ Mission::on_active()
 	if (offboard_updated) {
 		update_offboard_mission();
 	}
-
+	//F.BERNAT
+	offboard_updated=true;
 	/* reset mission items if needed */
 	if (onboard_updated || offboard_updated) {
 		set_mission_items();
 	}
-
+	//F.BERNAT
+	_mission_type=MISSION_TYPE_OFFBOARD;
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		set_mission_item_reached();
@@ -179,9 +180,9 @@ Mission::on_active()
 
 		}
 
-	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
+	}/* else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
-	} else {
+	}*/ else {
 		/* if waypoint position reached allow loiter on the setpoint */
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
 			_navigator->set_can_loiter_at_sp(true);
@@ -330,9 +331,11 @@ Mission::set_mission_items()
 	/* set previous position setpoint to current */
 	set_previous_pos_setpoint();
 
+
 	/* Copy previous mission item altitude (can be extended to a copy of the full mission item if needed) */
 	if (pos_sp_triplet->previous.valid) {
 		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
+
 	}
 
 	/* the home dist check provides user feedback, so we initialize it to this */
@@ -431,6 +434,7 @@ Mission::set_mission_items()
 	if (_takeoff) {
 		/* do takeoff before going to setpoint */
 		/* set mission item as next position setpoint */
+
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
 		/* next SP is not takeoff anymore */
 		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -447,7 +451,10 @@ Mission::set_mission_items()
 		}
 
 		/* check if we already above takeoff altitude */
-		if (_navigator->get_global_position()->alt < takeoff_alt) {
+		//F.BERNAT
+		//if (_navigator->get_global_position()->alt < takeoff_alt) {
+
+		if (_navigator->get_global_position()->alt >=0) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
@@ -536,15 +543,16 @@ Mission::heading_sp_update()
 			!PX4_ISFINITE(_on_arrival_yaw)) {
 		return;
 	}
-
-	/* Don't change heading for takeoff waypoints, the ground may be near */
-	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-		return;
-	}
+	//F.BERNAT
+	    /* Don't change heading for takeoff waypoints, the ground may be near */
+	//if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+//		return;
+  //  }
 
 	/* set yaw angle for the waypoint iff a loiter time has been specified */
 	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
 		_mission_item.yaw = _on_arrival_yaw;
+
 	} else {
 
 		/* calculate direction the vehicle should point to:
@@ -563,12 +571,13 @@ Mission::heading_sp_update()
 
 		/* always keep the front of the rotary wing pointing to the next waypoint */
 		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT
-			|| _navigator->get_vstatus()->is_vtol) {
+			|| !_navigator->get_vstatus()->is_vtol) {// F.BERNAT rajout de !
 			_mission_item.yaw = get_bearing_to_next_waypoint(
 				point_from_latlon[0],
 				point_from_latlon[1],
 				_mission_item.lat,
 				_mission_item.lon);
+
 		/* always keep the back of the rotary wing pointing towards home */
 		} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME) {
 			_mission_item.yaw = get_bearing_to_next_waypoint(

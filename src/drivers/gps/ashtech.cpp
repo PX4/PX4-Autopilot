@@ -1,5 +1,4 @@
 #include "ashtech.h"
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -223,11 +222,15 @@ int ASHTECH::handle_message(int len)
 		_gps_position->vel_n_m_s = 0;                                /**< GPS ground speed in m/s */
 		_gps_position->vel_e_m_s = 0;                                /**< GPS ground speed in m/s */
 		_gps_position->vel_d_m_s = 0;                                /**< GPS ground speed in m/s */
-		_gps_position->cog_rad =
-			0;                                  /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
+		_gps_position->cog_rad =0;                                  /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
 		_gps_position->vel_ned_valid = true;                         /**< Flag to indicate if NED speed is valid */
 		_gps_position->c_variance_rad = 0.1f;
 		_gps_position->timestamp_velocity = hrt_absolute_time();
+//rajouté par F.BERNAT
+		_gps_position->satellites_used = 7;
+		_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
+		_satellite_info->timestamp = hrt_absolute_time();
+//Fin
 		return 1;
 
 	} else if ((memcmp(_rx_buffer, "$PASHR,POS,", 11) == 0) && (uiCalcComma == 18)) {
@@ -483,8 +486,10 @@ int ASHTECH::handle_message(int len)
 
 		if (this_msg_num == all_msg_num) {
 			end =  tot_sv_visible - (this_msg_num - 1) * 4;
+
 			_gps_position->satellites_used = tot_sv_visible;
 			_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
+
 			_satellite_info->timestamp = hrt_absolute_time();
 		}
 
@@ -659,14 +664,16 @@ const char comm[] = "$PASHS,POP,20\r\n"\
 int ASHTECH::configure(unsigned &baudrate)
 {
 	/* try different baudrates */
-	const unsigned baudrates_to_try[] = {9600, 38400, 19200, 57600, 115200};
+  //  F.BERNAT
+   // const unsigned baudrates_to_try[] = {9600, 38400, 19200, 57600, 115200};
+  //  const unsigned baudrates_to_try[] = {115200};
 
 
-	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
+/*	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
 		baudrate = baudrates_to_try[baud_i];
 		set_baudrate(_fd, baudrate);
 		write(_fd, comm, sizeof(comm));
-	}
+	}*///F.BERNAT
 
 	set_baudrate(_fd, 115200);
 	return 0;

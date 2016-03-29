@@ -49,7 +49,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/device/i2c.h>
-
+#include <uORB/topics/encoders.h> // encoders
+#include <uORB/Publication.hpp>
 /**
  * This is a driver for the MD25 motor controller utilizing the I2C interface.
  */
@@ -104,7 +105,11 @@ public:
 		CH_SPEED_LEFT = 0,
 		CH_SPEED_RIGHT
 	};
-
+	enum e_quadrature_status_flags {
+	        ROBO_ENCODER_UNDERFLOW = 1 << 0, /**< encoder went below 0 **/
+	        ROBO_ENCODER_REVERSE = 1 << 1, /**< motor doing in reverse dir **/
+	        ROBO_ENCODER_OVERFLOW = 1 << 2, /**< encoder went above 2^32 **/
+	    };
 	/**
 	 * constructor
 	 * @param deviceName the name of the device e.g. "/dev/md25"
@@ -238,7 +243,8 @@ public:
 	 * @return non-zero -> error
 	 */
 	int setMotor2Speed(float normSpeed);
-
+	int64_t encoderToInt64(uint32_t count, uint8_t status,
+	                       int32_t *overflows);
 	/**
 	 * main update loop that updates MD25 motor
 	 * speeds based on actuator publication
@@ -259,7 +265,7 @@ public:
 	 * read data from i2c
 	 */
 	int readData();
-
+	 int Init();
 	/**
 	 * print status
 	 */
@@ -271,7 +277,7 @@ private:
 
 	/** actuator controls subscription */
 	uORB::Subscription<actuator_controls_s> _actuators;
-
+	uORB::Publication<encoders_s> _m_encoders;
 	// local copy of data from i2c device
 	uint8_t _version;
 	float _motor1Speed;
@@ -305,5 +311,3 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address);
 
 // sine testing
 int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitude, float frequency);
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

@@ -337,7 +337,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
-
+	fprintf(stderr, "mag_decl : %f\n",mag_decl );
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -380,7 +380,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				orb_check(sub_gps, &gps_updated);
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
-
+					 fprintf(stderr, "gps.eph : %f\n",gps.eph );
 					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 

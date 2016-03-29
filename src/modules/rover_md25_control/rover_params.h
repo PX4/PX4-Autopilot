@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +33,11 @@
  ****************************************************************************/
 
 /*
- * @file params.c
+ * @file params.h
  *
- * Parameters for rover demo
- *
- * @author Lorenz Meier <lorenz@px4.io>
+ * Definition of parameters for fixedwing example
  */
 
-#include "params.h"
+#include <systemlib/param/param.h>
 
-/* controller parameters, use max. 15 characters for param name! */
 
-/**
- *
- */
-//PARAM_DEFINE_FLOAT(RV_YAW_P, 0.1f);

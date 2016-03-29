@@ -51,10 +51,11 @@
 #include <systemlib/err.h>
 #include <arch/board/board.h>
 #include <mavlink/mavlink_log.h>
+#include <uORB/topics/encoders.h> // encoders
 
-#include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
+
 
 // registers
 enum {
@@ -80,13 +81,18 @@ enum {
 };
 
 // File descriptors
-static int mavlink_fd;
+//static int mavlink_fd;
 
 MD25::MD25(const char *deviceName, int bus,
 	   uint16_t address, uint32_t speed) :
-	I2C("MD25", deviceName, bus, address, speed),
+        I2C("MD25", deviceName, bus,address
+                #ifdef __PX4_NUTTX
+                        , 100000
+                #endif
+                       ),
 	_controlPoll(),
-	_actuators(NULL, ORB_ID(actuator_controls_0), 20),
+	_actuators(ORB_ID(actuator_controls_0), 20),
+	_m_encoders(ORB_ID(encoders)),
 	_version(0),
 	_motor1Speed(0),
 	_motor2Speed(0),
@@ -99,31 +105,59 @@ MD25::MD25(const char *deviceName, int bus,
 	_mode(MODE_UNSIGNED_SPEED),
 	_command(CMD_RESET_ENCODERS)
 {
-	// setup control polling
-	_controlPoll.fd = _actuators.getHandle();
-	_controlPoll.events = POLLIN;
+    // setup control polling
+            _controlPoll.fd = _actuators.getHandle();
+            _controlPoll.events = POLLIN;
 
-	// if initialization fails raise an error, unless
-	// probing
-	int ret = I2C::init();
 
-	if (ret != OK) {
-		warnc(ret, "I2C::init failed for bus: %d address: %d\n", bus, address);
-	}
+            int ret = I2C::init();
 
-	// setup default settings, reset encoders
-	setMotor1Speed(0);
-	setMotor2Speed(0);
-	resetEncoders();
-	_setMode(MD25::MODE_UNSIGNED_SPEED);
-	setSpeedRegulation(false);
-	setMotorAccel(10);
-	setTimeout(true);
+                if (ret != OK) {
+                    warnc(ret, "I2C::init failed for bus: %d address: %d\n", bus, address);
+                }
+            // setup default settings, reset encoders
+               setMotor1Speed(0);
+               setMotor2Speed(0);
+               resetEncoders();
+               _setMode(MD25::MODE_UNSIGNED_SPEED);
+               setSpeedRegulation(false);
+               setMotorAccel(10);
+               setTimeout(true);
+
+
 }
 
 MD25::~MD25()
 {
 }
+
+int MD25::Init()
+{
+    // setup control polling
+        _controlPoll.fd = _actuators.getHandle();
+        _controlPoll.events = POLLIN;
+
+
+        int ret;
+        ret = I2C::init();
+
+        if (ret != OK) {
+            warnx("I2C init failed");
+            return ret;
+        }
+        // setup default settings, reset encoders
+           setMotor1Speed(0);
+           setMotor2Speed(0);
+           resetEncoders();
+           _setMode(MD25::MODE_UNSIGNED_SPEED);
+           setSpeedRegulation(false);
+           setMotorAccel(10);
+           setTimeout(true);
+
+
+        return OK;
+}
+
 
 int MD25::readData()
 {
@@ -317,14 +351,18 @@ int MD25::setMotorAccel(uint8_t accel)
 
 int MD25::setMotor1Speed(float value)
 {
-	return _writeUint8(REG_SPEED1_RW,
-			   _normToUint8(value));
+    //fprintf(stderr, "actuator1 : %i\n",_normToUint8(value));
+      return _writeUint8(REG_SPEED1_RW,
+            _normToUint8(value));
+
 }
 
 int MD25::setMotor2Speed(float value)
 {
-	return _writeUint8(REG_SPEED2_RW,
-			   _normToUint8(value));
+   // fprintf(stderr, "actuator2 : %i\n",_normToUint8(value));
+    return _writeUint8(REG_SPEED2_RW,
+            _normToUint8(value));
+
 }
 
 void MD25::update()
@@ -333,13 +371,32 @@ void MD25::update()
 	// check for exit condition every second
 	// note "::poll" is required to distinguish global
 	// poll from member function for driver
+    uint64_t now = hrt_absolute_time();
 	if (::poll(&_controlPoll, 1, 1000) < 0) { return; } // poll error
+    // read encoders
+	if ( OK== readData()){
+	 _m_encoders.get().counts[0] = int64_t(getRevolutions1());
+	 _m_encoders.get().counts[1] = int64_t(getRevolutions2());
+     _m_encoders.get().velocity[0] = 0.0;
+     _m_encoders.get().velocity[1] = 0.0;
+
+     // publish new data if it is all valid
+     _m_encoders.get().timestamp = now;
+     _m_encoders.update();
+     // let waiting processes know the driver
+     // has new information
+     poll_notify(POLLIN);
+	}
 
 	// if new data, send to motors
 	if (_actuators.updated()) {
 		_actuators.update();
-		setMotor1Speed(_actuators.control[CH_SPEED_LEFT]);
-		setMotor2Speed(_actuators.control[CH_SPEED_RIGHT]);
+
+		//fprintf(stderr, "actuator1 : %0.2f\n",(double)_actuators.get().control[CH_SPEED_LEFT]);
+		//fprintf(stderr, "actuator2 : %0.2f\n",(double)_actuators.get().control[CH_SPEED_RIGHT]);
+
+		setMotor1Speed(_actuators.get().control[CH_SPEED_LEFT]);
+		setMotor2Speed(_actuators.get().control[CH_SPEED_RIGHT]);
 	}
 }
 
@@ -466,7 +523,10 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 
 	// setup
 	MD25 md25("/dev/md25", bus, address);
-
+/*	if (OK != md25.Init()) {
+	            warnx("init failed");
+	             return 1;
+	    }*/
 	// print status
 	char buf[400];
 	md25.status(buf, sizeof(buf));
@@ -584,11 +644,11 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 	md25.setTimeout(true);
 	float dt = 0.01;
 	float t_final = 60.0;
-	float prev_revolution = md25.getRevolutions1();
+	//float prev_revolution = md25.getRevolutions1();
 
 	// debug publication
-	uORB::Publication<debug_key_value_s> debug_msg(NULL,
-			ORB_ID(debug_key_value));
+//	uORB::Publication<debug_key_value_s> debug_msg(NULL,
+	//		ORB_ID(debug_key_value));
 
 	// sine wave for motor 1
 	md25.resetEncoders();
@@ -599,12 +659,12 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 		uint64_t timestamp = hrt_absolute_time();
 		float t = timestamp / 1000000.0f;
 
-		float input_value = amplitude * sinf(2 * M_PI * frequency * t);
+		float input_value = 2.0f;
 		md25.setMotor1Speed(input_value);
 
 		// output
 		md25.readData();
-		float current_revolution = md25.getRevolutions1();
+		//float current_revolution = md25.getRevolutions1();
 
 		// send input message
 		//strncpy(debug_msg.key, "md25 in   ", 10);
@@ -613,15 +673,15 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 		//debug_msg.update();
 
 		// send output message
-		strncpy(debug_msg.key, "md25 out  ", 10);
-		debug_msg.timestamp_ms = 1000 * timestamp;
-		debug_msg.value = current_revolution;
-		debug_msg.update();
+		//strncpy(debug_msg.key, "md25 out  ", 10);
+		//debug_msg.timestamp_ms = 1000 * timestamp;
+		//debug_msg.value = current_revolution;
+		//debug_msg.update();
 
 		if (t > t_final) { break; }
 
 		// update for next step
-		prev_revolution = current_revolution;
+		//prev_revolution = current_revolution;
 
 		// sleep
 		usleep(1000000 * dt);
@@ -633,4 +693,18 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 	return 0;
 }
 
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78
+int64_t MD25::encoderToInt64(uint32_t count, uint8_t status,
+                       int32_t *overflows)
+{
+    static int64_t overflowAmount = 0x100000000LL;
+
+    if (status & ROBO_ENCODER_OVERFLOW) {
+        (*overflows) += 1;
+    }
+
+    if (status & ROBO_ENCODER_UNDERFLOW) {
+        (*overflows) -= 1;
+    }
+
+    return int64_t(count) + (*overflows) * overflowAmount;
+}
