@@ -936,6 +936,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	flag_system_armed = false;
 
+#ifdef __PX4_NUTTX
+	/* work around some stupidity in NuttX's task_create's argv handling */
+	argc -= 2;
+	argv += 2;
+#endif
+
 	int ch;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
