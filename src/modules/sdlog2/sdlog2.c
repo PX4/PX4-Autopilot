@@ -936,9 +936,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	flag_system_armed = false;
 
-	/* work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
 	int ch;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
