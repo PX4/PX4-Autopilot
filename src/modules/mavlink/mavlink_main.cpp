@@ -1016,6 +1016,16 @@ Mavlink::init_udp()
 			continue;
 		}
 
+
+		struct ifreq bc_ifreq;
+		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
+		strncpy(bc_ifreq.ifr_name, ifreqs[i].ifr_name, IF_NAMESIZE);
+		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
+		if (ret != 0) {
+			PX4_WARN("getting broadcast address failed");
+			return;
+		}
+
 		struct in_addr &sin_addr = ((struct sockaddr_in *)&ifreqs[i].ifr_addr)->sin_addr;
 
 		// Accept network interfaces to local network only. This means it's an IP starting with:
@@ -1023,33 +1033,19 @@ Mavlink::init_udp()
 		// Also see https://tools.ietf.org/html/rfc1918#section-3
 
 		uint8_t first_byte = sin_addr.s_addr & 0xFF;
-		int32_t subnet_mask = 0x0;
 
-		if (first_byte == 192) {
-			// /24
-			subnet_mask = 0xFFFFFF;
-
-		} else if (first_byte != 172) {
-			// /16
-			subnet_mask = 0xFFFF;
-
-		} else if (first_byte != 10) {
-			// /8
-			subnet_mask = 0xFF;
-		} else {
-			// Ignore anything else.
+		if (first_byte != 192 && first_byte != 172 && first_byte != 10) {
 			continue;
 		}
 
 		if (!network_interface_found) {
 			PX4_INFO("using network interface %s, IP: %s", ifreqs[i].ifr_name, inet_ntoa(sin_addr));
 
-			_bcast_addr.sin_family = AF_INET;
+			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
+			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
 
-			// Assemble the broadcast address. This should be done using the default gateway IP
-			// instead of the IP. However, for most cases, this should work.
-			_bcast_addr.sin_addr.s_addr = (~subnet_mask) | sin_addr.s_addr;
-			PX4_INFO("broadcast address should be: %s", inet_ntoa(_bcast_addr.sin_addr));
+			_bcast_addr.sin_family = AF_INET;
+			_bcast_addr.sin_addr = bc_addr;
 
 			network_interface_found = true;
 		} else {
