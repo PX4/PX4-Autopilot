@@ -67,6 +67,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles_standard.forward_thurst_scale = param_find("VT_FWD_THRUST_SC");
 }
 
 Standard::~Standard()
@@ -109,6 +110,10 @@ Standard::parameters_update()
 	/* maximum down pitch allowed */
 	param_get(_params_handles_standard.down_pitch_max, &v);
 	_params_standard.down_pitch_max = math::radians(v);
+
+	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
+	param_get(_params_handles_standard.forward_thurst_scale, &_params_standard.forward_thurst_scale);
+
 
 	return OK;
 }
@@ -297,7 +302,8 @@ void Standard::update_mc_state()
 	R.from_euler(0, 0, euler(2));
 	math::Vector<3> body_x_zero_tilt(R(0,0), R(1,0), R(2,0));
 
-	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust;
+	// we are using a parameter to scale the thrust value in order to compensate for highly over/under-powered motors
+	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust * _params_standard.forward_thurst_scale;
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
 	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max : _v_att_sp->pitch_body;

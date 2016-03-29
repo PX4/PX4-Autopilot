@@ -60,3 +60,14 @@ PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
+
+/**
+ * Fixed wing thrust scale for hover forward flight.
+ *
+ * Scale applied to fixed wing thrust being used as source for forward acceleration in multirotor mode.
+ * This technique can be used to avoid the plane having to pitch down a lot in order to move forward.
+ * @min 0.0
+ * @max 2.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 1.0f);
