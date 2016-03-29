@@ -486,7 +486,7 @@ Mission::set_mission_items()
 
 				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-				_mission_item.yaw = NAN;
+				_mission_item.yaw = _navigator->get_global_position()->yaw;
 			} else {
 				new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -585,13 +585,13 @@ Mission::set_mission_items()
 	} else {
 
 		/* turn towards next waypoint before MC to FW transition */
-		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION				
+		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 				&& _work_item_type != WORK_ITEM_TYPE_ALIGN
 				&& _navigator->get_vstatus()->is_rotary_wing
 				&& !_navigator->get_vstatus()->condition_landed
 				&& has_next_position_item) {
 
-			new_work_item_type = WORK_ITEM_TYPE_ALIGN;			
+			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 			set_align_mission_item(&_mission_item, &mission_item_next_position);
 		}
 
@@ -769,7 +769,7 @@ void
 Mission::heading_sp_update()
 {
 	/* we don't want to be yawing during takeoff, landing or aligning for a transition */
-	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF			
+	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			|| _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 			|| _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 			|| _mission_item.nav_cmd == NAV_CMD_LAND
@@ -1159,7 +1159,7 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 						item.do_jump_current_count = 0;
 
 						if (dm_write(dm_current, index, DM_PERSIST_POWER_ON_RESET,
-							     &item, len) != len) {
+								 &item, len) != len) {
 							PX4_WARN("could not save mission item during reset");
 							break;
 						}
