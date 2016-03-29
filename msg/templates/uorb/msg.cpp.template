@@ -73,6 +73,22 @@ type_map = {'int8': 'int8_t',
   'position_setpoint': 'position_setpoint',
   'esc_report': 'esc_report'}
 
+msgtype_size_map = {'int8': 8,
+  'int16': 16,
+  'int32': 32,
+  'int64': 64,
+  'uint8': 8,
+  'uint16': 16,
+  'uint32': 32,
+  'uint64': 64,
+  'float32': 32,
+  'float64': 64,
+  'bool': 1,
+  'char': 1,
+  'fence_vertex': 8,
+  'position_setpoint': 104,
+  'esc_report': 36}
+
 def convert_type(spec_type):
     bare_type = spec_type
     if '/' in spec_type:
@@ -85,7 +101,19 @@ def convert_type(spec_type):
         return c_type + "[" + str(array_length) + "]"
     return c_type
 
-topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in spec.parsed_fields()]
+def bare_name(msg_type):
+    bare = msg_type
+    if '/' in msg_type:
+        # removing prefix
+        bare = (msg_type.split('/'))[1]
+    # removing suffix
+    return bare.split('[')[0]
+
+def sizeof_field_type(field):
+    return msgtype_size_map[bare_name(field.type)]
+
+sorted_fields = sorted(spec.parsed_fields(), key = sizeof_field_type, reverse=True)
+topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
 #include <px4_config.h>
