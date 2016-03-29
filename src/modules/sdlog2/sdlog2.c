@@ -807,8 +807,8 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	/* free log buffer */
-	logbuffer_free(&lb);
+	/* reset the logbuffer */
+	logbuffer_reset(&lb);
 
 	mavlink_and_console_log_info(&mavlink_log_pub, "[blackbox] stopped (%lu drops)", skipped_count);
 
@@ -2136,7 +2136,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
 
-	free(lb.data);
+	/* free log buffer */
+	logbuffer_free(&lb);
 
 	thread_running = false;
 
