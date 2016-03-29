@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * MAVLink 1.0 protocol implementation.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -54,6 +54,10 @@
 #include <termios.h>
 #include <time.h>
 #include <math.h> /* isinf / isnan checks */
+
+#ifdef __PX4_POSIX
+#include <net/if.h>
+#endif
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -884,7 +888,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 			if (bret <= 0) {
-				PX4_WARN("sending broadcast failed");
+				PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
 			}
 		}
 
@@ -991,9 +995,70 @@ Mavlink::init_udp()
 	}
 	_src_addr.sin_port = htons(_remote_port);
 
-	/* default broadcast address */
-	_bcast_addr.sin_family = AF_INET;
-	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
+	const unsigned MAX_IFREQS = 32;
+	struct ifreq ifreqs[MAX_IFREQS];
+	struct ifconf ifconf;
+	memset(&ifconf, 0, sizeof(ifconf));
+	ifconf.ifc_req = ifreqs;
+	ifconf.ifc_len = sizeof(ifreqs);
+
+	int ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_WARN("getting network config failed");
+		return;
+	}
+
+	bool network_interface_found = false;
+
+	for (int i = 0; i < (ifconf.ifc_len/sizeof(struct ifreq)) && (i < MAX_IFREQS); ++i) {
+		// ignore loopback network
+		if (strcmp(ifreqs[i].ifr_name, "lo") == 0) {
+			continue;
+		}
+
+
+		struct ifreq bc_ifreq;
+		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
+		strncpy(bc_ifreq.ifr_name, ifreqs[i].ifr_name, IF_NAMESIZE);
+		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
+		if (ret != 0) {
+			PX4_WARN("getting broadcast address failed");
+			return;
+		}
+
+		struct in_addr &sin_addr = ((struct sockaddr_in *)&ifreqs[i].ifr_addr)->sin_addr;
+
+		// Accept network interfaces to local network only. This means it's an IP starting with:
+		// 192./172./10.
+		// Also see https://tools.ietf.org/html/rfc1918#section-3
+
+		uint8_t first_byte = sin_addr.s_addr & 0xFF;
+
+		if (first_byte != 192 && first_byte != 172 && first_byte != 10) {
+			continue;
+		}
+
+		if (!network_interface_found) {
+			PX4_INFO("using network interface %s, IP: %s", ifreqs[i].ifr_name, inet_ntoa(sin_addr));
+
+			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
+			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
+
+			_bcast_addr.sin_family = AF_INET;
+			_bcast_addr.sin_addr = bc_addr;
+
+			network_interface_found = true;
+		} else {
+			PX4_INFO("ignoring additional network interface %s, IP:  %s",
+				 ifreqs[i].ifr_name, inet_ntoa(sin_addr));
+		}
+	}
+
+	if (!network_interface_found) {
+		PX4_WARN("no networking interface for local network found");
+		return;
+	}
+
 	_bcast_addr.sin_port = htons(_remote_port);
 
 #endif
