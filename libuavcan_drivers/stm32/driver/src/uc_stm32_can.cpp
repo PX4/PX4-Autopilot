@@ -15,7 +15,7 @@
 # include <nuttx/irq.h>
 # include <arch/board/board.h>
 #elif UAVCAN_STM32_BAREMETAL
-#include <stm32f4xx.h>
+#include <chip.h>
 #elif UAVCAN_STM32_FREERTOS
 #include <stm32f4xx.h>
 #include <cmsis_os.h>

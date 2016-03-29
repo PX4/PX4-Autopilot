@@ -112,8 +112,6 @@ void BusEvent::signalFromInterrupt()
     xHigherPriorityTaskWoken = pdFALSE;
 
     xSemaphoreGiveFromISR( sem_, &xHigherPriorityTaskWoken );
-    
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 void BusEvent::yieldFromISR()
