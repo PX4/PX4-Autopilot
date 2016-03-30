@@ -326,17 +326,22 @@ void Logger::run()
 #ifdef DBGPRINT
 					//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
 					hrt_abstime trytime = hrt_absolute_time();
+
 					if (_writer._count > highWater) {
 						highWater = _writer._count;
 					}
+
 #endif
 
 					if (_writer.write(buffer, msg_size)) {
 #ifdef DBGPRINT
+
 						// successful write: note end of dropout if dropout_start != 0
 						if (dropout_start != 0) {
 							double drop_len = (double)(trytime - dropout_start)  * 1e-6;
-							if (drop_len > max_drop_len) max_drop_len = drop_len;
+
+							if (drop_len > max_drop_len) { max_drop_len = drop_len; }
+
 							warnx("dropout length: %5.3f seconds", drop_len);
 							dropout_start = 0;
 							highWater = 0;
@@ -381,7 +386,7 @@ void Logger::run()
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
 				warnx("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
-						throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
+				      throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
 
 				total_bytes = 0;
 				highWater = 0,
