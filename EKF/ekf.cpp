@@ -305,6 +305,11 @@ bool Ekf::update()
 			_last_known_posNE(1) = _state.pos(1);
 			_fuse_flow = false;
 		}
+
+		// TODO This is just to get the logic inside but we will only start fusion once we tested this again
+		if (_airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed) && false) {
+			fuseAirspeed();
+		}
 	}
 
 	// the output observer always runs
