@@ -815,12 +815,6 @@ fi
 # XXX potentially unset all script variables.
 unset TUNE_ERR
 
-#if ver hwcmp MINDPX_V2
-#then
-#	start sonnar
-#	hc_sr04 start
-#fi
-
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
 
