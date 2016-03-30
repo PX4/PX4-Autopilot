@@ -1960,6 +1960,14 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  */
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 
+/**
+ * Offset for battery current sensor.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_C_OFFSET, -1.0);
+
 
 /**
  * RC channel count
