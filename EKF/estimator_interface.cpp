@@ -206,7 +206,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 		return;
 	}
 
-	if (time_usec - _time_last_airspeed > 1000000) { //Limit the airspeed update rate to 1 Hz for now
+	if (time_usec - _time_last_airspeed > 80000) {
 		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.airspeed = *data;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
