@@ -487,78 +487,84 @@ void LIS3MDL::check_conf(void)
 	uint8_t reg_in = 0;
 
 	switch (_check_state_cnt++) {
-		case 0:
-			ret = read_reg(ADDR_CTRL_REG1, reg_in);
+	case 0:
+		ret = read_reg(ADDR_CTRL_REG1, reg_in);
+
+		if (OK != ret) {
+			perf_count(_comms_errors);
+			return;
+		}
+
+		if (reg_in != _cntl_reg1) {
+			perf_count(_conf_errors);
+			ret = write_reg(ADDR_CTRL_REG1, _cntl_reg1);
 
 			if (OK != ret) {
 				perf_count(_comms_errors);
-				return;
 			}
+		}
 
-			if (reg_in != _cntl_reg1) {
-				perf_count(_conf_errors);
-				ret = write_reg(ADDR_CTRL_REG1, _cntl_reg1);
+		break;
 
-				if (OK != ret) {
-					perf_count(_comms_errors);
-				}
-			}
-			break;
+	case 50:
+		ret = read_reg(ADDR_CTRL_REG4, reg_in);
 
-		case 50:
-			ret = read_reg(ADDR_CTRL_REG4, reg_in);
+		if (OK != ret) {
+			perf_count(_comms_errors);
+			return;
+		}
+
+		if (reg_in != _cntl_reg4) {
+			perf_count(_conf_errors);
+			ret = write_reg(ADDR_CTRL_REG1, _cntl_reg4);
 
 			if (OK != ret) {
 				perf_count(_comms_errors);
-				return;
 			}
-			if (reg_in != _cntl_reg4) {
-				perf_count(_conf_errors);
-				ret = write_reg(ADDR_CTRL_REG1, _cntl_reg4);
+		}
 
-				if (OK != ret) {
-					perf_count(_comms_errors);
-				}
-			}
-			break;
+		break;
 
-		case 100:
-			ret = read_reg(ADDR_CTRL_REG5, reg_in);
+	case 100:
+		ret = read_reg(ADDR_CTRL_REG5, reg_in);
+
+		if (OK != ret) {
+			perf_count(_comms_errors);
+			return;
+		}
+
+		if (reg_in != _cntl_reg5) {
+			perf_count(_conf_errors);
+			ret = write_reg(ADDR_CTRL_REG5, _cntl_reg5);
 
 			if (OK != ret) {
 				perf_count(_comms_errors);
-				return;
 			}
-			if (reg_in != _cntl_reg5) {
-				perf_count(_conf_errors);
-				ret = write_reg(ADDR_CTRL_REG5, _cntl_reg5);
+		}
 
-				if (OK != ret) {
-					perf_count(_comms_errors);
-				}
-			}
-			break;
+		break;
 
-		case 150:
-			ret = read_reg(ADDR_CTRL_REG2, reg_in);
+	case 150:
+		ret = read_reg(ADDR_CTRL_REG2, reg_in);
+
+		if (OK != ret) {
+			perf_count(_comms_errors);
+			return;
+		}
+
+		if (reg_in != (_range_bits << 5)) {
+			perf_count(_range_errors);
+			ret = write_reg(ADDR_CTRL_REG2, (_range_bits << 5));
 
 			if (OK != ret) {
 				perf_count(_comms_errors);
-				return;
 			}
+		}
 
-			if (reg_in != (_range_bits << 5)) {
-				perf_count(_range_errors);
-				ret = write_reg(ADDR_CTRL_REG2, (_range_bits << 5));
+		break;
 
-				if (OK != ret) {
-					perf_count(_comms_errors);
-				}
-			}
-			break;
-
-		default:
-			break;
+	default:
+		break;
 	}
 }
 
@@ -1244,6 +1250,7 @@ int LIS3MDL::set_excitement(unsigned enable)
 
 	if (((int)enable) < 0) {
 		warnx("WARN: set_excitement negative not supported\n");
+
 	} else if (enable > 0) {
 		_cntl_reg1 |= 0x01;
 	}
@@ -1392,12 +1399,14 @@ start_bus(struct lis3mdl_bus_option &bus, enum Rotation rotation)
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50)) {
 		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
 	}
+
 	printf("set poll rate to 50Hz\n");
 
 	/* Set to 4 Gauss */
 	if (OK != ioctl(fd, MAGIOCSRANGE, 4)) {
 		warnx("FAILED: MAGIOCSRANGE 4 Ga");
 	}
+
 	printf("set range to 4 Ga\n");
 
 	close(fd);
