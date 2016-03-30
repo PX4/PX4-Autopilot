@@ -69,6 +69,10 @@ then
 		then
 		fi
 
+		if meas_airspeed start -b 2
+		then
+		fi
+
 	else
 		# FMUv2
 		if mpu6000 start
@@ -169,11 +173,6 @@ else
 	else
 		if ets_airspeed start -b 1
 		then
-		else
-			if [ $BOARD_FMUV3 == true ]
-			then
-				meas_airspeed start -b 2
-			fi
 		fi
 	fi
 fi
