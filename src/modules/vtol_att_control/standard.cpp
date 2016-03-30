@@ -314,6 +314,7 @@ void Standard::update_mc_state()
 	euler(1) = pitch_sp_corrected;
 	R_sp.from_euler(euler(0), euler(1), euler(2));
 	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+	_v_att_sp->pitch_body = pitch_sp_corrected;
 	math::Quaternion q_sp;
 	q_sp.from_dcm(R_sp);
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
