@@ -2227,16 +2227,20 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+		run_tecs &= !_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode;
 	}
 
 	// we're in transition
 	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
 		_was_in_transition = true;
 		_asp_after_transition = _ctrl_state.airspeed;
+		_tecs.set_indicated_airspeed_min(0.0f);
+		_tecs.set_speed_weight(0.0f);
 
 	// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 	} else if (_was_in_transition) {
+		_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
+		_tecs.set_speed_weight(_parameters.speed_weight);
 		_asp_after_transition += dt * 2; // increase 2m/s
 
 		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {

@@ -239,6 +239,7 @@ void Standard::update_transition_state()
 			/* yaw and roll according to FW navigation */
 			_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
 			_v_att_sp->yaw_body = _fw_virtual_att_sp->yaw_body;
+			_v_att_sp->pitch_body = _fw_virtual_att_sp->pitch_body;
 			_v_att_sp->fw_control_yaw = true;
 
 			/* reduce rudder output the more speed we gain */
