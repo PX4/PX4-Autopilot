@@ -147,7 +147,7 @@ private:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-	mag_scale		_scale;
+	struct mag_calibration_s	_scale;
 	float 			_range_scale;
 	float 			_range_ga;
 	bool			_collect_phase;
@@ -743,14 +743,14 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
-		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
 		/* check calibration, but not actually return an error */
 		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
-		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
 	case MAGIOCCALIBRATE:
@@ -1018,7 +1018,7 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	// XXX do something smarter here
 	int fd = (int)enable;
 
-	struct mag_scale mscale_previous = {
+	struct mag_calibration_s mscale_previous = {
 		0.0f,
 		1.0f,
 		0.0f,
@@ -1027,7 +1027,7 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 	};
 
-	struct mag_scale mscale_null = {
+	struct mag_calibration_s mscale_null = {
 		0.0f,
 		1.0f,
 		0.0f,
