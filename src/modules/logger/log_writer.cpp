@@ -108,6 +108,7 @@ void LogWriter::run()
 			 * wait for sufficient data, cycle on notify()
 			 */
 			pthread_mutex_lock(&_mtx);
+
 			while (true) {
 				available = get_read_ptr(&read_ptr, &is_part);
 
@@ -122,6 +123,7 @@ void LogWriter::run()
 				 */
 				pthread_cond_wait(&_cv, &_mtx);
 			}
+
 			pthread_mutex_unlock(&_mtx);
 
 			if (available > 0) {
