@@ -730,6 +730,31 @@ void Ekf2Replay::task_main()
 
 			writeMessage(_write_fd, &data[0], sizeof(log_PARM_s));
 
+			// apply the parameters
+			char param_name[16];
+
+			for (unsigned i = 0; i < 16; i++) {
+				param_name[i] = data[i];
+
+				if (data[i] == '\0') {
+					break;
+				}
+			}
+
+			float param_data = 0;
+			memcpy(&param_data, &data[16], sizeof(float));
+			param_t handle = param_find(param_name);
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_data;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				param_set(handle, (const void *)&param_data);
+			}
+
 		} else if (header[2] == LOG_VER_MSG) {
 			// version message
 			if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
