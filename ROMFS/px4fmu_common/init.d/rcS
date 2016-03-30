@@ -119,16 +119,14 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
+		set USE_IO yes
 		if ver hwcmp PX4FMU_V4
 		then
 			set USE_IO no
-		else
-			if ver hwcmp MINDPX_V2
-			then
-				set USE_IO no
-			else
-				set USE_IO yes
-			fi
+		fi
+		if ver hwcmp MINDPX_V2
+		then
+			set USE_IO no
 		fi
 	else
 		set USE_IO no
@@ -172,7 +170,6 @@ then
 	set MAV_TYPE none
 	set FAILSAFE none
 
-	#
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
@@ -816,12 +813,6 @@ fi
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
 unset TUNE_ERR
-
-#if ver hwcmp MINDPX_V2
-#then
-#	start sonnar
-#	hc_sr04 start
-#fi
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
