@@ -6,7 +6,7 @@
 /**
  * Enable local position estimator.
  *
- * @unit boolean
+ * @boolean
  * @group Local Position Estimator
  */
 PARAM_DEFINE_INT32(LPE_ENABLED, 1);
@@ -14,7 +14,7 @@ PARAM_DEFINE_INT32(LPE_ENABLED, 1);
 /**
  * Enable accelerometer integration for prediction.
  *
- * @unit boolean
+ * @boolean
  * @group Local Position Estimator
  */
 PARAM_DEFINE_INT32(LPE_INTEGRATE, 1);

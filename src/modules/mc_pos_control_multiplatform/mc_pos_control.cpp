@@ -53,7 +53,7 @@ MulticopterPositionControlMultiplatform::MulticopterPositionControlMultiplatform
 
 	_task_should_exit(false),
 	_control_task(-1),
-	_mavlink_fd(-1),
+	//_mavlink_log_pub(nullptr),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -232,7 +232,7 @@ MulticopterPositionControlMultiplatform::reset_pos_sp()
 				// - _params.vel_ff(1) * _sp_move_rate(1)) / _params.pos_p(1);
 
 		//XXX: port this once a mavlink like interface is available
-		// mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
 		PX4_INFO("[mpc] reset pos sp: %2.3f, %2.3f", (double)_pos_sp(0), (double)_pos_sp(1));
 	}
 }
@@ -249,7 +249,7 @@ MulticopterPositionControlMultiplatform::reset_alt_sp()
 		_att_sp_msg.data().yaw_body = _att->data().yaw;
 
 		//XXX: port this once a mavlink like interface is available
-		// mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 		PX4_INFO("[mpc] reset alt sp: %2.3f", -(double)_pos_sp(2));
 	}
 }

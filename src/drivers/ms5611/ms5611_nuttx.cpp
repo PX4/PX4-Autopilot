@@ -231,8 +231,8 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "ms5611_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buf_of"))
 {
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));

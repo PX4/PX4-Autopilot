@@ -235,7 +235,7 @@ private:
 
 	ringbuffer::RingBuffer	*_reports;
 
-	struct gyro_scale	_gyro_scale;
+	struct gyro_calibration_s	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
@@ -426,9 +426,9 @@ L3GD20::L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotati
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
-	_errors(perf_alloc(PC_COUNT, "l3gd20_errors")),
-	_bad_registers(perf_alloc(PC_COUNT, "l3gd20_bad_registers")),
-	_duplicates(perf_alloc(PC_COUNT, "l3gd20_duplicates")),
+	_errors(perf_alloc(PC_COUNT, "l3gd20_err")),
+	_bad_registers(perf_alloc(PC_COUNT, "l3gd20_bad_reg")),
+	_duplicates(perf_alloc(PC_COUNT, "l3gd20_dupe")),
 	_register_wait(0),
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
@@ -704,12 +704,12 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:

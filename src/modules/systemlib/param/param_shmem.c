@@ -344,6 +344,7 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
+#if 0
 	int count = get_param_info_count();
 
 	if (count && index < count) {
@@ -368,6 +369,9 @@ param_for_used_index(unsigned index)
 	}
 
 	return PARAM_INVALID;
+#else
+	return param_for_index(index);
+#endif
 }
 
 int

@@ -58,7 +58,6 @@ PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
  *
  * This parameter sets the polarity of the trigger (0 = ACTIVE_LOW, 1 = ACTIVE_HIGH )
  *
- * @unit enum
  * @value 0 ACTIVE_LOW
  * @value 1 ACTIVE_HIGH
  * @min 0
@@ -82,11 +81,10 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
  *
  * 0 disables the trigger, 1 sets it to enabled on command, 2 always on, 3 distance based, 4 distance based enabled on command
  *
- * @unit enum
- * @value 0 disable
- * @value 1 cmd
- * @value 2 always
- * @value 3 distance
+ * @value 0 Disable
+ * @value 1 CMD
+ * @value 2 Always
+ * @value 3 Distance
  * @min 0
  * @max 4
  * @group Camera trigger

@@ -46,6 +46,7 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
+	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 
 	#
@@ -113,7 +114,6 @@ set(config_module_list
 	#
 	# Libraries
 	#
-	#lib/mathlib/CMSIS
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
@@ -175,13 +175,11 @@ set(config_io_board
 	)
 
 set(config_extra_libs
-	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
 	uavcan
 	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs
-	#${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)

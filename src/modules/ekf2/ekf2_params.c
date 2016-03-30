@@ -345,7 +345,6 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight
  * 
  * @group EKF2
- * @unit enum
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis fusion
@@ -387,7 +386,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
  * replay messages for logging.
  *
  * @group EKF2
- * @unit boolean
+ * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 

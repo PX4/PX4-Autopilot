@@ -196,9 +196,9 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_orb_class_instance(-1),
 	_px4flow_topic(nullptr),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4f_buf_of")),
 	_sensor_rotation(rotation)
 {
 	// disable debug() calls
@@ -240,17 +240,17 @@ PX4FLOW::init()
 		return ret;
 	}
 
-	//_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	/* get a publish handle on the range finder topic */
-	//struct distance_sensor_s ds_report = {};
+	struct distance_sensor_s ds_report = {};
 
-	//_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-	//			 &_orb_class_instance, ORB_PRIO_HIGH);
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+				 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	//if (_distance_sensor_topic == nullptr) {
-	//	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-	//}
+	if (_distance_sensor_topic == nullptr) {
+		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	}
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -554,18 +554,18 @@ PX4FLOW::collect()
 	}
 
 	/* publish to the distance_sensor topic as well */
-	/*struct distance_sensor_s distance_report;
+	struct distance_sensor_s distance_report;
 	distance_report.timestamp = report.timestamp;
 	distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
 	distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
 	distance_report.current_distance = report.ground_distance_m;
 	distance_report.covariance = 0.0f;
 	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-	*//* TODO: the ID needs to be properly set */
-	//distance_report.id = 0;
-	//distance_report.orientation = 8;
+	/* TODO: the ID needs to be properly set */
+	distance_report.id = 0;
+	distance_report.orientation = 8;
 
-	//orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 
 	/* post a report to the ring */
 	if (_reports->force(&report)) {

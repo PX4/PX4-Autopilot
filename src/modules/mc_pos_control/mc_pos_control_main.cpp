@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,9 +79,9 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
-#include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
 
 #include <controllib/blocks.hpp>
@@ -123,7 +123,7 @@ public:
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
-	int		_mavlink_fd;			/**< mavlink fd */
+	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
@@ -348,7 +348,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(NULL, "MPC"),
 	_task_should_exit(false),
 	_control_task(-1),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
 	_ctrl_state_sub(-1),
@@ -1023,7 +1023,10 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* by default use current setpoint as is */
 		math::Vector<3> pos_sp_s = curr_sp_s;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION && previous_setpoint_valid) {
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
+		      previous_setpoint_valid) {
+
 			/* follow "previous - current" line */
 
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
@@ -1145,8 +1148,6 @@ void MulticopterPositionControl::control_auto(float dt)
 void
 MulticopterPositionControl::task_main()
 {
-
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * do subscriptions
@@ -1372,6 +1373,39 @@ MulticopterPositionControl::task_main()
 				if (_run_pos_control) {
 					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+				}
+
+				// do not go slower than the follow target velocity when position tracking is active (set to valid)
+
+				if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+					_pos_sp_triplet.current.velocity_valid &&
+					_pos_sp_triplet.current.position_valid) {
+
+					math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
+
+					float cos_ratio = (ft_vel*_vel_sp)/(ft_vel.length()*_vel_sp.length());
+
+					// only override velocity set points when uav is traveling in same direction as target and vector component
+					// is greater than calculated position set point velocity component
+
+					if(cos_ratio > 0) {
+						ft_vel *= (cos_ratio);
+						// min speed a little faster than target vel
+						ft_vel += ft_vel.normalized()*1.5f;
+					} else {
+						ft_vel.zero();
+					}
+
+					_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
+					_vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
+
+					// track target using velocity only
+
+				} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+					_pos_sp_triplet.current.velocity_valid) {
+
+					_vel_sp(0) = _pos_sp_triplet.current.vx;
+					_vel_sp(1) = _pos_sp_triplet.current.vy;
 				}
 
 				if (_run_alt_control) {
@@ -1960,7 +1994,7 @@ MulticopterPositionControl::task_main()
 				     && !_control_mode.flag_control_climb_rate_enabled;
 	}
 
-	mavlink_log_info(_mavlink_fd, "[mpc] stopped");
+	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
 }

@@ -66,6 +66,7 @@
 #include "rtl.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
+#include "follow_target.h"
 #include "gpsfailure.h"
 #include "rcloss.h"
 #include "geofence.h"
@@ -73,7 +74,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 10
 
 class Navigator : public control::SuperBlock
 {
@@ -176,7 +177,7 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
-	int		get_mavlink_fd() { return _mavlink_fd; }
+	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }
 
@@ -187,7 +188,7 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
 
-	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
+	orb_advert_t	_mavlink_log_pub;		/**< the uORB advert to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_gps_pos_sub;		/**< gps position subscription */
@@ -249,6 +250,8 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
 							  (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
+
+	FollowTarget _follow_target;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
