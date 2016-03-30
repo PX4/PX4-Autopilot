@@ -55,6 +55,7 @@ px4_add_module(
 		EKF/vel_pos_fusion.cpp
 		EKF/mag_fusion.cpp
 		EKF/gps_checks.cpp
+		EKF/airspeed_fusion.cpp
 		EKF/optflow_fusion.cpp
 		EKF/control.cpp
 		EKF/terrain_estimator.cpp

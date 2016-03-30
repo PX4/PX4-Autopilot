@@ -57,6 +57,8 @@ Ekf::Ekf():
 	_time_last_hgt_fuse(0),
 	_time_last_of_fuse(0),
 	_last_disarmed_posD(0.0f),
+	_airspeed_innov(0.0f),
+	_airspeed_innov_var(0.0f),
 	_heading_innov(0.0f),
 	_heading_innov_var(0.0f),
 	_delta_time_of(0.0f),
@@ -302,6 +304,11 @@ bool Ekf::update()
 			_last_known_posNE(0) = _state.pos(0);
 			_last_known_posNE(1) = _state.pos(1);
 			_fuse_flow = false;
+		}
+
+		// TODO This is just to get the logic inside but we will only start fusion once we tested this again
+		if (_airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed) && false) {
+			fuseAirspeed();
 		}
 	}
 
@@ -587,9 +594,4 @@ void Ekf::calculateOutputStates()
 	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
 
 	_vel_corr = (_state.pos - _output_sample_delayed.pos);
-}
-
-void Ekf::fuseAirspeed()
-{
-
 }

@@ -73,6 +73,12 @@ public:
 	// gets the innovation variances of the earth magnetic field measurements
 	void get_mag_innov_var(float mag_innov_var[3]);
 
+	// gets the innovations of airspeed measurement
+	void get_airspeed_innov(float *airspeed_innov);
+
+	// gets the innovation variance of the airspeed measurement
+	void get_airspeed_innov_var(float *airspeed_innov_var);
+
 	// gets the innovation variance of the heading measurement
 	void get_heading_innov_var(float *heading_innov_var);
 
@@ -154,6 +160,9 @@ private:
 
 	float _mag_innov[3];		// earth magnetic field innovations
 	float _mag_innov_var[3];	// earth magnetic field innovation variance
+
+	float _airspeed_innov;		// airspeed measurement innovation
+	float _airspeed_innov_var;  // airspeed measurement innovation variance
 
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance

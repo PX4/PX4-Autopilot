@@ -112,7 +112,7 @@ struct rangeSample {
 };
 
 struct airspeedSample {
-	float       airspeed;	// airspeed measurement in m/s
+	float       airspeed;	// true airspeed measurement in m/s
 	uint64_t    time_us;	// timestamp in microseconds
 };
 
@@ -195,6 +195,10 @@ struct parameters {
 	int mag_declination_source;	// bitmask used to control the handling of declination data
 	int mag_fusion_type;		// integer used to specify the type of magnetometer fusion used
 
+	// airspeed fusion
+	float tas_innov_gate;		// True Airspeed Innovation consistency gate size in standard deciation [WHAT SHALL THIS VALUE BE?]
+  	float eas_noise;			// EAS measurement noise standard deviation used for airspeed fusion [m/s]
+
 	// range finder fusion
 	float range_noise;		// observation noise for range finder measurements (m)
 	float range_innov_gate;		// range finder fusion innovation consistency gate size (STD)
@@ -264,6 +268,10 @@ struct parameters {
 		mag_innov_gate = 3.0f;
 		mag_declination_source = 3;
 		mag_fusion_type = 0;
+
+		// airspeed fusion
+		tas_innov_gate = 3.0f; // [CHECK THIS VALUE]		
+  		eas_noise = 1.4f;			
 
 		// range finder fusion
 		range_noise = 0.1f;
