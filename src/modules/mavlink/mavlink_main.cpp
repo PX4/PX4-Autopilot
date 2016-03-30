@@ -1855,6 +1855,11 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
+	/* hard limit to 500 Hz at max */
+	if (_main_loop_delay < 2000) {
+		_main_loop_delay = 2000;
+	}
+
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
