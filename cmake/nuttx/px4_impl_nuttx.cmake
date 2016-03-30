@@ -483,6 +483,14 @@ function(px4_os_add_flags)
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
 			)
+	elseif (${BOARD} STREQUAL "mindpx-v2")
+			set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
+			)
 	elseif (${BOARD} STREQUAL "px4io-v1")
 		set(cpu_flags
 			-mcpu=cortex-m3

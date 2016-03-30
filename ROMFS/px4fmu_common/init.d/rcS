@@ -119,14 +119,27 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
+		set USE_IO yes
 		if ver hwcmp PX4FMU_V4
 		then
 			set USE_IO no
-		else
-			set USE_IO yes
+		fi
+		if ver hwcmp MINDPX_V2
+		then
+			set USE_IO no
 		fi
 	else
 		set USE_IO no
+	fi
+
+	# should set to 0.8 for mindpx-v2 borad.
+	if param compare INAV_LIDAR_ERR 0.5
+	then
+		if ver hwcmp MINDPX_V2
+		then
+			param set INAV_LIDAR_ERR 0.8
+			param save
+		fi
 	fi
 
 	#
@@ -823,6 +836,12 @@ fi
 if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
+	px4flow start &
+fi
+
+if ver hwcmp MINDPX_V2
+then
+	#mindxp also need flow
 	px4flow start &
 fi
 
