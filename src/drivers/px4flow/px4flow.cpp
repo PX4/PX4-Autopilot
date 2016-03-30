@@ -196,9 +196,9 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_orb_class_instance(-1),
 	_px4flow_topic(nullptr),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4f_buf_of")),
 	_sensor_rotation(rotation)
 {
 	// disable debug() calls

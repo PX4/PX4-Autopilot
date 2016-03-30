@@ -2332,6 +2332,7 @@ int commander_thread_main(int argc, char *argv[])
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
 						} else {
+							usleep(100000);
 							print_reject_arm("NOT ARMING: Configuration error");
 						}
 					}

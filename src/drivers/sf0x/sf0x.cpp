@@ -203,8 +203,8 @@ SF0X::SF0X(const char *port) :
 	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buf_of"))
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));

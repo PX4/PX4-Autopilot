@@ -483,6 +483,10 @@ Navigator::task_main()
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_land;
 				break;
+			case vehicle_status_s::NAVIGATION_STATE_DESCEND:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_land;
+				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */

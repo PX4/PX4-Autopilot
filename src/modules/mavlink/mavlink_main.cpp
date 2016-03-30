@@ -119,6 +119,7 @@ static void usage(void);
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
+	_device_name("/dev/ttyS1"),
 	_task_should_exit(false),
 	next(nullptr),
 	_instance_id(0),
@@ -143,7 +144,7 @@ Mavlink::Mavlink() :
 	_radio_id(0),
 	_logbuffer(5, sizeof(mavlink_log_s)),
 	_total_counter(0),
-	_receive_thread {},
+	_receive_thread{},
 	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
@@ -1629,7 +1630,9 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	MavlinkReceiver::receive_start(&_receive_thread, this);
+	if (_mode != MAVLINK_MODE_OSD) {
+		MavlinkReceiver::receive_start(&_receive_thread, this);
+	}
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -1989,7 +1992,9 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* first wait for threads to complete before tearing down anything */
-	pthread_join(_receive_thread, NULL);
+	if (_mode != MAVLINK_MODE_OSD) {
+		pthread_join(_receive_thread, NULL);
+	}
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;

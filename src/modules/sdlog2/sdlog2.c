@@ -151,7 +151,7 @@ static bool _extended_logging = false;
 static bool _gpstime_only = false;
 static int32_t _utc_offset = 0;
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX_EAGLE
 #define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 #else
 #define MOUNTPOINT "/root"
@@ -284,7 +284,7 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	warnx("usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	PX4_WARN("usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -311,7 +311,7 @@ int sdlog2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			PX4_WARN("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -363,7 +363,7 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (!thread_running) {
-			warnx("not started");
+			PX4_WARN("not started");
 		}
 
 		main_thread_should_exit = true;
@@ -371,7 +371,7 @@ int sdlog2_main(int argc, char *argv[])
 	}
 
 	if (!thread_running) {
-		warnx("not started\n");
+		PX4_WARN("not started\n");
 		return 1;
 	}
 
@@ -473,7 +473,7 @@ int create_log_dir()
 
 		if (dir_number >= MAX_NO_LOGFOLDER) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-			warnx("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
+			PX4_WARN("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
 			return -1;
 		}
 	}
@@ -720,13 +720,15 @@ void sdlog2_start_log()
 	/* initialize log buffer emptying thread */
 	pthread_attr_init(&logwriter_attr);
 
+#ifndef __PX4_POSIX_EAGLE
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
 	/* low priority, as this is expensive disk I/O. */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
 	if (pthread_attr_setschedparam(&logwriter_attr, &param)) {
-		warnx("sdlog2: failed setting sched params");
+		PX4_WARN("sdlog2: failed setting sched params");
 	}
+#endif
 
 	pthread_attr_setstacksize(&logwriter_attr, 2048);
 
@@ -737,7 +739,7 @@ void sdlog2_start_log()
 
 	/* start log buffer emptying thread */
 	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
-		warnx("error creating logwriter thread");
+		PX4_WARN("error creating logwriter thread");
 	}
 
 	/* write all performance counters */
@@ -783,7 +785,7 @@ void sdlog2_stop_log()
 	int ret;
 
 	if ((ret = pthread_join(logwriter_pthread, NULL)) != 0) {
-		warnx("error joining logwriter thread: %i", ret);
+		PX4_WARN("error joining logwriter thread: %i", ret);
 	}
 
 	logwriter_pthread = 0;
@@ -805,8 +807,8 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	/* free log buffer */
-	logbuffer_free(&lb);
+	/* reset the logbuffer */
+	logbuffer_reset(&lb);
 
 	mavlink_and_console_log_info(&mavlink_log_pub, "[blackbox] stopped (%lu drops)", skipped_count);
 
@@ -934,9 +936,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	flag_system_armed = false;
 
-	/* work around some stupidity in task_create's argv handling */
+#ifdef __PX4_NUTTX
+	/* work around some stupidity in NuttX's task_create's argv handling */
 	argc -= 2;
 	argv += 2;
+#endif
+
 	int ch;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
@@ -987,19 +992,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case '?':
 			if (optopt == 'c') {
-				warnx("option -%c requires an argument", optopt);
+				PX4_WARN("option -%c requires an argument", optopt);
 
 			} else if (isprint(optopt)) {
-				warnx("unknown option `-%c'", optopt);
+				PX4_WARN("unknown option `-%c'", optopt);
 
 			} else {
-				warnx("unknown option character `\\x%x'", optopt);
+				PX4_WARN("unknown option character `\\x%x'", optopt);
 			}
 			err_flag = true;
 			break;
 
 		default:
-			warnx("unrecognized flag");
+			PX4_WARN("unrecognized flag");
 			err_flag = true;
 			break;
 		}
@@ -1075,7 +1080,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	if (check_free_space() != OK) {
-		warnx("ERR: MicroSD almost full");
+		PX4_WARN("ERR: MicroSD almost full");
 		return 1;
 	}
 
@@ -1089,10 +1094,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	/* initialize log buffer with specified size */
-	warnx("log buffer size: %i bytes", log_buffer_size);
+	PX4_WARN("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
-		warnx("can't allocate log buffer, exiting");
+		PX4_WARN("can't allocate log buffer, exiting");
 		return 1;
 	}
 
@@ -2134,7 +2139,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
 
-	free(lb.data);
+	/* free log buffer */
+	logbuffer_free(&lb);
 
 	thread_running = false;
 
@@ -2143,17 +2149,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 void sdlog2_status()
 {
-	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
-	warnx("time: gps: %u seconds", (unsigned)gps_time_sec);
+	PX4_WARN("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
+	PX4_WARN("time: gps: %u seconds", (unsigned)gps_time_sec);
 	if (!logging_enabled) {
-		warnx("not logging");
+		PX4_WARN("not logging");
 	} else {
 
 		float kibibytes = log_bytes_written / 1024.0f;
 		float mebibytes = kibibytes / 1024.0f;
 		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
-		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+		PX4_WARN("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
 		mavlink_log_info(&mavlink_log_pub, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 	}
 }
@@ -2172,7 +2178,7 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		warnx("ERR: statfs");
+		PX4_WARN("ERR: statfs");
 		return PX4_ERROR;
 	}
 
