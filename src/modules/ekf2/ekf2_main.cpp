@@ -486,6 +486,16 @@ void Ekf2::task_main()
 			ctrl_state.q[2] = q(2);
 			ctrl_state.q[3] = q(3);
 
+			// Airspeed - take airspeed measurement directly here as no wind is estimated
+			if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
+			    && airspeed.timestamp > 0) {
+				ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+				ctrl_state.airspeed_valid = true;
+
+			} else {
+				ctrl_state.airspeed_valid = false;
+			}
+
 			// publish control state data
 			if (_control_state_pub == nullptr) {
 				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
