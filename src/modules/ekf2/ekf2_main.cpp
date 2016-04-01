@@ -189,7 +189,8 @@ private:
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
-	control::BlockParamInt *_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
+	control::BlockParamInt
+	*_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
 	control::BlockParamInt *_mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 
 	control::BlockParamInt *_gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
@@ -203,7 +204,8 @@ private:
 	control::BlockParamInt *_param_record_replay_msg; // indicates if we want to record ekf2 replay messages
 
 	// measurement source control
-	control::BlockParamInt *_fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
+	control::BlockParamInt
+	*_fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 	control::BlockParamInt *_vdist_sensor_type;	// selects the primary source for height data
 
 	// range finder fusion
@@ -212,8 +214,10 @@ private:
 	control::BlockParamFloat *_rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
 	// optical flow fusion
-	control::BlockParamFloat *_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
-	control::BlockParamFloat *_flow_noise_qual_min;	// worst quality observation noise for optical flow LOS rate measurements (rad/sec)
+	control::BlockParamFloat
+	*_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
+	control::BlockParamFloat
+	*_flow_noise_qual_min;	// worst quality observation noise for optical flow LOS rate measurements (rad/sec)
 	control::BlockParamInt *_flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
 	control::BlockParamFloat *_flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
 	control::BlockParamFloat *_flow_rate_max;	// maximum valid optical flow rate (rad/sec)
@@ -625,6 +629,7 @@ void Ekf2::task_main()
 					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 				}
 			}
+
 		} else if (_replay_mode) {
 			// in replay mode we have to tell the replay module not to wait for an update
 			// we do this by publishing an attitude with zero timestamp
