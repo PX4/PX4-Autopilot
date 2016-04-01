@@ -173,6 +173,8 @@ posix_eagle_release:
 qurt_eagle_default:
 	$(call cmake-build,$@)
 
+eagle_default: posix_eagle_default qurt_eagle_default
+
 posix_eagle_default:
 	$(call cmake-build,$@)
 

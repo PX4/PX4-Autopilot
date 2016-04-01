@@ -443,6 +443,26 @@ function(px4_add_upload)
 		)
 endfunction()
 
+
+function(px4_add_adb_push)
+	px4_parse_function_args(
+		NAME px4_add_upload
+		ONE_VALUE OS BOARD OUT DEST
+		MULTI_VALUE FILES DEPENDS
+		REQUIRED OS BOARD OUT FILES DEPENDS DEST
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
+
 #=============================================================================
 #
 #	px4_add_common_flags

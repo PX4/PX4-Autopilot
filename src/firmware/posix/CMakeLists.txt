@@ -25,6 +25,15 @@ if ("${BOARD}" STREQUAL "eagle")
 		pthread m rt
 		-Wl,--end-group
 		)
+
+	px4_add_adb_push(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
+			 DEPENDS build_mainapp_apps
+			 DEST /home/linaro)
+
 else()
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp

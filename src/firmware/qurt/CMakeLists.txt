@@ -15,7 +15,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
                 ${CMAKE_CURRENT_BINARY_DIR}
                 ${FASTRPC_DSP_INCLUDES}
                 )
-	add_executable(mainapp 
+	add_executable(mainapp
 		${CMAKE_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
 		${CMAKE_BINARY_DIR}/apps.h)
 
@@ -44,6 +44,15 @@ else()
 		${df_driver_libs}
 		m
 		)
+
+	px4_add_adb_push(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/libmainapp.so
+				 ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so
+				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
+			 DEPENDS build_mainapp_dsp build_mainapp_dsp
+			 DEST /usr/share/data/adsp)
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
