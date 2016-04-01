@@ -60,9 +60,11 @@ SIM_PID=0
 if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
-	ant
-	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
+	ant create_run_jar copy_res
+	cd out/production
+	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
+	cd ../..
 elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
