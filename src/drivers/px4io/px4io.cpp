@@ -207,6 +207,11 @@ public:
 	 */
 	int			disable_rc_handling();
 
+	/*
+	 * Disable FMU output mixing when in MANUAL/OVERRIDE
+	 */
+	int			disable_fmu_in_override();
+
 	/**
 	 * Print IO status.
 	 *
@@ -258,6 +263,7 @@ private:
 
 	unsigned 		_update_interval;	///< Subscription interval limiting send rate
 	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
+	bool			_fmu_disabled_in_override;	///< Don't mix the FMU outputs while in OVERRIDE mode, ie. always use the MIX_OVERRIDE mode instead of MIX_OVERRIDE_FMU_OK
 	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
 	uint64_t		_rc_last_valid;		///< last valid timestamp
 
@@ -357,6 +363,11 @@ private:
 	 * Disable RC input handling
 	 */
 	int			io_disable_rc_handling();
+
+	/*
+	 * Disable FMU output mixing when in MANUAL/OVERRIDE
+	 */
+	int			io_disable_fmu_in_override();
 
 	/**
 	 * Fetch RC inputs from IO.
@@ -501,6 +512,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
 	_rc_handling_disabled(false),
+	_fmu_disabled_in_override(false),
 	_rc_chan_count(0),
 	_rc_last_valid(0),
 	_task(-1),
@@ -1387,6 +1399,22 @@ int
 PX4IO::io_disable_rc_handling()
 {
 	uint16_t set = PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED;
+	uint16_t clear = 0;
+
+	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+}
+
+int
+PX4IO::disable_fmu_in_override()
+{
+	_fmu_disabled_in_override = true;
+	return io_disable_fmu_in_override();
+}
+
+int
+PX4IO::io_disable_fmu_in_override()
+{
+	uint16_t set = PX4IO_P_SETUP_ARMING_DISABLE_FMU_IN_OVERRIDE;
 	uint16_t clear = 0;
 
 	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
@@ -2307,7 +2335,7 @@ PX4IO::print_status(bool extended_status)
 	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s%s%s%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
@@ -2318,7 +2346,8 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : "")
+	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_DISABLE_FMU_IN_OVERRIDE) ? " DISABLE_FMU_IN_OVERRIDE" : "")
 	      );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
@@ -3041,15 +3070,20 @@ start(int argc, char *argv[])
 	}
 
 	bool rc_handling_disabled = false;
+	bool fmu_in_override_disabled = false;
 
 	/* disable RC handling on request */
-	if (argc > 1) {
-		if (!strcmp(argv[1], "norc")) {
+	for (int arg_i = 1; arg_i < argc; arg_i++) {
+		if (!strcmp(argv[arg_i], "norc")) {
 
 			rc_handling_disabled = true;
 
+		} else if (!strcmp(argv[arg_i], "nofmu")) {
+
+			fmu_in_override_disabled = true;
+
 		} else {
-			warnx("unknown argument: %s", argv[1]);
+			warnx("unknown argument: %s", argv[arg_i]);
 		}
 	}
 
@@ -3057,6 +3091,10 @@ start(int argc, char *argv[])
 		delete g_dev;
 		g_dev = nullptr;
 		errx(1, "driver init failed");
+	}
+
+	if (fmu_in_override_disabled) {
+		g_dev->disable_fmu_in_override();
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
