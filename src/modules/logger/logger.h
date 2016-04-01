@@ -15,13 +15,16 @@ namespace logger
 {
 
 struct LoggerSubscription {
-	int fd = -1;
+	int fd[ORB_MULTI_MAX_INSTANCES];
 	const orb_metadata *metadata = nullptr;
 
 	LoggerSubscription() {}
 
 	LoggerSubscription(int fd_, const orb_metadata *metadata_) :
-		fd(fd_), metadata(metadata_) {}
+		metadata(metadata_) {
+		fd[0] = fd_;
+		for (int i=1; i<ORB_MULTI_MAX_INSTANCES; i++) fd[i] = -1;
+	}
 };
 
 class Logger
@@ -31,9 +34,9 @@ public:
 
 	~Logger();
 
-	void add_topic(const orb_metadata *topic);
+	int add_topic(const orb_metadata *topic);
 
-	void add_all_topics();
+	int add_topic(const char *name, unsigned interval);
 
 	static int start();
 
@@ -57,6 +60,8 @@ private:
 	void write_formats();
 
 	void write_parameters();
+
+	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer);
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 128;
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
