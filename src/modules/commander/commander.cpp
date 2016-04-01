@@ -1505,7 +1505,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2880);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 3000);
 
 #ifndef __PX4_QURT
 	// This is not supported by QURT (yet).
