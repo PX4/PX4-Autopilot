@@ -95,7 +95,7 @@ static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle
 	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,       false,         false,  false }, // NYI
 };
 
-// You can index into the array with an arming_state_t in order to get it's textual representation
+// You can index into the array with an arming_state_t in order to get its textual representation
 static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
@@ -254,7 +254,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 				if (status->condition_system_sensors_initialized) {
-					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
+//					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
 				} else {
 					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
 				}
@@ -262,7 +262,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 					status->condition_system_sensors_initialized) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
+//				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 			} else {
 				// Silent ignore
@@ -883,6 +883,11 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		if (reportFailures) {
 			mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Flying with USB connected prohibited");
 		}
+	}
+
+	if (status->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+		preflight_ok = false;
+		mavlink_and_console_log_critical(mavlink_log_pub, "LOW BATTERY, ARMING LOCKED DOWN");
 	}
 
 	/* report once, then set the flag */
