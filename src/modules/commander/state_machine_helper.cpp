@@ -149,7 +149,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
-				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */);
+				/* report preflight_check failures continuously since they prevent normal operation */
+				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, true /* force report */);
 				status->condition_system_sensors_initialized = !prearm_ret;
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -276,7 +277,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			if ((!status->condition_system_prearm_error_reported &&
 			      status->condition_system_hotplug_timeout) ||
 			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors need inspection");
+				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not initialized");
 				status->condition_system_prearm_error_reported = true;
 			}
 			feedback_provided = true;
@@ -307,7 +308,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "INVAL: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_and_console_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s -> %s", state_names[status->arming_state], state_names[new_arming_state]);
 		}
 	}
 
