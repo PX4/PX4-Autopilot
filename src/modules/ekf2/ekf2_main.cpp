@@ -468,7 +468,6 @@ void Ekf2::task_main()
 
 		// run the EKF update and output
 		if (_ekf->update()) {
-
 			// generate vehicle attitude quaternion data
 			struct vehicle_attitude_s att = {};
 			_ekf->copy_quaternion(att.q);
@@ -625,6 +624,18 @@ void Ekf2::task_main()
 				} else {
 					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 				}
+			}
+		} else if (_replay_mode) {
+			// in replay mode we have to tell the replay module not to wait for an update
+			// we do this by publishing an attitude with zero timestamp
+			struct vehicle_attitude_s att = {};
+			att.timestamp = 0;
+
+			if (_att_pub == nullptr) {
+				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
 			}
 		}
 

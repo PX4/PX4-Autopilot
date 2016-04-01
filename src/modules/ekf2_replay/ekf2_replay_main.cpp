@@ -436,6 +436,13 @@ void Ekf2Replay::logIfUpdated()
 	// update attitude
 	struct vehicle_attitude_s att = {};
 	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+
+	// if the timestamp of the attitude is zero, then this means that the ekf did not
+	// do an update so we can ignore this message and just continue
+	if (att.timestamp == 0) {
+		return;
+	}
+
 	memset(&log_message.body.att.q_w, 0, sizeof(log_ATT_s));
 
 	log_message.type = LOG_ATT_MSG;
@@ -695,8 +702,9 @@ void Ekf2Replay::task_main()
 
 		read_first_header = true;
 
-		if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
-			PX4_WARN("bad log header\n");
+		if ((header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2)) {
+			// we assume that the log file is finished here
+			PX4_WARN("Done!");
 			_task_should_exit = true;
 			continue;
 		}
