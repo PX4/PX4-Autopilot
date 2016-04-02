@@ -916,7 +916,7 @@ Sensors::parameters_update()
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		/* current scaling for ACSP4 */
-		_parameters.battery_current_scaling = 0.029296875f;
+		_parameters.battery_current_scaling = 0.0293f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
 		/* current scaling for 3DR power brick */
 		_parameters.battery_current_scaling = 0.0124f;
@@ -926,7 +926,7 @@ Sensors::parameters_update()
 		_parameters.battery_current_scaling = 0.0124f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
-		_parameters.battery_voltage_scaling = 0.00001f;
+		_parameters.battery_current_scaling = 0.00001f;
 #endif
 	}
 
