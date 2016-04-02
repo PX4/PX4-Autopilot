@@ -174,10 +174,10 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
  *
  * @group EKF2
  * @min 0.0001
- * @max 0.01
+ * @max 0.1
  * @unit rad/s
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.0e-3f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 6.0e-2f);
 
 /**
  * Accelerometer noise for covariance prediction.
@@ -197,7 +197,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.25f);
  * @max 0.0001
  * @unit rad/s
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 7.0e-5f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 2.5e-6f);
 
 /**
  * Process noise for delta velocity z bias prediction.
@@ -207,7 +207,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 7.0e-5f);
  * @max 0.01
  * @unit m/s/s
  */
-PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
+PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-5f);
 
 /**
  * Process noise for delta angle scale factor prediction.
@@ -216,17 +216,27 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
  * @min 0.0
  * @max 0.01
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-3f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-4f);
 
 /**
- * Process noise for sensor bias and earth magnetic field prediction.
+ * Process noise for body magnetic field prediction.
  *
  * @group EKF2
  * @min 0.0
  * @max 0.1
  * @unit Gauss/s
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 2.5e-2f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 5.0e-4f);
+
+/**
+ * Process noise for earth magnetic field prediction.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.1
+ * @unit Gauss/s
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 2.5e-3f);
 
 /**
  * Process noise for wind velocity prediction.
@@ -256,7 +266,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
  * @max 10.0
  * @unit m
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 1.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.5f);
 
 /**
  * Measurement noise for non-aiding position hold.
@@ -286,7 +296,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.0f);
  * @max 1.0
  * @unit rad
  */
-PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.17f);
+PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.3f);
 
 /**
  * Measurement noise for magnetometer 3-axis fusion.
@@ -323,7 +333,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
  * @min 1.0
  * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 2.6f);
 
 /**
  * Gate size for magnetometer XYZ component fusion
@@ -370,7 +380,7 @@ PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
  * @min 1.0
  * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 
 /**
  * Gate size for GPS horizontal position fusion
@@ -379,7 +389,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 3.0f);
  * @min 1.0
  * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 
 /**
  * Gate size for GPS velocity fusion
@@ -388,7 +398,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
  * @min 1.0
  * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
  * Replay mode
