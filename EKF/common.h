@@ -171,7 +171,8 @@ struct parameters {
 	float gyro_bias_p_noise;	// process noise for IMU delta angle bias prediction (rad/sec)
 	float accel_bias_p_noise;	// process noise for IMU delta velocity bias prediction (m/sec/sec)
 	float gyro_scale_p_noise;	// process noise for gyro scale factor prediction (N/A)
-	float mag_p_noise;		// process noise for magnetic field prediction (Guass/sec)
+	float mage_p_noise;		// process noise for earth magnetic field prediction (Guass/sec)
+	float magb_p_noise;		// process noise for body magnetic field prediction (Guass/sec)
 	float wind_vel_p_noise;		// process noise for wind velocity prediction (m/sec/sec)
 	float terrain_p_noise;		// process noise for terrain offset (m/sec)
 	float terrain_gradient;		// gradient of terrain used to estimate process noise due to changing position (m/m)
@@ -238,33 +239,34 @@ struct parameters {
 		range_delay_ms = 200.0f;
 
 		// input noise
-		gyro_noise = 1.0e-3f;
+		gyro_noise = 6.0e-2f;
 		accel_noise = 2.5e-1f;
 
 		// process noise
-		gyro_bias_p_noise = 7.0e-5f;
-		accel_bias_p_noise = 1.0e-4f;
-		gyro_scale_p_noise = 3.0e-3f;
-		mag_p_noise = 2.5e-2f;
+		gyro_bias_p_noise = 2.5e-6f;
+		accel_bias_p_noise = 3.0e-5f;
+		gyro_scale_p_noise = 3.0e-4f;
+		mage_p_noise = 2.5e-3f;
+		magb_p_noise = 5.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 5.0f;
 		terrain_gradient = 0.5f;
 
 		// position and velocity fusion
 		gps_vel_noise = 5.0e-1f;
-		gps_pos_noise = 1.0f;
+		gps_pos_noise = 0.5f;
 		pos_noaid_noise = 10.0f;
-		baro_noise = 3.0f;
-		baro_innov_gate = 3.0f;
-		posNE_innov_gate = 3.0f;
-		vel_innov_gate = 3.0f;
+		baro_noise = 2.0f;
+		baro_innov_gate = 5.0f;
+		posNE_innov_gate = 5.0f;
+		vel_innov_gate = 5.0f;
 		hgt_reset_lim = 5.0f;
 
 		// magnetometer fusion
-		mag_heading_noise = 1.7e-1f;
+		mag_heading_noise = 3.0e-1f;
 		mag_noise = 5.0e-2f;
 		mag_declination_deg = 0.0f;
-		heading_innov_gate = 3.0f;
+		heading_innov_gate = 2.6f;
 		mag_innov_gate = 3.0f;
 		mag_declination_source = 3;
 		mag_fusion_type = 0;

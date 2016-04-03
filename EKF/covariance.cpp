@@ -153,17 +153,17 @@ void Ekf::predictCovariance()
 	float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 0.0f, 1e-2f);
 	float mag_I_sig, mag_B_sig;
 
-	// Don't continue to grow the body field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][8]) < 0.1f) {
-		mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1e-1f);
 
 	} else {
 		mag_I_sig = 0.0f;
 	}
 
-	// Don't continue to grow the earth field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	// Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	if (_control_status.flags.mag_3D && (P[19][19] + P[20][20] + P[21][21]) < 0.1f) {
-		mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+		mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.0f, 1e-1f);
 
 	} else {
 		mag_B_sig = 0.0f;
@@ -210,7 +210,7 @@ void Ekf::predictCovariance()
 	// inputs to the system are 3 delta angles and 3 delta velocities
 	float daxNoise, dayNoise, dazNoise;
 	float dvxNoise, dvyNoise, dvzNoise;
-	float gyro_noise = math::constrain(_params.gyro_noise, 1e-4f, 1e-2f);
+	float gyro_noise = math::constrain(_params.gyro_noise, 1e-4f, 1e-1f);
 	daxNoise = dayNoise = dazNoise = dt * gyro_noise;
 	float accel_noise = math::constrain(_params.accel_noise, 1e-2f, 1.0f);
 	dvxNoise = dvyNoise = dvzNoise = dt * accel_noise;
