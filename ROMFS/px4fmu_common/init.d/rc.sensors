@@ -92,10 +92,9 @@ then
 else
 	if ver hwcmp PX4FMU_V4
 	then
-		# External I2C bus
-		if lis3mdl -X start
+		if lis3mdl -R 2 start
 		then
-			echo lis3mdl driver started on external I2C bus
+			echo lis3mdl driver started on I2C bus
 		fi
 
 		# External I2C bus
