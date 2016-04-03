@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -145,6 +146,7 @@ private:
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
+	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
@@ -234,6 +236,7 @@ Ekf2::Ekf2():
 	_lpos_pub(nullptr),
 	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
+	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
@@ -656,6 +659,20 @@ void Ekf2::task_main()
 
 		} else {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		// Publish wind estimate
+		struct wind_estimate_s wind_estimate = {};
+		wind_estimate.timestamp = hrt_absolute_time();
+		wind_estimate.windspeed_north = status.states[22];
+		wind_estimate.windspeed_east = status.states[23];
+		wind_estimate.covariance_north = status.covariances[22];
+		wind_estimate.covariance_east = status.covariances[23];
+
+		if (_wind_pub == nullptr) {
+			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+		} else {
+			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
 		}
 
 		// publish estimator innovation data
