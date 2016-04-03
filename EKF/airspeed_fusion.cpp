@@ -70,7 +70,7 @@ void Ekf::fuseAirspeed()
 	v_tas_pred = sqrtf((ve - vwe) * (ve - vwe) + (vn - vwn) * (vn - vwn) + vd * vd);
 
 	// Perform fusion of True Airspeed measurement
-	if (v_tas_pred > 3.0f) {
+	if (v_tas_pred > 1.0f) {
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
 		SH_TAS[0] = 1 / v_tas_pred;
