@@ -529,15 +529,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	if (serial_fd < 0) {
 		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
 
-	} else {
-
-		// tell the device to stream some messages
-		char command[] = "\nsh /etc/init.d/rc.usb\n";
-		int w = ::write(serial_fd, command, sizeof(command));
-
-		if (w <= 0) {
-			PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
-		}
 	}
 
 	char serial_buf[1024];
