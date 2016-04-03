@@ -671,6 +671,7 @@ void Ekf2::task_main()
 
 		if (_wind_pub == nullptr) {
 			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
 		} else {
 			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
 		}
