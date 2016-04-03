@@ -449,7 +449,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
 	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
-	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
+	_params_handles.global_yaw_max = param_find("MC_YAWR_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");

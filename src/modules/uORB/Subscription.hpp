@@ -85,6 +85,7 @@ public:
 	virtual ~SubscriptionBase();
 
 // accessors
+	void setMeta(const struct orb_metadata *meta);
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
 protected:
@@ -92,6 +93,7 @@ protected:
 	void setHandle(int handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
+	unsigned _interval;
 	int _instance;
 	int _handle;
 private:

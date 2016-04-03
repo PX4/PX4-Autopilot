@@ -217,6 +217,7 @@ public:
 	float getY() {return _y;}
 	float getMax() {return _limit.getMax();}
 	void setY(float y) {_y = y;}
+	void reset() {_y = 0;}
 protected:
 // attributes
 	float _y; /**< previous output */

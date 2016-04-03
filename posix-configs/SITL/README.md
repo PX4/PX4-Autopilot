@@ -103,7 +103,7 @@ param set RC_CHAN_CNT 8
 param set RC_MAP_MODE_SW 5
 param set RC_MAP_POSCTL_SW 7
 param set RC_MAP_RETURN_SW 8
-param set MC_PITCHRATE_P 0.05
-param set MC_ROLLRATE_P 0.05
+param set MC_PITCHR_P 0.05
+param set MC_ROLLR_P 0.05
 mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
 ```
