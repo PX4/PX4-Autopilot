@@ -1102,7 +1102,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		warn("FAILED: SENSORIOCSPOLLRATE 2Hz");
+		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
 		ret = 1;
 		goto out;
 	}
