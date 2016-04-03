@@ -35,6 +35,8 @@
  * @file lis3mdl.cpp
  *
  * Driver for the LIS3MDL magnetometer connected via I2C or SPI.
+ *
+ * Based on the hmc5883 driver.
  */
 
 #include <px4_config.h>
