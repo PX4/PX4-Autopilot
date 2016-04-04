@@ -462,7 +462,7 @@ void Simulator::initializeSensorData()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::pollForMAVLinkMessages(bool publish)
+void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 {
 	// set the threads name
 #ifdef __PX4_DARWIN
@@ -473,13 +473,15 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 	// udp socket data
 	struct sockaddr_in _myaddr;
-	const int _port = UDP_PORT;
+
+	if (udp_port < 1)
+		udp_port = UDP_PORT;
 
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(_port);
+	_myaddr.sin_port = htons(udp_port);
 
 	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		PX4_WARN("create socket failed\n");
@@ -532,7 +534,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for first data from simulator and respond with first controls
 	// this is important for the UDP communication to work
 	int pret = -1;
-	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
+	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..",udp_port);
 
 	uint64_t pstart_time = 0;
 
