@@ -1108,7 +1108,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
 
 	struct vehicle_command_s buf_cmd;
-	memset(&buf_status, 0, sizeof(buf_cmd));
+	memset(&buf_cmd, 0, sizeof(buf_cmd));
 
 	// check if we are gathering data for a replay log for ekf2
 	// is yes then disable logging of some topics to avoid dropouts
