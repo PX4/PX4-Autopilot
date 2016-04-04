@@ -55,6 +55,9 @@
 #include <poll.h>
 #include <time.h>
 #include <float.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/sensor_combined.h>
@@ -188,6 +191,8 @@ private:
 	// it will then wait for the output data from the estimator and call the propoper
 	// functions to handle it
 	void publishAndWaitForEstimator();
+
+	void setUserParams();
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
@@ -639,6 +644,41 @@ void Ekf2Replay::publishAndWaitForEstimator()
 	}
 }
 
+void Ekf2Replay::setUserParams()
+{
+	std::string line;
+	std::ifstream myfile("./rootfs/replay_params.txt");
+	std::string param_name;
+	std::string value_string;
+
+	if (myfile.is_open()) {
+		while (! myfile.eof()) {
+			getline(myfile, line);
+			std::istringstream mystrstream(line);
+			mystrstream >> param_name;
+			mystrstream >> value_string;
+
+			double param_value_double = std::stod(value_string);
+
+			param_t handle = param_find(param_name.c_str());
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_value_double;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				float value = 0;
+				value = (float)param_value_double;
+				param_set(handle, (const void *)&value);
+			}
+		}
+
+		myfile.close();
+	}
+}
+
 void Ekf2Replay::task_main()
 {
 	// formats
@@ -680,6 +720,7 @@ void Ekf2Replay::task_main()
 	_fds[0].events = POLLIN;
 
 	bool read_first_header = false;
+	bool set_user_params = false;
 
 	PX4_INFO("Replay in progress... \n");
 	PX4_INFO("Log data will be written to %s\n", replay_file_location);
@@ -785,6 +826,13 @@ void Ekf2Replay::task_main()
 			writeMessage(_write_fd, &data[0], sizeof(log_TIME_s));
 
 		} else {
+			// the first time we arrive here we should apply the parameters specified in the user file
+			// this makes sure they are applied after the parameter values of the log file
+			if (!set_user_params) {
+				setUserParams();
+				set_user_params = true;
+			}
+
 			// data message
 			if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
 				PX4_INFO("Done!");
