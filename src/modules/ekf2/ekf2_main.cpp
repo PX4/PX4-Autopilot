@@ -136,7 +136,6 @@ private:
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
 	int		_params_sub = -1;
-	int 	_vehicle_status_sub = -1;
 	int 	_optical_flow_sub = -1;
 	int 	_range_finder_sub = -1;
 	int		_actuator_armed_sub = -1;
@@ -318,7 +317,6 @@ void Ekf2::task_main()
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
 	_actuator_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
@@ -339,7 +337,6 @@ void Ekf2::task_main()
 	sensor_combined_s sensors = {};
 	vehicle_gps_position_s gps = {};
 	airspeed_s airspeed = {};
-	vehicle_control_mode_s vehicle_control_mode = {};
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
 	actuator_armed_s actuator_armed = {};
@@ -373,7 +370,6 @@ void Ekf2::task_main()
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
-		bool vehicle_status_updated = false;
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
 		bool actuator_armed_updated = false;
