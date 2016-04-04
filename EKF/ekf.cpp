@@ -339,12 +339,15 @@ bool Ekf::initialiseFilter(void)
 
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_mag_counter == 0) {
+		if (_mag_counter == 0 && _mag_sample_delayed.time_us !=0) {
+			// initialise the filter states and counter when we start getting valid data from the buffer
 			_mag_filt_state = _mag_sample_delayed.mag;
+			_mag_counter = 1;
+		} else if (_mag_counter != 0) {
+			// increment the sample count and apply a LPF to the measurement
+			_mag_counter ++;
+			_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
 		}
-
-		_mag_counter ++;
-		_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
 	}
 
 	// set the default height source from the adjustable parameter
@@ -354,28 +357,36 @@ bool Ekf::initialiseFilter(void)
 
 	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
-			if (_hgt_counter == 0) {
+			if (_hgt_counter == 0 && _range_sample_delayed.time_us != 0) {
+				// initialise the filter states and counter when we start getting valid data from the buffer
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
 				_hgt_filt_state = _range_sample_delayed.rng;
+				_hgt_counter = 1;
+			} else if (_hgt_counter != 0) {
+				// increment the sample count and apply a LPF to the measurement
+				_hgt_counter ++;
+				_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _range_sample_delayed.rng;
 			}
-
-			_hgt_counter ++;
-			_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _range_sample_delayed.rng;
 		}
 
 	} else if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS) {
+		// if the user parameter specifies use of GPS for height we use baro height initially and switch to GPS
+		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-			if (_hgt_counter == 0) {
+			if (_hgt_counter == 0 && _baro_sample_delayed.time_us != 0) {
+				// initialise the filter states and counter when we start getting valid data from the buffer
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
 				_hgt_filt_state = _baro_sample_delayed.hgt;
+				_hgt_counter = 1;
+			} else if (_hgt_counter != 0) {
+				// increment the sample count and apply a LPF to the measurement
+				_hgt_counter ++;
+				_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _baro_sample_delayed.hgt;
 			}
-
-			_hgt_counter ++;
-			_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _baro_sample_delayed.hgt;
 		}
 
 	} else {
