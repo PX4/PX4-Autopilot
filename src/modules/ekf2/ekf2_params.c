@@ -358,7 +358,8 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis fusion
- * @value 3 Mag fusion off
+ * @value 3 2-D projection
+ * @value 4 None
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
