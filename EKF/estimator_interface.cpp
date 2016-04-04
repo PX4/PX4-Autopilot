@@ -208,7 +208,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 
 	if (time_usec - _time_last_airspeed > 80000) {
 		airspeedSample airspeed_sample_new;
-		airspeed_sample_new.airspeed = *data;
+		airspeed_sample_new.true_airspeed = *data;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
 		airspeed_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2; //typo PeRRiod
 		_time_last_airspeed = time_usec;
