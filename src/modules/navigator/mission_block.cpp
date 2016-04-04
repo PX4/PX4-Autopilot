@@ -454,7 +454,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 void
 MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
