@@ -71,6 +71,7 @@ public:
 		}
 
 		_size = size;
+		memset(_buffer,0,sizeof(data_type)*_size);
 		_first_write = true;
 		return true;
 	}
