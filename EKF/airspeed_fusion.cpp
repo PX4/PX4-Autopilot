@@ -148,17 +148,13 @@ void Ekf::fuseAirspeed()
 			_state.ang_error.setZero();
 
 			// Fuse airspeed measurement
-			fuse(Kfusion, _airspeed_innov); //Why calculate angle error when it is always zero?
+			fuse(Kfusion, _airspeed_innov);
 
 			// correct the nominal quaternion
 			Quaternion dq;
 			dq.from_axis_angle(_state.ang_error);
 			_state.quat_nominal = dq * _state.quat_nominal;
 			_state.quat_nominal.normalize();
-
-			// update covariance matrix via Pnew = (I - KH)P = P - KHP
-			float KH[_k_num_states][_k_num_states] = {};
-			float KHP[_k_num_states][_k_num_states] = {};
 
 			for (unsigned row = 0; row < _k_num_states; row++) {
 				for (unsigned column = 0; column < _k_num_states; column++) { // Here it will be a lot of zeros, should optimize that...
