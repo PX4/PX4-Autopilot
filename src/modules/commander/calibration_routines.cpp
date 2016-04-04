@@ -477,7 +477,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		mavlink_and_console_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
 		// TODO FIXME: sleep here, so that QGC receives this with higher chance.
-		usleep(1000);
+		usleep(10000);
 		orientation_failures = 0;
 
 		// Call worker routine
