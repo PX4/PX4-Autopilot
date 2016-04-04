@@ -739,7 +739,7 @@ void VtolAttitudeControl::task_main()
 		} else if (_vtol_type->get_mode() == TRANSITION) {
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
+			_vtol_vehicle_status.vtol_in_rw_mode = true;
 
 			bool got_new_data = false;
 

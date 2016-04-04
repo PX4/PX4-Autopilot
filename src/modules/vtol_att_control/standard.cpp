@@ -48,7 +48,8 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
-	_airspeed_trans_blend_margin(0.0f)
+	_airspeed_trans_blend_margin(0.0f),
+	_fw_yaw_weight(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -213,11 +214,15 @@ void Standard::update_transition_state()
 		if (_params_standard.front_trans_dur <= 0.0f) {
 			// just set the final target throttle value
 			_pusher_throttle = _params_standard.pusher_trans;
+			_fw_yaw_weight = 1.0f;
 
 		} else if (_pusher_throttle <= _params_standard.pusher_trans) {
 			// ramp up throttle to the target throttle value
 			_pusher_throttle = _params_standard.pusher_trans *
 					   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur * 1000000.0f);
+
+			/* also ramp up yaw weight so there is no sudden change (rudder) */
+			_fw_yaw_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur * 1000000.0f);
 		}
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
@@ -232,12 +237,26 @@ void Standard::update_transition_state()
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
 
+			/* yaw and roll according to FW navigation */
+			_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+			_v_att_sp->yaw_body = _fw_virtual_att_sp->yaw_body;
+			_v_att_sp->pitch_body = _fw_virtual_att_sp->pitch_body;
+			_v_att_sp->fw_control_yaw = true;
+
+			/* reduce rudder output the more speed we gain */
+			// XXX: better would be to use coordinated turn logic in ECL
+			_fw_yaw_weight = 1 - weight;
+
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 			_mc_throttle_weight = 1.0f;
+
+			/* already yaw according to FW navigation and enable rudder */
+			_v_att_sp->yaw_body = _fw_virtual_att_sp->yaw_body;
+			_v_att_sp->fw_control_yaw = true;
 		}
 
 		// check front transition timeout
@@ -257,6 +276,10 @@ void Standard::update_transition_state()
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
+
+			/* help controlling heading with rudder during back transition until MC has full weights */
+			// XXX: effect might be counter productive, needs careful evaluation
+			_v_att_sp->fw_control_yaw = true;
 
 		} else {
 			_mc_roll_weight = 1.0f;
@@ -297,6 +320,11 @@ void Standard::update_fw_state()
  */
 void Standard::fill_actuator_outputs()
 {
+	/* reset fw yaw weight if not in forwards transition */
+	if (_vtol_schedule.flight_mode != TRANSITION_TO_FW) {
+		_fw_yaw_weight = 1 - _mc_yaw_weight;
+	}
+
 	/* multirotor controls */
 	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
@@ -315,7 +343,7 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
 	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
-			* (1 - _mc_yaw_weight);	// yaw
+			* _fw_yaw_weight;	// yaw
 
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
