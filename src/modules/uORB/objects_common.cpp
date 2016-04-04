@@ -45,6 +45,9 @@
 
 #include <drivers/drv_orb_dev.h>
 
+#include "topics/eag_raw.h"
+ORB_DEFINE(eag_raw, struct eag_raw_s);
+
 #include "topics/sensor_mag.h"
 ORB_DEFINE(sensor_mag, struct sensor_mag_s);
 

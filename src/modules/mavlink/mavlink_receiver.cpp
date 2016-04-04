@@ -231,6 +231,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
 		handle_message_follow_target(msg);
 		break;
+	case MAVLINK_MSG_ID_EAG_RAW:
+		handle_message_eag_raw(msg);
+		break;
 	default:
 		break;
 	}
@@ -301,6 +304,18 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	}
 
 	return target_ok;
+}
+
+void MavlinkReceiver::handle_message_eag_raw(mavlink_message_t *msg) {
+	/* eag_raw */
+	mavlink_eag_raw_t raw;
+	mavlink_msg_eag_raw_decode(msg, &raw);
+
+	struct eag_raw_s f;
+	memset(&f, 0, sizeof(f));
+
+	f.timestamp = hrt_absolute_time();
+	f.raw_data = raw.raw_data;
 }
 
 void

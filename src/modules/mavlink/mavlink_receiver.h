@@ -43,6 +43,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/eag_raw.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -114,6 +115,7 @@ public:
 private:
 
 	void handle_message(mavlink_message_t *msg);
+	void handle_message_eag_raw(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
@@ -169,6 +171,7 @@ private:
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_land_detected_s hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
+	orb_advert_t _eag_raw_pub;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
