@@ -20,9 +20,6 @@
 #elif UAVCAN_STM32_FREERTOS
 # include <stm32f4xx.h>
 # include <cmsis_os.h>
-#   ifndef MAX_SEMAPHORE_COUNT
-#   define MAX_SEMAPHORE_COUNT      50
-#endif
 #else
 # error "Unknown OS"
 #endif
@@ -178,7 +175,7 @@ public:
     BusEvent(CanDriver& can_driver)
     {
         (void)can_driver;
-        sem_ = xSemaphoreCreateCounting( MAX_SEMAPHORE_COUNT, 0 );
+        sem_ = xSemaphoreCreateBinary();
     }
 
     bool wait(uavcan::MonotonicDuration duration);
