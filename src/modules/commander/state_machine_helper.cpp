@@ -813,7 +813,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
 		/* require global position and home */
 
 		if (status->engine_failure) {
