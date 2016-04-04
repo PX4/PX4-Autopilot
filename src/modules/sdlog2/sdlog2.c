@@ -2155,7 +2155,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (copy_if_updated(ORB_ID(vehicle_land_detected), &subs.land_detected_sub, &buf.land_detected)) {
 			log_msg.msg_type = LOG_LAND_MSG;
 			log_msg.body.log_LAND.landed = buf.land_detected.landed;
-			LOGBUFFER_WRITE_AND_COUNT(CTS);
+			LOGBUFFER_WRITE_AND_COUNT(LAND);
 		}
 
 		pthread_mutex_lock(&logbuffer_mutex);

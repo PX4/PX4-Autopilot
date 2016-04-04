@@ -582,7 +582,7 @@ struct log_CAMT_s {
 	uint32_t seq;
 };
 
-#define LOG_LAND_MSG 56
+#define LOG_LAND_MSG 57
 struct log_LAND_s {
 	uint8_t landed;
 };
