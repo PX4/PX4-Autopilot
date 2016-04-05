@@ -435,7 +435,7 @@ private:
 	struct sockaddr_in _src_addr;
 	struct sockaddr_in _bcast_addr;
 	bool _src_addr_initialized;
-	bool _broadcast_reported;
+	bool _broadcast_address_found;
 
 #endif
 	int _socket_fd;

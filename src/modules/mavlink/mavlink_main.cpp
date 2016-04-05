@@ -179,7 +179,7 @@ Mavlink::Mavlink() :
 	_src_addr{},
 	_bcast_addr{},
 	_src_addr_initialized(false),
-	_broadcast_reported(false),
+	_broadcast_address_found(false),
 #endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
@@ -885,15 +885,13 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		if ((_mode != MAVLINK_MODE_ONBOARD) &&
 			(!get_client_source_initialized()
 			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
-			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)
+			&& _broadcast_address_found) {
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 			if (bret <= 0) {
-				if (!_broadcast_reported) {
-					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
-					_broadcast_reported = true;
-				}
+				PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
 			}
 		}
 
@@ -1013,8 +1011,6 @@ Mavlink::init_udp()
 		return;
 	}
 
-	bool network_interface_found = false;
-
 	for (int i = 0; i < (ifconf.ifc_len/sizeof(struct ifreq)) && (i < MAX_IFREQS); ++i) {
 		// ignore loopback network
 		if (strcmp(ifreqs[i].ifr_name, "lo") == 0) {
@@ -1043,7 +1039,7 @@ Mavlink::init_udp()
 			continue;
 		}
 
-		if (!network_interface_found) {
+		if (!_broadcast_address_found) {
 			PX4_INFO("using network interface %s, IP: %s", ifreqs[i].ifr_name, inet_ntoa(sin_addr));
 
 			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
@@ -1052,15 +1048,15 @@ Mavlink::init_udp()
 			_bcast_addr.sin_family = AF_INET;
 			_bcast_addr.sin_addr = bc_addr;
 
-			network_interface_found = true;
+			_broadcast_address_found = true;
 		} else {
 			PX4_INFO("ignoring additional network interface %s, IP:  %s",
 				 ifreqs[i].ifr_name, inet_ntoa(sin_addr));
 		}
 	}
 
-	if (!network_interface_found) {
-		PX4_WARN("no networking interface for local network found");
+	if (!_broadcast_address_found) {
+		PX4_WARN("no broadcasting address found");
 		return;
 	}
 
