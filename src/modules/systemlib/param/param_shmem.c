@@ -974,6 +974,9 @@ param_export(int fd, bool only_unsaved)
 
 		s->unsaved = false;
 
+		/* Make sure to get latest from shmem before saving. */
+		update_from_shmem(s->param, &s->val);
+
 		/* append the appropriate BSON type object */
 
 		switch (param_type(s->param)) {
