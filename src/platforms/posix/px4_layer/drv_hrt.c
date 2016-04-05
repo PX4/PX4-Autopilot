@@ -131,6 +131,16 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 #endif
 
 /*
+ * Get system time in us
+ */
+unsigned long long hrt_system_time(void)
+{
+	struct timespec ts;
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts_to_abstime(&ts) - px4_timestart;
+}
+
+/*
  * Get absolute time.
  */
 hrt_abstime _hrt_absolute_time_internal(void)

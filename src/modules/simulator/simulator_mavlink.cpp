@@ -130,6 +130,8 @@ void Simulator::send_controls()
 	mavlink_hil_controls_t msg;
 	pack_actuator_message(msg);
 	send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
+	mavlink_heartbeat_t hb = {};
+	send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
 }
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
@@ -526,11 +528,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
-	if (serial_fd < 0) {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-
-	}
-
 	char serial_buf[1024];
 
 	struct pollfd fds[2];
@@ -544,6 +541,8 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		fds[1].fd = serial_fd;
 		fds[1].events = POLLIN;
 		fd_count++;
+	} else {
+		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
 	}
 
 	int len = 0;
@@ -553,19 +552,47 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	int pret = -1;
 	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
 
-	while (pret <= 0) {
+	unsigned long long pstart_time = 0;
+
+	bool no_sim_data = true;
+
+	while (!px4_exit_requested() && no_sim_data/*pret <= 0 || (pstart_time == 0 || hrt_system_time() - pstart_time < 100000000)*/) {
 		pret = ::poll(&fds[0], fd_count, 100);
+
+		if (fds[0].revents & POLLIN) {
+			PX4_WARN(".");
+			pstart_time = hrt_system_time();
+			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			// send first controls
+			send_controls();
+
+			if (len > 0) {
+				mavlink_message_t msg;
+				mavlink_status_t udp_status = {};
+
+				for (int i = 0; i < len; i++) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
+						// have a message, handle it
+						handle_message(&msg, publish);
+						warnx("Got: %u", msg.msgid);
+
+						if (msg.msgid != 0) {
+							PX4_INFO("Got initial simuation data, running sim..");
+							no_sim_data = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (px4_exit_requested()) {
+		return;
 	}
 
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
-
-	if (fds[0].revents & POLLIN) {
-		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_INFO("Sending initial controls message to simulator");
-		send_controls();
-	}
 
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
@@ -625,6 +652,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
+						warnx("Got: %u", msg.msgid);
 					}
 				}
 			}
