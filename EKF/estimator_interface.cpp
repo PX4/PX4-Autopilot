@@ -59,6 +59,7 @@ EstimatorInterface::EstimatorInterface():
 	_gps_origin_eph(0.0f),
 	_gps_origin_epv(0.0f),
 	_mag_healthy(false),
+	_airspeed_healthy(false),
 	_yaw_test_ratio(0.0f),
 	_time_last_imu(0),
 	_time_last_gps(0),
@@ -200,15 +201,16 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 	}
 }
 
-void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
+void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *true_airspeed, float *eas2tas)
 {
-	if (!collect_airspeed(time_usec, data) || !_initialised) {
+	if (!collect_airspeed(time_usec, true_airspeed, eas2tas) || !_initialised) {
 		return;
 	}
 
 	if (time_usec - _time_last_airspeed > 80000) {
 		airspeedSample airspeed_sample_new;
-		airspeed_sample_new.true_airspeed = *data;
+		airspeed_sample_new.true_airspeed = *true_airspeed;
+		airspeed_sample_new.eas2tas = *eas2tas;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
 		airspeed_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2; //typo PeRRiod
 		_time_last_airspeed = time_usec;

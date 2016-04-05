@@ -172,7 +172,7 @@ void Ekf::predictCovariance()
 	float wind_vel_sig;
 
 	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
-	if (_control_status.flags.wind && (P[22][22] + P[22][22]) < 1000.0f) {
+	if (_control_status.flags.wind && (P[22][22] + P[23][23]) < 1000.0f) {
 		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
 
 	} else {
@@ -641,10 +641,47 @@ void Ekf::predictCovariance()
 
 	// Don't do covariance prediction on wind states unless we are using them
 	if (_control_status.flags.wind) {
-		// Check if we have jsut transitioned to using wind states and set the variances accordingly
-		if (!_control_status_prev.flags.mag_3D) {
+		// Check if we have just transitioned to using wind states and set the variances accordingly
+		if (!_control_status_prev.flags.wind) {
+			// simple initialisation of wind states: calculate wind component along the forward axis
+			// of the plane.
+			
+			matrix::Euler<float> euler(_output_new.quat_nominal);
+			float heading = euler(2);
+
+			// ground speed component in the xy plane projected onto the directon the plane is heading to
+			float ground_speed_xy_nose = _output_new.vel(0) * cosf(heading) + _output_new.vel(1) * sinf(heading);
+			airspeedSample tmp = _airspeed_buffer.get_newest();
+			float airspeed = tmp.true_airspeed;
+
+			// check if the calculation is well conditioned:
+			// our airspeed measurement is at least as hight as our down velocity and the plane is moving forward
+			if (airspeed > fabsf(_output_new.vel(2)) && ground_speed_xy_nose > 0) {
+	
+				float ground_speed = sqrtf(_output_new.vel(0) * _output_new.vel(0) + _output_new.vel(1) * _output_new.vel(1) + _output_new.vel(2) * _output_new.vel(2));
+				
+				// wind magnitude in the direction the plane is
+				float wind_magnitude = ground_speed_xy_nose -  sqrtf(airspeed *  airspeed - _output_new.vel(2) * _output_new.vel(2));
+
+				// determine direction of wind
+				float wind_sign = 1;
+				if (airspeed < ground_speed) {
+					// wind is in nose direction
+					wind_sign = 1;
+				} else {
+					wind_sign = -1;
+				}
+
+				_state.wind_vel(0) = cosf(heading) * wind_magnitude * wind_sign;
+				_state.wind_vel(1) = sinf(heading) * wind_magnitude * wind_sign;
+
+			} else {
+				// calculation is badly conditioned, just set wind states to zero
+				_state.wind_vel.setZero();
+			}
+
+			// initialise diagonal of covariance matrix for the wind velocity states
 			for (uint8_t index = 22; index <= 23; index++) {
-				// TODO initialise wind states using ground speed and airspeed and set initial variance using sum of ground speed and airspeed variances
 				P[index][index] = sq(5.0f);
 			}
 		}
@@ -725,6 +762,9 @@ void Ekf::predictCovariance()
 
 	// copy variances (diagonals)
 	for (unsigned i = 0; i < _k_num_states; i++) {
+		if(!_control_status.flags.wind && i > 21) {
+			continue;
+		}
 		P[i][i] = nextP[i][i];
 	}
 

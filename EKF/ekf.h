@@ -147,6 +147,7 @@ private:
 	uint64_t _time_last_vel_fuse;   // time the last fusion of velocity measurements was performed (usec)
 	uint64_t _time_last_hgt_fuse;   // time the last fusion of height measurements was performed (usec)
 	uint64_t _time_last_of_fuse;    // time the last fusion of optical flow measurements were performed (usec)
+	uint64_t _time_last_arsp_fuse;	// time the last fusion of airspeed measurements were performed (usec)
 	Vector2f _last_known_posNE;     // last known local NE position vector (m)
 	float _last_disarmed_posD;      // vertical position recorded at arming (m)
 

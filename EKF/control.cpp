@@ -43,6 +43,8 @@
 
 void Ekf::controlFusionModes()
 {
+	// Store the status to enable change detection
+	_control_status_prev.value = _control_status.value;
 	// Determine the vehicle status
 	calculateVehicleStatus();
 
@@ -339,14 +341,13 @@ void Ekf::controlFusionModes()
 		_control_status.flags.rng_hgt = true;
 	}
 
-	// Placeholder for control of wind velocity states estimation
-	// TODO add methods for true airspeed and/or sidelsip fusion or some type of drag force measurement
-	if (false) {
+	// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
+	if (_time_last_imu - _time_last_arsp_fuse > 10e6 || _time_last_arsp_fuse == 0) {
 		_control_status.flags.wind = false;
+	} else {
+		_control_status.flags.wind = true;
 	}
 
-	// Store the status to enable change detection
-	_control_status_prev.value = _control_status.value;
 }
 
 void Ekf::calculateVehicleStatus()
