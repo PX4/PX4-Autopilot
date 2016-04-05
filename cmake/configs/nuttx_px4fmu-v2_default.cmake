@@ -127,7 +127,7 @@ set(config_module_list
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
-	platforms/common 
+	platforms/common
 	platforms/nuttx/px4_layer
 
 	#
@@ -148,6 +148,9 @@ set(config_module_list
 	# https://px4.io/dev/px4_simple_app
 	examples/px4_simple_app
 
+	# Test script
+	examples/px4_port_echo
+	
 	# Tutorial code from
 	# https://px4.io/dev/daemon
 	#examples/px4_daemon_app
