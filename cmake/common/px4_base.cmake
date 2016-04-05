@@ -138,15 +138,11 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule update --init --recursive ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-# This is NOT a good approach as it overwrites checked out branches
-# behind the back of a developer
-		#COMMAND git submodule update --recursive ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
