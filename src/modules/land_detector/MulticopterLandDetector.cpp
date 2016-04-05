@@ -53,6 +53,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_armingSub(-1),
 	_parameterSub(-1),
 	_attitudeSub(-1),
+	_manualSub(-1),
 	_vehicleLocalPosition{},
 	_actuators{},
 	_arming{},
@@ -73,6 +74,7 @@ void MulticopterLandDetector::initialize()
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
+	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	// download parameters
 	updateParameterCache(true);
@@ -84,6 +86,7 @@ void MulticopterLandDetector::updateSubscriptions()
 	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
+	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
 }
 
 bool MulticopterLandDetector::update()
@@ -105,6 +108,11 @@ bool MulticopterLandDetector::get_landed_state()
 
 	} else if (_arming_time == 0) {
 		_arming_time = hrt_absolute_time();
+	}
+
+	// Check if user commands throttle and if so, report not landed
+	if (_manual.z > 0.3f) {
+		return false;
 	}
 
 	// Check if thrust output is less than max throttle param.

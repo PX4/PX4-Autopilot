@@ -49,6 +49,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/param/param.h>
 
 class MulticopterLandDetector : public LandDetector
@@ -107,11 +108,13 @@ private:
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
+	int _manualSub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
+	struct manual_control_setpoint_s	_manual;
 
 	/* timestamp in microseconds since a possible land was detected */
 	uint64_t _landTimer;
