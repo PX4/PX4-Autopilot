@@ -73,6 +73,7 @@ add_message_files(
   actuator_armed.msg
   parameter_update.msg
   vehicle_status.msg
+  commander_state.msg
   vehicle_local_position.msg
   position_setpoint.msg
   position_setpoint_triplet.msg
