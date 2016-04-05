@@ -217,12 +217,12 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 			id = math::min(id, 0.0f);
 		}
 
-		_integrator += id;
+		_integrator += id * _k_i;
 	}
 
 	/* integrator limit */
 	//xxx: until start detection is available: integral part in control signal is limited here
-	float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
+	float integrator_constrained = math::constrain(_integrator, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * ctl_data.scaler *
