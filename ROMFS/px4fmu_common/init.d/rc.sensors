@@ -28,6 +28,10 @@ if adc start
 then
 fi
 
+if batt_smbus start 
+then
+fi
+
 if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus

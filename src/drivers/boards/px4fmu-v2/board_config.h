@@ -147,6 +147,7 @@ __BEGIN_DECLS
  */
 #define PX4_I2C_OBDEV_LED	0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
+#define PX4_I2C_OBDEV_KBT6S22  0x16
 
 /*
  * ADC channels

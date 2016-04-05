@@ -52,6 +52,7 @@
 #include <uORB/topics/sensor_mag.h>
 #define mag_report sensor_mag_s
 
+
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
 struct mag_scale {
 	float	x_offset;

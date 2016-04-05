@@ -279,3 +279,6 @@ ORB_DEFINE(ekf2_innovations, struct ekf2_innovations_s);
 
 #include "topics/ekf2_replay.h"
 ORB_DEFINE(ekf2_replay, struct ekf2_replay_s);
+
+#include "topics/battery_status_kbt.h"
+ORB_DEFINE(batttery_status_kbt, struct battery_status_kbt_s);
