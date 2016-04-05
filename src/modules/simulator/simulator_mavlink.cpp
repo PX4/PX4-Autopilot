@@ -541,6 +541,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		fds[1].fd = serial_fd;
 		fds[1].events = POLLIN;
 		fd_count++;
+
 	} else {
 		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
 	}
@@ -650,7 +651,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
-						warnx("Got: %u", msg.msgid);
 					}
 				}
 			}
