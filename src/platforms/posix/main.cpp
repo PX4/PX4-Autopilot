@@ -165,7 +165,8 @@ static void restore_term(void)
 	tcsetattr(0, TCSANOW, &orig_term);
 }
 
-bool px4_exit_requested(void) {
+bool px4_exit_requested(void)
+{
 	return _ExitFlag;
 }
 
@@ -245,6 +246,7 @@ int main(int argc, char **argv)
 				if (px4_exit_requested()) {
 					break;
 				}
+
 				// TODO: this should be true but for that we have to check all startup files
 				process_line(line, false);
 			}
