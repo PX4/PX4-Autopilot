@@ -556,11 +556,10 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 	bool no_sim_data = true;
 
-	while (!px4_exit_requested() && no_sim_data/*pret <= 0 || (pstart_time == 0 || hrt_system_time() - pstart_time < 100000000)*/) {
+	while (!px4_exit_requested() && no_sim_data) {
 		pret = ::poll(&fds[0], fd_count, 100);
 
 		if (fds[0].revents & POLLIN) {
-			PX4_WARN(".");
 			pstart_time = hrt_system_time();
 			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 			// send first controls
@@ -574,7 +573,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
-						warnx("Got: %u", msg.msgid);
 
 						if (msg.msgid != 0) {
 							PX4_INFO("Got initial simuation data, running sim..");
