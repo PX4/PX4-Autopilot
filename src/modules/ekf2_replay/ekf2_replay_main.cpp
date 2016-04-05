@@ -192,7 +192,7 @@ private:
 	// functions to handle it
 	void publishAndWaitForEstimator();
 
-	void setUserParams();
+	void setUserParams(const char *filename);
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
@@ -644,10 +644,10 @@ void Ekf2Replay::publishAndWaitForEstimator()
 	}
 }
 
-void Ekf2Replay::setUserParams()
+void Ekf2Replay::setUserParams(const char *filename)
 {
 	std::string line;
-	std::ifstream myfile("./rootfs/replay_params.txt");
+	std::ifstream myfile(filename);
 	std::string param_name;
 	std::string value_string;
 
@@ -689,6 +689,7 @@ void Ekf2Replay::task_main()
 	// formats
 	const int _k_max_data_size = 1024;	// 16x16 bytes
 	uint8_t data[_k_max_data_size] = {};
+	const char param_file[] = "./rootfs/replay_params.txt";
 
 	// Open log file from which we read data
 	// TODO Check if file exists
@@ -714,7 +715,7 @@ void Ekf2Replay::task_main()
 	_write_fd = ::open(path_to_replay_log, O_WRONLY | O_CREAT, S_IRWXU);
 
 	std::ifstream tmp_file;
-	tmp_file.open("./rootfs/replay_params.txt");
+	tmp_file.open(param_file);
 
 	std::string line;
 	bool set_default_params_in_file = false;
@@ -723,15 +724,14 @@ void Ekf2Replay::task_main()
 		getline(tmp_file, line);
 
 		if (line.empty()) {
-			std::cout << tmp_file;
+			// the parameter file is empty so write the default values to it
 			set_default_params_in_file = true;
 		}
 	}
 
 	tmp_file.close();
 
-	std::ofstream myfile("./rootfs/replay_params.txt", std::ios::app);
-
+	std::ofstream myfile(param_file, std::ios::app);
 
 	// subscribe to estimator topics
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -829,6 +829,8 @@ void Ekf2Replay::task_main()
 				param_set(handle, (const void *)&param_data);
 			}
 
+			// if the user param file was empty then we fill it with the ekf2 parameter values from
+			// the log file
 			if (set_default_params_in_file) {
 				if (strncmp(param_name, "EKF2", 4) == 0) {
 					std::ostringstream os;
@@ -865,7 +867,7 @@ void Ekf2Replay::task_main()
 			// this makes sure they are applied after the parameter values of the log file
 			if (!set_user_params) {
 				myfile.close();
-				setUserParams();
+				setUserParams(param_file);
 				set_user_params = true;
 			}
 
