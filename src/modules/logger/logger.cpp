@@ -99,7 +99,7 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768, 8000);
+	logger_ptr = new Logger(32768,3500);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -280,16 +280,21 @@ void Logger::run()
 	/* the vehicle_status topic is monitored to start and stop logging */
 	add_topic(ORB_ID(vehicle_status));
 
-	/* topics logged at 100Hz */
-	const unsigned ten_msec = 0;
-	add_topic("sensor_accel", ten_msec);
-	add_topic("sensor_baro", ten_msec);
-	add_topic("sensor_gyro", ten_msec);
+	/* Using orb_set_interval resulted in very irregular logging intervals.
+	 * Instead, set _log_interval to 2msec and attempt to log every update
+	const unsigned ten_msec = 10;
+	const unsigned hundred_msec = 100;
+	 */
+//	add_topic("sensor_accel", 0);
+//	add_topic("sensor_baro", 0);
+	add_topic("manual_control_setpoint");
+	add_topic("vehicle_rates_setpoint");
+	add_topic("sensor_gyro", 0);
+	add_topic("vehicle_attitude_setpoint");
+	add_topic("vehicle_attitude");
 
-	/* topics logged at 10Hz */
-	const unsigned hundred_msec = 0;
-	add_topic("estimator_status", hundred_msec);
-	add_topic("sensor_combined", hundred_msec);
+//	add_topic("estimator_status", 0);
+//	add_topic("sensor_combined", 0);
 
 	_writer.thread_start();
 
