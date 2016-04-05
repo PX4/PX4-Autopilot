@@ -47,7 +47,7 @@
 #include <px4_time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -654,6 +654,11 @@ void Ekf2Replay::setUserParams()
 	if (myfile.is_open()) {
 		while (! myfile.eof()) {
 			getline(myfile, line);
+
+			if (line.empty()) {
+				continue;
+			}
+
 			std::istringstream mystrstream(line);
 			mystrstream >> param_name;
 			mystrstream >> value_string;
@@ -707,6 +712,26 @@ void Ekf2Replay::task_main()
 
 	// open logfile to write
 	_write_fd = ::open(path_to_replay_log, O_WRONLY | O_CREAT, S_IRWXU);
+
+	std::ifstream tmp_file;
+	tmp_file.open("./rootfs/replay_params.txt");
+
+	std::string line;
+	bool set_default_params_in_file = false;
+
+	if (tmp_file.is_open() && ! tmp_file.eof()) {
+		getline(tmp_file, line);
+
+		if (line.empty()) {
+			std::cout << tmp_file;
+			set_default_params_in_file = true;
+		}
+	}
+
+	tmp_file.close();
+
+	std::ofstream myfile("./rootfs/replay_params.txt", std::ios::app);
+
 
 	// subscribe to estimator topics
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -804,6 +829,16 @@ void Ekf2Replay::task_main()
 				param_set(handle, (const void *)&param_data);
 			}
 
+			if (set_default_params_in_file) {
+				if (strncmp(param_name, "EKF2", 4) == 0) {
+					std::ostringstream os;
+					double value = (double)param_data;
+					os << std::string(param_name) << " ";
+					os << value << "\n";
+					myfile << os.str();
+				}
+			}
+
 		} else if (header[2] == LOG_VER_MSG) {
 			// version message
 			if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
@@ -829,6 +864,7 @@ void Ekf2Replay::task_main()
 			// the first time we arrive here we should apply the parameters specified in the user file
 			// this makes sure they are applied after the parameter values of the log file
 			if (!set_user_params) {
+				myfile.close();
 				setUserParams();
 				set_user_params = true;
 			}
