@@ -3621,6 +3621,12 @@ void *commander_low_prio_loop(void *arg)
 
 					} else if (((int)(cmd.param1)) == 1) {
 
+#ifdef __PX4_QURT
+						// TODO FIXME: on snapdragon the save happens to early when the params
+						// are not set yet. We therefore need to wait some time first.
+						usleep(1000000);
+#endif
+
 						int ret = param_save_default();
 
 						if (ret == OK) {
