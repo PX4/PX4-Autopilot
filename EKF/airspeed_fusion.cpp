@@ -70,10 +70,10 @@ void Ekf::fuseAirspeed()
 	v_tas_pred = sqrtf((ve - vwe) * (ve - vwe) + (vn - vwn) * (vn - vwn) + vd * vd);
 
 	// Perform fusion of True Airspeed measurement
-	if (v_tas_pred > 3.0f) {
+	if (v_tas_pred > 1.0f) {
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
-		SH_TAS[0] = 1 / (sqrt(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
+		SH_TAS[0] = 1 / v_tas_pred;
 		SH_TAS[1] = (SH_TAS[0] * (2 * ve - 2 * vwe)) / 2.0f;
 		SH_TAS[2] = (SH_TAS[0] * (2 * vn - 2 * vwn)) / 2.0f;
 
@@ -180,5 +180,4 @@ void Ekf::fuseAirspeed()
 		makeSymmetrical(); 
 		limitCov();
 	}
-	// Do we want to force and limit the covariance matrx even if v_tas_pred < X ?
 }
