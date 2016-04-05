@@ -106,6 +106,7 @@ script:
       && arm-none-eabi-gcc --version
       && echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
       && echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+      && echo 'Building NuttX mindpx-v2 Firmware..' && make mindpx-v2_default
       && echo 'Building UAVCAN node firmware..' && make uavcan_firmware
       && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
       && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
