@@ -71,7 +71,10 @@ public:
 		}
 
 		_size = size;
-		memset(_buffer,0,sizeof(data_type)*_size);
+		// set the time elements to zero so that bad data is not retrieved from the buffers
+		for (unsigned index=0; index < _size; index++) {
+			_buffer[index].time_us = 0;
+		}
 		_first_write = true;
 		return true;
 	}
