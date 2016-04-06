@@ -875,7 +875,7 @@ UBX::payload_rx_done(void)
 				ts.tv_sec = epoch;
 				ts.tv_nsec = _buf.payload_rx_nav_pvt.nano;
 
-				if (clock_settime(CLOCK_REALTIME, &ts)) {
+				if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
 					warn("failed setting clock");
 				}
 
@@ -973,7 +973,7 @@ UBX::payload_rx_done(void)
 				ts.tv_sec = epoch;
 				ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
 
-				if (clock_settime(CLOCK_REALTIME, &ts)) {
+				if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
 					warn("failed setting clock");
 				}
 

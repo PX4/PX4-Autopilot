@@ -276,7 +276,7 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 		ts.tv_sec = epoch;
 		ts.tv_nsec = timeinfo_conversion_temp * 1000000ULL;
 
-		if (clock_settime(CLOCK_REALTIME, &ts)) {
+		if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
 			warn("failed setting clock");
 		}
 
