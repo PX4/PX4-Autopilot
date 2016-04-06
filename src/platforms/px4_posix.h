@@ -45,6 +45,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <semaphore.h>
+#include <stdint.h>
 
 #if defined(__PX4_QURT)
 #include <dspal_types.h>
@@ -174,9 +175,9 @@ __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
 /*
  * The UNIX epoch system time following the system clock
  */
-__EXPORT unsigned long long	hrt_system_time(void);
+__EXPORT uint64_t	hrt_system_time(void);
 
-__EXPORT bool			px4_exit_requested(void);
+__EXPORT bool		px4_exit_requested(void);
 #endif
 
 __END_DECLS
