@@ -576,7 +576,7 @@ int open_perf_file(const char* str)
 #ifdef __PX4_NUTTX
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 #else
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0666);
 #endif
 
 	if (fd < 0) {
