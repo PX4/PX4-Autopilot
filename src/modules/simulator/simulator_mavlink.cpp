@@ -562,6 +562,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 			if (pstart_time == 0) {
 				pstart_time = hrt_system_time();
 			}
+
 			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 			// send hearbeat
 			mavlink_heartbeat_t hb = {};
