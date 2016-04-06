@@ -446,12 +446,6 @@ typedef union {
 	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
 	ubx_payload_tx_cfg_sbas_t		payload_tx_cfg_sbas;
 	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
-#ifdef __PX4_QURT
-	// TODO: determine length needed here
-	uint8_t					raw[256];
-#else
-	uint8_t					raw[];
-#endif
 } ubx_buf_t;
 
 #pragma pack(pop)
