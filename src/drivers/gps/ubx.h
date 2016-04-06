@@ -531,13 +531,15 @@ private:
 
 	/**
 	 * Send a message
+	 * @return true on success, false on write error (errno set)
 	 */
-	void			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
+	bool			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
 
 	/**
 	 * Configure message rate
+	 * @return true on success, false on write error
 	 */
-	void			configure_message_rate(const uint16_t msg, const uint8_t rate);
+	bool			configure_message_rate(const uint16_t msg, const uint8_t rate);
 
 	/**
 	 * Calculate & add checksum for given buffer
