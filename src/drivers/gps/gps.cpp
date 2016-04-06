@@ -37,8 +37,10 @@
  */
 
 #ifndef __PX4_QURT
+#ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
+#endif
 #include <fcntl.h>
 #endif
 
@@ -190,7 +192,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
-		_Sat_Info = new(GPS_Sat_Info);
+		_Sat_Info = new GPS_Sat_Info();
 		_p_report_sat_info = &_Sat_Info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
@@ -211,6 +213,8 @@ GPS::~GPS()
 	if (_task != -1) {
 		px4_task_delete(_task);
 	}
+
+	if (_Sat_Info) delete (_Sat_Info);
 
 	g_dev = nullptr;
 
@@ -245,13 +249,11 @@ GPS::task_main()
 	_serial_fd = ::open(_port, O_RDWR);
 
 	if (_serial_fd < 0) {
-		while (true) {
-			PX4_WARN("failed to open serial port: %s err: %d", _port, errno);
-		}
+		PX4_ERR("GPS: failed to open serial port: %s err: %d", _port, errno);
 
 		/* tell the dtor that we are exiting, set error code */
 		_task = -1;
-		exit(1);
+		px4_task_exit(1);
 	}
 
 #ifndef __PX4_QURT
@@ -617,12 +619,11 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "not running");
+		PX4_ERR("GPS Not running");
+		return;
 	}
 
 	g_dev->print_info();
-
-	return;
 }
 
 } // namespace
