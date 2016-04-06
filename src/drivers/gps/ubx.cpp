@@ -131,7 +131,7 @@ UBX::configure(unsigned &baudrate)
 		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		if (!send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt))) {
+		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_prt))) {
 			continue;
 		}
 
@@ -148,7 +148,7 @@ UBX::configure(unsigned &baudrate)
 		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		if (!send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt))) {
+		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_prt))) {
 			continue;
 		}
 
@@ -174,7 +174,7 @@ UBX::configure(unsigned &baudrate)
 	_buf.payload_tx_cfg_rate.navRate	= UBX_TX_CFG_RATE_NAVRATE;
 	_buf.payload_tx_cfg_rate.timeRef	= UBX_TX_CFG_RATE_TIMEREF;
 
-	if (!send_message(UBX_MSG_CFG_RATE, _buf.raw, sizeof(_buf.payload_tx_cfg_rate))) {
+	if (!send_message(UBX_MSG_CFG_RATE, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_rate))) {
 		return 1;
 	}
 
@@ -188,7 +188,7 @@ UBX::configure(unsigned &baudrate)
 	_buf.payload_tx_cfg_nav5.dynModel	= UBX_TX_CFG_NAV5_DYNMODEL;
 	_buf.payload_tx_cfg_nav5.fixMode	= UBX_TX_CFG_NAV5_FIXMODE;
 
-	if (!send_message(UBX_MSG_CFG_NAV5, _buf.raw, sizeof(_buf.payload_tx_cfg_nav5))) {
+	if (!send_message(UBX_MSG_CFG_NAV5, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_nav5))) {
 		return 1;
 	}
 
@@ -201,7 +201,7 @@ UBX::configure(unsigned &baudrate)
 	memset(&_buf.payload_tx_cfg_sbas, 0, sizeof(_buf.payload_tx_cfg_sbas));
 	_buf.payload_tx_cfg_sbas.mode		= UBX_TX_CFG_SBAS_MODE;
 
-	if (!send_message(UBX_MSG_CFG_SBAS, _buf.raw, sizeof(_buf.payload_tx_cfg_sbas))) {
+	if (!send_message(UBX_MSG_CFG_SBAS, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_sbas))) {
 		return 1;
 	}
 
@@ -693,8 +693,9 @@ int	// -1 = error, 0 = ok, 1 = payload completed
 UBX::payload_rx_add(const uint8_t b)
 {
 	int ret = 0;
+	uint8_t *p_buf = (uint8_t *)&_buf;
 
-	_buf.raw[_rx_payload_index] = b;
+	p_buf[_rx_payload_index] = b;
 
 	if (++_rx_payload_index >= _rx_payload_length) {
 		ret = 1;	// payload received completely
@@ -710,10 +711,11 @@ int	// -1 = error, 0 = ok, 1 = payload completed
 UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 {
 	int ret = 0;
+	uint8_t *p_buf = (uint8_t *)&_buf;
 
 	if (_rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 		// Fill Part 1 buffer
-		_buf.raw[_rx_payload_index] = b;
+		p_buf[_rx_payload_index] = b;
 
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
@@ -728,7 +730,7 @@ UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 			// Still room in _satellite_info: fill Part 2 buffer
 			unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) % sizeof(
 						     ubx_payload_rx_nav_svinfo_part2_t);
-			_buf.raw[buf_index] = b;
+			p_buf[buf_index] = b;
 
 			if (buf_index == sizeof(ubx_payload_rx_nav_svinfo_part2_t) - 1) {
 				// Part 2 complete: decode Part 2 buffer
@@ -765,10 +767,11 @@ int	// -1 = error, 0 = ok, 1 = payload completed
 UBX::payload_rx_add_mon_ver(const uint8_t b)
 {
 	int ret = 0;
+	uint8_t *p_buf = (uint8_t *)&_buf;
 
 	if (_rx_payload_index < sizeof(ubx_payload_rx_mon_ver_part1_t)) {
 		// Fill Part 1 buffer
-		_buf.raw[_rx_payload_index] = b;
+		p_buf[_rx_payload_index] = b;
 
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
@@ -783,7 +786,7 @@ UBX::payload_rx_add_mon_ver(const uint8_t b)
 		// fill Part 2 buffer
 		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(
 					     ubx_payload_rx_mon_ver_part2_t);
-		_buf.raw[buf_index] = b;
+		p_buf[buf_index] = b;
 
 		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
 			// Part 2 complete: decode Part 2 buffer
