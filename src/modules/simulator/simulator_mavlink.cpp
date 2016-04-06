@@ -437,8 +437,9 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// udp socket data
 	struct sockaddr_in _myaddr;
 
-	if (udp_port < 1)
+	if (udp_port < 1) {
 		udp_port = UDP_PORT;
+	}
 
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
@@ -508,7 +509,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// wait for first data from simulator and respond with first controls
 	// this is important for the UDP communication to work
 	int pret = -1;
-	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..",udp_port);
+	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..", udp_port);
 
 	while (pret <= 0) {
 		pret = ::poll(&fds[0], fd_count, 100);
