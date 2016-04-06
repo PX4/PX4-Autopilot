@@ -123,17 +123,17 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub,	///< uORB handle to w
 #define calibration_log_info(_pub, _text, ...)			\
 	do { \
 		mavlink_and_console_log_info(_pub, _text, ##__VA_ARGS__); \
-		usleep(5000); \
+		usleep(10000); \
 	} while(0);
 
 #define calibration_log_critical(_pub, _text, ...)			\
 	do { \
 		mavlink_and_console_log_critical(_pub, _text, ##__VA_ARGS__); \
-		usleep(5000); \
+		usleep(10000); \
 	} while(0);
 
 #define calibration_log_emergency(_pub, _text, ...)			\
 	do { \
 		mavlink_and_console_log_emergency(_pub, _text, ##__VA_ARGS__); \
-		usleep(5000); \
+		usleep(10000); \
 	} while(0);
