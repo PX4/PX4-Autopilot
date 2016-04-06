@@ -131,7 +131,9 @@ UBX::configure(unsigned &baudrate)
 		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt));
+		if (!send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt))) {
+			continue;
+		}
 
 		if (wait_for_ack(UBX_MSG_CFG_PRT, UBX_CONFIG_TIMEOUT, false) < 0) {
 			/* try next baudrate */
@@ -146,7 +148,9 @@ UBX::configure(unsigned &baudrate)
 		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt));
+		if (!send_message(UBX_MSG_CFG_PRT, _buf.raw, sizeof(_buf.payload_tx_cfg_prt))) {
+			continue;
+		}
 
 		/* no ACK is expected here, but read the buffer anyway in case we actually get an ACK */
 		wait_for_ack(UBX_MSG_CFG_PRT, UBX_CONFIG_TIMEOUT, false);
@@ -170,7 +174,9 @@ UBX::configure(unsigned &baudrate)
 	_buf.payload_tx_cfg_rate.navRate	= UBX_TX_CFG_RATE_NAVRATE;
 	_buf.payload_tx_cfg_rate.timeRef	= UBX_TX_CFG_RATE_TIMEREF;
 
-	send_message(UBX_MSG_CFG_RATE, _buf.raw, sizeof(_buf.payload_tx_cfg_rate));
+	if (!send_message(UBX_MSG_CFG_RATE, _buf.raw, sizeof(_buf.payload_tx_cfg_rate))) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_RATE, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
@@ -182,7 +188,9 @@ UBX::configure(unsigned &baudrate)
 	_buf.payload_tx_cfg_nav5.dynModel	= UBX_TX_CFG_NAV5_DYNMODEL;
 	_buf.payload_tx_cfg_nav5.fixMode	= UBX_TX_CFG_NAV5_FIXMODE;
 
-	send_message(UBX_MSG_CFG_NAV5, _buf.raw, sizeof(_buf.payload_tx_cfg_nav5));
+	if (!send_message(UBX_MSG_CFG_NAV5, _buf.raw, sizeof(_buf.payload_tx_cfg_nav5))) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_NAV5, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
@@ -193,7 +201,9 @@ UBX::configure(unsigned &baudrate)
 	memset(&_buf.payload_tx_cfg_sbas, 0, sizeof(_buf.payload_tx_cfg_sbas));
 	_buf.payload_tx_cfg_sbas.mode		= UBX_TX_CFG_SBAS_MODE;
 
-	send_message(UBX_MSG_CFG_SBAS, _buf.raw, sizeof(_buf.payload_tx_cfg_sbas));
+	if (!send_message(UBX_MSG_CFG_SBAS, _buf.raw, sizeof(_buf.payload_tx_cfg_sbas))) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_SBAS, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
@@ -206,7 +216,9 @@ UBX::configure(unsigned &baudrate)
 
 	/* try to set rate for NAV-PVT */
 	/* (implemented for ubx7+ modules only, use NAV-SOL, NAV-POSLLH, NAV-VELNED and NAV-TIMEUTC for ubx6) */
-	configure_message_rate(UBX_MSG_NAV_PVT, 1);
+	if (!configure_message_rate(UBX_MSG_NAV_PVT, 1)) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		_use_nav_pvt = false;
@@ -218,51 +230,67 @@ UBX::configure(unsigned &baudrate)
 	UBX_DEBUG("%susing NAV-PVT", _use_nav_pvt ? "" : "not ");
 
 	if (!_use_nav_pvt) {
-		configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);
+		if (!configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5)) {
+			return 1;
+		}
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_POSLLH, 1);
+		if (!configure_message_rate(UBX_MSG_NAV_POSLLH, 1)) {
+			return 1;
+		}
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_SOL, 1);
+		if (!configure_message_rate(UBX_MSG_NAV_SOL, 1)) {
+			return 1;
+		}
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
+		if (!configure_message_rate(UBX_MSG_NAV_VELNED, 1)) {
+			return 1;
+		}
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 	}
 
-	configure_message_rate(UBX_MSG_NAV_DOP, 1);
+	if (!configure_message_rate(UBX_MSG_NAV_DOP, 1)) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
 
-	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
+	if (!configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0)) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
 
-	configure_message_rate(UBX_MSG_MON_HW, 1);
+	if (!configure_message_rate(UBX_MSG_MON_HW, 1)) {
+		return 1;
+	}
 
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
 
 	/* request module version information by sending an empty MON-VER message */
-	send_message(UBX_MSG_MON_VER, nullptr, 0);
+	if (!send_message(UBX_MSG_MON_VER, nullptr, 0)) {
+		return 1;
+	}
 
 	_configured = true;
 	return 0;
@@ -328,17 +356,18 @@ UBX::receive(const unsigned timeout)
 			}
 
 		} else {
-			UBX_DEBUG("read %d bytes", ret);
+			//UBX_DEBUG("read %d bytes", ret);
 
 			/* pass received bytes to the packet decoder */
 			for (int i = 0; i < ret; i++) {
 				handled |= parse_char(buf[i]);
-				UBX_DEBUG("parsed %d: 0x%x", i, buf[i]);
+				//UBX_DEBUG("parsed %d: 0x%x", i, buf[i]);
 			}
 		}
 
 		/* abort after timeout if no useful packets received */
 		if (time_started + timeout * 1000 < hrt_absolute_time()) {
+			UBX_DEBUG("cur=%li, start=%li", hrt_absolute_time()/1000, time_started/1000);
 			UBX_DEBUG("timed out, returning");
 			return -1;
 		}
@@ -634,7 +663,9 @@ UBX::payload_rx_init()
 				/* don't attempt for every message to disable, some might not be disabled */
 				_disable_cmd_last = t;
 				UBX_DEBUG("ubx disabling msg 0x%04x", SWAP16((unsigned)_rx_msg));
-				configure_message_rate(_rx_msg, 0);
+				if (!configure_message_rate(_rx_msg, 0)) {
+					ret = -1;
+				}
 			}
 		}
 
@@ -1073,7 +1104,7 @@ UBX::calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t 
 	}
 }
 
-void
+bool
 UBX::configure_message_rate(const uint16_t msg, const uint8_t rate)
 {
 	ubx_payload_tx_cfg_msg_t cfg_msg;	// don't use _buf (allow interleaved operation)
@@ -1081,10 +1112,10 @@ UBX::configure_message_rate(const uint16_t msg, const uint8_t rate)
 	cfg_msg.msg	= msg;
 	cfg_msg.rate	= rate;
 
-	send_message(UBX_MSG_CFG_MSG, (uint8_t *)&cfg_msg, sizeof(cfg_msg));
+	return send_message(UBX_MSG_CFG_MSG, (uint8_t *)&cfg_msg, sizeof(cfg_msg));
 }
 
-void
+bool
 UBX::send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length)
 {
 	ubx_header_t   header = {UBX_SYNC1, UBX_SYNC2};
@@ -1102,13 +1133,19 @@ UBX::send_message(const uint16_t msg, const uint8_t *payload, const uint16_t len
 	}
 
 	// Send message
-	write(_fd, (const void *)&header, sizeof(header));
-
-	if (payload != nullptr) {
-		write(_fd, (const void *)payload, length);
+	if (write(_fd, (const void *)&header, sizeof(header)) != sizeof(header)) {
+		return false;
 	}
 
-	write(_fd, (const void *)&checksum, sizeof(checksum));
+	if (payload && write(_fd, (const void *)payload, length) != length) {
+		return false;
+	}
+
+	if (write(_fd, (const void *)&checksum, sizeof(checksum)) != sizeof(checksum)) {
+		return false;
+	}
+
+	return true;
 }
 
 uint32_t
