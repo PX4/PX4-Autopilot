@@ -69,6 +69,7 @@ static struct work_s	_hrt_work;
 static hrt_abstime px4_timestart = 0;
 static hrt_abstime _start_delay_time = 0;
 static hrt_abstime _delay_interval = 0;
+static hrt_abstime max_time = 0;
 pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
@@ -162,7 +163,6 @@ hrt_abstime _hrt_absolute_time_internal(void)
 hrt_abstime hrt_absolute_time(void)
 {
 	pthread_mutex_lock(&_hrt_mutex);
-	static hrt_abstime max_time = 0;
 
 	hrt_abstime ret;
 
@@ -189,6 +189,7 @@ hrt_abstime hrt_absolute_time(void)
 __EXPORT hrt_abstime hrt_reset(void)
 {
 	px4_timestart = 0;
+	max_time = 0;
 	return _hrt_absolute_time_internal();
 }
 
