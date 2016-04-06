@@ -131,19 +131,20 @@ int Simulator::start(int argc, char *argv[])
 	if (_instance) {
 		drv_led_start();
 
-		if (argc == 5 && strcmp(argv[3], "-u") == 0)
+		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			udp_port = atoi(argv[4]);
+		}
 
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();
 #ifndef __PX4_QURT
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(false,udp_port);
+			_instance->pollForMAVLinkMessages(false, udp_port);
 #endif
 
 		} else if (argv[2][1] == 'p') {
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(true,udp_port);
+			_instance->pollForMAVLinkMessages(true, udp_port);
 
 		} else {
 			_instance->initializeSensorData();
