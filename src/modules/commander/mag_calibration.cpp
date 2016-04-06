@@ -214,6 +214,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 				if (result == OK) {
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
+					usleep(20000);
 					calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 					break;
 				} else {
@@ -398,6 +399,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 							     "[cal] %s side calibration: progress <%u>",
 							     detect_orientation_str(orientation), progress_percentage(worker_data) +
 							     (unsigned)((100 / calibration_sides) * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)));
+				usleep(20000);
 			}
 		} else {
 			poll_errcount++;
