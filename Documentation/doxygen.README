@@ -9,7 +9,7 @@ http://www.stack.nl/~dimitri/doxygen/download.html for the correct download.
 Then go to the following website for inforamtion on the install:
 http://www.stack.nl/~dimitri/doxygen/install.html
 
-Then to generate the html, run the following code while you are in the qgroundcontrol/doc directory:
+Then to generate the html, run the following code while you are in this directory:
 $doxygen Doxyfile
 
 The html file index.html should be in doc/html unless you changed the output directory. 
