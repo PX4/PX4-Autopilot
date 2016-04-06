@@ -79,7 +79,7 @@ typedef struct hrt_call {
 } *hrt_call_t;
 
 /**
- * Get absolute time.
+ * Get absolute time in [us] (does not wrap).
  */
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
 
