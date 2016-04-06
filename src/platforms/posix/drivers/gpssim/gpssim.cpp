@@ -529,6 +529,7 @@ info()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("gpssim not running");
+		return;
 	}
 
 	g_dev->print_info();
