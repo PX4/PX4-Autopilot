@@ -130,8 +130,6 @@ void Simulator::send_controls()
 	mavlink_hil_controls_t msg;
 	pack_actuator_message(msg);
 	send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
-	mavlink_heartbeat_t hb = {};
-	send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
 }
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
@@ -553,7 +551,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	int pret = -1;
 	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
 
-	unsigned long long pstart_time = 0;
+	uint64_t pstart_time = 0;
 
 	bool no_sim_data = true;
 
@@ -561,10 +559,13 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		pret = ::poll(&fds[0], fd_count, 100);
 
 		if (fds[0].revents & POLLIN) {
-			pstart_time = hrt_system_time();
+			if (pstart_time == 0) {
+				pstart_time = hrt_system_time();
+			}
 			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-			// send first controls
-			send_controls();
+			// send hearbeat
+			mavlink_heartbeat_t hb = {};
+			send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
 
 			if (len > 0) {
 				mavlink_message_t msg;
@@ -575,7 +576,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 						// have a message, handle it
 						handle_message(&msg, publish);
 
-						if (msg.msgid != 0) {
+						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 5000000)) {
 							PX4_INFO("Got initial simuation data, running sim..");
 							no_sim_data = false;
 						}
