@@ -214,7 +214,9 @@ GPS::~GPS()
 		px4_task_delete(_task);
 	}
 
-	if (_Sat_Info) delete (_Sat_Info);
+	if (_Sat_Info) {
+		delete(_Sat_Info);
+	}
 
 	g_dev = nullptr;
 

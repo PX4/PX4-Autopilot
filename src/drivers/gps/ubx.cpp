@@ -367,7 +367,6 @@ UBX::receive(const unsigned timeout)
 
 		/* abort after timeout if no useful packets received */
 		if (time_started + timeout * 1000 < hrt_absolute_time()) {
-			UBX_DEBUG("cur=%li, start=%li", hrt_absolute_time()/1000, time_started/1000);
 			UBX_DEBUG("timed out, returning");
 			return -1;
 		}
@@ -663,6 +662,7 @@ UBX::payload_rx_init()
 				/* don't attempt for every message to disable, some might not be disabled */
 				_disable_cmd_last = t;
 				UBX_DEBUG("ubx disabling msg 0x%04x", SWAP16((unsigned)_rx_msg));
+
 				if (!configure_message_rate(_rx_msg, 0)) {
 					ret = -1;
 				}
