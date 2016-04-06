@@ -11,6 +11,7 @@ set(config_module_list
 	platforms/posix/work_queue
 	platforms/posix/drivers/adcsim
 	platforms/posix/drivers/gpssim
+	drivers/gps
 	platforms/posix/drivers/tonealrmsim
 	platforms/posix/drivers/accelsim
 	platforms/posix/drivers/airspeedsim
