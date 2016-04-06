@@ -416,6 +416,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side done, rotate to a different side", detect_orientation_str(orientation));
 
 		worker_data->done_count++;
+		usleep(20000);
 		calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress_percentage(worker_data));
 	}
 
