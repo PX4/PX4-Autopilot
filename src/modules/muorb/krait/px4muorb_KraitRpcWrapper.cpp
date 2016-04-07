@@ -96,7 +96,7 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		return -2;
 	}
 
-	// Do this call right after reading to avoid latency here.W
+	// Do this call right after reading to avoid latency here.
 	timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	uint64_t time_appsproc = ((uint64_t)ts.tv_sec) * 1000000llu + (ts.tv_nsec / 1000);
@@ -111,6 +111,9 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		return -3;
 	}
 
+	// The clock count needs to get converted to us. The clock supposedly
+	// runs at just under 20 MHz. The magic value of 19.2 was provided by
+	// Qualcomm.
 	time_dsp /= 19.2;
 
 	// Before casting to in32_t, check if it fits.
