@@ -1308,7 +1308,8 @@ MulticopterPositionControl::task_main()
 		if (_control_mode.flag_control_altitude_enabled ||
 				_control_mode.flag_control_position_enabled ||
 				_control_mode.flag_control_climb_rate_enabled ||
-				_control_mode.flag_control_velocity_enabled) {
+				_control_mode.flag_control_velocity_enabled ||
+				_control_mode.flag_control_acceleration_enabled) {
 
 			_vel_ff.zero();
 
@@ -1517,8 +1518,6 @@ MulticopterPositionControl::task_main()
 					_takeoff_thrust_sp = 0.0f;
 				}
 
-
-
 				// limit total horizontal acceleration
 				math::Vector<2> acc_hor;
 				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
@@ -1555,7 +1554,8 @@ MulticopterPositionControl::task_main()
 					_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
 				}
 
-				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled) {
+				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
+				    _control_mode.flag_control_acceleration_enabled) {
 					/* reset integrals if needed */
 					if (_control_mode.flag_control_climb_rate_enabled) {
 						if (reset_int_z) {
@@ -1613,7 +1613,12 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* thrust vector in NED frame */
-					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+					math::Vector<3> thrust_sp;
+					if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
+						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x,_pos_sp_triplet.current.a_y,_pos_sp_triplet.current.a_z);
+					} else {
+						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;						
+					}
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 							&& !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
@@ -1622,12 +1627,12 @@ MulticopterPositionControl::task_main()
 						thrust_sp(2) = -_takeoff_thrust_sp;
 					}
 
-					if (!_control_mode.flag_control_velocity_enabled) {
+					if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
 						thrust_sp(0) = 0.0f;
 						thrust_sp(1) = 0.0f;
 					}
 
-					if (!_control_mode.flag_control_climb_rate_enabled) {
+					if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
 						thrust_sp(2) = 0.0f;
 					}
 
@@ -1705,7 +1710,7 @@ MulticopterPositionControl::task_main()
 						saturation_z = true;
 					}
 
-					if (_control_mode.flag_control_velocity_enabled) {
+					if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 
 						/* limit max tilt */
 						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
@@ -1795,7 +1800,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* calculate attitude setpoint from thrust vector */
-					if (_control_mode.flag_control_velocity_enabled) {
+					if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 						/* desired body_z axis = -normalize(thrust_vector) */
 						math::Vector<3> body_x;
 						math::Vector<3> body_y;
@@ -1996,14 +2001,15 @@ MulticopterPositionControl::task_main()
 		_vel_prev = _vel;
 
 		/* publish attitude setpoint
-		 * Do not publish if offboard is enabled but position/velocity control is disabled,
+		 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
 		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
 		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
 				!(_control_mode.flag_control_position_enabled ||
-				  _control_mode.flag_control_velocity_enabled))) {
+				  _control_mode.flag_control_velocity_enabled ||
+				  _control_mode.flag_control_acceleration_enabled))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);

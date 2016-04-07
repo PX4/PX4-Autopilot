@@ -103,7 +103,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define RATES_I_LIMIT	0.3f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
-#define SIGMA 0.000001f
 
 class MulticopterAttitudeControl
 {
@@ -131,7 +130,6 @@ private:
 	int		_control_task;			/**< task handle */
 
 	int		_ctrl_state_sub;		/**< control state subscription */
-	int		_v_accel_sp_sub;		/**< vehicle acceleration setpoint subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
@@ -151,7 +149,6 @@ private:
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
 	struct control_state_s				_ctrl_state;		/**< control state */
-	struct position_setpoint_triplet_s  _v_accel_sp;			/**< vehicle acceleration setpoint */ 
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
@@ -251,11 +248,6 @@ private:
 	 * Check for changes in manual inputs.
 	 */
 	void		vehicle_manual_poll();
-
-	/**
-	 * Check for NED acceleration setpoint updates.
-	 */
-	 void vehicle_accel_setpoint_poll();
 
 	/**
 	 * Check for attitude setpoint updates.
@@ -576,17 +568,6 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-void 
-MulticopterAttitudeControl::vehicle_accel_setpoint_poll() {
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_accel_sp_sub, &updated);
-	
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _v_accel_sp_sub, &_v_accel_sp);
-	}
-}
-
 void
 MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
@@ -669,72 +650,15 @@ MulticopterAttitudeControl::control_attitude(float dt)
 {
 	vehicle_attitude_setpoint_poll();
 
+	_thrust_sp = _v_att_sp.thrust;
+
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
+	R_sp.set(_v_att_sp.R_body);
 
 	/* get current rotation matrix from control state quaternions */
 	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
 	math::Matrix<3, 3> R = q_att.to_dcm();
-
-	if (_v_control_mode.flag_control_acceleration_enabled) {
-		vehicle_accel_setpoint_poll();
-		
-		/* setpoint is NED */		
-		math::Vector<3> accel_sp(_v_accel_sp.current.a_x, _v_accel_sp.current.a_y, _v_accel_sp.current.a_z);
-		float accel_abs = accel_sp.length();
-		
-		math::Vector<3> body_x;
-		math::Vector<3> body_y;
-		math::Vector<3> body_z;
-		
-		if (accel_abs > SIGMA) {
-			body_z = -accel_sp / accel_abs;
-		} else {
-			/* no thrust, set Z axis to safe value */
-			body_z.zero();
-			body_z(2) = 1.0f;
-		}
-
-		/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-		math::Vector<3> y_C(-sinf(_v_att_sp.yaw_body), cosf(_v_att_sp.yaw_body), 0.0f);
-
-		if (fabsf(body_z(2)) > SIGMA) {
-			/* desired body_x axis, orthogonal to body_z */
-			body_x = y_C % body_z;
-
-			/* keep nose to front while inverted upside down */
-			if (body_z(2) < 0.0f) {
-				body_x = -body_x;
-			}
-
-			body_x.normalize();
-
-		} else {
-			/* desired thrust is in XY plane, set X downside to construct correct matrix,
-			 * but yaw component will not be used actually */
-			body_x.zero();
-			body_x(2) = 1.0f;
-		}
-
-		/* desired body_y axis */
-		body_y = body_z % body_x;
-		body_y.normalize();
-
-		/* fill rotation matrix */
-		for (int i = 0; i < 3; i++) {
-			R_sp(i, 0) = body_x(i);
-			R_sp(i, 1) = body_y(i);
-			R_sp(i, 2) = body_z(i);
-		}		
-	
-		_thrust_sp = accel_abs;
-
-	} else {
-
-		R_sp.set(_v_att_sp.R_body);
-		_thrust_sp = _v_att_sp.thrust;
-
-	}
 
 	/* all input data is ready, run controller itself */
 
@@ -884,7 +808,6 @@ MulticopterAttitudeControl::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_v_accel_sp_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
