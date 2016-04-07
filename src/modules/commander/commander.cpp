@@ -175,12 +175,6 @@ enum MAV_MODE_FLAG {
 };
 
 
-enum class vehicle_battery_warning {
-	NONE = 0,       // no battery low voltage warning active
-	LOW = 1,        // warning of low voltage
-	CRITICAL = 2,	// alerting of critical voltage
-};
-
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = 0;
 
@@ -205,6 +199,7 @@ static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status;
+static struct battery_status_s battery;
 static struct actuator_armed_s armed;
 static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
@@ -407,9 +402,9 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags);
+		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery);
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
-		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags);
+		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery);
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
@@ -635,7 +630,9 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&status, &safety,
+	arming_res = arming_state_transition(&status,
+					     &battery,
+					     &safety,
 					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
 					     &armed,
 					     true /* fRunPreArmChecks */,
@@ -1432,7 +1429,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to battery topic */
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
-	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
 
 	/* Subscribe to subsystem info topic */
@@ -1786,6 +1782,7 @@ int commander_thread_main(int argc, char *argv[])
 								   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
 
 				if (TRANSITION_CHANGED == arming_state_transition(&status,
+										  &battery,
 										  &safety,
 										  new_arming_state,
 										  &armed,
@@ -2044,6 +2041,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status,
+							     &battery,
 							     &safety,
 							     vehicle_status_s::ARMING_STATE_STANDBY,
 							     &armed,
@@ -2300,7 +2298,9 @@ int commander_thread_main(int argc, char *argv[])
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
-					arming_ret = arming_state_transition(&status, &safety,
+					arming_ret = arming_state_transition(&status,
+									     &battery,
+									     &safety,
 									     new_arming_state,
 									     &armed,
 									     true /* fRunPreArmChecks */,
@@ -2343,6 +2343,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status,
+										     &battery,
 										     &safety,
 										     vehicle_status_s::ARMING_STATE_ARMED,
 										     &armed,
@@ -3546,6 +3547,7 @@ void *commander_low_prio_loop(void *arg)
 
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status,
+											 &battery,
 											 &safety,
 											 vehicle_status_s::ARMING_STATE_INIT,
 											 &armed,
@@ -3639,6 +3641,7 @@ void *commander_low_prio_loop(void *arg)
 							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !status_flags.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 
 						arming_state_transition(&status,
+									&battery,
 									&safety,
 									vehicle_status_s::ARMING_STATE_STANDBY,
 									&armed,

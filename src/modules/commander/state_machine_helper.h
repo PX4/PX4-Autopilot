@@ -44,6 +44,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/commander_state.h>
@@ -94,11 +95,12 @@ struct status_flags_s {
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *status,
+					    struct battery_status_s *battery,
 					    const struct safety_s *safety,
 					    arming_state_t new_arming_state,
 					    struct actuator_armed_s *armed,
 					    bool fRunPreArmChecks,
-					    orb_advert_t *mavlink_log_pub,
+					    orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
 					    status_flags_s *status_flags,
 					    float avionics_power_rail_voltage);
 
@@ -112,7 +114,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed);
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
-		    status_flags_s *status_flags);
+int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, status_flags_s *status_flags, battery_status_s *battery);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

@@ -110,6 +110,7 @@ static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked 
 static int last_prearm_ret = 1;			///< initialize to fail
 
 transition_result_t arming_state_transition(struct vehicle_status_s *status,
+					    struct battery_status_s *battery,
 					    const struct safety_s *safety,
 					    arming_state_t new_arming_state,
 					    struct actuator_armed_s *armed,
@@ -142,7 +143,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags);
+						     status_flags, battery);
 		}
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
@@ -152,7 +153,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */,
-							     status_flags);
+							     status_flags, battery);
 				status_flags->condition_system_sensors_initialized = !prearm_ret;
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -255,26 +256,16 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
-<<<<<<< 4ed69db0abb4b3b2f191ba77949e9c6817eaf169
-				if (status->condition_system_sensors_initialized) {
-					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
-=======
 				if (status_flags->condition_system_sensors_initialized) {
-					// mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
->>>>>>> commander: internalize system status bools
+					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
 				} else {
 					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
 				}
 				feedback_provided = true;
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-<<<<<<< 4ed69db0abb4b3b2f191ba77949e9c6817eaf169
-					status->condition_system_sensors_initialized) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
-=======
 					status_flags->condition_system_sensors_initialized) {
-				// mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
->>>>>>> commander: internalize system status bools
+				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 			} else {
 				// Silent ignore
@@ -289,13 +280,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			if ((!status_flags->condition_system_prearm_error_reported &&
 			      status_flags->condition_system_hotplug_timeout) ||
 			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
-<<<<<<< 4ed69db0abb4b3b2f191ba77949e9c6817eaf169
 				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
-				status->condition_system_prearm_error_reported = true;
-=======
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not initialized");
 				status_flags->condition_system_prearm_error_reported = true;
->>>>>>> commander: internalize system status bools
 			}
 			feedback_provided = true;
 			valid_transition = false;
@@ -879,7 +865,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	return status->nav_state != nav_state_old;
 }
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags)
+int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags, battery_status_s *battery)
 {
 	/*
 	 */
@@ -904,7 +890,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		}
 	}
 
-	if (status->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+	if (battery->warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 		preflight_ok = false;
 		if (reportFailures) {
 			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
