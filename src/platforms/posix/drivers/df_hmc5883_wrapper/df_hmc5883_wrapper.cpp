@@ -275,7 +275,7 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	perf_begin(_mag_sample_perf);
 
 	mag_report mag_report = {};
-	mag_report.timestamp = data.last_read_time_usec;
+	mag_report.timestamp = hrt_absolute_time();
 
 	/* The standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
