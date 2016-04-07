@@ -49,11 +49,16 @@ bytes_read = 0;
 msg_descrs = {};
 buffer = [];
 ptr = 1;
-headers_done = false;
 allData = [];
-
+nextPrint = 0;
+disp('Reading file');
 while 1
-    disp(bytes_read / totalBytes*100);
+    percentDone = bytes_read / totalBytes * 100;
+    if percentDone >= nextPrint
+        fprintf('%.0f%%\n',percentDone);
+        nextPrint = nextPrint + 5;
+    end
+    
     chunk = fread(fid,BLOCK_SIZE,'uint8');
     if numel(chunk) == 0;
         break
@@ -83,13 +88,13 @@ while 1
                 break;
             end
             % return new pointer, and all message info
-            if any(strcmp(msg_descr{3}, keep_msgs)) || isempty(keep_msgs)
+            if strcmp(msg_descr{3},'TIME') || any(strcmp(msg_descr{3}, keep_msgs)) || isempty(keep_msgs)
                 [ptr,msg_data] = LOCAL_parse_message(buffer, ptr, MSG_HEADER_LEN, msg_descr);
                 ind = allData.(msg_descr{3}).index;
                 for k = 1:numel(msg_data)
                     if isnumeric(msg_data{k})
                         allData.(msg_descr{3}).(msg_descr{5}{k})(ind) = msg_data{k};
-                        allData.(msg_descr{3}).T(ind) = allData.TIME.StartTime(max(1,allData.TIME.index-1));
+                        allData.(msg_descr{3}).T(ind) = double(allData.TIME.StartTime(max(1,allData.TIME.index-1)))*1e-6;
                         noInc = false;
                     else
                         allData.(msg_descr{3}).(msg_descr{5}{k}) = [allData.(msg_descr{3}).(msg_descr{5}{k}), msg_data(k)];
@@ -107,6 +112,7 @@ while 1
     bytes_read = bytes_read + ptr;
 end
 
+disp('Releasing excess preallocated memory');
 % clean out inf values
 fields1 = fieldnames(allData);
 for k = 1:numel(fields1)
@@ -117,6 +123,7 @@ for k = 1:numel(fields1)
         end
     end
 end
+disp('Done');
 end
 
 function [ptr, msg_descr] = LOCAL_parse_message_descriptors(buffer, ptr, MSG_TYPE_FORMAT, MSG_FORMAT_PACKET_LEN, FORMAT_TO_STRUCT)
