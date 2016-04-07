@@ -998,36 +998,86 @@ Mavlink::init_udp()
 	}
 	_src_addr.sin_port = htons(_remote_port);
 
-	const unsigned MAX_IFREQS = 32;
-	struct ifreq ifreqs[MAX_IFREQS];
+	// Find out the required size of the buffer first.
+	// We can get the number by providing NULL to ifc_req.
 	struct ifconf ifconf;
-	memset(&ifconf, 0, sizeof(ifconf));
-	ifconf.ifc_req = ifreqs;
-	ifconf.ifc_len = sizeof(ifreqs);
+	ifconf.ifc_req = NULL;
+	ifconf.ifc_len = 0;
 
 	int ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_WARN("getting required buffer size failed");
+		return;
+	}
+
+	PX4_DEBUG("need to allocate %d bytes", ifconf.ifc_len);
+
+	// Allocate buffer as long as needed.
+	uint8_t ifreqs_buf[ifconf.ifc_len];
+	memset(ifreqs_buf, 0, ifconf.ifc_len);
+	ifconf.ifc_req = (struct ifreq *)ifreqs_buf;
+
+
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
 	if (ret != 0) {
 		PX4_WARN("getting network config failed");
 		return;
 	}
 
-	for (int i = 0; i < (ifconf.ifc_len/sizeof(struct ifreq)) && (i < MAX_IFREQS); ++i) {
+	size_t offset = 0;
+	// Later used to point to next network interface in buffer.
+	struct ifreq *cur_ifreq = (struct ifreq *)&ifreqs_buf[offset];
+
+	// The ugly `for` construct is used because it allows to use
+	// `continue` and `break`.
+	for (;
+	     offset < ifconf.ifc_len;
+#if defined(__APPLE__) && defined(__MACH__)
+	     // On Mac, to get to next entry in buffer, jump by the size of
+	     // the interface name size plus whatever is greater, either the
+	     // sizeof sockaddr or ifr_addr.sa_len.
+	     offset += IF_NAMESIZE
+	               + (sizeof(struct sockaddr) > cur_ifreq->ifr_addr.sa_len ?
+		          sizeof(struct sockaddr) :
+		          cur_ifreq->ifr_addr.sa_len)
+#else
+	    // On Linux, it's much easier to traverse the buffer, every entry
+	    // has the constant length.
+	    offset += sizeof(struct ifreq)
+#endif
+	    ) {
+
+		// Point to next network interface in buffer.
+		cur_ifreq = (struct ifreq *)&ifreqs_buf[offset];
+
+#if defined(__APPLE__) && defined(__MACH__)
+		if (cur_ifreq->ifr_addr.sa_len == 0) {
+			// The current entry seems zero, we're probably through.
+			break;
+		}
+#endif
+
+		PX4_DEBUG("looking at %s", cur_ifreq->ifr_name);
+
 		// ignore loopback network
-		if (strcmp(ifreqs[i].ifr_name, "lo") == 0) {
+		if (strcmp(cur_ifreq->ifr_name, "lo") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo0") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo1") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo2") == 0) {
+			PX4_DEBUG("skipping loopback");
 			continue;
 		}
 
-
 		struct ifreq bc_ifreq;
 		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
-		strncpy(bc_ifreq.ifr_name, ifreqs[i].ifr_name, IF_NAMESIZE);
+		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
 		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
 		if (ret != 0) {
-			PX4_WARN("getting broadcast address failed");
-			return;
+			PX4_INFO("getting broadcast address failed for %s", cur_ifreq->ifr_name);
+			continue;
 		}
 
-		struct in_addr &sin_addr = ((struct sockaddr_in *)&ifreqs[i].ifr_addr)->sin_addr;
+		struct in_addr &sin_addr = ((struct sockaddr_in *)&cur_ifreq->ifr_addr)->sin_addr;
 
 		// Accept network interfaces to local network only. This means it's an IP starting with:
 		// 192./172./10.
@@ -1040,7 +1090,7 @@ Mavlink::init_udp()
 		}
 
 		if (!_broadcast_address_found) {
-			PX4_INFO("using network interface %s, IP: %s", ifreqs[i].ifr_name, inet_ntoa(sin_addr));
+			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 
 			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
 			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
@@ -1051,7 +1101,7 @@ Mavlink::init_udp()
 			_broadcast_address_found = true;
 		} else {
 			PX4_INFO("ignoring additional network interface %s, IP:  %s",
-				 ifreqs[i].ifr_name, inet_ntoa(sin_addr));
+				 cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 		}
 	}
 
