@@ -588,8 +588,6 @@ stop()
 {
 	delete g_dev;
 	g_dev = nullptr;
-
-	px4_task_exit(0);
 }
 
 /**
