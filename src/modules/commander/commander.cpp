@@ -2311,7 +2311,8 @@ int commander_thread_main(int argc, char *argv[])
 			    	status.main_state == vehicle_status_s::MAIN_STATE_STAB ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE ||
 			    	status.condition_landed) &&
-					sp_man.y < -STICK_ON_OFF_LIMIT &&  sp_man.x < -STICK_ON_OFF_LIMIT && sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
+					sp_man.y > STICK_ON_OFF_LIMIT &&  sp_man.x < -STICK_ON_OFF_LIMIT && sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
+
 				/* 修改为内八解锁 外八上锁 */
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -2335,7 +2336,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
-			if (sp_man.y > STICK_ON_OFF_LIMIT &&  sp_man.x < -STICK_ON_OFF_LIMIT && sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
+			if (sp_man.y < -STICK_ON_OFF_LIMIT &&  sp_man.x < -STICK_ON_OFF_LIMIT && sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
 					&& status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF ) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 

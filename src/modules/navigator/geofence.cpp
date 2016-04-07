@@ -132,10 +132,10 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-		int32_t max_horizontal_distance = _param_max_hor_distance.get();
-		int32_t max_vertical_distance = _param_max_ver_distance.get();
+	int32_t max_horizontal_distance = _param_max_hor_distance.get();
+	int32_t max_vertical_distance = _param_max_ver_distance.get();
 
-		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
+	if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
 			if (_home_pos_set) {
 				float dist_xy = -1.0f;
 				float dist_z = -1.0f;
@@ -165,18 +165,18 @@ bool Geofence::inside(double lat, double lon, float altitude)
 			}
 		}
 
-	bool inside_fence = inside_polygon(lat, lon, altitude);
 
+	bool inside_fence = inside_polygon(lat, lon, altitude);
 	if (inside_fence) {
 		_outside_counter = 0;
+		//mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded user define area");
 		return inside_fence;
 
 	} else {
 		_outside_counter++;
-
+		mavlink_and_console_log_critical(_mavlinkFd, "Geofence Exceeded User Define Area");
 		if (_outside_counter > _param_counter_threshold.get()) {
 			return inside_fence;
-
 		} else {
 			return true;
 		}

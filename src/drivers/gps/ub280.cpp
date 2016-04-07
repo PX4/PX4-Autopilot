@@ -596,7 +596,7 @@ int UB280::parse_char(uint8_t b)
 	case NME_DECODE_GOT_SEVENTH_CS_BYTE:
 		_rx_buffer[_rx_buffer_bytes++] = b;
 
-		for(int i = 0 ;i < _rx_buffer_bytes ; i++)printf("%c",_rx_buffer[i]);
+		//for(int i = 0 ;i < _rx_buffer_bytes ; i++)printf("%c",_rx_buffer[i]);
 		//UB280_DEBUG("\n");
 
 		uint16_t start =  1;
