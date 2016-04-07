@@ -1,5 +1,20 @@
 function allData = importPX4log(fname,keep_msgs)
 
+% import a .px4log file
+% INPUTS
+%   fname: path to a valid .px4log file
+%   keep_msgs: cell array of message names to keep
+% OUTPUT
+%   allData: a Matlab struct with a field names for each message name in the log
+%   file. The content of each field is itself a struct with field names for
+%   each label in the corresponding message. The content of each of *these*
+%   fields will be an array of message data that is nonempty if the message
+%   name appears in keep_msgs
+
+% import method essentially translated from sdlog2_dump.py
+% George Hines, 3D Robotics, Berkeley, CA
+% 7 April 2016
+
 BLOCK_SIZE = 8192;
 MSG_HEADER_LEN = 3;
 % MSG_HEAD1 = uint8(hex2dec('A3'));
