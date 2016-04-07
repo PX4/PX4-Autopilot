@@ -77,7 +77,7 @@ while 1
                         allData.(msg_descr{3}).T(ind) = allData.TIME.StartTime(max(1,allData.TIME.index-1));
                         noInc = false;
                     else
-                        allData.(msg_descr{3}).(msg_descr{5}{k}) = [allData.(msg_descr{3}).(msg_descr{5}{k}), {msg_data{k}}];
+                        allData.(msg_descr{3}).(msg_descr{5}{k}) = [allData.(msg_descr{3}).(msg_descr{5}{k}), msg_data(k)];
                         noInc = true;
                     end
                 end
@@ -125,8 +125,8 @@ end
 ptr = ptr + MSG_FORMAT_PACKET_LEN;
 end
 
-function [ptr, data] = LOCAL_parse_message(buffer, ptr, MSG_HEADER_LEN, msg_descr, keep_msgs)
-[msg_type, msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults] = msg_descr{:};
+function [ptr, data] = LOCAL_parse_message(buffer, ptr, MSG_HEADER_LEN, msg_descr)
+[~, msg_length, ~, ~, ~, msg_struct, msg_mults] = msg_descr{:};
 
 % unpack message per the format specifiers in msg_struct
 data = cell(1,numel(msg_struct));
