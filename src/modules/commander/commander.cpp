@@ -3364,15 +3364,17 @@ set_control_mode()
 		control_mode.flag_control_rattitude_enabled = false;
 
 		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position) && !status.in_transition_mode;
+			!offboard_control_mode.ignore_position) && !status.in_transition_mode && 
+			!control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_climb_rate_enabled = !offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position;
+		control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !status.in_transition_mode;
+		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !status.in_transition_mode && 
+		  !control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position;
+		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
 		break;
 
