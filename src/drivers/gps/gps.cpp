@@ -71,7 +71,7 @@
 #include "ubx.h"
 #include "mtk.h"
 #include "ashtech.h"
-
+#include "ub280.h"
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
@@ -308,24 +308,24 @@ GPS::task_main()
 				_Helper = nullptr;
 			}
 
-			switch (_mode) {
-			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX(_serial_fd, &_report_gps_pos, _p_report_sat_info);
-				break;
-
-			case GPS_DRIVER_MODE_MTK:
-				_Helper = new MTK(_serial_fd, &_report_gps_pos);
-				break;
-
-			case GPS_DRIVER_MODE_ASHTECH:
-				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
-				break;
-
-			default:
-				break;
-			}
-
-
+//			switch (_mode) {
+//			case GPS_DRIVER_MODE_UBX:
+//				_Helper = new UBX(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+//				break;
+//
+//			case GPS_DRIVER_MODE_MTK:
+//				_Helper = new MTK(_serial_fd, &_report_gps_pos);
+//				break;
+//
+//			case GPS_DRIVER_MODE_ASHTECH:
+//				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+//				break;
+//
+//			default:
+//				break;
+//			}
+			_Helper = new UB280(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+			//_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
 			/* the Ashtech driver lies about successful configuration and the
 			 * MTK driver is not well tested, so we really only trust the UBX
 			 * driver for an advance publication

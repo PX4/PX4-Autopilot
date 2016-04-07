@@ -19,7 +19,7 @@
 #endif
 
 #include <fcntl.h>
-
+#define ASHTECH_DEBUG(s, ...)		{PX4_WARN(s, ## __VA_ARGS__);}
 ASHTECH::ASHTECH(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info):
 	_fd(fd),
 	_satellite_info(satellite_info),

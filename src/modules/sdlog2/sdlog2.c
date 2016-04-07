@@ -1313,13 +1313,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
 
+#if 0
 	/* track changes in sensor_combined topic */
 	hrt_abstime gyro_timestamp[3] = {0, 0, 0};
 	hrt_abstime accelerometer_timestamp[3] = {0, 0, 0};
 	hrt_abstime magnetometer_timestamp[3] = {0, 0, 0};
 	hrt_abstime barometer_timestamp[3] = {0, 0, 0};
 	hrt_abstime differential_pressure_timestamp[3] = {0, 0, 0};
-
+#endif
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
 
@@ -1528,7 +1529,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		if (!record_replay_log) {
-
+#if 0
 			/* we poll on sensor combined, so we know it has updated just now */
 			for (unsigned i = 0; i < 3; i++) {
 				bool write_IMU = false;
@@ -1615,7 +1616,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
 				LOGBUFFER_WRITE_AND_COUNT(VTOL);
 			}
-
+#endif
 			/* --- GPS POSITION - UNIT #1 --- */
 			if (gps_pos_updated) {
 
@@ -1637,7 +1638,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
 				LOGBUFFER_WRITE_AND_COUNT(GPS);
 			}
-
+#if 0
 			/* --- SATELLITE INFO - UNIT #1 --- */
 			if (_extended_logging) {
 
@@ -2103,6 +2104,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
 				LOGBUFFER_WRITE_AND_COUNT(CTS);
 			}
+
+#endif
 		}
 
 		/* --- CAMERA TRIGGER --- */

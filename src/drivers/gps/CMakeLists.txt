@@ -42,6 +42,7 @@ px4_add_module(
 		mtk.cpp
 		ashtech.cpp
 		ubx.cpp
+		ub280.cpp
 	DEPENDS
 		platforms__common
 	)
