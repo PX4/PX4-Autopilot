@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
+#include <systemlib/param/param.h>
+
 /**
- * @file mc_att_control_params.c
+ * @file params.c
  * Parameters for multicopter attitude controller.
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -91,7 +93,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
+PARAM_DEFINE_FLOAT(MC_ROLLR_P, 0.15f);
 
 /**
  * Roll rate I gain
@@ -103,7 +105,20 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ROLLR_I, 0.05f);
+
+/**
+ * Roll rate I saturation
+ *
+ * Limits integrator windup.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLR_I_MAX, 0.1f);
 
 /**
  * Roll rate D gain
@@ -116,7 +131,21 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
  * @increment 0.0005
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
+PARAM_DEFINE_FLOAT(MC_ROLLR_D, 0.003f);
+
+/**
+ * Roll rate D low pass filter cut freq.
+ *
+ * Smooths the derivative feedback.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLR_D_LP, 1000.0f);
 
 /**
  * Roll rate feedforward
@@ -127,7 +156,21 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
  * @decimal 4
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ROLLR_FF, 0.0f);
+
+/**
+ * Roll rate setpoint derivative low pass filter cut freq.
+ *
+ * Improves tracking performance.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLR_SP_D_LP, 100.0f);
 
 /**
  * Pitch P gain
@@ -154,7 +197,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
+PARAM_DEFINE_FLOAT(MC_PITCHR_P, 0.15f);
 
 /**
  * Pitch rate I gain
@@ -166,7 +209,20 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_PITCHR_I, 0.05f);
+
+/**
+ * Pitch rate I saturation
+ *
+ * Limits integrator windup.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHR_I_MAX, 0.1f);
 
 /**
  * Pitch rate D gain
@@ -178,7 +234,21 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
  * @increment 0.0005
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
+PARAM_DEFINE_FLOAT(MC_PITCHR_D, 0.003f);
+
+/**
+ * Pitch rate D low pass filter cut freq.
+ *
+ * Smooths the derivative feedback.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHR_D_LP, 1000.0f);
 
 /**
  * Pitch rate feedforward
@@ -189,7 +259,22 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
  * @decimal 4
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(MC_PITCHR_FF, 0.0f);
+
+/**
+ * Pitch rate setpoint derivative low pass filter cut freq.
+ *
+ * Improves tracking performance.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHR_SP_D_LP, 100.0f);
+
 
 /**
  * Yaw P gain
@@ -216,7 +301,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
+PARAM_DEFINE_FLOAT(MC_YAWR_P, 0.2f);
 
 /**
  * Yaw rate I gain
@@ -228,7 +313,20 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.1f);
+PARAM_DEFINE_FLOAT(MC_YAWR_I, 0.1f);
+
+/**
+ * Yaw rate I saturation
+ *
+ * Limits integrator windup.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWR_I_MAX, 0.1f);
 
 /**
  * Yaw rate D gain
@@ -240,7 +338,21 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.1f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWR_D, 0.0f);
+
+/**
+ * Yaw rate D low pass filter cut freq
+ *
+ * Smooths the derivative feedback.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWR_D_LP, 1000.0f);
 
 /**
  * Yaw rate feedforward
@@ -252,7 +364,21 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWR_FF, 0.0f);
+
+/**
+ * Yaw rate setpoint derivative low pass filter cut freq.
+ *
+ * Improves tracking performance.
+ *
+ * @min 0
+ * @max 1000
+ * @unit Hz
+ * @decimal 0
+ * @increment 100
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWR_SP_D_LP, 100.0f);
 
 /**
  * Yaw feed forward
@@ -279,7 +405,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 220.0f);
+PARAM_DEFINE_FLOAT(MC_ROLLR_MAX, 220.0f);
 
 /**
  * Max pitch rate
@@ -293,7 +419,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 220.0f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
+PARAM_DEFINE_FLOAT(MC_PITCHR_MAX, 220.0f);
 
 /**
  * Max yaw rate
@@ -307,7 +433,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
+PARAM_DEFINE_FLOAT(MC_YAWR_MAX, 200.0f);
 
 /**
  * Max yaw rate in auto mode

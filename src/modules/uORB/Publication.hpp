@@ -78,6 +78,7 @@ public:
 	virtual ~PublicationBase();
 
 // accessors
+	void setMeta(const struct orb_metadata *meta);
 	const struct orb_metadata *getMeta() { return _meta; }
 	orb_advert_t getHandle() { return _handle; }
 protected:

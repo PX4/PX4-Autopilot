@@ -62,6 +62,8 @@
 #include "topics/actuator_armed.h"
 #include "topics/att_pos_mocap.h"
 #include "topics/vision_position_estimate.h"
+#include "topics/control_state.h"
+#include "topics/multirotor_motor_limits.h"
 
 #include <px4_defines.h>
 
@@ -71,12 +73,21 @@ namespace uORB
 SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 				   unsigned interval, unsigned instance) :
 	_meta(meta),
+	_interval(interval),
 	_instance(instance),
 	_handle()
 {
+	setMeta(meta);
+}
+
+
+void SubscriptionBase::setMeta(const struct orb_metadata *meta)
+{
+	_meta = meta;
+
 	if (_instance > 0) {
 		_handle =  orb_subscribe_multi(
-				   getMeta(), instance);
+				   getMeta(), _instance);
 
 	} else {
 		_handle =  orb_subscribe(getMeta());
@@ -84,13 +95,15 @@ SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 
 	if (_handle < 0) { warnx("sub failed"); }
 
-	if (interval > 0) {
-		orb_set_interval(getHandle(), interval);
+	if (_interval > 0) {
+		orb_set_interval(getHandle(), _interval);
 	}
 }
 
 bool SubscriptionBase::updated()
 {
+	if (_meta == NULL) { return false; }
+
 	bool isUpdated = false;
 	int ret = orb_check(_handle, &isUpdated);
 
@@ -101,6 +114,8 @@ bool SubscriptionBase::updated()
 
 void SubscriptionBase::update(void *data)
 {
+	if (_meta == NULL) { return; }
+
 	if (updated()) {
 		int ret = orb_copy(_meta, _handle, data);
 
@@ -164,5 +179,7 @@ template class __EXPORT Subscription<optical_flow_s>;
 template class __EXPORT Subscription<distance_sensor_s>;
 template class __EXPORT Subscription<att_pos_mocap_s>;
 template class __EXPORT Subscription<vision_position_estimate_s>;
+template class __EXPORT Subscription<control_state_s>;
+template class __EXPORT Subscription<multirotor_motor_limits_s>;
 
 } // namespace uORB

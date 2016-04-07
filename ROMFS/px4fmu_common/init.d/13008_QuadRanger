@@ -19,21 +19,21 @@ then
 	param set PWM_AUX_REV2 1
 
 	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.15
-	param set MC_ROLLRATE_I 0.1
-	param set MC_ROLLRATE_D 0.004
-	param set MC_ROLLRATE_FF 0.0
+	param set MC_ROLLR_P 0.15
+	param set MC_ROLLR_I 0.1
+	param set MC_ROLLR_D 0.004
+	param set MC_ROLLR_FF 0.0
 	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.15
-	param set MC_PITCHRATE_I 0.1
-	param set MC_PITCHRATE_D 0.004
-	param set MC_PITCHRATE_FF 0.0
+	param set MC_PITCHR_P 0.15
+	param set MC_PITCHR_I 0.1
+	param set MC_PITCHR_D 0.004
+	param set MC_PITCHR_FF 0.0
 	param set MC_YAW_P 3.5
 	param set MC_YAW_FF 0.7
-	param set MC_YAWRATE_P 0.6
-	param set MC_YAWRATE_I 0.04
-	param set MC_YAWRATE_D 0.0
-	param set MC_YAWRATE_FF 0.0
+	param set MC_YAWR_P 0.6
+	param set MC_YAWR_I 0.04
+	param set MC_YAWR_D 0.0
+	param set MC_YAWR_FF 0.0
 
 	param set MPC_ACC_HOR_MAX 2.0
 	param set MPC_Z_VEL_MAX 1.5

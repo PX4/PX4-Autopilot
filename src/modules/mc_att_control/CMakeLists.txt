@@ -30,15 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3500)
+if(${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4500)
+elseif(${OS} STREQUAL "posix")
+	list(APPEND MODULE_CFLAGS -Wno-error)
 endif()
+
 px4_add_module(
 	MODULE modules__mc_att_control
 	MAIN mc_att_control
-	STACK 1200
-	COMPILE_FLAGS ${MODULE_CFLAGS}
+	COMPILE_FLAGS -Os ${MODULE_CFLAGS}
+	STACK 4500
 	SRCS
+		params.c
 		mc_att_control_main.cpp
 	DEPENDS
 		platforms__common
