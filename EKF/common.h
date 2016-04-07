@@ -223,6 +223,12 @@ struct parameters {
 	float req_hdrift;       // maximum acceptable horizontal drift speed
 	float req_vdrift;       // maximum acceptable vertical drift speed
 
+	// XYZ offset of sensors in body axes (m)
+	Vector3f imu_pos_body;	// xyz position of IMU in body frame (m)
+	Vector3f gps_pos_body;	// xyz position of the GPS antenna in body frame (m)
+	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
+	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
+
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
@@ -296,6 +302,12 @@ struct parameters {
 		req_gdop = 2.0f;
 		req_hdrift = 0.3f;
 		req_vdrift = 0.5f;
+
+		// XYZ offset of sensors in body axes (m)
+		imu_pos_body = {0};
+		gps_pos_body = {0};
+		rng_pos_body = {0};
+		flow_pos_body = {0};
 	}
 };
 
