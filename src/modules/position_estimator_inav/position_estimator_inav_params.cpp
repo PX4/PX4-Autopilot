@@ -345,18 +345,6 @@ PARAM_DEFINE_FLOAT(INAV_LIDAR_OFF, 0.0f);
  */
 PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
 
-/**
- * INAV enabled
- *
- * If set to 1, use INAV for position estimation.
- * Else the system uses the combined attitude / position
- * filter framework.
- *
- * @boolean
- * @group Position Estimator INAV
- */
-PARAM_DEFINE_INT32(INAV_ENABLED, 1);
-
 int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");

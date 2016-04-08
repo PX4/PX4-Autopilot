@@ -30,7 +30,7 @@ set(config_module_list
 	modules/sensors
 	modules/mavlink
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
+	modules/local_position_estimator
 	modules/navigator
 	modules/vtol_att_control
 	modules/mc_pos_control
@@ -41,7 +41,7 @@ set(config_module_list
 	modules/dataman
 	modules/sdlog2
 	modules/commander
-	modules/controllib
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/conversion

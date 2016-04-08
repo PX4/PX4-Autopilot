@@ -225,7 +225,9 @@ endfunction()
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			[ MAIN <string> ]
-#			[ STACK <string> ]
+#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
+#			[ STACK_MAIN <string> ]
+#			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
@@ -234,7 +236,9 @@ endfunction()
 #	Input:
 #		MODULE			: unique name of module
 #		MAIN			: entry point, if not given, assumed to be library
-#		STACK			: size of stack
+#		STACK			: deprecated use stack main instead
+#		STACK_MAIN		: size of stack for main function
+#		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS	: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
@@ -248,7 +252,7 @@ endfunction()
 #		px4_add_module(MODULE test
 #			SRCS
 #				file.cpp
-#			STACK 1024
+#			STACK_MAIN 1024
 #			DEPENDS
 #				git_nuttx
 #			)
@@ -257,15 +261,43 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK PRIORITY
+		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
+	# set defaults if not set
+	set(MAIN_DEFAULT MAIN-NOTFOUND)
+	set(STACK_MAIN_DEFAULT 1024)
+	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
+
+	# default stack max to stack main
+	if(NOT STACK_MAIN AND STACK)
+		set(STACK_MAIN ${STACK})
+		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!!!!!!!!!!!!")
+	endif()
+
+	foreach(property MAIN STACK_MAIN PRIORITY)
+		if(NOT ${property})
+			set(${property} ${${property}_DEFAULT})
+		endif()
+		set_target_properties(${MODULE} PROPERTIES ${property}
+			${${property}})
+	endforeach()
+
+	# default stack max to stack main
+	if(NOT STACK_MAX)
+		set(STACK_MAX ${STACK_MAIN})
+	endif()
+	set_target_properties(${MODULE} PROPERTIES STACK_MAX
+		${STACK_MAX})
+
 	if(${OS} STREQUAL "qurt" )
 		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+	elseif(${OS} STREQUAL "nuttx" )
+		list(APPEND COMPILE_FLAGS -Wframe-larger-than=${STACK_MAX})
 	endif()
 
 	if(MAIN)
@@ -290,8 +322,8 @@ function(px4_add_module)
 
 	# store module properties in target
 	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
-	# STACK, MAIN, PRIORITY are PX4 specific
-	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK MAIN PRIORITY)
+	# STACK_MAIN, MAIN, PRIORITY are PX4 specific
+	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
@@ -517,7 +549,7 @@ function(px4_add_common_flags)
 		-Wno-unused-parameter
 		-Werror=format-security
 		-Werror=array-bounds
-		-Wfatal-errors
+		#-Wfatal-errors
 		-Werror=unused-variable
 		-Werror=reorder
 		-Werror=uninitialized
@@ -529,10 +561,6 @@ function(px4_add_common_flags)
 		#-Wcast-align - would help catch bad casts in some cases,
 		#               but generates too many false positives
 		)
-
-	if (${OS} STREQUAL "nuttx")
-		list(APPEND warnings -Wframe-larger-than=1024)
-	endif()
 
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
