@@ -112,6 +112,7 @@ UBX::configure(unsigned &baudrate)
 	const unsigned baudrates[] = {9600, 38400, 19200, 57600, 115200};
 
 	unsigned baud_i;
+	ubx_payload_tx_cfg_prt_t cfg_prt[2];
 
 	for (baud_i = 0; baud_i < sizeof(baudrates) / sizeof(baudrates[0]); baud_i++) {
 		baudrate = baudrates[baud_i];
@@ -124,14 +125,19 @@ UBX::configure(unsigned &baudrate)
 
 		/* Send a CFG-PRT message to set the UBX protocol for in and out
 		 * and leave the baudrate as it is, we just want an ACK-ACK for this */
-		memset(&_buf.payload_tx_cfg_prt, 0, sizeof(_buf.payload_tx_cfg_prt));
-		_buf.payload_tx_cfg_prt.portID		= UBX_TX_CFG_PRT_PORTID;
-		_buf.payload_tx_cfg_prt.mode		= UBX_TX_CFG_PRT_MODE;
-		_buf.payload_tx_cfg_prt.baudRate	= baudrate;
-		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
-		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
+		memset(cfg_prt, 0, 2 * sizeof(ubx_payload_tx_cfg_prt_t));
+		cfg_prt[0].portID		= UBX_TX_CFG_PRT_PORTID;
+		cfg_prt[0].mode		= UBX_TX_CFG_PRT_MODE;
+		cfg_prt[0].baudRate	= baudrate;
+		cfg_prt[0].inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
+		cfg_prt[0].outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
+		cfg_prt[1].portID		= UBX_TX_CFG_PRT_PORTID_USB;
+		cfg_prt[1].mode		= UBX_TX_CFG_PRT_MODE;
+		cfg_prt[1].baudRate	= baudrate;
+		cfg_prt[1].inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
+		cfg_prt[1].outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_prt))) {
+		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)cfg_prt, 2 * sizeof(ubx_payload_tx_cfg_prt_t))) {
 			continue;
 		}
 
@@ -141,14 +147,19 @@ UBX::configure(unsigned &baudrate)
 		}
 
 		/* Send a CFG-PRT message again, this time change the baudrate */
-		memset(&_buf.payload_tx_cfg_prt, 0, sizeof(_buf.payload_tx_cfg_prt));
-		_buf.payload_tx_cfg_prt.portID		= UBX_TX_CFG_PRT_PORTID;
-		_buf.payload_tx_cfg_prt.mode		= UBX_TX_CFG_PRT_MODE;
-		_buf.payload_tx_cfg_prt.baudRate	= UBX_TX_CFG_PRT_BAUDRATE;
-		_buf.payload_tx_cfg_prt.inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
-		_buf.payload_tx_cfg_prt.outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
+		memset(cfg_prt, 0, 2 * sizeof(ubx_payload_tx_cfg_prt_t));
+		cfg_prt[0].portID		= UBX_TX_CFG_PRT_PORTID;
+		cfg_prt[0].mode		= UBX_TX_CFG_PRT_MODE;
+		cfg_prt[0].baudRate	= UBX_TX_CFG_PRT_BAUDRATE;
+		cfg_prt[0].inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
+		cfg_prt[0].outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
+		cfg_prt[1].portID		= UBX_TX_CFG_PRT_PORTID_USB;
+		cfg_prt[1].mode		= UBX_TX_CFG_PRT_MODE;
+		cfg_prt[1].baudRate	= UBX_TX_CFG_PRT_BAUDRATE;
+		cfg_prt[1].inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
+		cfg_prt[1].outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_prt))) {
+		if (!send_message(UBX_MSG_CFG_PRT, (uint8_t *)cfg_prt, 2 * sizeof(ubx_payload_tx_cfg_prt_t))) {
 			continue;
 		}
 
