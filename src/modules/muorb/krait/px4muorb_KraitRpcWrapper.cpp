@@ -111,9 +111,8 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		return -3;
 	}
 
-	// The clock count needs to get converted to us. The clock supposedly
-	// runs at just under 20 MHz. The magic value of 19.2 was provided by
-	// Qualcomm.
+	// The clock count needs to get converted to us.
+	// The magic value of 19.2 was provided by Qualcomm.
 	time_dsp /= 19.2;
 
 	// Before casting to in32_t, check if it fits.
