@@ -3,10 +3,12 @@
 #include <errno.h>
 #include <string.h>
 #include <uORB/uORBTopics.h>
+#include <px4_getopt.h>
 
 //#define DBGPRINT
 
 using namespace px4::logger;
+
 
 int logger_main(int argc, char *argv[])
 {
@@ -22,7 +24,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != Logger::start()) {
+		if (OK != Logger::start((char * const *)argv)) {
 			warnx("start failed");
 			return 1;
 		}
@@ -77,7 +79,7 @@ void Logger::usage(const char *reason)
 	      "\t-x\tExtended logging");
 }
 
-int Logger::start()
+int Logger::start(char * const *argv)
 {
 	ASSERT(logger_task == -1);
 
@@ -87,7 +89,7 @@ int Logger::start()
 					 SCHED_PRIORITY_MAX - 5,
 					 3100,
 					 (px4_main_t)&Logger::run_trampoline,
-					 nullptr);
+					 (char * const *)argv);
 
 	if (logger_task < 0) {
 		warn("task start failed");
@@ -99,7 +101,44 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768, 3500);
+	unsigned log_interval = 3500;
+	int log_buffer_size = 12 * 1024;
+	bool log_on_start = false;
+
+	int myoptind = 1;
+	int ch;
+		const char *myoptarg = NULL;
+		while ((ch = px4_getopt(argc, argv, "r:b:e", &myoptind, &myoptarg)) != EOF) {
+			switch (ch) {
+				case 'r': {
+						unsigned long r = strtoul(myoptarg, NULL, 10);
+
+						if (r <= 0) {
+							r = 1;
+						}
+
+						log_interval = 1e6 / r;
+					}
+					break;
+				case 'e':
+					log_on_start = true;
+				break;
+				case 'b': {
+					unsigned long s = strtoul(myoptarg, NULL, 10);
+
+					if (s < 1) {
+						s = 1;
+					}
+
+					log_buffer_size = 1024 * s;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+	logger_ptr = new Logger(log_buffer_size,log_interval, log_on_start);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -156,7 +195,8 @@ struct message_parameter_header_s {
 
 static constexpr size_t MAX_DATA_SIZE = 740;
 
-Logger::Logger(size_t buffer_size, unsigned log_interval) :
+Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start) :
+	_enabled(log_on_start),
 	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
 	_log_interval(log_interval)
 {
@@ -167,6 +207,7 @@ Logger::~Logger()
 	if (logger_task != -1) {
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
+
 
 		/* wait for a second for the task to quit at our request */
 		unsigned i = 0;
@@ -282,16 +323,16 @@ void Logger::run()
 	const unsigned ten_msec = 10;
 	const unsigned hundred_msec = 100;
 	 */
-//	add_topic("sensor_accel", 0);
-//	add_topic("sensor_baro", 0);
+	add_topic("sensor_accel", 0);
+	add_topic("sensor_baro", 0);
 	add_topic("manual_control_setpoint");
 	add_topic("vehicle_rates_setpoint");
 	add_topic("sensor_gyro", 0);
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_attitude");
 
-//	add_topic("estimator_status", 0);
-//	add_topic("sensor_combined", 0);
+	//add_topic("estimator_status", 0);
+	//add_topic("sensor_combined", 0);
 
 	add_topic("vehicle_status");
 
@@ -392,7 +433,6 @@ void Logger::run()
 								double drop_len = (double)(trytime - dropout_start)  * 1e-6;
 
 								if (drop_len > max_drop_len) { max_drop_len = drop_len; }
-
 								warnx("dropout length: %5.3f seconds", drop_len);
 								dropout_start = 0;
 								highWater = 0;
@@ -453,6 +493,8 @@ void Logger::run()
 		usleep(_log_interval);
 //		usleep(1000);
 	}
+
+	logger_task = -1;
 }
 
 int Logger::create_log_dir()
