@@ -32,7 +32,7 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval);
+	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start);
 
 	~Logger();
 
@@ -40,7 +40,7 @@ public:
 
 	int add_topic(const char *name, unsigned interval);
 
-	static int start();
+	static int start(char * const *argv);
 
 	static void usage(const char *reason);
 
