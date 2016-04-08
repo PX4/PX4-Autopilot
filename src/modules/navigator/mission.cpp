@@ -555,9 +555,6 @@ Mission::set_mission_items()
 			 * what the altitude means on this waypoint type.
 			 */
 			float altitude = _navigator->get_global_position()->alt;
-			if (pos_sp_triplet->current.valid) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
