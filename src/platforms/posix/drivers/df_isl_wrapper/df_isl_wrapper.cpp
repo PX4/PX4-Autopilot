@@ -63,7 +63,7 @@
 
 #include <board_config.h>
 
-#include <isl29501/isl29501.hpp>
+#include <isl/isl.hpp>
 #include <DevMgr.hpp>
 
 
