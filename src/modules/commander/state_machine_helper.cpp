@@ -590,7 +590,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	navigation_state_t nav_state_old = status->nav_state;
 
 	bool armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
-	//status->failsafe = false;
+	status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
 	switch (internal_state->main_state) {
@@ -602,7 +602,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
 		if ((status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
@@ -680,7 +680,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		/* datalink loss enabled:
 		 * check for datalink lost: this should always trigger RTGS */
 		} else if (data_link_loss_enabled && status->data_link_lost) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -697,7 +697,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
 		} else if (!data_link_loss_enabled && ((status->rc_signal_lost && status->data_link_lost) ||
 						       (status->rc_signal_lost && mission_finished))) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
@@ -721,7 +721,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		/* also go into failsafe if just datalink is lost */
 		} else if (status->data_link_lost && data_link_loss_enabled) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -735,7 +735,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		/* go into failsafe if RC is lost and datalink loss is not set up */
 		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -765,7 +765,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
@@ -806,7 +806,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
@@ -827,7 +827,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
@@ -842,11 +842,11 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 		/* require offboard control, otherwise stay where you are */
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
-			//status->failsafe = true;
+			status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
