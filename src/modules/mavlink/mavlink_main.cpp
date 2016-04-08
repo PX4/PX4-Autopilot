@@ -998,35 +998,47 @@ Mavlink::init_udp()
 	}
 	_src_addr.sin_port = htons(_remote_port);
 
-	// Find out the required size of the buffer first.
-	// We can get the number by providing NULL to ifc_req.
 	struct ifconf ifconf;
+	int ret;
+
+#if defined(__APPLE__) && defined(__MACH__)
+	// On Mac, we can't determine the required buffer
+	// size in advance, so we just use what tends to work.
+	ifconf.ifc_len = 1024;
+#else
+	// On Linux, we can determine the required size of the
+	// buffer first by providing NULL to ifc_req.
 	ifconf.ifc_req = NULL;
 	ifconf.ifc_len = 0;
 
-	int ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
 	if (ret != 0) {
 		PX4_WARN("getting required buffer size failed");
 		return;
 	}
+#endif
 
 	PX4_DEBUG("need to allocate %d bytes", ifconf.ifc_len);
 
-	// Allocate buffer as long as needed.
-	uint8_t ifreqs_buf[ifconf.ifc_len];
-	memset(ifreqs_buf, 0, ifconf.ifc_len);
-	ifconf.ifc_req = (struct ifreq *)ifreqs_buf;
+	// Allocate buffer.
+	ifconf.ifc_req = (struct ifreq *)(new uint8_t[ifconf.ifc_len]);
+	if (ifconf.ifc_req == nullptr) {
+		PX4_ERR("Could not allocate ifconf buffer");
+		return;
+	}
 
+	memset(ifconf.ifc_req, 0, ifconf.ifc_len);
 
 	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
 	if (ret != 0) {
-		PX4_WARN("getting network config failed");
+		PX4_ERR("getting network config failed");
+		delete[] ifconf.ifc_req;
 		return;
 	}
 
 	size_t offset = 0;
 	// Later used to point to next network interface in buffer.
-	struct ifreq *cur_ifreq = (struct ifreq *)&ifreqs_buf[offset];
+	struct ifreq *cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
 
 	// The ugly `for` construct is used because it allows to use
 	// `continue` and `break`.
@@ -1038,8 +1050,7 @@ Mavlink::init_udp()
 	     // sizeof sockaddr or ifr_addr.sa_len.
 	     offset += IF_NAMESIZE
 	               + (sizeof(struct sockaddr) > cur_ifreq->ifr_addr.sa_len ?
-		          sizeof(struct sockaddr) :
-		          cur_ifreq->ifr_addr.sa_len)
+		          sizeof(struct sockaddr) : cur_ifreq->ifr_addr.sa_len)
 #else
 	    // On Linux, it's much easier to traverse the buffer, every entry
 	    // has the constant length.
@@ -1048,14 +1059,7 @@ Mavlink::init_udp()
 	    ) {
 
 		// Point to next network interface in buffer.
-		cur_ifreq = (struct ifreq *)&ifreqs_buf[offset];
-
-#if defined(__APPLE__) && defined(__MACH__)
-		if (cur_ifreq->ifr_addr.sa_len == 0) {
-			// The current entry seems zero, we're probably through.
-			break;
-		}
-#endif
+		cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
 
 		PX4_DEBUG("looking at %s", cur_ifreq->ifr_name);
 
@@ -1073,7 +1077,7 @@ Mavlink::init_udp()
 		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
 		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
 		if (ret != 0) {
-			PX4_INFO("getting broadcast address failed for %s", cur_ifreq->ifr_name);
+			PX4_DEBUG("getting broadcast address failed for %s", cur_ifreq->ifr_name);
 			continue;
 		}
 
@@ -1105,13 +1109,14 @@ Mavlink::init_udp()
 		}
 	}
 
-	if (!_broadcast_address_found) {
+	if (_broadcast_address_found) {
+		_bcast_addr.sin_port = htons(_remote_port);
+
+	} else {
 		PX4_WARN("no broadcasting address found");
-		return;
 	}
 
-	_bcast_addr.sin_port = htons(_remote_port);
-
+	delete[] ifconf.ifc_req;
 #endif
 }
 
