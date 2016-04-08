@@ -1428,7 +1428,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 		bool status_updated = copy_if_updated(ORB_ID(vehicle_status), &subs.status_sub, &buf_status);
 
-		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
+		/* --- COMMANDER INTERNAL STATE - LOG MANAGEMENT --- */
 		bool commander_state_updated = copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
 							       &buf.commander_state);
 
