@@ -230,6 +230,9 @@ RTL::set_rtl_item()
 		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
+		/* disable previous setpoint to prevent drift */
+		pos_sp_triplet->previous.valid = false;
+
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above home)",
 			(int)(_mission_item.altitude),
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
@@ -312,7 +315,7 @@ RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_TRANSITION_TO_MC:
-		_rtl_state = RTL_STATE_DESCEND;
+		_rtl_state = RTL_STATE_RETURN;
 		break;
 
 	case RTL_STATE_DESCEND:
