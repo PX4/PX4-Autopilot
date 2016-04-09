@@ -35,7 +35,8 @@ param set COM_DISARM_LAND 3
 param set NAV_ACC_RAD 2.0
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
-param set MIS_TAKEOFF_ALT 5.0
+param set RTL_LAND_DELAY 0
+param set MIS_TAKEOFF_ALT 2.5
 param set MPC_HOLD_MAX_Z 2.0
 param set MPC_HOLD_XY_DZ 0.1
 param set MPC_HOLD_Z_DZ 0.1
