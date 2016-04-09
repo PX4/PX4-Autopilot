@@ -218,6 +218,11 @@ bool Ekf::update()
 		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
 		    && (_R_prev(2, 2) > 0.7071f)) {
+			// correct the range data for position offset relative to the IMU
+			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+			Vector3f pos_offset_earth = _R_prev.transpose() * pos_offset_body;
+			_range_sample_delayed.rng += pos_offset_earth(2) / _R_prev(2, 2);
+
 			// if we have range data we always try to estimate terrain height
 			_fuse_hagl_data = true;
 
