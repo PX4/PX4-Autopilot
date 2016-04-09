@@ -457,6 +457,7 @@ void Ekf2::task_main()
 			flow.quality = optical_flow.quality;
 			flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
 			flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
+			flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
 			flow.dt = optical_flow.integration_timespan;
 
 			if (!isnan(optical_flow.pixel_flow_y_integral) && !isnan(optical_flow.pixel_flow_x_integral)) {
