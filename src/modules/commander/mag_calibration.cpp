@@ -584,44 +584,46 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 	// Print uncalibrated data points
 	if (result == calibrate_return_ok) {
 
-		printf("RAW DATA:\n--------------------\n");
-		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+		// DO NOT REMOVE! Critical validation data!
 
-			if (worker_data.calibration_counter_total[cur_mag] == 0) {
-				continue;
-			}
+		// printf("RAW DATA:\n--------------------\n");
+		// for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
+		// 	if (worker_data.calibration_counter_total[cur_mag] == 0) {
+		// 		continue;
+		// 	}
 
-			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
-				float x = worker_data.x[cur_mag][i];
-				float y = worker_data.y[cur_mag][i];
-				float z = worker_data.z[cur_mag][i];
-				printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
-			}
+		// 	printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
-			printf(">>>>>>>\n");
-		}
+		// 	for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+		// 		float x = worker_data.x[cur_mag][i];
+		// 		float y = worker_data.y[cur_mag][i];
+		// 		float z = worker_data.z[cur_mag][i];
+		// 		printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
+		// 	}
 
-		printf("CALIBRATED DATA:\n--------------------\n");
-		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+		// 	printf(">>>>>>>\n");
+		// }
 
-			if (worker_data.calibration_counter_total[cur_mag] == 0) {
-				continue;
-			}
+		// printf("CALIBRATED DATA:\n--------------------\n");
+		// for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
+		// 	if (worker_data.calibration_counter_total[cur_mag] == 0) {
+		// 		continue;
+		// 	}
 
-			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
-				float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
-				float y = worker_data.y[cur_mag][i] - sphere_y[cur_mag];
-				float z = worker_data.z[cur_mag][i] - sphere_z[cur_mag];
-				printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
-			}
+		// 	printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
-			printf("SPHERE RADIUS: %8.4f\n", (double)sphere_radius[cur_mag]);
-			printf(">>>>>>>\n");
-		}
+		// 	for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+		// 		float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
+		// 		float y = worker_data.y[cur_mag][i] - sphere_y[cur_mag];
+		// 		float z = worker_data.z[cur_mag][i] - sphere_z[cur_mag];
+		// 		printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
+		// 	}
+
+		// 	printf("SPHERE RADIUS: %8.4f\n", (double)sphere_radius[cur_mag]);
+		// 	printf(">>>>>>>\n");
+		// }
 	}
 
 	// Data points are no longer needed
