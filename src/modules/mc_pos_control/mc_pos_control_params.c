@@ -213,7 +213,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.08f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.065f);
 
 /**
  * Integral gain for horizontal velocity error
