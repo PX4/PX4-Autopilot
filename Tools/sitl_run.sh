@@ -80,6 +80,7 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake -Wno-dev ..
 		make -j4
+		make sdf
 		gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
 		gzclient --verbose &
