@@ -172,16 +172,30 @@ public:
 			quat[i] = _output_new.quat_nominal(i);
 		}
 	}
-	void copy_velocity(float *vel)
+	// get the velocity of the body frame origin in local NED earth frame
+	void get_velocity(float *vel)
 	{
+		// calculate the average angular rate across the last IMU update
+		Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f/_imu_sample_new.delta_ang_dt);
+		// calculate the velocity of the relative to the body origin
+		// Note % operator has been overloaded to performa cross product
+		Vector3f vel_imu_rel_body = cross_product(ang_rate , _params.imu_pos_body);
+		// rotate the relative velocty into earth frame and subtract from the EKF velocity
+		// (which is at the IMU) to get velocity of the body origin
+		Vector3f vel_earth = _output_new.vel - _R_to_earth_now * vel_imu_rel_body;
+		// copy to output
 		for (unsigned i = 0; i < 3; i++) {
-			vel[i] = _output_new.vel(i);
+			vel[i] = vel_earth(i);
 		}
 	}
-	void copy_position(float *pos)
+	// get the position of the body frame origin in local NED earth frame
+	void get_position(float *pos)
 	{
+		// rotate the position of the IMU relative to the boy origin into earth frame
+		Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
+		// subtract from the EKF position (which is at the IMU) to get position at the body origin
 		for (unsigned i = 0; i < 3; i++) {
-			pos[i] = _output_new.pos(i);
+			pos[i] = _output_new.pos(i) - pos_offset_earth(i);
 		}
 	}
 	void copy_timestamp(uint64_t *time_us)
@@ -218,6 +232,7 @@ protected:
 	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
 	outputSample _output_new;	// filter output on the non-delayed time horizon
 	imuSample _imu_sample_new;	// imu sample capturing the newest imu data
+	Matrix3f _R_to_earth_now; // rotation matrix from body to earth frame at current time
 
 	uint64_t _imu_ticks;	// counter for imu updates
 
@@ -272,5 +287,11 @@ protected:
 
 	// this is the previous status of the filter control modes - used to detect mode transitions
 	filter_control_status_u _control_status_prev;
+
+	// perform a vector cross product
+	Vector3f cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2);
+
+	// calculate the inverse rotation matrix from a quaternion rotation
+	Matrix3f quat_to_invrotmat(const Quaternion quat);
 
 };

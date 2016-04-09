@@ -583,9 +583,9 @@ void Ekf::calculateOutputStates()
 	_output_new.quat_nominal = dq * _output_new.quat_nominal;
 	_output_new.quat_nominal.normalize();
 
-	matrix::Dcm<float> R_to_earth(_output_new.quat_nominal);
+	_R_to_earth_now = quat_to_invrotmat(_output_new.quat_nominal);
 
-	Vector3f delta_vel_NED = R_to_earth * delta_vel + _delta_vel_corr;
+	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel + _delta_vel_corr;
 	delta_vel_NED(2) += 9.81f * imu_new.delta_vel_dt;
 
 	Vector3f vel_last = _output_new.vel;

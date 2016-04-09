@@ -330,4 +330,5 @@ private:
 
 	// zero the specified range of columns in the state covariance matrix
 	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
 };
