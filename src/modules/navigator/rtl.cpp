@@ -208,7 +208,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = NAN; // don't bother with yaw
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 
 		// except for vtol which might be still off here and should point towards this location
 		float d_current = get_distance_to_next_waypoint(
