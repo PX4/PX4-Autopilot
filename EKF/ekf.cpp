@@ -266,7 +266,7 @@ bool Ekf::update()
 				// correct velocity for offset relative to IMU
 				Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f/_imu_sample_delayed.delta_ang_dt);
 				Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-				Vector3f vel_offset_body = ang_rate % pos_offset_body;
+				Vector3f vel_offset_body = cross_product(ang_rate,pos_offset_body);
 				Vector3f vel_offset_earth = _R_prev.transpose() * vel_offset_body;
 				_gps_sample_delayed.vel -= vel_offset_earth;
 

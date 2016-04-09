@@ -87,8 +87,17 @@ void Ekf::fuseOptFlow()
 	matrix::Dcm<float> earth_to_body(_state.quat_nominal);
 	earth_to_body = earth_to_body.transpose();
 
-	// rotate earth velocities into body frame
-	Vector3f vel_body = earth_to_body * _state.vel;
+	// calculate the sensor position relative to the IMU
+	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+
+	// calculate the velocity of the sensor reelative to the imu in body frame
+	Vector3f vel_rel_imu_body = cross_product(_flow_sample_delayed.gyroXYZ , pos_offset_body);
+
+	// calculate the velocity of the sensor in the earth frame
+	Vector3f vel_rel_earth = _state.vel + _R_prev.transpose() * vel_rel_imu_body;
+
+	// rotate into body frame
+	Vector3f vel_body = earth_to_body * vel_rel_earth;
 
 	// calculate range from focal point to centre of image
 	float range = heightAboveGndEst / earth_to_body(2, 2); // absolute distance to the frame region in view
@@ -498,8 +507,7 @@ void Ekf::get_flow_innov_var(float flow_innov_var[2])
 void Ekf::calcOptFlowBias()
 {
 	// accumulate the bias corrected delta angles from the navigation sensor and lapsed time
-	_imu_del_ang_of(0) += _imu_sample_delayed.delta_ang(0);
-	_imu_del_ang_of(1) += _imu_sample_delayed.delta_ang(1);
+	_imu_del_ang_of += _imu_sample_delayed.delta_ang;
 	_delta_time_of += _imu_sample_delayed.delta_ang_dt;
 
 	// reset the accumulators if the time interval is too large
@@ -514,21 +522,20 @@ void Ekf::calcOptFlowBias()
 		if ((fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.05f) && (_delta_time_of > 0.01f)
 		    && (_flow_sample_delayed.dt > 0.01f)) {
 			// calculate a reference angular rate
-			Vector2f reference_body_rate;
-			reference_body_rate(0) = _imu_del_ang_of(0) / _delta_time_of;
-			reference_body_rate(1) = _imu_del_ang_of(1) / _delta_time_of;
+			Vector3f reference_body_rate;
+			reference_body_rate = _imu_del_ang_of * (1.0f / _delta_time_of);
 
 			// calculate the optical flow sensor measured body rate
-			Vector2f of_body_rate;
-			of_body_rate(0) = _flow_sample_delayed.gyroXY(0) / _flow_sample_delayed.dt;
-			of_body_rate(1) = _flow_sample_delayed.gyroXY(1) / _flow_sample_delayed.dt;
+			Vector3f of_body_rate;
+			of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt);
 
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
 					     -0.1f, 0.1f);
 			_flow_gyro_bias(1) = 0.99f * _flow_gyro_bias(1) + 0.01f * math::constrain((of_body_rate(1) - reference_body_rate(1)),
 					     -0.1f, 0.1f);
-
+			_flow_gyro_bias(2) = 0.99f * _flow_gyro_bias(2) + 0.01f * math::constrain((of_body_rate(2) - reference_body_rate(2)),
+					     -0.1f, 0.1f);
 		}
 
 		// reset the accumulators

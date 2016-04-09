@@ -67,7 +67,7 @@ typedef matrix::Matrix<float, 3, 3> Matrix3f;
 struct flow_message {
 	uint8_t quality;			// Quality of Flow data
 	Vector2f flowdata;			// Flow data received
-	Vector2f gyrodata;			// Gyro data from flow sensor
+	Vector3f gyrodata;			// Gyro data from flow sensor
 	uint32_t dt;				// integration time of flow samples
 };
 
@@ -120,7 +120,7 @@ struct flowSample {
 	uint8_t  quality; // quality indicator between 0 and 255
 	Vector2f flowRadXY; // measured delta angle of the image about the X and Y body axes (rad), RH rotaton is positive
 	Vector2f flowRadXYcomp;	// measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
-	Vector2f gyroXY; // measured delta angle of the inertial frame about the X and Y body axes obtained from rate gyro measurements (rad), RH rotation is positive
+	Vector3f gyroXYZ; // measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt; // amount of integration time (sec)
 	uint64_t time_us; // timestamp in microseconds of the integration period mid-point
 };

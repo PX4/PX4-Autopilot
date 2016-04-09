@@ -173,8 +173,8 @@ private:
 	// optical flow processing
 	float _flow_innov[2];		// flow measurement innovation
 	float _flow_innov_var[2];	// flow innovation variance
-	Vector2f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
-	Vector2f _imu_del_ang_of;	// bias corrected XY delta angle measurements accumulated across the same time frame as the optical flow rates
+	Vector3f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
+	Vector3f _imu_del_ang_of;	// bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates
 	float _delta_time_of;		// time in sec that _imu_del_ang_of was accumulated over
 
 	float _mag_declination;		// magnetic declination used by reset and fusion functions (rad)
