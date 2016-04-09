@@ -47,7 +47,6 @@
  * This parameter encodes the ground drag coefficient and the corresponding
  * decrease in wind speed from the plane altitude to ground altitude.
  *
- * @unit unknown
  * @min 0.001
  * @max 0.1
  * @group Payload drop
@@ -61,7 +60,7 @@ PARAM_DEFINE_FLOAT(BD_GPROPERTIES, 0.03f);
  * to make the plane maneuver more distant from the actual drop
  * position. This is to ensure the wings are level during the drop.
  *
- * @unit meter
+ * @unit m
  * @min 30.0
  * @max 500.0
  * @group Payload drop
@@ -75,7 +74,7 @@ PARAM_DEFINE_FLOAT(BD_TURNRADIUS, 120.0f);
  * drop position, it will release the payload. This is a safeguard
  * to prevent a drop out of the required accuracy.
  *
- * @unit meter
+ * @unit m
  * @min 1.0
  * @max 80.0
  * @group Payload drop
@@ -91,7 +90,6 @@ PARAM_DEFINE_FLOAT(BD_PRECISION, 30.0f);
  * should give good results:
  * http://en.wikipedia.org/wiki/Drag_coefficient
  *
- * @unit meter
  * @min 0.08
  * @max 1.5
  * @group Payload drop
@@ -107,7 +105,7 @@ PARAM_DEFINE_FLOAT(BD_OBJ_CD, 0.1f);
  * OBC water bottle:
  *   0.6 kg
  *
- * @unit kilogram
+ * @unit kg
  * @min 0.001
  * @max 5.0
  * @group Payload drop

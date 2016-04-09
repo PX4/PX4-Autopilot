@@ -33,7 +33,9 @@
 
 #pragma once
 
+#ifndef __PX4_QURT
 #include <nuttx/sched.h>
+#endif
 
 /*      SCHED_PRIORITY_MAX    */
 #define SCHED_PRIORITY_FAST_DRIVER           SCHED_PRIORITY_MAX

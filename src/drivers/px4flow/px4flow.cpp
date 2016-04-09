@@ -62,6 +62,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 
 #include <conversion/rotation.h>
 
@@ -195,9 +196,9 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_orb_class_instance(-1),
 	_px4flow_topic(nullptr),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4f_buf_of")),
 	_sensor_rotation(rotation)
 {
 	// disable debug() calls
@@ -254,6 +255,17 @@ PX4FLOW::init()
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
+
+	/* get rotation */
+	param_t rot = param_find("SENS_FLOW_ROT");
+
+	/* only set it if the parameter exists */
+	if (rot != PARAM_INVALID) {
+		int32_t val = 0;
+		param_get(rot, &val);
+
+		_sensor_rotation = (enum Rotation)val;
+	}
 
 	return ret;
 }
@@ -530,6 +542,8 @@ PX4FLOW::collect()
 	float zeroval = 0.0f;
 
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
+
+	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
 
 	if (_px4flow_topic == nullptr) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);

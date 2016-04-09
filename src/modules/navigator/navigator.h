@@ -66,6 +66,7 @@
 #include "rtl.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
+#include "follow_target.h"
 #include "gpsfailure.h"
 #include "rcloss.h"
 #include "geofence.h"
@@ -73,7 +74,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 10
 
 class Navigator : public control::SuperBlock
 {
@@ -150,11 +151,28 @@ public:
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
 
 	/**
+	 * Returns the default acceptance radius defined by the parameter
+	 */
+	float get_default_acceptance_radius();
+
+	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius();
+
+	/**
+	 * Get the cruising speed
+	 *
+	 * @return the desired cruising speed for this mission
+	 */
+	float		get_cruising_speed();
+
+	/**
+	 * Set the cruising speed
+	 */
+	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
@@ -164,16 +182,18 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
-	int		get_mavlink_fd() { return _mavlink_fd; }
+	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }
+
+	void 		set_mission_failure(const char *reason);
 
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
 
-	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
+	orb_advert_t	_mavlink_log_pub;		/**< the uORB advert to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_gps_pos_sub;		/**< gps position subscription */
@@ -236,12 +256,20 @@ private:
 							  (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 
+	FollowTarget _follow_target;
+
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
 	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
+	
+	control::BlockParamFloat _param_cruising_speed_hover;
+	control::BlockParamFloat _param_cruising_speed_plane;
+
+	float _mission_cruising_speed;
+
 	/**
 	 * Retrieve global position
 	 */

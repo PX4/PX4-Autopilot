@@ -51,6 +51,7 @@ class Parameter(object):
 
     def __init__(self, name, type, default = ""):
         self.fields = {}
+        self.values = {}
         self.name = name
         self.type = type
         self.default = default
@@ -70,6 +71,12 @@ class Parameter(object):
         """
         self.fields[code] = value
 
+    def SetEnumValue(self, code, value):
+        """
+        Set named enum value
+        """
+        self.values[code] = value
+
     def GetFieldCodes(self):
         """
         Return list of existing field codes in convenient order
@@ -87,7 +94,26 @@ class Parameter(object):
         if not fv:
                 # required because python 3 sorted does not accept None
                 return ""
-        return self.fields.get(code)
+        return fv
+
+    def GetEnumCodes(self):
+        """
+        Return list of existing value codes in convenient order
+        """
+        keys = self.values.keys()
+        #keys = sorted(keys)
+        #keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
+        return keys
+
+    def GetEnumValue(self, code):
+        """
+        Return value of the given enum code or None if not found.
+        """
+        fv =  self.values.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
+        return fv
 
 class SourceParser(object):
     """
@@ -107,7 +133,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit", "decimal"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean"])
 
     # Order of parameter groups
     priority = {
@@ -137,6 +163,7 @@ class SourceParser(object):
                 short_desc = None
                 long_desc = None
                 tags = {}
+                def_values = {}
             elif state is not None and state != "comment-processed":
                 m = self.re_comment_end.search(line)
                 if m:
@@ -156,7 +183,12 @@ class SourceParser(object):
                         m = self.re_comment_tag.match(comment_content)
                         if m:
                             tag, desc = m.group(1, 2)
-                            tags[tag] = desc
+                            if (tag == "value"):
+                                # Take the meta info string and split the code and description
+                                metainfo = desc.split(" ",  1)
+                                def_values[metainfo[0]] = metainfo[1]
+                            else:
+                                tags[tag] = desc
                             current_tag = tag
                             state = "wait-tag-end"
                         elif state == "wait-short":
@@ -191,6 +223,7 @@ class SourceParser(object):
                 defval = ""
                 # Non-empty line outside the comment
                 m = self.re_px4_param_default_definition.match(line)
+                # Default value handling
                 if m:
                     name_m, defval_m = m.group(1,2)
                     default_var[name_m] = defval_m
@@ -226,6 +259,8 @@ class SourceParser(object):
                                 return False
                             else:
                                 param.SetField(tag, tags[tag])
+                        for def_value in def_values:
+                            param.SetEnumValue(def_value, def_values[def_value])
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
@@ -278,6 +313,13 @@ class SourceParser(object):
                     if default != "" and float(default) > float(max):
                         sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
                         return False
+                for code in param.GetEnumCodes():
+                        if not self.IsNumber(code):
+                            sys.stderr.write("Min value not number: {0} {1}\n".format(name, code))
+                            return False
+                        if param.GetEnumValue(code) == "":
+                            sys.stderr.write("Description for enum value is empty: {0} {1}\n".format(name, code))
+                            return False
         return True
 
     def GetParamGroups(self):

@@ -1,0 +1,68 @@
+#!nsh
+#
+# @name QuadRanger
+#
+# @type Standard VTOL
+#
+# @maintainer Sander Smeets <sander@droneslab.com>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set VT_TYPE 2
+	param set VT_MOT_COUNT 4
+	param set VT_TRANS_THR 0.75
+
+	param set PWM_AUX_REV1 1
+	param set PWM_AUX_REV2 1
+
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.15
+	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_D 0.004
+	param set MC_ROLLRATE_FF 0.0
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.15
+	param set MC_PITCHRATE_I 0.1
+	param set MC_PITCHRATE_D 0.004
+	param set MC_PITCHRATE_FF 0.0
+	param set MC_YAW_P 3.5
+	param set MC_YAW_FF 0.7
+	param set MC_YAWRATE_P 0.6
+	param set MC_YAWRATE_I 0.04
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_FF 0.0
+
+	param set MPC_ACC_HOR_MAX 2.0
+	param set MPC_Z_VEL_MAX 1.5
+	param set MPC_TKO_SPEED 1.5
+	param set MPC_LAND_SPEED 0.8
+
+	param set FW_THR_CRUISE 65.0
+	param set FW_PR_P 0.08
+	param set FW_PR_FF 0.5
+	param set FW_RR_P 0.05
+	param set FW_RR_FF 0.6
+
+	param set MIS_YAW_TMT 10
+
+	param set VT_ARSP_TRANS 15.0
+	param set VT_ARSP_BLEND 8.0
+	param set VT_B_TRANS_DUR 4.0
+fi
+
+set MIXER vtol_quad_x
+set PWM_OUT 1234
+set PWM_RATE 400
+
+set MIXER_AUX vtol_AAERT
+set PWM_ACHDIS 5
+set PWM_AUX_DISARMED 950
+
+set MAV_TYPE 22
+
+param set VT_MOT_COUNT 4
+param set VT_IDLE_PWM_MC 1080
+param set VT_TYPE 2

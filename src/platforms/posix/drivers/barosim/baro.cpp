@@ -36,6 +36,8 @@
  * Driver for the simulated barometric pressure sensor
  */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_time.h>
@@ -109,12 +111,8 @@ protected:
 	bool			_collect_phase;
 	unsigned		_measure_phase;
 
-	/* intermediate temperature values per BAROSIM datasheet */
-	int32_t			_TEMP;
-	int64_t			_OFF;
-	int64_t			_SENS;
-	float			_P;
-	float			_T;
+	/* last report */
+	struct baro_report	report;
 
 	/* altitude conversion calibration */
 	unsigned		_msl_pressure;	/* in Pa */
@@ -200,11 +198,7 @@ BAROSIM::BAROSIM(const char *path) :
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
-	_TEMP(0),
-	_OFF(0),
-	_SENS(0),
-	_P(0.0),
-	_T(0.0),
+	report{},
 	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
@@ -389,7 +383,7 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 int
 BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	PX4_WARN("baro IOCTL %llu", hrt_absolute_time());
+	//PX4_WARN("baro IOCTL %" PRIu64 , hrt_absolute_time());
 
 	switch (cmd) {
 
@@ -662,7 +656,6 @@ BAROSIM::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report = {};
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -724,12 +717,8 @@ BAROSIM::print_info()
 	perf_print_counter(_buffer_overflows);
 	PX4_INFO("poll interval:  %u usec", m_sample_interval_usecs);
 	_reports->print_info("report queue");
-	PX4_INFO("TEMP:           %ld", (long)_TEMP);
-	PX4_INFO("SENS:           %lld", (long long)_SENS);
-	PX4_INFO("OFF:            %lld", (long long)_OFF);
-	PX4_INFO("P:              %.3f", (double)_P);
-	PX4_INFO("T:              %.3f", (double)_T);
-	PX4_INFO("MSL pressure:   %10.4f", (double)(_msl_pressure / 100.f));
+	PX4_INFO("TEMP:           %f", (double)report.temperature);
+	PX4_INFO("P:              %.3f", (double)report.pressure);
 }
 
 namespace barosim
@@ -815,7 +804,7 @@ start()
 	}
 
 	DevMgr::releaseHandle(h);
-	return true;
+	return 0;
 }
 
 

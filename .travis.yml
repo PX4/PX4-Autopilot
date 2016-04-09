@@ -8,6 +8,10 @@ matrix:
   include:
     - os: linux
       sudo: false
+      env: GCC_VER=4.8
+    - os: linux
+      sudo: false
+      env: GCC_VER=4.9
     - os: osx
       osx_image: xcode7
       sudo: true
@@ -35,7 +39,6 @@ addons:
     - ninja-build
     - python-argparse
     - python-empy
-    - python-serial
     - s3cmd
     - texinfo
     - zlib1g-dev
@@ -43,10 +46,12 @@ addons:
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          pushd .
-      && cd ~
-      && wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
+      && cd ~ && mkdir gcc && cd gcc
+      && if [ "$GCC_VER" = "4.8" ]; then GCC_URL="https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2" ; fi
+      && if [ "$GCC_VER" = "4.9" ]; then GCC_URL="https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2" ; fi
+      && wget -O gcc.tar.bz2 ${GCC_URL}
+      && tar -jxf gcc.tar.bz2 --strip 1
+      && exportline="export PATH=$HOME/gcc/bin:\$PATH"
       && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
       && . ~/.profile
       && popd
@@ -60,11 +65,10 @@ before_install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
-      && brew install cmake ninja astyle gcc-arm-none-eabi
+      && brew install cmake ninja
       && brew install genromfs
-      && brew install kconfig-frontends
       && sudo easy_install pip
-      && sudo pip install pyserial empy
+      && sudo pip install empy
       ;
     fi
 
@@ -93,31 +97,30 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
-  - make check_format
-  - arm-none-eabi-gcc --version
+  - git submodule update --quiet --init --recursive
   - echo 'Building POSIX Firmware..' && make posix_sitl_default
   - echo 'Running Tests..' && make posix_sitl_default test
-  - echo 'Running Unittests..' && cd unittests && ./run_tests.sh
-  - cd ..
-  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
-  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
-# Only provide UAVCAN firmware binaries for Pixracer and Pixhawk 3
-  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
-  - cd vectorcontrol
-  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
-  - ../Tools/uavcan_copy.sh
-  - cd ..
-  - echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
-  - echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
-  - echo 'Running Tests..' && make px4fmu-v2_default test
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         cd ${TRAVIS_BUILD_DIR}
+      && make check_format
+      && arm-none-eabi-gcc --version
+      && echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
+      && echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+      && echo 'Building NuttX mindpx-v2 Firmware..' && make mindpx-v2_default
+      && echo 'Building UAVCAN node firmware..' && make uavcan_firmware
+      && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
+      && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
+      && echo 'Running Tests..' && make tests
+      ;
+    fi
 
 after_success:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
+         make package_firmware
+      && cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
       && cp build_px4-stm32f4discovery_default/src/firmware/nuttx/nuttx-px4-stm32f4discovery-default.px4 px4-stm32f4discovery-default.px4
-      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4
       && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
@@ -139,10 +142,15 @@ deploy:
     tags: true
     all_branches: true
     repo: PX4/Firmware
+    condition: $GCC_VER = 4.8
 
 notifications:
   webhooks:
     urls:
       - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
     on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+  slack:
+    secure: "QKw73Zel/s3JAbe/7XyO9tPnJwiiGFpYzSjdR8lG3tYFjRdXZnhxG4c+G7bkgkaPTS4Hult33VXE3kcEqOI7+C+eRwRlZhDfL0knQbXVCxjcLjzmUFdoPOwurlgZDw66PFWCi5tZcLKSRo3u4U8ibT4WKi3jm9sDSyOcfBAucMU="
+    on_success: change  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always

@@ -73,6 +73,7 @@
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
+#include <systemlib/mavlink_log.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -92,7 +93,6 @@
 
 #include <debug.h>
 
-#include <mavlink/mavlink_log.h>
 #include <modules/px4iofirmware/protocol.h>
 
 #include "uploader.h"
@@ -264,7 +264,7 @@ private:
 	volatile int		_task;			///< worker task id
 	volatile bool		_task_should_exit;	///< worker terminate flag
 
-	int			_mavlink_fd;		///< mavlink file descriptor.
+	orb_advert_t		_mavlink_log_pub;	///< mavlink log pub
 
 	perf_counter_t		_perf_update;		///< local performance counter for status updates
 	perf_counter_t		_perf_write;		///< local performance counter for PWM control writes
@@ -273,6 +273,8 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
+	uint16_t		_last_written_arming_s;	///< the last written arming state reg
+	uint16_t		_last_written_arming_c;	///< the last written arming state reg
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -503,12 +505,14 @@ PX4IO::PX4IO(device::Device *interface) :
 	_rc_last_valid(0),
 	_task(-1),
 	_task_should_exit(false),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
 	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
+	_last_written_arming_s(0),
+	_last_written_arming_c(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -600,7 +604,7 @@ PX4IO::detect()
 
 			} else {
 				DEVICE_LOG("IO version error");
-				mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
 			}
 
 			return -1;
@@ -624,7 +628,7 @@ PX4IO::init()
 {
 	int ret;
 	param_t sys_restart_param;
-	int sys_restart_val = DM_INIT_REASON_VOLATILE;
+	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
 
@@ -632,7 +636,12 @@ PX4IO::init()
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != DM_INIT_REASON_POWER_ON) {
+			param_set_no_notification(sys_restart_param, &sys_restart_val);
+		}
 	}
 
 	/* do regular cdev init */
@@ -653,12 +662,12 @@ PX4IO::init()
 
 	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
-		mavlink_and_console_log_emergency(_mavlink_fd, "Failed to communicate with IO, abort.");
+		mavlink_and_console_log_emergency(&_mavlink_log_pub, "Failed to communicate with IO, abort.");
 		return -1;
 	}
 
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		mavlink_and_console_log_emergency(_mavlink_fd, "IO protocol/firmware mismatch, abort.");
+		mavlink_and_console_log_emergency(&_mavlink_log_pub, "IO protocol/firmware mismatch, abort.");
 		return -1;
 	}
 
@@ -675,7 +684,7 @@ PX4IO::init()
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		DEVICE_LOG("config read error");
-		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.");
 		return -1;
 	}
 
@@ -713,7 +722,7 @@ PX4IO::init()
 		/* get a status update from IO */
 		io_get_status();
 
-		mavlink_and_console_log_emergency(_mavlink_fd, "RECOVERING FROM FMU IN-AIR RESTART");
+		mavlink_and_console_log_emergency(&_mavlink_log_pub, "RECOVERING FROM FMU IN-AIR RESTART");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -742,7 +751,7 @@ PX4IO::init()
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
-				mavlink_and_console_log_emergency(_mavlink_fd, "Failed to recover from in-air restart (1), abort");
+				mavlink_and_console_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (1), abort");
 				return 1;
 			}
 
@@ -798,7 +807,7 @@ PX4IO::init()
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
-				mavlink_and_console_log_emergency(_mavlink_fd, "Failed to recover from in-air restart (2), abort");
+				mavlink_and_console_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (2), abort");
 				return 1;
 			}
 
@@ -813,8 +822,12 @@ PX4IO::init()
 
 		/* Indicate restart type is in-flight */
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
 
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 		/* regular boot, no in-air restart, init IO */
 
@@ -825,7 +838,8 @@ PX4IO::init()
 			      PX4IO_P_SETUP_ARMING_FMU_ARMED |
 			      PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
 			      PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
-			      PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE, 0);
+			      PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE |
+			      PX4IO_P_SETUP_ARMING_LOCKDOWN, 0);
 
 		if (_rc_handling_disabled) {
 			ret = io_disable_rc_handling();
@@ -840,14 +854,19 @@ PX4IO::init()
 			ret = io_set_rc_config();
 
 			if (ret != OK) {
-				mavlink_and_console_log_critical(_mavlink_fd, "IO RC config upload fail");
+				mavlink_and_console_log_critical(&_mavlink_log_pub, "IO RC config upload fail");
 				return ret;
 			}
 		}
 
 		/* Indicate restart type is power on */
 		sys_restart_val = DM_INIT_REASON_POWER_ON;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 	}
 
@@ -891,8 +910,6 @@ PX4IO::task_main()
 {
 	hrt_abstime poll_last = 0;
 	hrt_abstime orb_check_last = 0;
-
-	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -977,7 +994,7 @@ PX4IO::task_main()
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
-			/* run at 50Hz */
+			/* run at 50-250Hz */
 			poll_last = now;
 
 			/* pull status and alarms from IO */
@@ -988,16 +1005,6 @@ PX4IO::task_main()
 
 			/* fetch PWM outputs from IO */
 			io_publish_pwm_outputs();
-		}
-
-		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
-			/* run at 5Hz */
-			orb_check_last = now;
-
-			/* try to claim the MAVLink log FD */
-			if (_mavlink_fd < 0) {
-				_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
-			}
 
 			/* check updates on uORB topics and handle it */
 			bool updated = false;
@@ -1012,6 +1019,14 @@ PX4IO::task_main()
 			if (updated) {
 				io_set_arming_state();
 			}
+		}
+
+		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+			/* run at 5Hz */
+			orb_check_last = now;
+
+			/* check updates on uORB topics and handle it */
+			bool updated = false;
 
 			/* vehicle command */
 			orb_check(_t_vehicle_command, &updated);
@@ -1065,7 +1080,7 @@ PX4IO::task_main()
 				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
 
 				if (pret != OK) {
-					mavlink_and_console_log_critical(_mavlink_fd, "IO vscale upload failed");
+					mavlink_and_console_log_critical(&_mavlink_log_pub, "IO vscale upload failed");
 				}
 
 				/* send RC throttle failsafe value to IO */
@@ -1082,7 +1097,7 @@ PX4IO::task_main()
 						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
 						if (pret != OK) {
-							mavlink_and_console_log_critical(_mavlink_fd, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
+							mavlink_and_console_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
 						}
 					}
 				}
@@ -1312,9 +1327,11 @@ PX4IO::io_set_arming_state()
 
 		if (armed.lockdown && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = true;
 
-		} else {
+		} else if (!armed.lockdown && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = false;
 		}
 
 		/* Do not set failsafe if circuit breaker is enabled */
@@ -1350,7 +1367,13 @@ PX4IO::io_set_arming_state()
 		}
 	}
 
-	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+	if (_last_written_arming_s != set || _last_written_arming_c != clear) {
+		_last_written_arming_s = set;
+		_last_written_arming_c = clear;
+		return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+	}
+
+	return 0;
 }
 
 int
@@ -1516,7 +1539,7 @@ PX4IO::io_set_rc_config()
 
 		/* check the IO initialisation flag */
 		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
-			mavlink_and_console_log_critical(_mavlink_fd, "config for RC%d rejected by IO", i + 1);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "config for RC%d rejected by IO", i + 1);
 			break;
 		}
 
@@ -1589,16 +1612,16 @@ void
 PX4IO::dsm_bind_ioctl(int dsmMode)
 {
 	if (!(_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
-		mavlink_log_info(_mavlink_fd, "[IO] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		mavlink_log_info(&_mavlink_log_pub, "[IO] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
 		if (ret) {
-			mavlink_log_critical(_mavlink_fd, "binding failed.");
+			mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
 		}
 
 	} else {
-		mavlink_log_info(_mavlink_fd, "[IO] system armed, bind request rejected");
+		mavlink_log_info(&_mavlink_log_pub, "[IO] system armed, bind request rejected");
 	}
 }
 
@@ -2118,7 +2141,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 	} while (retries > 0);
 
 	if (retries == 0) {
-		mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
+		mavlink_and_console_log_info(&_mavlink_log_pub, "[IO] mixer upload fail");
 		/* load must have failed for some reason */
 		return -EINVAL;
 

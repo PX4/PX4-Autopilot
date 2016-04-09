@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -122,6 +122,34 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  * An internal magnetometer will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
+ *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
  *
  * @min -1
  * @max 30
@@ -301,6 +329,34 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
+ *
  * @min -1
  * @max 30
  * @group Sensor Calibration
@@ -479,6 +535,34 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
+ *
  * @min -1
  * @max 30
  * @group Sensor Calibration
@@ -648,33 +732,33 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * Board rotation
  *
  * This parameter defines the rotation of the FMU board relative to the platform.
- * Possible values are:
- *    0 = No rotation
- *    1 = Yaw 45°
- *    2 = Yaw 90°
- *    3 = Yaw 135°
- *    4 = Yaw 180°
- *    5 = Yaw 225°
- *    6 = Yaw 270°
- *    7 = Yaw 315°
- *    8 = Roll 180°
- *    9 = Roll 180°, Yaw 45°
- *   10 = Roll 180°, Yaw 90°
- *   11 = Roll 180°, Yaw 135°
- *   12 = Pitch 180°
- *   13 = Roll 180°, Yaw 225°
- *   14 = Roll 180°, Yaw 270°
- *   15 = Roll 180°, Yaw 315°
- *   16 = Roll 90°
- *   17 = Roll 90°, Yaw 45°
- *   18 = Roll 90°, Yaw 90°
- *   19 = Roll 90°, Yaw 135°
- *   20 = Roll 270°
- *   21 = Roll 270°, Yaw 45°
- *   22 = Roll 270°, Yaw 90°
- *   23 = Roll 270°, Yaw 135°
- *   24 = Pitch 90°
- *   25 = Pitch 270°
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
  *
  * @group Sensor Calibration
  */
@@ -685,15 +769,17 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  *
  * This parameter defines the rotation of the PX4FLOW board relative to the platform.
  * Zero rotation is defined as Y on flow board pointing towards front of vehicle
- * Possible values are:
- *    0 = No rotation
- *    1 = Yaw 45°
- *    2 = Yaw 90°
- *    3 = Yaw 135°
- *    4 = Yaw 180°
- *    5 = Yaw 225°
- *    6 = Yaw 270°
- *    7 = Yaw 315°
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ *
+ * @reboot_required true
  *
  * @group Sensor Calibration
  */
@@ -705,7 +791,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
@@ -716,7 +802,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
@@ -727,7 +813,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
@@ -735,25 +821,47 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 /**
  * External magnetometer rotation
  *
- * This parameter defines the rotation of the external magnetometer relative
- * to the platform (not relative to the FMU).
- * See SENS_BOARD_ROT for possible values.
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
  *
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 
 /**
-* Set usage of external magnetometer
-*
-*  * Set to 0 (default) to auto-detect (will try to get the external as primary)
-*  * Set to 1 to force the external magnetometer as primary
-*  * Set to 2 to force the internal magnetometer as primary
-*
-* @min 0
-* @max 2
-* @group Sensor Calibration
-*/
+ * Select primary magnetometer
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Auto-select Mag
+ * @value 1 External is primary Mag
+ * @value 2 Internal is primary Mag
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 
 
@@ -1055,6 +1163,7 @@ PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
  *
  * Minimum value for this channel.
  *
+ * @unit us
  * @min 800.0
  * @max 1500.0
  * @group Radio Calibration
@@ -1112,6 +1221,7 @@ PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
  *
  * Minimum value for this channel.
  *
+ * @unit us
  * @min 800.0
  * @max 1500.0
  * @group Radio Calibration
@@ -1807,6 +1917,8 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
  *
  * @min 0
  * @max 1
+ * @value 0 Disabled
+ * @value 1 Relay controls DSM power
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
@@ -1814,12 +1926,14 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 /**
  * DSM binding trigger.
  *
- * -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind
- *
+ * @value -1 Inactive
+ * @value 0 Start DSM2 bind
+ * @value 1 Start DSMX bind
+ * @min -1
+ * @max 1
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
-
 
 /**
  * Scaling factor for battery voltage sensor on PX4IO.
@@ -1834,6 +1948,7 @@ PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
  * Scaling factor for battery voltage sensor on FMU v2.
  *
  * @group Battery Calibration
+ * @decimal 8
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
 
@@ -1841,8 +1956,17 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  * Scaling factor for battery current sensor.
  *
  * @group Battery Calibration
+ * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
+PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
+
+/**
+ * Offset for battery current sensor.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_C_OFFSET, -1.0);
 
 
 /**
@@ -1860,7 +1984,7 @@ PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
 PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
 
 /**
- * RC mode switch threshold automaic distribution
+ * RC mode switch threshold automatic distribution
  *
  * This parameter is used by Ground Station software to specify whether
  * the threshold values for flight mode switches were automatically calculated.
@@ -1868,8 +1992,7 @@ PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
  * indicates that the threshold value where automatically set by the ground
  * station software. It is only meant for ground station use.
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Radio Calibration
  */
 
@@ -1884,6 +2007,25 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  *
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
@@ -1897,6 +2039,25 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
  *
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
@@ -1910,8 +2071,25 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  *
  * @min 0
  * @max 18
- *
- *
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
 
@@ -1924,6 +2102,25 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  *
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
@@ -1937,9 +2134,59 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
  *
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
+
+/**
+ * Single channel flight mode selection
+ *
+ * If this parameter is non-zero, flight modes are only selected
+ * by this channel and are assigned to six slots.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
 
 /**
  * Mode switch channel mapping.
@@ -1952,107 +2199,344 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 
 /**
- * Return switch channel mapping.
+ * Return switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
 /**
- * Rattitude switch channel mapping.
+ * Rattitude switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_RATT_SW, 0);
 
 /**
- * Posctl switch channel mapping.
+ * Position Control switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
 /**
- * Loiter switch channel mapping.
+ * Loiter switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 /**
- * Acro switch channel mapping.
+ * Acro switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 
 /**
- * Offboard switch channel mapping.
+ * Offboard switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
 /**
- * Flaps channel mapping.
+ * Kill switch channel
  *
  * @min 0
  * @max 18
  * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
+
+/**
+ * Flaps channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
 /**
- * Auxiliary switch 1 channel mapping.
+ * AUX1 channel
  *
  * Default function: Camera pitch
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
 /**
- * Auxiliary switch 2 channel mapping.
+ * AUX2 channel
  *
  * Default function: Camera roll
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
-PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
+PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
 /**
- * Auxiliary switch 3 channel mapping.
+ * AUX3 Channel
  *
  * Default function: Camera azimuth / yaw
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
 /**
- * Channel which changes a parameter
+ * PARAM1 tuning channel
  *
  * Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel.
  * Set to 0 to deactivate *
@@ -2060,11 +2544,30 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
 
 /**
- * Channel which changes a parameter
+ * PARAM2 tuning channel
  *
  * Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel.
  * Set to 0 to deactivate *
@@ -2072,11 +2575,30 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
 
 /**
- * Channel which changes a parameter
+ * PARAM3 tuning channel
  *
  * Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel.
  * Set to 0 to deactivate *
@@ -2084,6 +2606,25 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
  * @min 0
  * @max 18
  * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 
@@ -2243,6 +2784,25 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
 
+
+/**
+ * Threshold for the kill switch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
+
 /**
  * PWM input channel that provides RSSI.
  *
@@ -2253,6 +2813,25 @@ PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
  *
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  *
  */
@@ -2285,8 +2864,9 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 /**
  * Enable Lidar-Lite (LL40LS) pwm driver
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ *
+ * @boolean
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
@@ -2300,9 +2880,11 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  *
  * Set to 1000 for industry default or 900 to increase servo travel.
  *
+ * @reboot_required true
+ *
  * @min 800
  * @max 1400
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_MIN, 1000);
@@ -2316,9 +2898,11 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  *
  * Set to 2000 for industry default or 2100 to increase servo travel.
  *
+ * @reboot_required true
+ *
  * @min 1600
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_MAX, 2000);
@@ -2333,9 +2917,11 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
  *
+ * @reboot_required true
+ *
  * @min 0
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_DISARMED, 0);
@@ -2349,9 +2935,11 @@ PARAM_DEFINE_INT32(PWM_DISARMED, 0);
  *
  * Set to 1000 for default or 900 to increase servo travel
  *
+ * @reboot_required true
+ *
  * @min 800
  * @max 1400
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
@@ -2365,9 +2953,11 @@ PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
  *
  * Set to 2000 for default or 2100 to increase servo travel
  *
+ * @reboot_required true
+ *
  * @min 1600
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
@@ -2382,9 +2972,11 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
  *
+ * @reboot_required true
+ *
  * @min 0
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);

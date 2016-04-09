@@ -77,8 +77,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 			if (req_list.target_system == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
-
-				_send_all_index = 0;
+				if (_send_all_index < 0) {
+					_send_all_index = PARAM_HASH;
+				} else {
+					/* a restart should skip the hash check on the ground */
+					_send_all_index = 0;
+				}
 			}
 
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
@@ -111,6 +115,14 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				strncpy(name, set.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				/* enforce null termination */
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
+
+				/* Whatever the value is, we're being told to stop sending */
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+					_send_all_index = -1;
+					/* No other action taken, return */
+					return;
+				}
+
 				/* attempt to find parameter, set and send it */
 				param_t param = param_find_no_notification(name);
 
@@ -164,6 +176,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				/* when no index is given, loop through string ids and compare them */
 				if (req_read.param_index < 0) {
+					/* XXX: I left this in so older versions of QGC wouldn't break */
 					if (strncmp(req_read.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
 						/* return hash check for cached params */
 						uint32_t hash = param_hash_check();
@@ -185,7 +198,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						/* attempt to find parameter and send it */
 						send_param(param_find_no_notification(name));
 					}
-
 				} else {
 					/* when index is >= 0, send this parameter again */
 					int ret = send_param(param_for_used_index(req_read.param_index));
@@ -301,6 +313,29 @@ MavlinkParametersManager::send(const hrt_abstime t)
 			return;
 		}
 
+		/* The first thing we send is a hash of all values for the ground
+		 * station to try and quickly load a cached copy of our params
+		 */
+		if (_send_all_index == PARAM_HASH) {
+			/* return hash check for cached params */
+			uint32_t hash = param_hash_check();
+
+			/* build the one-off response message */
+			mavlink_param_value_t msg;
+			msg.param_count = param_count_used();
+			msg.param_index = -1;
+			strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+			msg.param_type = MAV_PARAM_TYPE_UINT32;
+			memcpy(&msg.param_value, &hash, sizeof(hash));
+			_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg);
+
+			/* after this we should start sending all params */
+			_send_all_index = 0;
+
+			/* No further action, return now */
+			return;
+		}
+
 		/* look for the first parameter which is used */
 		param_t p;
 		do {
@@ -316,7 +351,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
 		}
-	} else if (_send_all_index == 0 && hrt_absolute_time() > 20 * 1000 * 1000) {
+	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
 		/* the boot did not seem to ever complete, warn user and set boot complete */
 		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
 		_mavlink->set_boot_complete();

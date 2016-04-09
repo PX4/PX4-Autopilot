@@ -42,10 +42,20 @@
 #ifndef _FRSKY_DATA_H
 #define _FRSKY_DATA_H
 
+#include <stdbool.h>
+
 // Public functions
-void frsky_init(void);
+bool frsky_init(void);
+void frsky_deinit(void);
 void frsky_send_frame1(int uart);
 void frsky_send_frame2(int uart);
 void frsky_send_frame3(int uart);
+
+struct adc_linkquality {
+	uint8_t ad1;
+	uint8_t ad2;
+	uint8_t linkq;
+};
+bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v);
 
 #endif /* _FRSKY_TELEMETRY_H */

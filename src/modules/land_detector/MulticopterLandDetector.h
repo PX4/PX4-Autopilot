@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,12 +43,13 @@
 #define __MULTICOPTER_LAND_DETECTOR_H__
 
 #include "LandDetector.h"
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/param/param.h>
 
 class MulticopterLandDetector : public LandDetector
@@ -97,25 +98,26 @@ private:
 	struct {
 		float maxClimbRate;
 		float maxVelocity;
-		float maxRotation;
+		float maxRotation_rad_s;
 		float maxThrottle;
 	} _params;
 
 private:
-	int _vehicleGlobalPositionSub;						/**< notification of global position */
-	int _vehicleStatusSub;
+	int _vehicleLocalPositionSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
+	int _manualSub;
 
-	struct vehicle_global_position_s	_vehicleGlobalPosition;		/**< the result from global position subscription */
-	struct vehicle_status_s 		_vehicleStatus;
+	struct vehicle_local_position_s		_vehicleLocalPosition;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
+	struct manual_control_setpoint_s	_manual;
 
-	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
+	/* timestamp in microseconds since a possible land was detected */
+	uint64_t _landTimer;
 };
 
 #endif //__MULTICOPTER_LAND_DETECTOR_H__

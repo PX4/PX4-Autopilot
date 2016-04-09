@@ -215,7 +215,7 @@
 #define GPIO_UART4_RX	GPIO_UART4_RX_1
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
 
-#define GPIO_USART6_RX	GPIO_USART6_RX_1
+#define GPIO_USART6_RX	GPIO_USART6_RX_1	/* RC_INPUT */
 #define GPIO_USART6_TX	GPIO_USART6_TX_1
 
 #define GPIO_UART7_RX	GPIO_UART7_RX_1
@@ -257,9 +257,10 @@
 #define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_SCK	(GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)
 
+
 #define GPIO_SPI2_MISO	(GPIO_SPI2_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI2_MOSI	(GPIO_SPI2_MOSI_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_2|GPIO_SPEED_50MHz)
+#define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_1|GPIO_SPEED_50MHz)
 
 /************************************************************************************
  * Public Data
@@ -283,7 +284,7 @@ extern "C" {
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/

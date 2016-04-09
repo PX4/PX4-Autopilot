@@ -11,7 +11,8 @@ uint8 MAIN_STATE_STAB = 8
 uint8 MAIN_STATE_RATTITUDE = 9
 uint8 MAIN_STATE_AUTO_TAKEOFF = 10
 uint8 MAIN_STATE_AUTO_LAND = 11
-uint8 MAIN_STATE_MAX = 12
+uint8 MAIN_STATE_AUTO_FOLLOW_TARGET = 12
+uint8 MAIN_STATE_MAX = 13
 
 # If you change the order, add or remove arming_state_t states make sure to update the arrays
 # in state_machine_helper.cpp as well.
@@ -39,14 +40,16 @@ uint8 NAVIGATION_STATE_AUTO_RTGS = 7		# Auto return to groundstation on data lin
 uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
 uint8 NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9	# Auto land on gps failure (e.g. open loop loiter down)
 uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
-uint8 NAVIGATION_STATE_LAND = 11		# Land mode
+uint8 NAVIGATION_STATE_UNUSED = 11		# Free slot
 uint8 NAVIGATION_STATE_DESCEND = 12		# Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13		# Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
 uint8 NAVIGATION_STATE_STAB = 15		# Stabilized mode
 uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
-uint8 NAVIGATION_STATE_MAX = 18
+uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
+uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
+uint8 NAVIGATION_STATE_MAX = 20
 
 # VEHICLE_MODE_FLAG, same as MAV_MODE_FLAG of MAVLink 1.0 protocol
 uint8 VEHICLE_MODE_FLAG_SAFETY_ARMED = 128
@@ -117,10 +120,9 @@ uint32 system_id			# system id, inspired by MAVLink's system ID field
 uint32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
-bool vtol_in_transition		# True if VTOL is doing a transition
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if vtol should stabilize attitude for fw in manual mode
-bool in_transition_mode
+bool in_transition_mode			# True if VTOL is doing a transition
 
 bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air
@@ -151,9 +153,11 @@ bool data_link_lost_cmd				# datalink to GCS lost mode commanded
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
+bool vtol_transition_failure		# Set to true if vtol transition failed
+bool vtol_transition_failure_cmd	# Set to true if vtol transition failure mode is commanded
 bool gps_failure				# Set to true if a gps failure is detected
 bool gps_failure_cmd				# Set to true if a gps failure mode is commanded
-
+bool mission_failure				# Set to true if mission could not continue/finish
 bool barometer_failure				# Set to true if a barometer failure is detected
 
 bool offboard_control_signal_found_once

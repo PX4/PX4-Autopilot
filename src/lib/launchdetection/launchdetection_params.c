@@ -47,6 +47,7 @@
 /**
  * Enable launch detection.
  *
+ * @boolean
  * @min 0
  * @max 1
  * @group Launch detection
@@ -54,20 +55,22 @@
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 
 /**
- * Catapult accelerometer theshold.
+ * Catapult accelerometer threshold.
  *
- * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
+ * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
  *
+ * @unit m/s/s
  * @min 0
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 
 /**
- * Catapult time theshold.
+ * Catapult time threshold.
  *
- * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
+ * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
  *
+ * @unit s
  * @min 0
  * @group Launch detection
  */
@@ -77,9 +80,9 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * Motor delay
  *
  * Delay between starting attitude control and powering up the throttle (giving throttle control to the controller)
- * Before this timespan is up the throttle will be set to LAUN_THR_PRE, set to 0 to deactivate
+ * Before this timespan is up the throttle will be set to FW_THR_IDLE, set to 0 to deactivate
  *
- * @unit seconds
+ * @unit s
  * @min 0
  * @group Launch detection
  */
@@ -97,14 +100,3 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);
-
-/**
- * Throttle setting while detecting launch.
- *
- * The throttle is set to this value while the system is waiting for the take-off.
- *
- * @min 0
- * @max 1
- * @group Launch detection
- */
-PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f);

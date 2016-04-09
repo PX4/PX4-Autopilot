@@ -87,8 +87,8 @@ private:
 
 	struct airspeed_s _airspeed;
 
-	bool _was_in_air;								/**< indicates whether the vehicle was in the air in the previous iteration */
-	float _airspeed_filtered;						/**< low pass filtered airspeed */
+	bool _was_in_air; /**< indicates whether the vehicle was in the air in the previous iteration */
+	float _airspeed_filtered; /**< low pass filtered airspeed */
 };
 
 #endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,18 +31,30 @@
  *
  ****************************************************************************/
 
+#ifndef __PX4_QURT
 #include <termios.h>
+#include <poll.h>
+#else
+#include <sys/ioctl.h>
+#include <dev_fs_lib_serial.h>
+#endif
+
+#include <unistd.h>
 #include <errno.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+
 #include "gps_helper.h"
 
 /**
  * @file gps_helper.cpp
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
+
+#define GPS_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
+
 
 float
 GPS_Helper::get_position_update_rate()
@@ -74,6 +86,35 @@ GPS_Helper::store_update_rates()
 int
 GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 {
+
+#if __PX4_QURT
+	// TODO: currently QURT does not support configuration with termios.
+	dspal_serial_ioctl_data_rate data_rate;
+
+	switch (baud) {
+	case 9600: data_rate.bit_rate = DSPAL_SIO_BITRATE_9600; break;
+
+	case 19200: data_rate.bit_rate = DSPAL_SIO_BITRATE_19200; break;
+
+	case 38400: data_rate.bit_rate = DSPAL_SIO_BITRATE_38400; break;
+
+	case 57600: data_rate.bit_rate = DSPAL_SIO_BITRATE_57600; break;
+
+	case 115200: data_rate.bit_rate = DSPAL_SIO_BITRATE_115200; break;
+
+	default:
+		PX4_ERR("ERR: unknown baudrate: %d", baud);
+		return -EINVAL;
+	}
+
+	int ret = ::ioctl(fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&data_rate);
+
+	if (ret != 0) {
+
+		return ret;
+	}
+
+#else
 	/* process baud rate */
 	int speed;
 
@@ -89,7 +130,7 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 	case 115200: speed = B115200; break;
 
 	default:
-		warnx("ERR: baudrate: %d\n", baud);
+		PX4_ERR("ERR: unknown baudrate: %d", baud);
 		return -EINVAL;
 	}
 
@@ -121,5 +162,49 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 		return -1;
 	}
 
+#endif
 	return 0;
+}
+
+int
+GPS_Helper::poll_or_read(int fd, uint8_t *buf, size_t buf_length, uint64_t timeout)
+{
+
+#ifndef __PX4_QURT
+
+	/* For non QURT, use the usual polling. */
+
+	pollfd fds[1];
+	fds[0].fd = fd;
+	fds[0].events = POLLIN;
+
+	/* Poll for new data,  */
+	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
+
+	if (ret > 0) {
+		/* if we have new data from GPS, go handle it */
+		if (fds[0].revents & POLLIN) {
+			/*
+			 * We are here because poll says there is some data, so this
+			 * won't block even on a blocking device. But don't read immediately
+			 * by 1-2 bytes, wait for some more data to save expensive read() calls.
+			 * If more bytes are available, we'll go back to poll() again.
+			 */
+			usleep(GPS_WAIT_BEFORE_READ * 1000);
+			return ::read(fd, buf, buf_length);
+
+		} else {
+			return -1;
+		}
+
+	} else {
+		return ret;
+	}
+
+#else
+	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
+	 * just a bit. */
+	usleep(10000);
+	return ::read(fd, buf, buf_length);
+#endif
 }

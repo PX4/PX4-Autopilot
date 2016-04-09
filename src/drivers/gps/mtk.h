@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file mtk.cpp
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef MTK_H_
@@ -72,7 +72,7 @@ typedef struct {
 	uint32_t msl_altitude;  ///< MSL altitude in meters * 10^2
 	uint32_t ground_speed; ///< velocity in m/s
 	int32_t heading; ///< heading in degrees * 10^2
-	uint8_t satellites; ///< number of sattelites used
+	uint8_t satellites; ///< number of satellites used
 	uint8_t fix_type;  ///< fix type: XXX correct for that
 	uint32_t date;
 	uint32_t utc_time;
@@ -118,7 +118,6 @@ private:
 	struct vehicle_gps_position_s *_gps_position;
 	mtk_decode_state_t	_decode_state;
 	uint8_t				_mtk_revision;
-	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];
 	unsigned			_rx_count;
 	uint8_t 			_rx_ck_a;
 	uint8_t				_rx_ck_b;

@@ -314,14 +314,14 @@ ADC::_tick()
 void
 ADC::update_system_power(void)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	system_power_s system_power;
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2)
+	system_power_s system_power = {};
 	system_power.timestamp = hrt_absolute_time();
 
 	system_power.voltage5V_v = 0;
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == 4) {
+		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}
@@ -331,6 +331,15 @@ ADC::update_system_power(void)
 	// publish these to the same topic
 	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
 
+#if defined (CONFIG_ARCH_BOARD_MINDPX_V2)
+	// note that the valid pins are active low
+	system_power.brick_valid   = 1;
+	system_power.servo_valid   = 1;
+
+	// OC pins are active low
+	system_power.periph_5V_OC  = 1;
+	system_power.hipower_5V_OC = 1;
+#else
 	// note that the valid pins are active low
 	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
 	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
@@ -338,6 +347,7 @@ ADC::update_system_power(void)
 	// OC pins are active low
 	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
 	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+#endif
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
@@ -349,13 +359,13 @@ ADC::update_system_power(void)
 
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-	system_power_s system_power;
+	system_power_s system_power = {};
 	system_power.timestamp = hrt_absolute_time();
 
 	system_power.voltage5V_v = 0;
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == 4) {
+		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}

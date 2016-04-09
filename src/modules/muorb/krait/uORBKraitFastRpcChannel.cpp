@@ -40,11 +40,11 @@
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 
-uORB::KraitFastRpcChannel uORB::KraitFastRpcChannel::_Instance;
+uORB::KraitFastRpcChannel *uORB::KraitFastRpcChannel::_InstancePtr = nullptr;
 
 static void DumpData(uint8_t *buffer, int32_t length, int32_t num_topics);
 
-// static intialization.
+// static initialization.
 static std::string _log_file_name = "./hex_dump.txt";
 
 static unsigned long _snd_msg_min = 0xFFFFFF;

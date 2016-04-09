@@ -48,22 +48,25 @@
  *
  * If set to 1, mount mode will be enforced.
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Gimbal
  */
 PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
 
 /**
- * Auxilary switch to set mount operation mode.
+ * Auxiliary switch to set mount operation mode.
  *
  * Set to 0 to disable manual mode control.
  *
- * If set to an auxilary switch:
+ * If set to an auxiliary switch:
  * Switch off means the gimbal is put into safe/locked position.
  * Switch on means the gimbal can move freely, and landing gear
  * will be retracted if applicable.
  *
+ * @value 0 Disable
+ * @value 1 AUX1
+ * @value 2 AUX2
+ * @value 3 AUX3
  * @min 0
  * @max 3
  * @group Gimbal

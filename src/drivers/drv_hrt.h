@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,7 +49,7 @@
 
 __BEGIN_DECLS
 
-/*
+/**
  * Absolute time, in microsecond units.
  *
  * Absolute time is measured from some arbitrary epoch shortly after
@@ -57,7 +57,7 @@ __BEGIN_DECLS
  */
 typedef uint64_t	hrt_abstime;
 
-/*
+/**
  * Callout function type.
  *
  * Note that callouts run in the timer interrupt context, so
@@ -66,7 +66,7 @@ typedef uint64_t	hrt_abstime;
  */
 typedef void	(* hrt_callout)(void *arg);
 
-/*
+/**
  * Callout record.
  */
 typedef struct hrt_call {
@@ -78,22 +78,22 @@ typedef struct hrt_call {
 	void			*arg;
 } *hrt_call_t;
 
-/*
+/**
  * Get absolute time.
  */
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
 
-/*
+/**
  * Convert a timespec to absolute time.
  */
 __EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
 
-/*
+/**
  * Convert absolute time to a timespec.
  */
 __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 
-/*
+/**
  * Compute the delta between a timestamp taken in the past
  * and now.
  *
@@ -102,14 +102,23 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  */
 __EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
 
-/*
+/**
  * Store the absolute time in an interrupt-safe fashion.
  *
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
  */
 __EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
 
-/*
+#ifdef __PX4_QURT
+/**
+ * Set a time offset to hrt_absolute_time on the DSP.
+ * @param time_diff_us: time difference of the DSP clock to Linux clock.
+ *   This param is positive because the Linux clock is ahead of the DSP one.
+ */
+__EXPORT extern int hrt_set_absolute_time_offset(int32_t time_diff_us);
+#endif
+
+/**
  * Call callout(arg) after delay has elapsed.
  *
  * If callout is NULL, this can be used to implement a timeout by testing the call
@@ -117,12 +126,12 @@ __EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
  */
 __EXPORT extern void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg);
 
-/*
+/**
  * Call callout(arg) at absolute time calltime.
  */
 __EXPORT extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg);
 
-/*
+/**
  * Call callout(arg) after delay, and then after every interval.
  *
  * Note thet the interval is timed between scheduled, not actual, call times, so the call rate may
@@ -131,7 +140,7 @@ __EXPORT extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, h
 __EXPORT extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval,
 				       hrt_callout callout, void *arg);
 
-/*
+/**
  * If this returns true, the entry has been invoked and removed from the callout list,
  * or it has never been entered.
  *
@@ -139,13 +148,13 @@ __EXPORT extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, h
  */
 __EXPORT extern bool	hrt_called(struct hrt_call *entry);
 
-/*
+/**
  * Remove the entry from the callout list.
  */
 __EXPORT extern void	hrt_cancel(struct hrt_call *entry);
 
-/*
- * initialise a hrt_call structure
+/**
+ * Initialise a hrt_call structure
  */
 __EXPORT extern void	hrt_call_init(struct hrt_call *entry);
 
@@ -162,5 +171,22 @@ __EXPORT extern void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay);
  * Initialise the HRT.
  */
 __EXPORT extern void	hrt_init(void);
+
+#ifdef __PX4_POSIX
+
+/**
+ * Start to delay the HRT return value.
+ *
+ * Until hrt_stop_delay() is called the HRT calls will return the timestamp
+ * at the instance then hrt_start_delay() was called.
+ */
+__EXPORT extern	void	hrt_start_delay(void);
+
+/**
+ * Stop to delay the HRT.
+ */
+__EXPORT extern void	hrt_stop_delay(void);
+
+#endif
 
 __END_DECLS

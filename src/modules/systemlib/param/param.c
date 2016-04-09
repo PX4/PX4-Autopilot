@@ -44,6 +44,8 @@
 //#include <debug.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <px4_config.h>
+#include <px4_spi.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -235,9 +237,9 @@ param_find_changed(param_t param)
 }
 
 static void
-param_notify_changes(void)
+param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
+	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved};
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -497,7 +499,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -575,7 +577,7 @@ out:
 	 * a thing has been set.
 	 */
 	if (params_changed && notify_changes) {
-		param_notify_changes();
+		param_notify_changes(is_saved);
 	}
 
 	return result;
@@ -584,13 +586,19 @@ out:
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, true);
+	return param_set_internal(param, val, false, true, false);
+}
+
+int
+param_set_no_autosave(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false, true, true);
 }
 
 int
 param_set_no_notification(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, false);
+	return param_set_internal(param, val, false, false, false);
 }
 
 bool
@@ -643,7 +651,7 @@ param_reset(param_t param)
 	param_unlock();
 
 	if (s != NULL) {
-		param_notify_changes();
+		param_notify_changes(false);
 	}
 
 	return (!param_found);
@@ -663,7 +671,7 @@ param_reset_all(void)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 void
@@ -695,7 +703,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
@@ -738,7 +746,13 @@ param_save_default(void)
 		return ERROR;
 	}
 
-	res = param_export(fd, false);
+	res = 1;
+	int attempts = 5;
+
+	while (res != OK && attempts > 0) {
+		res = param_export(fd, false);
+		attempts--;
+	}
 
 	if (res != OK) {
 		warnx("failed to write parameters to file: %s", filename);
@@ -779,6 +793,38 @@ param_load_default(void)
 	return 0;
 }
 
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+//struct spi_dev_s *dev = nullptr;
+irqstate_t state;
+#endif
+
+static void
+param_bus_lock(bool lock)
+{
+
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+	// FMUv4 has baro and FRAM on the same bus,
+	// as this offers on average a 100% silent
+	// bus for the baro operation
+
+	// XXX this would be the preferred locking method
+	// if (dev == nullptr) {
+	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// }
+
+	// SPI_LOCK(dev, lock);
+
+	// we lock like this for Pixracer for now
+	if (lock) {
+		state = irqsave();
+
+	} else {
+		irqrestore(state);
+	}
+
+#endif
+}
+
 int
 param_export(int fd, bool only_unsaved)
 {
@@ -788,7 +834,9 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock();
 
+	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
+	param_bus_lock(false);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -813,6 +861,9 @@ param_export(int fd, bool only_unsaved)
 
 		/* append the appropriate BSON type object */
 
+		/* lock as short as possible */
+		param_bus_lock(true);
+
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32:
@@ -820,6 +871,7 @@ param_export(int fd, bool only_unsaved)
 
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -830,6 +882,7 @@ param_export(int fd, bool only_unsaved)
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -842,6 +895,7 @@ param_export(int fd, bool only_unsaved)
 						       param_size(s->param),
 						       param_get_value_ptr(s->param))) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -849,8 +903,14 @@ param_export(int fd, bool only_unsaved)
 
 		default:
 			debug("unrecognized parameter type");
+			param_bus_lock(false);
 			goto out;
 		}
+
+		param_bus_lock(false);
+
+		/* allow this process to be interrupted by another process / thread */
+		usleep(5);
 	}
 
 	result = 0;
@@ -955,7 +1015,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
+	if (param_set_internal(param, v, state->mark_saved, true, false)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -984,15 +1044,23 @@ param_import_internal(int fd, bool mark_saved)
 	int result = -1;
 	struct param_import_state state;
 
+	param_bus_lock(true);
+
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
+		param_bus_lock(false);
 		goto out;
 	}
+
+	param_bus_lock(false);
 
 	state.mark_saved = mark_saved;
 
 	do {
+		param_bus_lock(true);
 		result = bson_decoder_next(&decoder);
+		usleep(1);
+		param_bus_lock(false);
 
 	} while (result > 0);
 
@@ -1053,7 +1121,7 @@ uint32_t param_hash_check(void)
 		const char *name = param_name(param);
 		const void *val = param_get_value_ptr(param);
 		param_hash = crc32part((const uint8_t *)name, strlen(name), param_hash);
-		param_hash = crc32part(val, sizeof(union param_value_u), param_hash);
+		param_hash = crc32part(val, param_size(param), param_hash);
 	}
 
 	param_unlock();

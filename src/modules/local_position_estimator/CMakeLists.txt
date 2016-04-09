@@ -31,7 +31,7 @@
 #
 ############################################################################
 if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6500)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=10000)
 elseif(${OS} STREQUAL "posix")
 	list(APPEND MODULE_CFLAGS -Wno-error)
 endif()

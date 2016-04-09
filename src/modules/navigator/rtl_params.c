@@ -48,7 +48,7 @@
  *
  * Altitude to fly back in RTL in meters
  *
- * @unit meters
+ * @unit m
  * @min 0
  * @max 150
  * @group Return To Land
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * Stay at this altitude above home position after RTL descending.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
- * @unit meters
+ * @unit m
  * @min 2
  * @max 100
  * @group Return To Land
@@ -73,9 +73,9 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * RTL delay
  *
  * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
- * @unit seconds
+ * @unit s
  * @min -1
  * @max 300
  * @group Return To Land

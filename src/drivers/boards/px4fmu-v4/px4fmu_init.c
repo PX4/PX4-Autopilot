@@ -182,7 +182,7 @@ fat_dma_free(FAR void *memory, size_t size)
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -219,20 +219,29 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
 
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
-
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_PERIPH_3V3_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_8266_GPIO0);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
+	stm32_configgpio(GPIO_BTN_SAFETY);
+
+#ifdef GPIO_RC_OUT
+	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
+	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
+#endif
+
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -284,7 +293,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
@@ -298,14 +306,16 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
+	/* Default SPI2 to 12MHz and de-assert the known chip selects.
+	 * MS5611 has max SPI clock speed of 20MHz
+	 */
 
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
+	// XXX start with 10.4 MHz and go up to 20 once validated
+	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
+	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */

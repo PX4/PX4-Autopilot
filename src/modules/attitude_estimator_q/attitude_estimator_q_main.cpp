@@ -61,18 +61,19 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/estimator_status.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/geo/geo.h>
 #include <lib/ecl/validation/data_validator_group.h>
-#include <mavlink/mavlink_log.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
@@ -127,6 +128,7 @@ private:
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
+	orb_advert_t	_est_state_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -190,7 +192,7 @@ private:
 	bool		_vibration_warning = false;
 	bool		_ext_hdg_good = false;
 
-	int		_mavlink_fd = -1;
+	orb_advert_t	_mavlink_log_pub = nullptr;
 
 	perf_counter_t _update_perf;
 	perf_counter_t _loop_perf;
@@ -267,7 +269,7 @@ int AttitudeEstimatorQ::start()
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2400,
+					   2500,
 					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 					   nullptr);
 
@@ -323,10 +325,6 @@ void AttitudeEstimatorQ::task_main()
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, 1, 1000);
-
-		if (_mavlink_fd < 0) {
-			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-		}
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
@@ -391,8 +389,13 @@ void AttitudeEstimatorQ::task_main()
 			_accel.set(_voter_accel.get_best(curr_time, &best_accel));
 			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
 
-			if (_accel.length() < 0.01f || _mag.length() < 0.01f) {
-				warnx("WARNING: degenerate accel / mag!");
+			if (_accel.length() < 0.01f) {
+				warnx("WARNING: degenerate accel!");
+				continue;
+			}
+
+			if (_mag.length() < 0.01f) {
+				warnx("WARNING: degenerate mag!");
 				continue;
 			}
 
@@ -410,7 +413,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_gyro.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Gyro #%i failure :%s%s%s%s%s!",
 									  _voter_gyro.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -422,7 +425,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_accel.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_accel.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Accel #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Accel #%i failure :%s%s%s%s%s!",
 									  _voter_accel.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -434,7 +437,7 @@ void AttitudeEstimatorQ::task_main()
 				if (_voter_mag.failover_count() > 0) {
 					_failsafe = true;
 					flags = _voter_mag.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Mag #%i failure :%s%s%s%s%s!",
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Mag #%i failure :%s%s%s%s%s!",
 									  _voter_mag.failover_index(),
 									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
 									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
@@ -444,7 +447,7 @@ void AttitudeEstimatorQ::task_main()
 				}
 
 				if (_failsafe) {
-					mavlink_and_console_log_emergency(_mavlink_fd, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
+					mavlink_and_console_log_emergency(&_mavlink_log_pub, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
 				}
 			}
 
@@ -457,7 +460,7 @@ void AttitudeEstimatorQ::task_main()
 
 				} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 					_vibration_warning = true;
-					mavlink_and_console_log_critical(_mavlink_fd, "HIGH VIBRATION! g: %d a: %d m: %d",
+					mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
 									 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
 									 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
 									 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
@@ -601,37 +604,53 @@ void AttitudeEstimatorQ::task_main()
 		int att_inst;
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
 
-		struct control_state_s ctrl_state = {};
+		{
+			struct control_state_s ctrl_state = {};
 
-		ctrl_state.timestamp = sensors.timestamp;
+			ctrl_state.timestamp = sensors.timestamp;
 
-		/* attitude quaternions for control state */
-		ctrl_state.q[0] = _q(0);
-		ctrl_state.q[1] = _q(1);
-		ctrl_state.q[2] = _q(2);
-		ctrl_state.q[3] = _q(3);
+			/* attitude quaternions for control state */
+			ctrl_state.q[0] = _q(0);
+			ctrl_state.q[1] = _q(1);
+			ctrl_state.q[2] = _q(2);
+			ctrl_state.q[3] = _q(3);
 
-		/* attitude rates for control state */
-		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+			/* attitude rates for control state */
+			ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
 
-		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
-		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
-		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-		    && _airspeed.timestamp > 0) {
-			ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-			ctrl_state.airspeed_valid = true;
+			/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+			if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+			    && _airspeed.timestamp > 0) {
+				ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+				ctrl_state.airspeed_valid = true;
 
-		} else {
-			ctrl_state.airspeed_valid = false;
+			} else {
+				ctrl_state.airspeed_valid = false;
+			}
+
+			/* the instance count is not used here */
+			int ctrl_inst;
+			/* publish to control state topic */
+			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
 		}
 
-		/* the instance count is not used here */
-		int ctrl_inst;
-		/* publish to control state topic */
-		orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
+		{
+			struct estimator_status_s est = {};
+
+			est.timestamp = sensors.timestamp;
+			est.vibe[0] = _voter_accel.get_vibration_offset(est.timestamp, 0);
+			est.vibe[1] = _voter_accel.get_vibration_offset(est.timestamp, 1);
+			est.vibe[2] = _voter_accel.get_vibration_offset(est.timestamp, 2);
+
+			/* the instance count is not used here */
+			int est_inst;
+			/* publish to control state topic */
+			orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
+		}
 	}
 }
 
@@ -814,7 +833,7 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 
 int attitude_estimator_q_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		warnx("usage: attitude_estimator_q {start|stop|status}");
 		return 1;
 	}

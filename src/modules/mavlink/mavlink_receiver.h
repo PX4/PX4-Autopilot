@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_force_setpoint.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/follow_target.h>
 
 #include "mavlink_ftp.h"
 
@@ -106,12 +107,11 @@ public:
 	 */
 	void		print_status();
 
-	static pthread_t receive_start(Mavlink *parent);
+	static void receive_start(pthread_t *thread, Mavlink *parent);
 
 	static void *start_helper(void *context);
 
 private:
-	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
@@ -137,6 +137,7 @@ private:
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
+	void handle_message_follow_target(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -161,6 +162,9 @@ private:
 	 */
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
+	bool	evaluate_target_ok(int command, int target_system, int target_component);
+
+	Mavlink	*_mavlink;
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_land_detected_s hil_land_detector;
@@ -178,6 +182,8 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _hil_distance_sensor_pub;
+	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
@@ -193,6 +199,7 @@ private:
 	orb_advert_t _manual_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;
+	orb_advert_t _follow_target_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
