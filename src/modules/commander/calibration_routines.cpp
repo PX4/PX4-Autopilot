@@ -457,13 +457,15 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 			}
 		}
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-
+		usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
+		usleep(20000);
 		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel, lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
 			calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
+			usleep(20000);
 			continue;
 		}
 
@@ -471,11 +473,14 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		if (side_data_collected[orient]) {
 			orientation_failures++;
 			calibration_log_critical(mavlink_log_pub, "%s side already completed", detect_orientation_str(orient));
-			calibration_log_critical(mavlink_log_pub, "rotate to a pending side");
+			usleep(20000);
 			continue;
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
+		usleep(20000);
+		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
+		usleep(20000);
 		orientation_failures = 0;
 
 		// Call worker routine
@@ -485,6 +490,9 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
+		usleep(20000);
+		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
+		usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
