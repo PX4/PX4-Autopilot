@@ -216,14 +216,17 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 					usleep(20000);
 					calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+					usleep(20000);
 					break;
 				} else {
 					calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
+					usleep(20000);
 				}
 				// Fall through
 
 			default:
 				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+				usleep(20000);
 				break;
 		}
 	}
