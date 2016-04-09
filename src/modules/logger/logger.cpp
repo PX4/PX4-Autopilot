@@ -4,7 +4,7 @@
 #include <string.h>
 #include <uORB/uORBTopics.h>
 
-#define DBGPRINT
+//#define DBGPRINT
 
 using namespace px4::logger;
 
@@ -277,11 +277,8 @@ void Logger::run()
 		return;
 	}
 
-	/* the vehicle_status topic is monitored to start and stop logging */
-	add_topic(ORB_ID(vehicle_status));
-
 	/* Using orb_set_interval resulted in very irregular logging intervals.
-	 * Instead, set _log_interval to 2msec and attempt to log every update
+	 * Instead, usleep(_log_interval) at end of loop
 	const unsigned ten_msec = 10;
 	const unsigned hundred_msec = 100;
 	 */
@@ -295,6 +292,8 @@ void Logger::run()
 
 //	add_topic("estimator_status", 0);
 //	add_topic("sensor_combined", 0);
+
+	add_topic("vehicle_status");
 
 	_writer.thread_start();
 
