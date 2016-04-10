@@ -226,6 +226,20 @@ private:
 	control::BlockParamFloat *_flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
 	control::BlockParamFloat *_flow_rate_max;	// maximum valid optical flow rate (rad/sec)
 
+	// sensor positions in body frame
+	control::BlockParamFloat *_imu_pos_x;	// X position of IMU in body frame (m)
+	control::BlockParamFloat *_imu_pos_y;	// Y position of IMU in body frame (m)
+	control::BlockParamFloat *_imu_pos_z;	// Z position of IMU in body frame (m)
+	control::BlockParamFloat *_gps_pos_x;	// X position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_gps_pos_y;	// Y position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_gps_pos_z;	// Z position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_rng_pos_x;	// X position of range finder in body frame (m)
+	control::BlockParamFloat *_rng_pos_y;	// Y position of range finder in body frame (m)
+	control::BlockParamFloat *_rng_pos_z;	// Z position of range finder in body frame (m)
+	control::BlockParamFloat *_flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat *_flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat *_flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+
 	int update_subscriptions();
 
 };
@@ -294,7 +308,19 @@ Ekf2::Ekf2():
 	_flow_noise_qual_min(new control::BlockParamFloat(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min)),
 	_flow_qual_min(new control::BlockParamInt(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min)),
 	_flow_innov_gate(new control::BlockParamFloat(this, "EKF2_OF_GATE", false, &_params->flow_innov_gate)),
-	_flow_rate_max(new control::BlockParamFloat(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max))
+	_flow_rate_max(new control::BlockParamFloat(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max)),
+	_imu_pos_x(new control::BlockParamFloat(this, "EKF2_IMU_POS_X", false, &_params->imu_pos_body(0))),
+	_imu_pos_y(new control::BlockParamFloat(this, "EKF2_IMU_POS_Y", false, &_params->imu_pos_body(1))),
+	_imu_pos_z(new control::BlockParamFloat(this, "EKF2_IMU_POS_Z", false, &_params->imu_pos_body(2))),
+	_gps_pos_x(new control::BlockParamFloat(this, "EKF2_GPS_POS_X", false, &_params->gps_pos_body(0))),
+	_gps_pos_y(new control::BlockParamFloat(this, "EKF2_GPS_POS_Y", false, &_params->gps_pos_body(1))),
+	_gps_pos_z(new control::BlockParamFloat(this, "EKF2_GPS_POS_Z", false, &_params->gps_pos_body(2))),
+	_rng_pos_x(new control::BlockParamFloat(this, "EKF2_RNG_POS_X", false, &_params->rng_pos_body(0))),
+	_rng_pos_y(new control::BlockParamFloat(this, "EKF2_RNG_POS_Y", false, &_params->rng_pos_body(1))),
+	_rng_pos_z(new control::BlockParamFloat(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2))),
+	_flow_pos_x(new control::BlockParamFloat(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0))),
+	_flow_pos_y(new control::BlockParamFloat(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1))),
+	_flow_pos_z(new control::BlockParamFloat(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)))
 {
 
 }
