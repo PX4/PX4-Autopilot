@@ -21,9 +21,11 @@ struct LoggerSubscription {
 	LoggerSubscription() {}
 
 	LoggerSubscription(int fd_, const orb_metadata *metadata_) :
-		metadata(metadata_) {
+		metadata(metadata_)
+	{
 		fd[0] = fd_;
-		for (int i=1; i<ORB_MULTI_MAX_INSTANCES; i++) fd[i] = -1;
+
+		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) { fd[i] = -1; }
 	}
 };
 
