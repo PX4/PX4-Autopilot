@@ -268,7 +268,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	mag_worker_data_t* worker_data = (mag_worker_data_t*)(data);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Rotate vehicle around the detected orientation");
-	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %u seconds", worker_data->calibration_interval_perside_seconds);
+	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %s %u s", detect_orientation_str(orientation), worker_data->calibration_interval_perside_seconds);
 
 	/*
 	 * Detect if the system is rotating.
