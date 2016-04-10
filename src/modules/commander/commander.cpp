@@ -3356,23 +3356,18 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(&mavlink_log_pub, "command denied: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
-		mavlink_log_critical(&mavlink_log_pub, "command failed: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		/* this needs additional hints to the user - so let other messages pass and be spoken */
-		mavlink_log_critical(&mavlink_log_pub, "command temporarily rejected: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
-		mavlink_log_critical(&mavlink_log_pub, "command unsupported: %u", cmd.command);
 		tune_negative(true);
 		break;
 
