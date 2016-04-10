@@ -25,8 +25,8 @@ axesConfig = {'Units','Normalized','Position',[.05,.1,.65,.85],'NextPlot','add'}
 BGconfig = {'Units','Normalized','Position',[.75,.1,.2,.85]};
 TBconfig = {'Style','Checkbox','Units','Normalized','Position',[.75,0,.2,.1],'String','Show variance'};
 
-statesAxes = axes(statesTab,axesConfig{:},'XLabel',text('string','Time (sec)'));
-innovsAxes = axes(innovsTab,axesConfig{:},'XLabel',text('string','Time (sec)'));
+statesAxes = axes('Parent',statesTab,axesConfig{:},'XLabel',text('string','Time (sec)'));
+innovsAxes = axes('Parent',innovsTab,axesConfig{:},'XLabel',text('string','Time (sec)'));
 
 statesBG = uibuttongroup(statesTab,BGconfig{:});
 innovsBG = uibuttongroup(innovsTab,BGconfig{:});
@@ -105,18 +105,20 @@ else
         centerLineTime = centerLineTimeFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
         centerLineData = centerLineDataFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
         
-        plotDataT = sqrt(interp1(plotTimeFull,plotDataFull,centerLineTime));
+        plotTime = linspace(startTime,endTime,250);
+        plotData = sqrt(interp1(plotTimeFull,plotDataFull,plotTime));
+        centerLineData = interp1(centerLineTime,centerLineData,plotTime);
         
-        plotTime = downsample(centerLineTime,round(numel(plotDataT)/350),0);
+%         plotTime = downsample(centerLineTime,round(numel(plotDataT)/350),0);
         if strcmp('IV',varNames{k}(end-1:end))
-            plotDataL = downsample(-plotDataT,round(numel(plotDataT)/350),0);
-            plotDataU = downsample(plotDataT,round(numel(plotDataT)/350),0);
+            plotDataL = -plotData;
+            plotDataU = plotData;
         else
-            plotDataL = downsample(centerLineData-plotDataT,round(numel(plotDataT)/350),0);
-            plotDataU = downsample(centerLineData+plotDataT,round(numel(plotDataT)/350),0);
+            plotDataL = centerLineData-plotData;
+            plotDataU = centerLineData+plotData;
         end
-        p = patch(axes,[plotTime,fliplr(plotTime)],[plotDataL,fliplr(plotDataU)],lines(k).Color);
-        set(p,'EdgeColor','none','FaceAlpha',.3,'UserData',stateNames{k});
+        p = patch([plotTime,fliplr(plotTime)],[plotDataL,fliplr(plotDataU)],lines(k).Color);
+        set(p,'Parent',axes,'EdgeColor','none','FaceAlpha',.3,'UserData',stateNames{k});
     end
 end
 end
