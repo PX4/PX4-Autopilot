@@ -99,7 +99,7 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768,3500);
+	logger_ptr = new Logger(32768, 3500);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -374,7 +374,7 @@ void Logger::run()
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 
-	#ifdef DBGPRINT
+#ifdef DBGPRINT
 						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
 						hrt_abstime trytime = hrt_absolute_time();
 
@@ -382,10 +382,10 @@ void Logger::run()
 							highWater = _writer._count;
 						}
 
-	#endif
+#endif
 
 						if (_writer.write(buffer, msg_size)) {
-	#ifdef DBGPRINT
+#ifdef DBGPRINT
 
 							// successful write: note end of dropout if dropout_start != 0
 							if (dropout_start != 0) {
@@ -398,14 +398,14 @@ void Logger::run()
 								highWater = 0;
 							}
 
-	#endif
+#endif
 							data_written = true;
-	#ifdef DBGPRINT
+#ifdef DBGPRINT
 							total_bytes += msg_size;
-	#endif
+#endif
 
 						} else {
-	#ifdef DBGPRINT
+#ifdef DBGPRINT
 
 							if (dropout_start == 0)	{
 								available = _writer._count;
@@ -414,7 +414,7 @@ void Logger::run()
 								dropout_count++;
 							}
 
-	#endif
+#endif
 							break;	// Write buffer overflow, skip this record
 						}
 					}
