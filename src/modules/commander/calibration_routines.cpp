@@ -472,7 +472,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		/* inform user about already handled side */
 		if (side_data_collected[orient]) {
 			orientation_failures++;
-			calibration_log_critical(mavlink_log_pub, "%s side already completed", detect_orientation_str(orient));
+			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed", detect_orientation_str(orient));
 			usleep(20000);
 			continue;
 		}
