@@ -95,7 +95,7 @@ static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle
 	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,       false,         false,  false }, // NYI
 };
 
-// You can index into the array with an arming_state_t in order to get it's textual representation
+// You can index into the array with an arming_state_t in order to get its textual representation
 static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
@@ -276,7 +276,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			if ((!status->condition_system_prearm_error_reported &&
 			      status->condition_system_hotplug_timeout) ||
 			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors need inspection");
+				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
 				status->condition_system_prearm_error_reported = true;
 			}
 			feedback_provided = true;
@@ -307,7 +307,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "INVAL: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_and_console_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
 		}
 	}
 
@@ -880,7 +880,14 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 	if (!status->cb_usb && status->usb_connected && prearm) {
 		preflight_ok = false;
 		if (reportFailures) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Flying with USB connected prohibited");
+			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
+		}
+	}
+
+	if (status->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+		preflight_ok = false;
+		if (reportFailures) {
+			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
 		}
 	}
 
