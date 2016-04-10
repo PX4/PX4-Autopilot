@@ -193,6 +193,9 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+		param_t acro_rollRate_max;
+		param_t acro_pitchRate_max;
+		param_t acro_yawRate_max;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -215,6 +218,9 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+		float acro_rollRate_max;
+		float acro_pitchRate_max;
+		float acro_yawRate_max;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -455,6 +461,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
+	_params_handles.acro_rollRate_max	= 	param_find("MC_ACRO_R_MAX");
+	_params_handles.acro_pitchRate_max	= 	param_find("MC_ACRO_P_MAX");
+	_params_handles.acro_yawRate_max	= 	param_find("MC_ACRO_Y_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -570,10 +579,16 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
+		param_get(_params_handles.acro_rollRate_max, &_params.acro_rollRate_max);
+		param_get(_params_handles.acro_pitchRate_max, &_params.acro_pitchRate_max);
+		param_get(_params_handles.acro_yawRate_max, &_params.acro_yawRate_max);
 		_params.man_roll_max = math::radians(_params.man_roll_max);
 		_params.man_pitch_max = math::radians(_params.man_pitch_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
 		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+		_params.acro_rollRate_max = math::radians(_params.acro_rollRate_max);
+		_params.acro_pitchRate_max = math::radians(_params.acro_pitchRate_max);
+		_params.acro_yawRate_max = math::radians(_params.acro_yawRate_max);
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
@@ -1927,10 +1942,43 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if we no aiding velocity controller is active */
+			math::Matrix<3, 3> R_sp;
+
+			/* control roll and pitch directly if no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+				if (_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
+					/* rate mode - interpret roll/pitch inputs as rate demands */
+					float roll_body = _manual.y * _params.acro_rollRate_max * dt;
+					float pitch_body = -_manual.x * _params.acro_pitchRate_max * dt;
+
+					/* update attitude setpoint rotation matrix (avoiding singularities) */
+					math::Matrix<3, 3> R_xy;
+					R_xy.from_euler(roll_body, pitch_body, 0.0f);
+
+					math::Matrix<3, 3> R_delta(R_xy);
+					/* no yaw setpoint yet */
+//					math::Matrix<3, 3> R_z;
+//					R_z.from_euler(0, 0, _att_sp.yaw_body);
+//					R_delta = R_delta * R_z;
+
+					R_sp.set(_att_sp.R_body);
+					R_sp = R_delta * R_sp;
+					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
+					math::Vector<3> eulerAngles = R_sp.to_euler();
+					_att_sp.roll_body = eulerAngles.data[0];
+					_att_sp.pitch_body = eulerAngles.data[1];
+//					_att_sp.yaw_body = eulerAngles.data[2];
+					static int decimate = 0;
+					if (decimate++ > 50) {
+						decimate = 0;
+						warnx("rollsp: %6.4f, pitchsp: %6.4f", (double)_att_sp.roll_body, (double)_att_sp.pitch_body);
+					}
+				} else {
+					/* angle mode - interpret roll/pitch inputs as angles */
+					_att_sp.roll_body = _manual.y * _params.man_roll_max;
+					_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+				}
 			}
 
 			/* control throttle directly if no climb rate controller is active */
@@ -1944,11 +1992,11 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			math::Matrix<3, 3> R_sp;
-
-			/* construct attitude setpoint rotation matrix */
-			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+			if (_vehicle_status.main_state != vehicle_status_s::MAIN_STATE_ACRO) {
+				/* construct attitude setpoint rotation matrix */
+				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+			}
 
 			/* reset the acceleration set point for all non-attitude flight modes */
 			if (!(_control_mode.flag_control_offboard_enabled &&
