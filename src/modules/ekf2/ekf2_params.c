@@ -528,3 +528,51 @@ PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
  * @unit m/m
  */
 PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
+
+/**
+ * X position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_X, 0.0f);
+
+/**
+ * Y position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Y, 0.0f);
+
+/**
+ * Z position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Z, 0.0f);
+
+/**
+ * X position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_X, 0.0f);
+
+/**
+ * Y position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Y, 0.0f);
+
+/**
+ * Z position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Z, 0.0f);
