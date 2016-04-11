@@ -267,6 +267,7 @@ RTL::set_rtl_item()
 	}
 
 	case RTL_STATE_LAND: {
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		set_land_item(&_mission_item, false);
 
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: land at home");
