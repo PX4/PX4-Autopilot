@@ -121,6 +121,8 @@ public:
 	// return the estimated terrain vertical position relative to the NED origin
 	bool get_terrain_vert_pos(float *ret);
 
+	void get_accel_bias(float *bias) {*bias = _state.accel_z_bias;}
+
 private:
 
 	static const uint8_t _k_num_states = 24;
