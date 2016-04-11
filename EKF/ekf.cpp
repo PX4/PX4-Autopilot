@@ -511,9 +511,18 @@ void Ekf::predictState()
 	// save the previous value of velocity so we can use trapzoidal integration
 	Vector3f vel_last = _state.vel;
 
-	// predict velocity states
-	_state.vel += _R_to_earth * _imu_sample_delayed.delta_vel;
-	_state.vel(2) += 9.81f * _imu_sample_delayed.delta_vel_dt;
+	// calculate the increment in velocity using the previous orientation
+	Vector3f delta_vel_earth_1 = _R_to_earth * _imu_sample_delayed.delta_vel;
+
+	// update the rotation matrix and calculate the increment in velocity using the current orientation
+	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+	Vector3f delta_vel_earth_2 = _R_to_earth * _imu_sample_delayed.delta_vel;
+
+	// Update the velocity assuming constant angular rate and acceleration across the same delta time interval
+	_state.vel += (delta_vel_earth_1 + delta_vel_earth_2) * 0.5f;
+
+	// compensate for acceleration due to gravity
+	_state.vel(2) += _gravity_mss * _imu_sample_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;

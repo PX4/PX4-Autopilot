@@ -124,7 +124,8 @@ public:
 private:
 
 	static const uint8_t _k_num_states = 24;
-	static constexpr float _k_earth_rate = 0.000072921f;
+	const float _k_earth_rate = 0.000072921f;
+	const float _gravity_mss = 9.80665f;
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
