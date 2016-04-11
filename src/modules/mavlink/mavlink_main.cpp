@@ -1100,11 +1100,13 @@ Mavlink::find_broadcast_address()
 
 	delete[] ifconf.ifc_req;
 
+#endif
 }
 
 void
 Mavlink::init_udp()
 {
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 
 	PX4_INFO("Setting up UDP w/port %d", _network_port);
 
