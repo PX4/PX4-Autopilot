@@ -143,6 +143,8 @@ private:
 
 	bool            _prev_motors_armed = false; // motors armed status from the previous frame
 
+	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
+
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
@@ -528,29 +530,43 @@ void Ekf2::task_main()
 			ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
 			ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
 
-			/* Velocity in Body Frame */
+			// Velocity in body frame
 			float velocity[3];
-			_ekf->copy_velocity(velocity);
+			_ekf->get_velocity(velocity);
 			Vector3f v_n(velocity);
-			matrix::Dcm<float> Tnb(q);
-			Vector3f v_b = Tnb * v_n;
+			matrix::Dcm<float> R_to_body(q.inversed());
+			Vector3f v_b = R_to_body * v_n;
 			ctrl_state.x_vel = v_b(0);
 			ctrl_state.y_vel = v_b(1);
 			ctrl_state.z_vel = v_b(2);
 
 
-			/* Local Position */
+			// Local Position NED
 			float position[3];
-			_ekf->copy_position(position);
+			_ekf->get_position(position);
 			ctrl_state.x_pos = position[0];
 			ctrl_state.y_pos = position[1];
 			ctrl_state.z_pos = position[2];
 
-
+			// Attitude quaternion
 			ctrl_state.q[0] = q(0);
 			ctrl_state.q[1] = q(1);
 			ctrl_state.q[2] = q(2);
 			ctrl_state.q[3] = q(3);
+
+			// Acceleration data
+			matrix::Vector<float, 3> acceleration = {&sensors.accelerometer_m_s2[0]};
+
+			float accel_bias = 0.0f;
+			_ekf->get_accel_bias(&accel_bias);
+			ctrl_state.x_acc = acceleration(0);
+			ctrl_state.y_acc = acceleration(1);
+			ctrl_state.z_acc = acceleration(2) - accel_bias;
+
+			// compute lowpass filtered horizontal acceleration
+			acceleration = R_to_body.transpose() * acceleration;
+			_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) + acceleration(1) * acceleration(1));
+			ctrl_state.horz_acc_mag = _acc_hor_filt;
 
 			// Airspeed - take airspeed measurement directly here as no wind is estimated
 			if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
