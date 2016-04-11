@@ -580,13 +580,13 @@ void Ekf2::task_main()
 
 			lpos.timestamp = hrt_absolute_time();
 
-			// Position in local NED frame
+			// Position of body origin in local NED frame
 			_ekf->get_position(pos);
 			lpos.x = pos[0];
 			lpos.y = pos[1];
 			lpos.z = pos[2];
 
-			// Velocity in NED frame (m/s)
+			// Velocity of body origin in local NED frame (m/s)
 			_ekf->get_velocity(vel);
 			lpos.vx = vel[0];
 			lpos.vy = vel[1];
