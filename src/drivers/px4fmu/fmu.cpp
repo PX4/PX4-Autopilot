@@ -214,6 +214,7 @@ private:
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 	bool		_safety_off;
+	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
@@ -382,6 +383,7 @@ PX4FMU::PX4FMU() :
 	_num_failsafe_set(0),
 	_num_disarmed_set(0),
 	_safety_off(false),
+	_safety_disabled(false),
 	_to_safety(nullptr)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
@@ -459,6 +461,8 @@ PX4FMU::init()
 	} else if (_class_instance < 0) {
 		warnx("FAILED registering class device");
 	}
+
+	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
 	work_start();
 
@@ -1086,7 +1090,7 @@ PX4FMU::cycle()
 		 */
 		struct safety_s safety = {};
 
-		if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
+		if (_safety_disabled) {
 			/* safety switch disabled, turn LED on solid */
 			stm32_gpiowrite(GPIO_LED_SAFETY, 0);
 			_safety_off = true;
