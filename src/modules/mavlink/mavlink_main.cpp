@@ -888,8 +888,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 			if (!_broadcast_address_found) {
-				// Try to initialize UDP and broadcast address again.
-				init_udp();
+				find_broadcast_address();
 			}
 
 			if (_broadcast_address_found) {
@@ -973,38 +972,9 @@ Mavlink::resend_message(mavlink_message_t *msg)
 }
 
 void
-Mavlink::init_udp()
+Mavlink::find_broadcast_address()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
-	PX4_INFO("Setting up UDP w/port %d",_network_port);
-
-	_myaddr.sin_family = AF_INET;
-	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(_network_port);
-
-	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed");
-		return;
-	}
-
-	int broadcast_opt = 1;
-	if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
-		PX4_WARN("setting broadcast permission failed");
-		return;
-	}
-
-	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed");
-		return;
-	}
-
-	/* set default target address, but not for onboard mode (will be set on first received packet) */
-	if (!_src_addr_initialized) {
-		_src_addr.sin_family = AF_INET;
-		inet_aton("127.0.0.1", &_src_addr.sin_addr);
-	}
-	_src_addr.sin_port = htons(_remote_port);
-
 	struct ifconf ifconf;
 	int ret;
 
@@ -1119,11 +1089,46 @@ Mavlink::init_udp()
 	if (_broadcast_address_found) {
 		_bcast_addr.sin_port = htons(_remote_port);
 
+		int broadcast_opt = 1;
+		if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
+			PX4_WARN("setting broadcast permission failed");
+		}
+
 	} else {
 		PX4_WARN("no broadcasting address found");
 	}
 
 	delete[] ifconf.ifc_req;
+
+}
+
+void
+Mavlink::init_udp()
+{
+
+	PX4_INFO("Setting up UDP w/port %d", _network_port);
+
+	_myaddr.sin_family = AF_INET;
+	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	_myaddr.sin_port = htons(_network_port);
+
+	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		PX4_WARN("create socket failed: %s", strerror(errno));
+		return;
+	}
+
+	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
+		PX4_WARN("bind failed: %s", strerror(errno));
+		return;
+	}
+
+	/* set default target address, but not for onboard mode (will be set on first received packet) */
+	if (!_src_addr_initialized) {
+		_src_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	}
+	_src_addr.sin_port = htons(_remote_port);
+
 #endif
 }
 
@@ -1926,6 +1931,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* init socket if necessary */
 	if (get_protocol() == UDP) {
+		find_broadcast_address();
 		init_udp();
 	}
 
