@@ -1637,12 +1637,12 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 			break;
 #else
-			case 'u':
-			case 'o':
-			case 't':
-				warnx("UDP options not supported on this platform");
-				err_flag = true;
-				break;
+		case 'u':
+		case 'o':
+		case 't':
+			warnx("UDP options not supported on this platform");
+			err_flag = true;
+			break;
 #endif
 
 //		case 'e':
