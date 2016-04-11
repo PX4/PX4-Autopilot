@@ -77,12 +77,6 @@
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 
 /* class for dynamic allocation of satellite info data */
 class GPS_Sat_Info
