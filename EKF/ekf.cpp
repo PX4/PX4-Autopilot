@@ -89,7 +89,7 @@ Ekf::Ekf():
 	_state = {};
 	_last_known_posNE.setZero();
 	_earth_rate_NED.setZero();
-	_R_prev = matrix::Dcm<float>();
+	_R_to_earth = matrix::Dcm<float>();
 	memset(_vel_pos_innov, 0, sizeof(_vel_pos_innov));
 	memset(_mag_innov, 0, sizeof(_mag_innov));
 	memset(_flow_innov, 0, sizeof(_flow_innov));
@@ -217,11 +217,11 @@ bool Ekf::update()
 		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
 		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-		    && (_R_prev(2, 2) > 0.7071f)) {
+		    && (_R_to_earth(2, 2) > 0.7071f)) {
 			// correct the range data for position offset relative to the IMU
 			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-			Vector3f pos_offset_earth = _R_prev.transpose() * pos_offset_body;
-			_range_sample_delayed.rng += pos_offset_earth(2) / _R_prev(2, 2);
+			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+			_range_sample_delayed.rng += pos_offset_earth(2) / _R_to_earth(2, 2);
 
 			// if we have range data we always try to estimate terrain height
 			_fuse_hagl_data = true;
@@ -267,11 +267,11 @@ bool Ekf::update()
 				Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f/_imu_sample_delayed.delta_ang_dt);
 				Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
 				Vector3f vel_offset_body = cross_product(ang_rate,pos_offset_body);
-				Vector3f vel_offset_earth = _R_prev.transpose() * vel_offset_body;
+				Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 				_gps_sample_delayed.vel -= vel_offset_earth;
 
 				// correct position and height for offset relative to IMU
-				Vector3f pos_offset_earth = _R_prev.transpose() * pos_offset_body;
+				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 				_gps_sample_delayed.pos(0) -= pos_offset_earth(0);
 				_gps_sample_delayed.pos(1) -= pos_offset_earth(1);
 				_gps_sample_delayed.hgt += pos_offset_earth(2);
@@ -288,7 +288,7 @@ bool Ekf::update()
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
 		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
 		    && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
-		    && (_R_prev(2, 2) > 0.7071f)) {
+		    && (_R_to_earth(2, 2) > 0.7071f)) {
 			_fuse_flow = true;
 		}
 
@@ -450,6 +450,9 @@ bool Ekf::initialiseFilter(void)
 		_state.quat_nominal = Quaternion(euler_init);
 		_output_new.quat_nominal = _state.quat_nominal;
 
+		// update transformation matrix from body to world frame
+		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
 		// initialise the filtered alignment error estimate to a larger starting value
 		_tilt_err_length_filt = 1.0f;
 
@@ -491,25 +494,32 @@ void Ekf::predictState()
 		}
 	}
 
-	// attitude error state prediction
-	matrix::Dcm<float> R_to_earth(_state.quat_nominal);	// transformation matrix from body to world frame
-	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED *
+	// correct delta angles for earth rotation rate
+	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_to_earth.transpose() * _earth_rate_NED *
 				       _imu_sample_delayed.delta_ang_dt;
-	Quaternion dq;	// delta quaternion since last update
+
+	// convert the delta angle to a delta quaternion
+	Quaternion dq;
 	dq.from_axis_angle(corrected_delta_ang);
+
+	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = dq * _state.quat_nominal;
+
+	// quaternions must be normalised whenever they are modified
 	_state.quat_nominal.normalize();
 
-	_R_prev = R_to_earth.transpose();
-
+	// save the previous value of velocity so we can use trapzoidal integration
 	Vector3f vel_last = _state.vel;
 
 	// predict velocity states
-	_state.vel += R_to_earth * _imu_sample_delayed.delta_vel;
+	_state.vel += _R_to_earth * _imu_sample_delayed.delta_vel;
 	_state.vel(2) += 9.81f * _imu_sample_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
+
+	// update transformation matrix from body to world frame
+	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 	constrainStates();
 }
