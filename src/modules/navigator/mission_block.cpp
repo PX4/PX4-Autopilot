@@ -548,7 +548,6 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
