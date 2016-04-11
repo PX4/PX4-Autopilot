@@ -40,7 +40,7 @@ public:
 
 	int add_topic(const char *name, unsigned interval);
 
-	static int start(char * const *argv);
+	static int start(char *const *argv);
 
 	static void usage(const char *reason);
 

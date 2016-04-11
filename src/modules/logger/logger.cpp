@@ -24,7 +24,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != Logger::start((char * const *)argv)) {
+		if (OK != Logger::start((char *const *)argv)) {
 			warnx("start failed");
 			return 1;
 		}
@@ -79,7 +79,7 @@ void Logger::usage(const char *reason)
 	      "\t-x\tExtended logging");
 }
 
-int Logger::start(char * const *argv)
+int Logger::start(char *const *argv)
 {
 	ASSERT(logger_task == -1);
 
@@ -89,7 +89,7 @@ int Logger::start(char * const *argv)
 					 SCHED_PRIORITY_MAX - 5,
 					 3100,
 					 (px4_main_t)&Logger::run_trampoline,
-					 (char * const *)argv);
+					 (char *const *)argv);
 
 	if (logger_task < 0) {
 		warn("task start failed");
@@ -107,38 +107,42 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 	int myoptind = 1;
 	int ch;
-		const char *myoptarg = NULL;
-		while ((ch = px4_getopt(argc, argv, "r:b:e", &myoptind, &myoptarg)) != EOF) {
-			switch (ch) {
-				case 'r': {
-						unsigned long r = strtoul(myoptarg, NULL, 10);
+	const char *myoptarg = NULL;
 
-						if (r <= 0) {
-							r = 1;
-						}
+	while ((ch = px4_getopt(argc, argv, "r:b:e", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'r': {
+				unsigned long r = strtoul(myoptarg, NULL, 10);
 
-						log_interval = 1e6 / r;
-					}
-					break;
-				case 'e':
-					log_on_start = true;
-				break;
-				case 'b': {
-					unsigned long s = strtoul(myoptarg, NULL, 10);
-
-					if (s < 1) {
-						s = 1;
-					}
-
-					log_buffer_size = 1024 * s;
+				if (r <= 0) {
+					r = 1;
 				}
-				break;
-			default:
-				break;
-			}
-		}
 
-	logger_ptr = new Logger(log_buffer_size,log_interval, log_on_start);
+				log_interval = 1e6 / r;
+			}
+			break;
+
+		case 'e':
+			log_on_start = true;
+			break;
+
+		case 'b': {
+				unsigned long s = strtoul(myoptarg, NULL, 10);
+
+				if (s < 1) {
+					s = 1;
+				}
+
+				log_buffer_size = 1024 * s;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -433,6 +437,7 @@ void Logger::run()
 								double drop_len = (double)(trytime - dropout_start)  * 1e-6;
 
 								if (drop_len > max_drop_len) { max_drop_len = drop_len; }
+
 								warnx("dropout length: %5.3f seconds", drop_len);
 								dropout_start = 0;
 								highWater = 0;
