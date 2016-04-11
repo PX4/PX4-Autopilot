@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator.h"
 #include "mission_block.h"
@@ -337,7 +338,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	/* set the correct setpoint for vtol transition */
 
 	if(item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && PX4_ISFINITE(item->yaw)
-			&& item->params[0] >= vehicle_status_s::VEHICLE_VTOL_STATE_FW - 0.5f) {
+			&& item->params[0] >= vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW - 0.5f) {
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,
 										   _navigator->get_global_position()->lon,
