@@ -489,6 +489,25 @@ void Ekf2::task_main()
 			ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
 			ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
 
+			/* Velocity in Body Frame */
+			float velocity[3];
+			_ekf->copy_velocity(velocity);
+			Vector3f v_n(velocity);
+			matrix::Dcm<float> Tnb(q);
+			Vector3f v_b = Tnb * v_n;
+			ctrl_state.x_vel = v_b(0);
+			ctrl_state.y_vel = v_b(1);
+			ctrl_state.z_vel = v_b(2);
+
+
+			/* Local Position */
+			float position[3];
+			_ekf->copy_position(position);
+			ctrl_state.x_pos = position[0];
+			ctrl_state.y_pos = position[1];
+			ctrl_state.z_pos = position[2];
+
+
 			ctrl_state.q[0] = q(0);
 			ctrl_state.q[1] = q(1);
 			ctrl_state.q[2] = q(2);
