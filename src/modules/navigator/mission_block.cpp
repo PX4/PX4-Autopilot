@@ -406,9 +406,9 @@ MissionBlock::set_previous_pos_setpoint()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-    if (pos_sp_triplet->current.valid) {
-        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-    }
+	if (pos_sp_triplet->current.valid) {
+		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+	}
 }
 
 void
