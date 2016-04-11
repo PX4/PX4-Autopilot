@@ -293,6 +293,11 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
+	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
+	if (_params_standard.forward_thurst_scale < FLT_EPSILON) {
+		return;
+	}
+
 	// get projection of thrust vector on body x axis. This is used to
 	// determine the desired forward acceleration which we want to achieve with the pusher
 	math::Matrix<3,3> R(&_v_att->R[0]);
