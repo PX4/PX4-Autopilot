@@ -114,6 +114,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed);
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, status_flags_s *status_flags, battery_status_s *battery);
+int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags, battery_status_s *battery);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

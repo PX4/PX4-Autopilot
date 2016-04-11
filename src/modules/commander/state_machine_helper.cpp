@@ -152,7 +152,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
-				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */,
+				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, false /* force_report */,
 							     status_flags, battery);
 				status_flags->condition_system_sensors_initialized = !prearm_ret;
 				last_preflight_check = hrt_absolute_time();
