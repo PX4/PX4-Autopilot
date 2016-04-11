@@ -196,7 +196,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	char sbuf[20];
 	frsky_state = IDLE;
 
-	while (frsky_state == IDLE) {
+	while (!thread_should_exit && frsky_state == IDLE) {
 		/* 2 byte polling frames indicate SmartPort telemetry
 		 * 11 byte packets indicate D type telemetry
 		 */
@@ -534,7 +534,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		thread_should_exit = true;
 
 		while (thread_running) {
-			usleep(200000);
+			usleep(1000000);
 			warnx(".");
 		}
 
