@@ -581,66 +581,102 @@ bool Ekf::collect_imu(imuSample &imu)
 	return false;
 }
 
+/*
+ * Implement a strapdown INS algorithm using the latest IMU data at the current time horizon.
+ * Buffer the INS states and calculate the difference with the EKF states at the delayed fusion time horizon.
+ * Calculate delta angle, delta velocity and velocity corrections from the differences and apply them at the
+ * current time horizon so that the INS states track the EKF states at the delayed fusion time horizon.
+ * The inspiration for using a complementary filter to correct for time delays in the EKF
+ * is based on the work by A Khosravian:
+ * “Recursive Attitude Estimation in the Presence of Multi-rate and Multi-delay Vector Measurements”
+ * A Khosravian, J Trumpf, R Mahony, T Hamel, Australian National University
+*/
 void Ekf::calculateOutputStates()
 {
+	// use latest IMU data
 	imuSample imu_new = _imu_sample_new;
-	Vector3f delta_angle;
 
+	// Get the delta angle and velocity from the latest IMU data
 	// Note: We do no not need to consider any bias or scale correction here
 	// since the base class has already corrected the imu sample
+	Vector3f delta_angle;
 	delta_angle(0) = imu_new.delta_ang(0);
 	delta_angle(1) = imu_new.delta_ang(1);
 	delta_angle(2) = imu_new.delta_ang(2);
 
 	Vector3f delta_vel = imu_new.delta_vel;
 
+	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
+
+	// convert the delta angle to an equivalent delta quaternions
 	Quaternion dq;
 	dq.from_axis_angle(delta_angle);
 
+	// rotate the previous INS quaternion by the delta quaternions
 	_output_new.time_us = imu_new.time_us;
 	_output_new.quat_nominal = dq * _output_new.quat_nominal;
+
+	// the quaternions must always be normalised afer modification
 	_output_new.quat_nominal.normalize();
 
+	// calculate the rotation matrix from body to earth frame
 	_R_to_earth_now = quat_to_invrotmat(_output_new.quat_nominal);
 
+	// rotate the delta velocity to earth frame
+	// apply a delta velocity correction required to track the velocity states at the EKF fusion time horizon
 	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel + _delta_vel_corr;
+
+	// corrrect for measured accceleration due to gravity
 	delta_vel_NED(2) += 9.81f * imu_new.delta_vel_dt;
 
+	// save the previous velocity so we can use trapezidal integration
 	Vector3f vel_last = _output_new.vel;
 
+	// increment the INS velocity states by the measurement plus corrections
 	_output_new.vel += delta_vel_NED;
 
+	// use trapezoidal integration to calculate the INS position states
+	// apply a velocity correction required to track the position states at the EKF fusion time horizon
 	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f) + _vel_corr * imu_new.delta_vel_dt;
 
+	// store INS states in a ring buffer that with the same length and time coordinates as the IMU data buffer
 	if (_imu_updated) {
 		_output_buffer.push(_output_new);
 		_imu_updated = false;
 	}
 
+	// get the oldest INS state data from the ring buffer
+	// this data will be at the EKF fusion time horizon
 	_output_sample_delayed = _output_buffer.get_oldest();
 
+	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 	Quaternion quat_inv = _state.quat_nominal.inversed();
 	Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
 	q_error.normalize();
+
+	// convert the quaternion delta to a delta angle
 	Vector3f delta_ang_error;
-
 	float scalar;
-
 	if (q_error(0) >= 0.0f) {
 		scalar = -2.0f;
 
 	} else {
 		scalar = 2.0f;
 	}
-
 	delta_ang_error(0) = scalar * q_error(1);
 	delta_ang_error(1) = scalar * q_error(2);
 	delta_ang_error(2) = scalar * q_error(3);
 
+	// calculate a corrrection to the delta angle
+	// that will cause the INS to track the EKF quaternions with a 1 sec time constant
 	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt;
 
+	// calculate a correction to the delta velocity
+	// that will cause the INS to track the EKF velocity with a 1 sec time constant
 	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
 
+	// calculate a correction to the INS velocity
+	// that will cause the INS to track the EKF position with a 1 sec time constant
 	_vel_corr = (_state.pos - _output_sample_delayed.pos);
 }
