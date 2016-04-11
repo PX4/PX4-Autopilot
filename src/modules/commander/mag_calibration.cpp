@@ -73,7 +73,7 @@ static constexpr unsigned int calibration_sides = 6;			///< The total number of 
 static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
 
-static constexpr float MAG_MAX_OFFSET_LEN = 0.6f;	///< The maximum measurement range is ~1.4 Ga, the earth field is ~0.6 Ga, so an offset larger than ~0.8-0.6 Ga means the mag will saturate in some directions.
+static constexpr float MAG_MAX_OFFSET_LEN = 0.75f;	///< The maximum measurement range is ~1.4 Ga, the earth field is ~0.6 Ga, so an offset larger than ~0.8-0.6 Ga means the mag will saturate in some directions.
 
 int32_t	device_ids[max_mags];
 bool internal[max_mags];
@@ -216,14 +216,17 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 					usleep(20000);
 					calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+					usleep(20000);
 					break;
 				} else {
 					calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
+					usleep(20000);
 				}
 				// Fall through
 
 			default:
 				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+				usleep(20000);
 				break;
 		}
 	}
@@ -265,7 +268,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	mag_worker_data_t* worker_data = (mag_worker_data_t*)(data);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Rotate vehicle around the detected orientation");
-	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %u seconds", worker_data->calibration_interval_perside_seconds);
+	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %s %u s", detect_orientation_str(orientation), worker_data->calibration_interval_perside_seconds);
 
 	/*
 	 * Detect if the system is rotating.
@@ -581,44 +584,46 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 	// Print uncalibrated data points
 	if (result == calibrate_return_ok) {
 
-		printf("RAW DATA:\n--------------------\n");
-		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+		// DO NOT REMOVE! Critical validation data!
 
-			if (worker_data.calibration_counter_total[cur_mag] == 0) {
-				continue;
-			}
+		// printf("RAW DATA:\n--------------------\n");
+		// for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
+		// 	if (worker_data.calibration_counter_total[cur_mag] == 0) {
+		// 		continue;
+		// 	}
 
-			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
-				float x = worker_data.x[cur_mag][i];
-				float y = worker_data.y[cur_mag][i];
-				float z = worker_data.z[cur_mag][i];
-				printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
-			}
+		// 	printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
-			printf(">>>>>>>\n");
-		}
+		// 	for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+		// 		float x = worker_data.x[cur_mag][i];
+		// 		float y = worker_data.y[cur_mag][i];
+		// 		float z = worker_data.z[cur_mag][i];
+		// 		printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
+		// 	}
 
-		printf("CALIBRATED DATA:\n--------------------\n");
-		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+		// 	printf(">>>>>>>\n");
+		// }
 
-			if (worker_data.calibration_counter_total[cur_mag] == 0) {
-				continue;
-			}
+		// printf("CALIBRATED DATA:\n--------------------\n");
+		// for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
+		// 	if (worker_data.calibration_counter_total[cur_mag] == 0) {
+		// 		continue;
+		// 	}
 
-			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
-				float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
-				float y = worker_data.y[cur_mag][i] - sphere_y[cur_mag];
-				float z = worker_data.z[cur_mag][i] - sphere_z[cur_mag];
-				printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
-			}
+		// 	printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
-			printf("SPHERE RADIUS: %8.4f\n", (double)sphere_radius[cur_mag]);
-			printf(">>>>>>>\n");
-		}
+		// 	for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+		// 		float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
+		// 		float y = worker_data.y[cur_mag][i] - sphere_y[cur_mag];
+		// 		float z = worker_data.z[cur_mag][i] - sphere_z[cur_mag];
+		// 		printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
+		// 	}
+
+		// 	printf("SPHERE RADIUS: %8.4f\n", (double)sphere_radius[cur_mag]);
+		// 	printf(">>>>>>>\n");
+		// }
 	}
 
 	// Data points are no longer needed

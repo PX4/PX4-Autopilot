@@ -2017,16 +2017,8 @@ int commander_thread_main(int argc, char *argv[])
 			critical_battery_voltage_actions_done = true;
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL;
 
-			if (!armed.armed) {
-				arming_ret = arming_state_transition(&status, &safety,
-						vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
-						&armed, true /* fRunPreArmChecks */, &mavlink_log_pub);
-
-				if (arming_ret == TRANSITION_CHANGED) {
-					arming_state_changed = true;
-					mavlink_and_console_log_critical(&mavlink_log_pub, "LOW BATTERY, LOCKING ARMING DOWN");
-				}
-
+			if (armed.armed) {
+				mavlink_and_console_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
 			} else {
 				mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LAND IMMEDIATELY");
 			}
@@ -3364,23 +3356,18 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(&mavlink_log_pub, "command denied: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
-		mavlink_log_critical(&mavlink_log_pub, "command failed: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		/* this needs additional hints to the user - so let other messages pass and be spoken */
-		mavlink_log_critical(&mavlink_log_pub, "command temporarily rejected: %u", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
-		mavlink_log_critical(&mavlink_log_pub, "command unsupported: %u", cmd.command);
 		tune_negative(true);
 		break;
 

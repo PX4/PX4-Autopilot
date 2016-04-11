@@ -1758,9 +1758,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	if (_mode != MAVLINK_MODE_OSD) {
-		MavlinkReceiver::receive_start(&_receive_thread, this);
-	}
+	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -2125,9 +2123,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* first wait for threads to complete before tearing down anything */
-	if (_mode != MAVLINK_MODE_OSD) {
-		pthread_join(_receive_thread, NULL);
-	}
+	pthread_join(_receive_thread, NULL);
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
@@ -2398,7 +2394,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -2416,7 +2412,7 @@ int mavlink_main(int argc, char *argv[])
 		usage();
 		return 1;
 
-	} else if (!strcmp(argv[1], "stop-all")) {
+	} else if (!strcmp(argv[1], "stop") || !strcmp(argv[1], "stop-all") ) {
 		return Mavlink::destroy_all_instances();
 
 	} else if (!strcmp(argv[1], "status")) {

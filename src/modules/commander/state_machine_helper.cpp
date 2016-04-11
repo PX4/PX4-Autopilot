@@ -149,8 +149,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
-				/* report preflight_check failures continuously since they prevent normal operation */
-				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, true /* force report */);
+				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */);
 				status->condition_system_sensors_initialized = !prearm_ret;
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -254,7 +253,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 				if (status->condition_system_sensors_initialized) {
-//					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
+					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
 				} else {
 					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
 				}
@@ -262,7 +261,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 					status->condition_system_sensors_initialized) {
-//				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
+				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 			} else {
 				// Silent ignore
@@ -277,7 +276,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			if ((!status->condition_system_prearm_error_reported &&
 			      status->condition_system_hotplug_timeout) ||
 			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not initialized");
+				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
 				status->condition_system_prearm_error_reported = true;
 			}
 			feedback_provided = true;
@@ -308,7 +307,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s -> %s", state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_and_console_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
 		}
 	}
 
@@ -881,13 +880,15 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 	if (!status->cb_usb && status->usb_connected && prearm) {
 		preflight_ok = false;
 		if (reportFailures) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Flying with USB connected prohibited");
+			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
 		}
 	}
 
 	if (status->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
 		preflight_ok = false;
-		mavlink_and_console_log_critical(mavlink_log_pub, "LOW BATTERY, ARMING LOCKED DOWN");
+		if (reportFailures) {
+			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
+		}
 	}
 
 	/* report once, then set the flag */
