@@ -1263,7 +1263,7 @@ PX4FMU::cycle()
 
 				rc_updated = false;
 
-				for (unsigned i = 0; i < newBytes; i++) {
+				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
 					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
@@ -1302,7 +1302,7 @@ PX4FMU::cycle()
 
 				rc_updated = false;
 
-				for (unsigned i = 0; i < newBytes; i++) {
+				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					sumd_rssi = RC_INPUT_RSSI_MAX;
 					rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
