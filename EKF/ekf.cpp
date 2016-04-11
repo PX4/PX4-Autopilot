@@ -628,7 +628,7 @@ void Ekf::calculateOutputStates()
 	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel + _delta_vel_corr;
 
 	// corrrect for measured accceleration due to gravity
-	delta_vel_NED(2) += 9.81f * imu_new.delta_vel_dt;
+	delta_vel_NED(2) += _gravity_mss * imu_new.delta_vel_dt;
 
 	// save the previous velocity so we can use trapezidal integration
 	Vector3f vel_last = _output_new.vel;
