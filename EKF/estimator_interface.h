@@ -209,6 +209,11 @@ public:
 		*val = _mag_declination_to_save_deg;
 	}
 
+	void copy_accel_bias(float *bias)
+	{
+		*bias = _state[15];
+	}
+
 protected:
 
 	parameters _params;		// filter parameters
