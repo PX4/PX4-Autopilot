@@ -95,6 +95,7 @@ void Ekf::resetHeight()
 
 		if (_time_last_imu - range_newest.time_us < 2 * RNG_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - range_newest.rng;
+			P[8][8] = sq(_params.range_noise);
 
 		} else {
 			// TODO: reset to last known range based estimate
@@ -110,6 +111,7 @@ void Ekf::resetHeight()
 
 		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
+			P[8][8] = sq(_params.baro_noise);
 
 		} else {
 			// TODO: reset to last known baro based estimate
@@ -119,6 +121,7 @@ void Ekf::resetHeight()
 		// initialize vertical position and velocity with newest gps measurement
 		if (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
+			P[8][8] = sq(gps_newest.hacc);
 
 		} else {
 			// TODO: reset to last known gps based estimate
@@ -132,7 +135,9 @@ void Ekf::resetHeight()
 	// If we are using GPS, then use it to reset the vertical velocity
 	if (_control_status.flags.gps && (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL)) {
 		_state.vel(2) = gps_newest.vel(2);
+		P[5][5] = sq(1.5f * gps_newest.sacc);
 	} else {
+		P[5][5] = fminf(sq(_state.vel(2)),1000.0f);
 		_state.vel(2) = 0.0f;
 	}
 
