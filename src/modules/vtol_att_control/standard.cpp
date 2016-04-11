@@ -145,7 +145,7 @@ void Standard::update_vtol_state()
 			// transition to MC mode if transition time has passed
 			// XXX: base this on XY hold velocity of MC
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-			    (_params_standard.back_trans_dur * 1000000.0f)) {
+				(_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 		}
@@ -171,9 +171,9 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 			if ((_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans &&
-			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
-			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
-			    !_armed->armed) {
+				 (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
+				 > (_params_standard.front_trans_time_min * 1000000.0f)) ||
+				!_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
@@ -222,11 +222,11 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend &&
-		    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
+			_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend &&
+			(float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
 		   ) {
 			float weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
-				       _airspeed_trans_blend_margin;
+					   _airspeed_trans_blend_margin;
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
@@ -316,6 +316,13 @@ void Standard::fill_actuator_outputs()
 		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
 	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
 			* (1 - _mc_yaw_weight);	// yaw
+
+
+	/* translate MC actuators to FW actuators */
+	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW || _vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] - 0.5f;
+	}
 
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
