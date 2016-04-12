@@ -135,7 +135,7 @@ int motor_ramp_main(int argc, char *argv[])
 		return 1;
 	}
 
-	_ramp_time = strtof(argv[2], NULL);
+	_ramp_time = atof(argv[2]);
 
 	if (!(_ramp_time > 0)) {
 		usage("ramp time must be greater than 0");
