@@ -80,12 +80,11 @@
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
+#include <systemlib/perf_counter.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-/* Reset pin define */
-#define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
 
 #if HRT_TIMER == PWMIN_TIMER
 #error cannot share timer between HRT and PWMIN
@@ -223,7 +222,6 @@
 #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
-// XXX refactor this out of this driver
 #define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
 #define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
@@ -240,7 +238,6 @@ public:
 
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void print_info(void);
-	void hard_reset();
 
 private:
 	uint32_t _error_count;
@@ -252,15 +249,11 @@ private:
 	ringbuffer::RingBuffer *_reports;
 	bool _timer_started;
 
-	hrt_call _hard_reset_call;	/* HRT callout for note completion */
-	hrt_call _freeze_test_call;	/* HRT callout for note completion */
+	perf_counter_t _perf_reset;
+	perf_counter_t _perf_interrupt;
+	perf_counter_t _perf_read;
 
 	void _timer_init(void);
-
-	void _turn_on();
-	void _turn_off();
-	void _freeze_test();
-
 };
 
 static int pwmin_tim_isr(int irq, void *context);
@@ -278,7 +271,10 @@ PWMIN::PWMIN() :
 	_last_period(0),
 	_last_width(0),
 	_reports(nullptr),
-	_timer_started(false)
+	_timer_started(false),
+	_perf_reset(perf_alloc(PC_COUNT, "pwm_input_reset")),
+	_perf_read(perf_alloc(PC_ELAPSED, "pwm_input_read")),
+	_perf_interrupt(perf_alloc(PC_ELAPSED, "pwm_input_interrupt"))
 {
 }
 
@@ -287,6 +283,9 @@ PWMIN::~PWMIN()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+	perf_free(_perf_reset);
+	perf_free(_perf_read);
+	perf_free(_perf_interrupt);
 }
 
 /*
@@ -303,13 +302,9 @@ PWMIN::init()
 	CDev::init();
 
 	_reports = new ringbuffer::RingBuffer(2, sizeof(struct pwm_input_s));
-
 	if (_reports == nullptr) {
 		return -ENOMEM;
 	}
-
-	/* Schedule freeze check to invoke periodically */
-	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, reinterpret_cast<hrt_callout>(&PWMIN::_freeze_test), this);
 
 	return OK;
 }
@@ -322,13 +317,7 @@ void PWMIN::_timer_init(void)
 	/* run with interrupts disabled in case the timer is already
 	 * setup. We don't want it firing while we are doing the setup */
 	irqstate_t flags = irqsave();
-
-	/* configure input pin */
 	stm32_configgpio(GPIO_PWM_IN);
-
-	// XXX refactor this out of this driver
-	/* configure reset pin */
-	stm32_configgpio(GPIO_VDD_RANGEFINDER_EN);
 
 	/* claim our interrupt vector */
 	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr);
@@ -376,38 +365,8 @@ void PWMIN::_timer_init(void)
 	irqrestore(flags);
 
 	_timer_started = true;
-}
 
-// XXX refactor this out of this driver
-void
-PWMIN::_freeze_test()
-{
-	/* reset if last poll time was way back and a read was recently requested */
-	if (hrt_elapsed_time(&_last_poll_time) > TIMEOUT_POLL && hrt_elapsed_time(&_last_read_time) < TIMEOUT_READ) {
-		hard_reset();
-	}
-}
-
-// XXX refactor this out of this driver
-void
-PWMIN::_turn_on()
-{
-	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
-}
-
-// XXX refactor this out of this driver
-void
-PWMIN::_turn_off()
-{
-	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0);
-}
-
-// XXX refactor this out of this driver
-void
-PWMIN::hard_reset()
-{
-	_turn_off();
-	hrt_call_after(&_hard_reset_call, 9000, reinterpret_cast<hrt_callout>(&PWMIN::_turn_on), this);
+	perf_count(_perf_reset);
 }
 
 /*
@@ -464,8 +423,6 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 		 * be needed if the pin was used for a different
 		 * purpose (such as PWM output) */
 		_timer_init();
-		/* also reset the sensor */
-		hard_reset();
 		return OK;
 
 	default:
@@ -481,6 +438,8 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 {
+	perf_begin(_perf_read);
+
 	_last_read_time = hrt_absolute_time();
 
 	unsigned count = buflen / sizeof(struct pwm_input_s);
@@ -489,6 +448,7 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* buffer must be large enough */
 	if (count < 1) {
+		perf_end(_perf_read);
 		return -ENOSPC;
 	}
 
@@ -499,6 +459,8 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 		}
 	}
 
+	perf_end(_perf_read);
+
 	/* if there was no data, warn the caller */
 	return ret ? ret : -EAGAIN;
 }
@@ -508,6 +470,8 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
  */
 void PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 {
+	perf_count(_perf_interrupt);
+
 	/* if we missed an edge, we have to give up */
 	if (status & SR_OVF_PWMIN) {
 		_error_count++;
@@ -538,6 +502,9 @@ void PWMIN::print_info(void)
 		       (unsigned)_pulses_captured,
 		       (unsigned)_last_period,
 		       (unsigned)_last_width);
+		perf_print_counter(_perf_interrupt);
+		perf_print_counter(_perf_read);
+		perf_print_counter(_perf_reset);
 	}
 }
 
@@ -622,7 +589,6 @@ static void pwmin_test(void)
  */
 static void pwmin_reset(void)
 {
-	g_dev->hard_reset();
 	int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
 
 	if (fd == -1) {
