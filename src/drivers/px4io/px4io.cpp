@@ -2613,7 +2613,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			/* set override immediate flag */
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE);
 		}
+		break;
 
+	case PWM_SERVO_SET_SBUS_RATE:
+		/* set the requested SBUS frame rate */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, arg);
 		break;
 
 	case DSM_BIND_START:
