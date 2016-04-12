@@ -51,7 +51,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
-
+ 
 
 /* Configuration Constants */
 #define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
@@ -60,14 +60,18 @@
 
 /* LL40LS Registers addresses */
 
-#define LL40LS_MEASURE_REG      0x00        /* Measure range register */
-#define LL40LS_MSRREG_RESET     0x00        /* reset to power on defaults */
-#define LL40LS_MSRREG_ACQUIRE       0x04        /* Value to initiate a measurement, varies based on sensor revision */
-#define LL40LS_DISTHIGH_REG     0x0F        /* High byte of distance register, auto increment */
-#define LL40LS_AUTO_INCREMENT   0x80
-#define LL40LS_HW_VERSION         0x41
-#define LL40LS_SW_VERSION         0x4f
-#define LL40LS_SIGNAL_STRENGTH_REG  0x5b
+#define LL40LS_MEASURE_REG	0x00        /* Measure range register */
+#define LL40LS_DISTHIGH_REG	0x0F        /* High byte of distance register, auto increment */
+#define LL40LS_COUNT		0x11
+#define LL40LS_HW_VERSION	0x41
+#define LL40LS_INTERVAL		0x45
+#define LL40LS_SW_VERSION	0x4f
+
+// bit values
+#define LL40LS_MSRREG_RESET	0x00        /* reset to power on defaults */
+#define LL40LS_AUTO_INCREMENT	0x80
+#define LL40LS_COUNT_CONTINUOUS	0xff
+#define LL40LS_MSRREG_ACQUIRE	0x04        /* Value to initiate a measurement, varies based on sensor revision */
 
 class LidarLiteI2C : public LidarLite, public device::I2C
 {
@@ -117,8 +121,11 @@ private:
 	uint16_t        _zero_counter;
 	uint64_t        _acquire_time_usec;
 	volatile bool       _pause_measurements;
-	uint8_t		_hw_version;
-	uint8_t		_sw_version;
+        uint8_t		_hw_version;
+        uint8_t		_sw_version;
+	bool		_v2_hardware;
+	bool		_reset_complete;
+	uint8_t		_same_value_counter;
 
 	/**< the bus the device is connected to */
 	int         _bus;
