@@ -113,7 +113,7 @@ __EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
 /**
  * Set a time offset to hrt_absolute_time on the DSP.
  * @param time_diff_us: time difference of the DSP clock to Linux clock.
- *   This param is positive because the Linux clock is ahead of the DSP one.
+ *   This param is positive if the Linux clock is ahead of the DSP one.
  */
 __EXPORT extern int hrt_set_absolute_time_offset(int32_t time_diff_us);
 #endif
