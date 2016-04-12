@@ -57,7 +57,16 @@
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
 #define SBUS_FRAMELOST_BIT	2
-#define SBUS1_FRAME_DELAY	14000
+
+// testing with a SBUS->PWM adapter shows that
+// above 300Hz SBUS becomes unreliable. 333 would
+// be the theoretical achievable, but at 333Hz some
+// frames are lost
+#define SBUS1_MAX_RATE_HZ	300
+#define SBUS1_MIN_RATE_HZ	50
+
+// this is the rate of the old code
+#define SBUS1_DEFAULT_RATE_HZ	72
 
 #define SBUS_SINGLE_CHAR_LEN_US		(1/((100000/10)) * 1000 * 1000)
 
@@ -108,6 +117,7 @@ static enum SBUS2_DECODE_STATE {
 static uint8_t	sbus_frame[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
 
 static unsigned partial_frame_count;
+static unsigned sbus1_frame_delay = (1000U*1000U)/SBUS1_DEFAULT_RATE_HZ;
 
 static unsigned sbus_frame_drops;
 
@@ -179,7 +189,7 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 
 	now = hrt_absolute_time();
 
-	if ((now - last_txframe_time) > SBUS1_FRAME_DELAY) {
+	if ((now - last_txframe_time) > sbus1_frame_delay) {
 		last_txframe_time = now;
 		uint8_t	oframe[SBUS_FRAME_SIZE] = { 0x0f };
 
@@ -626,4 +636,18 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 	}
 
 	return true;
+}
+
+/*
+  set output rate of SBUS in Hz
+ */
+void sbus1_set_output_rate_hz(uint16_t rate_hz)
+{
+	if (rate_hz > SBUS1_MAX_RATE_HZ) {
+		rate_hz = SBUS1_MAX_RATE_HZ;
+	}
+	if (rate_hz < SBUS1_MIN_RATE_HZ) {
+		rate_hz = SBUS1_MIN_RATE_HZ;
+	}
+	sbus1_frame_delay = (1000U*1000U) / rate_hz;
 }
