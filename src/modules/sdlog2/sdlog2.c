@@ -910,7 +910,7 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 		// The orb_exists call doesn't work correctly on Snapdragon yet.
 		// (No data gets sent from the QURT to the Linux side because there
 		// are no subscribers. However, there won't be any subscribers, if
-		// they check using orb_exists() before subscribing.
+		// they check using orb_exists() before subscribing.)
 		if (true)
 #else
 		if (OK == orb_exists(topic, multi_instance))
