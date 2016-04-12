@@ -184,9 +184,7 @@ void Ekf::controlFusionModes()
 				_control_status.flags.rng_hgt = false;
 				// adjust the height offset so we can use the GPS
 				_hgt_sensor_offset = _state.pos(2) + gps_init.hgt - _gps_alt_ref;
-				if (!baro_hgt_available) {
-					printf("EKF baro hgt timeout - switching to gps\n");
-				}
+				printf("EKF baro hgt timeout - switching to gps\n");
 			}
 		}
 
