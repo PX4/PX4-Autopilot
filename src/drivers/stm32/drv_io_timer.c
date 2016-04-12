@@ -149,7 +149,7 @@ static int io_timer_handler(uint16_t timer_index)
 
 	/* Iterate over the timer_io_channels table */
 
-	for (int chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
+	for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
 
 		uint16_t masks = timer_io_channels[chan_index].masks;
 
@@ -249,7 +249,7 @@ static uint32_t get_timer_channels(unsigned timer)
 		const io_timers_t *tmr = &io_timers[timer];
 		/* Gather the channel bit that belong to the timer */
 
-		for (int chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
+		for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
 			channels |= 1 << chan_index;
 		}
 	}
@@ -645,7 +645,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	irqstate_t flags = irqsave();
 
-	for (int actions = 0; actions < arraySize(action_cache) && action_cache[actions].base != 0 ; actions++) {
+	for (unsigned actions = 0; actions < arraySize(action_cache) && action_cache[actions].base != 0 ; actions++) {
 		uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
 		rvalue &= ~action_cache[actions].ccer_clearbits;
 		rvalue |= action_cache[actions].ccer_setbits;
@@ -665,7 +665,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			/* force an update to preload all registers */
 			rEGR(actions) = GTIM_EGR_UG;
 
-			for (int chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
+			for (unsigned chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
 				if (action_cache[actions].gpio[chan]) {
 					stm32_configgpio(action_cache[actions].gpio[chan]);
 					action_cache[actions].gpio[chan] = 0;
