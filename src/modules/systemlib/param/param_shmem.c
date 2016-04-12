@@ -859,6 +859,7 @@ param_save_default(void)
 
 	// After writing the file, also do a fsync to prevent loosing params if power is cut.
 	res = fsync(fd);
+
 	if (res != 0) {
 		PX4_ERR("failed to do fsync: %s", strerror(errno));
 		goto exit;
