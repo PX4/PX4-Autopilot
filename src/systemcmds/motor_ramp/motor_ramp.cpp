@@ -61,9 +61,12 @@
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
 
-static bool thread_should_exit = false;		/**< motor_ramp exit flag */
-static bool thread_running = false;		/**< motor_ramp status flag */
-static int motor_ramp_task;				/**< Handle of motor_ramp task / thread */
+static bool _thread_should_exit = false;		/**< motor_ramp exit flag */
+static bool _thread_running = false;		/**< motor_ramp status flag */
+static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
+static float _ramp_time;
+static int _min_pwm;
+static orb_advert_t _actuator_outputs_pub = nullptr;
 
 enum RampState {
 	RAMP_INIT,
@@ -82,6 +85,12 @@ extern "C" __EXPORT int motor_ramp_main(int argc, char *argv[]);
  */
 int motor_ramp_thread_main(int argc, char *argv[]);
 
+bool min_pwm_valid(unsigned pwm_value);
+
+void set_min_pwm(unsigned pwm_value);
+
+void publish(struct actuator_outputs_s &actuator_outputs, float output);
+
 /**
  * Print the correct usage.
  */
@@ -91,10 +100,11 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		PX4_WARN("%s\n", reason);
+		PX4_WARN("[motor_ramp] %s", reason);
 	}
 
-	PX4_WARN("usage: motor_ramp {start|stop|status} [-p <additional params>]\n\n");
+	PX4_WARN("[motor_ramp] usage:   motor_ramp <min_pwm> <ramp_time>");
+	PX4_WARN("[motor_ramp] example: motor_ramp 1100 0.5\n");
 }
 
 /**
@@ -107,47 +117,46 @@ usage(const char *reason)
  */
 int motor_ramp_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage("missing command");
+	if (argc < 3) {
+		usage("missing parameters");
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			PX4_WARN("motor_ramp already running\n");
-			/* this is not an error */
-			return 0;
-		}
-
-		thread_should_exit = false;
-		motor_ramp_task = px4_task_spawn_cmd("motor_ramp",
-						     SCHED_DEFAULT,
-						     SCHED_PRIORITY_DEFAULT,
-						     2000,
-						     motor_ramp_thread_main,
-						     (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+	if (_thread_running) {
+		PX4_WARN("motor_ramp already running\n");
+		/* this is not an error */
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
-		return 0;
+	_min_pwm = atoi(argv[1]);
+
+	if (!min_pwm_valid(_min_pwm)) {
+		usage("min pwm not in range");
+		return 1;
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			PX4_WARN("\trunning\n");
+	_ramp_time = strtof(argv[2], NULL);
 
-		} else {
-			PX4_WARN("\tnot started\n");
-		}
-
-		return 0;
+	if (!(_ramp_time > 0)) {
+		usage("ramp time must be greater than 0");
+		return 1;
 	}
+
+	_thread_should_exit = false;
+	_motor_ramp_task = px4_task_spawn_cmd("motor_ramp",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     2000,
+					     motor_ramp_thread_main,
+					     (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+	return 0;
 
 	usage("unrecognized command");
 	return 1;
+}
+
+bool min_pwm_valid(unsigned pwm_value) {
+	return pwm_value > 900 && pwm_value < 1300;
 }
 
 void set_min_pwm(unsigned pwm_value)
@@ -157,7 +166,7 @@ void set_min_pwm(unsigned pwm_value)
 	char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {PX4_WARN("can't open %s", dev);}
+	if (fd < 0) {PX4_WARN("[motor_ramp] can't open %s", dev);}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	struct pwm_output_values pwm_values;
@@ -171,29 +180,35 @@ void set_min_pwm(unsigned pwm_value)
 
 	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {PX4_WARN("failed setting min values");}
+	if (ret != OK) {PX4_WARN("[motor_ramp] failed setting min values");}
 
 	px4_close(fd);
 }
 
-void publish(orb_advert_t actuator_outputs_pub, struct actuator_outputs_s &actuator_outputs, float output)
+void publish(struct actuator_outputs_s &actuator_outputs, float output)
 {
 	//PX4_WARN("[motor_ramp] publish %f", (double)output);
 	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
 		actuator_outputs.output[i] = output;
 	}
-	
-	orb_publish(ORB_ID(actuator_outputs), actuator_outputs_pub, &actuator_outputs);
+
+	if (_actuator_outputs_pub == nullptr) {
+		_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &actuator_outputs);
+
+	} else {
+		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
+	}
 }
 
 int motor_ramp_thread_main(int argc, char *argv[])
 {
 	PX4_WARN("[motor_ramp] starting");
 
-	thread_running = true;
+	_thread_running = true;
 
 	struct actuator_outputs_s actuator_outputs = {};
-	orb_advert_t actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &actuator_outputs);
+	publish(actuator_outputs, 0.0f);
+
 	int ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 
 	/* wakeup source */
@@ -209,13 +224,9 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	hrt_abstime last_run = 0;
 
 	enum RampState ramp_state = RAMP_INIT;
-	unsigned min_pwm = 1100;
-	float ramp_time = 0.5f;
 	float output = 0.0f;
 
-	publish(actuator_outputs_pub, actuator_outputs, 0.0f);
-
-	while (!thread_should_exit) {
+	while (!_thread_should_exit) {
 		if (last_run > 0) {
 			dt = hrt_elapsed_time(&last_run) * 1e-6;
 
@@ -242,14 +253,14 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		switch (ramp_state) {
 		case RAMP_INIT: {
-				if (min_pwm > 1350) {
-					thread_should_exit = true;
-					PX4_WARN("[motor_ramp] pwm min too high %d", min_pwm);
+				if (!min_pwm_valid(_min_pwm)) {
+					_thread_should_exit = true;
+					PX4_WARN("[motor_ramp] min pwm not in range %d", _min_pwm);
 					break;
 				}
 
-				PX4_WARN("[motor_ramp] setting pwm min %d", min_pwm);
-				set_min_pwm(min_pwm);
+				PX4_WARN("[motor_ramp] setting pwm min %d", _min_pwm);
+				set_min_pwm(_min_pwm);
 				ramp_state = RAMP_MIN;
 				break;
 			}
@@ -265,7 +276,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_RAMP: {
-				output += dt / ramp_time;
+				output += dt / _ramp_time;
 
 				if (output > 1.0f) {
 					output = 1.0f;
@@ -274,13 +285,13 @@ int motor_ramp_thread_main(int argc, char *argv[])
 					PX4_WARN("[motor_ramp] ramp finished, waiting");
 				}
 
-				publish(actuator_outputs_pub, actuator_outputs, output);
+				publish(actuator_outputs, output);
 				break;
 			}
 
 		case RAMP_WAIT: {
 				if (timer > 3.0f) {
-					thread_should_exit = true;
+					_thread_should_exit = true;
 					break;
 				}
 
@@ -289,11 +300,11 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		}
 	}
 
-	publish(actuator_outputs_pub, actuator_outputs, 0.0f);
+	publish(actuator_outputs, 0.0f);
 
 	PX4_WARN("[motor_ramp] exiting");
 
-	thread_running = false;
+	_thread_running = false;
 
 	return 0;
 }
