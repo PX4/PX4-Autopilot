@@ -59,7 +59,7 @@ __EXPORT int motor_test_main(int argc, char *argv[]);
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
-static orb_advert_t _test_motor_pub = nullptr;
+static orb_advert_t _test_motor_pub = NULL;
 
 void motor_test(unsigned channel, float value)
 {
@@ -69,7 +69,7 @@ void motor_test(unsigned channel, float value)
 	_test_motor.timestamp = hrt_absolute_time();
 	_test_motor.value = value;
 
-	if (_test_motor_pub != nullptr) {
+	if (_test_motor_pub != NULL) {
 		/* publish test state */
 		orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
 
