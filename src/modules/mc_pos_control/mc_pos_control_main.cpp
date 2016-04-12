@@ -1417,10 +1417,16 @@ MulticopterPositionControl::task_main()
 					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 				}
 
+				// guard against any bad velocity values
+
+				bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
+									  PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
+									  _pos_sp_triplet.current.velocity_valid;
+
 				// do not go slower than the follow target velocity when position tracking is active (set to valid)
 
 				if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
-					_pos_sp_triplet.current.velocity_valid &&
+					velocity_valid &&
 					_pos_sp_triplet.current.position_valid) {
 
 					math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
@@ -1444,7 +1450,7 @@ MulticopterPositionControl::task_main()
 					// track target using velocity only
 
 				} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
-					_pos_sp_triplet.current.velocity_valid) {
+						velocity_valid) {
 
 					_vel_sp(0) = _pos_sp_triplet.current.vx;
 					_vel_sp(1) = _pos_sp_triplet.current.vy;

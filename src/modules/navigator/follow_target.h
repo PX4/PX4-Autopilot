@@ -72,7 +72,7 @@ private:
 		WAIT_FOR_TARGET_POSITION
 	};
 
-	enum FollowTargetPosition {
+	enum {
 		FOLLOW_FROM_RIGHT,
 		FOLLOW_FROM_BEHIND,
 		FOLLOW_FROM_FRONT,
@@ -103,7 +103,7 @@ private:
 	control::BlockParamInt _param_tracking_side;
 
 	FollowTargetState _follow_target_state;
-	FollowTargetPosition _follow_target_position;
+	int _follow_target_position;
 
 	int _follow_target_sub;
 	float _step_time_in_ms;

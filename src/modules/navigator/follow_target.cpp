@@ -45,7 +45,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include <fcntl.h>
-#include <float.h>
 
 #include <systemlib/err.h>
 
@@ -78,8 +77,6 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_target_vel.zero();
 	_target_distance.zero();
 	_target_position_offset.zero();
-
-	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
 }
 
 FollowTarget::~FollowTarget()
@@ -97,7 +94,7 @@ void FollowTarget::on_activation()
 
 	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
 
-	_follow_target_position = (FollowTargetPosition) _param_tracking_side.get();
+	_follow_target_position = _param_tracking_side.get();
 
 	if((_follow_target_position > FOLLOW_FROM_LEFT) || (_follow_target_position < FOLLOW_FROM_RIGHT)) {
 		_follow_target_position = FOLLOW_FROM_BEHIND;
