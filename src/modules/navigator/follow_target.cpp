@@ -99,7 +99,7 @@ void FollowTarget::on_activation()
 
 	_follow_target_position = (FollowTargetPosition) _param_tracking_side.get();
 
-	if((_follow_target_position > 3) || (_follow_target_position < 0)) {
+	if((_follow_target_position > FOLLOW_FROM_LEFT) || (_follow_target_position < FOLLOW_FROM_RIGHT)) {
 		_follow_target_position = FOLLOW_FROM_BEHIND;
 	}
 
