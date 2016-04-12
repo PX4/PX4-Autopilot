@@ -43,7 +43,7 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include <lib/mathlib/math/Vector.hpp>
-
+#include <lib/mathlib/math/Matrix.hpp>
 #include "navigator_mode.h"
 #include "mission_block.h"
 
@@ -60,10 +60,11 @@ public:
 
 private:
 
-	static constexpr int TARGET_TIMEOUT_S = 5;
+	static constexpr int TARGET_TIMEOUT_MS = 1500;
 	static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 5;
 	static constexpr int INTERPOLATION_PNTS = 20;
-	static constexpr float FF_K = .15f;
+	static constexpr float FF_K = .40F;
+	static constexpr float OFFSET_M = 8;
 
 	enum FollowTargetState {
 		TRACK_POSITION,
@@ -71,9 +72,36 @@ private:
 		WAIT_FOR_TARGET_POSITION
 	};
 
+	enum FollowTargetPosition {
+		FOLLOW_FROM_RIGHT,
+		FOLLOW_FROM_BEHIND,
+		FOLLOW_FROM_FRONT,
+		FOLLOW_FROM_LEFT
+	};
+
+	float _follow_position_matricies[4][9] = {
+				 	 	 	 	 	 {1.0F,  -1.0F, 0.0F,
+						 	 	 	  1.0F,   1.0F, 0.0F,
+									  0.0F,   0.0F, 1.0F}, // follow right
+
+									 {-1.0F,  0.0F, 0.0F,
+						 	 	 	   0.0F, -1.0F, 0.0F,
+									   0.0F,  0.0F, 1.0F}, // follow behind
+
+									 {1.0F,   0.0F, 0.0F,
+							 	 	  0.0F,   1.0F, 0.0F,
+									  0.0F,   0.0F, 1.0F}, // follow front
+
+									 {1.0F,   1.0F, 0.0F,
+							 	 	 -1.0F,   1.0F, 0.0F,
+									  0.0F,   0.0F, 1.0F}}; // follow left side
+
+
 	Navigator *_navigator;
 	control::BlockParamFloat _param_min_alt;
 	FollowTargetState _follow_target_state;
+	FollowTargetPosition _follow_target_position;
+
 	int _follow_target_sub;
 	float _step_time_in_ms;
 
@@ -85,10 +113,11 @@ private:
 	math::Vector<3> _step_vel;
 	math::Vector<3> _target_vel;
 	math::Vector<3> _target_distance;
+	math::Vector<3> _target_position_offset;
 
 	follow_target_s _current_target_motion;
 	follow_target_s _previous_target_motion;
-
+	math::Matrix<3,3> _rot_matrix;
 	void track_target_position();
 	void track_target_velocity();
 	bool target_velocity_valid();
