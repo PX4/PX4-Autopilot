@@ -60,18 +60,22 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_navigator(navigator),
 	_param_min_alt(this, "MIS_TAKEOFF_ALT", false),
 	_follow_target_state(WAIT_FOR_TARGET_POSITION),
+	_follow_target_position(FOLLOW_FROM_BEHIND),
 	_follow_target_sub(-1),
 	_step_time_in_ms(0.0f),
 	_target_updates(0),
 	_last_update_time(0),
 	_current_target_motion( {}),
-			_previous_target_motion({})
+	_previous_target_motion({})
 {
 	updateParams();
 	_current_vel.zero();
 	_step_vel.zero();
 	_target_vel.zero();
 	_target_distance.zero();
+	_target_position_offset.zero();
+
+	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
 }
 
 FollowTarget::~FollowTarget()
@@ -94,11 +98,13 @@ void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
 	math::Vector<3> target_position(0, 0, 0);
+	follow_target_s target_motion = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
 	bool _radius_exited = false;
 	bool updated = false;
 	float dt_ms = 0;
+	float yaw_angle = NAN;
 
 	orb_check(_follow_target_sub, &updated);
 
@@ -117,6 +123,32 @@ void FollowTarget::on_active()
 		reset_target_validity();
 	}
 
+	// update distance to target
+
+	if (target_position_valid()) {
+
+		// get distance to target
+
+		map_projection_init(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0),
+				       &_target_distance(1));
+
+		target_motion = _current_target_motion;
+
+		// use target offset
+
+		map_projection_init(&target_ref, _current_target_motion.lat, _current_target_motion.lon);
+		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1), &target_motion.lat, &target_motion.lon);
+
+		// are we within the target acceptance radius?
+		// give a buffer to exit/enter the radius to give the velocity controller
+		// a chance to catch up
+
+		_radius_exited =  ((_target_position_offset + _target_distance).length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
+		_radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+
+	}
+
 	// update target velocity
 
 	if (target_velocity_valid() && updated) {
@@ -129,8 +161,12 @@ void FollowTarget::on_active()
 
 		// calculate distance the target has moved
 
-		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)),
-				       &(target_position(1)));
+		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)), &(target_position(1)));
+
+		// track to the left, right, behind, or front
+
+		_target_position_offset = _rot_matrix*(target_position.normalized()*OFFSET_M);
+
 
 		// update the average velocity of the target based on the position
 
@@ -144,27 +180,30 @@ void FollowTarget::on_active()
 		// just traveling at the exact velocity of the target will not
 		// get any closer to the target
 
-		_step_vel = (_target_vel - _current_vel) + _target_distance * FF_K;
+		_step_vel = (_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K;
 		_step_vel /= (dt_ms / 1000.0f * (float) INTERPOLATION_PNTS);
 		_step_time_in_ms = dt_ms / (float) INTERPOLATION_PNTS;
 	}
 
-	// update distance to target
+	// always point towards target
 
-	if (target_position_valid()) {
+	if (target_position_valid() && updated) {
+		warnx(" lat %f (%f) lon %f (%f), dist x %f y %f (%f) yaw = %f mode = %d",
+				target_motion.lat,
+				(double )_navigator->get_global_position()->lat,
+				target_motion.lon,
+				(double ) _navigator->get_global_position()->lon,
+				(double ) _target_distance(0),
+				(double ) _target_distance(1),
+				(double ) _target_distance.length(),
+				(double) yaw_angle,
+				_follow_target_state);
 
-		// get distance to target
 
-		map_projection_init(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0),
-				       &_target_distance(1));
-
-		// are we within the target acceptance radius?
-		// give a buffer to exit/enter the radius to give the velocity controller
-		// a chance to catch up
-
-		_radius_exited = (_target_distance.length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
-		_radius_entered = (_target_distance.length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+			yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+													 _navigator->get_global_position()->lon,
+													 _current_target_motion.lat,
+													 _current_target_motion.lon);
 	}
 
 	// update state machine
@@ -177,7 +216,7 @@ void FollowTarget::on_active()
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _target_vel;
 				update_position_sp(true, true);
@@ -192,7 +231,7 @@ void FollowTarget::on_active()
 				_follow_target_state = TRACK_POSITION;
 
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, yaw_angle);
 
 				if ((current_time - _last_update_time) / 1000 >= _step_time_in_ms) {
 					_current_vel += _step_vel;
@@ -261,6 +300,7 @@ void FollowTarget::reset_target_validity()
 	_step_vel.zero();
 	_target_vel.zero();
 	_target_distance.zero();
+	_target_position_offset.zero();
 	reset_mission_item_reached();
 	_follow_target_state = WAIT_FOR_TARGET_POSITION;
 }
