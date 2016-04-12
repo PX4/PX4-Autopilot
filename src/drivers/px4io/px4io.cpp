@@ -251,6 +251,7 @@ private:
 	// XXX
 	unsigned		_hardware;		///< Hardware revision
 	unsigned		_max_actuators;		///< Maximum # of actuators supported by PX4IO
+	unsigned		_max_servos;		///< Maximum # of servos supported by PX4IO
 	unsigned		_max_controls;		///< Maximum # of controls supported by PX4IO
 	unsigned		_max_rc_input;		///< Maximum receiver channels supported by PX4IO
 	unsigned		_max_relays;		///< Maximum relays supported by PX4IO
@@ -495,6 +496,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_interface(interface),
 	_hardware(0),
 	_max_actuators(0),
+	_max_servos(0),
 	_max_controls(0),
 	_max_rc_input(0),
 	_max_relays(0),
@@ -673,12 +675,14 @@ PX4IO::init()
 
 	_hardware      = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION);
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
+	_max_servos    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SERVO_COUNT);
 	_max_controls  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
+	    (_max_servos < 1) || (_max_servos > 255) ||
 	    (_max_relays > 32)   ||
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
@@ -2540,7 +2544,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = _max_actuators;
+		*(unsigned *)arg = _max_servos;
 		break;
 
 	case PWM_SERVO_SET_DISABLE_LOCKDOWN:
