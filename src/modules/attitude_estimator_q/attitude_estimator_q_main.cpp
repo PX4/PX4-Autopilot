@@ -615,6 +615,10 @@ void AttitudeEstimatorQ::task_main()
 			ctrl_state.q[2] = _q(2);
 			ctrl_state.q[3] = _q(3);
 
+			ctrl_state.x_acc = _accel(0);
+			ctrl_state.y_acc = _accel(1);
+			ctrl_state.z_acc = _accel(2);
+
 			/* attitude rates for control state */
 			ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
 
