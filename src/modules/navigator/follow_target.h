@@ -99,11 +99,15 @@ private:
 
 	Navigator *_navigator;
 	control::BlockParamFloat _param_min_alt;
+	control::BlockParamFloat _param_tracking_dist;
+	control::BlockParamInt _param_tracking_side;
+
 	FollowTargetState _follow_target_state;
 	FollowTargetPosition _follow_target_position;
 
 	int _follow_target_sub;
 	float _step_time_in_ms;
+	float _follow_offset;
 
 	uint64_t _target_updates;
 

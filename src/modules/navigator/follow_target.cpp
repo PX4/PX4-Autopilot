@@ -47,7 +47,6 @@
 #include <fcntl.h>
 #include <float.h>
 
-#include <mavlink/mavlink_log.h>
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
@@ -61,13 +60,16 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_navigator(navigator),
 	_param_min_alt(this, "NAV_MIN_FT_HT", false),
+	_param_tracking_dist(this,"NAV_FT_DST", false),
+	_param_tracking_side(this,"NAV_FT_FS", false),
 	_follow_target_state(WAIT_FOR_TARGET_POSITION),
 	_follow_target_position(FOLLOW_FROM_BEHIND),
 	_follow_target_sub(-1),
 	_step_time_in_ms(0.0f),
+	_follow_offset(OFFSET_M),
 	_target_updates(0),
 	_last_update_time(0),
-	_current_target_motion( {}),
+	_current_target_motion({}),
 	_previous_target_motion({})
 {
 	updateParams();
@@ -91,6 +93,18 @@ void FollowTarget::on_inactive()
 
 void FollowTarget::on_activation()
 {
+	updateParams();
+
+	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
+
+	_follow_target_position = (FollowTargetPosition) _param_tracking_side.get();
+
+	if((_follow_target_position > 3) || (_follow_target_position < 0)) {
+		_follow_target_position = FOLLOW_FROM_BEHIND;
+	}
+
+	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
+
 	if (_follow_target_sub < 0) {
 		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
 	}
@@ -120,8 +134,7 @@ void FollowTarget::on_active()
 
 		orb_copy(ORB_ID(follow_target), _follow_target_sub, &_current_target_motion);
 
-	} else if (((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000 ) > TARGET_TIMEOUT_MS
-		   && target_velocity_valid()) {
+	} else if (((current_time - _current_target_motion.timestamp) / 1000 ) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();
 	}
 
@@ -157,9 +170,9 @@ void FollowTarget::on_active()
 
 		dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000);
 
-		// protect from to small of a dt
+		// ignore a small dt
 
-		if (dt_ms > 10) {
+		if (dt_ms > 10.0F) {
 
 			// get last gps known reference for target
 
@@ -169,14 +182,14 @@ void FollowTarget::on_active()
 
 			map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)),  &(target_position(1)));
 
-			// only calculate new velocity if target has moved
+			// only calculate offset rotation if target has moved
 
 			if(target_position.length() > 0.0F) {
 
 				// track to the left, right, behind, or front
 
-				_target_position_offset = _rot_matrix * (target_position.normalized() * OFFSET_M);
-
+				_target_position_offset = _rot_matrix * (target_position.normalized() * _follow_offset);
+			}
 				// update the average velocity of the target based on the position
 
 				_target_vel = target_position / (dt_ms / 1000.0f);
@@ -192,7 +205,6 @@ void FollowTarget::on_active()
 				_step_vel = (_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K;
 				_step_vel /= (dt_ms / 1000.0F * (float) INTERPOLATION_PNTS);
 				_step_time_in_ms = dt_ms / (float) INTERPOLATION_PNTS;
-			}
 		}
 	}
 
@@ -200,8 +212,10 @@ void FollowTarget::on_active()
 
 	if (target_position_valid() && updated) {
 
-		yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-				_current_target_motion.lat, _current_target_motion.lon);
+		yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon,
+				_current_target_motion.lat,
+				_current_target_motion.lon);
 
 //			warnx(" lat %f (%f) lon %f (%f), dist x %f y %f (%f) yaw = %f mode = %d",
 //					target_motion.lat,
@@ -258,7 +272,6 @@ void FollowTarget::on_active()
 		}
 
 	case WAIT_FOR_TARGET_POSITION: {
-
 			// Climb to the minimum altitude
 			// and wait until a position is received
 

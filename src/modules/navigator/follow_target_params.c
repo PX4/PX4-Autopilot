@@ -53,3 +53,27 @@
  * @group Follow target
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_FT_HT, 8.0f);
+
+/**
+ * Distance to follow target from
+ *
+ * The distance in meters to follow the target at
+ *
+ * @unit meters
+ * @min 1.0
+ * @group Follow target
+ */
+PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
+
+/**
+ * Side to follow target from
+ *
+ * The side to follow the target from (front right = 0, behind = 1, front = 2, front left = 3)
+ *
+ * @unit n/a
+ * @min 0
+ * @max 3
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_FS, 1);
+
