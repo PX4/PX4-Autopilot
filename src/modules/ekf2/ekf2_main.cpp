@@ -476,8 +476,9 @@ void Ekf2::task_main()
 		}
 
 		// read airspeed data if available
-		if (airspeed_updated) {
-			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s); // Only TAS is now fed into the estimator
+		float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+		if (airspeed_updated && airspeed.true_airspeed_m_s > 7.0f) {
+			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
 		if (optical_flow_updated) {
@@ -532,6 +533,7 @@ void Ekf2::task_main()
 			ctrl_state.q[1] = q(1);
 			ctrl_state.q[2] = q(2);
 			ctrl_state.q[3] = q(3);
+
 
 			// Airspeed - take airspeed measurement directly here as no wind is estimated
 			if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
