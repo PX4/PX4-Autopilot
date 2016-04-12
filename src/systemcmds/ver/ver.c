@@ -58,8 +58,10 @@ static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
 static const char mcu_uid_str[]		= "uid";
 
+#ifdef CMAKE_BUILD
 const char *px4_git_version = PX4_GIT_VERSION_STR;
 const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
+#endif
 
 static void usage(const char *reason)
 {
