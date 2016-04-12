@@ -1076,7 +1076,7 @@ PX4IO::task_main()
 				io_set_rc_config();
 
 				/* re-set the battery scaling */
-				int32_t voltage_scaling_val;
+				int32_t voltage_scaling_val = 10000;
 				param_t voltage_scaling_param;
 
 				/* set battery voltage scaling */
