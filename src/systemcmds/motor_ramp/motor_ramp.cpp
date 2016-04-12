@@ -53,9 +53,6 @@
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/control_state.h>
 #include <platforms/px4_defines.h>
 
 #include "systemlib/systemlib.h"
@@ -66,7 +63,6 @@ static bool _thread_running = false;		/**< motor_ramp status flag */
 static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
 static float _ramp_time;
 static int _min_pwm;
-static orb_advert_t _actuator_outputs_pub = nullptr;
 
 enum RampState {
 	RAMP_INIT,
@@ -87,9 +83,11 @@ int motor_ramp_thread_main(int argc, char *argv[]);
 
 bool min_pwm_valid(unsigned pwm_value);
 
-void set_min_pwm(unsigned pwm_value);
+int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value);
 
-void publish(struct actuator_outputs_s &actuator_outputs, float output);
+int set_out(int fd, unsigned long max_channels, float output);
+
+int prepare(int fd, unsigned long *max_channels);
 
 /**
  * Print the correct usage.
@@ -144,60 +142,92 @@ int motor_ramp_main(int argc, char *argv[])
 
 	_thread_should_exit = false;
 	_motor_ramp_task = px4_task_spawn_cmd("motor_ramp",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT,
-					     2000,
-					     motor_ramp_thread_main,
-					     (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+					      SCHED_DEFAULT,
+					      SCHED_PRIORITY_DEFAULT,
+					      2000,
+					      motor_ramp_thread_main,
+					      (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 	return 0;
 
 	usage("unrecognized command");
 	return 1;
 }
 
-bool min_pwm_valid(unsigned pwm_value) {
+bool min_pwm_valid(unsigned pwm_value)
+{
 	return pwm_value > 900 && pwm_value < 1300;
 }
 
-void set_min_pwm(unsigned pwm_value)
+int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
 {
 	int ret;
-	unsigned servo_count;
-	char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {PX4_WARN("[motor_ramp] can't open %s", dev);}
-
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	pwm_values.channel_count = servo_count;
+	pwm_values.channel_count = max_channels;
 
-	for (int i = 0; i < servo_count; i++) {
+	for (int i = 0; i < max_channels; i++) {
 		pwm_values.values[i] = pwm_value;
 	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {PX4_WARN("[motor_ramp] failed setting min values");}
+	if (ret != OK) {
+		PX4_ERR("[motor_ramp] failed setting min values");
+		return 1;
+	}
 
-	px4_close(fd);
+	return 0;
 }
 
-void publish(struct actuator_outputs_s &actuator_outputs, float output)
+int set_out(int fd, unsigned long max_channels, float output)
 {
-	//PX4_WARN("[motor_ramp] publish %f", (double)output);
-	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
-		actuator_outputs.output[i] = output;
+	int ret;
+	int pwm = (2000 - _min_pwm) * output + _min_pwm;
+
+	for (unsigned i = 0; i < max_channels; i++) {
+
+		ret = ioctl(fd, PWM_SERVO_SET(i), pwm);
+
+		if (ret != OK) {
+			PX4_ERR("PWM_SERVO_SET(%d), value: %d", i, pwm);
+			return 1;
+		}
 	}
 
-	if (_actuator_outputs_pub == nullptr) {
-		_actuator_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &actuator_outputs);
+	return 0;
+}
 
-	} else {
-		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
+int prepare(int fd, unsigned long *max_channels)
+{
+	int ret;
+
+	/* get number of channels available on the device */
+	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)max_channels);
+
+	if (ret != OK) {
+		PX4_ERR("[motor_ramp] PWM_SERVO_GET_COUNT");
+		return 1;
 	}
+
+	/* tell IO/FMU that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+
+	if (ret != OK) {
+		PX4_ERR("[motor_ramp] PWM_SERVO_SET_ARM_OK");
+		return 1;
+	}
+
+	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
+	ret = ioctl(fd, PWM_SERVO_ARM, 0);
+
+	if (ret != OK) {
+		PX4_ERR("[motor_ramp] PWM_SERVO_ARM");
+		return 1;
+	}
+
+	return 0;
 }
 
 int motor_ramp_thread_main(int argc, char *argv[])
@@ -206,17 +236,22 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 	_thread_running = true;
 
-	struct actuator_outputs_s actuator_outputs = {};
-	publish(actuator_outputs, 0.0f);
+	char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	unsigned long max_channels = 0;
 
-	int ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	int fd = px4_open(dev, 0);
 
-	/* wakeup source */
-	px4_pollfd_struct_t fds[1];
+	if (fd < 0) {
+		PX4_ERR("[motor_ramp] can't open %s", dev);
+	}
 
-	/* Setup of loop */
-	fds[0].fd = ctrl_state_sub;
-	fds[0].events = POLLIN;
+	if (prepare(fd, &max_channels) != OK) {
+		_thread_should_exit = true;
+	}
+
+	PX4_WARN("[motor_ramp] max chan %d", max_channels);
+
+	set_out(fd, max_channels, 0.0f);
 
 	float dt = 0.01f; // prevent division with 0
 	float timer = 0.0f;
@@ -237,30 +272,10 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		last_run = hrt_absolute_time();
 		timer = hrt_elapsed_time(&start) * 1e-6;
 
-		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0) {
-			continue;
-		}
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			PX4_WARN("[motor_ramp] poll error %d", pret);
-			continue;
-		}
-
 		switch (ramp_state) {
 		case RAMP_INIT: {
-				if (!min_pwm_valid(_min_pwm)) {
-					_thread_should_exit = true;
-					PX4_WARN("[motor_ramp] min pwm not in range %d", _min_pwm);
-					break;
-				}
-
 				PX4_WARN("[motor_ramp] setting pwm min %d", _min_pwm);
-				set_min_pwm(_min_pwm);
+				set_min_pwm(fd, max_channels, _min_pwm);
 				ramp_state = RAMP_MIN;
 				break;
 			}
@@ -285,7 +300,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 					PX4_WARN("[motor_ramp] ramp finished, waiting");
 				}
 
-				publish(actuator_outputs, output);
+				set_out(fd, max_channels, output);
 				break;
 			}
 
@@ -298,9 +313,15 @@ int motor_ramp_thread_main(int argc, char *argv[])
 				break;
 			}
 		}
+
+		// rate limit
+		usleep(2000);
 	}
 
-	publish(actuator_outputs, 0.0f);
+	if (fd >= 0) {
+		set_out(fd, max_channels, 0.0f);
+		px4_close(fd);
+	}
 
 	PX4_WARN("[motor_ramp] exiting");
 
