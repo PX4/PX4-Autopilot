@@ -101,8 +101,11 @@ usage(const char *reason)
 		PX4_WARN("[motor_ramp] %s", reason);
 	}
 
-	PX4_WARN("[motor_ramp] usage:   motor_ramp <min_pwm> <ramp_time>");
-	PX4_WARN("[motor_ramp] example: motor_ramp 1100 0.5\n");
+	PX4_WARN("[motor_ramp] usage: motor_ramp <min_pwm> <ramp_time>");
+	PX4_WARN("[motor_ramp] example:\n");
+	PX4_WARN("[motor_ramp] nsh> sdlog2 on");
+	PX4_WARN("[motor_ramp] nsh> mc_att_control stop");
+	PX4_WARN("[motor_ramp] nsh> motor_ramp 1100 0.5\n");
 }
 
 /**
@@ -143,7 +146,7 @@ int motor_ramp_main(int argc, char *argv[])
 	_thread_should_exit = false;
 	_motor_ramp_task = px4_task_spawn_cmd("motor_ramp",
 					      SCHED_DEFAULT,
-					      SCHED_PRIORITY_DEFAULT,
+					      SCHED_PRIORITY_DEFAULT + 40,
 					      2000,
 					      motor_ramp_thread_main,
 					      (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
@@ -304,7 +307,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_WAIT: {
-				if (timer > 3.0f) {
+				if (timer > 2.0f) {
 					_thread_should_exit = true;
 					break;
 				}
