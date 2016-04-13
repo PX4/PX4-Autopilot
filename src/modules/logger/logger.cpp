@@ -220,7 +220,7 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
 			fd = add_topic(topics[i]);
-			printf("logging topic: %d, %s\n", i, topics[i]->o_name);
+			printf("logging topic: %zu, %s\n", i, topics[i]->o_name);
 			break;
 		}
 	}
