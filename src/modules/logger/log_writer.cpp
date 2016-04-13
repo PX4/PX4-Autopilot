@@ -54,7 +54,16 @@ pthread_t LogWriter::thread_start()
 		warnx("error creating logwriter thread");
 	}
 
+	pthread_attr_destroy(&thr_attr);
+
 	return thr;
+}
+
+void LogWriter::thread_stop()
+{
+	// this will terminate the main loop of the writer thread
+	_exit_thread = true;
+	_should_run = false;
 }
 
 void *LogWriter::run_helper(void *context)
@@ -67,22 +76,23 @@ void *LogWriter::run_helper(void *context)
 
 void LogWriter::run()
 {
-	while (true) {
+	// Wait for _should_run flag
+	while (!_exit_thread) {
+		bool start = false;
+		pthread_mutex_lock(&_mtx);
+		pthread_cond_wait(&_cv, &_mtx);
+		start = _should_run;
+		pthread_mutex_unlock(&_mtx);
+
+		if (start) {
+			break;
+		}
+	}
+
+	while (!_exit_thread) {
 		// Outer endless loop, start new file each time
 		// _filename must be set before setting _should_run = true
 
-		// Wait for _should_run flag
-		while (true) {
-			bool start = false;
-			pthread_mutex_lock(&_mtx);
-			pthread_cond_wait(&_cv, &_mtx);
-			start = _should_run;
-			pthread_mutex_unlock(&_mtx);
-
-			if (start) {
-				break;
-			}
-		}
 
 		_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 

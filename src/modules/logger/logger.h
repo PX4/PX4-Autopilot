@@ -75,6 +75,7 @@ private:
 	char 						_log_dir[64];
 	uORB::Subscription<vehicle_status_s>	_vehicle_status_sub {ORB_ID(vehicle_status)};
 	bool						_enabled = false;
+	bool 						_log_on_start;
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;
 	uint32_t					_log_interval;
@@ -82,6 +83,7 @@ private:
 
 Logger *logger_ptr;
 int		logger_task = -1;
+pthread_t _writer_thread;
 
 }
 }
