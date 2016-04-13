@@ -201,29 +201,27 @@ int set_out(int fd, unsigned long max_channels, float output)
 
 int prepare(int fd, unsigned long *max_channels)
 {
-	int ret;
-
 	/* get number of channels available on the device */
-	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)max_channels);
-
-	if (ret != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)max_channels) != OK) {
 		PX4_ERR("[motor_ramp] PWM_SERVO_GET_COUNT");
 		return 1;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
-	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-
-	if (ret != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != OK) {
 		PX4_ERR("[motor_ramp] PWM_SERVO_SET_ARM_OK");
 		return 1;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	ret = ioctl(fd, PWM_SERVO_ARM, 0);
-
-	if (ret != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
 		PX4_ERR("[motor_ramp] PWM_SERVO_ARM");
+		return 1;
+	}
+
+	/* tell IO to switch off safety without using the safety switch */
+	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != OK) {
+		PX4_ERR("[motor_ramp] PWM_SERVO_SET_FORCE_SAFETY_OFF");
 		return 1;
 	}
 
@@ -282,11 +280,12 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("[motor_ramp] min set, starting ramp");
+					PX4_WARN("[motor_ramp] starting ramp");
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
 
+				set_out(fd, max_channels, output);
 				break;
 			}
 
@@ -310,6 +309,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 					break;
 				}
 
+				set_out(fd, max_channels, output);
 				break;
 			}
 		}
@@ -319,7 +319,9 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	}
 
 	if (fd >= 0) {
-		set_out(fd, max_channels, 0.0f);
+		/* disarm */
+		ioctl(fd, PWM_SERVO_DISARM, 0);
+
 		px4_close(fd);
 	}
 
