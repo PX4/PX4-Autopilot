@@ -510,6 +510,8 @@ private:
 	 */
 	void update_rate_mult();
 
+	void find_broadcast_address();
+
 	void init_udp();
 
 	/**
