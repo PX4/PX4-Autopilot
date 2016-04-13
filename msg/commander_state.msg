@@ -14,6 +14,6 @@ uint8 MAIN_STATE_AUTO_LAND = 11
 uint8 MAIN_STATE_AUTO_FOLLOW_TARGET = 12
 uint8 MAIN_STATE_MAX = 13
 
-uint64 timestamp # in microseconds since system start, is set whenever the writing thread stores new data
+# timestamp (uint64,  in microseconds since system start, is set whenever the writing thread stores new data) will be generated automatically
 
 uint8 main_state		    	# main state machine
