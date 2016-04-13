@@ -241,8 +241,8 @@ struct parameters {
 		baro_delay_ms = 0.0f;
 		gps_delay_ms = 200.0f;
 		airspeed_delay_ms = 200.0f;
-		flow_delay_ms = 60.0f;
-		range_delay_ms = 200.0f;
+		flow_delay_ms = 5.0f;
+		range_delay_ms = 5.0f;
 
 		// input noise
 		gyro_noise = 6.0e-2f;
