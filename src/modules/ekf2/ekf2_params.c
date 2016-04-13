@@ -75,6 +75,29 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
 PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
 
 /**
+ * Optical flow measurement delay relative to IMU measurements
+ * Assumes measurement is timestamped at trailing edge of integration period
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
+
+/**
+ * Range finder measurement delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
+
+/**
  * Airspeed measurement delay relative to IMU measurements
  *
  * @group EKF2

@@ -164,6 +164,8 @@ private:
 	control::BlockParamFloat *_mag_delay_ms;
 	control::BlockParamFloat *_baro_delay_ms;
 	control::BlockParamFloat *_gps_delay_ms;
+	control::BlockParamFloat *_flow_delay_ms;
+	control::BlockParamFloat *_rng_delay_ms;
 	control::BlockParamFloat *_airspeed_delay_ms;
 
 	control::BlockParamFloat *_gyro_noise;
@@ -264,6 +266,8 @@ Ekf2::Ekf2():
 	_mag_delay_ms(new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &_params->mag_delay_ms)),
 	_baro_delay_ms(new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &_params->baro_delay_ms)),
 	_gps_delay_ms(new control::BlockParamFloat(this, "EKF2_GPS_DELAY", false, &_params->gps_delay_ms)),
+	_flow_delay_ms(new control::BlockParamFloat(this, "EKF2_OF_DELAY", false, &_params->flow_delay_ms)),
+	_rng_delay_ms(new control::BlockParamFloat(this, "EKF2_RNG_DELAY", false, &_params->range_delay_ms)),
 	_airspeed_delay_ms(new control::BlockParamFloat(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms)),
 	_gyro_noise(new control::BlockParamFloat(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise)),
 	_accel_noise(new control::BlockParamFloat(this, "EKF2_ACC_NOISE", false, &_params->accel_noise)),
