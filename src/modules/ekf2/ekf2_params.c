@@ -576,3 +576,51 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Y, 0.0f);
  * @unit m
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Z, 0.0f);
+
+/**
+ * X position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_X, 0.0f);
+
+/**
+ * Y position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_Y, 0.0f);
+
+/**
+ * Z position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_Z, 0.0f);
+
+/**
+ * X position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_X, 0.0f);
+
+/**
+ * Y position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_Y, 0.0f);
+
+/**
+ * Z position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);
