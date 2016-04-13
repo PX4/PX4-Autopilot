@@ -19,6 +19,8 @@ public:
 
 	pthread_t thread_start();
 
+	void thread_stop();
+
 	void start_log(const char *filename);
 
 	void stop_log();
@@ -61,6 +63,7 @@ private:
 	size_t			_count = 0;
 	size_t		_total_written = 0;
 	bool		_should_run = false;
+	bool 		_exit_thread = false;
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
 	perf_counter_t perf_write;
