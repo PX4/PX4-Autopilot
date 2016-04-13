@@ -414,7 +414,7 @@ int test_mixer(int argc, char *argv[])
 	mixer_group.load_from_buf(&buf[0], mc_loaded);
 	PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
 
-	if (mixer_group.count() != 4) {
+	if (mixer_group.count() != 3) {
 		PX4_ERR("FAIL: Quad W mixer load failed");
 		return 1;
 	}
