@@ -3,10 +3,12 @@
 #include <errno.h>
 #include <string.h>
 #include <uORB/uORBTopics.h>
+#include <px4_getopt.h>
 
-//#define DBGPRINT
+#define DBGPRINT
 
 using namespace px4::logger;
+
 
 int logger_main(int argc, char *argv[])
 {
@@ -22,7 +24,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != Logger::start()) {
+		if (OK != Logger::start((char *const *)argv)) {
 			warnx("start failed");
 			return 1;
 		}
@@ -77,7 +79,7 @@ void Logger::usage(const char *reason)
 	      "\t-x\tExtended logging");
 }
 
-int Logger::start()
+int Logger::start(char *const *argv)
 {
 	ASSERT(logger_task == -1);
 
@@ -87,7 +89,7 @@ int Logger::start()
 					 SCHED_PRIORITY_MAX - 5,
 					 3100,
 					 (px4_main_t)&Logger::run_trampoline,
-					 nullptr);
+					 (char *const *)argv);
 
 	if (logger_task < 0) {
 		warn("task start failed");
@@ -99,7 +101,60 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768, 3500);
+	unsigned log_interval = 3500;
+	int log_buffer_size = 12 * 1024;
+	bool log_on_start = false;
+	bool error_flag = false;
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "r:b:eatx", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'r': {
+				unsigned long r = strtoul(myoptarg, NULL, 10);
+
+				if (r <= 0) {
+					r = 1;
+				}
+
+				log_interval = 1e6 / r;
+			}
+			break;
+
+		case 'e':
+			log_on_start = true;
+			break;
+
+		case 'b': {
+				unsigned long s = strtoul(myoptarg, NULL, 10);
+
+				if (s < 1) {
+					s = 1;
+				}
+
+				log_buffer_size = 1024 * s;
+			}
+			break;
+
+		case '?':
+			error_flag = true;
+			break;
+
+		default:
+			PX4_WARN("unrecognized flag");
+			error_flag = true;
+			break;
+		}
+	}
+
+	if (error_flag) {
+		logger_task = -1;
+		return;
+	}
+
+	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -156,7 +211,8 @@ struct message_parameter_header_s {
 
 static constexpr size_t MAX_DATA_SIZE = 740;
 
-Logger::Logger(size_t buffer_size, unsigned log_interval) :
+Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start) :
+	_log_on_start(log_on_start),
 	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
 	_log_interval(log_interval)
 {
@@ -176,13 +232,15 @@ Logger::~Logger()
 			usleep(20000);
 
 			/* if we have given up, kill it */
-			if (++i > 50) {
+			if (++i > 200) {
 				px4_task_delete(logger_task);
+				logger_task = -1;
 				break;
 			}
 		} while (logger_task != -1);
 	}
 
+	delete [] _log_buffer;
 	logger_ptr = nullptr;
 }
 
@@ -282,20 +340,23 @@ void Logger::run()
 	const unsigned ten_msec = 10;
 	const unsigned hundred_msec = 100;
 	 */
-//	add_topic("sensor_accel", 0);
-//	add_topic("sensor_baro", 0);
-	add_topic("manual_control_setpoint");
-	add_topic("vehicle_rates_setpoint");
-	add_topic("sensor_gyro", 0);
-	add_topic("vehicle_attitude_setpoint");
-	add_topic("vehicle_attitude");
+	add_topic("sensor_accel", 100);
+	add_topic("sensor_baro", 100);
+	add_topic("manual_control_setpoint", 50);
+	add_topic("vehicle_rates_setpoint", 50);
+	add_topic("sensor_gyro", 50);
+	add_topic("vehicle_attitude_setpoint", 50);
+	add_topic("vehicle_attitude", 20);
+	add_topic("ekf2_innovations", 50);
+	add_topic("estimator_status", 50);
+	add_topic("ekf2_replay", 0);
 
-//	add_topic("estimator_status", 0);
-//	add_topic("sensor_combined", 0);
+	//add_topic("estimator_status", 0);
+	//add_topic("sensor_combined", 0);
 
-	add_topic("vehicle_status");
+	add_topic("vehicle_status", 100);
 
-	_writer.thread_start();
+	_writer_thread = _writer.thread_start();
 
 	_task_should_exit = false;
 
@@ -309,6 +370,12 @@ void Logger::run()
 	double		max_drop_len = 0;
 #endif
 
+	// we start logging immediately
+	// the case where we wait with logging until vehicle is armed is handled below
+	if (_log_on_start) {
+		start_log();
+	}
+
 	/* every log_interval usec, check for orb updates */
 	while (!_task_should_exit) {
 
@@ -318,7 +385,7 @@ void Logger::run()
 			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
-			if (_enabled != armed) {
+			if (_enabled != armed && !_log_on_start) {
 				if (armed) {
 					start_log();
 
@@ -373,6 +440,7 @@ void Logger::run()
 						header->msg_size = static_cast<uint16_t>(msg_size - 2);
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
+
 
 #ifdef DBGPRINT
 						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
@@ -434,7 +502,7 @@ void Logger::run()
 #ifdef DBGPRINT
 			double deltat = (double)(hrt_absolute_time() - timer_start)  * 1e-6;
 
-			if (deltat > 10.0) {
+			if (deltat > 4.0) {
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
 				warnx("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
@@ -453,6 +521,20 @@ void Logger::run()
 		usleep(_log_interval);
 //		usleep(1000);
 	}
+
+	// stop the writer thread
+	_writer.thread_stop();
+
+	_writer.notify();
+
+	// wait for thread to complete
+	int ret = pthread_join(_writer_thread, NULL);
+
+	if (ret) {
+		PX4_WARN("join failed: %d", ret);
+	}
+
+	logger_task = -1;
 }
 
 int Logger::create_log_dir()
@@ -545,7 +627,6 @@ void Logger::start_log()
 
 void Logger::stop_log()
 {
-	warnx("stop log");
 	_enabled = false;
 	_writer.stop_log();
 }
