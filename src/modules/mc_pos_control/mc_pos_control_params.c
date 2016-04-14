@@ -402,3 +402,14 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+
+/**
+ * Altitude control mode
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Altitude following
+ * @value 1 Terrain following
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
