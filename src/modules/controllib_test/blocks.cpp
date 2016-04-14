@@ -41,12 +41,31 @@
 #include <stdio.h>
 #include <float.h>
 
-#include "blocks.hpp"
+#include <controllib/blocks.hpp>
 
 #define ASSERT_CL(T) if (!(T)) { printf("FAIL\n"); return -1; }
 
 namespace control
 {
+
+int basicBlocksTest();
+int blockLimitTest();
+int blockLimitSymTest();
+int blockLowPassTest();
+int blockHighPassTest();
+int blockLowPass2Test();
+int blockIntegralTest();
+int blockIntegralTrapTest();
+int blockDerivativeTest();
+int blockPTest();
+int blockPITest();
+int blockPDTest();
+int blockPIDTest();
+int blockOutputTest();
+int blockRandUniformTest();
+int blockRandGaussTest();
+int blockStatsTest();
+int blockDelayTest();
 
 int basicBlocksTest()
 {
@@ -71,18 +90,6 @@ int basicBlocksTest()
 	return 0;
 }
 
-float BlockLimit::update(float input)
-{
-	if (input > getMax()) {
-		input = _max.get();
-
-	} else if (input < getMin()) {
-		input = getMin();
-	}
-
-	return input;
-}
-
 int blockLimitTest()
 {
 	printf("Test BlockLimit\t\t\t: ");
@@ -99,18 +106,6 @@ int blockLimitTest()
 	return 0;
 }
 
-float BlockLimitSym::update(float input)
-{
-	if (input > getMax()) {
-		input = _max.get();
-
-	} else if (input < -getMax()) {
-		input = -getMax();
-	}
-
-	return input;
-}
-
 int blockLimitSymTest()
 {
 	printf("Test BlockLimitSym\t\t: ");
@@ -124,18 +119,6 @@ int blockLimitSymTest()
 	ASSERT_CL(equal(0.0f, limit.update(0.0f)));
 	printf("PASS\n");
 	return 0;
-}
-
-float BlockLowPass::update(float input)
-{
-	if (!PX4_ISFINITE(getState())) {
-		setState(input);
-	}
-
-	float b = 2 * float(M_PI) * getFCut() * getDt();
-	float a = b / (1 + b);
-	setState(a * input + (1 - a)*getState());
-	return getState();
 }
 
 int blockLowPassTest()
@@ -165,15 +148,6 @@ int blockLowPassTest()
 	printf("PASS\n");
 	return 0;
 };
-
-float BlockHighPass::update(float input)
-{
-	float b = 2 * float(M_PI) * getFCut() * getDt();
-	float a = 1 / (1 + b);
-	setY(a * (getY() + input - getU()));
-	setU(input);
-	return getY();
-}
 
 int blockHighPassTest()
 {
@@ -206,20 +180,6 @@ int blockHighPassTest()
 	return 0;
 }
 
-float BlockLowPass2::update(float input)
-{
-	if (!PX4_ISFINITE(getState())) {
-		setState(input);
-	}
-
-	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
-		_lp.set_cutoff_frequency(_fs, getFCutParam());
-	}
-
-	_state = _lp.apply(input);
-	return _state;
-}
-
 int blockLowPass2Test()
 {
 	printf("Test BlockLowPass2\t\t: ");
@@ -247,13 +207,6 @@ int blockLowPass2Test()
 	printf("PASS\n");
 	return 0;
 };
-
-float BlockIntegral::update(float input)
-{
-	// trapezoidal integration
-	setY(_limit.update(getY() + input * getDt()));
-	return getY();
-}
 
 int blockIntegralTest()
 {
@@ -290,15 +243,6 @@ int blockIntegralTest()
 	ASSERT_CL(equal(0.2f, integral.getY()));
 	printf("PASS\n");
 	return 0;
-}
-
-float BlockIntegralTrap::update(float input)
-{
-	// trapezoidal integration
-	setY(_limit.update(getY() +
-			   (getU() + input) / 2.0f * getDt()));
-	setU(input);
-	return getY();
 }
 
 int blockIntegralTrapTest()
@@ -342,28 +286,6 @@ int blockIntegralTrapTest()
 	ASSERT_CL(equal(1.0f, integral.getU()));
 	printf("PASS\n");
 	return 0;
-}
-
-float BlockDerivative::update(float input)
-{
-	float output;
-
-	if (_initialized) {
-		output = _lowPass.update((input - getU()) / getDt());
-
-	} else {
-		// if this is the first call to update
-		// we have no valid derivative
-		// and so we use the assumption the
-		// input value is not changing much,
-		// which is the best we can do here.
-		_lowPass.update(0.0f);
-		output = 0.0f;
-		_initialized = true;
-	}
-
-	setU(input);
-	return output;
 }
 
 int blockDerivativeTest()
