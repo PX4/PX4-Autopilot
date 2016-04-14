@@ -39,6 +39,13 @@ px4_add_module(
 	SRCS
 		local_position_estimator_main.cpp
 		BlockLocalPositionEstimator.cpp
+		sensors/flow.cpp
+		sensors/lidar.cpp
+		sensors/sonar.cpp
+		sensors/gps.cpp
+		sensors/baro.cpp
+		sensors/vision.cpp
+		sensors/mocap.cpp
 		params.c
 	DEPENDS
 		platforms__common
