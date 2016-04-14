@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1600)
-endif()
 px4_add_module(
 	MODULE modules__sdlog2
 	MAIN sdlog2
 	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK 1200
+	STACK_MAIN 1200
+	STACK_MAX 1600
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
 		-Os

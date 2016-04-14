@@ -87,13 +87,3 @@ set(config_sitl_debugger
 	)
 set_property(CACHE config_sitl_debugger
 	PROPERTY STRINGS "disable;gdb;lldb")
-
-
-
-add_custom_target(sercon)
-set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
-
-add_custom_target(serdis)
-set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
