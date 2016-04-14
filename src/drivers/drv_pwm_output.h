@@ -244,21 +244,21 @@ struct pwm_output_rc_config {
 /*
  *
  *
- * WARNING WARNING WARNING! DO NOT EXCEED 31 IN IOC INDICES HERE!
+ * WARNING WARNING WARNING! DO NOT EXCEED 47 IN IOC INDICES HERE!
  *
  *
  */
 
 /** set a single servo to a specific value */
-#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
+#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x30 + _servo)
 
 /** get a single specific servo value */
-#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x40 + _servo)
+#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x50 + _servo)
 
 /** get the _n'th rate group's channels; *(uint32_t *)arg returns a bitmap of channels
  *  whose update rates must be the same.
  */
-#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x60 + _n)
+#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
 /*
  * Low-level PWM output interface.
