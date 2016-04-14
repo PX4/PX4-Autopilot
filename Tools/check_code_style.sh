@@ -29,7 +29,7 @@ for fn in $(find src/examples \
                  src/modules/local_position_estimator \
                  src/modules/unit_test \
                  src/modules/systemlib \
-                 src/modules/controllib \
+                 src/lib/controllib \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \

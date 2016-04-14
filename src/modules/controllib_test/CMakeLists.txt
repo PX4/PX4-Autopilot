@@ -31,18 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__controllib
+	MODULE modules__controllib_test
 	MAIN controllib_test
 	COMPILE_FLAGS
 		-Os
 	SRCS
 		controllib_test_main.cpp
 		test_params.c
-		block/Block.cpp
-		block/BlockParam.cpp
-		uorb/blocks.cpp
-		blocks.cpp
 	DEPENDS
 		platforms__common
 	)
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

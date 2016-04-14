@@ -30,13 +30,13 @@ set(config_module_list
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
-	modules/controllib
 	modules/uORB
 
 	#
 	# Libraries
 	#
 	#lib/mathlib/CMSIS
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl

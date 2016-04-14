@@ -55,8 +55,6 @@
 namespace control
 {
 
-int __EXPORT basicBlocksTest();
-
 /**
  * A limiter/ saturation.
  * The output of update is the input, bounded
@@ -82,8 +80,6 @@ protected:
 	control::BlockParamFloat _max;
 };
 
-int __EXPORT blockLimitTest();
-
 /**
  * A symmetric limiter/ saturation.
  * Same as limiter but with only a max, is used for
@@ -105,8 +101,6 @@ protected:
 // attributes
 	control::BlockParamFloat _max;
 };
-
-int __EXPORT blockLimitSymTest();
 
 /**
  * A low pass filter as described here:
@@ -132,8 +126,6 @@ protected:
 	float _state;
 	control::BlockParamFloat _fCut;
 };
-
-int __EXPORT blockLowPassTest();
 
 /**
  * A high pass filter as described here:
@@ -164,8 +156,6 @@ protected:
 	control::BlockParamFloat _fCut; /**< cut-off frequency, Hz */
 };
 
-int __EXPORT blockHighPassTest();
-
 /**
  * A 2nd order low pass filter block which uses the default px4 2nd order low pass filter
  */
@@ -194,8 +184,6 @@ protected:
 	math::LowPassFilter2p _lp;
 };
 
-int __EXPORT blockLowPass2Test();
-
 /**
  * A rectangular integrator.
  * A limiter is built into the class to bound the
@@ -222,8 +210,6 @@ protected:
 	float _y; /**< previous output */
 	BlockLimitSym _limit; /**< limiter */
 };
-
-int __EXPORT blockIntegralTest();
 
 /**
  * A trapezoidal integrator.
@@ -256,8 +242,6 @@ protected:
 	float _y; /**< previous output */
 	BlockLimitSym _limit; /**< limiter */
 };
-
-int __EXPORT blockIntegralTrapTest();
 
 /**
  * A simple derivative approximation.
@@ -304,8 +288,6 @@ protected:
 	BlockLowPass _lowPass; /**< low pass filter */
 };
 
-int __EXPORT blockDerivativeTest();
-
 /**
  * A proportional controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
@@ -328,8 +310,6 @@ public:
 protected:
 	control::BlockParamFloat _kP;
 };
-
-int __EXPORT blockPTest();
 
 /**
  * A proportional-integral controller.
@@ -361,8 +341,6 @@ private:
 	control::BlockParamFloat _kI;
 };
 
-int __EXPORT blockPITest();
-
 /**
  * A proportional-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
@@ -392,8 +370,6 @@ private:
 	control::BlockParamFloat _kP;
 	control::BlockParamFloat _kD;
 };
-
-int __EXPORT blockPDTest();
 
 /**
  * A proportional-integral-derivative controller.
@@ -433,8 +409,6 @@ private:
 	control::BlockParamFloat _kD;
 };
 
-int __EXPORT blockPIDTest();
-
 /**
  * An output trim/ saturation block
  */
@@ -466,8 +440,6 @@ private:
 	BlockLimit _limit;
 	float _val;
 };
-
-int __EXPORT blockOutputTest();
 
 /**
  * A uniform random number generator
@@ -502,8 +474,6 @@ private:
 	control::BlockParamFloat _min;
 	control::BlockParamFloat _max;
 };
-
-int __EXPORT blockRandUniformTest();
 
 class __EXPORT BlockRandGauss: public Block
 {
@@ -553,8 +523,6 @@ private:
 	control::BlockParamFloat _stdDev;
 };
 
-int __EXPORT blockRandGaussTest();
-
 template<class Type, size_t M>
 class __EXPORT BlockStats: public Block
 {
@@ -598,8 +566,6 @@ private:
 	matrix::Vector<Type, M> _sumSq;
 	size_t _count;
 };
-
-int __EXPORT blockStatsTest();
 
 template<class Type, size_t M, size_t N, size_t LEN>
 class __EXPORT BlockDelay: public Block
@@ -658,7 +624,5 @@ private:
 	size_t _index;
 	int _delay;
 };
-
-int __EXPORT blockDelayTest();
 
 } // namespace control

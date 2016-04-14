@@ -17,7 +17,7 @@ set(config_module_list
 	modules/ekf2
 	modules/ekf2_replay
 	modules/sdlog2
-	modules/controllib
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/conversion

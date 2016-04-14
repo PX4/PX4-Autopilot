@@ -54,7 +54,6 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/controllib
 	modules/land_detector
 
 	#
@@ -67,6 +66,7 @@ set(config_module_list
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
