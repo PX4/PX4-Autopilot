@@ -1901,6 +1901,59 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_MODE: {
+			switch (arg) {
+			case PWM_SERVO_MODE_NONE:
+				ret = set_mode(MODE_NONE);
+				break;
+
+			case PWM_SERVO_MODE_2PWM:
+				ret = set_mode(MODE_2PWM);
+				break;
+
+			case PWM_SERVO_MODE_2PWM2CAP:
+				ret = set_mode(MODE_2PWM2CAP);
+				break;
+
+			case PWM_SERVO_MODE_3PWM:
+				ret = set_mode(MODE_3PWM);
+				break;
+
+			case PWM_SERVO_MODE_3PWM1CAP:
+				ret = set_mode(MODE_3PWM1CAP);
+				break;
+
+			case PWM_SERVO_MODE_4PWM:
+				ret = set_mode(MODE_4PWM);
+				break;
+
+			case PWM_SERVO_MODE_6PWM:
+				ret = set_mode(MODE_6PWM);
+				break;
+
+			case PWM_SERVO_MODE_8PWM:
+				ret = set_mode(MODE_8PWM);
+				break;
+
+			case PWM_SERVO_MODE_4CAP:
+				ret = set_mode(MODE_4CAP);
+				break;
+
+			case PWM_SERVO_MODE_5CAP:
+				ret = set_mode(MODE_5CAP);
+				break;
+
+			case PWM_SERVO_MODE_6CAP:
+				ret = set_mode(MODE_6CAP);
+				break;
+
+			default:
+				ret = -EINVAL;
+			}
+
+			break;
+		}
+
 #ifdef RC_SERIAL_PORT
 
 	case DSM_BIND_START:
