@@ -67,7 +67,7 @@ typedef matrix::Matrix<float, 3, 3> Matrix3f;
 struct flow_message {
 	uint8_t quality;			// Quality of Flow data
 	Vector2f flowdata;			// Flow data received
-	Vector2f gyrodata;			// Gyro data from flow sensor
+	Vector3f gyrodata;			// Gyro data from flow sensor
 	uint32_t dt;				// integration time of flow samples
 };
 
@@ -120,7 +120,7 @@ struct flowSample {
 	uint8_t  quality; // quality indicator between 0 and 255
 	Vector2f flowRadXY; // measured delta angle of the image about the X and Y body axes (rad), RH rotaton is positive
 	Vector2f flowRadXYcomp;	// measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
-	Vector2f gyroXY; // measured delta angle of the inertial frame about the X and Y body axes obtained from rate gyro measurements (rad), RH rotation is positive
+	Vector3f gyroXYZ; // measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt; // amount of integration time (sec)
 	uint64_t time_us; // timestamp in microseconds of the integration period mid-point
 };
@@ -223,6 +223,12 @@ struct parameters {
 	float req_hdrift;       // maximum acceptable horizontal drift speed
 	float req_vdrift;       // maximum acceptable vertical drift speed
 
+	// XYZ offset of sensors in body axes (m)
+	Vector3f imu_pos_body;	// xyz position of IMU in body frame (m)
+	Vector3f gps_pos_body;	// xyz position of the GPS antenna in body frame (m)
+	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
+	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
+
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
@@ -235,8 +241,8 @@ struct parameters {
 		baro_delay_ms = 0.0f;
 		gps_delay_ms = 200.0f;
 		airspeed_delay_ms = 200.0f;
-		flow_delay_ms = 60.0f;
-		range_delay_ms = 200.0f;
+		flow_delay_ms = 5.0f;
+		range_delay_ms = 5.0f;
 
 		// input noise
 		gyro_noise = 6.0e-2f;
@@ -296,6 +302,12 @@ struct parameters {
 		req_gdop = 2.0f;
 		req_hdrift = 0.3f;
 		req_vdrift = 0.5f;
+
+		// XYZ offset of sensors in body axes (m)
+		imu_pos_body = {0};
+		gps_pos_body = {0};
+		rng_pos_body = {0};
+		flow_pos_body = {0};
 	}
 };
 

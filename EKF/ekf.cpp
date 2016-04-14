@@ -89,7 +89,7 @@ Ekf::Ekf():
 	_state = {};
 	_last_known_posNE.setZero();
 	_earth_rate_NED.setZero();
-	_R_prev = matrix::Dcm<float>();
+	_R_to_earth = matrix::Dcm<float>();
 	memset(_vel_pos_innov, 0, sizeof(_vel_pos_innov));
 	memset(_mag_innov, 0, sizeof(_mag_innov));
 	memset(_flow_innov, 0, sizeof(_flow_innov));
@@ -217,7 +217,12 @@ bool Ekf::update()
 		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
 		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-		    && (_R_prev(2, 2) > 0.7071f)) {
+		    && (_R_to_earth(2, 2) > 0.7071f)) {
+			// correct the range data for position offset relative to the IMU
+			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+			_range_sample_delayed.rng += pos_offset_earth(2) / _R_to_earth(2, 2);
+
 			// if we have range data we always try to estimate terrain height
 			_fuse_hagl_data = true;
 
@@ -257,6 +262,20 @@ bool Ekf::update()
 				_fuse_pos = true;
 				_fuse_vert_vel = true;
 				_fuse_hor_vel = true;
+
+				// correct velocity for offset relative to IMU
+				Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f/_imu_sample_delayed.delta_ang_dt);
+				Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+				Vector3f vel_offset_body = cross_product(ang_rate,pos_offset_body);
+				Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+				_gps_sample_delayed.vel -= vel_offset_earth;
+
+				// correct position and height for offset relative to IMU
+				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+				_gps_sample_delayed.pos(0) -= pos_offset_earth(0);
+				_gps_sample_delayed.pos(1) -= pos_offset_earth(1);
+				_gps_sample_delayed.hgt += pos_offset_earth(2);
+
 			}
 
 			// only use gps height observation in the main filter if specifically enabled
@@ -269,7 +288,7 @@ bool Ekf::update()
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
 		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
 		    && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
-		    && (_R_prev(2, 2) > 0.7071f)) {
+		    && (_R_to_earth(2, 2) > 0.7071f)) {
 			_fuse_flow = true;
 		}
 
@@ -431,6 +450,9 @@ bool Ekf::initialiseFilter(void)
 		_state.quat_nominal = Quaternion(euler_init);
 		_output_new.quat_nominal = _state.quat_nominal;
 
+		// update transformation matrix from body to world frame
+		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
 		// initialise the filtered alignment error estimate to a larger starting value
 		_tilt_err_length_filt = 1.0f;
 
@@ -472,25 +494,41 @@ void Ekf::predictState()
 		}
 	}
 
-	// attitude error state prediction
-	matrix::Dcm<float> R_to_earth(_state.quat_nominal);	// transformation matrix from body to world frame
-	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED *
+	// correct delta angles for earth rotation rate
+	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_to_earth.transpose() * _earth_rate_NED *
 				       _imu_sample_delayed.delta_ang_dt;
-	Quaternion dq;	// delta quaternion since last update
+
+	// convert the delta angle to a delta quaternion
+	Quaternion dq;
 	dq.from_axis_angle(corrected_delta_ang);
+
+	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = dq * _state.quat_nominal;
+
+	// quaternions must be normalised whenever they are modified
 	_state.quat_nominal.normalize();
 
-	_R_prev = R_to_earth.transpose();
-
+	// save the previous value of velocity so we can use trapzoidal integration
 	Vector3f vel_last = _state.vel;
 
-	// predict velocity states
-	_state.vel += R_to_earth * _imu_sample_delayed.delta_vel;
-	_state.vel(2) += 9.81f * _imu_sample_delayed.delta_vel_dt;
+	// calculate the increment in velocity using the previous orientation
+	Vector3f delta_vel_earth_1 = _R_to_earth * _imu_sample_delayed.delta_vel;
+
+	// update the rotation matrix and calculate the increment in velocity using the current orientation
+	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+	Vector3f delta_vel_earth_2 = _R_to_earth * _imu_sample_delayed.delta_vel;
+
+	// Update the velocity assuming constant angular rate and acceleration across the same delta time interval
+	_state.vel += (delta_vel_earth_1 + delta_vel_earth_2) * 0.5f;
+
+	// compensate for acceleration due to gravity
+	_state.vel(2) += _gravity_mss * _imu_sample_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
+
+	// update transformation matrix from body to world frame
+	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 	constrainStates();
 }
@@ -543,66 +581,102 @@ bool Ekf::collect_imu(imuSample &imu)
 	return false;
 }
 
+/*
+ * Implement a strapdown INS algorithm using the latest IMU data at the current time horizon.
+ * Buffer the INS states and calculate the difference with the EKF states at the delayed fusion time horizon.
+ * Calculate delta angle, delta velocity and velocity corrections from the differences and apply them at the
+ * current time horizon so that the INS states track the EKF states at the delayed fusion time horizon.
+ * The inspiration for using a complementary filter to correct for time delays in the EKF
+ * is based on the work by A Khosravian:
+ * “Recursive Attitude Estimation in the Presence of Multi-rate and Multi-delay Vector Measurements”
+ * A Khosravian, J Trumpf, R Mahony, T Hamel, Australian National University
+*/
 void Ekf::calculateOutputStates()
 {
+	// use latest IMU data
 	imuSample imu_new = _imu_sample_new;
-	Vector3f delta_angle;
 
+	// Get the delta angle and velocity from the latest IMU data
 	// Note: We do no not need to consider any bias or scale correction here
 	// since the base class has already corrected the imu sample
+	Vector3f delta_angle;
 	delta_angle(0) = imu_new.delta_ang(0);
 	delta_angle(1) = imu_new.delta_ang(1);
 	delta_angle(2) = imu_new.delta_ang(2);
 
 	Vector3f delta_vel = imu_new.delta_vel;
 
+	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
+
+	// convert the delta angle to an equivalent delta quaternions
 	Quaternion dq;
 	dq.from_axis_angle(delta_angle);
 
+	// rotate the previous INS quaternion by the delta quaternions
 	_output_new.time_us = imu_new.time_us;
 	_output_new.quat_nominal = dq * _output_new.quat_nominal;
+
+	// the quaternions must always be normalised afer modification
 	_output_new.quat_nominal.normalize();
 
-	matrix::Dcm<float> R_to_earth(_output_new.quat_nominal);
+	// calculate the rotation matrix from body to earth frame
+	_R_to_earth_now = quat_to_invrotmat(_output_new.quat_nominal);
 
-	Vector3f delta_vel_NED = R_to_earth * delta_vel + _delta_vel_corr;
-	delta_vel_NED(2) += 9.81f * imu_new.delta_vel_dt;
+	// rotate the delta velocity to earth frame
+	// apply a delta velocity correction required to track the velocity states at the EKF fusion time horizon
+	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel + _delta_vel_corr;
 
+	// corrrect for measured accceleration due to gravity
+	delta_vel_NED(2) += _gravity_mss * imu_new.delta_vel_dt;
+
+	// save the previous velocity so we can use trapezidal integration
 	Vector3f vel_last = _output_new.vel;
 
+	// increment the INS velocity states by the measurement plus corrections
 	_output_new.vel += delta_vel_NED;
 
+	// use trapezoidal integration to calculate the INS position states
+	// apply a velocity correction required to track the position states at the EKF fusion time horizon
 	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f) + _vel_corr * imu_new.delta_vel_dt;
 
+	// store INS states in a ring buffer that with the same length and time coordinates as the IMU data buffer
 	if (_imu_updated) {
 		_output_buffer.push(_output_new);
 		_imu_updated = false;
 	}
 
+	// get the oldest INS state data from the ring buffer
+	// this data will be at the EKF fusion time horizon
 	_output_sample_delayed = _output_buffer.get_oldest();
 
+	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 	Quaternion quat_inv = _state.quat_nominal.inversed();
 	Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
 	q_error.normalize();
+
+	// convert the quaternion delta to a delta angle
 	Vector3f delta_ang_error;
-
 	float scalar;
-
 	if (q_error(0) >= 0.0f) {
 		scalar = -2.0f;
 
 	} else {
 		scalar = 2.0f;
 	}
-
 	delta_ang_error(0) = scalar * q_error(1);
 	delta_ang_error(1) = scalar * q_error(2);
 	delta_ang_error(2) = scalar * q_error(3);
 
+	// calculate a corrrection to the delta angle
+	// that will cause the INS to track the EKF quaternions with a 1 sec time constant
 	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt;
 
+	// calculate a correction to the delta velocity
+	// that will cause the INS to track the EKF velocity with a 1 sec time constant
 	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
 
+	// calculate a correction to the INS velocity
+	// that will cause the INS to track the EKF position with a 1 sec time constant
 	_vel_corr = (_state.pos - _output_sample_delayed.pos);
 }

@@ -124,7 +124,8 @@ public:
 private:
 
 	static const uint8_t _k_num_states = 24;
-	static constexpr float _k_earth_rate = 0.000072921f;
+	const float _k_earth_rate = 0.000072921f;
+	const float _gravity_mss = 9.80665f;
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
@@ -149,7 +150,7 @@ private:
 
 	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
-	matrix::Dcm<float> _R_prev;	// transformation matrix from earth frame to body frame of previous ekf step
+	matrix::Dcm<float> _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
 	float KH[_k_num_states][_k_num_states]; // intermediate variable for the covariance update
@@ -173,8 +174,8 @@ private:
 	// optical flow processing
 	float _flow_innov[2];		// flow measurement innovation
 	float _flow_innov_var[2];	// flow innovation variance
-	Vector2f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
-	Vector2f _imu_del_ang_of;	// bias corrected XY delta angle measurements accumulated across the same time frame as the optical flow rates
+	Vector3f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
+	Vector3f _imu_del_ang_of;	// bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates
 	float _delta_time_of;		// time in sec that _imu_del_ang_of was accumulated over
 
 	float _mag_declination;		// magnetic declination used by reset and fusion functions (rad)
@@ -330,4 +331,5 @@ private:
 
 	// zero the specified range of columns in the state covariance matrix
 	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
 };

@@ -496,7 +496,7 @@ void Ekf::fuseHeading()
 	matrix::Vector3f mag_earth_pred;
 
 	// determine if a 321 or 312 Euler sequence is best
-	if (fabsf(_R_prev(0, 2)) < fabsf(_R_prev(1, 2))) {
+	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
 		// calculate observation jacobian when we are observing the first rotation in a 321 sequence
 		float t2 = q0 * q0;
 		float t3 = q1 * q1;
@@ -584,9 +584,9 @@ void Ekf::fuseHeading()
 		// Calculate the 312 sequence euler angles that rotate from earth to body frame
 		// See http://www.atacolorado.com/eulersequences.doc
 		Vector3f euler312;
-		euler312(0) = atan2f(-_R_prev(1, 0) , _R_prev(1, 1)); // first rotation (yaw)
-		euler312(1) = asinf(_R_prev(1, 2)); // second rotation (roll)
-		euler312(2) = atan2f(-_R_prev(0, 2) , _R_prev(2, 2)); // third rotation (pitch)
+		euler312(0) = atan2f(-_R_to_earth(0, 1) , _R_to_earth(1, 1)); // first rotation (yaw)
+		euler312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
+		euler312(2) = atan2f(-_R_to_earth(2, 0) , _R_to_earth(2, 2)); // third rotation (pitch)
 
 		predicted_hdg = euler312(0); // we will need the predicted heading to calculate the innovation
 

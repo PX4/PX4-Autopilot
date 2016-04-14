@@ -449,3 +449,41 @@ bool Ekf::global_position_is_valid()
 	// TODO implement proper check based on published GPS accuracy, innovation consistency checks and timeout status
 	return (_NED_origin_initialised && ((_time_last_imu - _time_last_gps) < 5e6) && _control_status.flags.gps);
 }
+
+// perform a vector cross product
+Vector3f EstimatorInterface::cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2)
+{
+	Vector3f vecOut;
+	vecOut(0) = vecIn1(1)*vecIn2(2) - vecIn1(2)*vecIn2(1);
+	vecOut(1) = vecIn1(2)*vecIn2(0) - vecIn1(0)*vecIn2(2);
+	vecOut(2) = vecIn1(0)*vecIn2(1) - vecIn1(1)*vecIn2(0);
+	return vecOut;
+}
+
+// calculate the inverse rotation matrix from a quaternion rotation
+Matrix3f EstimatorInterface::quat_to_invrotmat(const Quaternion quat)
+{
+	float q00 = quat(0) * quat(0);
+	float q11 = quat(1) * quat(1);
+	float q22 = quat(2) * quat(2);
+	float q33 = quat(3) * quat(3);
+	float q01 = quat(0) * quat(1);
+	float q02 = quat(0) * quat(2);
+	float q03 = quat(0) * quat(3);
+	float q12 = quat(1) * quat(2);
+	float q13 = quat(1) * quat(3);
+	float q23 = quat(2) * quat(3);
+
+	Matrix3f dcm;
+	dcm(0,0) = q00 + q11 - q22 - q33;
+	dcm(1,1) = q00 - q11 + q22 - q33;
+	dcm(2,2) = q00 - q11 - q22 + q33;
+	dcm(0,1) = 2.0f * (q12 - q03);
+	dcm(0,2) = 2.0f * (q13 + q02);
+	dcm(1,0) = 2.0f * (q12 + q03);
+	dcm(1,2) = 2.0f * (q23 - q01);
+	dcm(2,0) = 2.0f * (q13 - q02);
+	dcm(2,1) = 2.0f * (q23 + q01);
+
+	return dcm;
+}
