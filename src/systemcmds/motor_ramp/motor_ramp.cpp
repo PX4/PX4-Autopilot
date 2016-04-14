@@ -98,11 +98,12 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		PX4_WARN("[motor_ramp] %s", reason);
+		PX4_ERR("[motor_ramp] %s", reason);
 	}
 
+	PX4_WARN("[motor_ramp]\n\nWARNING: motors will ramp up to full speed!\n");
 	PX4_WARN("[motor_ramp] usage: motor_ramp <min_pwm> <ramp_time>");
-	PX4_WARN("[motor_ramp] example:\n");
+	PX4_WARN("[motor_ramp] example:");
 	PX4_WARN("[motor_ramp] nsh> sdlog2 on");
 	PX4_WARN("[motor_ramp] nsh> mc_att_control stop");
 	PX4_WARN("[motor_ramp] nsh> motor_ramp 1100 0.5\n");
@@ -250,7 +251,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		_thread_should_exit = true;
 	}
 
-	PX4_WARN("[motor_ramp] max chan %d", max_channels);
+	PX4_WARN("[motor_ramp] max chan: %d", max_channels);
 
 	set_out(fd, max_channels, 0.0f);
 
@@ -275,7 +276,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		switch (ramp_state) {
 		case RAMP_INIT: {
-				PX4_WARN("[motor_ramp] setting pwm min %d", _min_pwm);
+				PX4_WARN("[motor_ramp] setting pwm min: %d", _min_pwm);
 				set_min_pwm(fd, max_channels, _min_pwm);
 				ramp_state = RAMP_MIN;
 				break;
@@ -283,7 +284,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("[motor_ramp] starting ramp");
+					PX4_WARN("[motor_ramp] starting ramp: %.2f sec", (double)_ramp_time);
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
@@ -307,7 +308,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_WAIT: {
-				if (timer > 2.0f) {
+				if (timer > 1.0f) {
 					_thread_should_exit = true;
 					break;
 				}
