@@ -463,7 +463,7 @@ PX4FMU::init()
 	}
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
-	
+
 	work_start();
 
 	return OK;
@@ -1522,12 +1522,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 		break;
-		
+
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety switch off */
 		_safety_off = true;
 		break;
-		
+
 	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		/* force safety switch on */
 		_safety_off = false;
@@ -2441,8 +2441,8 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		gpios |= 3;
 
 		/* flip the buffer to output mode if required */
-		if (GPIO_SET_OUTPUT == function || 
-		    GPIO_SET_OUTPUT_LOW == function || 
+		if (GPIO_SET_OUTPUT == function ||
+		    GPIO_SET_OUTPUT_LOW == function ||
 		    GPIO_SET_OUTPUT_HIGH == function) {
 			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
 		}
