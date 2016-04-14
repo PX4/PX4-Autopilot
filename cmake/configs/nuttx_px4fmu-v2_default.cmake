@@ -41,7 +41,7 @@ set(config_module_list
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
-	drivers/oreoled
+	#drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
@@ -138,7 +138,7 @@ set(config_module_list
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+	#examples/rover_steering_control
 
 	#
 	# Demo apps
@@ -146,7 +146,7 @@ set(config_module_list
 	#examples/math_demo
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	examples/px4_simple_app
+	#examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
