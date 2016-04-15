@@ -216,6 +216,8 @@ private:
 	bool		_safety_off;
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
+	bool		_oneshot_mode;
+	hrt_abstime	_oneshot_delay_till;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
@@ -384,7 +386,9 @@ PX4FMU::PX4FMU() :
 	_num_disarmed_set(0),
 	_safety_off(false),
 	_safety_disabled(false),
-	_to_safety(nullptr)
+	_to_safety(nullptr),
+	_oneshot_mode(false),
+	_oneshot_delay_till(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -1961,6 +1965,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_ONESHOT:
+		_oneshot_mode = arg ? true : false;
+		ret = OK;
+		break;
+
 #ifdef RC_SERIAL_PORT
 
 	case DSM_BIND_START:
@@ -2096,10 +2105,36 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
 
+	uint16_t widest_pulse = 0;
+
 	for (uint8_t i = 0; i < count; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
 			up_pwm_servo_set(i, values[i]);
+
+			if (values[i] > widest_pulse) {
+				widest_pulse = values[i];
+			}
 		}
+	}
+
+	if (_oneshot_mode) {
+		hrt_abstime now = hrt_absolute_time();
+
+		/*
+		  when doing oneshot we need to guarantee that one
+		  pulse won't interrupt the previous pulse, while
+		  still getting the new pulse out as quickly as
+		  possible. To do this we need to wait till the widest
+		  pulse of the last output has finished. We add 50
+		  microseconds to ensure the ESC has registered the
+		  end of the pulse
+		 */
+		if (now < _oneshot_delay_till) {
+			up_udelay(_oneshot_delay_till - now);
+		}
+
+		up_pwm_servo_trigger();
+		_oneshot_delay_till = hrt_absolute_time() + widest_pulse + 50;
 	}
 
 	return count * 2;
