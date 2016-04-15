@@ -61,7 +61,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_actuators{},
 	_arming{},
 	_vehicleAttitude{},
-	_sensors{},
+	_ctrl_state{},
 	_landTimer(0),
 	_freefallTimer(0)
 {
@@ -82,7 +82,7 @@ void MulticopterLandDetector::initialize()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_sensorsSub = orb_subscribe(ORB_ID(sensor_combined));
+	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 
 	// download parameters
 	updateParameterCache(true);
@@ -95,7 +95,7 @@ void MulticopterLandDetector::updateSubscriptions()
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
-	orb_update(ORB_ID(sensor_combined), _sensorsSub, &_sensors);
+	orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 }
 
 LandDetectionResult MulticopterLandDetector::update()
@@ -127,12 +127,9 @@ bool MulticopterLandDetector::get_freefall_state()
 
 	const uint64_t now = hrt_absolute_time();
 
-	float acc_norm = 0.0;
-
-	for (int i = 0; i < 3; i++) {
-		acc_norm += _sensors.accelerometer_m_s2[i] * _sensors.accelerometer_m_s2[i];
-	}
-
+	float acc_norm = _ctrl_state.x_acc * _ctrl_state.x_acc
+		+ _ctrl_state.y_acc * _ctrl_state.y_acc
+		+ _ctrl_state.z_acc * _ctrl_state.z_acc;
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
 	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
