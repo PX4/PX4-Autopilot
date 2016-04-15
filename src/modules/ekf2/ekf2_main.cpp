@@ -164,6 +164,8 @@ private:
 	control::BlockParamFloat *_mag_delay_ms;
 	control::BlockParamFloat *_baro_delay_ms;
 	control::BlockParamFloat *_gps_delay_ms;
+	control::BlockParamFloat *_flow_delay_ms;
+	control::BlockParamFloat *_rng_delay_ms;
 	control::BlockParamFloat *_airspeed_delay_ms;
 
 	control::BlockParamFloat *_gyro_noise;
@@ -226,6 +228,20 @@ private:
 	control::BlockParamFloat *_flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
 	control::BlockParamFloat *_flow_rate_max;	// maximum valid optical flow rate (rad/sec)
 
+	// sensor positions in body frame
+	control::BlockParamFloat *_imu_pos_x;	// X position of IMU in body frame (m)
+	control::BlockParamFloat *_imu_pos_y;	// Y position of IMU in body frame (m)
+	control::BlockParamFloat *_imu_pos_z;	// Z position of IMU in body frame (m)
+	control::BlockParamFloat *_gps_pos_x;	// X position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_gps_pos_y;	// Y position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_gps_pos_z;	// Z position of GPS antenna in body frame (m)
+	control::BlockParamFloat *_rng_pos_x;	// X position of range finder in body frame (m)
+	control::BlockParamFloat *_rng_pos_y;	// Y position of range finder in body frame (m)
+	control::BlockParamFloat *_rng_pos_z;	// Z position of range finder in body frame (m)
+	control::BlockParamFloat *_flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat *_flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat *_flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+
 	int update_subscriptions();
 
 };
@@ -250,6 +266,8 @@ Ekf2::Ekf2():
 	_mag_delay_ms(new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &_params->mag_delay_ms)),
 	_baro_delay_ms(new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &_params->baro_delay_ms)),
 	_gps_delay_ms(new control::BlockParamFloat(this, "EKF2_GPS_DELAY", false, &_params->gps_delay_ms)),
+	_flow_delay_ms(new control::BlockParamFloat(this, "EKF2_OF_DELAY", false, &_params->flow_delay_ms)),
+	_rng_delay_ms(new control::BlockParamFloat(this, "EKF2_RNG_DELAY", false, &_params->range_delay_ms)),
 	_airspeed_delay_ms(new control::BlockParamFloat(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms)),
 	_gyro_noise(new control::BlockParamFloat(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise)),
 	_accel_noise(new control::BlockParamFloat(this, "EKF2_ACC_NOISE", false, &_params->accel_noise)),
@@ -294,7 +312,19 @@ Ekf2::Ekf2():
 	_flow_noise_qual_min(new control::BlockParamFloat(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min)),
 	_flow_qual_min(new control::BlockParamInt(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min)),
 	_flow_innov_gate(new control::BlockParamFloat(this, "EKF2_OF_GATE", false, &_params->flow_innov_gate)),
-	_flow_rate_max(new control::BlockParamFloat(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max))
+	_flow_rate_max(new control::BlockParamFloat(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max)),
+	_imu_pos_x(new control::BlockParamFloat(this, "EKF2_IMU_POS_X", false, &_params->imu_pos_body(0))),
+	_imu_pos_y(new control::BlockParamFloat(this, "EKF2_IMU_POS_Y", false, &_params->imu_pos_body(1))),
+	_imu_pos_z(new control::BlockParamFloat(this, "EKF2_IMU_POS_Z", false, &_params->imu_pos_body(2))),
+	_gps_pos_x(new control::BlockParamFloat(this, "EKF2_GPS_POS_X", false, &_params->gps_pos_body(0))),
+	_gps_pos_y(new control::BlockParamFloat(this, "EKF2_GPS_POS_Y", false, &_params->gps_pos_body(1))),
+	_gps_pos_z(new control::BlockParamFloat(this, "EKF2_GPS_POS_Z", false, &_params->gps_pos_body(2))),
+	_rng_pos_x(new control::BlockParamFloat(this, "EKF2_RNG_POS_X", false, &_params->rng_pos_body(0))),
+	_rng_pos_y(new control::BlockParamFloat(this, "EKF2_RNG_POS_Y", false, &_params->rng_pos_body(1))),
+	_rng_pos_z(new control::BlockParamFloat(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2))),
+	_flow_pos_x(new control::BlockParamFloat(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0))),
+	_flow_pos_y(new control::BlockParamFloat(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1))),
+	_flow_pos_z(new control::BlockParamFloat(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)))
 {
 
 }
@@ -457,6 +487,7 @@ void Ekf2::task_main()
 			flow.quality = optical_flow.quality;
 			flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
 			flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
+			flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
 			flow.dt = optical_flow.integration_timespan;
 
 			if (!isnan(optical_flow.pixel_flow_y_integral) && !isnan(optical_flow.pixel_flow_x_integral)) {
@@ -553,14 +584,14 @@ void Ekf2::task_main()
 
 			lpos.timestamp = hrt_absolute_time();
 
-			// Position in local NED frame
-			_ekf->copy_position(pos);
+			// Position of body origin in local NED frame
+			_ekf->get_position(pos);
 			lpos.x = pos[0];
 			lpos.y = pos[1];
 			lpos.z = pos[2];
 
-			// Velocity in NED frame (m/s)
-			_ekf->copy_velocity(vel);
+			// Velocity of body origin in local NED frame (m/s)
+			_ekf->get_velocity(vel);
 			lpos.vx = vel[0];
 			lpos.vy = vel[1];
 			lpos.vz = vel[2];
