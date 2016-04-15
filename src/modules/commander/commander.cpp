@@ -2106,13 +2106,13 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.gps_failure && !gpsIsNoisy) {
 					status_flags.gps_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "gps fix regained");
+					mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
 				}
 
 			} else if (!status_flags.gps_failure) {
 				status_flags.gps_failure = true;
 				status_changed = true;
-				mavlink_log_critical(&mavlink_log_pub, "gps fix lost");
+				mavlink_log_critical(&mavlink_log_pub, "GPS fix lost");
 			}
 		}
 
@@ -2275,8 +2275,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %llums",
-							     (hrt_absolute_time() - rc_signal_lost_timestamp) / 1000);
+					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %.2fs",
+							     (double)((hrt_absolute_time() - rc_signal_lost_timestamp) / (1000 * 1000)));
 					status_changed = true;
 				}
 			}
@@ -2420,7 +2420,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
-				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
+				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST");
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
 				status_changed = true;
@@ -2599,7 +2599,7 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					warnx("Flight termination because of RC signal loss && gps failure");
+					warnx("Flight termination because of RC signal loss && GPS failure");
 					flight_termination_printed = true;
 				}
 
