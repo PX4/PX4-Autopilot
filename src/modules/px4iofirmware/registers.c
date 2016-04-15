@@ -38,6 +38,7 @@
  */
 
 #include <px4_config.h>
+#include <nuttx/arch.h>
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -192,7 +193,8 @@ volatile uint16_t	r_page_setup[] = {
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
 		PX4IO_P_SETUP_FEATURES_SBUS2_OUT | \
 		PX4IO_P_SETUP_FEATURES_ADC_RSSI | \
-		PX4IO_P_SETUP_FEATURES_PWM_RSSI)
+		PX4IO_P_SETUP_FEATURES_PWM_RSSI | \
+		PX4IO_P_SETUP_FEATURES_ONESHOT)
 #else
 #define PX4IO_P_SETUP_FEATURES_VALID	0
 #endif
@@ -309,25 +311,57 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		break;
 
 	/* handle raw PWM input */
-	case PX4IO_PAGE_DIRECT_PWM:
+	case PX4IO_PAGE_DIRECT_PWM: {
 
-		/* copy channel data */
-		while ((offset < PX4IO_ACTUATOR_COUNT) && (num_values > 0)) {
+			/* copy channel data */
+			uint16_t widest_pulse = 0;
 
-			/* XXX range-check value? */
-			if (*values != PWM_IGNORE_THIS_CHANNEL) {
-				r_page_direct_pwm[offset] = *values;
+			while ((offset < PX4IO_ACTUATOR_COUNT) && (num_values > 0)) {
+
+				/* XXX range-check value? */
+				if (*values != PWM_IGNORE_THIS_CHANNEL) {
+					r_page_direct_pwm[offset] = *values;
+
+					if (*values > widest_pulse) {
+						widest_pulse = *values;
+					}
+				}
+
+				offset++;
+				num_values--;
+				values++;
 			}
 
-			offset++;
-			num_values--;
-			values++;
+			system_state.fmu_data_received_time = hrt_absolute_time();
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
+
+			if (r_setup_features & PX4IO_P_SETUP_FEATURES_ONESHOT) {
+				/*
+				  in oneshot we run the mixer as soon as we
+				  get new data from the FMU
+				 */
+				mixer_tick();
+
+				/*
+				  we now need to trigger the output pulses,
+				  ensuring that the new pulses don't interrupt
+				  the previous pulses. We add a 50 usec safety
+				  margin to ensure the ESC has registered the
+				  end of the previous pulses.
+				 */
+				static hrt_abstime oneshot_delay_till;
+				hrt_abstime now = hrt_absolute_time();
+
+				if (now < oneshot_delay_till) {
+					up_udelay(oneshot_delay_till - now);
+				}
+
+				up_pwm_servo_trigger();
+				oneshot_delay_till = hrt_absolute_time() + widest_pulse + 50;
+			}
+
+			break;
 		}
-
-		system_state.fmu_data_received_time = hrt_absolute_time();
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
-
-		break;
 
 	/* handle setup for servo failsafe values */
 	case PX4IO_PAGE_FAILSAFE_PWM:

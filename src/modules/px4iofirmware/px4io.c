@@ -355,7 +355,15 @@ user_start(int argc, char *argv[])
 
 		/* kick the mixer */
 		perf_begin(mixer_perf);
-		mixer_tick();
+
+		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ONESHOT)) {
+			/*
+			  when in oneshot we don't trigger output
+			  until we get new data from the FMU
+			 */
+			mixer_tick();
+		}
+
 		perf_end(mixer_perf);
 
 		/* kick the control inputs */
