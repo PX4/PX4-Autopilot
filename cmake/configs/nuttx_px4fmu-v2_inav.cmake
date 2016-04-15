@@ -4,5 +4,6 @@ include(cmake/configs/nuttx_px4fmu-v2_base.cmake)
 	#)
 
 list(APPEND config_module_list
-	modules/ekf2
+	modules/attitude_estimator_q
+	modules/position_estimator_inav
 	)
