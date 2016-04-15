@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -78,7 +79,12 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ERROR;
 	}
 
+#ifdef __PX4_NUTTX
+	struct stat buffer;
+	return stat(path, &buffer);
+#else
 	return px4_access(path, F_OK);
+#endif
 }
 
 orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data)
@@ -409,5 +415,9 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 
 bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 {
+#ifdef __PX4_NUTTX
+	return _remote_subscriber_topics.find(messageName);
+#else
 	return (_remote_subscriber_topics.find(messageName) != _remote_subscriber_topics.end());
+#endif
 }
