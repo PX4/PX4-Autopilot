@@ -51,7 +51,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
- 
+
 
 /* Configuration Constants */
 #define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
@@ -121,8 +121,8 @@ private:
 	uint16_t        _zero_counter;
 	uint64_t        _acquire_time_usec;
 	volatile bool       _pause_measurements;
-        uint8_t		_hw_version;
-        uint8_t		_sw_version;
+	uint8_t		_hw_version;
+	uint8_t		_sw_version;
 	bool		_v2_hardware;
 	bool		_reset_complete;
 	uint8_t		_same_value_counter;

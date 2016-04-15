@@ -135,7 +135,7 @@ int LidarLiteI2C::init()
 		measure();
 		_reports->get(&ds_report);
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-							     &_orb_class_instance, ORB_PRIO_LOW);
+					 &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
@@ -168,12 +168,16 @@ int LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t
 {
 	if (send != NULL && send_len > 0) {
 		int ret = transfer(send, send_len, NULL, 0);
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
+		}
 	}
+
 	if (recv != NULL && recv_len > 0) {
 		return transfer(NULL, 0, recv, recv_len);
 	}
+
 	return OK;
 }
 
@@ -196,8 +200,8 @@ int LidarLiteI2C::probe()
 		}
 
 		DEVICE_DEBUG("probe failed hw_version=0x%02x sw_version=0x%02x\n",
-                             (unsigned)_hw_version,
-                             (unsigned)_sw_version);
+			     (unsigned)_hw_version,
+			     (unsigned)_sw_version);
 	}
 
 	// not found on any address
@@ -315,6 +319,7 @@ int LidarLiteI2C::measure()
 		// false values for distance
 		return OK;
 	}
+
 	int ret;
 
 	if (_pause_measurements) {
@@ -330,8 +335,10 @@ int LidarLiteI2C::measure()
 	 */
 	if (! _reset_complete) {
 		ret = reset_sensor();
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
+		}
 	}
 
 	/*
@@ -400,34 +407,48 @@ int LidarLiteI2C::reset_sensor()
 
 	const struct settings_table *table;
 	uint8_t num_settings;
+
 	if (_v2_hardware) {
 		table = settings_v2;
-		num_settings = sizeof(settings_v2)/sizeof(settings_table);
+		num_settings = sizeof(settings_v2) / sizeof(settings_table);
+
 	} else {
 		table = settings_v1;
-		num_settings = sizeof(settings_v1)/sizeof(settings_table);
+		num_settings = sizeof(settings_v1) / sizeof(settings_table);
 	}
 
 	/*
 	  we accept the sensor as reset when all registers have taken
 	  on their expected values.
 	 */
-	for (uint8_t i=0; i<num_settings; i++) {
+	for (uint8_t i = 0; i < num_settings; i++) {
 		uint8_t val;
 		int ret;
 		ret = read_reg(table[i].reg, val);
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
-		if (val == table[i].value)
+		}
+
+		if (val == table[i].value) {
 			continue;
+		}
+
 		ret = write_reg(table[i].reg, table[i].value);
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
+		}
+
 		ret = read_reg(table[i].reg, val);
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
-		if (val != table[i].value)
+		}
+
+		if (val != table[i].value) {
 			return -EIO;
+		}
 	}
 
 	_reset_complete = true;
@@ -474,8 +495,10 @@ int LidarLiteI2C::collect()
 	 */
 	if (! _reset_complete) {
 		ret = reset_sensor();
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
+		}
 	}
 
 	/* read from the sensor */
@@ -538,6 +561,7 @@ int LidarLiteI2C::collect()
 
 	if (_last_distance == distance_cm) {
 		_same_value_counter++;
+
 		if (_same_value_counter >= 200) {
 			/*
 			  we are getting continuous identical values,
@@ -546,11 +570,13 @@ int LidarLiteI2C::collect()
 			_reset_complete = false;
 			_same_value_counter = 0;
 		}
+
 	} else {
 		_same_value_counter = 0;
 	}
+
 	_last_distance = distance_cm;
-	
+
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
