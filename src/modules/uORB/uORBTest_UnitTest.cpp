@@ -124,7 +124,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 	delete[] timings;
 
-	warnx("mean: %8.4f", static_cast<double>(latency_integral / maxruns));
+	warnx("mean: %8.4f us", static_cast<double>(latency_integral / maxruns));
 
 	pubsubtest_passed = true;
 
