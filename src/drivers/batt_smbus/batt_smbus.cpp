@@ -434,16 +434,19 @@ BATT_SMBUS::cycle()
 		if (read_block(BATT_SMBUS_MANUFACTURE_DATA, buff, 6, false) == 6) {
 			bool pressed = (buff[1] >> 3) & 0x01;
 
-			if(_button_press_counts >= ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+			if (_button_press_counts >= ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
 				// battery will power off
 				new_report.is_powering_off = true;
+
 				// warn only once
-				if(_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+				if (_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
 					warnx("system is shutting down NOW...");
 				}
-			} else if(pressed) {
+
+			} else if (pressed) {
 				// battery will power off if the button is held
 				_button_press_counts++;
+
 			} else {
 				// button released early, reset counters
 				_button_press_counts = 0;
