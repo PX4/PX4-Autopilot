@@ -43,30 +43,27 @@ set(SRCS
 	uORBMain.cpp
 	Publication.cpp
 	Subscription.cpp
+	uORBManager.cpp
 	)
 
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		uORBDevices_nuttx.cpp
 		uORBTest_UnitTest.cpp
-		uORBManager_nuttx.cpp
 		)
 elseif(${OS} STREQUAL "posix")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
 		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "posix-arm")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
 		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "qurt")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
 		)
 endif()
 
