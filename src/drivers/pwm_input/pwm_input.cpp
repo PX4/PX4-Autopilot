@@ -283,6 +283,7 @@ PWMIN::~PWMIN()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
 	perf_free(_perf_reset);
 	perf_free(_perf_read);
 	perf_free(_perf_interrupt);
@@ -302,6 +303,7 @@ PWMIN::init()
 	CDev::init();
 
 	_reports = new ringbuffer::RingBuffer(2, sizeof(struct pwm_input_s));
+
 	if (_reports == nullptr) {
 		return -ENOMEM;
 	}
