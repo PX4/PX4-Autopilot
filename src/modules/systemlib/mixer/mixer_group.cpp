@@ -165,6 +165,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			break;
 
 #ifndef ARDUPILOT_BUILD
+
 		case 'R':
 			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
