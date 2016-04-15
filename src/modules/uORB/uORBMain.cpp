@@ -98,6 +98,7 @@ uorb_main(int argc, char *argv[])
 			PX4_WARN("orb is not running! start it first");
 			return -ESRCH;
 		}
+
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 		return t.test();
 	}
