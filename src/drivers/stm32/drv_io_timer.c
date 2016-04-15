@@ -727,3 +727,27 @@ uint32_t io_timer_get_group(unsigned timer)
 	return get_timer_channels(timer);
 
 }
+
+/*
+  trigger pwm output for all PWMOut channels. This is used in oneshot
+  mode after the ccr values have been updated
+ */
+int io_timer_pwm_trigger(void)
+{
+	int pwm_channels = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
+	uint32_t last_timer = 0xFFFFFFFF;
+
+	for (int chan_index = 0; chan_index < MAX_TIMER_IO_CHANNELS; chan_index++) {
+		if (pwm_channels & (1 << chan_index)) {
+			uint32_t timer = channels_timer(chan_index);
+
+			if (timer != last_timer) {
+				rEGR(timer) = GTIM_EGR_UG;
+				last_timer = timer;
+			}
+		}
+	}
+
+	return OK;
+}
+

@@ -78,6 +78,11 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 	return io_channel_get_ccr(channel);
 }
 
+int up_pwm_servo_trigger(void)
+{
+	return io_timer_pwm_trigger();
+}
+
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
