@@ -1076,8 +1076,8 @@ PX4IO::task_main()
 				}
 
 				if (!_rc_handling_disabled) {
-				/* re-upload RC input config as it may have changed */
-				io_set_rc_config();
+					/* re-upload RC input config as it may have changed */
+					io_set_rc_config();
 				}
 
 				/* re-set the battery scaling */
@@ -2615,6 +2615,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			/* set override immediate flag */
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE);
 		}
+
 		break;
 
 	case PWM_SERVO_SET_SBUS_RATE:
@@ -2623,14 +2624,17 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_ONESHOT:
+
 		/* enable/disable oneshot output */
 		if (arg) {
 			(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_ONESHOT);
+
 		} else {
 			(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_ONESHOT, 0);
 		}
+
 		break;
-                
+
 	case DSM_BIND_START:
 
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
