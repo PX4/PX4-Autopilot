@@ -341,15 +341,16 @@ OREOLED::cycle()
 						/* If slaves are in application record that so we can reset if we need to bootload */
 						/* This additional check is required for LED firmwares below v1.3 and can be
 						   deprecated once all LEDs in the wild have firmware >= v1.3 */
-						if(bootloader_ping(i) == OK) {
+						if (bootloader_ping(i) == OK) {
 							_in_boot[i] = true;
 							_num_inboot++;
 						}
 
-					/* Check for a reply with a checksum offset of 1,
-					   which indicates a response from firmwares >= 1.3 */
+						/* Check for a reply with a checksum offset of 1,
+						   which indicates a response from firmwares >= 1.3 */
+
 					} else if (reply[1] == OREOLED_BASE_I2C_ADDR + i &&
-					    reply[2] == msg[sizeof(msg) - 1] + 1) {
+						   reply[2] == msg[sizeof(msg) - 1] + 1) {
 						DEVICE_LOG("oreoled %u ok - in application", (unsigned)i);
 						_healthy[i] = true;
 						_num_healthy++;
@@ -1657,6 +1658,7 @@ oreoled_main(int argc, char *argv[])
 		if (argc > 2 && !strcmp(argv[2], "autoupdate")) {
 			warnx("autoupdate enabled");
 			autoupdate = true;
+
 		} else if (argc > 2 && !strcmp(argv[2], "alwaysupdate")) {
 			warnx("alwaysupdate enabled");
 			alwaysupdate = true;
