@@ -839,40 +839,50 @@ L3GD20::set_samplerate(unsigned frequency, unsigned bandwidth)
 		_current_rate = _is_l3g4200d ? 100 : 95;
 		_current_bandwidth = 25;
 		bits |= RATE_95HZ_LP_25HZ;
+
 	} else if (frequency <= 200) {
 		_current_rate = _is_l3g4200d ? 200 : 190;
 
 		if (bandwidth <= 25) {
 			_current_bandwidth = 25;
 			bits |= RATE_190HZ_LP_25HZ;
+
 		} else if (bandwidth <= 50) {
 			_current_bandwidth = 50;
 			bits |= RATE_190HZ_LP_50HZ;
+
 		} else {
 			_current_bandwidth = 70;
 			bits |= RATE_190HZ_LP_70HZ;
 		}
+
 	} else if (frequency <= 400) {
 		_current_rate = _is_l3g4200d ? 400 : 380;
 
 		if (bandwidth <= 25) {
 			_current_bandwidth = 25;
 			bits |= RATE_380HZ_LP_25HZ;
+
 		} else if (bandwidth <= 50) {
 			_current_bandwidth = 50;
 			bits |= RATE_380HZ_LP_50HZ;
+
 		} else {
 			_current_bandwidth = _is_l3g4200d ? 110 : 100;
 			bits |= RATE_380HZ_LP_100HZ;
 		}
+
 	} else if (frequency <= 800) {
 		_current_rate = _is_l3g4200d ? 800 : 760;
+
 		if (bandwidth <= 30) {
 			_current_bandwidth = 30;
 			bits |= RATE_760HZ_LP_30HZ;
+
 		} else if (bandwidth <= 50) {
 			_current_bandwidth = 50;
 			bits |= RATE_760HZ_LP_50HZ;
+
 		} else {
 			_current_bandwidth = _is_l3g4200d ? 110 : 100;
 			bits |= RATE_760HZ_LP_100HZ;
