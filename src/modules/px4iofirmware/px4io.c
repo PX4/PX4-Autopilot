@@ -369,15 +369,16 @@ user_start(int argc, char *argv[])
 		  that override is happening. This helps when
 		  pre-flight testing the override system
 		 */
-                uint32_t heartbeat_period_us = 250*1000UL;
-                if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
-			heartbeat_period_us /= 4;
-                }
+		uint32_t heartbeat_period_us = 250 * 1000UL;
 
-                if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
-                    last_heartbeat_time = hrt_absolute_time();
-                    heartbeat_blink();
-                }
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+			heartbeat_period_us /= 4;
+		}
+
+		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+			last_heartbeat_time = hrt_absolute_time();
+			heartbeat_blink();
+		}
 
 		ring_blink();
 

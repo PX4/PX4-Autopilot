@@ -121,10 +121,10 @@ mixer_tick(void)
 	 * Decide which set of controls we're using.
 	 */
 
-        bool override_enabled = ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
-                                 (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-                                 (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
-                                 !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED));
+	bool override_enabled = ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+				 (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+				 (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
+				 !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED));
 
 	/* do not mix if RAW_PWM mode is on and FMU is good */
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) &&
@@ -134,11 +134,13 @@ mixer_tick(void)
 			/* a channel based override has been
 			 * triggered, with FMU active */
 			source = MIX_OVERRIDE_FMU_OK;
+
 		} else {
 			/* don't actually mix anything - copy values from r_page_direct_pwm */
 			source = MIX_NONE;
 			memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t)*PX4IO_ACTUATOR_COUNT);
 		}
+
 	} else {
 
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
@@ -149,15 +151,16 @@ mixer_tick(void)
 			source = MIX_FMU;
 		}
 
-		if ( override_enabled &&
-		     !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
-		     /* do not enter manual override if we asked for termination failsafe and FMU is lost */
-		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)) {
+		if (override_enabled &&
+		    !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
+		    /* do not enter manual override if we asked for termination failsafe and FMU is lost */
+		    !(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)) {
 
 			/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;
-		} else 	if ( override_enabled && 
-                             (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
+
+		} else 	if (override_enabled &&
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 
 			/* if allowed, mix from RC inputs directly up to available rc channels */
 			source = MIX_OVERRIDE_FMU_OK;

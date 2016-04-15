@@ -243,7 +243,8 @@ uint16_t		r_page_rc_input_config[PX4IO_RC_INPUT_CHANNELS * PX4IO_P_RC_CONFIG_STR
  * Disable pulses as default.
  */
 uint16_t		r_page_servo_failsafe[PX4IO_ACTUATOR_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0,
-									0, 0, 0, 0, 0, 0, 0, 0 };
+									0, 0, 0, 0, 0, 0, 0, 0
+							};
 
 /**
  * PAGE 106
@@ -268,7 +269,8 @@ uint16_t		r_page_servo_control_max[PX4IO_ACTUATOR_COUNT] = {
 	PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX,
 	PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX,
 	PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX,
-	PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX };
+	PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX, PWM_DEFAULT_MAX
+};
 
 /**
  * PAGE 108
@@ -277,7 +279,8 @@ uint16_t		r_page_servo_control_max[PX4IO_ACTUATOR_COUNT] = {
  *
  */
 uint16_t		r_page_servo_disarmed[PX4IO_ACTUATOR_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0,
-									0, 0, 0, 0, 0, 0, 0, 0 };
+									0, 0, 0, 0, 0, 0, 0, 0
+							};
 
 int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -669,6 +672,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_ON:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
 			} else {
 				return -1;
 			}
@@ -678,6 +682,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
 			} else {
 				return -1;
 			}
