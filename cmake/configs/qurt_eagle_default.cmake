@@ -1,19 +1,16 @@
 include(qurt/px4_impl_qurt)
 
-#if ("${HEXAGON_DRIVERS_ROOT}" #STREQUAL "")
-#	message(FATAL_ERROR "HEXAGON_DRIVERS_ROOT is not set")
-#endif()
-
-#if ("${EAGLE_DRIVERS_SRC}" STREQUAL "")
-#	message(FATAL_ERROR "EAGLE_DRIVERS_SRC is not set")
-#endif()
-
-#include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
+else()
+	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
+endif()
 
 set(CONFIG_SHMEM "1")
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
 set(config_module_list
 	#
