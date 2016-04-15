@@ -358,4 +358,6 @@ __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
  */
 __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
 
+__EXPORT extern int up_pwm_servo_trigger(void);
+
 __END_DECLS
