@@ -158,9 +158,9 @@ for index,m in enumerate(messages[1:]):
 	print("\t\twhile(i < num_msgs) {")
 	print("\t\t\torb_check(sub,&updated);")
 	print("\t\t\tif (i == 0) { updated = true; } else { usleep(500); }")
-	print("\t\t\ti++;")
 	print("\t\t\tif (updated) {")
-	print("\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
+	print("\t\t\ti++;")
+	print("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
