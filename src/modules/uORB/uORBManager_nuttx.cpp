@@ -225,7 +225,7 @@ int uORB::Manager::node_open
 )
 {
 	char path[orb_maxpath];
-	int fd, ret;
+	int fd = -1, ret;
 
 	/*
 	 * If meta is null, the object was not defined, i.e. it is not
@@ -244,25 +244,21 @@ int uORB::Manager::node_open
 		return ERROR;
 	}
 
-	/*
-	 * Generate the path to the node and try to open it.
-	 */
-	ret = uORB::Utils::node_mkpath(path, f, meta, instance);
+	/* if we have an instance and are an advertiser, we will generate a new node and set the instance,
+	 * so we do not need to open here */
+	if (!instance || !advertiser) {
+		/*
+		 * Generate the path to the node and try to open it.
+		 */
+		ret = uORB::Utils::node_mkpath(path, f, meta, instance);
 
-	if (ret != OK) {
-		errno = -ret;
-		return ERROR;
-	}
+		if (ret != OK) {
+			errno = -ret;
+			return ERROR;
+		}
 
-	/* open the path as either the advertiser or the subscriber */
-	fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
-
-	/* if we want to advertise and the node existed, we have to re-try again */
-	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
-		/* close the fd, we want a new one */
-		close(fd);
-		/* the node_advertise call will automatically go for the next free entry */
-		fd = -1;
+		/* open the path as either the advertiser or the subscriber */
+		fd = open(path, advertiser ? O_WRONLY : O_RDONLY);
 	}
 
 	/* we may need to advertise the node... */
