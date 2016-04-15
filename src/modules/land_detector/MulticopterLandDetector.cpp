@@ -128,8 +128,8 @@ bool MulticopterLandDetector::get_freefall_state()
 	const uint64_t now = hrt_absolute_time();
 
 	float acc_norm = _ctrl_state.x_acc * _ctrl_state.x_acc
-		+ _ctrl_state.y_acc * _ctrl_state.y_acc
-		+ _ctrl_state.z_acc * _ctrl_state.z_acc;
+			 + _ctrl_state.y_acc * _ctrl_state.y_acc
+			 + _ctrl_state.z_acc * _ctrl_state.z_acc;
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
 	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
