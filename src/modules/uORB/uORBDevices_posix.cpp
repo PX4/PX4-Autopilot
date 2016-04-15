@@ -689,6 +689,7 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 	std::string np(nodepath);
 
 	auto iter = _node_map.find(np);
+
 	if (iter != _node_map.end()) {
 		rc = iter->second;
 	}
