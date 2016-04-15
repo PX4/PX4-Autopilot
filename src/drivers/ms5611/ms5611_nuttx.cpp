@@ -831,7 +831,7 @@ struct ms5611_bus_option {
 #ifdef PX4_SPIDEV_BARO
 	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_BARO, NULL },
 #if PX4_SPI_BUS_BARO != PX4_SPI_BUS_SENSORS
-        // cope with early prototypes of the Pixracer, where baro is on sensors bus
+	// cope with early prototypes of the Pixracer, where baro is on sensors bus
 	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int2", &MS5611_spi_interface, PX4_SPI_BUS_SENSORS, NULL },
 #endif
 #endif
