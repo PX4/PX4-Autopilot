@@ -330,7 +330,12 @@ then
 	sh /etc/init.d/rc.sensors
 
 	# Needs to be this early for in-air-restarts
-	commander start
+	if [ $OUTPUT_MODE == hil ]
+	then
+	    commander start -hil
+	else
+	    commander start
+	fi
 
 	#
 	# Start primary output
