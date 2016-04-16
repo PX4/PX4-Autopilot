@@ -617,6 +617,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
+					unlock();
 					return -ENOMEM;
 				}
 
@@ -624,7 +625,8 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					// FIXME - looks like we leaked memory here for objname
+					unlock();
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -634,8 +636,8 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
 					unlock();
-
-					// FIXME - looks like we leaked memory here for devpath and objname
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -674,7 +676,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			} while (ret != PX4_OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
 
