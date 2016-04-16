@@ -175,8 +175,14 @@ qurt_eagle_travis:
 
 qurt_eagle_release:
 	$(call cmake-build,$@)
+	
+qurt_eagle_legacy_driver_release:
+	$(call cmake-build,$@)
 
 posix_eagle_release:
+	$(call cmake-build,$@)
+	
+posix_eagle_legacy_driver_release:
 	$(call cmake-build,$@)
 
 qurt_eagle_default:
@@ -184,8 +190,14 @@ qurt_eagle_default:
 
 eagle_default: posix_eagle_default qurt_eagle_default
 
+qurt_eagle_legacy_driver_default:
+	$(call cmake-build,$@)	
+
 posix_eagle_default:
 	$(call cmake-build,$@)
+	
+posix_eagle_legacy_driver_default:
+	$(call cmake-build,$@) 
 
 posix_rpi2_default:
 	$(call cmake-build,$@)
