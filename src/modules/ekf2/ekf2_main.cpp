@@ -729,7 +729,7 @@ void Ekf2::task_main()
 		status.timestamp = hrt_absolute_time();
 		_ekf->get_state_delayed(status.states);
 		_ekf->get_covariances(status.covariances);
-		//status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
+		_ekf->get_gps_check_status(&status.gps_check_fail_flags);
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
