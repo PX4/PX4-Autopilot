@@ -316,6 +316,12 @@ void Ekf::get_heading_innov_var(float *heading_innov_var)
 	memcpy(heading_innov_var, &_heading_innov_var, sizeof(float));
 }
 
+// get GPS check status
+void Ekf::get_gps_check_status(uint16_t *val)
+{
+	memcpy(val, &_gps_check_fail_status, sizeof(uint16_t));
+}
+
 // get the state vector at the delayed time horizon
 void Ekf::get_state_delayed(float *state)
 {

@@ -123,6 +123,9 @@ public:
 
 	void get_accel_bias(float *bias) {*bias = _state.accel_z_bias;}
 
+	// get GPS check status
+	void get_gps_check_status(uint16_t *_gps_check_fail_status);
+
 private:
 
 	static const uint8_t _k_num_states = 24;

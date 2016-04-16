@@ -217,6 +217,9 @@ public:
 		*val = _control_status.value;
 	}
 
+	// get GPS check status
+	virtual void get_gps_check_status(uint16_t *val) = 0;
+
 protected:
 
 	parameters _params;		// filter parameters
