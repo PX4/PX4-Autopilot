@@ -2105,6 +2105,22 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
 
+	if (_oneshot_mode) {
+		hrt_abstime now = hrt_absolute_time();
+		/*
+		  when doing oneshot we need to guarantee that one
+		  pulse won't interrupt the previous pulse, while
+		  still getting the new pulse out as quickly as
+		  possible. To do this we need to wait till the widest
+		  pulse of the last output has finished. We add 50
+		  microseconds to ensure the ESC has registered the
+		  end of the pulse
+		 */
+		if (now < _oneshot_delay_till) {
+			up_udelay(_oneshot_delay_till - now);
+		}
+        }
+        
 	uint16_t widest_pulse = 0;
 
 	for (uint8_t i = 0; i < count; i++) {
@@ -2118,21 +2134,6 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	}
 
 	if (_oneshot_mode) {
-		hrt_abstime now = hrt_absolute_time();
-
-		/*
-		  when doing oneshot we need to guarantee that one
-		  pulse won't interrupt the previous pulse, while
-		  still getting the new pulse out as quickly as
-		  possible. To do this we need to wait till the widest
-		  pulse of the last output has finished. We add 50
-		  microseconds to ensure the ESC has registered the
-		  end of the pulse
-		 */
-		if (now < _oneshot_delay_till) {
-			up_udelay(_oneshot_delay_till - now);
-		}
-
 		up_pwm_servo_trigger();
 		_oneshot_delay_till = hrt_absolute_time() + widest_pulse + 50;
 	}
