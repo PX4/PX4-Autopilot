@@ -37,6 +37,8 @@
 #ifndef __ARCH_BOARD_BOARD_H
 #define __ARCH_BOARD_BOARD_H
 
+//#define PIXRACER_BETA_BOARD
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
@@ -260,7 +262,12 @@
 
 #define GPIO_SPI2_MISO	(GPIO_SPI2_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI2_MOSI	(GPIO_SPI2_MOSI_1|GPIO_SPEED_50MHz)
+
+#ifdef PIXRACER_BETA_BOARD
+#define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_2|GPIO_SPEED_50MHz)
+#else
 #define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_1|GPIO_SPEED_50MHz)
+#endif
 
 /************************************************************************************
  * Public Data
