@@ -340,19 +340,20 @@ void Logger::run()
 	const unsigned ten_msec = 10;
 	const unsigned hundred_msec = 100;
 	 */
-	add_topic("sensor_accel", 0);
-	add_topic("sensor_baro", 0);
+	add_topic("sensor_accel");
+	add_topic("sensor_baro", 20);
 	add_topic("manual_control_setpoint");
 	add_topic("vehicle_rates_setpoint");
-	add_topic("sensor_gyro", 0);
-	add_topic("vehicle_attitude_setpoint");
+	add_topic("sensor_gyro");
+	add_topic("vehicle_attitude_setpoint", 20);
 	add_topic("vehicle_attitude");
+	add_topic("actuator_outputs", 20);
 
 
 	//add_topic("estimator_status", 0);
 	//add_topic("sensor_combined", 0);
 
-	add_topic("vehicle_status", 0);
+	add_topic("vehicle_status");
 
 	_writer_thread = _writer.thread_start();
 
