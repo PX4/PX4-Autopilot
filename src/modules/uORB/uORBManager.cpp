@@ -273,6 +273,9 @@ int uORB::Manager::node_open
 
 		/* open the path as either the advertiser or the subscriber */
 		fd = px4_open(path, advertiser ? PX4_F_WRONLY : PX4_F_RDONLY);
+
+	} else {
+		*instance = 0;
 	}
 
 	/* we may need to advertise the node... */
