@@ -2010,6 +2010,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				unsigned maxcopy2 = (sizeof(buf.estimator_status.covariances) < sizeof(log_msg.body.log_EST2.cov)) ? sizeof(buf.estimator_status.covariances) : sizeof(log_msg.body.log_EST2.cov);
 				memset(&(log_msg.body.log_EST2.cov), 0, sizeof(log_msg.body.log_EST2.cov));
 				memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
+				log_msg.body.log_EST2.gps_check_fail_flags = buf.estimator_status.gps_check_fail_flags;
+				log_msg.body.log_EST2.control_mode_flags = buf.estimator_status.control_mode_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST2);
 
 				log_msg.msg_type = LOG_EST3_MSG;
