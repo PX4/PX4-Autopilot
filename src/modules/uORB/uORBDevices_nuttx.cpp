@@ -571,11 +571,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -591,6 +586,18 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* try for topic groups */
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
+
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					unlock();
+					return -ENOMEM;
+				}
+			}
 
 			do {
 				/* if path is modifyable change try index */
