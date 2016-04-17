@@ -304,10 +304,10 @@ struct parameters {
 		req_vdrift = 0.5f;
 
 		// XYZ offset of sensors in body axes (m)
-		imu_pos_body = {0};
-		gps_pos_body = {0};
-		rng_pos_body = {0};
-		flow_pos_body = {0};
+		imu_pos_body = {};
+		gps_pos_body = {};
+		rng_pos_body = {};
+		flow_pos_body = {};
 	}
 };
 
