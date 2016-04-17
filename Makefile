@@ -203,9 +203,10 @@ run_sitl_ros: sitl_deprecation
 # --------------------------------------------------------------------
 
 uavcan_firmware:
-	@(rm -rf vectorcontrol && git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --no-print-directory -s && BOARD=px4esc_1_6 make --no-print-directory -s && ../Tools/uavcan_copy.sh)
+	@(rm -rf vectorcontrol && git clone -q https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 
 check_format:
+	@./Tools/fix_code_style.sh
 	@./Tools/check_code_style.sh
 
 check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default mindpx-v2_default px4-stm32f4discovery_default check_format tests
