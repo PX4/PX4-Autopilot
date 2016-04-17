@@ -111,7 +111,7 @@ define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
 +@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@); fi
 +@Tools/check_submodules.sh
-+@(echo PX4 CONFIG: $@ && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@(echo "PX4 CONFIG: $@" && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 # create empty targets to avoid msgs for targets passed to cmake
@@ -119,6 +119,12 @@ define cmake-targ
 $(1):
 	@#
 .PHONY: $(1)
+endef
+
+define colorecho
+      @tput setaf 6
+      @echo $1
+      @tput sgr0
 endef
 
 # ADD CONFIGS HERE
@@ -202,21 +208,39 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
+.PHONY: uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.NOTPARALLEL: uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+
 uavcan_firmware:
-	@(rm -rf vectorcontrol && git clone -q https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
+ifeq ($(VECTORCONTROL),1)
+	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
+	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
+endif
+
+check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_unittest check_format
 
 check_format:
+	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
 	@./Tools/check_code_style.sh
 
-check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default mindpx-v2_default px4-stm32f4discovery_default check_format tests
+check_%:
+	@echo
+	$(call colorecho,"Building" $(subst check_,,$@))
+	@$(MAKE) --no-print-directory $(subst check_,,$@)
+	@echo
+
+check_px4fmu-v4_default: uavcan_firmware
+check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
+	@echo
+ifeq ($(VECTORCONTROL),1)
+	@echo "Cleaning up vectorcontrol firmware"
+	@rm -rf vectorcontrol
+	@rm -rf ROMFS/px4fmu_common/uavcan
+endif
 
 unittest: posix_sitl_default
-	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest)
-
-tests: unittest
-	@make --no-print-directory px4fmu-v2_default test
-	@make --no-print-directory posix_sitl_default test
+	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest -j2 --output-on-failure)
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
@@ -244,14 +268,6 @@ $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
-# Future:
-#$(CONFIGS):
-##	@cd Build/$@ && cmake ../.. -DCONFIG=$@
-#	@cd Build/$@ && make
-#
-#clean-all:
-#	@rm -rf Build/*
-#
 #help:
 #	@echo
 #	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
