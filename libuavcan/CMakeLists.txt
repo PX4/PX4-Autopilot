@@ -14,10 +14,10 @@ endif()
 string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
 if (build_type_lower STREQUAL "debug")
     set(DEBUG_BUILD 1)
+    message(STATUS "Debug build")
 else ()
     set(DEBUG_BUILD 0)
 endif ()
-message(STATUS "Debug build: ${DEBUG_BUILD}")
 
 project(libuavcan)
 
@@ -34,8 +34,19 @@ endif ()
 execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_CURRENT_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
-add_custom_target(libuavcan_dsdlc dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+set(DSDLC_INPUT_FILES "")
+foreach(DSDLC_INPUT ${DSDLC_INPUTS})
+    file(GLOB_RECURSE DSDLC_NEW_INPUT_FILES ${CMAKE_CURRENT_SOURCE_DIR} "${DSDLC_INPUT}/*.uavcan")
+    set(DSDLC_INPUT_FILES ${DSDLC_INPUT_FILES} ${DSDLC_NEW_INPUT_FILES})
+endforeach(DSDLC_INPUT)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libuavcan_dsdlc_run.stamp
+                   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+                   COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/libuavcan_dsdlc_run.stamp
+                   DEPENDS ${DSDLC_INPUT_FILES}
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                   COMMENT "Running dsdl compiler")
+add_custom_target(libuavcan_dsdlc DEPENDS ${CMAKE_BINARY_DIR}/libuavcan_dsdlc_run.stamp)
 include_directories(${DSDLC_OUTPUT})
 
 #

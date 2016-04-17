@@ -22,6 +22,7 @@ set(opts
     "UAVCAN_USE_CPP03:BOOL:OFF::Use C++03 standard."
     "UAVCAN_PLATFORM:STRING:generic:generic linux stm32:Platform."
     "CONTINUOUS_INTEGRATION_BUILD:BOOL:OFF::Disable error redirection and timing tests"
+    "UAVCAN_CMAKE_VERBOSE:BOOL:OFF::Verbose CMake configure output"
     )
 foreach(_opt ${opts})
     # arguments are : delimited
@@ -42,7 +43,9 @@ foreach(_opt ${opts})
         set(${_name} ${DEFAULT_${_name}})
     endif()
     # create a cache from the variable and force it to set
+if(UAVCAN_CMAKE_VERBOSE)
     message(STATUS "${_name}\t: ${${_name}} : ${_descr}")
+endif()
     set("${_name}" "${${_name}}" CACHE "${_type}" "${_descr}" FORCE)
     # if an options list is provided for the cache, set it
     if("${_type}" STREQUAL "STRING" AND NOT "${_options}" STREQUAL "")
@@ -72,11 +75,11 @@ add_subdirectory(libuavcan)
 
 # drivers
 if (${UAVCAN_PLATFORM} STREQUAL "linux")
-    message(STATUS "Adding Linux platform driver")
+    message(STATUS "Adding UAVCAN Linux platform driver")
     add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/linux)
 elseif(${UAVCAN_PLATFORM} STREQUAL "stm32")
-    message(STATUS "Adding STM32 platform driver")
+    message(STATUS "Adding UAVCAN STM32 platform driver")
     add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/stm32/driver)
 endif()
