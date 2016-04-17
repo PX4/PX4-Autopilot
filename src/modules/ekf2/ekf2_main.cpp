@@ -554,7 +554,7 @@ void Ekf2::task_main()
 			lpos.timestamp = hrt_absolute_time();
 
 			// Position in local NED frame
-			_ekf->copy_position(pos);
+			_ekf->get_position(pos);
 			lpos.x = pos[0];
 			lpos.y = pos[1];
 			lpos.z = pos[2];
