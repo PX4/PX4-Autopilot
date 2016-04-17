@@ -75,6 +75,7 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
@@ -1113,6 +1114,73 @@ protected:
 	}
 };
 
+class MavlinkStreamADSBVehicle : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamADSBVehicle::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ADSB_VEHICLE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ADSB_VEHICLE;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamADSBVehicle(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_pos_sub;
+	uint64_t _pos_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamADSBVehicle(MavlinkStreamADSBVehicle &);
+	MavlinkStreamADSBVehicle& operator = (const MavlinkStreamADSBVehicle &);
+
+protected:
+	explicit MavlinkStreamADSBVehicle(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(transponder_report))),
+		_pos_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct transponder_report_s pos;
+
+		if (_pos_sub->update(&_pos_time, &pos)) {
+			mavlink_adsb_vehicle_t msg = {};
+
+			msg.ICAO_address = pos.ICAO_address;
+			msg.lat = pos.lat * 1e7;
+			msg.lon = pos.lon * 1e7;
+			msg.altitude_type = pos.altitude_type;
+			msg.altitude = pos.altitude * 1e3f;
+			msg.heading = (pos.heading + M_PI_F) / M_PI_F * 180.0f * 100.0f;
+			msg.hor_velocity = pos.hor_velocity * 100.0f;
+			msg.ver_velocity = pos.ver_velocity * 100.0f;
+			memcpy(&msg.callsign[0], &pos.callsign[0], sizeof(msg.callsign));
+			msg.emitter_type = pos.emitter_type;
+			msg.tslc = pos.tslc;
+			msg.flags = pos.flags;
+			msg.squawk = pos.squawk;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_ADSB_VEHICLE, &msg);
+		}
+	}
+};
 
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
@@ -2855,5 +2923,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
+	new StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static),
 	nullptr
 };
