@@ -906,12 +906,12 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				} else if ((int)cmd->param2 == 3) {
 					/* trigger gps loss mode */
 					status_flags.gps_failure_cmd = true;
-					warnx("gps loss mode commanded");
+					warnx("GPS loss mode commanded");
 
 				} else if ((int)cmd->param2 == 4) {
 					/* trigger rc loss mode */
 					status_flags.rc_signal_lost_cmd = true;
-					warnx("rc loss mode commanded");
+					warnx("RC loss mode commanded");
 
 				} else if ((int)cmd->param2 == 5) {
 					/* trigger vtol transition failure mode */
@@ -2106,13 +2106,13 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.gps_failure && !gpsIsNoisy) {
 					status_flags.gps_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "gps fix regained");
+					mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
 				}
 
 			} else if (!status_flags.gps_failure) {
 				status_flags.gps_failure = true;
 				status_changed = true;
-				mavlink_log_critical(&mavlink_log_pub, "gps fix lost");
+				mavlink_log_critical(&mavlink_log_pub, "GPS fix lost");
 			}
 		}
 
@@ -2573,8 +2573,7 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					warnx("Flight termination because of data link loss && gps failure");
-					mavlink_log_critical(&mavlink_log_pub, "DL and GPS lost: flight termination");
+					mavlink_and_console_log_critical(&mavlink_log_pub, "DL and GPS lost: flight termination");
 					flight_termination_printed = true;
 				}
 
@@ -2599,7 +2598,7 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					warnx("Flight termination because of RC signal loss && gps failure");
+					warnx("Flight termination because of RC signal loss and GPS failure");
 					flight_termination_printed = true;
 				}
 
