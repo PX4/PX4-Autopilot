@@ -35,6 +35,7 @@
 
 PX4_ARCHWARNINGS = -Wall \
                    -Wextra \
+                   -Werror \
                    -Wdouble-promotion \
                    -Wframe-larger-than=1024 \
                    -Wlogical-op \
