@@ -16,7 +16,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_PYUAVCAN_DIR = os.path.join(SCRIPT_DIR, 'pyuavcan')
 RUNNING_FROM_SRC_DIR = os.path.isdir(LOCAL_PYUAVCAN_DIR)
 if RUNNING_FROM_SRC_DIR:
-    print('Running from the source directory')
+    #print('Running from the source directory')
     sys.path.insert(0, SCRIPT_DIR)
     sys.path.insert(0, LOCAL_PYUAVCAN_DIR)
 
