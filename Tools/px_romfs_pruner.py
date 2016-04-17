@@ -53,7 +53,7 @@ def main():
                         help="ROMFS scratch folder.")
     args = parser.parse_args()
 
-    print("Pruning ROMFS files.")
+    #print("Pruning ROMFS files.")
 
     # go through
     for (root, dirs, files) in os.walk(args.folder):

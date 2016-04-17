@@ -773,7 +773,7 @@ function(px4_create_git_hash_header)
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	message(STATUS "GIT_DESC = ${git_desc}")
+	#message(STATUS "GIT_DESC = ${git_desc}")
 	set(git_desc_short)
 	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
