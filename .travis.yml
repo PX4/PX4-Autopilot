@@ -100,19 +100,12 @@ script:
   - git submodule update --quiet --init --recursive
   - echo 'Building POSIX Firmware..' && make posix_sitl_default
   - echo 'Running Tests..' && make posix_sitl_default test
-  - build_configs="\
-        px4fmu-v1_default \
-        px4fmu-v2_default \
-        px4fmu-v2_lpe \
-        mindpx4-v2_default \
-        px4-stm32f4discovery_default \
-        uavcan_firmware \
-        px4fmu-v4_default"
+  - build_configs="px4fmu-v1_default px4fmu-v2_default px4fmu-v2_lpe mindpx4-v2_default px4-stm32f4discovery_default uavcan_firmware px4fmu-v4_default"
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          cd ${TRAVIS_BUILD_DIR}
       && make check_format
       && arm-none-eabi-gcc --version
-      && for config in $build_configs; do echo 'Building NuttX ${config} Firmware..' && make $config; done
+      && for config in $build_configs; do echo && echo "Building NuttX ${config} Firmware" && make $config && echo; done
       && echo 'Running Tests..' && make tests
       ;
     fi
