@@ -560,7 +560,7 @@ void Ekf2::task_main()
 			lpos.z = pos[2];
 
 			// Velocity in NED frame (m/s)
-			_ekf->copy_velocity(vel);
+			_ekf->get_velocity(vel);
 			lpos.vx = vel[0];
 			lpos.vy = vel[1];
 			lpos.vz = vel[2];
