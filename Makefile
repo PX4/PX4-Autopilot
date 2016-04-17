@@ -158,6 +158,9 @@ posix_sitl_ekf2:
 posix_sitl_replay:
 	$(call cmake-build,$@)
 
+posix_sitl_broadcast:
+	$(call cmake-build,$@)
+
 ros_sitl_default:
 	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
@@ -185,6 +188,8 @@ posix_rpi2_release:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_default
+
+broadcast: posix_sitl_broadcast
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
