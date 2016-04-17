@@ -378,7 +378,7 @@ private:
 
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX_EAGLE
 	FILE *fp = nullptr;
 #endif
 
@@ -387,7 +387,7 @@ protected:
 	{}
 
 	~MavlinkStreamStatustext() {
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX_EAGLE
 		if (fp) {
 			fclose(fp);
 		}
@@ -405,33 +405,33 @@ protected:
 				mavlink_statustext_t msg;
 				msg.severity = mavlink_log.severity;
 				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
+				msg.text[sizeof(msg.text) - 1] = '\0';
 
 				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
 
-
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
 #ifndef __PX4_POSIX_EAGLE
-			/* write log messages in first instance to disk */
-			if (_mavlink->get_instance_id() == 0) {
-				if (fp) {
-					if (EOF == fputs(msg.text, fp)) {
-						write_err_count++;
-					} else {
-						write_err_count = 0;
-					}
+				/* write log messages in first instance to disk */
+				if (_mavlink->get_instance_id() == 0) {
+					if (fp) {
+						if (EOF == fputs(msg.text, fp)) {
+							write_err_count++;
+						} else {
+							write_err_count = 0;
+						}
 
-					if (write_err_count >= write_err_threshold) {
-						(void)fclose(fp);
-						fp = nullptr;
-					} else {
-						(void)fputs("\n", fp);
-						(void)fsync(fileno(fp));
-					}
+						if (write_err_count >= write_err_threshold) {
+							(void)fclose(fp);
+							fp = nullptr;
+						} else {
+							(void)fputs("\n", fp);
+							(void)fsync(fileno(fp));
+						}
 
 					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
-						char log_file_name[32] = "";
-						char log_file_path[70] = "";
+						char log_file_name[64];
+						char log_file_path[128];
 
 						timespec ts;
 						px4_clock_gettime(CLOCK_REALTIME, &ts);
@@ -450,7 +450,7 @@ protected:
 							fputs(msg.text, fp);
 							fputs("\n", fp);
 						} else {
-							PX4_WARN("Failed to open %s errno=%d", log_file_path, errno);
+							PX4_WARN("Failed to open MAVLink log: %s errno=%d", log_file_path, errno);
 						}
 					}
 				}
