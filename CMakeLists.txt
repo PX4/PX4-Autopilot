@@ -37,7 +37,7 @@ endif()
 
 px4_add_module(
 	MODULE lib__ecl
-	STACK 6000
+	STACK_MAIN 6000
 	COMPILE_FLAGS ${MODULE_CFLAGS} -Os
 	SRCS
 		attitude_fw/ecl_controller.cpp

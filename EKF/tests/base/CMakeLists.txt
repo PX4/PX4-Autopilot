@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE lib__ecl__EKF__tests__base
 	MAIN base
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Os
 	SRCS

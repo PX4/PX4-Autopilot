@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE lib__ecl__EKF__tests__ringbuffer
 	MAIN ringbuffer
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Os
 	SRCS
