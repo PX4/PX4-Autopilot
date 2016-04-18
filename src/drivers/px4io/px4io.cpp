@@ -2333,10 +2333,11 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
 #endif
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	printf("rates 0x%04x default %u alt %u\n",
+	printf("rates 0x%04x default %u alt %u sbus %u\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
@@ -2608,6 +2609,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE);
 		}
 
+		break;
+
+	case PWM_SERVO_SET_SBUS_RATE:
+		/* set the requested SBUS frame rate */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, arg);
 		break;
 
 	case DSM_BIND_START:
