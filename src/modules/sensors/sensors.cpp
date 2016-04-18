@@ -1949,8 +1949,8 @@ Sensors::rc_poll()
 				const float slot_width_half = 2.0f / num_slots / 2.0f;
 
 				/* min is -1, max is +1, range is 2. We offset below min and max */
-				const float slot_min = -1.0f - slot_width_half;
-				const float slot_max = 1.0f + slot_width_half;
+				const float slot_min = -1.0f - 0.05f;
+				const float slot_max = 1.0f + 0.05f;
 
 				/* the slot gets mapped by first normalizing into a 0..1 interval using min
 				 * and max. Then the right slot is obtained by multiplying with the number of
@@ -1959,6 +1959,10 @@ Sensors::rc_poll()
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
 						     (slot_max - slot_min)) + (1.0f / num_slots));
+
+				if (manual.mode_slot >= num_slots) {
+					manual.mode_slot = num_slots - 1;
+				}
 			}
 
 			/* mode switches */
