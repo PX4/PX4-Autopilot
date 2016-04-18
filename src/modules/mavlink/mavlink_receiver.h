@@ -152,7 +152,7 @@ private:
 	/**
 	 * Exponential moving average filter to smooth time offset
 	 */
-	void smooth_time_offset(uint64_t offset_ns);
+	void smooth_time_offset(int64_t offset_ns);
 
 	/**
 	 * Decode a switch position from a bitfield
@@ -216,7 +216,7 @@ private:
 	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
-	uint64_t _time_offset;
+	int64_t _time_offset;
 	int	_orb_class_instance;
 
 	static constexpr unsigned MOM_SWITCH_COUNT = 8;

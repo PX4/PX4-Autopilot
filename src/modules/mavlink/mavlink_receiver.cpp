@@ -1345,7 +1345,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	} else if (tsync.tc1 > 0) {
 
-		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
+		int64_t offset_ns = (int64_t)(tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
 		int64_t dt = _time_offset - offset_ns;
 
 		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
@@ -1995,7 +1995,7 @@ uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 }
 
 
-void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
+void MavlinkReceiver::smooth_time_offset(int64_t offset_ns)
 {
 	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
          * the faster the moving average updates in response to
