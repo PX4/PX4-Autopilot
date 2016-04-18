@@ -1,3 +1,7 @@
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+include(fastrpc)
+include(qurt_lib)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
@@ -33,16 +37,16 @@ else()
 	message("df_driver_libs = ${df_driver_libs}")
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
-	QURT_LIB(APP_NAME mainapp
+	QURT_LIB(LIB_NAME mainapp
 		IDL_NAME px4muorb
 		SOURCES
-		${CMAKE_BINARY_DIR}/apps.h
+			${CMAKE_BINARY_DIR}/apps.h
 		LINK_LIBS
-		${module_libraries}
-		${target_libraries}
-		df_driver_framework
-		${df_driver_libs}
-		m
+			${module_libraries}
+			${target_libraries}
+			df_driver_framework
+			${df_driver_libs}
+			m
 		)
 
 	px4_add_adb_push(OUT upload

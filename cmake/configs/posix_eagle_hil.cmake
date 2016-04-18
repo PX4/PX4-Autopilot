@@ -1,5 +1,7 @@
 include(posix/px4_impl_posix)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+
 # Use build stubs unless explicitly set not to
 if("${DSPAL_STUBS_ENABLE}" STREQUAL "")
 	set(DSPAL_STUBS_ENABLE "1")

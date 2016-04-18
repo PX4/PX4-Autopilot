@@ -20,7 +20,7 @@ include(CMakeForceCompiler)
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
         message(FATAL_ERROR "HEXAGON_SDK_ROOT not set")
 else()
-        set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_SDK_ROOT})
+        set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
 if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
