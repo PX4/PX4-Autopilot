@@ -2988,71 +2988,69 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 			/* enable the use of break */
-			do {
-				/* fallback strategies, give the user the closest mode to what he wanted */
-				if (res == TRANSITION_DENIED) {
+			/* fallback strategies, give the user the closest mode to what he wanted */
+			while (res == TRANSITION_DENIED) {
 
-					if (new_mode == commander_state_s::MAIN_STATE_AUTO_MISSION) {
-						res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_MISSION) {
 
-						if (res != TRANSITION_DENIED) {
-							break;
-						} else {
-							/* fall back to loiter */
-							new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-							print_reject_mode(status_local, "AUTO MISSION");
-						}
-					}
+					/* fall back to loiter */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO MISSION");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
-					if (new_mode == commander_state_s::MAIN_STATE_AUTO_LOITER) {
-						res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
-
-						if (res != TRANSITION_DENIED) {
-							break;
-						} else {
-							/* fall back to position control */
-							new_mode = commander_state_s::MAIN_STATE_POSCTL;
-							print_reject_mode(status_local, "AUTO PAUSE");
-						}
-					}
-
-					if (new_mode == commander_state_s::MAIN_STATE_POSCTL) {
-						res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
-
-						if (res != TRANSITION_DENIED) {
-							break;
-						} else {
-							/* fall back to altitude control */
-							new_mode = commander_state_s::MAIN_STATE_ALTCTL;
-							print_reject_mode(status_local, "POSITION CONTROL");
-						}
-					}
-
-					if (new_mode == commander_state_s::MAIN_STATE_ALTCTL) {
-						res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
-
-						if (res != TRANSITION_DENIED) {
-							break;
-						} else {
-							/* fall back to stabilized */
-							new_mode = commander_state_s::MAIN_STATE_STAB;
-							print_reject_mode(status_local, "ALTITUDE CONTROL");
-						}
-					}
-
-					if (new_mode == commander_state_s::MAIN_STATE_STAB) {
-						res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
-
-						if (res != TRANSITION_DENIED) {
-							break;
-						} else {
-							/* there is no decent fallback any more, stay in mode and emit a warning */
-							print_reject_mode(status_local, "STABILIZED");
-						}
+					if (res != TRANSITION_DENIED) {
+						break;
 					}
 				}
-			} while (0);
 
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_LOITER) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_POSCTL;
+					print_reject_mode(status_local, "AUTO PAUSE");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_POSCTL) {
+
+					/* fall back to altitude control */
+					new_mode = commander_state_s::MAIN_STATE_ALTCTL;
+					print_reject_mode(status_local, "POSITION CONTROL");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_ALTCTL) {
+
+					/* fall back to stabilized */
+					new_mode = commander_state_s::MAIN_STATE_STAB;
+					print_reject_mode(status_local, "ALTITUDE CONTROL");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_STAB) {
+
+					/* fall back to manual */
+					new_mode = commander_state_s::MAIN_STATE_MANUAL;
+					print_reject_mode(status_local, "STABILIZED");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+			}
 		}
 
 		return res;
