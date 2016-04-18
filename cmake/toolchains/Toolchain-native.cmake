@@ -3,7 +3,7 @@ foreach(tool nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})
-		#message(FATAL_ERROR "could not find ${tool}")
+		message(FATAL_ERROR "could not find ${tool}")
 	endif()
 endforeach()
 
