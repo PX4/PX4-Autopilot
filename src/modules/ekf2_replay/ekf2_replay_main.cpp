@@ -66,7 +66,7 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 
@@ -130,7 +130,7 @@ private:
 
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
-	orb_advert_t _status_pub;
+	orb_advert_t _landed_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
 
@@ -145,7 +145,7 @@ private:
 	struct log_format_s _formats[100];
 	struct sensor_combined_s _sensors;
 	struct vehicle_gps_position_s _gps;
-	struct vehicle_status_s _status;
+	struct vehicle_land_detected_s _land_detected;
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
 
@@ -198,7 +198,7 @@ private:
 Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
-	_status_pub(nullptr),
+	_landed_pub(nullptr),
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
 	_att_sub(-1),
@@ -209,7 +209,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_formats{},
 	_sensors{},
 	_gps{},
-	_status{},
+	_land_detected{},
 	_flow{},
 	_range{},
 	_message_counter(0),
@@ -227,7 +227,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_file_name = path_to_log;
 
 	// we always start landed
-	_status.condition_landed = true;
+	_land_detected.landed = true;
 }
 
 Ekf2Replay::~Ekf2Replay()
@@ -332,7 +332,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL2_s replay_part2 = {};
 	struct log_RPL3_s replay_part3 = {};
 	struct log_RPL4_s replay_part4 = {};
-	struct log_STAT_s vehicle_status = {};
+	struct log_LAND_s vehicle_landed = {};
 
 	if (type == LOG_RPL1_MSG) {
 
@@ -393,17 +393,16 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
 
-	} else if (type == LOG_STAT_MSG) {
-		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+	} else if (type == LOG_LAND_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
 		parseMessage(data, dest_ptr, type);
-		_status.arming_state = vehicle_status.arming_state;
-		_status.condition_landed = (bool)vehicle_status.landed;
+		_land_detected.landed =  vehicle_landed.landed;
 
-		if (_status_pub == nullptr) {
-			_status_pub = orb_advertise(ORB_ID(vehicle_status), &_status);
+		if (_landed_pub == nullptr) {
+			_landed_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_land_detected);
 
-		} else if (_status_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_status), _status_pub, &_status);
+		} else if (_landed_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);
 		}
 	}
 }
