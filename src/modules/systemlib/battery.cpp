@@ -79,6 +79,7 @@ void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
 			     battery_status_s *battery_status)
 {
+	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
 	sumDischarged(timestamp, current_a);
 	estimateRemaining(voltage_v, throttle_normalized);
