@@ -309,6 +309,13 @@ bool Ekf::update()
 			if (_control_status.flags.ev_pos) {
 				_fuse_pos = true;
 				_fuse_height = true;
+				
+				// correct position and height for offset relative to IMU
+				Vector3f pos_offset_body = _params.visn_pos_body - _params.imu_pos_body;
+				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+				_ev_sample_delayed.posNED(0) -= pos_offset_earth(0);
+				_ev_sample_delayed.posNED(1) -= pos_offset_earth(1);
+				_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);  // + or - ?
 			}
 			// use external vision yaw observation
 			if (_control_status.flags.ev_yaw) {
