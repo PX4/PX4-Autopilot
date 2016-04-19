@@ -105,6 +105,7 @@ void Ekf::fuseVelPosHeight()
 			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 
 		} else if (_control_status.flags.ev_pos) {
+			// warnx("Fusing EV pos");
 			R[3] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
 			_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
 			_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
@@ -119,7 +120,7 @@ void Ekf::fuseVelPosHeight()
 	}
 
 	if (_fuse_height) {
-		if (_control_status.flags.baro_hgt) {
+		if (_control_status.flags.baro_hgt && !_control_status.flags.gps && !_control_status.flags.ev_pos && !(_control_status.flags.rng_hgt && (_R_to_earth(2, 2) > 0.7071f))) {
 			fuse_map[5] = true;
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
 			_vel_pos_innov[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
@@ -153,6 +154,7 @@ void Ekf::fuseVelPosHeight()
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
 		} else if (_control_status.flags.ev_pos) {
+			// warnx("fusing ext_visn_hight");
 			fuse_map[5] = true;
 			// calculate the innovation assuming the external vision observaton is in local NED frame
 			_vel_pos_innov[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);

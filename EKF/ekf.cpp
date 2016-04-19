@@ -406,6 +406,8 @@ bool Ekf::initialiseFilter(void)
 		}
 	}
 
+	// warnx("_params.fusion_mode & MASK_USE_EVPOS %d", (int)(_params.fusion_mode & MASK_USE_EVPOS));
+	// warnx("_primary_hgt_source == VDIST_SENSOR_EV %d", (int)(_primary_hgt_source == VDIST_SENSOR_EV));
 	// set the default height source from the adjustable parameter
 	if (_hgt_counter == 0) {
 		if (_params.fusion_mode & MASK_USE_EVPOS) {
