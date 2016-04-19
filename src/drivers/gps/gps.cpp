@@ -639,6 +639,7 @@ GPS::task_main()
 						} else {
 							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 						}
+
 						last_rate_count++;
 					}
 
