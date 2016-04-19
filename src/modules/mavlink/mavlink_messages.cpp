@@ -1588,7 +1588,7 @@ protected:
 
 			_mavlink->send_message(MAVLINK_MSG_ID_ESTIMATOR_STATUS, &me);
 
-			mavlink_wind_t mw = {};
+			mavlink_wind_cov_t mw = {};
 			mw.time_usec = est.timestamp;
 			// FIXME: Choose correct states
 			mw.wind_x = est.states[8];
@@ -1598,7 +1598,7 @@ protected:
 			mw.var_vert = -1.0f;
 			mw.wind_alt = est.states[11];
 
-			_mavlink->send_message(MAVLINK_MSG_ID_WIND, &mw);
+			_mavlink->send_message(MAVLINK_MSG_ID_WIND_COV, &mw);
 		}
 	}
 };
