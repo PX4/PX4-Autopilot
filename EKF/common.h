@@ -226,6 +226,11 @@ struct parameters {
 	float range_innov_gate;		// range finder fusion innovation consistency gate size (STD)
 	float rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
+	// vision position fusion
+	float ev_noise;		// observation noise for vision sensor estimates (m)
+	float ev_innov_gate;		// vision estimator fusion innovation consistency gate size (STD)
+	float ev_gnd_clearance;	// minimum valid value for vision based height estimate when on ground (m)
+
 	// optical flow fusion
 	float flow_noise;		// observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min;	// observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
@@ -249,7 +254,7 @@ struct parameters {
 	Vector3f gps_pos_body;	// xyz position of the GPS antenna in body frame (m)
 	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
 	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
-	Vector3f visn_pos_body;	// xyz position of VI-sensor focal point in body frame (m)
+	Vector3f ev_pos_body;	// xyz position of VI-sensor focal point in body frame (m)
 
 	// output complementary filter tuning
 	float vel_Tau;	// velocity state correction time constant (1/sec)
@@ -334,11 +339,12 @@ struct parameters {
 		gps_pos_body = {};
 		rng_pos_body = {};
 		flow_pos_body = {};
-		visn_pos_body = {};
+		ev_pos_body = {};
 
 		// output complementary filter tuning time constants
 		vel_Tau = 0.5f;
 		pos_Tau = 0.25f;
+
 	}
 };
 
