@@ -44,21 +44,31 @@
 #include <fcntl.h>
 #endif
 
+#ifndef __PX4_QURT
+#include <termios.h>
+#include <poll.h>
+#else
+#include <sys/ioctl.h>
+#include <dev_fs_lib_serial.h>
+#endif
+
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <array>
 #include <poll.h>
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <px4_config.h>
+#include <px4_time.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/device/i2c.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
@@ -66,16 +76,18 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
+#include <uORB/topics/gps_inject_data.h>
 
 #include <board_config.h>
 
-#include "ubx.h"
-#include "mtk.h"
-#include "ashtech.h"
+#include "devices/src/ubx.h"
+#include "devices/src/mtk.h"
+#include "devices/src/ashtech.h"
 
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
+#define GPS_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 
 
 /* class for dynamic allocation of satellite info data */
@@ -110,8 +122,8 @@ private:
 	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
 	gps_driver_mode_t		_mode;						///< current mode
-	GPS_Helper			*_Helper;					///< instance of GPS parser
-	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
+	GPSHelper			*_helper;					///< instance of GPS parser
+	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
@@ -119,33 +131,69 @@ private:
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
 
+	std::array<int, 4> _orb_inject_data_fd;
+	int _orb_inject_data_next = 0;
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
 	 */
-	void			 	config();
+	void config();
 
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void			task_main_trampoline(void *arg);
-
+	static void task_main_trampoline(void *arg);
 
 	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
 	 */
-	void				task_main(void);
+	void task_main(void);
 
 	/**
 	 * Set the baudrate of the UART to the GPS
 	 */
-	int				set_baudrate(unsigned baud);
+	int set_baudrate(unsigned baud);
 
 	/**
 	 * Send a reset command to the GPS
 	 */
-	void				cmd_reset();
+	void cmd_reset();
 
+	/**
+	 * This is an abstraction for the poll on serial used.
+	 *
+	 * @param buf: pointer to read buffer
+	 * @param buf_length: size of read buffer
+	 * @param timeout: timeout in ms
+	 * @return: 0 for nothing read, or poll timed out
+	 *	    < 0 for error
+	 *	    > 0 number of bytes read
+	 */
+	int pollOrRead(uint8_t *buf, size_t buf_length, int timeout);
+
+	/**
+	 * check for new messages on the inject data topic & handle them
+	 */
+	void handleInjectDataTopic();
+
+	/**
+	 * send data to the device, such as an RTCM stream
+	 * @param data
+	 * @param len
+	 */
+	inline bool injectData(uint8_t *data, size_t len);
+
+	/**
+	 * set the Baudrate
+	 * @param baud
+	 * @return 0 on success, <0 on error
+	 */
+	int setBaudrate(unsigned baud);
+
+	/**
+	 * callback from the driver for the platform specific stuff
+	 */
+	static int callback(GPSCallbackType type, void *data1, int data2, void *user);
 };
 
 
@@ -161,14 +209,13 @@ GPS	*g_dev = nullptr;
 
 }
 
-
 GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
 	_mode(GPS_DRIVER_MODE_UBX),
-	_Helper(nullptr),
-	_Sat_Info(nullptr),
+	_helper(nullptr),
+	_sat_info(nullptr),
 	_report_gps_pos_pub(nullptr),
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
@@ -186,9 +233,13 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
-		_Sat_Info = new GPS_Sat_Info();
-		_p_report_sat_info = &_Sat_Info->_data;
+		_sat_info = new GPS_Sat_Info();
+		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
+	}
+
+	for (int i = 0; i < _orb_inject_data_fd.size(); ++i) {
+		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
 	}
 }
 
@@ -196,6 +247,10 @@ GPS::~GPS()
 {
 	/* tell the task we want it to go away */
 	_task_should_exit = true;
+
+	for (size_t i = 0; i < _orb_inject_data_fd.size(); ++i) {
+		orb_unsubscribe(_orb_inject_data_fd[i]);
+	}
 
 	/* spin waiting for the task to stop */
 	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
@@ -208,16 +263,15 @@ GPS::~GPS()
 		px4_task_delete(_task);
 	}
 
-	if (_Sat_Info) {
-		delete(_Sat_Info);
+	if (_sat_info) {
+		delete(_sat_info);
 	}
 
 	g_dev = nullptr;
 
 }
 
-int
-GPS::init()
+int GPS::init()
 {
 
 	/* start the GPS driver worker task */
@@ -232,17 +286,230 @@ GPS::init()
 	return OK;
 }
 
-void
-GPS::task_main_trampoline(void *arg)
+void GPS::task_main_trampoline(void *arg)
 {
 	g_dev->task_main();
 }
+
+int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
+{
+	GPS *gps = (GPS *)user;
+
+	switch (type) {
+	case GPSCallbackType::readDeviceData:
+		return gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+
+	case GPSCallbackType::writeDeviceData:
+		return write(gps->_serial_fd, data1, (size_t)data2);
+
+	case GPSCallbackType::setBaudrate:
+		return gps->setBaudrate(data2);
+
+	case GPSCallbackType::gotRTCMMessage:
+		/* not used */
+		break;
+
+	case GPSCallbackType::surveyInStatus:
+		/* not used */
+		break;
+
+	case GPSCallbackType::setClock:
+		px4_clock_settime(CLOCK_REALTIME, (timespec *)data1);
+		break;
+	}
+
+	return 0;
+}
+
+int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
+{
+	/* check for new messages. Note that we assume poll_or_read is called with a higher frequency
+	 * than we get new injection messages.
+	 */
+	handleInjectDataTopic();
+
+#ifndef __PX4_QURT
+
+	/* For non QURT, use the usual polling. */
+
+	pollfd fds[1];
+	fds[0].fd = _serial_fd;
+	fds[0].events = POLLIN;
+
+	/* Poll for new data,  */
+	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
+
+	if (ret > 0) {
+		/* if we have new data from GPS, go handle it */
+		if (fds[0].revents & POLLIN) {
+			/*
+			 * We are here because poll says there is some data, so this
+			 * won't block even on a blocking device. But don't read immediately
+			 * by 1-2 bytes, wait for some more data to save expensive read() calls.
+			 * If more bytes are available, we'll go back to poll() again.
+			 */
+			usleep(GPS_WAIT_BEFORE_READ * 1000);
+			return ::read(_serial_fd, buf, buf_length);
+
+		} else {
+			return -1;
+		}
+
+	} else {
+		return ret;
+	}
+
+#else
+	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
+	 * just a bit. */
+	usleep(10000);
+	return ::read(_serial_fd, buf, buf_length);
+#endif
+}
+
+void GPS::handleInjectDataTopic()
+{
+	if (_orb_inject_data_fd[0] == -1) {
+		return;
+	}
+
+	bool updated = false;
+	int orb_inject_data_cur_fd = _orb_inject_data_fd[_orb_inject_data_next];
+	orb_check(orb_inject_data_cur_fd, &updated);
+
+	if (updated) {
+		struct gps_inject_data_s msg;
+		orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
+		injectData(msg.data, msg.len);
+
+		_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd.size();
+
+	}
+}
+
+bool GPS::injectData(uint8_t *data, size_t len)
+{
+	return ::write(_serial_fd, data, len) == len;
+}
+
+int GPS::setBaudrate(unsigned baud)
+{
+
+#if __PX4_QURT
+	// TODO: currently QURT does not support configuration with termios.
+	dspal_serial_ioctl_data_rate data_rate;
+
+	switch (baud) {
+	case 9600: data_rate.bit_rate = DSPAL_SIO_BITRATE_9600; break;
+
+	case 19200: data_rate.bit_rate = DSPAL_SIO_BITRATE_19200; break;
+
+	case 38400: data_rate.bit_rate = DSPAL_SIO_BITRATE_38400; break;
+
+	case 57600: data_rate.bit_rate = DSPAL_SIO_BITRATE_57600; break;
+
+	case 115200: data_rate.bit_rate = DSPAL_SIO_BITRATE_115200; break;
+
+	default:
+		PX4_ERR("ERR: unknown baudrate: %d", baud);
+		return -EINVAL;
+	}
+
+	int ret = ::ioctl(_serial_fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&data_rate);
+
+	if (ret != 0) {
+
+		return ret;
+	}
+
+#else
+	/* process baud rate */
+	int speed;
+
+	switch (baud) {
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	default:
+		PX4_ERR("ERR: unknown baudrate: %d", baud);
+		return -EINVAL;
+	}
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_serial_fd, &uart_config);
+
+	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
+
+	//
+	// Input flags - Turn off input processing
+	//
+	// convert break to null byte, no CR to NL translation,
+	// no NL to CR translation, don't mark parity errors or breaks
+	// no input parity check, don't strip high bit off,
+	// no XON/XOFF software flow control
+	//
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
+				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	//
+	// Output flags - Turn off output processing
+	//
+	// no CR to NL translation, no NL to CR-NL translation,
+	// no NL to CR translation, no column 0 CR suppression,
+	// no Ctrl-D suppression, no fill characters, no case mapping,
+	// no local output processing
+	//
+	// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
+	//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
+	uart_config.c_oflag = 0;
+
+	//
+	// No line processing
+	//
+	// echo off, echo newline off, canonical mode off,
+	// extended input processing off, signal chars off
+	//
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		GPS_ERR("ERR: %d (cfsetispeed)", termios_state);
+		return -1;
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		GPS_ERR("ERR: %d (cfsetospeed)", termios_state);
+		return -1;
+	}
+
+	if ((termios_state = tcsetattr(_serial_fd, TCSANOW, &uart_config)) < 0) {
+		GPS_ERR("ERR: %d (tcsetattr)", termios_state);
+		return -1;
+	}
+
+#endif
+	return 0;
+}
+
 
 void
 GPS::task_main()
 {
 	/* open the serial port */
-	_serial_fd = ::open(_port, O_RDWR);
+	_serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
 
 	if (_serial_fd < 0) {
 		PX4_ERR("GPS: failed to open serial port: %s err: %d", _port, errno);
@@ -299,23 +566,23 @@ GPS::task_main()
 
 		} else {
 
-			if (_Helper != nullptr) {
-				delete(_Helper);
+			if (_helper != nullptr) {
+				delete(_helper);
 				/* set to zero to ensure parser is not used while not instantiated */
-				_Helper = nullptr;
+				_helper = nullptr;
 			}
 
 			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverUBX(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
-				_Helper = new MTK(_serial_fd, &_report_gps_pos);
+				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
-				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			default:
@@ -327,7 +594,7 @@ GPS::task_main()
 			 * MTK driver is not well tested, so we really only trust the UBX
 			 * driver for an advance publication
 			 */
-			if (_Helper->configure(_baudrate) == 0) {
+			if (_helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
@@ -358,14 +625,12 @@ GPS::task_main()
 					}
 
 					/* GPS is obviously detected successfully, reset statistics */
-					_Helper->reset_update_rates();
+					_helper->resetUpdateRates();
 				}
 
 				int helper_ret;
 
-				while ((helper_ret = _Helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
-					//				lock();
-					/* opportunistic publishing - else invalid data would end up on the bus */
+				while ((helper_ret = _helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 
 					if (helper_ret & 1) {
 						if (_report_gps_pos_pub != nullptr) {
@@ -374,6 +639,7 @@ GPS::task_main()
 						} else {
 							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 						}
+						last_rate_count++;
 					}
 
 					if (_p_report_sat_info && (helper_ret & 2)) {
@@ -385,17 +651,13 @@ GPS::task_main()
 						}
 					}
 
-					if (helper_ret & 1) {	// consider only pos info updates for rate calculation */
-						last_rate_count++;
-					}
-
 					/* measure update rate every 5 seconds */
 					if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
 						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
 						last_rate_measurement = hrt_absolute_time();
 						last_rate_count = 0;
-						_Helper->store_update_rates();
-						_Helper->reset_update_rates();
+						_helper->storeUpdateRates();
+						_helper->resetUpdateRates();
 					}
 
 					if (!_healthy) {
@@ -425,7 +687,7 @@ GPS::task_main()
 				}
 
 				if (_healthy) {
-					PX4_WARN("module lost");
+					PX4_WARN("GPS module lost");
 					_healthy = false;
 					_rate = 0.0f;
 				}
@@ -510,15 +772,15 @@ GPS::print_info()
 		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
 	if (_report_gps_pos.timestamp_position != 0) {
-		PX4_WARN("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
+		PX4_WARN("position lock: %d, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
 			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
 		PX4_WARN("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		PX4_WARN("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
 			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
 		PX4_WARN("hdop: %.2f, vdop: %.2f", (double)_report_gps_pos.hdop, (double)_report_gps_pos.vdop);
 		PX4_WARN("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
-		PX4_WARN("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
-		PX4_WARN("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
+		PX4_WARN("rate position: \t%6.2f Hz", (double)_helper->getPositionUpdateRate());
+		PX4_WARN("rate velocity: \t%6.2f Hz", (double)_helper->getVelocityUpdateRate());
 		PX4_WARN("rate publication:\t%6.2f Hz", (double)_rate);
 
 	}
@@ -547,7 +809,8 @@ void
 start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 {
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_WARN("gps already started");
+		return;
 	}
 
 	/* create the driver */
