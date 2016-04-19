@@ -145,7 +145,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
 	// Limit the GPS data rate to a maximum of 14Hz
-	if (time_usec - _time_last_gps > 70000) {
+	if (time_usec - _time_last_gps > 65000) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
@@ -186,7 +186,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 		return;
 	}
 
-	if (time_usec - _time_last_baro > 70000) {
+	if (time_usec - _time_last_baro > 68000) {
 
 		baroSample baro_sample_new;
 		baro_sample_new.hgt = *data;
@@ -226,7 +226,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 		return;
 	}
 
-	if (time_usec > _time_last_range) {
+	if (time_usec - _time_last_range > 45000) {
 		rangeSample range_sample_new;
 		range_sample_new.rng = *data;
 		rng = *data;
@@ -247,7 +247,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	}
 
 	// if data passes checks, push to buffer
-	if (time_usec > _time_last_optflow) {
+	if (time_usec - _time_last_optflow > 40000) {
 		// check if enough integration time
 		float delta_time = 1e-6f * (float)flow->dt;
 		bool delta_time_good = (delta_time >= 0.05f);
