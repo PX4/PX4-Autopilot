@@ -1573,6 +1573,32 @@ protected:
 			msg.vibration_z = est.vibe[2];
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VIBRATION, &msg);
+
+			mavlink_estimator_status_t me = {};
+			me.time_usec = est.timestamp;
+			me.flags = 0;
+			me.vel_ratio = 0.0f;
+			me.pos_horiz_ratio = 0.0f;
+			me.pos_vert_ratio = 0.0f;
+			me.mag_ratio = 0.0f;
+			me.hagl_ratio = 0.0f;
+			me.tas_ratio = 0.0f;
+			me.pos_horiz_accuracy = -1.0f;
+			me.pos_vert_accuracy = -1.0f;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_ESTIMATOR_STATUS, &me);
+
+			mavlink_wind_t mw = {};
+			mw.time_usec = est.timestamp;
+			// FIXME: Choose correct states
+			mw.wind_x = est.states[8];
+			mw.wind_y = est.states[9];
+			mw.wind_z = est.states[10];
+			mw.var_horiz = -1.0f;
+			mw.var_vert = -1.0f;
+			mw.wind_alt = est.states[11];
+
+			_mavlink->send_message(MAVLINK_MSG_ID_WIND, &mw);
 		}
 	}
 };
