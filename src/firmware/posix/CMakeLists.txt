@@ -35,7 +35,7 @@ if ("${BOARD}" STREQUAL "eagle")
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
-			 DEPENDS build_mainapp_apps
+			 DEPENDS mainapp
 			 DEST /home/linaro)
 
 else()
