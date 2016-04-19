@@ -631,6 +631,10 @@ gps_main(int argc, char *argv[])
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 
+	if (argc < 2) {
+		goto out;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
