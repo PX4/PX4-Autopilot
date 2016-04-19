@@ -81,13 +81,9 @@
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
-__BEGIN_DECLS
-
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
-
-__END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
