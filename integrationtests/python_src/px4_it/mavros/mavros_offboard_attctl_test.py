@@ -46,6 +46,7 @@ from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
 from mavros_msgs.srv import CommandLong
+from sensor_msgs.msg import NavSatFix
 #from px4_test_helper import PX4TestHelper
 
 class MavrosOffboardAttctlTest(unittest.TestCase):
@@ -63,12 +64,13 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         #self.helper.setUp()
 
         rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
+        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
         self.pub_att = rospy.Publisher('mavros/setpoint_attitude/attitude', PoseStamped, queue_size=10)
         self.pub_thr = rospy.Publisher('mavros/setpoint_attitude/att_throttle', Float64, queue_size=10)
         rospy.wait_for_service('mavros/cmd/command', 30)
         self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
         self.rate = rospy.Rate(10) # 10hz
-        self.has_pos = False
+        self.has_global_pos = False
         self.local_position = PoseStamped()
 
     def tearDown(self):
@@ -79,22 +81,28 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
     # General callback functions used in tests
     #
     def position_callback(self, data):
-        self.has_pos = True
         self.local_position = data
+
+    def global_position_callback(self, data):
+        self.has_global_pos = True
 
     def test_attctl(self):
         """Test offboard attitude control"""
+
+        # FIXME: hack to wait for simulation to be ready
+        while not self.has_global_pos:
+            self.rate.sleep()
 
         # set some attitude and thrust
         att = PoseStamped()
         att.header = Header()
         att.header.frame_id = "base_footprint"
         att.header.stamp = rospy.Time.now()
-        quaternion = quaternion_from_euler(0.15, 0.15, 0)
+        quaternion = quaternion_from_euler(0.25, 0.25, 0)
         att.pose.orientation = Quaternion(*quaternion)
 
         throttle = Float64()
-        throttle.data = 0.8
+        throttle.data = 0.7
         armed = False
 
         # does it cross expected boundaries in X seconds?
@@ -110,7 +118,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             #self.helper.bag_write('mavros/setpoint_attitude/att_throttle', throttle)
             self.rate.sleep()
 
-            # arm and switch to offboard
+            # FIXME: arm and switch to offboard
             # (need to wait the first few rounds until PX4 has the offboard stream)
             if not armed and count > 5:
                 self._srv_cmd_long(False, 176, False,

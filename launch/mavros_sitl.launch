@@ -1,6 +1,5 @@
 <launch>
-<!-- vim: set ft=xml noet : -->
-<!-- example launch script for PX4 based FCU's -->
+<!-- MAVROS launch script for deprecated multiplatform SITL -->
 
 <arg name="ns" default="/" />
 <arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />

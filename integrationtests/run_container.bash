@@ -21,5 +21,5 @@ fi
 # Assuming that necessary source projects, including this one, are cloned in the build server workspace of this job.
 #
 echo "===> run container"
-docker run --rm -v "$WORKSPACE:/job:rw" px4io/px4-dev-ros bash "/job/Firmware/integrationtests/run-tests.bash"
+docker run --rm -v "$WORKSPACE:/job:rw" px4io/px4-dev-ros bash "/job/Firmware/integrationtests/run_tests.bash" /job/Firmware
 echo "<==="

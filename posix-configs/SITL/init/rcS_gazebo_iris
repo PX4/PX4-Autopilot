@@ -18,11 +18,6 @@ param set CAL_ACC0_YSCALE 1.01
 param set CAL_ACC0_ZSCALE 1.01
 param set CAL_ACC1_XOFF 0.01
 param set CAL_MAG0_XOFF 0.01
-param set MPC_XY_P 0.25
-param set MPC_XY_VEL_P 0.05
-param set MPC_XY_VEL_D 0.005
-param set MPC_XY_FF 0.1
-param set MPC_Z_P 1.3
 param set SENS_BOARD_ROT 8
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1

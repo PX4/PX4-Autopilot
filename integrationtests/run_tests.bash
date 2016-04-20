@@ -5,48 +5,55 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
-SRC_DIR=/root/Firmware
+if [ "$#" -lt 1 ]
+then
+	echo usage: run_tests.bash firmware_src_dir
+	echo ""
+	exit 1
+fi
+
+SRC_DIR=$1
+JOB_DIR=SRC_DIR/..
 BUILD=posix_sitl_default
 # TODO
 ROS_TEST_RESULT_DIR=/root/.ros/test_results/px4
 ROS_LOG_DIR=/root/.ros/log
 PX4_LOG_DIR=${SRC_DIR}/build_${BUILD}/src/firmware/posix/rootfs/fs/microsd/log
-TEST_RESULT_TARGET_DIR=/job/test_results
+TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 # BAGS=/root/.ros
 # CHARTS=/root/.ros/charts
 # EXPORT_CHARTS=/sitl/testing/export_charts.py
 
-# source ROS env, setup Gazebo env
+# source ROS env
 source /opt/ros/indigo/setup.bash
-export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sitl_gazebo/models
-export GAZEBO_PLUGIN_PATH=${SRC_DIR}/Tools/sitl_gazebo/Build/:${GAZEBO_PLUGIN_PATH}
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msgs/
-export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:${SRC_DIR}
+source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
 
 echo "deleting previous test results"
 if [ -d ${TEST_RESULT_TARGET_DIR} ]; then
 	rm -r ${TEST_RESULT_TARGET_DIR}
 fi
 
-echo "linking source to test"
-if [ -d "${SRC_DIR}" ]; then
-	rm -r ${SRC_DIR}
+# FIXME: Firmware compilation seems to CD into this directory (/root/Firmware)
+# when run from "run_container.bash"
+if [ -d /root/Firmware ]; then
+	rm /root/Firmware
 fi
-ln -s /job/Firmware ${SRC_DIR}
+ln -s ${SRC_DIR} /root/Firmware
 
-echo "=====> compile"
+echo "=====> compile ($SRC_DIR)"
 cd $SRC_DIR
 make ${BUILD}
 mkdir -p Tools/sitl_gazebo/Build
 cd Tools/sitl_gazebo/Build
 cmake -Wno-dev ..
 make -j4
+make sdf
 echo "<====="
 
 # don't exit on error anymore from here on (because single tests or exports might fail)
 set +e
 echo "=====> run tests"
-rostest px4 mavros_tests_posix.launch
+rostest px4 mavros_posix_tests_iris.launch
 TEST_RESULT=$?
 echo "<====="
 

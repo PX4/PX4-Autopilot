@@ -49,6 +49,7 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
 from mavros_msgs.srv import CommandLong
+from sensor_msgs.msg import NavSatFix
 #from px4_test_helper import PX4TestHelper
 
 class MavrosOffboardPosctlTest(unittest.TestCase):
@@ -66,11 +67,12 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         #self.helper.setUp()
 
         rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
+        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
         self.pub_spt = rospy.Publisher('mavros/setpoint_position/local', PoseStamped, queue_size=10)
         rospy.wait_for_service('mavros/cmd/command', 30)
         self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
         self.rate = rospy.Rate(10) # 10hz
-        self.has_pos = False
+        self.has_global_pos = False
         self.local_position = PoseStamped()
         self.armed = False
 
@@ -82,17 +84,15 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
     # General callback functions used in tests
     #
     def position_callback(self, data):
-        self.has_pos = True
         self.local_position = data
 
+    def global_position_callback(self, data):
+        self.has_global_pos = True
 
     #
     # Helper methods
     #
     def is_at_position(self, x, y, z, offset):
-        if not self.has_pos:
-            return False
-
         rospy.logdebug("current position %f, %f, %f" %
                        (self.local_position.pose.position.x,
                        self.local_position.pose.position.y,
@@ -127,7 +127,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             self.pub_spt.publish(pos)
             #self.helper.bag_write('mavros/setpoint_position/local', pos)
 
-            # arm and switch to offboard
+            # FIXME: arm and switch to offboard
             # (need to wait the first few rounds until PX4 has the offboard stream)
             if not self.armed and count > 5:
                 self._srv_cmd_long(False, 176, False,
@@ -143,6 +143,10 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
     def test_posctl(self):
         """Test offboard position control"""
+
+        # FIXME: hack to wait for simulation to be ready
+        while not self.has_global_pos:
+            self.rate.sleep()
 
         positions = (
             (0, 0, 0),
