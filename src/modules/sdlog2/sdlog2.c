@@ -2269,15 +2269,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ATT.q_x = buf.att.q[1];
 			log_msg.body.log_ATT.q_y = buf.att.q[2];
 			log_msg.body.log_ATT.q_z = buf.att.q[3];
-			log_msg.body.log_ATT.roll = buf.att.roll;
-			log_msg.body.log_ATT.pitch = buf.att.pitch;
-			log_msg.body.log_ATT.yaw = buf.att.yaw;
+			log_msg.body.log_ATT.roll = 0;
+			log_msg.body.log_ATT.pitch = 0;
+			log_msg.body.log_ATT.yaw = 0;
 			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
-			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
-			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
-			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
+			log_msg.body.log_ATT.gx = 0;
+			log_msg.body.log_ATT.gy = 0;
+			log_msg.body.log_ATT.gz = 0;
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
