@@ -73,11 +73,11 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/controllib
 
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
