@@ -1920,8 +1920,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		math::Vector<3> euler = C_nb.to_euler();
 
 		hil_attitude.timestamp = timestamp;
-		//memcpy(hil_attitude.R, C_nb.data, sizeof(hil_attitude.R));
-		//hil_attitude.R_valid = true;
 
 		hil_attitude.q[0] = q(0);
 		hil_attitude.q[1] = q(1);
@@ -1929,9 +1927,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_attitude.q[3] = q(3);
 		hil_attitude.q_valid = true;
 
-		//hil_attitude.roll = euler(0);
-		//hil_attitude.pitch = euler(1);
-		//hil_attitude.yaw = euler(2);
 		hil_attitude.rollspeed = hil_state.rollspeed;
 		hil_attitude.pitchspeed = hil_state.pitchspeed;
 		hil_attitude.yawspeed = hil_state.yawspeed;
@@ -1957,7 +1952,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
-		hil_global_pos.yaw = euler(1);
+		hil_global_pos.yaw = euler(2);
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 

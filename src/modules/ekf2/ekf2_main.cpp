@@ -721,10 +721,6 @@ void Ekf2::task_main()
 
 			// generate remaining vehicle attitude data
 			att.timestamp = hrt_absolute_time();
-			//matrix::Euler<float> euler(q);
-			//att.roll = euler(0);
-			//att.pitch = euler(1);
-			//att.yaw = euler(2);
 
 			att.q[0] = q(0);
 			att.q[1] = q(1);
