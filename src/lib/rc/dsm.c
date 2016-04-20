@@ -231,7 +231,7 @@ dsm_guess_format(bool reset)
 }
 
 int
-dsm_config(int dsm_fd)
+dsm_config(int fd)
 {
 #ifdef GPIO_SPEKTRUM_PWR_EN
 	// enable power on DSM connector
@@ -240,15 +240,15 @@ dsm_config(int dsm_fd)
 
 	int ret = -1;
 
-	if (dsm_fd >= 0) {
+	if (fd >= 0) {
 
 		struct termios t;
 
 		/* 115200bps, no parity, one stop bit */
-		tcgetattr(dsm_fd, &t);
+		tcgetattr(fd, &t);
 		cfsetspeed(&t, 115200);
 		t.c_cflag &= ~(CSTOPB | PARENB);
-		tcsetattr(dsm_fd, TCSANOW, &t);
+		tcsetattr(fd, TCSANOW, &t);
 
 		/* initialise the decoder */
 		dsm_partial_frame_count = 0;
@@ -526,7 +526,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
-dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
+dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
 	  unsigned max_values)
 {
 	int		ret = 1;
@@ -554,7 +554,7 @@ dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, 
 	 * a complete frame.
 	 */
 
-	ret = read(dsm_fd, &dsm_buf[0], sizeof(dsm_buf) / sizeof(dsm_buf[0]));
+	ret = read(fd, &dsm_buf[0], sizeof(dsm_buf) / sizeof(dsm_buf[0]));
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1) {

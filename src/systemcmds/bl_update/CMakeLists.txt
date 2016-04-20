@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__bl_update
 	MAIN bl_update
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Os
 	SRCS

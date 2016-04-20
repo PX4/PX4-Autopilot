@@ -1577,6 +1577,15 @@ LSM303D::measure()
 
 	accel_report.timestamp = hrt_absolute_time();
 
+#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+	int16_t tx = raw_accel_report.y;
+	int16_t ty = raw_accel_report.x;
+	int16_t tz = -raw_accel_report.z;
+	raw_accel_report.x = tx;
+	raw_accel_report.y = ty;
+	raw_accel_report.z = tz;
+#endif
+
 	// use the temperature from the last mag reading
 	accel_report.temperature = _last_temperature;
 
@@ -1709,6 +1718,17 @@ LSM303D::mag_measure()
 
 
 	mag_report.timestamp = hrt_absolute_time();
+
+#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+	int16_t tx = raw_mag_report.y;
+	int16_t ty = raw_mag_report.x;
+	int16_t tz = -raw_mag_report.z;
+	raw_mag_report.x = tx;
+	raw_mag_report.y = ty;
+	raw_mag_report.z = tz;
+#endif
+
+
 
 	mag_report.x_raw = raw_mag_report.x;
 	mag_report.y_raw = raw_mag_report.y;
@@ -1946,7 +1966,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 
 	/* create the driver */
 	if (external_bus) {
-#ifdef PX4_SPI_BUS_EXT
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
 		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
 		errx(0, "External SPI not available");

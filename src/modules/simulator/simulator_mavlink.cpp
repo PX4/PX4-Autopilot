@@ -262,6 +262,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			/* battery */
 			{
 				hrt_abstime now = hrt_absolute_time();
+
 				const float discharge_interval_us = 60 * 1000 * 1000;
 
 				static hrt_abstime batt_sim_start = now;
@@ -277,33 +278,15 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 					vbatt = cellcount * 3.7f;
 				}
 
-				battery_status_s	battery_status;
-				battery_status.timestamp = hrt_absolute_time();
+				battery_status_s battery_status;
 
-				/* voltage is scaled to mV */
-				battery_status.voltage_v = vbatt;
-				battery_status.voltage_filtered_v = vbatt;
-
-				/*
-				  ibatt contains the raw ADC count, as 12 bit ADC
-				  value, with full range being 3.3v
-				*/
-				battery_status.current_a = ibatt;
-
-				/*
-				  integrate battery over time to get total mAh used
-				*/
-				if (_battery_last_timestamp != 0) {
-					_battery_mamphour_total += battery_status.current_a *
-								   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-				}
-
-				battery_status.discharged_mah = _battery_mamphour_total;
+				// TODO: don't hard-code throttle.
+				const float throttle = 0.5f;
+				_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, &battery_status);
 
 				/* lazily publish the battery voltage */
 				if (_battery_pub != nullptr) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
-					_battery_last_timestamp = battery_status.timestamp;
 
 				} else {
 					_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
@@ -526,20 +509,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
-	if (serial_fd < 0) {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-
-	} else {
-
-		// tell the device to stream some messages
-		char command[] = "\nsh /etc/init.d/rc.usb\n";
-		int w = ::write(serial_fd, command, sizeof(command));
-
-		if (w <= 0) {
-			PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
-		}
-	}
-
 	char serial_buf[1024];
 
 	struct pollfd fds[2];
@@ -553,6 +522,9 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		fds[1].fd = serial_fd;
 		fds[1].events = POLLIN;
 		fd_count++;
+
+	} else {
+		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
 	}
 
 	int len = 0;
@@ -562,19 +534,49 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	int pret = -1;
 	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
 
-	while (pret <= 0) {
+	uint64_t pstart_time = 0;
+
+	bool no_sim_data = true;
+
+	while (!px4_exit_requested() && no_sim_data) {
 		pret = ::poll(&fds[0], fd_count, 100);
+
+		if (fds[0].revents & POLLIN) {
+			if (pstart_time == 0) {
+				pstart_time = hrt_system_time();
+			}
+
+			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			// send hearbeat
+			mavlink_heartbeat_t hb = {};
+			send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
+
+			if (len > 0) {
+				mavlink_message_t msg;
+				mavlink_status_t udp_status = {};
+
+				for (int i = 0; i < len; i++) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
+						// have a message, handle it
+						handle_message(&msg, publish);
+
+						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 5000000)) {
+							PX4_INFO("Got initial simuation data, running sim..");
+							no_sim_data = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (px4_exit_requested()) {
+		return;
 	}
 
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
-
-	if (fds[0].revents & POLLIN) {
-		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_INFO("Sending initial controls message to simulator");
-		send_controls();
-	}
 
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);

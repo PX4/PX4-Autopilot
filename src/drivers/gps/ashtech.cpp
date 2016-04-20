@@ -484,7 +484,7 @@ int ASHTECH::handle_message(int len)
 			return 0;
 		}
 
-		if ((this_msg_num == 0) && (bGPS == true)) {
+		if (this_msg_num == 0 && bGPS && _satellite_info) {
 			memset(_satellite_info->svid,     0, sizeof(_satellite_info->svid));
 			memset(_satellite_info->used,     0, sizeof(_satellite_info->used));
 			memset(_satellite_info->snr,      0, sizeof(_satellite_info->snr));
@@ -497,24 +497,29 @@ int ASHTECH::handle_message(int len)
 		if (this_msg_num == all_msg_num) {
 			end =  tot_sv_visible - (this_msg_num - 1) * 4;
 			_gps_position->satellites_used = tot_sv_visible;
-			_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
-			_satellite_info->timestamp = hrt_absolute_time();
+
+			if (_satellite_info) {
+				_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
+				_satellite_info->timestamp = hrt_absolute_time();
+			}
 		}
 
-		for (int y = 0 ; y < end ; y++) {
-			if (bufptr && *(++bufptr) != ',') { sat[y].svid = strtol(bufptr, &endp, 10); bufptr = endp; }
+		if (_satellite_info) {
+			for (int y = 0 ; y < end ; y++) {
+				if (bufptr && *(++bufptr) != ',') { sat[y].svid = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].elevation = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].elevation = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].azimuth = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].azimuth = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].snr = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].snr = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			_satellite_info->svid[y + (this_msg_num - 1) * 4]      = sat[y].svid;
-			_satellite_info->used[y + (this_msg_num - 1) * 4]      = ((sat[y].snr > 0) ? true : false);
-			_satellite_info->snr[y + (this_msg_num - 1) * 4]       = sat[y].snr;
-			_satellite_info->elevation[y + (this_msg_num - 1) * 4] = sat[y].elevation;
-			_satellite_info->azimuth[y + (this_msg_num - 1) * 4]   = sat[y].azimuth;
+				_satellite_info->svid[y + (this_msg_num - 1) * 4]      = sat[y].svid;
+				_satellite_info->used[y + (this_msg_num - 1) * 4]      = ((sat[y].snr > 0) ? true : false);
+				_satellite_info->snr[y + (this_msg_num - 1) * 4]       = sat[y].snr;
+				_satellite_info->elevation[y + (this_msg_num - 1) * 4] = sat[y].elevation;
+				_satellite_info->azimuth[y + (this_msg_num - 1) * 4]   = sat[y].azimuth;
+			}
 		}
 	}
 
@@ -667,7 +672,10 @@ int ASHTECH::configure(unsigned &baudrate)
 	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
 		baudrate = baudrates_to_try[baud_i];
 		set_baudrate(_fd, baudrate);
-		write(_fd, comm, sizeof(comm));
+
+		if (write(_fd, comm, sizeof(comm)) != sizeof(comm)) {
+			return 1;
+		}
 	}
 
 	set_baudrate(_fd, 115200);

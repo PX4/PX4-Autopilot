@@ -857,7 +857,17 @@ param_save_default(void)
 		goto exit;
 	}
 
+	// After writing the file, also do a fsync to prevent loosing params if power is cut.
+	res = fsync(fd);
+
+	if (res != 0) {
+		PX4_ERR("failed to do fsync: %s", strerror(errno));
+		goto exit;
+	}
+
 	PARAM_CLOSE(fd);
+
+
 	fd = -1;
 
 exit:
@@ -973,6 +983,9 @@ param_export(int fd, bool only_unsaved)
 		}
 
 		s->unsaved = false;
+
+		/* Make sure to get latest from shmem before saving. */
+		update_from_shmem(s->param, &s->val);
 
 		/* append the appropriate BSON type object */
 

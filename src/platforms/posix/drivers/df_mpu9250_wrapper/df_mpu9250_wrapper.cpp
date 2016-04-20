@@ -408,7 +408,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_begin(_accel_sample_perf);
 
 	accel_report accel_report = {};
-	accel_report.timestamp = data.last_read_time_usec;
+	accel_report.timestamp = hrt_absolute_time();
 
 	// TODO: remove these (or get the values)
 	accel_report.x_raw = NAN;
@@ -456,7 +456,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_begin(_gyro_sample_perf);
 
 	gyro_report gyro_report = {};
-	gyro_report.timestamp = data.last_read_time_usec;
+	gyro_report.timestamp = hrt_absolute_time();
 
 	// TODO: remove these (or get the values)
 	gyro_report.x_raw = NAN;

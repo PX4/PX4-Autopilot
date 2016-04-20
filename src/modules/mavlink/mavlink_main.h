@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -435,6 +435,7 @@ private:
 	struct sockaddr_in _src_addr;
 	struct sockaddr_in _bcast_addr;
 	bool _src_addr_initialized;
+	bool _broadcast_address_found;
 
 #endif
 	int _socket_fd;
@@ -508,6 +509,8 @@ private:
 	 * Update rate mult so total bitrate will be equal to _datarate.
 	 */
 	void update_rate_mult();
+
+	void find_broadcast_address();
 
 	void init_udp();
 

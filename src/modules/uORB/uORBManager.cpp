@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -78,7 +79,12 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ERROR;
 	}
 
+#ifdef __PX4_NUTTX
+	struct stat buffer;
+	return stat(path, &buffer);
+#else
 	return px4_access(path, F_OK);
+#endif
 }
 
 orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data)
@@ -233,7 +239,7 @@ int uORB::Manager::node_open
 )
 {
 	char path[orb_maxpath];
-	int fd, ret;
+	int fd = -1, ret;
 
 	/*
 	 * If meta is null, the object was not defined, i.e. it is not
@@ -252,29 +258,24 @@ int uORB::Manager::node_open
 		return ERROR;
 	}
 
-	/*
-	 * Generate the path to the node and try to open it.
-	 */
+	/* if we have an instance and are an advertiser, we will generate a new node and set the instance,
+	 * so we do not need to open here */
+	if (!instance || !advertiser) {
+		/*
+		 * Generate the path to the node and try to open it.
+		 */
+		ret = uORB::Utils::node_mkpath(path, f, meta, instance);
 
-	// FIXME - if *instance is uninitialized, why is this being called? Seems risky and
-	// its definiately a waste. This is the case in muli-topic test.
-	ret = uORB::Utils::node_mkpath(path, f, meta, instance);
+		if (ret != OK) {
+			errno = -ret;
+			return ERROR;
+		}
 
-	if (ret != PX4_OK) {
-		errno = -ret;
-		return ERROR;
-	}
+		/* open the path as either the advertiser or the subscriber */
+		fd = px4_open(path, advertiser ? PX4_F_WRONLY : PX4_F_RDONLY);
 
-	/* open the path as either the advertiser or the subscriber */
-	fd = px4_open(path, (advertiser) ? PX4_F_WRONLY : PX4_F_RDONLY);
-
-	/* if we want to advertise and the node existed, we have to re-try again */
-	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
-		/* close the fd, we want a new one */
-		px4_close(fd);
-
-		/* the node_advertise call will automatically go for the next free entry */
-		fd = -1;
+	} else {
+		*instance = 0;
 	}
 
 	/* we may need to advertise the node... */
@@ -417,5 +418,9 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 
 bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 {
+#ifdef __PX4_NUTTX
+	return _remote_subscriber_topics.find(messageName);
+#else
 	return (_remote_subscriber_topics.find(messageName) != _remote_subscriber_topics.end());
+#endif
 }

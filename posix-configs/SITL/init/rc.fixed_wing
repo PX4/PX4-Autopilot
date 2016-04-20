@@ -45,6 +45,7 @@ mavlink start -u 14556 -r 60000
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 50 -s ATTITUDE -u 14556
+mavlink stream -r 80 -s ATTITUDE_QUATERNION -u 14556
 mavlink stream -r 50 -s ATTITUDE_TARGET -u 14556
 mavlink boot_complete
 sdlog2 start -r 100 -e -t -a

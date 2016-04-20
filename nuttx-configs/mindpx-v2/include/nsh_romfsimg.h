@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file controllib.cpp
- * Unit testing for controllib.
+ * nsh_romfsetc.h
  *
- * @author James Goppert <james.goppert@gmail.com>
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
  */
 
-#include "blocks.hpp"
-
-extern "C" __EXPORT int controllib_test_main(int argc, char *argv[]);
-
-int controllib_test_main(int argc, char *argv[])
-{
-	(void)argc;
-	(void)argv;
-	control::basicBlocksTest();
-	return 0;
-}
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;

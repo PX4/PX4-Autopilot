@@ -213,7 +213,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.08f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.065f);
 
 /**
  * Integral gain for horizontal velocity error
@@ -402,3 +402,14 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+
+/**
+ * Altitude control mode, note mode 1 only tested with LPE
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Altitude following
+ * @value 1 Terrain following
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);

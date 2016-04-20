@@ -1960,6 +1960,14 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  */
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 
+/**
+ * Offset for battery current sensor.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_C_OFFSET, -1.0);
+
 
 /**
  * RC channel count
@@ -2862,6 +2870,16 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+
+/**
+ * Enable sf0x driver
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensor Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 
 /**
  * Set the minimum PWM for the MAIN outputs

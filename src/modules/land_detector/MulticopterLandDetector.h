@@ -49,7 +49,12 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/control_state.h>
 #include <systemlib/param/param.h>
+
+namespace landdetection
+{
 
 class MulticopterLandDetector : public LandDetector
 {
@@ -65,7 +70,7 @@ protected:
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	virtual bool update() override;
+	virtual LandDetectionResult update() override;
 
 	/**
 	* @brief Initializes the land detection algorithm
@@ -82,6 +87,11 @@ protected:
 	**/
 	bool get_landed_state();
 
+	/**
+	* @brief returns true if multicopter is in free-fall state
+	**/
+	bool get_freefall_state();
+
 private:
 
 	/**
@@ -92,6 +102,8 @@ private:
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t maxThrottle;
+		param_t acc_threshold_m_s2;
+		param_t ff_trigger_time_ms;
 	}		_paramHandle;
 
 	struct {
@@ -99,6 +111,8 @@ private:
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float maxThrottle;
+		float acc_threshold_m_s2;
+		uint32_t ff_trigger_time_ms;
 	} _params;
 
 private:
@@ -107,14 +121,20 @@ private:
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
+	int _manualSub;
+	int _ctrl_state_sub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
+	struct manual_control_setpoint_s	_manual;
+	struct control_state_s				_ctrl_state;
 
-	/* timestamp in microseconds since a possible land was detected */
-	uint64_t _landTimer;
+	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
+	uint64_t _freefallTimer;							/**< timestamp in microseconds since a possible freefall was detected*/
 };
+
+}
 
 #endif //__MULTICOPTER_LAND_DETECTOR_H__

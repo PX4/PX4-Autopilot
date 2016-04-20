@@ -117,6 +117,7 @@
 
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
+#define UBX_TX_CFG_PRT_PORTID_USB	0x03		/**< USB */
 #define UBX_TX_CFG_PRT_MODE		0x000008D0	/**< 0b0000100011010000: 8N1 */
 #define UBX_TX_CFG_PRT_BAUDRATE		38400		/**< choose 38400 as GPS baudrate */
 #define UBX_TX_CFG_PRT_INPROTOMASK	0x01		/**< UBX in */
@@ -446,12 +447,6 @@ typedef union {
 	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
 	ubx_payload_tx_cfg_sbas_t		payload_tx_cfg_sbas;
 	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
-#ifdef __PX4_QURT
-	// TODO: determine length needed here
-	uint8_t					raw[256];
-#else
-	uint8_t					raw[];
-#endif
 } ubx_buf_t;
 
 #pragma pack(pop)
@@ -531,13 +526,15 @@ private:
 
 	/**
 	 * Send a message
+	 * @return true on success, false on write error (errno set)
 	 */
-	void			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
+	bool			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
 
 	/**
 	 * Configure message rate
+	 * @return true on success, false on write error
 	 */
-	void			configure_message_rate(const uint16_t msg, const uint8_t rate);
+	bool			configure_message_rate(const uint16_t msg, const uint8_t rate);
 
 	/**
 	 * Calculate & add checksum for given buffer

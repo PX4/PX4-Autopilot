@@ -57,6 +57,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -133,6 +134,7 @@ public:
 	 * Getters
 	 */
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
+	struct vehicle_land_detected_s*	    get_land_detected() { return &_land_detected; }
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
@@ -149,6 +151,11 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+
+	/**
+	 * Returns the default acceptance radius defined by the parameter
+	 */
+	float get_default_acceptance_radius();
 
 	/**
 	 * Get the acceptance radius
@@ -195,6 +202,7 @@ private:
 	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
+	int		_land_detected_sub;		/**< vehicle land detected subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
@@ -210,6 +218,7 @@ private:
 							  when pos control is deactivated */
 
 	vehicle_status_s				_vstatus;		/**< vehicle status */
+	vehicle_land_detected_s				_land_detected;		/**< vehicle land_detected */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos;		/**< gps position */
@@ -294,6 +303,11 @@ private:
 	 * Retrieve vehicle status
 	 */
 	void		vehicle_status_update();
+
+	/**
+	 * Retrieve vehicle land detected
+	 */
+	void		vehicle_land_detected_update();
 
 	/**
 	 * Retrieve vehicle control mode

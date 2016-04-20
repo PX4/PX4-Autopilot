@@ -83,6 +83,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/battery.h>
 #include <conversion/rotation.h>
 
 #include <systemlib/airspeed.h>
@@ -127,9 +128,6 @@ using namespace DriverFramework;
  * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
 
-
-#define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		2.1f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -254,8 +252,7 @@ private:
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
-	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
-	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
+	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -321,6 +318,7 @@ private:
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
+		float battery_current_offset;
 
 		float baro_qnh;
 
@@ -380,6 +378,7 @@ private:
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
+		param_t battery_current_offset;
 
 		param_t board_rotation;
 
@@ -553,10 +552,7 @@ Sensors::Sensors() :
 
 	_param_rc_values{},
 	_board_rotation{},
-	_mag_rotation{},
-
-	_battery_discharged(0),
-	_battery_current_timestamp(0)
+	_mag_rotation{}
 {
 	/* initialize subscriptions */
 	for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
@@ -652,6 +648,7 @@ Sensors::Sensors() :
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
+	_parameter_handles.battery_current_offset = param_find("BAT_C_OFFSET");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -685,7 +682,7 @@ Sensors::Sensors() :
 	(void)param_find("PWM_AUX_DISARMED");
 	(void)param_find("TRIG_MODE");
 	(void)param_find("UAVCAN_ENABLE");
-	(void)param_find("LPE_ENABLED");
+	(void)param_find("SYS_MC_EST_GROUP");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -893,7 +890,7 @@ Sensors::parameters_update()
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		_parameters.battery_voltage_scaling = 0.011f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2)
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
 		_parameters.battery_voltage_scaling = 0.0082f;
 #elif defined (CONFIG_ARCH_BOARD_AEROCORE)
 		_parameters.battery_voltage_scaling = 0.0063f;
@@ -913,8 +910,8 @@ Sensors::parameters_update()
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		/* current scaling for ACSP4 */
-		_parameters.battery_current_scaling = 0.029296875f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2)
+		_parameters.battery_current_scaling = 0.0293f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
 		/* current scaling for 3DR power brick */
 		_parameters.battery_current_scaling = 0.0124f;
 #elif defined (CONFIG_ARCH_BOARD_AEROCORE)
@@ -923,8 +920,15 @@ Sensors::parameters_update()
 		_parameters.battery_current_scaling = 0.0124f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
-		_parameters.battery_voltage_scaling = 0.00001f;
+		_parameters.battery_current_scaling = 0.00001f;
 #endif
+	}
+
+	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
+		warnx("%s", paramerr);
+
+	} else if (_parameters.battery_current_offset < 0.0f) {
+		_parameters.battery_current_offset = 0.0f;
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1508,6 +1512,7 @@ Sensors::parameter_update_poll(bool forced)
 
 		/* do not output this for now, as its covered in preflight checks */
 		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		_battery.updateParams();
 	}
 }
 
@@ -1634,6 +1639,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
+		float bat_voltage_v = 0.0f;
+		float bat_current_a = 0.0f;
+		bool updated_battery = false;
+
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
@@ -1647,48 +1656,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
-					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
-
-					if (voltage > BATT_V_IGNORE_THRESHOLD) {
-						_battery_status.voltage_v = voltage;
-
-						/* one-time initialization of low-pass value to avoid long init delays */
-						if (_battery_status.voltage_filtered_v < BATT_V_IGNORE_THRESHOLD) {
-							_battery_status.voltage_filtered_v = voltage;
-						}
-
-						_battery_status.timestamp = t;
-						_battery_status.voltage_filtered_v += (voltage - _battery_status.voltage_filtered_v) * BATT_V_LOWPASS;
-
-					} else {
-						/* mark status as invalid */
-						_battery_status.voltage_v = -1.0f;
-						_battery_status.voltage_filtered_v = -1.0f;
-					}
+					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
+					updated_battery = true;
 
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					/* handle current only if voltage is valid */
-					if (_battery_status.voltage_v > 0.0f) {
-						float current = (buf_adc[i].am_data * _parameters.battery_current_scaling);
-
-						/* check measured current value */
-						if (current >= 0.0f) {
-							_battery_status.timestamp = t;
-							_battery_status.current_a = current;
-
-							if (_battery_current_timestamp != 0) {
-								/* initialize discharged value */
-								if (_battery_status.discharged_mah < 0.0f) {
-									_battery_status.discharged_mah = 0.0f;
-								}
-
-								_battery_discharged += current * (t - _battery_current_timestamp);
-								_battery_status.discharged_mah = ((float) _battery_discharged) / 3600000.0f;
-							}
-						}
-					}
-
-					_battery_current_timestamp = t;
+					bat_current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+					updated_battery = true;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
@@ -1725,9 +1698,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-			_last_adc = t;
+			if (updated_battery) {
+				// XXX TODO: throttle is hardcoded here. The dependency to throttle would need to be
+				// removed, or it needs to be subscribed to actuator controls.
+				const float throttle = 0.0f;
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, throttle, &_battery_status);
 
-			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub != nullptr) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
@@ -1736,6 +1712,9 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 				}
 			}
+
+			_last_adc = t;
+
 		}
 	}
 }
@@ -1970,8 +1949,8 @@ Sensors::rc_poll()
 				const float slot_width_half = 2.0f / num_slots / 2.0f;
 
 				/* min is -1, max is +1, range is 2. We offset below min and max */
-				const float slot_min = -1.0f - slot_width_half;
-				const float slot_max = 1.0f + slot_width_half;
+				const float slot_min = -1.0f - 0.05f;
+				const float slot_max = 1.0f + 0.05f;
 
 				/* the slot gets mapped by first normalizing into a 0..1 interval using min
 				 * and max. Then the right slot is obtained by multiplying with the number of
@@ -1980,6 +1959,10 @@ Sensors::rc_poll()
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
 						     (slot_max - slot_min)) + (1.0f / num_slots));
+
+				if (manual.mode_slot >= num_slots) {
+					manual.mode_slot = num_slots - 1;
+				}
 			}
 
 			/* mode switches */
@@ -2148,11 +2131,7 @@ Sensors::task_main()
 	raw.adc_voltage_v[2] = 0.0f;
 	raw.adc_voltage_v[3] = 0.0f;
 
-	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = -1.0f;
-	_battery_status.voltage_filtered_v = -1.0f;
-	_battery_status.current_a = -1.0f;
-	_battery_status.discharged_mah = -1.0f;
+	_battery.reset(&_battery_status);
 
 	/* get a set of initial values */
 	accel_poll(raw);

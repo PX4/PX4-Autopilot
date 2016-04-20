@@ -12,8 +12,8 @@ GITSTATUS=$(git status)
 function check_git_submodule {
 
 # The .git exists in a submodule if init and update have been done.
-if [ -f $1"/.git" ];
-	then
+if [ -f $1"/.git" ] || [ -d $1"/.git" ];
+then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if ! [[ -z "$STATUSRETVAL" ]];
@@ -54,6 +54,8 @@ if [ -f $1"/.git" ];
 		fi
 	fi
 else
+	echo "REINITIALIZING GIT SUBMODULES"
+	echo "no git repo found in $1/.git"
 	git submodule sync --recursive;
 	git submodule update --init --recursive $1;
 fi

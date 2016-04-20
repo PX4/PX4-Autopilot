@@ -128,6 +128,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
+	_transponder_report_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -228,8 +229,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		handle_message_distance_sensor(msg);
 		break;
+
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
 		handle_message_follow_target(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ADSB_VEHICLE:
+		handle_message_adsb_vehicle(msg);
 		break;
 	default:
 		break;
@@ -1339,7 +1345,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	} else if (tsync.tc1 > 0) {
 
-		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
+		int64_t offset_ns = (int64_t)(tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
 		int64_t dt = _time_offset - offset_ns;
 
 		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
@@ -1643,6 +1649,38 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 		_follow_target_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
 	} else {
 		orb_publish(ORB_ID(follow_target), _follow_target_pub, &follow_target_topic);
+	}
+}
+
+void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
+{
+	mavlink_adsb_vehicle_t adsb;
+	transponder_report_s t = { };
+
+	mavlink_msg_adsb_vehicle_decode(msg, &adsb);
+
+	t.timestamp = hrt_absolute_time();
+
+	t.ICAO_address = adsb.ICAO_address;
+	t.lat = adsb.lat*1e-7;
+	t.lon = adsb.lon*1e-7;
+	t.altitude_type = adsb.altitude_type;
+	t.altitude = adsb.altitude / 1000.0f;
+	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
+	t.hor_velocity = adsb.hor_velocity / 100.0f;
+	t.ver_velocity = adsb.ver_velocity / 100.0f;
+	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));
+	t.emitter_type = adsb.emitter_type;
+	t.tslc = adsb.tslc;
+	t.flags = adsb.flags;
+	t.squawk = adsb.squawk;
+
+	//warnx("code: %d callsign: %s, vel: %8.4f", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity);
+
+	if (_transponder_report_pub == nullptr) {
+		_transponder_report_pub = orb_advertise(ORB_ID(transponder_report), &t);
+	} else {
+		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);
 	}
 }
 
@@ -1957,7 +1995,7 @@ uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 }
 
 
-void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
+void MavlinkReceiver::smooth_time_offset(int64_t offset_ns)
 {
 	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
          * the faster the moving average updates in response to

@@ -42,6 +42,7 @@
 #include <px4/manual_control_setpoint.h>
 #include <px4/vehicle_control_mode.h>
 #include <px4/vehicle_status.h>
+#include <px4/commander_state.h>
 #include <px4/parameter_update.h>
 #include <px4/actuator_armed.h>
 #include <px4/offboard_control_mode.h>
@@ -69,6 +70,7 @@ protected:
 	 */
 	void EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 			  px4::vehicle_status &msg_vehicle_status,
+			  px4::commander_state &msg_commander_state,
 			  px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	/**
@@ -83,12 +85,14 @@ protected:
 	ros::Publisher _vehicle_control_mode_pub;
 	ros::Publisher _actuator_armed_pub;
 	ros::Publisher _vehicle_status_pub;
+	ros::Publisher _commander_state_pub;
 	ros::Publisher _parameter_update_pub;
 
 	px4::parameter_update _msg_parameter_update;
 	px4::actuator_armed _msg_actuator_armed;
 	px4::vehicle_control_mode _msg_vehicle_control_mode;
 	px4::vehicle_status _msg_vehicle_status;
+	px4::commander_state _msg_commander_state;
 	px4::offboard_control_mode _msg_offboard_control_mode;
 
 	bool _got_manual_control;

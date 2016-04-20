@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <px4_config.h>
@@ -112,6 +113,8 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/commander_state.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -576,7 +579,7 @@ int open_perf_file(const char* str)
 #ifdef __PX4_NUTTX
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 #else
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0666);
 #endif
 
 	if (fd < 0) {
@@ -903,7 +906,17 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 	bool updated = false;
 
 	if (*handle < 0) {
-		if (OK == orb_exists(topic, multi_instance)) {
+#if __PX4_POSIX_EAGLE
+		// The orb_exists call doesn't work correctly on Snapdragon yet.
+		// (No data gets sent from the QURT to the Linux side because there
+		// are no subscribers. However, there won't be any subscribers, if
+		// they check using orb_exists() before subscribing.)
+		if (true)
+#else
+		if (OK == orb_exists(topic, multi_instance))
+#endif
+
+		{
 			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
@@ -1108,7 +1121,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
 
 	struct vehicle_command_s buf_cmd;
-	memset(&buf_status, 0, sizeof(buf_cmd));
+	memset(&buf_cmd, 0, sizeof(buf_cmd));
 
 	// check if we are gathering data for a replay log for ekf2
 	// is yes then disable logging of some topics to avoid dropouts
@@ -1156,6 +1169,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
+		struct vehicle_land_detected_s land_detected;
+		struct commander_state_s commander_state;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1213,6 +1228,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+			struct log_LAND_s log_LAND;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1260,6 +1276,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int innov_sub;
 		int cam_trig_sub;
 		int replay_sub;
+		int land_detected_sub;
+		int commander_state_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1299,6 +1317,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
+	subs.land_detected_sub = -1;
+	subs.commander_state_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1309,16 +1329,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	subs.sat_info_sub = -1;
 
-#ifdef __PX4_NUTTX
-	/* close non-needed fd's. We cannot do this for posix since the file
-	   descriptors will also be closed for the parent process
-	*/
-
-	/* close stdin */
-	close(0);
-	/* close stdout */
-	close(1);
-#endif
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
@@ -1418,6 +1428,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 		bool status_updated = copy_if_updated(ORB_ID(vehicle_status), &subs.status_sub, &buf_status);
 
+		/* --- COMMANDER INTERNAL STATE - LOG MANAGEMENT --- */
+		bool commander_state_updated = copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
+							       &buf.commander_state);
+
 		if (status_updated) {
 			if (log_when_armed) {
 				handle_status(&buf_status);
@@ -1441,15 +1455,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 		log_msg.body.log_TIME.t = hrt_absolute_time();
 		LOGBUFFER_WRITE_AND_COUNT(TIME);
 
-		/* --- VEHICLE STATUS --- */
-		if (status_updated) {
+		/* --- VEHICLE STATUS / COMMANDER DEBUGGING --- */
+		if (status_updated || commander_state_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
-			log_msg.body.log_STAT.main_state = buf_status.main_state;
+			// TODO: This field should get DEPRECATED in favor of nav_state. main_state is only for
+			// commander debugging.
+			log_msg.body.log_STAT.main_state = buf.commander_state.main_state;
+			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
-			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
@@ -1601,6 +1615,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
 				log_msg.msg_type = LOG_VTOL_MSG;
 				log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
+				log_msg.body.log_VTOL.rw_mode = buf.vtol_status.vtol_in_rw_mode;
+				log_msg.body.log_VTOL.trans_mode = buf.vtol_status.vtol_in_trans_mode;
+				log_msg.body.log_VTOL.failsafe_mode = buf.vtol_status.vtol_transition_failsafe;
 				LOGBUFFER_WRITE_AND_COUNT(VTOL);
 			}
 
@@ -1698,13 +1715,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- ACTUATOR OUTPUTS --- */
-			if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
+			if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
 				log_msg.msg_type = LOG_OUT0_MSG;
 				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 				LOGBUFFER_WRITE_AND_COUNT(OUT);
 			}
 
-			if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+			if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
 				log_msg.msg_type = LOG_OUT1_MSG;
 				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 				LOGBUFFER_WRITE_AND_COUNT(OUT);
@@ -1789,6 +1806,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_GPOS.terrain_alt = -1.0f;
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
+			}
+
+			/* --- BATTERY --- */
+			if (copy_if_updated(ORB_ID(battery_status), &subs.battery_sub, &buf.battery)) {
+				log_msg.msg_type = LOG_BATT_MSG;
+				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
+				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
+				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+				log_msg.body.log_BATT.remaining = buf.battery.remaining;
+				log_msg.body.log_BATT.warning = buf.battery.warning;
+				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
 
 			/* --- GLOBAL POSITION SETPOINT --- */
@@ -2009,6 +2038,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				log_msg.body.log_INO2.s[6] = buf.innovations.heading_innov;
 				log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
+				log_msg.body.log_INO2.s[8] = buf.innovations.airspeed_innov;
+				log_msg.body.log_INO2.s[9] = buf.innovations.airspeed_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
 				log_msg.msg_type = LOG_EST6_MSG;
@@ -2118,6 +2149,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CAMT.timestamp = buf.camera_trigger.timestamp;
 			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
+		}
+
+		/* --- LAND DETECTED --- */
+		if (copy_if_updated(ORB_ID(vehicle_land_detected), &subs.land_detected_sub, &buf.land_detected)) {
+			log_msg.msg_type = LOG_LAND_MSG;
+			log_msg.body.log_LAND.landed = buf.land_detected.landed;
+			LOGBUFFER_WRITE_AND_COUNT(LAND);
 		}
 
 		pthread_mutex_lock(&logbuffer_mutex);

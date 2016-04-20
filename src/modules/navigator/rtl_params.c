@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * RTL delay
  *
  * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
  * @unit s
  * @min -1

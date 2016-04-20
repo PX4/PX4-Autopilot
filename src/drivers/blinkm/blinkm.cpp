@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,12 +119,12 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/safety.h>
 
-static const float MAX_CELL_VOLTAGE	= 4.3f;
 static const int LED_ONTIME = 120;
 static const int LED_OFFTIME = 120;
 static const int LED_BLINK = 1;
@@ -195,6 +195,7 @@ private:
 	bool systemstate_run;
 
 	int vehicle_status_sub_fd;
+	int battery_status_sub_fd;
 	int vehicle_control_mode_sub_fd;
 	int vehicle_gps_position_sub_fd;
 	int actuator_armed_sub_fd;
@@ -202,7 +203,6 @@ private:
 
 	int num_of_cells;
 	int detected_cells_runcount;
-
 	int t_led_color[8];
 	int t_led_blink;
 	int led_thread_runcount;
@@ -291,6 +291,7 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	led_blink(LED_NOBLINK),
 	systemstate_run(false),
 	vehicle_status_sub_fd(-1),
+	battery_status_sub_fd(-1),
 	vehicle_control_mode_sub_fd(-1),
 	vehicle_gps_position_sub_fd(-1),
 	actuator_armed_sub_fd(-1),
@@ -434,6 +435,9 @@ BlinkM::led()
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
 		orb_set_interval(vehicle_status_sub_fd, 250);
 
+		battery_status_sub_fd = orb_subscribe(ORB_ID(battery_status));
+		orb_set_interval(battery_status_sub_fd, 250);
+
 		vehicle_control_mode_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
 		orb_set_interval(vehicle_control_mode_sub_fd, 250);
 
@@ -510,28 +514,32 @@ BlinkM::led()
 
 	if (led_thread_runcount == 15) {
 		/* obtained data for the first file descriptor */
-		struct vehicle_status_s vehicle_status_raw;
-		struct vehicle_control_mode_s vehicle_control_mode;
-		struct actuator_armed_s actuator_armed;
-		struct vehicle_gps_position_s vehicle_gps_position_raw;
-		struct safety_s safety;
+		struct vehicle_status_s vehicle_status_raw = {};
+		struct battery_status_s battery_status = {};
+		struct vehicle_control_mode_s vehicle_control_mode = {};
+		struct actuator_armed_s actuator_armed = {};
+		struct vehicle_gps_position_s vehicle_gps_position_raw = {};
+		struct safety_s safety = {};
 
 		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
 		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
 		memset(&safety, 0, sizeof(safety));
 
 		bool new_data_vehicle_status;
+		bool new_data_battery_status;
 		bool new_data_vehicle_control_mode;
 		bool new_data_actuator_armed;
 		bool new_data_vehicle_gps_position;
 		bool new_data_safety;
 
-		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
 
 		int no_data_vehicle_status = 0;
+		int no_data_battery_status = 0;
 		int no_data_vehicle_control_mode = 0;
 		int no_data_actuator_armed = 0;
 		int no_data_vehicle_gps_position = 0;
+
+		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
 
 		if (new_data_vehicle_status) {
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
@@ -542,6 +550,19 @@ BlinkM::led()
 
 			if (no_data_vehicle_status >= 3) {
 				no_data_vehicle_status = 3;
+			}
+		}
+
+		orb_check(battery_status_sub_fd, &new_data_battery_status);
+
+		if (new_data_battery_status) {
+			orb_copy(ORB_ID(battery_status), battery_status_sub_fd, &battery_status);
+
+		} else {
+			no_data_battery_status++;
+
+			if (no_data_battery_status >= 3) {
+				no_data_battery_status = 3;
 			}
 		}
 
@@ -597,19 +618,13 @@ BlinkM::led()
 		/* get number of used satellites in navigation */
 		num_of_used_sats = vehicle_gps_position_raw.satellites_used;
 
-		if (new_data_vehicle_status || no_data_vehicle_status < 3) {
+		if (new_data_battery_status || no_data_battery_status < 3) {
 			if (num_of_cells == 0) {
-				/* looking for lipo cells that are connected */
-				printf("<blinkm> checking cells\n");
 
-				for (num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
-					if (vehicle_status_raw.battery_voltage < num_of_cells * MAX_CELL_VOLTAGE) { break; }
-				}
-
-				printf("<blinkm> cells found:%d\n", num_of_cells);
+				num_of_cells = battery_status.cell_count;
 
 			} else {
-				if (vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+				if (battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
@@ -633,7 +648,7 @@ BlinkM::led()
 					led_color_8 = LED_BLUE;
 					led_blink = LED_BLINK;
 
-				} else if (vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
+				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
 					led_color_1 = LED_YELLOW;
 					led_color_2 = LED_YELLOW;
@@ -686,19 +701,18 @@ BlinkM::led()
 						led_blink = LED_BLINK;
 
 						if (new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
-							/* indicate main control state */
-							if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
-								led_color_4 = LED_GREEN;
-							}
 
-							/* TODO: add other Auto modes */
-							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
+							/* indicate main control state */
+							if (vehicle_control_mode.flag_control_auto_enabled) {
 								led_color_4 = LED_BLUE;
 
-							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
+							} else if (vehicle_control_mode.flag_control_position_enabled) {
+								led_color_4 = LED_GREEN;
+
+							} else if (vehicle_control_mode.flag_control_altitude_enabled) {
 								led_color_4 = LED_YELLOW;
 
-							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
+							} else if (vehicle_control_mode.flag_control_manual_enabled) {
 								led_color_4 = LED_WHITE;
 
 							} else {

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * MAVLink 1.0 protocol implementation.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -54,6 +54,10 @@
 #include <termios.h>
 #include <time.h>
 #include <math.h> /* isinf / isnan checks */
+
+#ifdef __PX4_POSIX
+#include <net/if.h>
+#endif
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -174,6 +178,8 @@ Mavlink::Mavlink() :
 	_myaddr{},
 	_src_addr{},
 	_bcast_addr{},
+	_src_addr_initialized(false),
+	_broadcast_address_found(false),
 #endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
@@ -881,10 +887,17 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
 			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
-			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+			if (!_broadcast_address_found) {
+				find_broadcast_address();
+			}
 
-			if (bret <= 0) {
-				PX4_WARN("sending broadcast failed");
+			if (_broadcast_address_found) {
+
+				int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+
+				if (bret <= 0) {
+					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+				}
 			}
 		}
 
@@ -959,28 +972,155 @@ Mavlink::resend_message(mavlink_message_t *msg)
 }
 
 void
+Mavlink::find_broadcast_address()
+{
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+	struct ifconf ifconf;
+	int ret;
+
+#if defined(__APPLE__) && defined(__MACH__)
+	// On Mac, we can't determine the required buffer
+	// size in advance, so we just use what tends to work.
+	ifconf.ifc_len = 1024;
+#else
+	// On Linux, we can determine the required size of the
+	// buffer first by providing NULL to ifc_req.
+	ifconf.ifc_req = NULL;
+	ifconf.ifc_len = 0;
+
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_WARN("getting required buffer size failed");
+		return;
+	}
+#endif
+
+	PX4_DEBUG("need to allocate %d bytes", ifconf.ifc_len);
+
+	// Allocate buffer.
+	ifconf.ifc_req = (struct ifreq *)(new uint8_t[ifconf.ifc_len]);
+	if (ifconf.ifc_req == nullptr) {
+		PX4_ERR("Could not allocate ifconf buffer");
+		return;
+	}
+
+	memset(ifconf.ifc_req, 0, ifconf.ifc_len);
+
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_ERR("getting network config failed");
+		delete[] ifconf.ifc_req;
+		return;
+	}
+
+	size_t offset = 0;
+	// Later used to point to next network interface in buffer.
+	struct ifreq *cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
+
+	// The ugly `for` construct is used because it allows to use
+	// `continue` and `break`.
+	for (;
+	     offset < ifconf.ifc_len;
+#if defined(__APPLE__) && defined(__MACH__)
+	     // On Mac, to get to next entry in buffer, jump by the size of
+	     // the interface name size plus whatever is greater, either the
+	     // sizeof sockaddr or ifr_addr.sa_len.
+	     offset += IF_NAMESIZE
+	               + (sizeof(struct sockaddr) > cur_ifreq->ifr_addr.sa_len ?
+		          sizeof(struct sockaddr) : cur_ifreq->ifr_addr.sa_len)
+#else
+	    // On Linux, it's much easier to traverse the buffer, every entry
+	    // has the constant length.
+	    offset += sizeof(struct ifreq)
+#endif
+	    ) {
+
+		// Point to next network interface in buffer.
+		cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
+
+		PX4_DEBUG("looking at %s", cur_ifreq->ifr_name);
+
+		// ignore loopback network
+		if (strcmp(cur_ifreq->ifr_name, "lo") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo0") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo1") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo2") == 0) {
+			PX4_DEBUG("skipping loopback");
+			continue;
+		}
+
+		struct ifreq bc_ifreq;
+		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
+		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
+		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
+		if (ret != 0) {
+			PX4_DEBUG("getting broadcast address failed for %s", cur_ifreq->ifr_name);
+			continue;
+		}
+
+		struct in_addr &sin_addr = ((struct sockaddr_in *)&cur_ifreq->ifr_addr)->sin_addr;
+
+		// Accept network interfaces to local network only. This means it's an IP starting with:
+		// 192./172./10.
+		// Also see https://tools.ietf.org/html/rfc1918#section-3
+
+		uint8_t first_byte = sin_addr.s_addr & 0xFF;
+
+		if (first_byte != 192 && first_byte != 172 && first_byte != 10) {
+			continue;
+		}
+
+		if (!_broadcast_address_found) {
+			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+
+			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
+			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
+
+			_bcast_addr.sin_family = AF_INET;
+			_bcast_addr.sin_addr = bc_addr;
+
+			_broadcast_address_found = true;
+		} else {
+			PX4_INFO("ignoring additional network interface %s, IP:  %s",
+				 cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+		}
+	}
+
+	if (_broadcast_address_found) {
+		_bcast_addr.sin_port = htons(_remote_port);
+
+		int broadcast_opt = 1;
+		if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
+			PX4_WARN("setting broadcast permission failed");
+		}
+
+	} else {
+		PX4_WARN("no broadcasting address found");
+	}
+
+	delete[] ifconf.ifc_req;
+
+#endif
+}
+
+void
 Mavlink::init_udp()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
-	PX4_INFO("Setting up UDP w/port %d",_network_port);
+
+	PX4_INFO("Setting up UDP w/port %d", _network_port);
 
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed");
-		return;
-	}
-
-	int broadcast_opt = 1;
-	if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
-		PX4_WARN("setting broadcast permission failed");
+		PX4_WARN("create socket failed: %s", strerror(errno));
 		return;
 	}
 
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed");
+		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
 	}
 
@@ -990,11 +1130,6 @@ Mavlink::init_udp()
 		inet_aton("127.0.0.1", &_src_addr.sin_addr);
 	}
 	_src_addr.sin_port = htons(_remote_port);
-
-	/* default broadcast address */
-	_bcast_addr.sin_family = AF_INET;
-	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
-	_bcast_addr.sin_port = htons(_remote_port);
 
 #endif
 }
@@ -1504,12 +1639,12 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 			break;
 #else
-			case 'u':
-			case 'o':
-			case 't':
-				warnx("UDP options not supported on this platform");
-				err_flag = true;
-				break;
+		case 'u':
+		case 'o':
+		case 't':
+			warnx("UDP options not supported on this platform");
+			err_flag = true;
+			break;
 #endif
 
 //		case 'e':
@@ -1630,9 +1765,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	if (_mode != MAVLINK_MODE_OSD) {
-		MavlinkReceiver::receive_start(&_receive_thread, this);
-	}
+	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -1703,6 +1836,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
+		configure_stream("ADSB_VEHICLE", 2.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1733,6 +1867,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		configure_stream("ADSB_VEHICLE", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1783,6 +1918,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);
+		configure_stream("ADSB_VEHICLE", 20.0f);
 	default:
 		break;
 	}
@@ -1790,11 +1926,17 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
+	/* hard limit to 500 Hz at max */
+	if (_main_loop_delay < 2000) {
+		_main_loop_delay = 2000;
+	}
+
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
 	/* init socket if necessary */
 	if (get_protocol() == UDP) {
+		find_broadcast_address();
 		init_udp();
 	}
 
@@ -1992,9 +2134,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* first wait for threads to complete before tearing down anything */
-	if (_mode != MAVLINK_MODE_OSD) {
-		pthread_join(_receive_thread, NULL);
-	}
+	pthread_join(_receive_thread, NULL);
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
@@ -2265,7 +2405,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -2283,7 +2423,7 @@ int mavlink_main(int argc, char *argv[])
 		usage();
 		return 1;
 
-	} else if (!strcmp(argv[1], "stop-all")) {
+	} else if (!strcmp(argv[1], "stop") || !strcmp(argv[1], "stop-all") ) {
 		return Mavlink::destroy_all_instances();
 
 	} else if (!strcmp(argv[1], "status")) {

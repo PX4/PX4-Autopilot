@@ -1116,10 +1116,28 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 
 
 	case UAVCANIOC_HARDPOINT_SET: {
-			const auto &cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
-			_hardpoint_controller.set_command(cmd.hardpoint_id, cmd.command);
+			const auto &hp_cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
+			_hardpoint_controller.set_command(hp_cmd.hardpoint_id, hp_cmd.command);
 		}
 		break;
+
+	case UAVCAN_IOCG_NODEID_INPROGRESS: {
+		UavcanServers   *_servers = UavcanServers::instance();
+
+		if (_servers == nullptr) {
+			// status unavailable
+			ret = -EINVAL;
+			break;
+		} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
+			// node discovery complete
+			ret = -ETIME;
+			break;
+		} else {
+			// node discovery in progress
+			ret = OK;
+			break;
+		}
+	}
 
 	default:
 		ret = -ENOTTY;

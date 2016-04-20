@@ -161,7 +161,7 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 	perf_begin(_baro_sample_perf);
 
 	baro_report baro_report = {};
-	baro_report.timestamp = data.last_read_time_usec;
+	baro_report.timestamp = hrt_absolute_time();
 
 	baro_report.pressure = data.pressure_pa;
 	baro_report.temperature = data.temperature_c;
