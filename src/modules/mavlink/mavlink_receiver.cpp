@@ -1659,7 +1659,7 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 
 	mavlink_msg_adsb_vehicle_decode(msg, &adsb);
 
-	t.timestamp = hrt_absolute_time();
+	t.timestamp2 = hrt_absolute_time();
 
 	t.ICAO_address = adsb.ICAO_address;
 	t.lat = adsb.lat*1e-7;
