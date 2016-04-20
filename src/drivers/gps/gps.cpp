@@ -374,17 +374,20 @@ void GPS::handleInjectDataTopic()
 	}
 
 	bool updated = false;
-	int orb_inject_data_cur_fd = _orb_inject_data_fd[_orb_inject_data_next];
-	orb_check(orb_inject_data_cur_fd, &updated);
 
-	if (updated) {
-		struct gps_inject_data_s msg;
-		orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
-		injectData(msg.data, msg.len);
+	do {
+		int orb_inject_data_cur_fd = _orb_inject_data_fd[_orb_inject_data_next];
+		orb_check(orb_inject_data_cur_fd, &updated);
 
-		_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd.size();
+		if (updated) {
+			struct gps_inject_data_s msg;
+			orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
+			injectData(msg.data, msg.len);
 
-	}
+			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd.size();
+
+		}
+	} while (updated);
 }
 
 bool GPS::injectData(uint8_t *data, size_t len)
