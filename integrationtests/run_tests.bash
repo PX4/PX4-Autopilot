@@ -13,7 +13,7 @@ then
 fi
 
 SRC_DIR=$1
-JOB_DIR=SRC_DIR/..
+JOB_DIR=$SRC_DIR/..
 BUILD=posix_sitl_default
 # TODO
 ROS_TEST_RESULT_DIR=/root/.ros/test_results/px4
@@ -28,13 +28,13 @@ TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 source /opt/ros/indigo/setup.bash
 source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
 
-echo "deleting previous test results"
+echo "deleting previous test results ($TEST_RESULT_TARGET_DIR)"
 if [ -d ${TEST_RESULT_TARGET_DIR} ]; then
 	rm -r ${TEST_RESULT_TARGET_DIR}
 fi
 
 # FIXME: Firmware compilation seems to CD into this directory (/root/Firmware)
-# when run from "run_container.bash"
+# when run from "run_container.bash". Why?
 if [ -d /root/Firmware ]; then
 	rm /root/Firmware
 fi
