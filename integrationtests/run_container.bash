@@ -11,10 +11,14 @@ if [ -z "$WORKSPACE" ]; then
 fi
 
 # Pulling latest image
-# TODO: remove old one to save space, until then, update manually
-#echo "===> pull latest Docker image"
-#docker pull px4io/sitl-testing
-#echo "<==="
+echo "===> pull latest Docker image"
+docker pull px4io/px4-dev-ros
+
+# removing some images might fail
+set +e
+docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
+set -e
+echo "<==="
 
 #
 # Running SITL testing container
