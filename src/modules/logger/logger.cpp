@@ -343,7 +343,7 @@ void Logger::run()
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_attitude");
 	add_topic("actuator_outputs");
-	add_topic("battery_status");
+	add_topic("battery_status", 100);
 
 
 	//add_topic("estimator_status", 0);
