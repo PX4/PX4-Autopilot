@@ -313,7 +313,6 @@ bool Ekf::update()
 				// correct position and height for offset relative to IMU
 				Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
 				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-				warnx("pos_offset_earth %lf %lf %lf", (double)pos_offset_earth(0)*100, (double)pos_offset_earth(1)*100, (double)pos_offset_earth(2)*100);
 				_ev_sample_delayed.posNED(0) -= pos_offset_earth(0);
 				_ev_sample_delayed.posNED(1) -= pos_offset_earth(1);
 				_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);
@@ -407,8 +406,6 @@ bool Ekf::initialiseFilter(void)
 		}
 	}
 
-	// warnx("_params.fusion_mode & MASK_USE_EVPOS %d", (int)(_params.fusion_mode & MASK_USE_EVPOS));
-	// warnx("_primary_hgt_source == VDIST_SENSOR_EV %d", (int)(_primary_hgt_source == VDIST_SENSOR_EV));
 	// set the default height source from the adjustable parameter
 	if (_hgt_counter == 0) {
 		if (_params.fusion_mode & MASK_USE_EVPOS) {
