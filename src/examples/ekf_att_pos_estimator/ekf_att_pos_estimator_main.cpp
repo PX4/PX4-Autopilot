@@ -820,15 +820,15 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 void AttitudePositionEstimatorEKF::publishAttitude()
 {
 	// Output results
-	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
-	math::Matrix<3, 3> R = q.to_dcm();
-	math::Vector<3> euler = R.to_euler();
+	matrix::Quaternion<float> q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
+	//math::Matrix<3, 3> R = q.to_dcm();
+	//math::Vector<3> euler = R.to_euler();
 
-	for (int i = 0; i < 3; i++) {
+	/*for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			PX4_R(_att.R, i, j) = R(i, j);
 		}
-	}
+	}*/
 
 	_att.timestamp = _last_sensor_timestamp;
 	_att.q[0] = _ekf->states[0];
@@ -836,21 +836,21 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.q[2] = _ekf->states[2];
 	_att.q[3] = _ekf->states[3];
 	_att.q_valid = true;
-	_att.R_valid = true;
+	//_att.R_valid = true;
 
-	_att.timestamp = _last_sensor_timestamp;
-	_att.roll = euler(0);
-	_att.pitch = euler(1);
-	_att.yaw = euler(2);
+	//_att.timestamp = _last_sensor_timestamp;
+	//_att.roll = euler(0);
+	//_att.pitch = euler(1);
+	//_att.yaw = euler(2);
 
 	_att.rollspeed = _ekf->dAngIMU.x / _ekf->dtIMU - _ekf->states[10] / _ekf->dtIMUfilt;
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
 	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
-	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMUfilt;
+	//_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
+	//_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMUfilt;
+	//_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
@@ -973,7 +973,9 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.xy_global = _gps_initialized; //TODO: Handle optical flow mode here
 
 	_local_pos.z_global = false;
-	_local_pos.yaw = _att.yaw;
+	matrix::Quaternion<float> q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
+	matrix::Euler<float> euler(q);
+	_local_pos.yaw = euler(2);
 
 	if (!PX4_ISFINITE(_local_pos.x) ||
 	    !PX4_ISFINITE(_local_pos.y) ||

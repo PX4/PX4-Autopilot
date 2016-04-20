@@ -721,10 +721,10 @@ void Ekf2::task_main()
 
 			// generate remaining vehicle attitude data
 			att.timestamp = hrt_absolute_time();
-			matrix::Euler<float> euler(q);
-			att.roll = euler(0);
-			att.pitch = euler(1);
-			att.yaw = euler(2);
+			//matrix::Euler<float> euler(q);
+			//att.roll = euler(0);
+			//att.pitch = euler(1);
+			//att.yaw = euler(2);
 
 			att.q[0] = q(0);
 			att.q[1] = q(1);
@@ -777,7 +777,8 @@ void Ekf2::task_main()
 			lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 
 			// The rotation of the tangent plane vs. geographical north
-			lpos.yaw = att.yaw;
+			matrix::Euler<float> euler(q);
+			lpos.yaw = euler(2);
 
 			float terrain_vpos;
 			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);

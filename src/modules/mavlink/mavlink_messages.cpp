@@ -841,11 +841,12 @@ protected:
 
 		if (_att_sub->update(&_att_time, &att)) {
 			mavlink_attitude_t msg;
-
+			matrix::Quaternion<float> q(&att.q[0]);
+			matrix::Euler<float> euler(q);
 			msg.time_boot_ms = att.timestamp / 1000;
-			msg.roll = att.roll;
-			msg.pitch = att.pitch;
-			msg.yaw = att.yaw;
+			msg.roll = euler(0);
+			msg.pitch = euler(1);
+			msg.yaw = euler(2);
 			msg.rollspeed = att.rollspeed;
 			msg.pitchspeed = att.pitchspeed;
 			msg.yawspeed = att.yawspeed;
@@ -1014,10 +1015,11 @@ protected:
 
 		if (updated) {
 			mavlink_vfr_hud_t msg;
-
+			matrix::Quaternion<float> q(&att.q[0]);
+			matrix::Euler<float> euler(q);
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
-			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
+			msg.heading = _wrap_2pi(euler(2)) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
 
 			if (_pos_time > 0) {
