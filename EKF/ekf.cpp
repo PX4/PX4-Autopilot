@@ -313,9 +313,10 @@ bool Ekf::update()
 				// correct position and height for offset relative to IMU
 				Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
 				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-				_ev_sample_delayed.posNED(0) -= pos_offset_earth(0);
-				_ev_sample_delayed.posNED(1) -= pos_offset_earth(1);
-				_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);  // + or - ?
+				// warnx("pos_offset_earth %lf %lf %lf", (double)pos_offset_earth(0)*100, (double)pos_offset_earth(1)*100, (double)pos_offset_earth(2)*100);
+				_ev_sample_delayed.posNED(0) += pos_offset_earth(1);  // XXX FIX IT Hack After "_R_to_earth * pos_offset_body" x and y offset seem to be switched!
+				_ev_sample_delayed.posNED(1) -= pos_offset_earth(0);  // XXX FIX IT Hack After "_R_to_earth * pos_offset_body" x and y offset seem to be switched!
+				_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);
 			}
 			// use external vision yaw observation
 			if (_control_status.flags.ev_yaw) {
