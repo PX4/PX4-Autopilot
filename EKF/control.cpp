@@ -60,8 +60,12 @@ void Ekf::controlFusionModes()
 	if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 		// check for a exernal vision measurement that has fallen behind the fusion time horizon
 		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
-			// turn on use of external vision measurements for position
+			// turn on use of external vision measurements for position and height
 			_control_status.flags.ev_pos = true;
+			// turn off other forms of height aiding
+			_control_status.flags.baro_hgt = false;
+			_control_status.flags.gps_hgt = false;
+			_control_status.flags.rng_hgt = false;
 			// reset the position, height and velocity
 			resetPosition();
 			resetVelocity();
@@ -456,7 +460,11 @@ void Ekf::controlFusionModes()
 	}
 
 	// Control the soure of height measurements for the main filter
-	if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
+	if (_control_status.flags.ev_pos) {
+	       _control_status.flags.baro_hgt = false;
+	       _control_status.flags.gps_hgt = false;
+	       _control_status.flags.rng_hgt = false;
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
 		_control_status.flags.baro_hgt = true;
 		_control_status.flags.gps_hgt = false;
 		_control_status.flags.rng_hgt = false;
