@@ -211,6 +211,15 @@ public:
 
 	virtual void get_accel_bias(float *bias) = 0;
 
+	// get EKF mode status
+	void get_control_mode(uint16_t *val)
+	{
+		*val = _control_status.value;
+	}
+
+	// get GPS check status
+	virtual void get_gps_check_status(uint16_t *val) = 0;
+
 protected:
 
 	parameters _params;		// filter parameters

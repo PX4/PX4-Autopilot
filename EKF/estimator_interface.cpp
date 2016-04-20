@@ -366,5 +366,5 @@ void EstimatorInterface::unallocate_buffers()
 bool EstimatorInterface::local_position_is_valid()
 {
 	// return true if the position estimate is valid
-	return ((_time_last_imu - _time_last_optflow) < 5e6) || global_position_is_valid();
+	return (((_time_last_imu - _time_last_optflow) < 5e6) && _control_status.flags.opt_flow) || global_position_is_valid();
 }
