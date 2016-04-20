@@ -94,6 +94,11 @@ uorb_main(int argc, char *argv[])
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
+		if (!g_dev) {
+			PX4_WARN("orb is not running! start it first");
+			return -ESRCH;
+		}
+
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 		return t.test();
 	}

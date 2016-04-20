@@ -55,7 +55,7 @@ else()
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/libmainapp.so
 				 ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
-			 DEPENDS build_mainapp_dsp build_mainapp_dsp
+			 DEPENDS mainapp px4muorb_skel
 			 DEST /usr/share/data/adsp)
 endif()
 
