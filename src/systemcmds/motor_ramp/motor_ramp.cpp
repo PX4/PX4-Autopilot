@@ -251,7 +251,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		_thread_should_exit = true;
 	}
 
-	PX4_WARN("[motor_ramp] max chan: %d", max_channels);
+	PX4_WARN("[motor_ramp] max chan: %lu", max_channels);
 
 	set_out(fd, max_channels, 0.0f);
 
