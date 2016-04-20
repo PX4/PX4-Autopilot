@@ -1337,7 +1337,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.z = z_est[0];
 			local_pos.vz = z_est[1];
 			matrix::Euler<float> euler(R);
-			local_pos.yaw = euler(0);
+			local_pos.yaw = euler(2);
 			local_pos.dist_bottom_valid = dist_bottom_valid;
 			local_pos.eph = eph;
 			local_pos.epv = epv;
