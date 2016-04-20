@@ -6,6 +6,7 @@ set(CONFIG_SHMEM "1")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
+# A temporary build option to support the use of the legacy (non DriverFramework) drivers.
 add_definitions(
    -D__USING_SNAPDRAGON_LEGACY_DRIVER
    )
