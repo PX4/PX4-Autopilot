@@ -4,8 +4,9 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linu
 
 set(CONFIG_SHMEM "1")
 
-include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
+# A temporary build option to support the use of the legacy (non DriverFramework) drivers.
 add_definitions(
    -D__USING_SNAPDRAGON_LEGACY_DRIVER
    )

@@ -6,10 +6,6 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-add_definitions(
-   -D__USING_SNAPDRAGON_LEGACY_DRIVER
-   )
-
 if ("$ENV{EAGLE_DRIVERS_SRC}" STREQUAL "")
 	message(FATAL_ERROR "Environment variable EAGLE_DRIVERS_SRC must be set")
 else()
@@ -33,7 +29,11 @@ set(QURT_ENABLE_STUBS "0")
 set(CONFIG_SHMEM "1")
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+
+add_definitions(
+   -D__USING_SNAPDRAGON_LEGACY_DRIVER
+   )
 
 set(config_module_list
 	#
@@ -73,11 +73,11 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/controllib
 
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
