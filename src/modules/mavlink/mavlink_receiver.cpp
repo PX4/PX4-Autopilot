@@ -1772,7 +1772,7 @@ void MavlinkReceiver::handle_message_gps_inject_data(mavlink_message_t *msg)
 
 	gps_inject_data_topic.len = gps_inject_data_msg.len;
 	memcpy(gps_inject_data_topic.data, gps_inject_data_msg.data,
-	       sizeof(uint8_t) * math::min((uint8_t)110, gps_inject_data_msg.len));
+	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_msg.len));
 
 	orb_advert_t &pub = _gps_inject_data_pub[_gps_inject_data_next_idx];
 
