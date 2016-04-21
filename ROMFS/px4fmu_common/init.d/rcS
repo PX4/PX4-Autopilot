@@ -798,6 +798,7 @@ then
 	if [ $VEHICLE_TYPE == passthrough ]
 	then
 		mavlink stop-all
+		commander stop
 
 		# Stop multicopter attitude controller if it is running, the controls come
 		# from Snapdragon.
