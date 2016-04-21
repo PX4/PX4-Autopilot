@@ -1,11 +1,27 @@
 #include "logger.h"
+
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+
 #include <uORB/uORBTopics.h>
 #include <px4_getopt.h>
 
 #define DBGPRINT
+
+#if defined(DBGPRINT)
+
+// needed for mallinfo
+#if defined(__PX4_POSIX)
+#include <malloc.h>
+#endif /* __PX4_POSIX */
+
+// struct mallinfo not available on OSX?
+#if defined(__PX4_DARWIN)
+#undef DBGPRINT
+#endif /* defined(__PX4_DARWIN) */
+
+#endif /* defined(DBGPRINT) */
 
 using namespace px4::logger;
 
@@ -320,7 +336,7 @@ bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *hand
 void Logger::run()
 {
 #ifdef DBGPRINT
-	struct	mallinfo alloc_info;
+	struct mallinfo alloc_info = {};
 #endif
 
 	warnx("started");
