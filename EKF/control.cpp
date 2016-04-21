@@ -170,6 +170,20 @@ void Ekf::controlFusionModes()
 	 * measurement source, continue using it after the reset and declare the current
 	 * source failed if we have switched.
 	*/
+
+	// check for inertial sensing errors as evidenced by the vertical innovations having the same sign and not stale
+	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are indepedant
+			(_vel_pos_innov[5] * _vel_pos_innov[2] > 0.0f) && // vertical position and velocity sensors are in agreement
+			((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) && // vertical position data is fresh
+			((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL) &&  // vertical velocity data is freshs
+			_vel_pos_test_ratio[2] > 1.0f && // vertical velocty innovations have failed innovation consistency checks
+			_vel_pos_test_ratio[5] > 1.0f); // vertical position innovations have failed innovation consistency checks
+
+	// record time of last bad vert accel
+	if (bad_vert_accel) {
+		_time_bad_vert_accel =  _time_last_imu;
+	}
+
 	if ((P[8][8] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
 		// handle the case where we are using baro for height
 		if (_control_status.flags.baro_hgt) {
@@ -180,16 +194,14 @@ void Ekf::controlFusionModes()
 			baroSample baro_init = _baro_buffer.get_newest();
 			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
-			// check for inertial sensing errors as evidenced by the vertical innovations having the same sign and not stale
-			bool bad_imu = ((_vel_pos_innov[5] * _vel_pos_innov[2] > 0.0f) &&
-					((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) &&
-					((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL));
+			// check for inertial sensing errors in the last 10 seconds
+			bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < 10E6);
 
 			// continue to use baro if it is available and we have detected bad IMU data or inadequate GPS
 			// switch to GPS if GPS data is available or we do not have Baro
-			if (baro_hgt_available && (bad_imu || !gps_hgt_available || !gps_hgt_accurate)) {
+			if (baro_hgt_available && (prev_bad_vert_accel || !gps_hgt_available || !gps_hgt_accurate)) {
 				printf("EKF baro hgt timeout - reset to baro\n");
-			} else if (gps_hgt_available && !bad_imu) {
+			} else if (gps_hgt_available && !prev_bad_vert_accel) {
 				// declare the baro as unhealthy
 				_baro_hgt_faulty = true;
 				// set the height mode to the GPS

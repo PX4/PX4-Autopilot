@@ -240,6 +240,9 @@ private:
 	float _vert_vel_reset_delta;	// increase in vertical position velocity at the last reset(m)
 	uint64_t _time_vert_vel_reset;	// last system time in usec that the vertical velocity state was reset
 
+	// imu fault status
+	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)
+
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
 	void calculateOutputStates();

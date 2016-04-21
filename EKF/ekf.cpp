@@ -89,7 +89,8 @@ Ekf::Ekf():
 	_vert_pos_reset_delta(0.0f),
 	_time_vert_pos_reset(0),
 	_vert_vel_reset_delta(0.0f),
-	_time_vert_vel_reset(0)
+	_time_vert_vel_reset(0),
+	_time_bad_vert_accel(0)
 {
 	_state = {};
 	_last_known_posNE.setZero();
