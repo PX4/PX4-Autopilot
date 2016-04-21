@@ -1216,11 +1216,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* initialize */
 	if (led_init() != OK) {
-		mavlink_and_console_log_critical(&mavlink_log_pub, "ERROR: LED INIT FAIL");
+		PX4_WARN("LED init failed");
 	}
 
 	if (buzzer_init() != OK) {
-		mavlink_and_console_log_critical(&mavlink_log_pub, "ERROR: BUZZER INIT FAIL");
+		PX4_WARN("Buzzer init failed");
 	}
 
 	/* vehicle status topic */
