@@ -609,19 +609,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
 					att.yawspeed = x_aposteriori[2];
-					// att.rollacc = x_aposteriori[3];
-					// att.pitchacc = x_aposteriori[4];
-					// att.yawacc = x_aposteriori[5];
-
-					// att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
-					// att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
-					// att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
-
-					// /* copy offsets */
-					// memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
 					/* magnetic declination */
-
 					matrix::Dcm<float> R(&Rot_matrix[0]);
 					matrix::Dcm<float> R_declination(&R_decl.data[0][0]);
 					R = R_declination * R;

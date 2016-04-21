@@ -821,14 +821,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 {
 	// Output results
 	matrix::Quaternion<float> q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
-	//math::Matrix<3, 3> R = q.to_dcm();
-	//math::Vector<3> euler = R.to_euler();
-
-	/*for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			PX4_R(_att.R, i, j) = R(i, j);
-		}
-	}*/
 
 	_att.timestamp = _last_sensor_timestamp;
 	_att.q[0] = _ekf->states[0];
@@ -840,11 +832,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.rollspeed = _ekf->dAngIMU.x / _ekf->dtIMU - _ekf->states[10] / _ekf->dtIMUfilt;
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
 	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
-
-	// gyro offsets
-	//_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
-	//_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMUfilt;
-	//_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
