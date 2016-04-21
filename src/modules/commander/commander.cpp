@@ -556,7 +556,7 @@ void usage(const char *reason)
 void print_status()
 {
 	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
-	warnx("power: USB: %s, BRICK: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
+	warnx("safety: USB enabled: %s, power state valid: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
 	      (status_flags.condition_power_input_valid) ? " [OK]" : "[NO]");
 	warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
