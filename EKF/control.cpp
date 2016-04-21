@@ -180,17 +180,23 @@ void Ekf::controlFusionModes()
 			baroSample baro_init = _baro_buffer.get_newest();
 			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
-			// use the gps if it is accurate or there is no baro data available
-			if (gps_hgt_available && (gps_hgt_accurate || !baro_hgt_available)) {
+			// check for inertial sensing errors as evidenced by the vertical innovations having the same sign and not stale
+			bool bad_imu = ((_vel_pos_innov[5] * _vel_pos_innov[2] > 0.0f) &&
+					((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) &&
+					((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL));
+
+			// continue to use baro if it is available and we have detected bad IMU data or inadequate GPS
+			// switch to GPS if GPS data is available or we do not have Baro
+			if (baro_hgt_available && (bad_imu || !gps_hgt_available || !gps_hgt_accurate)) {
+				printf("EKF baro hgt timeout - reset to baro\n");
+			} else if (gps_hgt_available && !bad_imu) {
 				// declare the baro as unhealthy
 				_baro_hgt_faulty = true;
 				// set the height mode to the GPS
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = true;
 				_control_status.flags.rng_hgt = false;
-				// adjust the height offset so we can use the GPS
-				_hgt_sensor_offset = _state.pos(2) + gps_init.hgt - _gps_alt_ref;
-				printf("EKF baro hgt timeout - switching to gps\n");
+				printf("EKF baro hgt timeout - reset to GPS\n");
 			}
 		}
 

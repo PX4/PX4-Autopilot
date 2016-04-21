@@ -267,7 +267,7 @@ struct parameters {
 		baro_innov_gate = 5.0f;
 		posNE_innov_gate = 5.0f;
 		vel_innov_gate = 5.0f;
-		hgt_reset_lim = 5.0f;
+		hgt_reset_lim = 0.0f;
 
 		// magnetometer fusion
 		mag_heading_noise = 3.0e-1f;
