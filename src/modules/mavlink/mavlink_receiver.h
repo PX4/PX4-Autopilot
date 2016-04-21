@@ -78,8 +78,6 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
 
-#include <array>
-
 #include "mavlink_ftp.h"
 
 #define PX4_EPOCH_SECS 1234567890ULL
@@ -207,7 +205,8 @@ private:
 	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _transponder_report_pub;
-	std::array<orb_advert_t, 4> _gps_inject_data_pub;
+	static const int _gps_inject_data_pub_size = 4;
+	orb_advert_t _gps_inject_data_pub[_gps_inject_data_pub_size];
 	int _gps_inject_data_next_idx = 0;
 	int _control_mode_sub;
 	int _hil_frames;

@@ -59,7 +59,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <array>
 #include <poll.h>
 #include <errno.h>
 #include <stdio.h>
@@ -131,7 +130,8 @@ private:
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
 
-	std::array<int, 4> _orb_inject_data_fd;
+	static const int _orb_inject_data_fd_count = 4;
+	int _orb_inject_data_fd[_orb_inject_data_fd_count];
 	int _orb_inject_data_next = 0;
 
 	/**
@@ -238,7 +238,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
 
-	for (int i = 0; i < _orb_inject_data_fd.size(); ++i) {
+	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
 		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
 	}
 }
@@ -248,7 +248,7 @@ GPS::~GPS()
 	/* tell the task we want it to go away */
 	_task_should_exit = true;
 
-	for (size_t i = 0; i < _orb_inject_data_fd.size(); ++i) {
+	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
 		orb_unsubscribe(_orb_inject_data_fd[i]);
 	}
 
@@ -384,7 +384,7 @@ void GPS::handleInjectDataTopic()
 			orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
 			injectData(msg.data, msg.len);
 
-			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd.size();
+			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd_count;
 
 		}
 	} while (updated);
