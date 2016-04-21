@@ -2265,13 +2265,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- ATTITUDE --- */
 		if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
 			log_msg.msg_type = LOG_ATT_MSG;
-			log_msg.body.log_ATT.q_w = buf.att.q[0];
-			log_msg.body.log_ATT.q_x = buf.att.q[1];
-			log_msg.body.log_ATT.q_y = buf.att.q[2];
-			log_msg.body.log_ATT.q_z = buf.att.q[3];
-			log_msg.body.log_ATT.roll = 0;
-			log_msg.body.log_ATT.pitch = 0;
-			log_msg.body.log_ATT.yaw = 0;
+			float q0 = buf.att.q[0];
+			float q1 = buf.att.q[1];
+			float q2 = buf.att.q[2];
+			float q3 = buf.att.q[3];
+			log_msg.body.log_ATT.q_w = q0;
+			log_msg.body.log_ATT.q_x = q1;
+			log_msg.body.log_ATT.q_y = q2;
+			log_msg.body.log_ATT.q_z = q3;
+			log_msg.body.log_ATT.roll = atan2f(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2));
+			log_msg.body.log_ATT.pitch = asinf(2*(q0*q2 - q3*q1));
+			log_msg.body.log_ATT.yaw = atan2f(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
 			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
