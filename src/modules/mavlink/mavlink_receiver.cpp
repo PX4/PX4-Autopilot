@@ -125,7 +125,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
-	_gps_inject_data_pub(),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -144,7 +143,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_pos{},
 	_mom_switch_state(0)
 {
-	_gps_inject_data_pub.fill(nullptr);
+	for (int i = 0; i < _gps_inject_data_pub_size; ++i) {
+		_gps_inject_data_pub[i] = nullptr;
+	}
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -1784,7 +1785,7 @@ void MavlinkReceiver::handle_message_gps_inject_data(mavlink_message_t *msg)
 		orb_publish(ORB_ID(gps_inject_data), pub, &gps_inject_data_topic);
 	}
 
-	_gps_inject_data_next_idx = (_gps_inject_data_next_idx + 1) % _gps_inject_data_pub.size();
+	_gps_inject_data_next_idx = (_gps_inject_data_next_idx + 1) % _gps_inject_data_pub_size;
 
 }
 
