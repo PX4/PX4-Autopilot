@@ -232,6 +232,10 @@ private:
 	int _primary_hgt_source;	// priary source of height data set at initialisation
 
 	float _baro_hgt_offset;		// number of metres the baro height origin is above the local NED origin (m)
+	float _vert_pos_reset_delta;	// increase in vertical position state at the last reset(m)
+	uint64_t _time_vert_pos_reset;	// last system time in usec that the vertical position state was reset
+	float _vert_vel_reset_delta;	// increase in vertical position velocity at the last reset(m)
+	uint64_t _time_vert_vel_reset;	// last system time in usec that the vertical velocity state was reset
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step

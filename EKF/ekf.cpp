@@ -85,7 +85,11 @@ Ekf::Ekf():
 	_baro_hgt_faulty(false),
 	_gps_hgt_faulty(false),
 	_rng_hgt_faulty(false),
-	_baro_hgt_offset(0.0f)
+	_baro_hgt_offset(0.0f),
+	_vert_pos_reset_delta(0.0f),
+	_time_vert_pos_reset(0),
+	_vert_vel_reset_delta(0.0f),
+	_time_vert_vel_reset(0)
 {
 	_state = {};
 	_last_known_posNE.setZero();
