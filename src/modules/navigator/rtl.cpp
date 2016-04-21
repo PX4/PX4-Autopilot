@@ -49,6 +49,7 @@
 #include <uORB/uORB.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator.h"
 #include "rtl.h"
@@ -199,7 +200,7 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_TRANSITION_TO_MC: {
 		_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-		_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		break;
 	}
 
