@@ -1,5 +1,4 @@
 # Off-board control mode
-# timestamp for the topic will be generated automatically
 
 bool ignore_thrust
 bool ignore_attitude

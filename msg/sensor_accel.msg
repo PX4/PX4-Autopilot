@@ -1,4 +1,3 @@
-# timestamp for the topic will be generated automatically
 uint64 integral_dt	# integration time
 uint64 error_count
 float32 x		# acceleration in the NED X board axis in m/s^2

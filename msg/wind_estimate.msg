@@ -1,4 +1,3 @@
-# timestamp (uint64,  Microseconds since system boot) will be generated automatically
 float32 windspeed_north		# Wind component in north / X direction
 float32 windspeed_east		# Wind component in east / Y direction
 float32 covariance_north	# Uncertainty - set to zero (no uncertainty) if not estimated

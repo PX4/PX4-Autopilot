@@ -1,5 +1,4 @@
 # GPS home position in WGS84 coordinates.
-# timestamp (uint64,  Timestamp (microseconds since system boot)) will be generated automatically
 
 float64 lat				# Latitude in degrees
 float64 lon				# Longitude in degrees

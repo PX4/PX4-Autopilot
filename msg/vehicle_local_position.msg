@@ -1,6 +1,5 @@
 # Fused local position in NED.
 
-# timestamp (uint64,  Time of this estimate, in microseconds since system start) will be generated automatically
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
 bool v_xy_valid				# true if vy and vy are valid

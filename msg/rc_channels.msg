@@ -21,7 +21,6 @@ uint8 RC_CHANNELS_FUNCTION_PARAM_3_5=18
 uint8 RC_CHANNELS_FUNCTION_RATTITUDE=19
 uint8 RC_CHANNELS_FUNCTION_KILLSWITCH=20
 
-# timestamp (uint64,  Timestamp in microseconds since boot time) will be generated automatically
 uint64 timestamp_last_valid					# Timestamp of last valid RC signal
 float32[18] channels						# Scaled to -1..1 (throttle: 0..1)
 uint8 channel_count						# Number of valid channels

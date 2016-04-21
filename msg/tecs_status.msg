@@ -6,7 +6,6 @@ uint8 TECS_MODE_LAND_THROTTLELIM = 4
 uint8 TECS_MODE_BAD_DESCENT = 5
 uint8 TECS_MODE_CLIMBOUT = 6
 
-# timestamp (uint64,  timestamp, in microseconds since system start */) will be generated automatically
 
 float32 altitudeSp
 float32 altitude_filtered

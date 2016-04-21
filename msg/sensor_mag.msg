@@ -1,4 +1,3 @@
-# timestamp for the topic will be generated automatically
 uint64 error_count
 float32 x
 float32 y

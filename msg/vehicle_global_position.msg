@@ -4,7 +4,6 @@
 # estimator, which will take more sources of information into account than just GPS,
 # e.g. control inputs of the vehicle in a Kalman-filter implementation.
 #
-# timestamp (uint64,  Time of this estimate, in microseconds since system start) will be generated automatically
 uint64 time_utc_usec		# GPS UTC timestamp, (microseconds)
 float64 lat			# Latitude, (degrees)
 float64 lon			# Longitude, (degrees)
