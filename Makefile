@@ -245,7 +245,7 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 unittest: posix_sitl_default
-	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest -j2 --output-on-failure)
+	@(mkdir -p build_unittests && cd build_unittests && cmake -G$(PX4_CMAKE_GENERATOR) ../unittests && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest -j2 --output-on-failure)
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
