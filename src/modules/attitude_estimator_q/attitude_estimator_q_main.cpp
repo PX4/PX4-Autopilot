@@ -472,13 +472,6 @@ void AttitudeEstimatorQ::task_main()
 		att.pitchspeed = _rates(1);
 		att.yawspeed = _rates(2);
 
-		//for (int i = 0; i < 3; i++) {
-		//	att.g_comp[i] = _accel(i) - _pos_acc(i);
-		//}
-
-		///* copy offsets */
-		//memcpy(&att.rate_offsets, _gyro_bias.data, sizeof(att.rate_offsets));
-
 		memcpy(&att.q[0], _q.data, sizeof(att.q));
 		att.q_valid = true;
 
