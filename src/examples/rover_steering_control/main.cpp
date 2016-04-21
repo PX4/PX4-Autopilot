@@ -66,6 +66,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <matrix/math.hpp>
 
 /* process-specific header files */
 #include "params.h"
@@ -178,7 +179,11 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	/*
 	 * Calculate roll error and apply P gain
 	 */
-	float yaw_err = att->yaw - att_sp->yaw_body;
+	matrix::Quaternion<float> q(&att->q[0]);
+	matrix::Euler<float> euler(q);
+	matrix::Quaternion<float> q_sp(&att_sp->q_d[0]);
+	matrix::Euler<float> euler_sp(q_sp);
+	float yaw_err = euler(2) - euler_sp(2);
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
@@ -354,10 +359,10 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 
 				/* sanity check and publish actuator outputs */
-				if (isfinite(actuators.control[0]) &&
-				    isfinite(actuators.control[1]) &&
-				    isfinite(actuators.control[2]) &&
-				    isfinite(actuators.control[3])) {
+				if (PX4_ISFINITE(actuators.control[0]) &&
+				    PX4_ISFINITE(actuators.control[1]) &&
+				    PX4_ISFINITE(actuators.control[2]) &&
+				    PX4_ISFINITE(actuators.control[3])) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
