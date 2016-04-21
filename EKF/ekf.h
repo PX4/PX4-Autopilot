@@ -126,6 +126,9 @@ public:
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
+	// return the amount the local vertical position changed in the last height reset and the time of the reset
+	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _vert_pos_reset_delta; *time_us = _time_vert_pos_reset;}
+
 private:
 
 	static const uint8_t _k_num_states = 24;
