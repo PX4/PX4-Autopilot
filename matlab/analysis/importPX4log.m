@@ -17,8 +17,8 @@ function allData = importPX4log(fname,keep_msgs)
 
 BLOCK_SIZE = 8192;
 MSG_HEADER_LEN = 3;
-% MSG_HEAD1 = uint8(hex2dec('A3'));
-% MSG_HEAD2 = uint8(hex2dec('95'));
+MSG_HEAD1 = uint8(hex2dec('A3'));
+MSG_HEAD2 = uint8(hex2dec('95'));
 MSG_FORMAT_PACKET_LEN = 89;
 MSG_TYPE_FORMAT = uint8(hex2dec('80'));
 % MSG_FORMAT_STRUCT = {'uint8','uint8','char4','char16','char64'};
@@ -66,8 +66,12 @@ while 1
     buffer = [buffer(ptr:end), chunk'];
     ptr = 1;
     while numel(buffer) - ptr > MSG_HEADER_LEN
-        %         head1 = buffer(ptr);
-        %         head2 = buffer(ptr+1);
+        head1 = buffer(ptr);
+        head2 = buffer(ptr+1);
+        if head1 ~= MSG_HEAD1 || head2 ~= MSG_HEAD2
+            ptr = ptr + 1;
+            continue;
+        end
         msg_type = buffer(ptr+2);
         
         if msg_type == MSG_TYPE_FORMAT
@@ -79,7 +83,7 @@ while 1
             msg_descrs(msg_descr{1},:) = msg_descr;
             cells = repmat({inf(1,500000)},1,numel(msg_descr{5}));
             cells(msg_descr{4}=='n' | msg_descr{4} == 'N' | msg_descr{4} == 'Z') = {[]};
-            seed = [{'index'},{'T'},msg_descr{5};[{1},{inf(1,500000)},cells]];
+            seed = [{'index'},{'Tsec'},msg_descr{5};[{1},{inf(1,500000)},cells]];
             allData.(msg_descr{3}) = struct(seed{:});
         else
             msg_descr = msg_descrs(msg_type,:);
@@ -94,7 +98,9 @@ while 1
                 for k = 1:numel(msg_data)
                     if isnumeric(msg_data{k})
                         allData.(msg_descr{3}).(msg_descr{5}{k})(ind) = msg_data{k};
-                        allData.(msg_descr{3}).T(ind) = double(allData.TIME.StartTime(max(1,allData.TIME.index-1)))*1e-6;
+                        try
+                            allData.(msg_descr{3}).T(ind) = double(allData.TIME.StartTime(max(1,allData.TIME.index-1)))*1e-6;
+                        end
                         noInc = false;
                     else
                         allData.(msg_descr{3}).(msg_descr{5}{k}) = [allData.(msg_descr{3}).(msg_descr{5}{k}), msg_data(k)];
@@ -128,8 +134,9 @@ end
 
 function [ptr, msg_descr] = LOCAL_parse_message_descriptors(buffer, ptr, MSG_TYPE_FORMAT, MSG_FORMAT_PACKET_LEN, FORMAT_TO_STRUCT)
 thisBlock = buffer((ptr+3):(ptr+MSG_FORMAT_PACKET_LEN+1));
+msg_descr = cell(1,7);
 msg_type = thisBlock(1);
-if msg_type ~= MSG_TYPE_FORMAT
+%if msg_type ~= MSG_TYPE_FORMAT
     msg_length = thisBlock(2);
     msg_name = LOCAL_parse_string(thisBlock(3:6));
     msg_format = LOCAL_parse_string(thisBlock(7:22));
@@ -142,8 +149,11 @@ if msg_type ~= MSG_TYPE_FORMAT
         msg_struct{k} = info{1};
         msg_mults(k) = info{2};
     end
+    if isempty([msg_labels{:}])
+        msg_labels = {'none'};
+    end
     msg_descr = {msg_type, msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults};
-end
+%end
 ptr = ptr + MSG_FORMAT_PACKET_LEN;
 end
 
