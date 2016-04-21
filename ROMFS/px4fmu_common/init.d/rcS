@@ -820,6 +820,8 @@ then
 			fmu mode_pwm4
 		fi
 
+		pwm failsafe -c 1234 -p 900
+
 		# Arm straightaway.
 		pwm arm
 		# Use 400 Hz PWM on all channels.
