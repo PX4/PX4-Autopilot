@@ -70,6 +70,7 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->voltage_filtered_v = 0.0f;
 	battery_status->current_a = -1.0f;
 	battery_status->discharged_mah = -1.0f;
+	battery_status->remaining = 0.0f;
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
@@ -92,6 +93,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->cell_count = _param_n_cells.get();
 		battery_status->warning = _warning;
+		battery_status->remaining = _remaining;
 
 	} else {
 		reset(battery_status);
@@ -112,6 +114,14 @@ Battery::filterVoltage(float voltage_v)
 void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 {
+	// Not a valid measurement
+	if (current_a < 0.0f) {
+		// Because the measurement was invalid we need to stop integration
+		// and re-initialize with the next valid measurement
+		_last_timestamp = 0;
+		return;
+	}
+
 	// Ignore first update because we don't know dT.
 	if (_last_timestamp != 0) {
 		_discharged_mah = current_a * (timestamp - _last_timestamp) * 1.0e-3f / 3600.0f;
