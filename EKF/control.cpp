@@ -156,6 +156,10 @@ void Ekf::controlFusionModes()
 				// Reset states to the last GPS measurement
 				resetPosition();
 				resetVelocity();
+
+				// Reset the timeout counters
+				_time_last_pos_fuse = _time_last_imu;
+				_time_last_vel_fuse = _time_last_imu;
 			}
 		}
 	}
@@ -241,6 +245,9 @@ void Ekf::controlFusionModes()
 
 		// Reset vertical position and velocity states to the last measurement
 		resetHeight();
+
+		// Reset the timout timer
+		_time_last_hgt_fuse = _time_last_imu;
 	}
 
 	// handle the case when we are relying on optical flow fusion and lose it

@@ -488,6 +488,13 @@ bool Ekf::initialiseFilter(void)
 		// initialise the terrain estimator
 		initHagl();
 
+		// reset the essential fusion timeout counters
+		_time_last_hgt_fuse = _time_last_imu;
+		_time_last_pos_fuse = _time_last_imu;
+		_time_last_vel_fuse = _time_last_imu;
+		_time_last_hagl_fuse = _time_last_imu;
+		_time_last_of_fuse = _time_last_imu;
+
 		return true;
 	}
 }
