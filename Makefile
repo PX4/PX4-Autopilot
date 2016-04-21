@@ -227,7 +227,7 @@ check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v2_ekf2 chec
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
-	@./Tools/check_code_style.sh
+	@./Tools/check_code_style_all.sh
 
 check_%:
 	@echo
