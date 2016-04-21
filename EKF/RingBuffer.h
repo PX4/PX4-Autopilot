@@ -160,6 +160,30 @@ public:
 		return _buffer[index];
 	}
 
+	// return data at the specified index
+	data_type get_from_index(unsigned index)
+	{
+		if (index >= _size) {
+			index = _size-1;
+		}
+		return _buffer[index];
+	}
+
+	// push data to the specified index
+	void push_to_index(unsigned index, data_type sample)
+	{
+		if (index >= _size) {
+			index = _size-1;
+		}
+		_buffer[index] = sample;
+	}
+
+	// return the length of the buffer
+	unsigned get_length()
+	{
+		return _size;
+	}
+
 private:
 	data_type *_buffer;
 	unsigned _head, _tail, _size;
