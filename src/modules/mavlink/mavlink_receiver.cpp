@@ -478,20 +478,22 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.timestamp = flow.integration_time_us * 1000; /* ms to us */
-	d.min_distance = 0.3f;
-	d.max_distance = 5.0f;
-	d.current_distance = flow.distance; /* both are in m */
-	d.type = 1;
-	d.id = MAV_DISTANCE_SENSOR_ULTRASOUND;
-	d.orientation = 8;
-	d.covariance = 0.0;
+	if(flow.distance > 0.0f) { // negative values signal invalid data
+		d.timestamp = flow.integration_time_us * 1000; /* ms to us */
+		d.min_distance = 0.3f;
+		d.max_distance = 5.0f;
+		d.current_distance = flow.distance; /* both are in m */
+		d.type = 1;
+		d.id = MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.orientation = 8;
+		d.covariance = 0.0;
 
-	if (_flow_distance_sensor_pub == nullptr) {
-		_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-								     &_orb_class_instance, ORB_PRIO_HIGH);
-	} else {
-		orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
+		if (_flow_distance_sensor_pub == nullptr) {
+			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+			&_orb_class_instance, ORB_PRIO_HIGH);
+		} else {
+			orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
+		}
 	}
 }
 
