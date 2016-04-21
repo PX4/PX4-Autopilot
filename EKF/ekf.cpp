@@ -74,7 +74,7 @@ Ekf::Ekf():
 	_last_gps_origin_time_us(0),
 	_gps_alt_ref(0.0f),
 	_hgt_counter(0),
-	_hgt_filt_state(0.0f),
+	_rng_filt_state(0.0f),
 	_mag_counter(0),
 	_time_last_mag(0),
 	_hgt_sensor_offset(0.0f),
@@ -388,12 +388,12 @@ bool Ekf::initialiseFilter(void)
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
-				_hgt_filt_state = _range_sample_delayed.rng;
+				_rng_filt_state = _range_sample_delayed.rng;
 				_hgt_counter = 1;
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
-				_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _range_sample_delayed.rng;
+				_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
 			}
 		}
 
@@ -406,12 +406,12 @@ bool Ekf::initialiseFilter(void)
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
-				_hgt_filt_state = _baro_sample_delayed.hgt;
+				_baro_hgt_offset = _baro_sample_delayed.hgt;
 				_hgt_counter = 1;
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
-				_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _baro_sample_delayed.hgt;
+				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 			}
 		}
 
@@ -469,17 +469,12 @@ bool Ekf::initialiseFilter(void)
 		// calculate the initial magnetic field and yaw alignment
 		resetMagHeading(mag_init);
 
-		// calculate the averaged height reading to calulate the height of the origin
-		_hgt_sensor_offset = _hgt_filt_state;
-
-		// if we are not using the baro height as the primary source, then calculate an offset relative to the origin
-		// so it can be used as a backup
-		if (!_control_status.flags.baro_hgt) {
+		// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
+		// so it can be used as a backup ad set the initial height using the range finder
+		if (_control_status.flags.rng_hgt) {
 			baroSample baro_newest = _baro_buffer.get_newest();
-			_baro_hgt_offset = baro_newest.hgt - _hgt_sensor_offset;
-
-		} else {
-			_baro_hgt_offset = 0.0f;
+			_baro_hgt_offset = baro_newest.hgt;
+			_state.pos(2) = -math::max(_rng_filt_state * _R_to_earth(2, 2),_params.rng_gnd_clearance);
 		}
 
 		// initialise the state covariance matrix
