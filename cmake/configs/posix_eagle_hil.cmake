@@ -24,7 +24,7 @@ set(config_module_list
 	modules/uORB
 	modules/sensors
 	modules/dataman
-	modules/logger
+	modules/sdlog2
 	modules/simulator
 	modules/commander
 

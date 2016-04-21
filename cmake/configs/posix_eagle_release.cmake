@@ -20,7 +20,7 @@ set(config_module_list
 	modules/systemlib
 	modules/uORB
 	modules/dataman
-	modules/logger
+	modules/sdlog2
 	modules/simulator
 	modules/commander
 

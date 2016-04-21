@@ -30,7 +30,7 @@ set(config_module_list
 	modules/fw_att_control
 	modules/fw_pos_control_l1
 	modules/dataman
-	modules/logger
+	modules/sdlog2
 	modules/commander
 	lib/controllib
 	lib/mathlib

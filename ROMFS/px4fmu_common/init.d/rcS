@@ -621,12 +621,6 @@ then
 		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 	fi
 
-
-	#
-	# Logging
-	#
-	sh /etc/init.d/rc.logging
-
 	#
 	# Start up ARDrone Motor interface
 	#
@@ -845,8 +839,12 @@ then
 	if [ $VEHICLE_TYPE == none ]
 	then
 		echo "[i] No autostart ID found"
-
 	fi
+
+	#
+	# Logging
+	#
+	sh /etc/init.d/rc.logging
 
 	# Start any custom addons
 	set FEXTRAS /fs/microsd/etc/extras.txt
