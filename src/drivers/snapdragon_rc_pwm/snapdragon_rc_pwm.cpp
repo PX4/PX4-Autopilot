@@ -128,7 +128,7 @@ void task_main(int argc, char *argv[])
 	fds[0].fd = _uart_fd;
 	fds[0].events = POLLIN;
 
-	while (true) {
+	while (!_task_should_exit) {
 
 		// wait for up to 100ms for data
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
@@ -393,6 +393,8 @@ void stop()
 {
 	// TODO - set thread exit signal to terminate the task main thread
 
+	_task_should_exit = true;
+
 	_is_running = false;
 	_task_handle = -1;
 }
@@ -428,21 +430,23 @@ int snapdragon_rc_pwm_main(int argc, char *argv[])
 		}
 	}
 
-	// Check on required arguments
-	if (device == NULL || strlen(device) == 0) {
-		snapdragon_rc_pwm::usage();
-		return 1;
-	}
-
-	memset(snapdragon_rc_pwm::_device, 0, MAX_LEN_DEV_PATH);
-	strncpy(snapdragon_rc_pwm::_device, device, strlen(device));
-
 	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
+
+		// Check on required arguments
+		if (device == NULL || strlen(device) == 0) {
+			snapdragon_rc_pwm::usage();
+			return 1;
+		}
+
+		memset(snapdragon_rc_pwm::_device, 0, MAX_LEN_DEV_PATH);
+		strncpy(snapdragon_rc_pwm::_device, device, strlen(device));
+
+
 		if (snapdragon_rc_pwm::_is_running) {
 			PX4_WARN("uart_esc already running");
 			return 1;
@@ -452,7 +456,7 @@ int snapdragon_rc_pwm_main(int argc, char *argv[])
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (snapdragon_rc_pwm::_is_running) {
+		if (!snapdragon_rc_pwm::_is_running) {
 			PX4_WARN("snapdragon_rc_pwm is not running");
 			return 1;
 		}
