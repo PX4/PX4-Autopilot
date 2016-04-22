@@ -339,33 +339,38 @@ void Logger::run()
 	struct mallinfo alloc_info = {};
 #endif
 
-	warnx("started");
+	PX4_WARN("started");
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret == 0) {
-		warnx("log root dir created: %s", LOG_ROOT);
+		PX4_WARN("log root dir created: %s", LOG_ROOT);
 
 	} else if (errno != EEXIST) {
-		warn("failed creating log root dir: %s", LOG_ROOT);
+		PX4_WARN("failed creating log root dir: %s", LOG_ROOT);
 		return;
 	}
 
-	add_topic("sensor_accel");
-	add_topic("sensor_baro", 100);
-	add_topic("manual_control_setpoint");
-	add_topic("vehicle_rates_setpoint");
-	add_topic("sensor_gyro");
-	add_topic("vehicle_attitude_setpoint");
-	add_topic("vehicle_attitude");
-	add_topic("actuator_outputs");
+	add_topic("manual_control_setpoint", 10);
+	add_topic("vehicle_rates_setpoint", 10);
+	add_topic("vehicle_attitude_setpoint", 10);
+	add_topic("vehicle_attitude", 10);
+	add_topic("actuator_outputs", 50);
 	add_topic("battery_status", 100);
-
-
-	//add_topic("estimator_status", 0);
-	//add_topic("sensor_combined", 0);
-
-	add_topic("vehicle_status");
+	add_topic("vehicle_command", 100);
+	add_topic("actuator_controls", 10);
+	add_topic("vehicle_local_position_setpoint", 30);
+	add_topic("rc_channels", 100);
+	add_topic("ekf2_innovations", 20);
+	add_topic("commander_state", 100);
+	add_topic("vehicle_local_position", 10);
+	add_topic("vehicle_global_position", 10);
+	add_topic("system_power", 100);
+	add_topic("servorail_status", 100);
+	add_topic("mc_att_ctrl_status", 50);
+	add_topic("control_state");
+	add_topic("estimator_status", 100);
+	add_topic("vehicle_status", 20);
 
 	_writer_thread = _writer.thread_start();
 
@@ -561,11 +566,11 @@ int Logger::create_log_dir()
 		mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret == 0) {
-			warnx("log dir created: %s", _log_dir);
+			PX4_INFO("log dir created: %s", _log_dir);
 			break;
 
 		} else if (errno != EEXIST) {
-			warn("failed creating new dir: %s", _log_dir);
+			PX4_WARN("failed creating new dir: %s", _log_dir);
 			return -1;
 		}
 
@@ -576,7 +581,7 @@ int Logger::create_log_dir()
 
 	if (dir_number >= MAX_NO_LOGFOLDER) {
 		/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-		warnx("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
+		PX4_WARN("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
 		return -1;
 	}
 
@@ -618,7 +623,7 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 
 void Logger::start_log()
 {
-	warnx("start log");
+	PX4_WARN("start log");
 
 	if (create_log_dir()) {
 		return;
@@ -654,7 +659,6 @@ void Logger::write_formats()
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		msg.msg_size = msg_size - 2;
-
 		while (!_writer.write(&msg, msg_size)) {
 			_writer.unlock();
 			_writer.notify();
