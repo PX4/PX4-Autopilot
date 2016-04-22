@@ -356,7 +356,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 					up_udelay(oneshot_delay_till - now);
 				}
 
-				up_pwm_servo_trigger();
+				up_pwm_servo_trigger(r_setup_pwm_rates);
 				oneshot_delay_till = hrt_absolute_time() + widest_pulse + 50;
 			}
 
