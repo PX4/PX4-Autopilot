@@ -132,7 +132,10 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_gpiowrite(GPIO_PWM4, false);
 	stm32_configgpio(GPIO_PWM4);
+}
 
+__EXPORT int board_app_initialize(void)
+{
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -147,5 +150,6 @@ __EXPORT void stm32_boardinitialize(void)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 	stm32_usbinitialize();
+	return OK;
 
 }
