@@ -353,6 +353,13 @@ public:
 
 	bool			is_usb_uart() { return _is_usb_uart; }
 
+	/**
+	 * Wether or not the system should be logging
+	 */
+	bool			get_logging_enabled() { return _logging_enabled; }
+
+	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
+
 protected:
 	Mavlink			*next;
 
@@ -458,6 +465,8 @@ private:
 	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
+	bool			_logging_enabled;
+
 	param_t			_param_system_id;
 	param_t			_param_component_id;
 	param_t			_param_radio_id;

@@ -412,7 +412,7 @@ protected:
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
 #ifndef __PX4_POSIX_EAGLE
 				/* write log messages in first instance to disk */
-				if (_mavlink->get_instance_id() == 0) {
+				if (_mavlink->get_instance_id() == 0 && _mavlink->get_logging_enabled()) {
 					if (fp) {
 						if (EOF == fputs(msg.text, fp)) {
 							write_err_count++;
@@ -430,8 +430,8 @@ protected:
 
 					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
-						char log_file_name[64];
 						char log_file_path[128];
+						log_file_path[0] = 0;
 
 						timespec ts;
 						px4_clock_gettime(CLOCK_REALTIME, &ts);
@@ -440,9 +440,9 @@ protected:
 						struct tm tt;
 						gmtime_r(&gps_time_sec, &tt);
 
-						// XXX we do not want to interfere here with the SD log app
-						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
-						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
+						/* store the log file in the root directory */
+						int offs = snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/");
+						strftime(log_file_path + offs, sizeof(log_file_path), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						fp = fopen(log_file_path, "ab");
 
 						if (fp != NULL) {
@@ -451,7 +451,6 @@ protected:
 							fputs("\n", fp);
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s errno=%d", log_file_path, errno);
-							PX4_WARN("Filename: %s", log_file_name);
 						}
 					}
 				}
@@ -578,6 +577,14 @@ protected:
 
 		const bool updated_status = _status_sub->update(&status);
 		const bool updated_battery = _battery_status_sub->update(&battery_status);
+
+		if (updated_status) {
+			if (status.arming_state >= vehicle_status_s::ARMING_STATE_ARMED) {
+				_mavlink->set_logging_enabled(true);
+			} else {
+				_mavlink->set_logging_enabled(false);
+			}
+		}
 
 		if (updated_status || updated_battery) {
 			mavlink_sys_status_t msg;
