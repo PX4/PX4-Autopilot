@@ -454,6 +454,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 			if (!side_data_collected[cur_orientation]) {
 				strcat(pendingStr, " ");
 				strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
+				break;
 			}
 		}
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
