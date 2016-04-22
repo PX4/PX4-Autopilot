@@ -451,6 +451,7 @@ protected:
 							fputs("\n", fp);
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s errno=%d", log_file_path, errno);
+							PX4_WARN("Filename: %s", log_file_name);
 						}
 					}
 				}
