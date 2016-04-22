@@ -148,6 +148,8 @@ private:
 	/**
 	 * Check whether a topic appears updated to a subscriber.
 	 *
+	 * Lock must already be held when calling this.
+	 *
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber
 	 */
