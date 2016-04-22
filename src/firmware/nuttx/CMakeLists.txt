@@ -16,6 +16,8 @@ set(link_libs
 		apps nuttx m gcc
 	)
 
+set(startup_libs)
+
 if("${romfs_used}" STREQUAL "y")
 	list(APPEND link_libs romfs)
 endif()
@@ -28,6 +30,24 @@ if("${config_nuttx_config}" STREQUAL "bootloader")
 	set(nuttx_ld_prefix "bootloader")
 	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})
 	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer")
+
+	add_custom_command(OUTPUT
+		${nuttx_startup_files}
+		DEPENDS nuttx_export_${BOARD})
+
+	set_source_files_properties(
+		${nuttx_startup_files}
+		PROPERTIES
+		EXTERNAL_OBJECT true
+		GENERATED true)
+
+	add_library(startup
+		${nuttx_startup_files})
+	set_target_properties(startup
+		PROPERTIES
+		LINKER_LANGUAGE C)
+	list(APPEND startup_libs startup)
+
 endif()
 
 if(NOT ${BOARD} STREQUAL "sim")
@@ -42,7 +62,8 @@ endif()
 target_link_libraries(firmware_nuttx
 	-Wl,--warn-common
 	-Wl,--gc-sections
-	-Wl,--start-group ${nuttx_startup_files}
+	-Wl,--start-group
+	${startup_libs}
 	${module_libraries}
 	${config_extra_libs}
 	${nuttx_bootloader_wrapers}
@@ -129,10 +150,17 @@ endif()
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
-	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-		BUNDLE ${fw_file})
+
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+			BUNDLE ${fw_file})
+	endif()
+
 endif()
 
-install(FILES ${fw_file} DESTINATION .)
+
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+	install(FILES ${fw_file} DESTINATION .)
+endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
