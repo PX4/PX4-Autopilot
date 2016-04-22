@@ -108,6 +108,15 @@ script:
   - cd ..
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+  - echo 'Building NuttX mavstation Firmware..' && make mavstation_default
+  - echo 'Building NuttX px4cannode-v1 Firmware..' && make px4cannode-v1_default
+  - echo 'Building NuttX px4esc-v1 Firmware..' && make px4esc-v1_default
+  - echo 'Building NuttX s2740vc-v1 Firmware..' && make s2740vc-v1_default
+  - echo 'Building NuttX px4cannode-v1 Firmware..' && make px4cannode-v1_bootloader
+  - echo 'Building NuttX px4esc-v1 Firmware..' && make px4esc-v1_bootloader
+  - echo 'Building NuttX px4flow-v2 Firmware..' && make px4flow-v2_bootloader
+  - echo 'Building NuttX s2740vc-v1 Firmware..' && make s2740vc-v1_bootloader
+  - echo 'Building NuttX zubaxgnss-v1 Firmware..' && make zubaxgnss-v1_bootloader
   - echo 'Running Tests..' && make px4fmu-v2_default test
 
 after_success:
