@@ -2203,11 +2203,17 @@ Sensors::task_main()
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
 			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
 				fds[0].fd = _gyro_sub[2];
-				warnx("failing over to third gyro");
+
+				if (!_hil_enabled) {
+					warnx("failing over to third gyro");
+				}
 
 			} else if (_gyro_sub[1] >= 0) {
 				fds[0].fd = _gyro_sub[1];
-				warnx("failing over to second gyro");
+
+				if (!_hil_enabled) {
+					warnx("failing over to second gyro");
+				}
 			}
 		}
 

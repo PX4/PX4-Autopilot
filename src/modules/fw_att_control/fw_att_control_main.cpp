@@ -1063,12 +1063,16 @@ FixedwingAttitudeControl::task_main()
 					 * emit the manual setpoint here to allow attitude controller tuning
 					 * in attitude control mode.
 					 */
-					struct vehicle_attitude_setpoint_s att_sp;
+					struct vehicle_attitude_setpoint_s att_sp = {};
 					att_sp.timestamp = hrt_absolute_time();
 					att_sp.roll_body = roll_sp;
 					att_sp.pitch_body = pitch_sp;
 					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
 					att_sp.thrust = throttle_sp;
+
+					att_sp.roll_reset_integral = false;
+					att_sp.pitch_reset_integral = false;
+					att_sp.yaw_reset_integral = false;
 
 					/* lazily publish the setpoint only once available */
 					if (_attitude_sp_pub != nullptr) {
