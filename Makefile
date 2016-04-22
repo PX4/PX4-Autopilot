@@ -222,7 +222,7 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
-check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_unittest check_format
+check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v2_ekf2 check_px4fmu-v2_lpe check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_unittest check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
