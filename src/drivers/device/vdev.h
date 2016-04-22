@@ -196,6 +196,26 @@ protected:
 		px4_sem_post(&_lock);
 	}
 
+	/**
+	 * @class Smart locking object that uses the same lock as lock(), but automatically
+	 * takes the lock when created and releases the lock when the object goes out of
+	 * scope. Use like this:
+	 *   {
+	 *       SmartLock smart_lock(*this);
+	 *       //critical section start
+	 *       ...
+	 *       //critical section end
+	 *   }
+	 */
+	class SmartLock
+	{
+	public:
+		SmartLock(Device &device) : _device(device) { _device.lock(); }
+		~SmartLock() { _device.unlock(); }
+	private:
+		Device &_device;
+	};
+
 private:
 	px4_sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
