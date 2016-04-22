@@ -372,6 +372,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_gps.vel_e_m_s = replay_part2.vel_e_m_s;
 		_gps.vel_d_m_s = replay_part2.vel_d_m_s;
 		_gps.vel_ned_valid = replay_part2.vel_ned_valid;
+		_gps.alt = replay_part2.alt;
 		_read_part2 = true;
 
 	} else if (type == LOG_RPL3_MSG) {
