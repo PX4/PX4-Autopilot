@@ -261,6 +261,19 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
 /**
+ * Battery failsafe mode
+ *
+ * Action the system takes on low battery. Defaults to off
+ *
+ * @group Commander
+ * @value 0 No action
+ * @value 1 RTL on low battery
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
+
+/**
  * First flightmode slot (1000-1160)
  *
  * If the main switch channel is in this range the

@@ -216,6 +216,7 @@ static struct vtol_vehicle_status_s vtol_status = {};
 
 
 static uint8_t main_state_prev = 0;
+static bool rtl_on = false;
 
 static struct status_flags_s status_flags = {};
 
@@ -1161,6 +1162,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_epv = param_find("COM_HOME_V_T");
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
+	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1515,6 +1517,7 @@ int commander_thread_main(int argc, char *argv[])
 	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
 	int32_t disarm_when_landed = 0;
+	int32_t low_bat_action = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1592,6 +1595,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_low_bat_act, &low_bat_action);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -1949,6 +1953,12 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		if (!rtl_on) {
+			// store the last good main_state when not in an navigation
+			// hold state
+			main_state_before_rtl = internal_state.main_state;
+		}
+
 		/* update battery status */
 		orb_check(battery_sub, &updated);
 
@@ -1978,7 +1988,15 @@ int commander_thread_main(int argc, char *argv[])
 					if (!armed.armed) {
 						mavlink_and_console_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
 					} else {
-						mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LAND IMMEDIATELY");
+						if (low_bat_action == 1) {
+							if (!rtl_on) {
+								if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+									rtl_on = true;
+								}
+							}
+						} else {
+							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LAND IMMEDIATELY");
+						}
 					}
 
 					status_changed = true;
@@ -2198,29 +2216,26 @@ int commander_thread_main(int argc, char *argv[])
 								&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
 								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
 
-			if (!geofence_loiter_on && !geofence_rtl_on) {
-				// store the last good main_state when not in a geofence triggered action (LOITER or RTL)
-				main_state_before_rtl = internal_state.main_state;
-			}
+			rtl_on = rtl_on || (geofence_loiter_on || geofence_rtl_on);
+		}
 
-			// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
-			if ((geofence_loiter_on || geofence_rtl_on) &&
-			   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
-				main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
-				main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
-				main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
-				main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
+		// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
+		if (rtl_on &&
+		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
 
-				// transition to previous state if sticks are increased
-				const float min_stick_change = 0.2;
-				if ((_last_sp_man.timestamp != sp_man.timestamp) &&
-					((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
-					 (fabsf(sp_man.y) - fabsf(_last_sp_man.y) > min_stick_change) ||
-					 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
-					 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
+			// transition to previous state if sticks are increased
+			const float min_stick_change = 0.2;
+			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
+				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
+				 (fabsf(sp_man.y) - fabsf(_last_sp_man.y) > min_stick_change) ||
+				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
+				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-					main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
-				}
+				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
 			}
 		}
 
