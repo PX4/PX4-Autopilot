@@ -185,6 +185,9 @@ void Ekf::controlFusionModes()
 	}
 
 	if ((P[8][8] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
+		// boolean that indicates we will do a height reset
+		bool reset_height = false;
+
 		// handle the case where we are using baro for height
 		if (_control_status.flags.baro_hgt) {
 			// check if GPS height is available
@@ -197,18 +200,42 @@ void Ekf::controlFusionModes()
 			// check for inertial sensing errors in the last 10 seconds
 			bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < 10E6);
 
-			// continue to use baro if it is available and we have detected bad IMU data or inadequate GPS
-			// switch to GPS if GPS data is available or we do not have Baro
-			if (baro_hgt_available && (prev_bad_vert_accel || !gps_hgt_available || !gps_hgt_accurate)) {
-				printf("EKF baro hgt timeout - reset to baro\n");
-			} else if (gps_hgt_available && !prev_bad_vert_accel) {
-				// declare the baro as unhealthy
+			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
+			bool reset_to_gps = gps_hgt_available && gps_hgt_accurate && !_gps_hgt_faulty && !prev_bad_vert_accel;
+
+			// reset to GPS if GPS data is available and there is no Baro data
+			reset_to_gps = reset_to_gps || (gps_hgt_available && !baro_hgt_available);
+
+			// reset to Baro if we are not doing a GPS reset and baro data is available
+			bool reset_to_baro = !reset_to_gps && baro_hgt_available;
+
+			if (reset_to_gps) {
+				// set height sensor health
 				_baro_hgt_faulty = true;
-				// set the height mode to the GPS
+				_gps_hgt_faulty = false;
+				// declare the GPS height healthy
+				_gps_hgt_faulty = false;
+				// reset the height mode
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = true;
 				_control_status.flags.rng_hgt = false;
+				// request a reset
+				reset_height = true;
 				printf("EKF baro hgt timeout - reset to GPS\n");
+			} else if (reset_to_baro){
+				// set height sensor health
+				_baro_hgt_faulty = false;
+				// reset the height mode
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				// request a reset
+				reset_height = true;
+				printf("EKF baro hgt timeout - reset to baro\n");
+			} else {
+				// we have nothing we can reset to
+				// deny a reset
+				reset_height = false;
 			}
 		}
 
@@ -224,15 +251,39 @@ void Ekf::controlFusionModes()
 			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
 			bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
 
-			// if baro data is consistent and fresh or GPS height is unavailable or inaccurate, we switch to baro for height
-			if ((baro_data_consistent && baro_data_fresh) || !gps_hgt_available || !gps_hgt_accurate) {
-				// declare the GPS height unhealthy
+			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
+			bool reset_to_baro = baro_data_consistent && baro_data_fresh && !_baro_hgt_faulty && !gps_hgt_accurate;
+
+			// if GPS height is unavailable and baro data is available, reset height to baro
+			reset_to_baro = reset_to_baro || (!gps_hgt_available && baro_data_fresh);
+
+			// if we cannot switch to baro and GPs data is available, reset height to GPS
+			bool reset_to_gps = !reset_to_baro && gps_hgt_available;
+
+			if (reset_to_baro) {
+				// set height sensor health
 				_gps_hgt_faulty = true;
-				// set the height mode to the baro
+				_baro_hgt_faulty = false;
+				// reset the height mode
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
-				printf("EKF gps hgt timeout - switching to baro\n");
+				// request a reset
+				reset_height = true;
+				printf("EKF gps hgt timeout - reset to baro\n");
+			} else if (reset_to_gps) {
+				// set height sensor health
+				_gps_hgt_faulty = false;
+				// reset the height mode
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = true;
+				_control_status.flags.rng_hgt = false;
+				// request a reset
+				reset_height = true;
+				printf("EKF gps hgt timeout - reset to GPS\n");
+			} else {
+				// we have nothing to reset to
+				reset_height = false;
 			}
 		}
 
@@ -247,25 +298,50 @@ void Ekf::controlFusionModes()
 			// check if baro data is consistent
 			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
 			bool baro_data_consistent = sq(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
-			// switch to baro if necessary or preferable
-			bool switch_to_baro = (!rng_data_available && baro_data_available) || (baro_data_consistent && baro_data_available);
 
-			if (switch_to_baro) {
-				// declare the range finder height unhealthy
+			// reset to baro if data is available and we have no range data
+			bool reset_to_baro = !rng_data_available && baro_data_available;
+
+			// reset to baro if data is acceptable
+			reset_to_baro = reset_to_baro || (baro_data_consistent && baro_data_available && !_baro_hgt_faulty);
+
+			// reset to range data if it is available and we cannot switch to baro
+			bool reset_to_rng = !reset_to_baro && rng_data_available;
+
+			if (reset_to_baro) {
+				// set height sensor health
 				_rng_hgt_faulty = true;
-				// set the height mode to the baro
+				_baro_hgt_faulty = false;
+				// reset the height mode
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
-				printf("EKF rng hgt timeout - switching to baro\n");
+				// request a reset
+				reset_height = true;
+				printf("EKF rng hgt timeout - reset to baro\n");
+			} else if (reset_to_rng) {
+				// set height sensor health
+				_rng_hgt_faulty = false;
+				// reset the height mode
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = true;
+				// request a reset
+				reset_height = true;
+				printf("EKF rng hgt timeout - reset to rng hgt\n");
+			} else {
+				// we have nothing to reset to
+				reset_height = false;
 			}
 		}
 
 		// Reset vertical position and velocity states to the last measurement
-		resetHeight();
+		if (reset_height) {
+			resetHeight();
+			// Reset the timout timer
+			_time_last_hgt_fuse = _time_last_imu;
+		}
 
-		// Reset the timout timer
-		_time_last_hgt_fuse = _time_last_imu;
 	}
 
 	// handle the case when we are relying on optical flow fusion and lose it
