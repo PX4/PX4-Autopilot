@@ -61,7 +61,7 @@ else
     else
         dataSrc = struct2;
     end
-    p = plot(dataSrc.T,dataSrc.(es.String));
+    p = plot(dataSrc.Tsec,dataSrc.(es.String));
     set(p,'Parent',axes,'UserData',es.String);
 end
 if varToggle.Value == 1
@@ -97,10 +97,10 @@ else
         centerLineTimeFull = get(lines(k),'XData');
         centerLineDataFull = get(lines(k),'YData');
         
-        startTime = max(centerLineTimeFull(1),dataSrc.T(1));
-        endTime = min(centerLineTimeFull(end),dataSrc.T(end));
-        plotTimeFull = dataSrc.T(dataSrc.T >= startTime & dataSrc.T <= endTime);
-        plotDataFull = dataSrc.(varNames{k})(dataSrc.T >= startTime & dataSrc.T <= endTime);
+        startTime = max(centerLineTimeFull(1),dataSrc.Tsec(1));
+        endTime = min(centerLineTimeFull(end),dataSrc.Tsec(end));
+        plotTimeFull = dataSrc.Tsec(dataSrc.Tsec >= startTime & dataSrc.Tsec <= endTime);
+        plotDataFull = dataSrc.(varNames{k})(dataSrc.Tsec >= startTime & dataSrc.Tsec <= endTime);
         
         centerLineTime = centerLineTimeFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
         centerLineData = centerLineDataFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
