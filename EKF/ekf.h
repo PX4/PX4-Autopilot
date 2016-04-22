@@ -216,7 +216,7 @@ private:
 	uint64_t _time_last_mag;	// measurement time of last magnetomter sample
 	Vector3f _mag_filt_state;	// filtered magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
-	float _hgt_sensor_offset;	// value subtracted from the height measurement to maintain consistency after switching height sensors (m)
+	float _hgt_sensor_offset;	// set as necessary if desired to maintain the same height after a height reset (m)
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
