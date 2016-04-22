@@ -44,7 +44,6 @@ set(config_module_list
 	${EAGLE_DRIVERS_SRC}/mpu_spi
 	${EAGLE_DRIVERS_SRC}/uart_esc
 	${EAGLE_DRIVERS_SRC}/rc_receiver
-	${EAGLE_DRIVERS_SRC}/csr_gps
 
 	#
 	# System commands
