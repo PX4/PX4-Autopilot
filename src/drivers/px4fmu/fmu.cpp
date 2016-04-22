@@ -571,11 +571,6 @@ PX4FMU::set_mode(Mode mode)
 	// no break
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_2PWM");
-
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x3;
 		_pwm_initialized = false;
 
@@ -589,10 +584,6 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM");
 
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x7;
 		_pwm_initialized = false;
 		break;
@@ -600,35 +591,21 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
 		DEVICE_DEBUG("MODE_4PWM");
 
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0xf;
 		_pwm_initialized = false;
-
 		break;
 
 	case MODE_6PWM: // v2 PWMs as 6 PWM outs
 		DEVICE_DEBUG("MODE_6PWM");
 
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x3f;
 		_pwm_initialized = false;
-
 		break;
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
 		DEVICE_DEBUG("MODE_8PWM");
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0xff;
 		_pwm_initialized = false;
 		break;
@@ -639,7 +616,6 @@ PX4FMU::set_mode(Mode mode)
 
 		_pwm_default_rate = 10;	/* artificially reduced output rate */
 		_pwm_alt_rate = 10;
-		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x0;
 		_pwm_initialized = false;
 
@@ -655,13 +631,14 @@ PX4FMU::set_mode(Mode mode)
 	}
 
 	_mode = mode;
+	_pwm_alt_rate_channels &= _pwm_mask;
 	return OK;
 }
 
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
-	DEVICE_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
+	DEVICE_DEBUG("set_pwm_rate 0x%02x %u %u", rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 		for (unsigned group = 0; group < _max_actuators; group++) {
@@ -687,13 +664,13 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
+					if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
 						warn("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
+					if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
 						warn("rate group set default failed");
 						return -EINVAL;
 					}
@@ -2134,7 +2111,7 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	}
 
 	if (_oneshot_mode) {
-		up_pwm_servo_trigger();
+		up_pwm_servo_trigger(_pwm_alt_rate_channels);
 		_oneshot_delay_till = hrt_absolute_time() + widest_pulse + 50;
 	}
 
