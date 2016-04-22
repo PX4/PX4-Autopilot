@@ -68,6 +68,7 @@
 #include <px4_time.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
@@ -323,21 +324,25 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
-	/* check for new messages. Note that we assume poll_or_read is called with a higher frequency
-	 * than we get new injection messages.
-	 */
 	handleInjectDataTopic();
 
 #ifndef __PX4_QURT
 
 	/* For non QURT, use the usual polling. */
 
+	//Poll only for the serial data. In the same thread we also need to handle orb messages,
+	//so ideally we would poll on both, the serial fd and orb subscription. Unfortunately the
+	//two pollings use different underlying mechanisms (at least under posix), which makes this
+	//impossible. Instead we limit the maximum polling interval and regularly check for new orb
+	//messages.
+	//FIXME: add a unified poll() API
+	const int max_timeout = 50;
+
 	pollfd fds[1];
 	fds[0].fd = _serial_fd;
 	fds[0].events = POLLIN;
 
-	/* Poll for new data,  */
-	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
+	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), math::min(max_timeout, timeout));
 
 	if (ret > 0) {
 		/* if we have new data from GPS, go handle it */
@@ -349,15 +354,14 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
 			usleep(GPS_WAIT_BEFORE_READ * 1000);
-			return ::read(_serial_fd, buf, buf_length);
+			ret = ::read(_serial_fd, buf, buf_length);
 
 		} else {
-			return -1;
+			ret = -1;
 		}
-
-	} else {
-		return ret;
 	}
+
+	return ret;
 
 #else
 	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
