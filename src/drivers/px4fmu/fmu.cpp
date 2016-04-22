@@ -193,6 +193,7 @@ private:
 	bool		_pwm_on;
 	uint32_t	_pwm_mask;
 	bool		_pwm_initialized;
+	bool		_servos_armed;
 
 	MixerGroup	*_mixers;
 
@@ -237,7 +238,7 @@ private:
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
-	void		update_pwm_out_state(bool on);
+	void		update_pwm_out_state(void);
 	void		pwm_output_set(unsigned i, unsigned value);
 
 	struct GPIOConfig {
@@ -374,6 +375,7 @@ PX4FMU::PX4FMU() :
 	_pwm_on(false),
 	_pwm_mask(0),
 	_pwm_initialized(false),
+	_servos_armed(false),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -867,8 +869,9 @@ PX4FMU::pwm_output_set(unsigned i, unsigned value)
 }
 
 void
-PX4FMU::update_pwm_out_state(bool on)
+PX4FMU::update_pwm_out_state(void)
 {
+	bool on = _pwm_on && _servos_armed;
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
@@ -1118,7 +1121,7 @@ PX4FMU::cycle()
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
 
-			update_pwm_out_state(pwm_on);
+			update_pwm_out_state();
 		}
 	}
 
@@ -1497,7 +1500,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
-		update_pwm_out_state(true);
+		_servos_armed = true;
+		update_pwm_out_state();
 		break;
 
 	case PWM_SERVO_SET_ARM_OK:
@@ -1515,7 +1519,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_DISARM:
-		update_pwm_out_state(false);
+		_servos_armed = false;
+		update_pwm_out_state();
 		break;
 
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
