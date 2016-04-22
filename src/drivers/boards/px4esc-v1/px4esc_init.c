@@ -201,6 +201,6 @@ __EXPORT int board_app_initialize(void)
 }
 
 
-__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, const uint8_t *filename, int lineno)
 {
 }
