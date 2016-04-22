@@ -63,10 +63,20 @@ public:
 	// public interfaces for this class.
 
 	/**
+	 * Initialize the singleton. Call this before everything else.
+	 * @return true on success
+	 */
+	static bool initialize();
+
+	/**
 	 * Method to get the singleton instance for the uORB::Manager.
+	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
 	 */
-	static uORB::Manager *get_instance();
+	static uORB::Manager *get_instance()
+	{
+		return _Instance;
+	}
 
 	// ==== uORB interface methods ====
 	/**
