@@ -358,6 +358,11 @@ __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
  */
 __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
 
-__EXPORT extern int up_pwm_servo_trigger(void);
+/**
+ * trigger immediate output for channels in the channel_mask
+ *
+ * @param channel_mask	The channels to trigger
+ */
+__EXPORT extern int up_pwm_servo_trigger(uint32_t channel_mask);
 
 __END_DECLS

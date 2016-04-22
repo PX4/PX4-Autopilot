@@ -105,7 +105,7 @@ __EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
 __EXPORT uint16_t io_channel_get_ccr(unsigned channel);
 __EXPORT int io_timer_set_ccr(unsigned channel, uint16_t value);
 __EXPORT uint32_t io_timer_get_group(unsigned timer);
-__EXPORT int io_timer_pwm_trigger(void);
+__EXPORT int io_timer_pwm_trigger(uint32_t channel_mask);
 __EXPORT int io_timer_validate_channel_index(unsigned channel);
 __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
