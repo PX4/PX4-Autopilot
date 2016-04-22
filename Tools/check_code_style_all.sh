@@ -26,6 +26,7 @@ find \
     src/modules/gpio_led \
     src/modules/land_detector \
     src/modules/local_position_estimator \
+    src/modules/mavlink/mavlink_tests \
     src/modules/muorb \
     src/modules/param \
     src/modules/px4iofirmware \

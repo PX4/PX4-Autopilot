@@ -509,9 +509,7 @@ int commander_main(int argc, char *argv[])
 				warnx("argument %s unsupported.", argv[2]);
 			}
 
-			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,
-								       &status_flags, &internal_state)) {
-					;
+			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,  &status_flags, &internal_state)) {
 				warnx("mode change failed");
 			}
 			return 0;
@@ -1260,7 +1258,7 @@ int commander_thread_main(int argc, char *argv[])
 	// We want to accept RC inputs as default
 	status_flags.rc_input_blocked = false;
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
-	internal_state.main_state =commander_state_s::MAIN_STATE_MANUAL;
+	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
 	main_state_prev = commander_state_s::MAIN_STATE_MAX;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
