@@ -512,7 +512,7 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 	}
 }
 
-__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, const uint8_t *filename, int lineno)
 {
 	/* We need a chunk of ram to save the complete context in.
 	 * Since we are going to reboot we will use &_sdata
