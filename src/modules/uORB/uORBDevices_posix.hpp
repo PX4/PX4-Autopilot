@@ -172,7 +172,7 @@ public:
 
 	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
 private:
-	Flavor      _flavor;
+	const Flavor      _flavor;
 	static std::map<std::string, uORB::DeviceNode *> _node_map;
 };
 
