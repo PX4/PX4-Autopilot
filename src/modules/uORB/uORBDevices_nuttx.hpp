@@ -242,7 +242,7 @@ public:
 	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
 	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
 private:
-	Flavor      _flavor;
+	const Flavor  _flavor;
 	static ORBMap _node_map;
 };
 
