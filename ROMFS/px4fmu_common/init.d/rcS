@@ -798,6 +798,7 @@ then
 	if [ $VEHICLE_TYPE == passthrough ]
 	then
 		mavlink stop-all
+		commander stop
 
 		# Stop multicopter attitude controller if it is running, the controls come
 		# from Snapdragon.
@@ -819,6 +820,8 @@ then
 			snapdragon_rc_pwm start -d /dev/ttyS2
 			fmu mode_pwm4
 		fi
+
+		pwm failsafe -c 1234 -p 900
 
 		# Arm straightaway.
 		pwm arm
