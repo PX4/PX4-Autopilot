@@ -208,6 +208,7 @@ static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
 
+static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
 static unsigned _last_mission_instance = 0;
 static manual_control_setpoint_s _last_sp_man = {};
 
@@ -2147,8 +2148,6 @@ int commander_thread_main(int argc, char *argv[])
 			static bool geofence_loiter_on = false;
 			static bool geofence_rtl_on = false;
 
-			static uint8_t geofence_main_state_before_violation = commander_state_s::MAIN_STATE_MAX;
-
 			// check for geofence violation
 			if (geofence_result.geofence_violated) {
 				static hrt_abstime last_geofence_violation = 0;
@@ -2201,16 +2200,16 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!geofence_loiter_on && !geofence_rtl_on) {
 				// store the last good main_state when not in a geofence triggered action (LOITER or RTL)
-				geofence_main_state_before_violation = internal_state.main_state;
+				main_state_before_rtl = internal_state.main_state;
 			}
 
 			// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
 			if ((geofence_loiter_on || geofence_rtl_on) &&
-			   (geofence_main_state_before_violation == commander_state_s::MAIN_STATE_MANUAL ||
-				geofence_main_state_before_violation == commander_state_s::MAIN_STATE_ALTCTL ||
-				geofence_main_state_before_violation == commander_state_s::MAIN_STATE_POSCTL ||
-				geofence_main_state_before_violation == commander_state_s::MAIN_STATE_ACRO ||
-				geofence_main_state_before_violation == commander_state_s::MAIN_STATE_STAB)) {
+			   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
+				main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+				main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
+				main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+				main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
 
 				// transition to previous state if sticks are increased
 				const float min_stick_change = 0.2;
@@ -2220,7 +2219,7 @@ int commander_thread_main(int argc, char *argv[])
 					 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
 					 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-					main_state_transition(&status, geofence_main_state_before_violation, main_state_prev, &status_flags, &internal_state);
+					main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
 				}
 			}
 		}
