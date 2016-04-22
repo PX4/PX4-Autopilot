@@ -190,7 +190,7 @@ private:
 
 private: // private class methods.
 
-	SubscriberData    *filp_to_sd(struct file *filp)
+	static SubscriberData    *filp_to_sd(struct file *filp)
 	{
 		SubscriberData *sd = (SubscriberData *)(filp->f_priv);
 		return sd;

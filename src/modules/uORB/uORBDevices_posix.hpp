@@ -126,7 +126,7 @@ private:
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
 
-	SubscriberData    *filp_to_sd(device::file_t *filp);
+	static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	int32_t _subscriber_count;
 
