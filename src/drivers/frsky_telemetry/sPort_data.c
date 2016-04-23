@@ -49,9 +49,11 @@
 #include <arch/math.h>
 #include <geo/geo.h>
 
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -60,35 +62,92 @@
 static int sensor_sub = -1;
 static int global_position_sub = -1;
 static int battery_status_sub = -1;
-static struct sensor_combined_s *sensor_data;
+static int vehicle_status_sub = -1;
+static int gps_position_sub = -1;
+
+static struct sensor_combined_s *sensor_combined;
 static struct vehicle_global_position_s *global_pos;
 static struct battery_status_s *battery_status;
+static struct vehicle_status_s *vehicle_status;
+static struct vehicle_gps_position_s *gps_position;
+
 
 /**
  * Initializes the uORB subscriptions.
  */
 bool sPort_init()
 {
-	sensor_data = malloc(sizeof(struct sensor_combined_s));
+
+	sensor_combined = malloc(sizeof(struct sensor_combined_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
 	battery_status = malloc(sizeof(struct battery_status_s));
+	vehicle_status = malloc(sizeof(struct vehicle_status_s));
+	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 
-	if (sensor_data == NULL || global_pos == NULL || battery_status == NULL) {
+
+	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
+	    || gps_position == NULL) {
 		return false;
 	}
+
 
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
 	return true;
 }
 
 void sPort_deinit()
 {
-	free(sensor_data);
+	free(sensor_combined);
 	free(global_pos);
 	free(battery_status);
+	free(vehicle_status);
+	free(gps_position);
 }
+
+void sPort_update_topics()
+{
+	bool updated;
+	/* get a local copy of the current sensor values */
+	orb_check(sensor_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_combined);
+	}
+
+	/* get a local copy of the battery data */
+	orb_check(battery_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
+	}
+
+	/* get a local copy of the global position data */
+	orb_check(global_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
+	}
+
+	/* get a local copy of the vehicle status data */
+	orb_check(vehicle_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, vehicle_status);
+	}
+
+	/* get a local copy of the gps position data */
+	orb_check(gps_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, gps_position);
+	}
+}
+
 
 static void update_crc(uint16_t *crc, unsigned char b)
 {
@@ -158,24 +217,16 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 // scaling correct with OpenTX 2.1.7
 void sPort_send_BATV(int uart)
 {
-	/* get a local copy of the battery data */
-	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
-
 	/* send battery voltage as VFAS */
 	uint32_t voltage = (int)(100 * battery_status->voltage_v);
-
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
 // verified scaling
 void sPort_send_CUR(int uart)
 {
-	/* get a local copy of the battery data */
-	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
-
 	/* send data */
 	uint32_t current = (int)(10 * battery_status->current_a);
-
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
@@ -184,18 +235,15 @@ void sPort_send_CUR(int uart)
 // the difference (altitude - field)
 void sPort_send_ALT(int uart)
 {
-	/* get a local copy of the current sensor values */
-	orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_data);
-
 	/* send data */
-	uint32_t alt = (int)(100 * sensor_data->baro_alt_meter[0]);
+	uint32_t alt = (int)(100 * sensor_combined->baro_alt_meter[0]);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
 // verified scaling for "calculated" option
 void sPort_send_SPD(int uart)
 {
-	/* send data */
+	/* send data for A2 */
 	float speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e);
 	uint32_t ispeed = (int)(10 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
@@ -212,27 +260,20 @@ void sPort_send_VSPD(int uart, float speed)
 // verified scaling
 void sPort_send_FUEL(int uart)
 {
-	/* get a local copy of the battery data */
-	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
-
 	/* send data */
 	uint32_t fuel = (int)(100 * battery_status->remaining);
-
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
 void sPort_send_GPS_LON(int uart)
 {
 	/* send longitude */
-	/* get a local copy of the global position data */
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
-
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	/* precision is approximately 0.1m */
-	uint32_t iLon = 6E5 * fabs(global_pos->lon);
+	uint32_t iLon = 6E5 * fabs(gps_position->lon);
 	iLon |= (1 << 31);
 
-	if (global_pos->lon < 0) { iLon |= (1 << 30); }
+	if (gps_position->lon < 0) { iLon |= (1 << 30); }
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
 }
@@ -240,11 +281,10 @@ void sPort_send_GPS_LON(int uart)
 void sPort_send_GPS_LAT(int uart)
 {
 	/* send latitude */
-
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
-	uint32_t iLat = 6E5 * fabs(global_pos->lat);
+	uint32_t iLat = 6E5 * fabs(gps_position->lat);
 
-	if (global_pos->lat < 0) { iLat |= (1 << 30); }
+	if (gps_position->lat < 0) { iLat |= (1 << 30); }
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
 }
@@ -252,13 +292,12 @@ void sPort_send_GPS_LAT(int uart)
 void sPort_send_GPS_ALT(int uart)
 {
 	/* send altitude */
-
 	/* convert to 100 * m/sec */
-	uint32_t iAlt = 100 * global_pos->alt;
+	uint32_t iAlt = 100 * gps_position->alt;
 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
 }
 
-void sPort_send_GPS_COG(int uart)
+void sPort_send_GPS_CRS(int uart)
 {
 	/* send course */
 
@@ -267,10 +306,37 @@ void sPort_send_GPS_COG(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
 
+void sPort_send_GPS_TIME(int uart)
+{
+	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, gps_position->time_utc_usec);
+}
+
 void sPort_send_GPS_SPD(int uart)
 {
 	/* send 100 * knots */
 	float speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e);
 	uint32_t ispeed = (int)(1944 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
+}
+
+/*
+ * Sends nav_state + 128
+ */
+void sPort_send_NAV_STATE(int uart)
+{
+	uint32_t navstate = (int)(128 + vehicle_status->nav_state);
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_DIY_NAVSTATE, navstate);
+}
+
+// verified scaling
+// sends number of sats and type of gps fix
+void sPort_send_GPS_FIX(int uart)
+{
+	/* send data */
+	uint32_t satcount = (int)(gps_position->satellites_used);
+	uint32_t fixtype = (int)(gps_position->fix_type);
+	uint32_t t2 = satcount * 10 + fixtype;
+	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
 }

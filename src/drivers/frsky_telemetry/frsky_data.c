@@ -53,6 +53,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -93,10 +94,12 @@
 
 static struct battery_status_s *battery_status;
 static struct vehicle_global_position_s *global_pos;
+static struct vehicle_status_s *vehicle_status;
 static struct sensor_combined_s *sensor_combined;
 
 static int battery_status_sub = -1;
-static int global_position_sub = -1;
+static int vehicle_global_position_sub = -1;
+static int vehicle_status_sub = -1;
 static int sensor_sub = -1;
 
 /**
@@ -107,13 +110,15 @@ bool frsky_init()
 	battery_status = malloc(sizeof(struct battery_status_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
 	sensor_combined = malloc(sizeof(struct sensor_combined_s));
+	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 
-	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL) {
+	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL || vehicle_status) {
 		return false;
 	}
 
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	return true;
 }
@@ -123,6 +128,7 @@ void frsky_deinit()
 	free(battery_status);
 	free(global_pos);
 	free(sensor_combined);
+	free(vehicle_status);
 }
 
 /**
@@ -175,7 +181,6 @@ static void frsky_send_data(int uart, uint8_t id, int16_t data)
 void frsky_update_topics()
 {
 	bool updated;
-
 	/* get a local copy of the current sensor values */
 	orb_check(sensor_sub, &updated);
 
@@ -191,10 +196,17 @@ void frsky_update_topics()
 	}
 
 	/* get a local copy of the global position data */
-	orb_check(global_position_sub, &updated);
+	orb_check(vehicle_global_position_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
+		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, global_pos);
+	}
+
+	/* get a local copy of the vehicle status data */
+	orb_check(vehicle_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, vehicle_status);
 	}
 }
 
@@ -374,4 +386,3 @@ bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v)
 
 	return data_ready;
 }
-

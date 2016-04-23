@@ -283,6 +283,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			// allow a minimum of 500usec before reply
 			usleep(500);
 
+			sPort_update_topics();
+
 			static hrt_abstime lastBATV = 0;
 			static hrt_abstime lastCUR = 0;
 			static hrt_abstime lastALT = 0;
@@ -290,6 +292,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastFUEL = 0;
 			static hrt_abstime lastVSPD = 0;
 			static hrt_abstime lastGPS = 0;
+			static hrt_abstime lastNAV_STATE = 0;
+			static hrt_abstime lastGPS_FIX = 0;
+
 
 			switch (sbuf[1]) {
 
@@ -370,7 +375,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_7:
 
-				/* report GPS data elements at 2*5Hz */
+				/* report GPS data elements at 5*5Hz */
 				if (now - lastGPS > 100 * 1000) {
 					static int elementCount = 0;
 
@@ -387,7 +392,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 						break;
 
 					case 2:
-						sPort_send_GPS_COG(uart);
+						sPort_send_GPS_CRS(uart);
 						elementCount++;
 						break;
 
@@ -398,10 +403,31 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 					case 4:
 						sPort_send_GPS_SPD(uart);
+						elementCount++;
+						break;
+
+					case 5:
+						sPort_send_GPS_TIME(uart);
 						elementCount = 0;
 						break;
 					}
 
+				}
+
+			case SMARTPORT_POLL_8:
+
+				/* report nav_state as DIY_NAVSTATE at 1Hz */
+				if (now - lastNAV_STATE > 1000 * 1000) {
+					lastNAV_STATE = now;
+					/* send T1 */
+					sPort_send_NAV_STATE(uart);
+				}
+
+				/* report satcount and fix as DIY_GPSFIX at 1Hz */
+				else if (now - lastGPS_FIX > 1000 * 1000) {
+					lastGPS_FIX = now;
+					/* send T2 */
+					sPort_send_GPS_FIX(uart);
 				}
 
 				break;
