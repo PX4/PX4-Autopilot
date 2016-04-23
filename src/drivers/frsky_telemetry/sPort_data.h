@@ -52,7 +52,11 @@
 #define SMARTPORT_POLL_4    0x16
 #define SMARTPORT_POLL_5    0xB7
 #define SMARTPORT_POLL_6    0x00
+<<<<<<< HEAD
+#define SMARTPORT_POLL_7    0xBA
+=======
 #define SMARTPORT_POLL_7    0x83
+>>>>>>> upstream/master
 
 /* FrSky SmartPort sensor IDs */
 #define SMARTPORT_ID_RSSI          0xf101
@@ -93,5 +97,7 @@ void sPort_send_GPS_ALT(int uart);
 void sPort_send_GPS_COG(int uart);
 void sPort_send_GPS_SPD(int uart);
 void sPort_send_FUEL(int uart);
+void sPort_send_T1(int uart);
+void sPort_send_T2(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */

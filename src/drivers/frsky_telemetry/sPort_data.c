@@ -51,7 +51,12 @@
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
+<<<<<<< HEAD
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+=======
 #include <uORB/topics/battery_status.h>
+>>>>>>> upstream/master
 
 #include <drivers/drv_hrt.h>
 
@@ -59,10 +64,15 @@
 
 static int sensor_sub = -1;
 static int global_position_sub = -1;
+<<<<<<< HEAD
+static int vehicle_status_sub = -1;
+static int gps_position_sub = -1;
+=======
 static int battery_status_sub = -1;
 static struct sensor_combined_s *sensor_data;
 static struct vehicle_global_position_s *global_pos;
 static struct battery_status_s *battery_status;
+>>>>>>> upstream/master
 
 /**
  * Initializes the uORB subscriptions.
@@ -78,9 +88,14 @@ bool sPort_init()
 	}
 
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+<<<<<<< HEAD
+	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+=======
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	return true;
+>>>>>>> upstream/master
 }
 
 void sPort_deinit()
@@ -221,6 +236,89 @@ void sPort_send_FUEL(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
+<<<<<<< HEAD
+void sPort_send_T1(int uart)
+{
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	/* Map Flightmodes from 18-29 */
+	uint32_t flightmode = (int)(vehicle_status.main_state);
+	uint32_t flightmodeMapped = 0;
+	
+	switch (flightmode) {
+	case MAIN_STATE_MANUAL:
+		flightmodeMapped = 18;
+		break;
+
+	case MAIN_STATE_ACRO:
+		flightmodeMapped = 19;
+		break;
+
+	case MAIN_STATE_STAB:
+		flightmodeMapped = 20;
+		break;
+
+	case MAIN_STATE_RATTITUDE:
+		flightmodeMapped = 21;
+		break;
+
+	case MAIN_STATE_POSCTL:
+		flightmodeMapped = 22;
+		break;
+
+	case MAIN_STATE_ALTCTL:
+		flightmodeMapped = 23;
+		break;
+
+	case MAIN_STATE_OFFBOARD:
+		flightmodeMapped = 24;
+		break;
+	
+	case MAIN_STATE_AUTO_TAKEOFF:
+		flightmodeMapped = 25;
+		break;
+		
+	case MAIN_STATE_AUTO_LOITER:
+		flightmodeMapped = 26;
+		break;
+		
+	case MAIN_STATE_AUTO_MISSION:
+		flightmodeMapped = 27;
+		break;
+		
+	case MAIN_STATE_AUTO_RTL:
+		flightmodeMapped = 28;
+		break;
+		
+	case MAIN_STATE_AUTO_LAND:
+		flightmodeMapped = 29;
+		break;
+		
+	default:
+		flightmodeMapped = 8; //APMs "Invalid Mode"
+	}
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeMapped);
+}
+
+// verified scaling
+void sPort_send_T2(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send data */
+	uint32_t satcount = (int)(gps_pos.satellites_used);
+	uint32_t fixtype = (int)(gps_pos.fix_type);
+	uint32_t t2 = satcount * 10 + fixtype;
+	sPort_send_data(uart, SMARTPORT_ID_T2, t2);
+=======
 void sPort_send_GPS_LON(int uart)
 {
 	/* send longitude */
@@ -273,4 +371,5 @@ void sPort_send_GPS_SPD(int uart)
 	float speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e);
 	uint32_t ispeed = (int)(1944 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
+>>>>>>> upstream/master
 }
