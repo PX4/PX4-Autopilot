@@ -198,15 +198,15 @@ static uint64_t _inair_last_time = 0;
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
-static struct vehicle_status_s status;
-static struct battery_status_s battery;
-static struct actuator_armed_s armed;
-static struct safety_s safety;
-static struct vehicle_control_mode_s control_mode;
-static struct offboard_control_mode_s offboard_control_mode;
-static struct home_position_s _home;
+static struct vehicle_status_s status = {};
+static struct battery_status_s battery = {};
+static struct actuator_armed_s armed = {};
+static struct safety_s safety = {};
+static struct vehicle_control_mode_s control_mode = {};
+static struct offboard_control_mode_s offboard_control_mode = {};
+static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
-static struct commander_state_s internal_state;
+static struct commander_state_s internal_state = {};
 
 static unsigned _last_mission_instance = 0;
 static manual_control_setpoint_s _last_sp_man = {};

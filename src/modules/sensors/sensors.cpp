@@ -1657,11 +1657,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
-					updated_battery = true;
+					if (bat_voltage_v > 0.5f) {
+						updated_battery = true;
+					}
 
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
 					bat_current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
-					updated_battery = true;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
