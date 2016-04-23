@@ -262,7 +262,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			// battery simulation
 			hrt_abstime now = hrt_absolute_time();
 
-			const double discharge_interval_us = 60 * 1000 * 1000;
+			const float discharge_interval_us = 60 * 1000 * 1000;
 
 			static hrt_abstime batt_sim_start = 0;
 
