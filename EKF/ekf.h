@@ -126,6 +126,9 @@ public:
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
+	// return the amount the local vertical position changed in the last height reset and the time of the reset
+	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _vert_pos_reset_delta; *time_us = _time_vert_pos_reset;}
+
 private:
 
 	static const uint8_t _k_num_states = 24;
@@ -169,7 +172,7 @@ private:
 	float _mag_innov_var[3];	// earth magnetic field innovation variance
 
 	float _airspeed_innov;		// airspeed measurement innovation
-	float _airspeed_innov_var;  // airspeed measurement innovation variance
+	float _airspeed_innov_var;	// airspeed measurement innovation variance
 
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance
@@ -208,12 +211,12 @@ private:
 
 	// Variables used to initialise the filter states
 	uint32_t _hgt_counter;		// number of height samples taken
-	float _hgt_filt_state;		// filtered height measurement
+	float _rng_filt_state;		// filtered height measurement
 	uint32_t _mag_counter;		// number of magnetometer samples taken
 	uint64_t _time_last_mag;	// measurement time of last magnetomter sample
 	Vector3f _mag_filt_state;	// filtered magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
-	float _hgt_sensor_offset;	// height that needs to be subtracted from the primary height sensor so that it reads zero height at the origin (m)
+	float _hgt_sensor_offset;	// set as necessary if desired to maintain the same height after a height reset (m)
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
@@ -231,7 +234,14 @@ private:
 	bool _rng_hgt_faulty;		// true if valid rnage finder height data is unavailable for use
 	int _primary_hgt_source;	// priary source of height data set at initialisation
 
-	float _baro_hgt_offset;		// number of metres the baro height origin is above the local NED origin (m)
+	float _baro_hgt_offset;		// baro height reading at the local NED origin (m)
+	float _vert_pos_reset_delta;	// increase in vertical position state at the last reset(m)
+	uint64_t _time_vert_pos_reset;	// last system time in usec that the vertical position state was reset
+	float _vert_vel_reset_delta;	// increase in vertical position velocity at the last reset(m)
+	uint64_t _time_vert_vel_reset;	// last system time in usec that the vertical velocity state was reset
+
+	// imu fault status
+	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step

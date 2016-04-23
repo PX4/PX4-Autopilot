@@ -90,12 +90,23 @@ void Ekf::resetHeight()
 	// Get the most recent GPS data
 	gpsSample gps_newest = _gps_buffer.get_newest();
 
+	// store the current vertical position and velocity for reference so we can calculate and publish the reset amount
+	float old_vert_pos = _state.pos(2);
+	bool vert_pos_reset = false;
+	float old_vert_vel = _state.vel(2);
+	bool vert_vel_reset = false;
+
+	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
 		rangeSample range_newest = _range_buffer.get_newest();
 
 		if (_time_last_imu - range_newest.time_us < 2 * RNG_MAX_INTERVAL) {
-			_state.pos(2) = _hgt_sensor_offset - range_newest.rng;
+			// calculate the new vertical position using range sensor
+			float new_pos_down = _hgt_sensor_offset - range_newest.rng;
+			// update the state and assoicated variance
+			_state.pos(2) = new_pos_down;
 			P[8][8] = sq(_params.range_noise);
+			vert_pos_reset = true;
 
 		} else {
 			// TODO: reset to last known range based estimate
@@ -112,6 +123,7 @@ void Ekf::resetHeight()
 		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 			P[8][8] = sq(_params.baro_noise);
+			vert_pos_reset = true;
 
 		} else {
 			// TODO: reset to last known baro based estimate
@@ -122,6 +134,7 @@ void Ekf::resetHeight()
 		if (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 			P[8][8] = sq(gps_newest.hacc);
+			vert_pos_reset = true;
 
 		} else {
 			// TODO: reset to last known gps based estimate
@@ -139,6 +152,40 @@ void Ekf::resetHeight()
 	} else {
 		P[5][5] = fminf(sq(_state.vel(2)),1000.0f);
 		_state.vel(2) = 0.0f;
+	}
+	vert_vel_reset = true;
+
+	// store the reset amount and time to be published
+	if (vert_pos_reset) {
+		_vert_pos_reset_delta = _state.pos(2) - old_vert_pos;
+		_time_vert_pos_reset = _time_last_imu;
+	}
+
+	if (vert_vel_reset) {
+		_vert_vel_reset_delta = _state.vel(2) - old_vert_vel;
+		_time_vert_vel_reset = _time_last_imu;
+	}
+
+	// add the reset amount to the output observer states
+	_output_new.pos(2) += _vert_pos_reset_delta;
+	_output_new.vel(2) += _vert_vel_reset_delta;
+
+	// add the reset amount to the output observer buffered data
+	outputSample output_states;
+	unsigned output_length = _output_buffer.get_length();
+	for (unsigned i=0; i < output_length; i++) {
+		output_states = _output_buffer.get_from_index(i);
+
+		if (vert_pos_reset) {
+			output_states.pos(2) += _vert_pos_reset_delta;
+		}
+
+		if (vert_vel_reset) {
+			output_states.vel(2) += _vert_vel_reset_delta;
+		}
+
+		_output_buffer.push_to_index(i,output_states);
+
 	}
 
 }
