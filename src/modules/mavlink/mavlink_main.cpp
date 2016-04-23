@@ -1840,6 +1840,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		configure_stream("ADSB_VEHICLE", 2.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 2.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1870,6 +1871,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1919,6 +1921,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);
 		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 	default:
 		break;
 	}

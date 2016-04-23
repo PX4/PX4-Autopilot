@@ -86,9 +86,9 @@
 #include <systemlib/systemlib.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/control_state.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -170,13 +170,13 @@ private:
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
-	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
+	orb_advert_t	_fw_pos_ctrl_status_pub;		/**< navigation capabilities publication */
 
 	orb_id_t _attitude_setpoint_id;
 
 	struct control_state_s				_ctrl_state;			/**< control state */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
-	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
+	struct fw_pos_ctrl_status_s		_fw_pos_ctrl_status;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
 	struct vehicle_status_s				_vehicle_status;		/**< vehicle status */
@@ -408,7 +408,7 @@ private:
 	/**
 	 * Publish navigation capabilities
 	 */
-	void		navigation_capabilities_publish();
+	void		fw_pos_ctrl_status_publish();
 
 	/**
 	 * Get a new waypoint based on heading and distance from current position
@@ -530,7 +530,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	/* publications */
 	_attitude_sp_pub(nullptr),
 	_tecs_status_pub(nullptr),
-	_nav_capabilities_pub(nullptr),
+	_fw_pos_ctrl_status_pub(nullptr),
 
 	/* publication ID */
 	_attitude_setpoint_id(0),
@@ -538,7 +538,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	/* states */
 	_ctrl_state(),
 	_att_sp(),
-	_nav_capabilities(),
+	_fw_pos_ctrl_status(),
 	_manual(),
 	_control_mode(),
 	_vehicle_status(),
@@ -593,7 +593,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_l1_control(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER)
 {
-	_nav_capabilities = {};
+	_fw_pos_ctrl_status = {};
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
@@ -769,10 +769,10 @@ FixedwingPositionControl::parameters_update()
 			    _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
 
 	/* Update and publish the navigation capabilities */
-	_nav_capabilities.landing_slope_angle_rad = landingslope.landing_slope_angle_rad();
-	_nav_capabilities.landing_horizontal_slope_displacement = landingslope.horizontal_slope_displacement();
-	_nav_capabilities.landing_flare_length = landingslope.flare_length();
-	navigation_capabilities_publish();
+	_fw_pos_ctrl_status.landing_slope_angle_rad = landingslope.landing_slope_angle_rad();
+	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = landingslope.horizontal_slope_displacement();
+	_fw_pos_ctrl_status.landing_flare_length = landingslope.flare_length();
+	fw_pos_ctrl_status_publish();
 
 	/* Update Launch Detector Parameters */
 	launchDetector.updateParams();
@@ -1016,15 +1016,15 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 	}
 }
 
-void FixedwingPositionControl::navigation_capabilities_publish()
+void FixedwingPositionControl::fw_pos_ctrl_status_publish()
 {
-	_nav_capabilities.timestamp = hrt_absolute_time();
+	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
 
-	if (_nav_capabilities_pub != nullptr) {
-		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
+	if (_fw_pos_ctrl_status_pub != nullptr) {
+		orb_publish(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_pub, &_fw_pos_ctrl_status);
 
 	} else {
-		_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
+		_fw_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_fw_pos_ctrl_status);
 	}
 }
 
@@ -1337,7 +1337,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			float alt_sp;
 
-			if (_nav_capabilities.abort_landing == true) {
+			if (_fw_pos_ctrl_status.abort_landing == true) {
 				// if we entered loiter due to an aborted landing, demand
 				// altitude setpoint well above landing waypoint
 				alt_sp = pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
@@ -1349,7 +1349,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (in_takeoff_situation() ||
 			    ((_global_pos.alt < pos_sp_triplet.current.alt + _parameters.climbout_diff)
-			     && _nav_capabilities.abort_landing == true)) {
+			     && _fw_pos_ctrl_status.abort_landing == true)) {
 				/* limit roll motion to ensure enough lift */
 				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
 								    math::radians(15.0f));
@@ -1465,7 +1465,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					} else {
 						// still no valid terrain, abort landing
 						terrain_alt = pos_sp_triplet.current.alt;
-						_nav_capabilities.abort_landing = true;
+						_fw_pos_ctrl_status.abort_landing = true;
 					}
 
 				} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT * 1000 * 1000)
@@ -1478,7 +1478,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				} else {
 					// terrain alt was not valid for long time, abort landing
 					terrain_alt = _t_alt_prev_valid;
-					_nav_capabilities.abort_landing = true;
+					_fw_pos_ctrl_status.abort_landing = true;
 				}
 
 			} else {
@@ -1954,7 +1954,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_time_last_t_alt = 0;
 
 		// reset lading abort state
-		_nav_capabilities.abort_landing = false;
+		_fw_pos_ctrl_status.abort_landing = false;
 
 		/* no flight mode applies, do not publish an attitude setpoint */
 		setpoint = false;
@@ -2169,15 +2169,24 @@ FixedwingPositionControl::task_main()
 				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
-				if ((hrt_elapsed_time(&_nav_capabilities.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON
+				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
+				    || (fabsf(turn_distance - _fw_pos_ctrl_status.turn_distance) > FLT_EPSILON
 					&& turn_distance > 0)) {
 
 					/* set new turn distance */
-					_nav_capabilities.turn_distance = turn_distance;
+					_fw_pos_ctrl_status.turn_distance = turn_distance;
 
-					navigation_capabilities_publish();
+					_fw_pos_ctrl_status.nav_roll = _l1_control.nav_roll();
+					_fw_pos_ctrl_status.nav_pitch = get_tecs_pitch();
+					_fw_pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
 
+					_fw_pos_ctrl_status.target_bearing = _l1_control.target_bearing();
+					_fw_pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+
+					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
+					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
+
+					fw_pos_ctrl_status_publish();
 				}
 
 			}
@@ -2242,9 +2251,8 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_was_in_transition = true;
 		_asp_after_transition = _ctrl_state.airspeed;
 
-		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-
 	} else if (_was_in_transition) {
+		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 		_asp_after_transition += dt * 2; // increase 2m/s
 
 		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {

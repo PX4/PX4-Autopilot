@@ -70,7 +70,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
-#include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
 
@@ -108,7 +108,7 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_land_detected_sub(-1),
-	_capabilities_sub(-1),
+	_fw_pos_ctrl_status_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
@@ -126,7 +126,7 @@ Navigator::Navigator() :
 	_sensor_combined{},
 	_home_pos{},
 	_mission_item{},
-	_nav_caps{},
+	_fw_pos_ctrl_status{},
 	_pos_sp_triplet{},
 	_reposition_triplet{},
 	_takeoff_triplet{},
@@ -231,9 +231,9 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::navigation_capabilities_update()
+Navigator::fw_pos_ctrl_status_update()
 {
-	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+	orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
 }
 
 void
@@ -298,7 +298,7 @@ Navigator::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
+	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -316,7 +316,7 @@ Navigator::task_main()
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
-	navigation_capabilities_update();
+	fw_pos_ctrl_status_update();
 	params_update();
 
 	/* wakeup source(s) */
@@ -395,9 +395,9 @@ Navigator::task_main()
 		}
 
 		/* navigation capabilities updated */
-		orb_check(_capabilities_sub, &updated);
+		orb_check(_fw_pos_ctrl_status_sub, &updated);
 		if (updated) {
-			navigation_capabilities_update();
+			fw_pos_ctrl_status_update();
 		}
 
 		/* home position updated */
@@ -524,7 +524,7 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				if (_nav_caps.abort_landing) {
+				if (_fw_pos_ctrl_status.abort_landing) {
 					// pos controller aborted landing, requests loiter
 					// above landing waypoint
 					_navigation_mode = &_loiter;
@@ -732,9 +732,9 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
 	// so that a stale _vstatus doesn't trigger an accepted mission item.
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode && hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
-		if (_nav_caps.turn_distance > radius) {
-			radius = _nav_caps.turn_distance;
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
+		if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 5000000) && (_fw_pos_ctrl_status.turn_distance > radius)) {
+			radius = _fw_pos_ctrl_status.turn_distance;
 		}
 	}
 
