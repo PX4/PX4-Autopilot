@@ -608,10 +608,14 @@ protected:
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 
 			/* battery status message with higher resolution */
-			mavlink_battery_status_t bat_msg;
+			mavlink_battery_status_t bat_msg = {};
 			bat_msg.id = 0;
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
+			bat_msg.current_consumed = battery_status.discharged_mah;
+			bat_msg.energy_consumed = -1;
+			bat_msg.current_battery = battery_status.current_a * 100;
+			bat_msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
 			bat_msg.temperature = INT16_MAX;
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
 				if ((int)i < battery_status.cell_count) {
@@ -620,9 +624,6 @@ protected:
 					bat_msg.voltages[i] = UINT16_MAX;
 				}
 			}
-
-			// TODO: calculate this
-			bat_msg.energy_consumed = -1.0f;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);
 		}
