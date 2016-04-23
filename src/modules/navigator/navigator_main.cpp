@@ -518,13 +518,13 @@ Navigator::task_main()
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_rcloss_act.get() == 0) {
+				if (_param_rcloss_act.get() == 1) {
 					_navigation_mode = &_loiter;
-				} else if (_param_rcloss_act.get() == 2) {
-					_navigation_mode = &_land;
 				} else if (_param_rcloss_act.get() == 3) {
+					_navigation_mode = &_land;
+				} else if (_param_rcloss_act.get() == 4) {
 					_navigation_mode = &_rcLoss;
-				} else { /* if == 1 or unknown, RTL */
+				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;
@@ -548,13 +548,13 @@ Navigator::task_main()
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_datalinkloss_act.get() == 0) {
+				if (_param_datalinkloss_act.get() == 1) {
 					_navigation_mode = &_loiter;
-				} else if (_param_datalinkloss_act.get() == 2) {
-					_navigation_mode = &_land;
 				} else if (_param_datalinkloss_act.get() == 3) {
+					_navigation_mode = &_land;
+				} else if (_param_datalinkloss_act.get() == 4) {
 					_navigation_mode = &_dataLinkLoss;
-				} else { /* if == 1 or unknown, RTL */
+				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;
