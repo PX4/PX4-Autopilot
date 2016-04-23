@@ -29,6 +29,7 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
