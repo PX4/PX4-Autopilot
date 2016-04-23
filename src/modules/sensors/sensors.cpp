@@ -1657,6 +1657,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
+
 					if (bat_voltage_v > 0.5f) {
 						updated_battery = true;
 					}
