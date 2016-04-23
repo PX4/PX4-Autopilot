@@ -167,6 +167,7 @@ Battery::determineWarning()
 	// Smallest values must come first
 	if (_remaining < 0.09f) {
 		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
 	} else if (_remaining < 0.18f) {
 		_warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
