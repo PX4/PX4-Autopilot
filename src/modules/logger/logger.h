@@ -9,6 +9,9 @@
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
+#define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
+											// if we haven't succeeded before
+
 namespace px4
 {
 namespace logger
@@ -16,6 +19,7 @@ namespace logger
 
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
+	uint64_t time_tried_subscribe;	// captures the time at which we checked last time if this instance existed
 	const orb_metadata *metadata = nullptr;
 
 	LoggerSubscription() {}
@@ -24,6 +28,7 @@ struct LoggerSubscription {
 		metadata(metadata_)
 	{
 		fd[0] = fd_;
+		time_tried_subscribe = 0;
 
 		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) { fd[i] = -1; }
 	}
@@ -63,7 +68,7 @@ private:
 
 	void write_parameters();
 
-	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer);
+	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked);
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 128;
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */

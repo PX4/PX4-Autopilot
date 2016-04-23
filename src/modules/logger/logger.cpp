@@ -25,23 +25,22 @@
 
 using namespace px4::logger;
 
-
 int logger_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: logger {start|stop|status}");
+		PX4_INFO("usage: logger {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (logger_ptr != nullptr) {
-			warnx("already running");
+			PX4_INFO("already running");
 			return 1;
 		}
 
 		if (OK != Logger::start((char *const *)argv)) {
-			warnx("start failed");
+			PX4_WARN("start failed");
 			return 1;
 		}
 
@@ -50,11 +49,10 @@ int logger_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (logger_ptr == nullptr) {
-			warnx("not running");
+			PX4_INFO("not running");
 			return 1;
 		}
 
-		warnx("deleting logger");
 		delete logger_ptr;
 		logger_ptr = nullptr;
 		return 0;
@@ -62,16 +60,16 @@ int logger_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (logger_ptr) {
-			warnx("running");
+			PX4_INFO("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			PX4_INFO("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	PX4_INFO("unrecognized command");
 	return 1;
 }
 
@@ -86,7 +84,7 @@ void Logger::usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	warnx("usage: logger {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	PX4_INFO("usage: logger {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 	      "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 	      "\t-b\tLog buffer size in KiB, default is 8\n"
 	      "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -108,7 +106,7 @@ int Logger::start(char *const *argv)
 					 (char *const *)argv);
 
 	if (logger_task < 0) {
-		warn("task start failed");
+		PX4_WARN("task start failed");
 		return -errno;
 	}
 
@@ -173,7 +171,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
 	if (logger_ptr == nullptr) {
-		warnx("alloc failed");
+		PX4_WARN("alloc failed");
 
 	} else {
 		logger_ptr->run();
@@ -265,14 +263,14 @@ int Logger::add_topic(const orb_metadata *topic)
 	int fd = -1;
 
 	if (topic->o_size > MAX_DATA_SIZE) {
-		warn("skip topic %s, data size is too large: %zu (max is %zu)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
+		PX4_WARN("skip topic %s, data size is too large: %zu (max is %zu)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
 
 	} else {
 
 		size_t fields_len = strlen(topic->o_fields);
 
 		if (fields_len > sizeof(message_format_s::format)) {
-			warn("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
+			PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
 			     sizeof(message_format_s::format));
 
 		} else {
@@ -304,12 +302,16 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	return fd;
 }
 
-bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer)
+bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked)
 {
 	bool updated = false;
 
-	if (*handle < 0) {
+	// only try to subsribe to topic if this is the first time
+	// after that just check after a certain interval to avoid high cpu usage
+	if (*handle < 0 && (*time_last_checked == 0 || hrt_elapsed_time(time_last_checked) > TRY_SUBSCRIBE_INTERVAL)) {
 //		if (multi_instance == 1) warnx("checking instance 1 of topic %s", topic->o_name);
+		*time_last_checked = hrt_absolute_time();
+
 		if (OK == orb_exists(topic, multi_instance)) {
 			*handle = orb_subscribe_multi(topic, multi_instance);
 
@@ -322,7 +324,7 @@ bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *hand
 			}
 		}
 
-	} else {
+	} else if (*handle >= 0) {
 		orb_check(*handle, &updated);
 
 		if (updated) {
@@ -369,7 +371,7 @@ void Logger::run()
 	add_topic("servorail_status", 100);
 	add_topic("mc_att_ctrl_status", 50);
 	add_topic("control_state");
-	add_topic("estimator_status", 100);
+	add_topic("estimator_status");
 	add_topic("vehicle_status", 20);
 
 	_writer_thread = _writer.thread_start();
@@ -438,7 +440,7 @@ void Logger::run()
 //				orb_check(sub.fd, &updated);	// check whether a non-multi topic has been updated
 				/* this works for both single and multi-instances */
 				for (unsigned instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s))) {
+					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s), &sub.time_tried_subscribe)) {
 
 //						uint64_t timestamp;
 //						memcpy(&timestamp, buffer + sizeof(message_data_header_s), sizeof(timestamp));
@@ -477,7 +479,7 @@ void Logger::run()
 
 								if (drop_len > max_drop_len) { max_drop_len = drop_len; }
 
-								warnx("dropout length: %5.3f seconds", drop_len);
+								PX4_WARN("dropout length: %5.3f seconds", drop_len);
 								dropout_start = 0;
 								highWater = 0;
 							}
@@ -493,7 +495,7 @@ void Logger::run()
 
 							if (dropout_start == 0)	{
 								available = _writer._count;
-								warnx("dropout, available: %d/%d", available, _writer._buffer_size);
+								PX4_WARN("dropout, available: %d/%d", available, _writer._buffer_size);
 								dropout_start = trytime;
 								dropout_count++;
 							}
@@ -521,7 +523,7 @@ void Logger::run()
 			if (deltat > 4.0) {
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
-				warnx("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+				PX4_INFO("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
 				      throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
 
 				total_bytes = 0;
@@ -535,7 +537,6 @@ void Logger::run()
 		}
 
 		usleep(_log_interval);
-//		usleep(1000);
 	}
 
 	// stop the writer thread

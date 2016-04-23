@@ -51,7 +51,7 @@ pthread_t LogWriter::thread_start()
 	pthread_t thr;
 
 	if (0 != pthread_create(&thr, &thr_attr, &LogWriter::run_helper, this)) {
-		warnx("error creating logwriter thread");
+		PX4_WARN("error creating logwriter thread");
 	}
 
 	pthread_attr_destroy(&thr_attr);
@@ -97,12 +97,12 @@ void LogWriter::run()
 		_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 		if (_fd < 0) {
-			warn("can't open log file %s", _filename);
+			PX4_WARN("can't open log file %s", _filename);
 			_should_run = false;
 			continue;
 		}
 
-		warnx("started, log file: %s", _filename);
+		PX4_WARN("started, log file: %s", _filename);
 
 		_should_run = true;
 
@@ -150,7 +150,7 @@ void LogWriter::run()
 				}
 
 				if (written < 0) {
-					warn("error writing log file");
+					PX4_WARN("error writing log file");
 					_should_run = false;
 					/* GOTO end of block */
 					break;
@@ -176,10 +176,10 @@ void LogWriter::run()
 		int res = ::close(_fd);
 
 		if (res) {
-			warn("error closing log file");
+			PX4_WARN("error closing log file");
 		}
 
-		warnx("stopped, bytes written: %zu", _total_written);
+		PX4_WARN("stopped, bytes written: %zu", _total_written);
 	}
 }
 
