@@ -163,10 +163,11 @@ void
 Battery::determineWarning()
 {
 	// TODO: Determine threshold or make params.
-	if (_remaining < 0.18f) {
-		_warning = battery_status_s::BATTERY_WARNING_LOW;
 
-	} else if (_remaining < 0.09f) {
+	// Smallest values must come first
+	if (_remaining < 0.09f) {
 		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else if (_remaining < 0.18f) {
+		_warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
 }
