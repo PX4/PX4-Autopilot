@@ -101,6 +101,8 @@ private:
 	control::BlockParamInt _param_n_cells;
 	control::BlockParamFloat _param_capacity;
 	control::BlockParamFloat _param_v_load_drop;
+	control::BlockParamFloat _param_low_thr;
+	control::BlockParamFloat _param_crit_thr;
 
 	float _voltage_filtered_v;
 	float _throttle_filtered;

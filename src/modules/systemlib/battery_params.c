@@ -67,6 +67,36 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
 /**
+ * Low threshold
+ *
+ * Sets the threshold (between 0 and 1, which is equivalent to between 0 and 100%)
+ * when the battery will be reported as low. This has to be higher than the critical
+ * threshold.
+ *
+ * @group Battery Calibration
+ * @decimal 2
+ * @min 0.15
+ * @max 0.5
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.18f);
+
+/**
+ * Critical threshold
+ *
+ * Sets the threshold (between 0 and 1, which is equivalent to between 0 and 100%)
+ * when the battery will be reported as critically low. This has to be lower than
+ * the low threshold. This threshold commonly will trigger RTL or landing.
+ *
+ * @group Battery Calibration
+ * @decimal 2
+ * @min 0.05
+ * @max 0.14
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.09f);
+
+/**
  * Voltage drop per cell on 100% load
  *
  * This implicitely defines the internal resistance
