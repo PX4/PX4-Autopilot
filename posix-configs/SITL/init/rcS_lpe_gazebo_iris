@@ -1,5 +1,4 @@
 uorb start
-simulator start -s
 param load
 param set MAV_TYPE 2
 param set MC_PITCHRATE_P 0.3
@@ -33,7 +32,7 @@ param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
 param set COM_DL_LOSS_EN 1
 param set LPE_BETA_MAX 10000
-
+simulator start -s
 rgbled start
 tone_alarm start
 gyrosim start
