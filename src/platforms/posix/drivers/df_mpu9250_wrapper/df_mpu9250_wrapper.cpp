@@ -449,6 +449,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	// Bail out if it's not the 4th time yet.
 	++_publish_count;
+
 	if (_publish_count < 4) {
 		return 0;
 	}
