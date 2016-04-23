@@ -26,7 +26,6 @@ set(config_module_list
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/reboot
-	systemcmds/sd_bench
 	systemcmds/topic_listener
 	systemcmds/ver
 
@@ -39,12 +38,10 @@ set(config_module_list
 	modules/fw_att_control
 	modules/fw_pos_control_l1
 	modules/land_detector
-	modules/load_mon
 	modules/mavlink
 	modules/mc_att_control
 	modules/mc_att_control_multiplatform
 	modules/mc_pos_control
-
 	modules/mc_pos_control_multiplatform
 	modules/navigator
 	modules/param
@@ -59,7 +56,6 @@ set(config_module_list
 
 	lib/controllib
 	lib/conversion
-	lib/DriverFramework/framework
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
@@ -72,6 +68,16 @@ set(config_module_list
 	lib/terrain_estimation
 
 	examples/px4_simple_app
+	
+	#
+	# Testing
+	#
+	modules/commander/commander_tests
+	modules/controllib_test
+	#modules/mavlink/mavlink_tests
+	modules/unit_test
+	systemcmds/tests
+
 	)
 
 set(config_extra_builtin_cmds

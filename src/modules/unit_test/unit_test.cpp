@@ -50,7 +50,13 @@ UnitTest::~UnitTest()
 
 void UnitTest::print_results(void)
 {
-	warnx(_tests_failed ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
+	if (_tests_failed) {
+		warnx("SOME TESTS FAILED");
+
+	} else {
+		warnx("ALL TESTS PASSED");
+	}
+
 	warnx("  Tests passed : %d", _tests_passed);
 	warnx("  Tests failed : %d", _tests_failed);
 	warnx("  Assertions : %d", _assertions);
