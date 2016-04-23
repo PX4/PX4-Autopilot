@@ -290,6 +290,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastFUEL = 0;
 			static hrt_abstime lastVSPD = 0;
 			static hrt_abstime lastGPS = 0;
+			static hrt_abstime lastT1 = 0;
 
 			switch (sbuf[1]) {
 
@@ -405,6 +406,18 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				break;
+
+			case SMARTPORT_POLL_8:
+
+				/* report flightmode at 5Hz */
+				if (now - lastT1 > 200 * 1000) {
+					lastT1 = now;
+
+					sPort_send_flightmode(uart);
+				}
+
+				break;
+
 			}
 		}
 

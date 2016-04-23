@@ -52,6 +52,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -60,9 +61,11 @@
 static int sensor_sub = -1;
 static int global_position_sub = -1;
 static int battery_status_sub = -1;
+static int vehicle_status_sub = -1;
 static struct sensor_combined_s *sensor_data;
 static struct vehicle_global_position_s *global_pos;
 static struct battery_status_s *battery_status;
+static struct vehicle_status_s vehicle_status;
 
 /**
  * Initializes the uORB subscriptions.
@@ -80,6 +83,7 @@ bool sPort_init()
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	return true;
 }
 
@@ -207,6 +211,18 @@ void sPort_send_VSPD(int uart, float speed)
 	/* send data for VARIO vertical speed: int16 cm/sec */
 	int32_t ispeed = (int)(100 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
+}
+
+// send flightmode as T1 value
+void sPort_send_flightmode(int uart)
+{
+	/* get a local copy of the vehicle status data */
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	/* map flightmode from PX4 to APM */
+	uint32_t navstate = (int)(128 + vehicle_status.nav_state);
+	sPort_send_data(uart, SMARTPORT_ID_T1, navstate);
 }
 
 // verified scaling

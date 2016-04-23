@@ -53,6 +53,7 @@
 #define SMARTPORT_POLL_5    0xB7
 #define SMARTPORT_POLL_6    0x00
 #define SMARTPORT_POLL_7    0x83
+#define SMARTPORT_POLL_8    0xBA
 
 /* FrSky SmartPort sensor IDs */
 #define SMARTPORT_ID_RSSI          0xf101
@@ -87,6 +88,7 @@ void sPort_send_CUR(int uart);
 void sPort_send_ALT(int uart);
 void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
+void sPort_send_flightmode(int uart);
 void sPort_send_GPS_LON(int uart);
 void sPort_send_GPS_LAT(int uart);
 void sPort_send_GPS_ALT(int uart);
