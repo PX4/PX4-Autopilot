@@ -292,7 +292,7 @@ void sPort_send_T1(int uart)
 	}
 
 	/* send data */
-	sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeAPM);
+	sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeMapped);
 }
 
 // verified scaling
