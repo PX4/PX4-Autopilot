@@ -288,7 +288,7 @@ void sPort_send_T1(int uart)
 		break;
 		
 	default:
-		flightmodeAPM = 8; //APMs "Invalid Mode"
+		flightmodeMapped = 8; //APMs "Invalid Mode"
 	}
 
 	/* send data */
