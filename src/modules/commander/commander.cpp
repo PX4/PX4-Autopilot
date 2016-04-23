@@ -1967,7 +1967,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
 			if (hrt_absolute_time() > commander_boot_timestamp + 2000000
-			    && battery.voltage_filtered_v > FLT_EPSILON) {
+			    && battery.voltage_filtered_v > 2.0f * FLT_EPSILON) {
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
@@ -1992,6 +1992,9 @@ int commander_thread_main(int argc, char *argv[])
 							if (!rtl_on) {
 								if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 									rtl_on = true;
+									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
+								} else {
+									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 								}
 							}
 						} else {
