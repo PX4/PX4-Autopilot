@@ -53,6 +53,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -91,38 +92,20 @@
 
 #define frac(f) (f - (int)f)
 
-static struct battery_status_s *battery_status;
-static struct vehicle_global_position_s *global_pos;
-static struct sensor_combined_s *sensor_combined;
-
-static int battery_status_sub = -1;
-static int global_position_sub = -1;
+static int battery_sub = -1;
 static int sensor_sub = -1;
+static int global_position_sub = -1;
+static int vehicle_status_sub = -1;
 
 /**
  * Initializes the uORB subscriptions.
  */
-bool frsky_init()
+void frsky_init()
 {
-	battery_status = malloc(sizeof(struct battery_status_s));
-	global_pos = malloc(sizeof(struct vehicle_global_position_s));
-	sensor_combined = malloc(sizeof(struct sensor_combined_s));
-
-	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL) {
-		return false;
-	}
-
-	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	battery_sub = orb_subscribe(ORB_ID(battery_status));
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	return true;
-}
-
-void frsky_deinit()
-{
-	free(battery_status);
-	free(global_pos);
-	free(sensor_combined);
+	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 }
 
 /**
@@ -172,58 +155,42 @@ static void frsky_send_data(int uart, uint8_t id, int16_t data)
 	frsky_send_byte(uart, udata >> 8); /* MSB */
 }
 
-void frsky_update_topics()
-{
-	bool updated;
-
-	/* get a local copy of the current sensor values */
-	orb_check(sensor_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_combined);
-	}
-
-	/* get a local copy of the battery data */
-	orb_check(battery_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
-	}
-
-	/* get a local copy of the global position data */
-	orb_check(global_position_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
-	}
-}
-
 /**
  * Sends frame 1 (every 200ms):
  *   acceleration values, barometer altitude, temperature, battery voltage & current
  */
 void frsky_send_frame1(int uart)
 {
+	/* get a local copy of the current sensor values */
+	struct sensor_combined_s raw;
+	memset(&raw, 0, sizeof(raw));
+	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
+	/* get a local copy of the battery data */
+	struct battery_status_s battery;
+	memset(&battery, 0, sizeof(battery));
+	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
 	/* send formatted frame */
 	frsky_send_data(uart, FRSKY_ID_ACCEL_X,
-			roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f));
+			roundf(raw.accelerometer_m_s2[0] * 1000.0f));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Y,
-			roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f));
+			roundf(raw.accelerometer_m_s2[1] * 1000.0f));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Z,
-			roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f));
+			roundf(raw.accelerometer_m_s2[2] * 1000.0f));
 
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			sensor_combined->baro_alt_meter[0]);
+			raw.baro_alt_meter[0]);
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(sensor_combined->baro_alt_meter[0]) * 100.0f));
+			roundf(frac(raw.baro_alt_meter[0]) * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_TEMP1,
-			roundf(sensor_combined->baro_temp_celcius[0]));
+			roundf(raw.baro_temp_celcius[0]));
 
 	frsky_send_data(uart, FRSKY_ID_VFAS,
-			roundf(battery_status->voltage_v * 10.0f));
+			roundf(battery.voltage_v * 10.0f));
 	frsky_send_data(uart, FRSKY_ID_CURRENT,
-			(battery_status->current_a < 0) ? 0 : roundf(battery_status->current_a * 10.0f));
+			(battery.current_a < 0) ? 0 : roundf(battery.current_a * 10.0f));
 
 	frsky_send_startstop(uart);
 }
@@ -243,23 +210,38 @@ static float frsky_format_gps(float dec)
  */
 void frsky_send_frame2(int uart)
 {
+	/* get a local copy of the global position data */
+	struct vehicle_global_position_s global_pos;
+	memset(&global_pos, 0, sizeof(global_pos));
+	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
+
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	/* get a local copy of the battery data */
+	struct battery_status_s battery;
+	memset(&battery, 0, sizeof(battery));
+	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
 	/* send formatted frame */
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
 
-	if (global_pos->timestamp != 0 && hrt_absolute_time() < global_pos->timestamp + 20000) {
-		time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
+	if (global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
+		time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
-		course = (global_pos->yaw + M_PI_F) / M_PI_F * 180.0f;
-		lat    = frsky_format_gps(fabsf(global_pos->lat));
-		lat_ns = (global_pos->lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(fabsf(global_pos->lon));
-		lon_ew = (global_pos->lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e)
+		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
+		lat    = frsky_format_gps(fabsf(global_pos.lat));
+		lat_ns = (global_pos.lat < 0) ? 'S' : 'N';
+		lon    = frsky_format_gps(fabsf(global_pos.lon));
+		lon_ew = (global_pos.lon < 0) ? 'W' : 'E';
+		speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e)
 			 * 25.0f / 46.0f;
-		alt    = global_pos->alt;
+		alt    = global_pos.alt;
 		sec    = tm_gps->tm_sec;
 	}
 
@@ -281,7 +263,7 @@ void frsky_send_frame2(int uart)
 	frsky_send_data(uart, FRSKY_ID_GPS_ALT_AP, frac(alt) * 100.0f);
 
 	frsky_send_data(uart, FRSKY_ID_FUEL,
-			roundf(battery_status->remaining * 100.0f));
+			roundf(battery.remaining * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_GPS_SEC, sec);
 
@@ -294,8 +276,13 @@ void frsky_send_frame2(int uart)
  */
 void frsky_send_frame3(int uart)
 {
+	/* get a local copy of the battery data */
+	struct vehicle_global_position_s global_pos;
+	memset(&global_pos, 0, sizeof(global_pos));
+	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
+
 	/* send formatted frame */
-	time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
+	time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);
@@ -355,7 +342,7 @@ bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v)
 			state = HEADER;
 
 			if (sbuf[i] != 0x7E) {
-//				warnx("host packet error: %x", sbuf[i]);
+				warnx("host packet error: %x", sbuf[i]);
 
 			} else {
 				data_ready = true;
@@ -374,4 +361,3 @@ bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v)
 
 	return data_ready;
 }
-

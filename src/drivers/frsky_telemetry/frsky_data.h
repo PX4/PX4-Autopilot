@@ -45,9 +45,7 @@
 #include <stdbool.h>
 
 // Public functions
-bool frsky_init(void);
-void frsky_deinit(void);
-void frsky_update_topics(void);
+void frsky_init(void);
 void frsky_send_frame1(int uart);
 void frsky_send_frame2(int uart);
 void frsky_send_frame3(int uart);
