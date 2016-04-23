@@ -88,8 +88,6 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  *
  * @group Battery Calibration
  * @unit S
- * @min 2
- * @max 10
  * @value 2 2S Battery
  * @value 3 3S Battery
  * @value 4 4S Battery

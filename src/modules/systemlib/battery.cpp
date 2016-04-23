@@ -42,12 +42,12 @@
 #include "battery.h"
 
 Battery::Battery() :
-	SuperBlock(NULL, ""),
-	_param_v_empty(this, "BAT_V_EMPTY", false),
-	_param_v_full(this, "BAT_V_CHARGED", false),
-	_param_n_cells(this, "BAT_N_CELLS", false),
-	_param_capacity(this, "BAT_CAPACITY", false),
-	_param_v_load_drop(this, "BAT_V_LOAD_DROP", false),
+	SuperBlock(NULL, "BAT"),
+	_param_v_empty(this, "V_EMPTY"),
+	_param_v_full(this, "V_CHARGED"),
+	_param_n_cells(this, "N_CELLS"),
+	_param_capacity(this, "CAPACITY"),
+	_param_v_load_drop(this, "V_LOAD_DROP"),
 	_voltage_filtered_v(0.0f),
 	_throttle_filtered(0.0f),
 	_discharged_mah(0.0f),
@@ -66,10 +66,8 @@ Battery::~Battery()
 void
 Battery::reset(battery_status_s *battery_status)
 {
-	battery_status->voltage_v = 0.0f;
-	battery_status->voltage_filtered_v = 0.0f;
+	memset(battery_status, 0, sizeof(*battery_status));
 	battery_status->current_a = -1.0f;
-	battery_status->discharged_mah = -1.0f;
 	battery_status->remaining = 0.0f;
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
@@ -80,6 +78,7 @@ void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
 			     battery_status_s *battery_status)
 {
+	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
 	sumDischarged(timestamp, current_a);
@@ -91,12 +90,9 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
 		battery_status->current_a = current_a;
 		battery_status->discharged_mah = _discharged_mah;
-		battery_status->cell_count = _param_n_cells.get();
 		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
 
-	} else {
-		reset(battery_status);
 	}
 }
 

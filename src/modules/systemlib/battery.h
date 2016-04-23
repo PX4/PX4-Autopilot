@@ -66,6 +66,21 @@ public:
 	void reset(battery_status_s *battery_status);
 
 	/**
+	 * Get the battery cell count
+	 */
+	int cell_count() { return _param_n_cells.get(); }
+
+	/**
+	 * Get the empty voltage per cell
+	 */
+	float empty_cell_voltage() { return _param_v_empty.get(); }
+
+	/**
+	 * Get the full voltage per cell
+	 */
+	float full_cell_voltage() { return _param_v_full.get(); }
+
+	/**
 	 * Update current battery status message.
 	 *
 	 * @param voltage_v: current voltage in V
@@ -83,7 +98,7 @@ private:
 
 	control::BlockParamFloat _param_v_empty;
 	control::BlockParamFloat _param_v_full;
-	control::BlockParamFloat _param_n_cells;
+	control::BlockParamInt _param_n_cells;
 	control::BlockParamFloat _param_capacity;
 	control::BlockParamFloat _param_v_load_drop;
 
