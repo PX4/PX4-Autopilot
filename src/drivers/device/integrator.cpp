@@ -105,6 +105,7 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 		_reset(integral_dt);
 
 		return true;
+
 	} else {
 		return false;
 	}
