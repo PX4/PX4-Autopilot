@@ -120,7 +120,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 
 	// Ignore first update because we don't know dT.
 	if (_last_timestamp != 0) {
-		_discharged_mah = current_a * (timestamp - _last_timestamp) * 1.0e-3f / 3600.0f;
+		_discharged_mah += current_a * ((float)(timestamp - _last_timestamp)) / 1e3f / 3600.0f;
 	}
 
 	_last_timestamp = timestamp;
