@@ -68,13 +68,15 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
  * Set data link loss failsafe mode
  *
  * The data link loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds.
+ * set by COM_RC_LOSS_T in seconds. Once the timeout occurs the selected
+ * action will be executed. Setting this parameter to 4 will enable CASA
+ * Outback Challenge rules, which are only recommended to participants
+ * of that competition.
  *
  * @value 0 Disabled
  * @value 1 Loiter
  * @value 2 Return to Land
  * @value 3 Land at current position
- * @value 4 Outback Challenge (OBC) rules
  *
  * @group Mission
  */
@@ -84,15 +86,15 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * Set RC loss failsafe mode
  *
  * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If the timeout value is smaller than
- * zero it will never be entered. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will also not be triggered.
+ * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
+ * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * Setting this parameter to 4 will enable CASA Outback Challenge rules,
+ * which are only recommended to participants of that competition.
  *
  * @value 0 Disabled
  * @value 1 Loiter
  * @value 2 Return to Land
  * @value 3 Land at current position
- * @value 4 Outback Challenge (OBC) rules
  *
  * @group Mission
  */
