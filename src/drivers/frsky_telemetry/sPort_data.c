@@ -283,7 +283,7 @@ void sPort_send_T1(int uart)
 		flightmodeMapped = 28;
 		break;
 		
-	case MAIN_STATE_AUTO_LANDING:
+	case MAIN_STATE_AUTO_LAND:
 		flightmodeMapped = 29;
 		break;
 		
