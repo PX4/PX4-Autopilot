@@ -43,6 +43,10 @@ then
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.05
 	param set FW_THR_CRUISE 0.75
+
+	param set VT_MOT_COUNT 4
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_TYPE 2
 fi
 
 set MIXER vtol_quad_x
@@ -54,7 +58,3 @@ set PWM_ACHDIS 5
 set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
-
-param set VT_MOT_COUNT 4
-param set VT_IDLE_PWM_MC 1080
-param set VT_TYPE 2
