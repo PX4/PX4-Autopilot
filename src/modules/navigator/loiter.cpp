@@ -74,22 +74,43 @@ Loiter::on_inactive()
 void
 Loiter::on_activation()
 {
-	/* set current mission item to loiter */
-	set_loiter_item(&_mission_item, _param_min_alt.get());
+	if (_navigator->get_reposition_triplet()->current.valid) {
+		reposition();
+	} else {
+		/* set current mission item to loiter */
+		set_loiter_item(&_mission_item, _param_min_alt.get());
 
-	/* convert mission item to current setpoint */
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.velocity_valid = false;
-	pos_sp_triplet->previous.valid = false;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
+		/* convert mission item to current setpoint */
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		pos_sp_triplet->current.velocity_valid = false;
+		pos_sp_triplet->previous.valid = false;
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		pos_sp_triplet->next.valid = false;
 
-	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
-	_navigator->set_position_setpoint_triplet_updated();
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }
 
 void
 Loiter::on_active()
 {
+	if (_navigator->get_reposition_triplet()->current.valid) {
+		reposition();
+	}
+}
+
+void
+Loiter::reposition()
+{
+
+	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
+
+	if (rep->current.valid) {
+		// set loiter position based on reposition command
+
+		// mark this as done
+		memset(rep, 0, sizeof(*rep));
+	}
 }

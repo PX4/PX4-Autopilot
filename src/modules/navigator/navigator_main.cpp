@@ -128,6 +128,7 @@ Navigator::Navigator() :
 	_mission_item{},
 	_nav_caps{},
 	_pos_sp_triplet{},
+	_reposition_triplet{},
 	_mission_result{},
 	_att_sp{},
 	_mission_item_valid(false),
@@ -409,6 +410,23 @@ Navigator::task_main()
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 				warnx("navigator: got reposition command");
+
+				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+				// store current position as previous position and goal as next
+				rep->previous.yaw = NAN;
+				rep->previous.lat = get_global_position()->lat;
+				rep->previous.lon = get_global_position()->lon;
+				rep->previous.alt = get_global_position()->alt;
+
+				rep->current.yaw = cmd.param4;
+				rep->current.lat = cmd.param5;
+				rep->current.lon = cmd.param6;
+				rep->current.alt = cmd.param7;
+
+				rep->previous.valid = true;
+				rep->current.valid = true;
+				rep->next.valid = false;
 			}
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
