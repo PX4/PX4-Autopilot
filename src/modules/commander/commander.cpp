@@ -2307,8 +2307,8 @@ int commander_thread_main(int argc, char *argv[])
 			status.rc_signal_lost = false;
 
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
-			 * do it only for rotary wings */
-			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+			 * do it only for rotary wings in manual mode or fixed wing if landed */
+			if ((status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 			    (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
 			    	internal_state.main_state == commander_state_s::MAIN_STATE_ACRO ||
