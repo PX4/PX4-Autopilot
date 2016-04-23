@@ -65,24 +65,37 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 
 /**
- * Set OBC mode for data link loss
+ * Set data link loss failsafe mode
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the Outback Challenge (OBC) rules
+ * The data link loss failsafe will only be entered after a timeout,
+ * set by a DIFFERENT parameter. If the timeout value is smaller than
+ * zero it will never be entered.
  *
- * @boolean
+ * @value 0 Loiter
+ * @value 1 Return to Land
+ * @value 2 Land at current position
+ * @value 3 Outback Challenge (OBC) rules
+ *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
+PARAM_DEFINE_INT32(NAV_DLL_ACT, 1);
 
 /**
- * Set OBC mode for rc loss
+ * Set RC loss failsafe mode
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the Outback Challenge (OBC) rules
+ * The RC loss failsafe will only be entered after a timeout,
+ * set by a DIFFERENT parameter. If the timeout value is smaller than
+ * zero it will never be entered. If RC input checks have been disabled
+ * by setting the COM_RC_IN_MODE param it will also not be triggered.
  *
- * @boolean
+ * @value 0 Loiter
+ * @value 1 Return to Land
+ * @value 2 Land at current position
+ * @value 3 Outback Challenge (OBC) rules
+ *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 1);
 
 /**
  * Airfield home Lat

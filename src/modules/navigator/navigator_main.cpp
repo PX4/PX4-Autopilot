@@ -153,8 +153,8 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
-	_param_datalinkloss_obc(this, "DLL_OBC"),
-	_param_rcloss_obc(this, "RCL_OBC"),
+	_param_datalinkloss_act(this, "DLL_ACT"),
+	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_mission_cruising_speed(-1.0f)
@@ -481,9 +481,13 @@ Navigator::task_main()
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_rcloss_obc.get() != 0) {
+				if (_param_rcloss_act.get() == 0) {
+					_navigation_mode = &_loiter;
+				} else if (_param_rcloss_act.get() == 2) {
+					_navigation_mode = &_land;
+				} else if (_param_rcloss_act.get() == 3) {
 					_navigation_mode = &_rcLoss;
-				} else {
+				} else { /* if == 1 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;
@@ -507,9 +511,13 @@ Navigator::task_main()
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_datalinkloss_obc.get() != 0) {
+				if (_param_datalinkloss_act.get() == 0) {
+					_navigation_mode = &_loiter;
+				} else if (_param_datalinkloss_act.get() == 2) {
+					_navigation_mode = &_land;
+				} else if (_param_datalinkloss_act.get() == 3) {
 					_navigation_mode = &_dataLinkLoss;
-				} else {
+				} else { /* if == 1 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;

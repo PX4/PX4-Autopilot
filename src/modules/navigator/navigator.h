@@ -266,8 +266,8 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
-	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
-	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
+	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
+	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
