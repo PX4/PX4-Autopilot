@@ -234,41 +234,61 @@ void sPort_send_T1(int uart)
 	memset(&vehicle_status, 0, sizeof(vehicle_status));
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
-	/* map flightmode from PX4 to APM */
-	uint32_t flightmodePX4 = (int)(vehicle_status.main_state);
-	uint32_t flightmodeAPM = 0;
+	/* Map Flightmodes from 18-29 */
+	uint32_t flightmode = (int)(vehicle_status.main_state);
+	uint32_t flightmodeMapped = 0;
+	
+	switch (flightmode) {
+	case MAIN_STATE_MANUAL:
+		flightmodeMapped = 18;
+		break;
 
-	switch (flightmodePX4) {
 	case MAIN_STATE_ACRO:
-		flightmodeAPM = 1;
+		flightmodeMapped = 19;
+		break;
+
+	case MAIN_STATE_STAB:
+		flightmodeMapped = 20;
+		break;
+
+	case MAIN_STATE_RATTITUDE:
+		flightmodeMapped = 21;
+		break;
+
+	case MAIN_STATE_POSCTL:
+		flightmodeMapped = 22;
 		break;
 
 	case MAIN_STATE_ALTCTL:
-		flightmodeAPM = 2;
+		flightmodeMapped = 23;
 		break;
 
-	case MAIN_STATE_AUTO_LAND:
-		flightmodeAPM = 9;
+	case MAIN_STATE_OFFBOARD:
+		flightmodeMapped = 24;
 		break;
-
+	
+	case MAIN_STATE_AUTO_TAKEOFF:
+		flightmodeMapped = 25;
+		break;
+		
 	case MAIN_STATE_AUTO_LOITER:
-		flightmodeAPM = 5;
+		flightmodeMapped = 26;
 		break;
-
+		
 	case MAIN_STATE_AUTO_MISSION:
-		flightmodeAPM = 3;
+		flightmodeMapped = 27;
 		break;
-
+		
 	case MAIN_STATE_AUTO_RTL:
-		flightmodeAPM = 6;
+		flightmodeMapped = 28;
 		break;
-
-	case MAIN_STATE_MANUAL:
-		flightmodeAPM = 0;
+		
+	case MAIN_STATE_AUTO_LANDING:
+		flightmodeMapped = 29;
 		break;
-
+		
 	default:
-		flightmodeAPM = 0;
+		flightmodeAPM = 8; //APMs "Invalid Mode"
 	}
 
 	/* send data */
