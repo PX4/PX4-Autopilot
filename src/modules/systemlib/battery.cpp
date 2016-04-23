@@ -48,6 +48,8 @@ Battery::Battery() :
 	_param_n_cells(this, "N_CELLS"),
 	_param_capacity(this, "CAPACITY"),
 	_param_v_load_drop(this, "V_LOAD_DROP"),
+	_param_low_thr(this, "LOW_THR"),
+	_param_crit_thr(this, "CRIT_THR"),
 	_voltage_filtered_v(0.0f),
 	_throttle_filtered(0.0f),
 	_discharged_mah(0.0f),
@@ -162,13 +164,11 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 void
 Battery::determineWarning()
 {
-	// TODO: Determine threshold or make params.
-
 	// Smallest values must come first
-	if (_remaining < 0.09f) {
+	if (_remaining < _param_crit_thr.get()) {
 		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-	} else if (_remaining < 0.18f) {
+	} else if (_remaining < _param_low_thr.get()) {
 		_warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
 }
