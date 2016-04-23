@@ -577,11 +577,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -598,6 +593,18 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
 
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					unlock();
+					return -ENOMEM;
+				}
+			}
+
 			do {
 				/* if path is modifyable change try index */
 				if (adv->instance != nullptr) {
@@ -610,6 +617,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
+					unlock();
 					return -ENOMEM;
 				}
 
@@ -617,7 +625,8 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					// FIXME - looks like we leaked memory here for objname
+					unlock();
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -627,8 +636,8 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
 					unlock();
-
-					// FIXME - looks like we leaked memory here for devpath and objname
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -667,7 +676,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			} while (ret != PX4_OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
 
@@ -688,8 +697,10 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 	uORB::DeviceNode *rc = nullptr;
 	std::string np(nodepath);
 
-	if (_node_map.find(np) != _node_map.end()) {
-		rc = _node_map[np];
+	auto iter = _node_map.find(np);
+
+	if (iter != _node_map.end()) {
+		rc = iter->second;
 	}
 
 	return rc;

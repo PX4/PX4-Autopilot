@@ -73,6 +73,7 @@ add_message_files(
   actuator_armed.msg
   parameter_update.msg
   vehicle_status.msg
+  commander_state.msg
   vehicle_local_position.msg
   position_setpoint.msg
   position_setpoint_triplet.msg
@@ -326,10 +327,9 @@ install(TARGETS ${PROJECT_NAME}
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest(integrationtests/demo_tests/direct_tests.launch)
-  add_rostest(integrationtests/demo_tests/mavros_tests.launch)
-endif()
-
-
+## Tests on multiplatform SITL (deprecated) have been moved to POSIX SITL
+#if(CATKIN_ENABLE_TESTING)
+#  find_package(rostest REQUIRED)
+#  add_rostest(integrationtests/demo_tests/direct_tests.launch)
+#  add_rostest(integrationtests/demo_tests/mavros_tests.launch)
+#endif()

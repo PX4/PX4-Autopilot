@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2016 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,13 +42,14 @@
 #include <systemlib/param/param.h>
 
 /**
-* Magnetometer measurement delay relative to IMU measurements
-*
-* @group EKF2
-* @min 0
-* @max 300
-* @unit ms
-*/
+ * Magnetometer measurement delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 
 /**
@@ -58,6 +59,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
 
@@ -68,8 +70,32 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
+
+/**
+ * Optical flow measurement delay relative to IMU measurements
+ * Assumes measurement is timestamped at trailing edge of integration period
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
+
+/**
+ * Range finder measurement delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
 
 /**
  * Airspeed measurement delay relative to IMU measurements
@@ -78,11 +104,14 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
  * @min 0
  * @max 300
  * @unit ms
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
 
 /**
- * Integer bitmask controlling GPS checks. Set bits to 1 to enable checks. Checks enabled by the following bit positions
+ * Integer bitmask controlling GPS checks.
+ * 
+ * Set bits to 1 to enable checks. Checks enabled by the following bit positions
  * 0 : Minimum required sat count set by EKF2_REQ_NSATS
  * 1 : Minimum required GDoP set by EKF2_REQ_GDOP
  * 2 : Maximum allowed horizontal position error set by EKF2_REQ_EPH
@@ -96,7 +125,6 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
  * @group EKF2
  * @min 0
  * @max 511
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
 
@@ -107,6 +135,7 @@ PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
  * @min 2
  * @max 100
  * @unit m
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 5.0f);
 
@@ -117,6 +146,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 5.0f);
  * @min 2
  * @max 100
  * @unit m
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_EPV, 8.0f);
 
@@ -127,6 +157,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_EPV, 8.0f);
  * @min 0.5
  * @max 5.0
  * @unit m/s
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
 
@@ -136,7 +167,6 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
  * @group EKF2
  * @min 4
  * @max 12
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
 
@@ -146,7 +176,7 @@ PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
  * @group EKF2
  * @min 1.5
  * @max 5.0
- * @unit
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
 
@@ -157,6 +187,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
  * @min 0.1
  * @max 1.0
  * @unit m/s
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.3f);
 
@@ -166,6 +197,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.3f);
  * @group EKF2
  * @min 0.1
  * @max 1.5
+ * @decimal 2
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
@@ -175,10 +207,11 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
  *
  * @group EKF2
  * @min 0.0001
- * @max 0.01
+ * @max 0.1
  * @unit rad/s
+ * @decimal 4
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.0e-3f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 6.0e-2f);
 
 /**
  * Accelerometer noise for covariance prediction.
@@ -187,6 +220,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.0e-3f);
  * @min 0.01
  * @max 1.0
  * @unit m/s/s
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.25f);
 
@@ -197,8 +231,9 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.25f);
  * @min 0.0
  * @max 0.0001
  * @unit rad/s
+ * @decimal 8
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 7.0e-5f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 2.5e-6f);
 
 /**
  * Process noise for delta velocity z bias prediction.
@@ -207,8 +242,9 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 7.0e-5f);
  * @min 0.0
  * @max 0.01
  * @unit m/s/s
+ * @decimal 7
  */
-PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
+PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-5f);
 
 /**
  * Process noise for delta angle scale factor prediction.
@@ -216,19 +252,31 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit None
+ * @decimal 6
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-3f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-4f);
 
 /**
- * Process noise for sensor bias and earth magnetic field prediction.
+ * Process noise for body magnetic field prediction.
  *
  * @group EKF2
  * @min 0.0
  * @max 0.1
  * @unit Gauss/s
+ * @decimal 6
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 2.5e-2f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 5.0e-4f);
+
+/**
+ * Process noise for earth magnetic field prediction.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.1
+ * @unit Gauss/s
+ * @decimal 6
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 2.5e-3f);
 
 /**
  * Process noise for wind velocity prediction.
@@ -237,6 +285,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 2.5e-2f);
  * @min 0.0
  * @max 1.0
  * @unit m/s/s
+ * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
 
@@ -247,6 +296,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
  * @min 0.01
  * @max 5.0
  * @unit m/s
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
 
@@ -257,8 +307,9 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
  * @min 0.01
  * @max 10.0
  * @unit m
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 1.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.5f);
 
 /**
  * Measurement noise for non-aiding position hold.
@@ -267,6 +318,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 1.0f);
  * @min 0.5
  * @max 50.0
  * @unit m
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
 
@@ -277,6 +329,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
  * @min 0.01
  * @max 15.0
  * @unit m
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.0f);
 
@@ -287,8 +340,9 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.0f);
  * @min 0.01
  * @max 1.0
  * @unit rad
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.17f);
+PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.3f);
 
 /**
  * Measurement noise for magnetometer 3-axis fusion.
@@ -297,14 +351,27 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.17f);
  * @min 0.001
  * @max 1.0
  * @unit Gauss
+ * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
+
+/**
+ * Measurement noise for airspeed fusion.
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 5.0
+ * @unit m/s
+ * @decimal 1
+ */
+ PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
 
 /**
  * Magnetic declination
  *
  * @group EKF2
- * @unit degrees
+ * @unit deg
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
@@ -314,8 +381,9 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
  * @group EKF2
  * @min 1.0
  * @unit SD
+ * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 2.6f);
 
 /**
  * Gate size for magnetometer XYZ component fusion
@@ -323,11 +391,14 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
  * @group EKF2
  * @min 1.0
  * @unit SD
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
- * Integer bitmask controlling handling of magnetic declination. Set bits to in the following positions to enable functions.
+ * Integer bitmask controlling handling of magnetic declination.
+ *
+ * Set bits in the following positions to enable functions.
  * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
  * 1 : Set to true to save the EKF2_MAG_DECL parameter to the value returned by the EKF when the vehicle disarms.
  * 2 : Set to true to always use the declination as an observaton when 3-axis magnetometer fusion is being used.
@@ -335,20 +406,21 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @group EKF2
  * @min 0
  * @max 7
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
 /**
+ * Type of magnetometer fusion
+ *
  * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-axis magnetometer.
- * 0 : determine the best fusion method to use automatically - heading fusion on-ground and 3-axis fusion in-flight
- * 1 : always use magnetic heading fusion
- * 2 : always use 3-axis fusion
- * Other values  will disable magnetometer fusion completely
+ * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight
+ * 
  * @group EKF2
- * @min 0
- * @max 2
- * @unit None
+ * @value 0 Automatic
+ * @value 1 Magnetic heading
+ * @value 2 3-axis fusion
+ * @value 3 2-D projection
+ * @value 4 None
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -358,8 +430,9 @@ PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
  * @group EKF2
  * @min 1.0
  * @unit SD
+ * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 
 /**
  * Gate size for GPS horizontal position fusion
@@ -367,8 +440,9 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 3.0f);
  * @group EKF2
  * @min 1.0
  * @unit SD
+ * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 
 /**
  * Gate size for GPS velocity fusion
@@ -376,5 +450,252 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
  * @group EKF2
  * @min 1.0
  * @unit SD
+ * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
+
+/**
+ * Replay mode
+ *
+ * A value of 1 indicates that the ekf2 module will publish
+ * replay messages for logging.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
+
+/**
+ * Integer bitmask controlling which external aiding sources will be used.
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use GPS data if available
+ * 1 : Set to true to use optical flow data if available
+ *
+ * @group EKF2
+ * @min 0
+ * @max 3
+ */
+PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
+
+/**
+ * Determines the primary source of height data used by the EKF.
+ *
+ * The range sensor option should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
+ *
+ * @group EKF2
+ * @value 0 Barometric pressure
+ * @value 1 Reserved (GPS)
+ * @value 2 Range sensor
+ */
+PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
+
+/**
+ * Measurement noise for range finder fusion
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_NOISE, 0.1f);
+
+/**
+ * Gate size for range finder fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
+
+/**
+ * Minimum valid range for the range finder
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
+
+/**
+ * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
+ *
+ * @group EKF2
+ * @min 0.05
+ * @unit rad/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
+
+/**
+ * Measurement noise for the optical flow sensor.
+ *
+ * (when it's reported quality metric is at the minimum set by EKF2_OF_QMIN).
+ * The following condition must be met: EKF2_OF_N_MAXN >= EKF2_OF_N_MIN
+ *
+ * @group EKF2
+ * @min 0.05
+ * @unit rad/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
+
+/**
+ * Optical Flow data will only be used if the sensor reports a quality metric >= EKF2_OF_QMIN.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
+
+/**
+ * Gate size for optical flow fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
+
+/**
+ * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit rad/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
+
+/**
+ * Terrain altitude process noise - accounts for instability in vehicle height estimate
+ *
+ * @group EKF2
+ * @min 0.5
+ * @unit m/s
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
+
+/**
+ * Magnitude of terrain gradient
+ *
+ * @group EKF2
+ * @min 0.0
+ * @unit m/m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
+
+/**
+ * X position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_X, 0.0f);
+
+/**
+ * Y position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Y, 0.0f);
+
+/**
+ * Z position of IMU in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Z, 0.0f);
+
+/**
+ * X position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_X, 0.0f);
+
+/**
+ * Y position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Y, 0.0f);
+
+/**
+ * Z position of GPS antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Z, 0.0f);
+
+/**
+ * X position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_X, 0.0f);
+
+/**
+ * Y position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_Y, 0.0f);
+
+/**
+ * Z position of range finder origin in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_POS_Z, 0.0f);
+
+/**
+ * X position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_X, 0.0f);
+
+/**
+ * Y position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_Y, 0.0f);
+
+/**
+ * Z position of optical flow focal point in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);

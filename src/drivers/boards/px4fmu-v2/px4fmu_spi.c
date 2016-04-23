@@ -150,6 +150,15 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
+	case PX4_SPIDEV_LIS:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+		break;
+
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);

@@ -43,6 +43,7 @@
 #define _SPORT_DATA_H
 
 #include <sys/types.h>
+#include <stdbool.h>
 
 /* FrSky SmartPort polling IDs captured from X4R */
 #define SMARTPORT_POLL_1    0x1B
@@ -51,7 +52,11 @@
 #define SMARTPORT_POLL_4    0x16
 #define SMARTPORT_POLL_5    0xB7
 #define SMARTPORT_POLL_6    0x00
+<<<<<<< HEAD
 #define SMARTPORT_POLL_7    0xBA
+=======
+#define SMARTPORT_POLL_7    0x83
+>>>>>>> upstream/master
 
 /* FrSky SmartPort sensor IDs */
 #define SMARTPORT_ID_RSSI          0xf101
@@ -78,14 +83,19 @@
 #define SMARTPORT_ID_GPS_TIME      0x0850
 
 // Public functions
-void sPort_init(void);
+bool sPort_init(void);
+void sPort_deinit(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
 void sPort_send_BATV(int uart);
 void sPort_send_CUR(int uart);
 void sPort_send_ALT(int uart);
 void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
-
+void sPort_send_GPS_LON(int uart);
+void sPort_send_GPS_LAT(int uart);
+void sPort_send_GPS_ALT(int uart);
+void sPort_send_GPS_COG(int uart);
+void sPort_send_GPS_SPD(int uart);
 void sPort_send_FUEL(int uart);
 void sPort_send_T1(int uart);
 void sPort_send_T2(int uart);

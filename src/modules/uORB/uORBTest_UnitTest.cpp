@@ -124,7 +124,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 	delete[] timings;
 
-	warnx("mean: %8.4f", static_cast<double>(latency_integral / maxruns));
+	warnx("mean: %8.4f us", static_cast<double>(latency_integral / maxruns));
 
 	pubsubtest_passed = true;
 
@@ -158,7 +158,7 @@ int uORBTest::UnitTest::test()
 		return ret;
 	}
 
-	return OK;
+	return test_multi2();
 }
 
 
@@ -318,7 +318,123 @@ int uORBTest::UnitTest::test_multi()
 		return test_fail("latency test failed");
 	}
 
+	orb_unsubscribe(sfd0);
+	orb_unsubscribe(sfd1);
+
 	return test_note("PASS multi-topic test");
+}
+
+
+
+int uORBTest::UnitTest::pub_test_multi2_entry(char *const argv[])
+{
+	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+	return t.pub_test_multi2_main();
+}
+
+int uORBTest::UnitTest::pub_test_multi2_main()
+{
+	int data_next_idx = 0;
+	const int num_instances = 3;
+	orb_advert_t orb_pub[num_instances];
+	struct orb_test_medium data_topic;
+
+	for (int i = 0; i < num_instances; ++i) {
+		orb_advert_t &pub = orb_pub[i];
+		int idx = i;
+//		PX4_WARN("advertise %i, t=%" PRIu64, i, hrt_absolute_time());
+		pub = orb_advertise_multi(ORB_ID(orb_test_medium_multi), &data_topic, &idx, ORB_PRIO_DEFAULT);
+
+		if (idx != i) {
+			_thread_should_exit = true;
+			PX4_ERR("Got wrong instance! should be: %i, but is %i", i, idx);
+			return -1;
+		}
+	}
+
+	usleep(100 * 1000);
+
+	int message_counter = 0, num_messages = 100 * num_instances;
+
+	while (message_counter++ < num_messages) {
+		usleep(2); //make sure the timestamps are different
+		orb_advert_t &pub = orb_pub[data_next_idx];
+
+		data_topic.time = hrt_absolute_time();
+		data_topic.val = data_next_idx;
+
+		orb_publish(ORB_ID(orb_test_medium_multi), pub, &data_topic);
+//		PX4_WARN("publishing msg (idx=%i, t=%" PRIu64 ")", data_next_idx, data_topic.time);
+
+		data_next_idx = (data_next_idx + 1) % num_instances;
+
+		if (data_next_idx == 0) {
+			usleep(10 * 1000);
+		}
+	}
+
+	usleep(100 * 1000);
+	_thread_should_exit = true;
+
+	return 0;
+}
+
+int uORBTest::UnitTest::test_multi2()
+{
+
+	//test: first subscribe, then advertise
+
+	_thread_should_exit = false;
+	const int num_instances = 3;
+	int orb_data_fd[num_instances];
+	int orb_data_next = 0;
+
+	for (int i = 0; i < num_instances; ++i) {
+//		PX4_WARN("subscribe %i, t=%" PRIu64, i, hrt_absolute_time());
+		orb_data_fd[i] = orb_subscribe_multi(ORB_ID(orb_test_medium_multi), i);
+	}
+
+	char *const args[1] = { NULL };
+	int pubsub_task = px4_task_spawn_cmd("uorb_test_multi",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 5,
+					     1500,
+					     (px4_main_t)&uORBTest::UnitTest::pub_test_multi2_entry,
+					     args);
+
+	if (pubsub_task < 0) {
+		return test_fail("failed launching task");
+	}
+
+	hrt_abstime last_time = 0;
+
+	while (!_thread_should_exit) {
+
+		bool updated = false;
+		int orb_data_cur_fd = orb_data_fd[orb_data_next];
+		orb_check(orb_data_cur_fd, &updated);
+
+		if (updated) {
+			struct orb_test_medium msg;
+			orb_copy(ORB_ID(orb_test_medium_multi), orb_data_cur_fd, &msg);
+			usleep(1000);
+
+			if (last_time >= msg.time && last_time != 0) {
+				return test_fail("Timestamp not increasing! (%" PRIu64 " >= %" PRIu64 ")", last_time, msg.time);
+			}
+
+			last_time = msg.time;
+
+//			PX4_WARN("      got message (val=%i, idx=%i, t=%" PRIu64 ")", msg.val, orb_data_next, msg.time);
+			orb_data_next = (orb_data_next + 1) % num_instances;
+		}
+	}
+
+	for (int i = 0; i < num_instances; ++i) {
+		orb_unsubscribe(orb_data_fd[i]);
+	}
+
+	return test_note("PASS multi-topic 2 test (queue simulation)");
 }
 
 int uORBTest::UnitTest::test_multi_reversed()

@@ -1,5 +1,6 @@
 ./obj/*
 gtest_main.a
+dsm_test
 mixer_test
 sf0x_test
 sbus2_test
@@ -14,3 +15,8 @@ CMakeFiles
 CTestTestfile.cmake
 cmake_install.cmake
 Makefile
+.ninja_deps
+.ninja_log
+build.ninja
+rules.ninja
+

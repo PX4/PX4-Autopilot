@@ -54,7 +54,7 @@
  * this will wear out servos faster, the value should only be decreased as
  * needed.
  *
- * @unit seconds
+ * @unit s
  * @min 0.4
  * @max 1.0
  * @group FW Attitude Control
@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
  * this will wear out servos faster, the value should only be decreased as
  * needed.
  *
- * @unit seconds
+ * @unit s
  * @min 0.2
  * @max 1.0
  * @group FW Attitude Control
@@ -83,6 +83,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
  * This defines how much the elevator input will be commanded depending on the
  * current body angular rate error.
  *
+ * @unit %/rad/s
  * @min 0.005
  * @max 1.0
  * @group FW Attitude Control
@@ -95,6 +96,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
+ * @unit %/rad
  * @min 0.005
  * @max 0.5
  * @group FW Attitude Control
@@ -133,6 +135,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
  * The portion of the integrator part in the control surface deflection is
  * limited to this value
  *
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group FW Attitude Control
@@ -145,6 +148,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  * This defines how much the aileron input will be commanded depending on the
  * current body angular rate error.
  *
+ * @unit %/rad/s
  * @min 0.005
  * @max 1.0
  * @group FW Attitude Control
@@ -157,6 +161,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
+ * @unit %/rad
  * @min 0.005
  * @max 0.2
  * @group FW Attitude Control
@@ -168,6 +173,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
  *
  * The portion of the integrator part in the control surface deflection is limited to this value.
  *
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group FW Attitude Control
@@ -193,6 +199,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  * This defines how much the rudder input will be commanded depending on the
  * current body angular rate error.
  *
+ * @unit %/rad/s
  * @min 0.005
  * @max 1.0
  * @group FW Attitude Control
@@ -205,6 +212,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
+ * @unit %/rad
  * @min 0.0
  * @max 50.0
  * @group FW Attitude Control
@@ -217,6 +225,7 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
  * The portion of the integrator part in the control surface deflection is
  * limited to this value
  *
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group FW Attitude Control
@@ -242,6 +251,7 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
  * This defines how much the wheel steering input will be commanded depending on the
  * current body angular rate error.
  *
+ * @unit %/rad/s
  * @min 0.005
  * @max 1.0
  * @group FW Attitude Control
@@ -254,6 +264,7 @@ PARAM_DEFINE_FLOAT(FW_WR_P, 0.5f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
+ * @unit %/rad
  * @min 0.0
  * @max 50.0
  * @group FW Attitude Control
@@ -266,6 +277,7 @@ PARAM_DEFINE_FLOAT(FW_WR_I, 0.1f);
  * The portion of the integrator part in the control surface deflection is
  * limited to this value
  *
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group FW Attitude Control
@@ -292,6 +304,7 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 0.0f);
  * to obtain a tigher response of the controller without introducing
  * noise amplification.
  *
+ * @unit %/rad/s
  * @min 0.0
  * @max 10.0
  * @group FW Attitude Control
@@ -303,6 +316,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  *
  * Direct feed forward from rate setpoint to control surface output
  *
+ * @unit %/rad/s
  * @min 0.0
  * @max 10.0
  * @group FW Attitude Control
@@ -314,6 +328,7 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
  *
  * Direct feed forward from rate setpoint to control surface output
  *
+ * @unit %/rad/s
  * @min 0.0
  * @max 10.0
  * @group FW Attitude Control
@@ -325,6 +340,7 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  *
  * Direct feed forward from rate setpoint to control surface output
  *
+ * @unit %/rad/s
  * @min 0.0
  * @max 10.0
  * @group FW Attitude Control
@@ -351,7 +367,8 @@ PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
  *
  * @min 0
  * @max 1
- * @unit m/s
+ * @value 0 open-loop
+ * @value 1 closed-loop
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);

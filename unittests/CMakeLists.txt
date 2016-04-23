@@ -26,9 +26,9 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall -Werror")
 elseif(COMPILER_SUPPORTS_CXX0X)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall -Werror")
 else()
   message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
@@ -86,7 +86,7 @@ function(add_gtest)
 endfunction()
 
 add_library( px4_platform 
-#                           ${PX_SRC}/platforms/common/px4_getopt.c
+#                          ${PX_SRC}/platforms/common/px4_getopt.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
@@ -170,15 +170,15 @@ target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
-add_executable(param_test param_test.cpp
-                          hrt.cpp
-                          uorb_stub.cpp
-                          ${PX_SRC}/modules/systemlib/param/param.c
-                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
-                          )
-target_link_libraries( param_test px4_platform )                          
+#add_executable(param_test param_test.cpp
+#                          hrt.cpp
+#                          uorb_stub.cpp
+#                          ${PX_SRC}/modules/systemlib/param/param.c
+#                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
+#                          )
+#target_link_libraries( param_test px4_platform )                          
                           
-add_gtest(param_test)
+#add_gtest(param_test)
 
 # uorb test
 #add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp

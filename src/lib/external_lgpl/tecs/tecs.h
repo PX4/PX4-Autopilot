@@ -320,7 +320,7 @@ private:
 	// Integrator state 6 - throttle integrator
 	float _integ6_state;
 
-	// Integrator state 6 - pitch integrator
+	// Integrator state 7 - pitch integrator
 	float _integ7_state;
 
 	// throttle demand rate limiter state

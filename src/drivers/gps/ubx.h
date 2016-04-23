@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@
  * including Prototol Specification.
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * @author Hannes Delago
@@ -62,6 +62,7 @@
 
 /* Message IDs */
 #define UBX_ID_NAV_POSLLH	0x02
+#define UBX_ID_NAV_DOP		0x04
 #define UBX_ID_NAV_SOL		0x06
 #define UBX_ID_NAV_PVT		0x07
 #define UBX_ID_NAV_VELNED	0x12
@@ -80,6 +81,7 @@
 /* Message Classes & IDs */
 #define UBX_MSG_NAV_POSLLH	((UBX_CLASS_NAV) | UBX_ID_NAV_POSLLH << 8)
 #define UBX_MSG_NAV_SOL		((UBX_CLASS_NAV) | UBX_ID_NAV_SOL << 8)
+#define UBX_MSG_NAV_DOP		((UBX_CLASS_NAV) | UBX_ID_NAV_DOP << 8)
 #define UBX_MSG_NAV_PVT		((UBX_CLASS_NAV) | UBX_ID_NAV_PVT << 8)
 #define UBX_MSG_NAV_VELNED	((UBX_CLASS_NAV) | UBX_ID_NAV_VELNED << 8)
 #define UBX_MSG_NAV_TIMEUTC	((UBX_CLASS_NAV) | UBX_ID_NAV_TIMEUTC << 8)
@@ -115,6 +117,7 @@
 
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
+#define UBX_TX_CFG_PRT_PORTID_USB	0x03		/**< USB */
 #define UBX_TX_CFG_PRT_MODE		0x000008D0	/**< 0b0000100011010000: 8N1 */
 #define UBX_TX_CFG_PRT_BAUDRATE		38400		/**< choose 38400 as GPS baudrate */
 #define UBX_TX_CFG_PRT_INPROTOMASK	0x01		/**< UBX in */
@@ -169,6 +172,18 @@ typedef struct {
 	uint32_t	vAcc;  		/**< Vertical accuracy estimate [mm] */
 } ubx_payload_rx_nav_posllh_t;
 
+/* Rx NAV-DOP */
+typedef struct {
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	uint16_t	gDOP;		/**< Geometric DOP [0.01] */
+	uint16_t	pDOP;		/**< Position DOP [0.01] */
+	uint16_t	tDOP;		/**< Time DOP [0.01] */
+	uint16_t	vDOP;		/**< Vertical DOP [0.01] */
+	uint16_t	hDOP;		/**< Horizontal DOP [0.01] */
+	uint16_t	nDOP;		/**< Northing DOP [0.01] */
+	uint16_t	eDOP;		/**< Easting DOP [0.01] */
+} ubx_payload_rx_nav_dop_t;
+
 /* Rx NAV-SOL */
 typedef struct {
 	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
@@ -184,7 +199,7 @@ typedef struct {
 	int32_t		ecefVY;
 	int32_t		ecefVZ;
 	uint32_t	sAcc;
-	uint16_t	pDOP;
+	uint16_t	pDOP;		/**< Position DOP [0.01] */
 	uint8_t		reserved1;
 	uint8_t		numSV;		/**< Number of SVs used in Nav Solution */
 	uint32_t	reserved2;
@@ -416,6 +431,7 @@ typedef union {
 	ubx_payload_rx_nav_pvt_t		payload_rx_nav_pvt;
 	ubx_payload_rx_nav_posllh_t		payload_rx_nav_posllh;
 	ubx_payload_rx_nav_sol_t		payload_rx_nav_sol;
+	ubx_payload_rx_nav_dop_t		payload_rx_nav_dop;
 	ubx_payload_rx_nav_timeutc_t		payload_rx_nav_timeutc;
 	ubx_payload_rx_nav_svinfo_part1_t	payload_rx_nav_svinfo_part1;
 	ubx_payload_rx_nav_svinfo_part2_t	payload_rx_nav_svinfo_part2;
@@ -431,7 +447,6 @@ typedef union {
 	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
 	ubx_payload_tx_cfg_sbas_t		payload_tx_cfg_sbas;
 	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
-	uint8_t					raw[];
 } ubx_buf_t;
 
 #pragma pack(pop)
@@ -511,13 +526,15 @@ private:
 
 	/**
 	 * Send a message
+	 * @return true on success, false on write error (errno set)
 	 */
-	void			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
+	bool			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
 
 	/**
 	 * Configure message rate
+	 * @return true on success, false on write error
 	 */
-	void			configure_message_rate(const uint16_t msg, const uint8_t rate);
+	bool			configure_message_rate(const uint16_t msg, const uint8_t rate);
 
 	/**
 	 * Calculate & add checksum for given buffer
@@ -537,7 +554,6 @@ private:
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
 	struct satellite_info_s *_satellite_info;
-	bool			_enable_sat_info;
 	bool			_configured;
 	ubx_ack_state_t		_ack_state;
 	bool			_got_posllh;

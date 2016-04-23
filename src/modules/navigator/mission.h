@@ -120,11 +120,6 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Copies position from setpoint if valid, otherwise copies current position
-	 */
-	void copy_positon_if_valid(struct mission_item_s &mission_item, struct position_setpoint_s &setpoint);
-
-	/**
 	 * Returns true if we need to do a takeoff at the current state
 	 */
 	bool do_need_takeoff();
@@ -133,6 +128,21 @@ private:
 	 * Returns true if we need to move to waypoint location before starting descent
 	 */
 	bool do_need_move_to_land();
+
+	/**
+	 * Returns true if we need to move to waypoint location after vtol takeoff
+	 */
+	bool do_need_move_to_takeoff();
+
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
@@ -203,11 +213,22 @@ private:
 	 */
 	bool check_mission_valid();
 
+	/**
+	 * Reset offboard mission
+	 */
+	void reset_offboard_mission(struct mission_s &mission);
+
+	/**
+	 * Returns true if we need to reset the mission
+	 */
+	bool need_to_reset_mission(bool active);
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
+	control::BlockParamInt _param_force_vtol;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
@@ -224,6 +245,7 @@ private:
 
 	bool _inited;
 	bool _home_inited;
+	bool _need_mission_reset;
 
 	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
@@ -239,7 +261,10 @@ private:
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
-		WORK_ITEM_TYPE_CMD_BEFORE_MOVE	/**<  */
+		WORK_ITEM_TYPE_CMD_BEFORE_MOVE,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND,	/**<  */
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION	/**<  */
 	} _work_item_type;	/**< current type of work to do (sub mission item) */
 
 };

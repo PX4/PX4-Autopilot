@@ -47,7 +47,7 @@
  *
  */
 #include "vtol_att_control_main.h"
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 namespace VTOL_att_control
 {
@@ -62,7 +62,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_control_task(-1),
 
 	// mavlink log
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 
 	//init subscription handlers
 	_v_att_sub(-1),
@@ -87,7 +87,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_1_pub(nullptr),
 	_vtol_vehicle_status_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
-	_v_att_sp_pub(nullptr)
+	_v_att_sp_pub(nullptr),
+
+	_abort_front_transition(false)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -465,7 +467,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 
 	// listen to transition commands if not in manual
 	if (!_v_control_mode.flag_control_manual_enabled) {
-		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		to_fw = _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
 	// handle abort request
@@ -489,7 +491,7 @@ void
 VtolAttitudeControl::abort_front_transition()
 {
 	if(!_abort_front_transition) {
-		mavlink_log_critical(_mavlink_fd, "Front transition timeout occured, aborting");
+		mavlink_log_critical(&_mavlink_log_pub, "Front transition timeout occured, aborting");
 		_abort_front_transition = true;
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
@@ -594,8 +596,6 @@ void VtolAttitudeControl::task_main()
 {
 	fflush(stdout);
 
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
@@ -625,9 +625,6 @@ void VtolAttitudeControl::task_main()
 
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
-
-	hrt_abstime mavlink_open_time = 0;
-	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
@@ -666,13 +663,6 @@ void VtolAttitudeControl::task_main()
 			continue;
 		}
 
-		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
-			/* try to reopen the mavlink log device with specified interval */
-			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
-			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-		}
-
-
 		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
 			/* read from param to clear updated flag */
 			struct parameter_update_s update;
@@ -709,10 +699,10 @@ void VtolAttitudeControl::task_main()
 		// reset transition command if not auto control
 		if (_v_control_mode.flag_control_manual_enabled) {
 			if (_vtol_type->get_mode() == ROTARY_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			}
 		}
 

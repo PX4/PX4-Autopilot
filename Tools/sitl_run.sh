@@ -14,6 +14,10 @@ echo program: $program
 echo model: $model
 echo build_path: $build_path
 
+mkdir -p $build_path/src/firmware/posix/rootfs/fs/microsd
+mkdir -p $build_path/src/firmware/posix/rootfs/eeprom
+touch $build_path/src/firmware/posix/rootfs/eeprom/parameters
+
 if [ "$chroot" == "1" ]
 then
 	chroot_enabled=-c
@@ -29,7 +33,7 @@ then
 	model="iris"
 fi
 
-if [ "$#" != 5 ]
+if [ "$#" -lt 5 ]
 then
 	echo usage: sitl_run.sh rc_script debugger program model build_path
 	echo ""
@@ -48,6 +52,7 @@ fi
 
 set -e
 
+cd $build_path/..
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
@@ -56,9 +61,11 @@ SIM_PID=0
 if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
-	ant
-	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
+	ant create_run_jar copy_res
+	cd out/production
+	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
+	cd ../..
 elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
@@ -74,6 +81,7 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake -Wno-dev ..
 		make -j4
+		make sdf
 		gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
 		gzclient --verbose &
@@ -82,11 +90,24 @@ then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "replay" ] && [ "$no_sim" == "" ]
+then
+	echo "Replaying logfile: $logfile"
+	# This is not a simulator, but a log file to replay
+
+	# Check if we need to creat a param file to allow user to change parameters
+	if ! [ -f "${build_path}/src/firmware/posix/rootfs/replay_params.txt" ]
+		then
+		touch ${build_path}/src/firmware/posix/rootfs/replay_params.txt
+	fi
 fi
+
 cd $build_path/src/firmware/posix
-mkdir -p rootfs/fs/microsd
-mkdir -p rootfs/eeprom
-touch rootfs/eeprom/parameters
+
+if [ "$logfile" != "" ]
+then
+	cp $logfile rootfs/replay.px4log
+fi
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e

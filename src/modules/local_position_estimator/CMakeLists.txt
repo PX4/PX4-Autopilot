@@ -30,24 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6500)
-elseif(${OS} STREQUAL "posix")
-	list(APPEND MODULE_CFLAGS -Wno-error)
-endif()
-
-# use custom matrix lib instead of Eigen
-add_definitions(-DUSE_MATRIX_LIB)
-
-
 px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
-	STACK 9216
-	COMPILE_FLAGS ${MODULE_CFLAGS}
+	COMPILE_FLAGS -Os
+	STACK_MAIN 5700
+	STACK_MAX 10000
 	SRCS
 		local_position_estimator_main.cpp
 		BlockLocalPositionEstimator.cpp
+		sensors/flow.cpp
+		sensors/lidar.cpp
+		sensors/sonar.cpp
+		sensors/gps.cpp
+		sensors/baro.cpp
+		sensors/vision.cpp
+		sensors/mocap.cpp
 		params.c
 	DEPENDS
 		platforms__common

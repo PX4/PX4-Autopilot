@@ -44,6 +44,7 @@
 /**
  * Interval of one subscriber in the example in ms
  *
+ * @unit ms
  * @group Subscriber Example
  */
 PX4_PARAM_DEFINE_INT32(SUB_INTERV);

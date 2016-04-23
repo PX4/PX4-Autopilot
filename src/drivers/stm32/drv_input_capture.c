@@ -171,7 +171,7 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 
 			input_capture_bind(channel, callback, context);
 
-			int rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);
+			rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);
 
 			if (rv != 0) {
 				return rv;

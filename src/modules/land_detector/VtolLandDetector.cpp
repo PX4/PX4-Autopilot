@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,13 +33,16 @@
 
 /**
  * @file VtolLandDetector.cpp
- * Land detection algorithm for vtol
+ * Land detection algorithm for VTOL
  *
  * @author Roman Bapst <bapstroma@gmail.com>
  */
 
 #include "VtolLandDetector.h"
 #include <drivers/drv_hrt.h>
+
+namespace landdetection
+{
 
 VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
 	_paramHandle(),
@@ -69,7 +72,7 @@ void VtolLandDetector::updateSubscriptions()
 	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
-bool VtolLandDetector::update()
+LandDetectionResult VtolLandDetector::update()
 {
 	updateSubscriptions();
 	updateParameterCache(false);
@@ -94,7 +97,9 @@ bool VtolLandDetector::update()
 
 	_was_in_air = !landed;
 
-	return landed;
+	_state = (landed) ? LANDDETECTION_RES_LANDED : LANDDETECTION_RES_FLYING;
+
+	return _state;
 }
 
 void VtolLandDetector::updateParameterCache(const bool force)
@@ -113,4 +118,6 @@ void VtolLandDetector::updateParameterCache(const bool force)
 	if (updated || force) {
 		param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
 	}
+}
+
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -227,7 +227,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	float		pitch   = constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
 	float		yaw     = constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
 	float		thrust  = constrain(get_control(0, 3), 0.0f, 1.0f);
-	float		min_out = 0.0f;
+	float		min_out = 1.0f;
 	float		max_out = 0.0f;
 
 	// clean register for saturation status flags
@@ -307,7 +307,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		}
 	}
 
-	if (max_out > 0.0f) {
+	if (max_out > 1.0f) {
 		if (status_reg != NULL) {
 			(*status_reg) |= PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
 		}

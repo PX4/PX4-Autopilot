@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,6 +30,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file uavcan_main.cpp
+ *
+ * Implements basic functionality of UAVCAN node.
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *		 David Sidrane <david_s5@nscdg.com>
+ *		 Andreas Jochum <Andreas@NicaDrone.com>
+ */
 
 #include <px4_config.h>
 
@@ -52,6 +62,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 
+#include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
 #include <uavcan/util/templates.hpp>
 
@@ -60,16 +71,6 @@
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0
-
-
-/**
- * @file uavcan_main.cpp
- *
- * Implements basic functionality of UAVCAN node.
- *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- *         David Sidrane <david_s5@nscdg.com>
- */
 
 /*
  * UavcanNode
@@ -80,10 +81,12 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
+	_hardpoint_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_master_timer(_node),
 	_setget_response(0)
+
 {
 	_task_should_exit = false;
 	_fw_server_action = None;
@@ -202,8 +205,8 @@ int UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 				   resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>());
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
-		return   std::printf("name: %s %.4f\n", resp.name.c_str(),
-				     static_cast<double>(resp.value.to<uavcan::protocol::param::Value::Tag::real_value>()));
+		return std::printf("name: %s %.4f\n", resp.name.c_str(),
+				   static_cast<double>(resp.value.to<uavcan::protocol::param::Value::Tag::real_value>()));
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
 		return std::printf("name: %s %d\n", resp.name.c_str(),
@@ -649,6 +652,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	ret = _hardpoint_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 	auto br = _sensor_bridges.getHead();
@@ -700,9 +709,9 @@ int UavcanNode::add_poll_fd(int fd)
 		errx(1, "uavcan: too many poll fds, exiting");
 	}
 
-	_poll_fds[_poll_fds_num] = ::pollfd();
-	_poll_fds[_poll_fds_num].fd = fd;
-	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds[_poll_fds_num]	= ::pollfd();
+	_poll_fds[_poll_fds_num].fd	= fd;
+	_poll_fds[_poll_fds_num].events	= POLLIN;
 	_poll_fds_num += 1;
 	return ret;
 }
@@ -794,7 +803,7 @@ int UavcanNode::run()
 
 	/*
 	 * XXX Mixing logic/subscriptions shall be moved into UavcanEscController::update();
-	 *     IO multiplexing shall be done here.
+	 *	 IO multiplexing shall be done here.
 	 */
 
 	_node.setModeOperational();
@@ -819,7 +828,7 @@ int UavcanNode::run()
 
 		switch (_fw_server_action) {
 		case Start:
-			_fw_server_status =  start_fw_server();
+			_fw_server_status = start_fw_server();
 			break;
 
 		case Stop:
@@ -1102,9 +1111,33 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 					_mixers->groups_required(_groups_required);
 				}
 			}
+		}
+		break;
 
+
+	case UAVCANIOC_HARDPOINT_SET: {
+			const auto &hp_cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
+			_hardpoint_controller.set_command(hp_cmd.hardpoint_id, hp_cmd.command);
+		}
+		break;
+
+	case UAVCAN_IOCG_NODEID_INPROGRESS: {
+		UavcanServers   *_servers = UavcanServers::instance();
+
+		if (_servers == nullptr) {
+			// status unavailable
+			ret = -EINVAL;
+			break;
+		} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
+			// node discovery complete
+			ret = -ETIME;
+			break;
+		} else {
+			// node discovery in progress
+			ret = OK;
 			break;
 		}
+	}
 
 	default:
 		ret = -ENOTTY;
@@ -1132,7 +1165,7 @@ UavcanNode::print_info()
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %u/%u blocks\n",
-		_pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
@@ -1213,13 +1246,21 @@ void UavcanNode::shrink()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
+void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
+{
+	(void)pthread_mutex_lock(&_node_mutex);
+	_hardpoint_controller.set_command(hardpoint_id, command);
+	(void)pthread_mutex_unlock(&_node_mutex);
+}
 /*
  * App entry point
  */
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|\n"
+	      "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>|\n"
+	      "\t        hardpoint set <id> <command>}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -1362,6 +1403,24 @@ int uavcan_main(int argc, char *argv[])
 
 			return inst->set_param(nodeid, argv[4], argv[5]);
 		}
+	}
+
+	if (!std::strcmp(argv[1], "hardpoint")) {
+		if (!std::strcmp(argv[2], "set") && argc > 4) {
+			const int hardpoint_id = atoi(argv[3]);
+			const int command = atoi(argv[4]);
+
+			// Sanity check - weed out negative values, check against maximums
+			if (hardpoint_id >= 0 && hardpoint_id < 256 &&
+			    command >= 0 && command < 65536) {
+				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
+			} else {
+				errx(1, "Invalid argument");
+			}
+		} else {
+			errx(1, "Invalid hardpoint command");
+		}
+		::exit(0);
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {

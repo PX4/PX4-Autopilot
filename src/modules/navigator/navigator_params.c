@@ -45,7 +45,7 @@
  *
  * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
  *
- * @unit meter
+ * @unit m
  * @min 25
  * @max 1000
  * @group Mission
@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  *
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
  *
- * @unit meter
+ * @unit m
  * @min 0.05
  * @max 200.0
  * @group Mission
@@ -65,33 +65,44 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 
 /**
- * Set OBC mode for data link loss
+ * Set data link loss failsafe mode
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ * The data link loss failsafe will only be entered after a timeout,
+ * set by a DIFFERENT parameter. If the timeout value is smaller than
+ * zero it will never be entered.
  *
- * @min 0
- * @max 1
+ * @value 0 Loiter
+ * @value 1 Return to Land
+ * @value 2 Land at current position
+ * @value 3 Outback Challenge (OBC) rules
+ *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
+PARAM_DEFINE_INT32(NAV_DLL_ACT, 1);
 
 /**
- * Set OBC mode for rc loss
+ * Set RC loss failsafe mode
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ * The RC loss failsafe will only be entered after a timeout,
+ * set by a DIFFERENT parameter. If the timeout value is smaller than
+ * zero it will never be entered. If RC input checks have been disabled
+ * by setting the COM_RC_IN_MODE param it will also not be triggered.
  *
- * @min 0
- * @max 1
+ * @value 0 Loiter
+ * @value 1 Return to Land
+ * @value 2 Land at current position
+ * @value 3 Outback Challenge (OBC) rules
+ *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 1);
 
 /**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -900000000
  * @max 900000000
  * @group Data Link Loss
@@ -103,7 +114,7 @@ PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
  *
  * Longitude of airfield home waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -1800000000
  * @max 1800000000
  * @group Data Link Loss

@@ -5,10 +5,14 @@ px4_posix_generate_builtin_commands(
 	MODULE_LIST ${module_libraries})
 
 if ("${BOARD}" STREQUAL "eagle")
+
+	include(fastrpc)
+	include(linux_app)
+
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
-	QURT_APP(
+	LINUX_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb
 		APPS_DEST "/home/linaro"
@@ -25,6 +29,15 @@ if ("${BOARD}" STREQUAL "eagle")
 		pthread m rt
 		-Wl,--end-group
 		)
+
+	px4_add_adb_push(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
+			 DEPENDS mainapp
+			 DEST /home/linaro)
+
 else()
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
@@ -57,9 +70,9 @@ add_custom_target(run_config
 	)
 add_dependencies(run_config mainapp)
 
-foreach(viewer none jmavsim gazebo)
+foreach(viewer none jmavsim gazebo replay)
 	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris iris_opt_flow tailsitter standard_vtol)
+		foreach(model none iris iris_opt_flow tailsitter standard_vtol plane)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")

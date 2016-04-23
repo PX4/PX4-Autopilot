@@ -204,7 +204,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
 
 /**
  * Proportional gain for horizontal velocity error
@@ -213,7 +213,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.065f);
 
 /**
  * Integral gain for horizontal velocity error
@@ -236,16 +236,30 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
- * Maximum horizontal velocity
+ * Nominal horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode and endpoint for position stabilized mode (POSCTRL).
+ * Normal horizontal velocity in AUTO mode and endpoint for position stabilized mode (POSCTRL).
  *
  * @unit m/s
  * @min 0.0
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
+
+/**
+ * Maximum horizontal velocity
+ *
+ * Maximum horizontal velocity in AUTO mode.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 20.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
 
 /**
  * Horizontal velocity feed forward
@@ -264,7 +278,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  *
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -277,7 +291,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * Limits maximum tilt angle on landing.
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -308,7 +322,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
 /**
  * Max manual roll
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -319,7 +333,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
 /**
  * Max manual pitch
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -330,17 +344,16 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
 /**
  * Max manual yaw rate
  *
- * @unit degree / s
+ * @unit deg/s
  * @min 0.0
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 
 /**
  * Deadzone of X,Y sticks where position hold is enabled
  *
- * @unit %
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -356,7 +369,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
 
 /**
  * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
@@ -366,7 +379,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
 
 /**
  * Low pass filter cut freq. for numerical velocity derivative
@@ -383,8 +396,20 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  *
  * @unit m/s/s
  * @min 2.0
- * @max 10.0
+ * @max 15.0
+ * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+
+/**
+ * Altitude control mode, note mode 1 only tested with LPE
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Altitude following
+ * @value 1 Terrain following
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);

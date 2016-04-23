@@ -194,7 +194,7 @@ PCA9685::PCA9685(int bus, uint8_t address) :
 	_running(false),
 	_i2cpwm_interval(SEC2TICK(1.0f / 60.0f)),
 	_should_run(false),
-	_comms_errors(perf_alloc(PC_COUNT, "actuator_controls_2_comms_errors")),
+	_comms_errors(perf_alloc(PC_COUNT, "pca9685_com_err")),
 	_actuator_controls_sub(-1),
 	_actuator_controls(),
 	_mode_on_initialized(false)

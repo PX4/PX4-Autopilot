@@ -12,9 +12,13 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <drivers/drv_hrt.h>
+#include <px4_time.h>
+#include <px4_defines.h>
+#ifdef __PX4_QURT
+#include <dspal_time.h>
+#endif
 
 #include <fcntl.h>
-#include <math.h>
 
 ASHTECH::ASHTECH(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info):
 	_fd(fd),
@@ -99,6 +103,9 @@ int ASHTECH::handle_message(int len)
 		timeinfo.tm_hour = ashtech_hour;
 		timeinfo.tm_min = ashtech_minute;
 		timeinfo.tm_sec = int(ashtech_sec);
+
+		// TODO: this functionality is not available on the Snapdragon yet
+#ifndef __PX4_QURT
 		time_t epoch = mktime(&timeinfo);
 
 		if (epoch > GPS_EPOCH_SECS) {
@@ -112,7 +119,7 @@ int ASHTECH::handle_message(int len)
 			ts.tv_sec = epoch;
 			ts.tv_nsec = usecs * 1000;
 
-			if (clock_settime(CLOCK_REALTIME, &ts)) {
+			if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
 				warn("failed setting clock");
 			}
 
@@ -122,6 +129,10 @@ int ASHTECH::handle_message(int len)
 		} else {
 			_gps_position->time_utc_usec = 0;
 		}
+
+#else
+		_gps_position->time_utc_usec = 0;
+#endif
 
 		_gps_position->timestamp_time = hrt_absolute_time();
 	}
@@ -269,8 +280,8 @@ int ASHTECH::handle_message(int len)
 		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
 		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
-		double hdop __attribute__((unused)) = 99.9, vdop __attribute__((unused)) = 99.9,  pdop __attribute__((unused)) = 99.9,
-		tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
+		double hdop = 99.9, vdop = 99.9,  pdop __attribute__((unused)) = 99.9,
+		       tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
@@ -338,6 +349,8 @@ int ASHTECH::handle_message(int len)
 		_gps_position->lat = static_cast<int>((int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->lon = static_cast<int>((int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->alt = static_cast<int>(alt * 1000);
+		_gps_position->hdop = (float)hdop / 100.0f;
+		_gps_position->vdop = (float)vdop / 100.0f;
 		_rate_count_lat_lon++;
 
 		if (coordinatesFound < 3) {
@@ -471,7 +484,7 @@ int ASHTECH::handle_message(int len)
 			return 0;
 		}
 
-		if ((this_msg_num == 0) && (bGPS == true)) {
+		if (this_msg_num == 0 && bGPS && _satellite_info) {
 			memset(_satellite_info->svid,     0, sizeof(_satellite_info->svid));
 			memset(_satellite_info->used,     0, sizeof(_satellite_info->used));
 			memset(_satellite_info->snr,      0, sizeof(_satellite_info->snr));
@@ -484,24 +497,29 @@ int ASHTECH::handle_message(int len)
 		if (this_msg_num == all_msg_num) {
 			end =  tot_sv_visible - (this_msg_num - 1) * 4;
 			_gps_position->satellites_used = tot_sv_visible;
-			_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
-			_satellite_info->timestamp = hrt_absolute_time();
+
+			if (_satellite_info) {
+				_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
+				_satellite_info->timestamp = hrt_absolute_time();
+			}
 		}
 
-		for (int y = 0 ; y < end ; y++) {
-			if (bufptr && *(++bufptr) != ',') { sat[y].svid = strtol(bufptr, &endp, 10); bufptr = endp; }
+		if (_satellite_info) {
+			for (int y = 0 ; y < end ; y++) {
+				if (bufptr && *(++bufptr) != ',') { sat[y].svid = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].elevation = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].elevation = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].azimuth = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].azimuth = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { sat[y].snr = strtol(bufptr, &endp, 10); bufptr = endp; }
+				if (bufptr && *(++bufptr) != ',') { sat[y].snr = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			_satellite_info->svid[y + (this_msg_num - 1) * 4]      = sat[y].svid;
-			_satellite_info->used[y + (this_msg_num - 1) * 4]      = ((sat[y].snr > 0) ? true : false);
-			_satellite_info->snr[y + (this_msg_num - 1) * 4]       = sat[y].snr;
-			_satellite_info->elevation[y + (this_msg_num - 1) * 4] = sat[y].elevation;
-			_satellite_info->azimuth[y + (this_msg_num - 1) * 4]   = sat[y].azimuth;
+				_satellite_info->svid[y + (this_msg_num - 1) * 4]      = sat[y].svid;
+				_satellite_info->used[y + (this_msg_num - 1) * 4]      = ((sat[y].snr > 0) ? true : false);
+				_satellite_info->snr[y + (this_msg_num - 1) * 4]       = sat[y].snr;
+				_satellite_info->elevation[y + (this_msg_num - 1) * 4] = sat[y].elevation;
+				_satellite_info->azimuth[y + (this_msg_num - 1) * 4]   = sat[y].azimuth;
+			}
 		}
 	}
 
@@ -512,10 +530,6 @@ int ASHTECH::handle_message(int len)
 int ASHTECH::receive(unsigned timeout)
 {
 	{
-		/* poll descriptor */
-		pollfd fds[1];
-		fds[0].fd = _fd;
-		fds[0].events = POLLIN;
 
 		uint8_t buf[32];
 
@@ -539,38 +553,31 @@ int ASHTECH::receive(unsigned timeout)
 					}
 				}
 
-				/* in case we keep trying but only get crap from GPS */
-				if (time_started + timeout * 1000 * 2 < hrt_absolute_time()) {
-					return -1;
-				}
-
 				j++;
 			}
 
 			/* everything is read */
 			j = bytes_count = 0;
 
-			/* then poll for new data */
-			int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout * 2);
+			/* then poll or read for new data */
+			int ret = poll_or_read(_fd, buf, sizeof(buf), timeout * 2);
 
 			if (ret < 0) {
 				/* something went wrong when polling */
 				return -1;
 
 			} else if (ret == 0) {
-				/* Timeout */
-				return -1;
+				/* Timeout while polling or just nothing read if reading, let's
+				 * stay here, and use timeout below. */
 
 			} else if (ret > 0) {
 				/* if we have new data from GPS, go handle it */
-				if (fds[0].revents & POLLIN) {
-					/*
-					 * We are here because poll says there is some data, so this
-					 * won't block even on a blocking device.  If more bytes are
-					 * available, we'll go back to poll() again...
-					 */
-					bytes_count = ::read(_fd, buf, sizeof(buf));
-				}
+				bytes_count = ret;
+			}
+
+			/* in case we get crap from GPS or time out */
+			if (time_started + timeout * 1000 * 2 < hrt_absolute_time()) {
+				return -1;
 			}
 		}
 	}
@@ -665,7 +672,10 @@ int ASHTECH::configure(unsigned &baudrate)
 	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
 		baudrate = baudrates_to_try[baud_i];
 		set_baudrate(_fd, baudrate);
-		write(_fd, comm, sizeof(comm));
+
+		if (write(_fd, comm, sizeof(comm)) != sizeof(comm)) {
+			return 1;
+		}
 	}
 
 	set_baudrate(_fd, 115200);
