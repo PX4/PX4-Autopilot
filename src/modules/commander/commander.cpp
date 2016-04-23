@@ -1924,13 +1924,17 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		if ((updated && status_flags.condition_local_altitude_valid) || check_for_disarming) {
-			if ((was_landed != land_detector.landed) || (was_falling != land_detector.freefall)) {
-				if (land_detector.freefall) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "FREEFALL DETECTED");
-				} else if (land_detector.landed) {
+			if (was_landed != land_detector.landed) {
+				if (land_detector.landed) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "LANDING DETECTED");
 				} else {
 					mavlink_and_console_log_info(&mavlink_log_pub, "TAKEOFF DETECTED");
+				}
+			}
+
+			if (was_falling != land_detector.freefall) {
+				if (land_detector.freefall) {
+					mavlink_and_console_log_info(&mavlink_log_pub, "FREEFALL DETECTED");
 				}
 			}
 
