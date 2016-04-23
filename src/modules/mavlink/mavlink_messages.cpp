@@ -2335,7 +2335,7 @@ protected:
 			msg.chan17_raw = (rc.channel_count > 16) ? rc.values[16] : UINT16_MAX;
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
 
-			msg.rssi = rc.rssi;
+			msg.rssi = (rc.channel_count > 0) ? rc.rssi : 0;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 
