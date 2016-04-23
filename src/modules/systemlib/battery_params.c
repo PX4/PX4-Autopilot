@@ -52,7 +52,7 @@
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.35f);
 
 /**
  * Full cell voltage.
