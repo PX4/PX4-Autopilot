@@ -77,6 +77,8 @@
 #define SMARTPORT_ID_GPS_SPD       0x0830
 #define SMARTPORT_ID_GPS_CRS       0x0840
 #define SMARTPORT_ID_GPS_TIME      0x0850
+#define SMARTPORT_ID_DIY_FIRST     0x5000
+#define SMARTPORT_ID_DIY_LAST      0x50ff
 
 // Public functions
 void sPort_init(void);
