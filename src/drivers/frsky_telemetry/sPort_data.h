@@ -98,7 +98,7 @@ void sPort_send_GPS_SPD(int uart);
 void sPort_send_GPS_CRS(int uart);
 void sPort_send_GPS_TIME(int uart);
 
-void sPort_send_NAVSTATE(int uart);
-void sPort_send_GPSFIX(int uart);
+void sPort_send_NAV_STATE(int uart);
+void sPort_send_GPS_FIX(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */

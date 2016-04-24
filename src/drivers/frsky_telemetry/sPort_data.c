@@ -313,7 +313,7 @@ void sPort_send_GPS_TIME(int uart)
 /*
  * Sends nav_state + 128
  */
-void sPort_send_NAVSTATE(int uart)
+void sPort_send_NAV_STATE(int uart)
 {
 	/* get a local copy of the vehicle status data */
 	struct vehicle_status_s vehicle_status;
@@ -328,7 +328,7 @@ void sPort_send_NAVSTATE(int uart)
 
 // verified scaling
 // sends number of sats and type of gps fix
-void sPort_send_GPSFIX(int uart)
+void sPort_send_GPS_FIX(int uart)
 {
 	/* get a local copy of the global position data */
 	struct vehicle_gps_position_s gps_pos;
