@@ -352,7 +352,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		px4_pollfd_struct_t fds[max_mags];
 		size_t fd_count = 0;
 		for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
-			if (worker_data->sub_mag[cur_mag] >= 0 && device_ids[cur_mag] > 0) {
+			if (worker_data->sub_mag[cur_mag] >= 0 && device_ids[cur_mag] != 0) {
 				fds[fd_count].fd = worker_data->sub_mag[cur_mag];
 				fds[fd_count].events = POLLIN;
 				fd_count++;
