@@ -27,7 +27,7 @@ else()
 endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g3 -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -fsanitize=address -fno-omit-frame-pointer")
 
 set(GTEST_DIR ${CMAKE_SOURCE_DIR}/googletest)
 add_subdirectory(${GTEST_DIR})
@@ -130,7 +130,7 @@ add_gtest(autodeclination_test)
 # mixer_test
 add_custom_command(OUTPUT ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.generated.h
                    COMMAND ${PX4_SRC}/modules/systemlib/mixer/multi_tables.py > ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.generated.h)
-add_executable(mixer_test mixer_test.cpp hrt.cpp
+add_executable(mixer_test mixer_test.cpp
                           ${PX4_SRC}/modules/systemlib/mixer/mixer.cpp
                           ${PX4_SRC}/modules/systemlib/mixer/mixer_group.cpp
                           ${PX4_SRC}/modules/systemlib/mixer/mixer_load.c
@@ -146,17 +146,17 @@ add_executable(conversion_test conversion_test.cpp ${PX4_SRC}/systemcmds/tests/t
 add_gtest(conversion_test)
 
 # sbus2_test
-add_executable(sbus2_test sbus2_test.cpp hrt.cpp
+add_executable(sbus2_test sbus2_test.cpp
 						${PX4_SRC}/lib/rc/sbus.c)
 add_gtest(sbus2_test)
 
 # DSM test
-add_executable(dsm_test dsm_test.cpp hrt.cpp
+add_executable(dsm_test dsm_test.cpp
 						${PX4_SRC}/lib/rc/dsm.c)
 add_gtest(dsm_test)
 
 # st24_test
-add_executable(rc_input_test st24_test.cpp hrt.cpp sumd_test.cpp
+add_executable(rc_input_test st24_test.cpp sumd_test.cpp
 						${PX4_SRC}/lib/rc/st24.c
 						${PX4_SRC}/lib/rc/sumd.c)
 add_gtest(rc_input_test)
@@ -167,13 +167,13 @@ add_executable(sf0x_test sf0x_test.cpp
 add_gtest(sf0x_test)
 
 # param_test
-add_executable(param_test param_test.cpp hrt.cpp uorb_stub.cpp
+add_executable(param_test param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/bson/tinybson.c
 						${PX4_SRC}/modules/systemlib/param/param.c)
 add_gtest(param_test)
 
 # param_shmem_test
-#add_executable(param_shmem_test param_test.cpp hrt.cpp uorb_stub.cpp
+#add_executable(param_shmem_test param_test.cpp uorb_stub.cpp
 #						${PX4_SRC}/modules/systemlib/bson/tinybson.c
 #						${PX4_SRC}/modules/systemlib/param/param_shmem.c)
 #add_gtest(param_shmem_test)

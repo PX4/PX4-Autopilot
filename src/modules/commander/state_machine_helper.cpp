@@ -148,8 +148,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
-				&& ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-						|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
+				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
