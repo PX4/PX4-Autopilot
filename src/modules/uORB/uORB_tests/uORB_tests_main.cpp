@@ -32,76 +32,58 @@
  ****************************************************************************/
 
 #include <string.h>
-#include "uORBDevices.hpp"
-#include "uORBManager.hpp"
-#include "uORB.h"
-#include "uORBCommon.hpp"
+#include "../uORBDevices.hpp"
+#include "../uORB.h"
+#include "../uORBCommon.hpp"
 
-extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
+#ifndef __PX4_QURT
+#include "uORBTest_UnitTest.hpp"
+#endif
 
-static uORB::DeviceMaster *g_dev = nullptr;
+extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
+
 static void usage()
 {
-	PX4_INFO("Usage: uorb 'start', 'status'");
+	PX4_INFO("Usage: uorb_test 'test', 'latency_test'");
 }
 
 int
-uorb_main(int argc, char *argv[])
+uorb_tests_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
 		return -EINVAL;
 	}
 
+#ifndef __PX4_QURT
+
 	/*
-	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
+	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			PX4_WARN("already loaded");
-			/* user wanted to start uorb, its already running, no error */
-			return 0;
-		}
-
-		if (!uORB::Manager::initialize()) {
-			PX4_ERR("uorb manager alloc failed");
-			return -ENOMEM;
-		}
-
-		/* create the driver */
-		g_dev = new uORB::DeviceMaster(uORB::PUBSUB);
-
-		if (g_dev == nullptr) {
-			PX4_ERR("driver alloc failed");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			PX4_ERR("driver init failed");
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
-		}
-
-		return OK;
+	if (!strcmp(argv[1], "test")) {
+		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+		return t.test();
 	}
 
 	/*
-	 * Print driver information.
+	 * Test the latency.
 	 */
-	if (!strcmp(argv[1], "status")) {
-		if (g_dev != nullptr) {
-			PX4_INFO("uorb is running");
+	if (!strcmp(argv[1], "latency_test")) {
+
+		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+
+		if (argc > 2 && !strcmp(argv[2], "medium")) {
+			return t.latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
+
+		} else if (argc > 2 && !strcmp(argv[2], "large")) {
+			return t.latency_test<struct orb_test_large>(ORB_ID(orb_test_large), true);
 
 		} else {
-			PX4_INFO("uorb is not running");
+			return t.latency_test<struct orb_test>(ORB_ID(orb_test), true);
 		}
-
-		return OK;
 	}
+
+#endif
 
 	usage();
 	return -EINVAL;
