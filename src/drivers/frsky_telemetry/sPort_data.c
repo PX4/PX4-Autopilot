@@ -85,7 +85,8 @@ bool sPort_init()
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 
 
-	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL || gps_position == NULL) {
+	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
+	    || gps_position == NULL) {
 		return false;
 	}
 
@@ -113,26 +114,35 @@ void sPort_update_topics()
 	bool updated;
 	/* get a local copy of the current sensor values */
 	orb_check(sensor_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_combined);
 	}
+
 	/* get a local copy of the battery data */
 	orb_check(battery_status_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
 	}
+
 	/* get a local copy of the global position data */
 	orb_check(global_position_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
 	}
+
 	/* get a local copy of the vehicle status data */
 	orb_check(vehicle_status_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, vehicle_status);
 	}
+
 	/* get a local copy of the gps position data */
 	orb_check(gps_position_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, gps_position);
 	}

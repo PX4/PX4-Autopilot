@@ -113,7 +113,7 @@ bool frsky_init()
 	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 
 	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL || vehicle_status) {
-	return false;
+		return false;
 	}
 
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
@@ -183,22 +183,28 @@ void frsky_update_topics()
 	bool updated;
 	/* get a local copy of the current sensor values */
 	orb_check(sensor_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_combined);
 	}
+
 	/* get a local copy of the battery data */
 	orb_check(battery_status_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
 	}
+
 	/* get a local copy of the global position data */
 	orb_check(vehicle_global_position_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, global_pos);
 	}
 
 	/* get a local copy of the vehicle status data */
 	orb_check(vehicle_status_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, vehicle_status);
 	}
