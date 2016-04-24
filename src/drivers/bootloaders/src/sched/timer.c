@@ -321,7 +321,7 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
 
 void timer_free(bl_timer_id id)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers));
+	DEBUGASSERT(id < arraySize(timers));
 	irqstate_t s = enter_critical_section();
 	memset(&timers[id], 0, sizeof(timers[id]));
 	leave_critical_section(s);
@@ -344,7 +344,7 @@ void timer_free(bl_timer_id id)
  ****************************************************************************/
 void timer_start(bl_timer_id id)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+	DEBUGASSERT(id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload;
 	timers[id].ctl |= running;
@@ -368,7 +368,7 @@ void timer_start(bl_timer_id id)
 
 void timer_stop(bl_timer_id id)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+	DEBUGASSERT(id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].ctl &= ~running;
 	leave_critical_section(s);
@@ -392,7 +392,7 @@ void timer_stop(bl_timer_id id)
 
 int timer_expired(bl_timer_id id)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+	DEBUGASSERT(id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	int rv = ((timers[id].ctl & running) && timers[id].count == 0);
 	leave_critical_section(s);
@@ -418,7 +418,7 @@ int timer_expired(bl_timer_id id)
 
 void timer_restart(bl_timer_id id, time_ms_t ms)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+	DEBUGASSERT(id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload = ms;
 	timers[id].ctl |= running;
@@ -446,7 +446,7 @@ void timer_restart(bl_timer_id id, time_ms_t ms)
 
 time_ref_t timer_ref(bl_timer_id id)
 {
-	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+	DEBUGASSERT(id < arraySize(timers) && (timers[id].ctl & inuse));
 	return (time_ref_t) &timers[id].count;
 }
 
