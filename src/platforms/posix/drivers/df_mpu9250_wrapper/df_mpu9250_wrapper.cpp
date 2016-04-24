@@ -52,6 +52,7 @@
 #include <errno.h>
 
 #include <systemlib/err.h>
+#include <systemlib/perf_counter.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -132,6 +133,14 @@ private:
 
 	unsigned		    _publish_count;
 	hrt_abstime		    _first_sample_time;
+
+	perf_counter_t		    _read_counter;
+	perf_counter_t		    _error_counter;
+	perf_counter_t		    _fifo_overflow_counter;
+	perf_counter_t		    _fifo_corruption_counter;
+	perf_counter_t		    _gyro_range_hit_counter;
+	perf_counter_t		    _accel_range_hit_counter;
+	perf_counter_t		    _publish_perf;
 };
 
 DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
@@ -147,7 +156,14 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
 	/*_rotation(rotation)*/
 	_publish_count(0),
-	_first_sample_time(0)
+	_first_sample_time(0),
+	_read_counter(perf_alloc(PC_COUNT, "mpu9250_reads")),
+	_error_counter(perf_alloc(PC_COUNT, "mpu9250_errors")),
+	_fifo_overflow_counter(perf_alloc(PC_COUNT, "mpu9250_fifo_overflows")),
+	_fifo_corruption_counter(perf_alloc(PC_COUNT, "mpu9250_fifo_corruptions")),
+	_gyro_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_gyro_range_hits")),
+	_accel_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_accel_range_hits")),
+	_publish_perf(perf_alloc(PC_ELAPSED, "mpu9250_publish"))
 {
 	// Set sane default calibration values
 	_accel_calibration.x_scale = 1.0f;
@@ -436,6 +452,13 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		      gyro_val,
 		      gyro_val_integrated_unused,
 		      gyro_report.integral_dt);
+
+	perf_set_count(_read_counter, data.read_counter);
+	perf_set_count(_error_counter, data.error_counter);
+	perf_set_count(_fifo_overflow_counter, data.fifo_overflow_counter);
+	perf_set_count(_fifo_corruption_counter, data.fifo_overflow_counter);
+	perf_set_count(_gyro_range_hit_counter, data.gyro_range_hit_counter);
+	perf_set_count(_accel_range_hit_counter, data.accel_range_hit_counter);
 
 	/* If the time offset is 0, we are receiving the latest sample and can publish,
 	 * at least every 4th time because the driver is running at 1kHz but we should
