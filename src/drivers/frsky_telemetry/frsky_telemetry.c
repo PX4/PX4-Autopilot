@@ -402,6 +402,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				break;
 
 			case SMARTPORT_POLL_8:
+
 				/* report nav_state as DIY_NAVSTATE at 1Hz */
 				if (now - lastNAV_STATE > 1000 * 1000) {
 					lastNAV_STATE = now;
