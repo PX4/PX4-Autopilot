@@ -121,8 +121,8 @@
 
 #define STM32_CFGR_USBPRE       0
 
-#define GPIO_USART2_RX         GPIO_USART2_RX_2
-#define GPIO_USART2_TX         GPIO_USART2_TX_2
+#define GPIO_USART2_RX         GPIO_USART2_RX_3
+#define GPIO_USART2_TX         GPIO_USART2_TX_3
 
 /* Probes unused */
 #define PROBE_INIT(mask)
