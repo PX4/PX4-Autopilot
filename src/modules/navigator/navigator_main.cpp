@@ -409,7 +409,6 @@ Navigator::task_main()
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
-				warnx("navigator: got reposition command");
 
 				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
 
@@ -419,10 +418,30 @@ Navigator::task_main()
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
 
-				rep->current.yaw = cmd.param4;
-				rep->current.lat = cmd.param5;
-				rep->current.lon = cmd.param6;
-				rep->current.alt = cmd.param7;
+				// Go on and check which changes had been requested
+				if (isfinite(cmd.param4)) {
+					rep->current.yaw = cmd.param4;
+				} else {
+					rep->current.yaw = NAN;
+				}
+
+				if (isfinite(cmd.param5)) {
+					rep->current.lat = cmd.param5 / (double)1e7;
+				} else {
+					rep->current.lat = get_global_position()->lat;
+				}
+
+				if (isfinite(cmd.param6)) {
+					rep->current.lon = cmd.param6 / (double)1e7;
+				} else {
+					rep->current.lon = get_global_position()->lon;
+				}
+
+				if (isfinite(cmd.param7)) {
+					rep->current.alt = cmd.param7;
+				} else {
+					rep->current.alt = get_global_position()->alt;
+				}
 
 				rep->previous.valid = true;
 				rep->current.valid = true;

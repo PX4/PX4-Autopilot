@@ -58,7 +58,7 @@ Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_min_alt(this, "MIS_LTRMIN_ALT", false)
 {
-	/* load initial params */
+	// load initial params
 	updateParams();
 }
 
@@ -77,10 +77,10 @@ Loiter::on_activation()
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
 	} else {
-		/* set current mission item to loiter */
+		// set current mission item to loiter
 		set_loiter_item(&_mission_item, _param_min_alt.get());
 
-		/* convert mission item to current setpoint */
+		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.velocity_valid = false;
 		pos_sp_triplet->previous.valid = false;
@@ -109,6 +109,17 @@ Loiter::reposition()
 
 	if (rep->current.valid) {
 		// set loiter position based on reposition command
+
+		// convert mission item to current setpoint
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		pos_sp_triplet->current.velocity_valid = false;
+		memcpy(&pos_sp_triplet->previous, &rep->previous, sizeof(rep->previous));
+		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
+		pos_sp_triplet->next.valid = false;
+
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
+		_navigator->set_position_setpoint_triplet_updated();
 
 		// mark this as done
 		memset(rep, 0, sizeof(*rep));
