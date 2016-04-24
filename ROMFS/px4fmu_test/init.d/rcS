@@ -39,6 +39,11 @@ fi
 #
 
 #
+# Start the ORB (first app to start)
+#
+uorb start
+
+#
 # Load parameters
 #
 set PARAM_FILE /fs/microsd/params
@@ -104,43 +109,6 @@ then
 	tests mount
 fi
 
-#
-# Run unit tests at board boot, reporting failure as needed.
-# Add new unit tests using the same pattern as below.
-#
-
-if mavlink_tests
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
-fi
-
-# TODO: commander_tests is currently broken
-#if commander_tests
-#then
-#else
-#	set unit_test_failure 1
-#	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
-#fi
-
-if controllib_test
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} controllib_tests"
-fi
-
-if uorb test
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
-fi
-
-#
-# Sensors System (start before Commander so Preflight checks are properly run)
-#
 sh /etc/init.d/rc.sensors
 
 # Check for flow sensor
@@ -151,6 +119,60 @@ fi
 if ll40ls start
 then
 fi
+
+#
+# Run unit tests at board boot, reporting failure as needed.
+# Add new unit tests using the same pattern as below.
+#
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "[mavlink_tests]             STARTING TEST"
+if mavlink_tests
+then
+	echo "[mavlink_tests]             PASS"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
+	echo "[mavlink_tests]             FAILED"
+fi
+echo "--------------------------------------------------------------------------------"
+echo
+echo "--------------------------------------------------------------------------------"
+echo "[commander_tests]             STARTING TEST"
+if commander_tests
+then
+	echo "[commander_tests]             PASS"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
+	echo "[commander_tests]             FAILED"
+fi
+echo "--------------------------------------------------------------------------------"
+echo
+echo "--------------------------------------------------------------------------------"
+echo "[controllib_test]             STARTING TEST"
+if controllib_test
+then
+	echo "[controllib_test]             PASS"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} controllib_tests"
+	echo "[controllib_test]             FAILED"
+fi
+echo "--------------------------------------------------------------------------------"
+echo
+echo "--------------------------------------------------------------------------------"
+echo "[uorb_tests]             STARTING TEST"
+if uorb_tests
+then
+	echo "[uorb_tests]             PASS"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
+	echo "[uorb_tests]             FAILED"
+fi
+echo "--------------------------------------------------------------------------------"
 
 if tests all
 then

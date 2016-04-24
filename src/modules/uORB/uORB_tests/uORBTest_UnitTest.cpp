@@ -128,7 +128,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 	pubsubtest_passed = true;
 
-	if (static_cast<float>(latency_integral / maxruns) > 30.0f) {
+	if (static_cast<float>(latency_integral / maxruns) > 40.0f) {
 		pubsubtest_res = uORB::ERROR;
 
 	} else {

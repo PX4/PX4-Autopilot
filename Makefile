@@ -250,7 +250,7 @@ ifeq ($(VECTORCONTROL),1)
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-unittest: posix_sitl_default
+unittest: posix_sitl_test
 	@(mkdir -p build_unittests && cd build_unittests && cmake -G$(PX4_CMAKE_GENERATOR) ../unittests && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest -j2 --output-on-failure)
 
 package_firmware:

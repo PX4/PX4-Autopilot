@@ -2006,7 +2006,7 @@ Mavlink::task_main(int argc, char *argv[])
 				// allocated.
 				//fclose(fs);
 			} else {
-				warnx("open fd %d failed", _uart_fd);
+				PX4_WARN("open fd %d failed", _uart_fd);
 			}
 
 			/* reset param and save */
@@ -2040,26 +2040,26 @@ Mavlink::task_main(int argc, char *argv[])
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
 					if ( get_protocol() == SERIAL ) {
-						warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
+						PX4_INFO("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
 							(double)_subscribe_to_stream_rate);
 					} else if ( get_protocol() == UDP ) {
-						warnx("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
+						PX4_INFO("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
 							(double)_subscribe_to_stream_rate);
 					}
 
 				} else {
 					if ( get_protocol() == SERIAL ) {
-						warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+						PX4_WARN("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 					} else if ( get_protocol() == UDP ) {
-						warnx("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
+						PX4_WARN("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
 					}
 				}
 
 			} else {
 				if ( get_protocol() == SERIAL ) {
-					warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+					PX4_WARN("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 				} else if ( get_protocol() == UDP ) {
-					warnx("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
+					PX4_WARN("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
 				}
 			}
 
