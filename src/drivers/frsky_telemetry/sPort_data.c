@@ -324,12 +324,7 @@ void sPort_send_GPS_SPD(int uart)
  */
 void sPort_send_NAV_STATE(int uart)
 {
-	/* get a local copy of the vehicle status data */
-	struct vehicle_status_s vehicle_status;
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
-	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-
-	uint32_t navstate = (int)(128 + vehicle_status.nav_state);
+	uint32_t navstate = (int)(128 + vehicle_status->nav_state);
 
 	/* send data */
 	sPort_send_data(uart, SMARTPORT_ID_DIY_NAVSTATE, navstate);
