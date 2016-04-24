@@ -10,9 +10,8 @@
 #define DBGPRINT
 
 #if defined(DBGPRINT)
-
 // needed for mallinfo
-#if defined(__PX4_POSIX)
+#if defined(__PX4_POSIX) && !defined(__PX4_DARWIN)
 #include <malloc.h>
 #endif /* __PX4_POSIX */
 
@@ -20,7 +19,6 @@
 #if defined(__PX4_DARWIN)
 #undef DBGPRINT
 #endif /* defined(__PX4_DARWIN) */
-
 #endif /* defined(DBGPRINT) */
 
 using namespace px4::logger;
@@ -60,7 +58,7 @@ int logger_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (logger_ptr) {
-			PX4_INFO("running");
+			logger_ptr->status();
 			return 0;
 
 		} else {
@@ -85,12 +83,12 @@ void Logger::usage(const char *reason)
 	}
 
 	PX4_INFO("usage: logger {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
-	      "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-	      "\t-b\tLog buffer size in KiB, default is 8\n"
-	      "\t-e\tEnable logging by default (if not, can be started by command)\n"
-	      "\t-a\tLog only when armed (can be still overriden by command)\n"
-	      "\t-t\tUse date/time for naming log directories and files\n"
-	      "\t-x\tExtended logging");
+		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+		 "\t-b\tLog buffer size in KiB, default is 8\n"
+		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
+		 "\t-a\tLog only when armed (can be still overriden by command)\n"
+		 "\t-t\tUse date/time for naming log directories and files\n"
+		 "\t-x\tExtended logging");
 }
 
 int Logger::start(char *const *argv)
@@ -111,6 +109,23 @@ int Logger::start(char *const *argv)
 	}
 
 	return OK;
+}
+
+void Logger::status()
+{
+	if (!_enabled) {
+		PX4_WARN("running, but not logging");
+
+	} else {
+		PX4_WARN("running");
+
+//		float kibibytes = _writer.get_total_written() / 1024.0f;
+//		float mebibytes = kibibytes / 1024.0f;
+//		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
+//
+//		PX4_WARN("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+//		mavlink_log_info(&mavlink_log_pub, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+	}
 }
 
 void Logger::run_trampoline(int argc, char *argv[])
@@ -239,7 +254,7 @@ Logger::~Logger()
 		_task_should_exit = true;
 
 		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
+		unsigned int i = 0;
 
 		do {
 			/* wait 20ms */
@@ -266,17 +281,14 @@ int Logger::add_topic(const orb_metadata *topic)
 		PX4_WARN("skip topic %s, data size is too large: %zu (max is %zu)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
 
 	} else {
-
 		size_t fields_len = strlen(topic->o_fields);
 
 		if (fields_len > sizeof(message_format_s::format)) {
 			PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			     sizeof(message_format_s::format));
+				 sizeof(message_format_s::format));
 
 		} else {
-
 			fd = orb_subscribe(topic);
-
 			_subscriptions.push_back(LoggerSubscription(fd, topic));
 		}
 	}
@@ -297,25 +309,28 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 		}
 	}
 
-	if ((fd > 0) && (interval != 0)) { orb_set_interval(fd, interval); }
+	if ((fd > 0) && (interval != 0)) {
+		orb_set_interval(fd, interval);
+	}
 
 	return fd;
 }
 
-bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked)
+bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer,
+				   uint64_t *time_last_checked)
 {
 	bool updated = false;
 
-	// only try to subsribe to topic if this is the first time
+	// only try to subscribe to topic if this is the first time
 	// after that just check after a certain interval to avoid high cpu usage
 	if (*handle < 0 && (*time_last_checked == 0 || hrt_elapsed_time(time_last_checked) > TRY_SUBSCRIBE_INTERVAL)) {
-//		if (multi_instance == 1) warnx("checking instance 1 of topic %s", topic->o_name);
+		//if (multi_instance == 1) warnx("checking instance 1 of topic %s", topic->o_name);
 		*time_last_checked = hrt_absolute_time();
 
 		if (OK == orb_exists(topic, multi_instance)) {
 			*handle = orb_subscribe_multi(topic, multi_instance);
 
-//			warnx("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
+			//warnx("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
 			if (*handle >= 0) {
@@ -339,7 +354,7 @@ void Logger::run()
 {
 #ifdef DBGPRINT
 	struct mallinfo alloc_info = {};
-#endif
+#endif /* DBGPRINT */
 
 	PX4_WARN("started");
 
@@ -386,7 +401,7 @@ void Logger::run()
 	size_t 		highWater = 0;
 	size_t		available = 0;
 	double		max_drop_len = 0;
-#endif
+#endif /* DBGPRINT */
 
 	// we start logging immediately
 	// the case where we wait with logging until vehicle is armed is handled below
@@ -410,7 +425,7 @@ void Logger::run()
 #ifdef DBGPRINT
 					timer_start = hrt_absolute_time();
 					total_bytes = 0;
-#endif
+#endif /* DBGPRINT */
 
 				} else {
 					stop_log();
@@ -437,18 +452,20 @@ void Logger::run()
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
-//				orb_check(sub.fd, &updated);	// check whether a non-multi topic has been updated
+				//orb_check(sub.fd, &updated);	// check whether a non-multi topic has been updated
 				/* this works for both single and multi-instances */
-				for (unsigned instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s), &sub.time_tried_subscribe)) {
+				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s),
+								  &sub.time_tried_subscribe)) {
 
-//						uint64_t timestamp;
-//						memcpy(&timestamp, buffer + sizeof(message_data_header_s), sizeof(timestamp));
-//						warnx("topic: %s, instance: %d, timestamp: %llu",
-//								sub.metadata->o_name, instance, timestamp);
+						//uint64_t timestamp;
+						//memcpy(&timestamp, buffer + sizeof(message_data_header_s), sizeof(timestamp));
+						//warnx("topic: %s, instance: %d, timestamp: %llu",
+						//		sub.metadata->o_name, instance, timestamp);
 
 						/* copy the current topic data into the buffer after the header */
-//						orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
+						//orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
+
 						/* fill the message header struct in-place at the front of the buffer,
 						 * accessing the unaligned (packed) structure properly
 						 */
@@ -459,7 +476,6 @@ void Logger::run()
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 
-
 #ifdef DBGPRINT
 						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
 						hrt_abstime trytime = hrt_absolute_time();
@@ -468,9 +484,10 @@ void Logger::run()
 							highWater = _writer._count;
 						}
 
-#endif
+#endif /* DBGPRINT */
 
 						if (_writer.write(buffer, msg_size)) {
+
 #ifdef DBGPRINT
 
 							// successful write: note end of dropout if dropout_start != 0
@@ -484,13 +501,13 @@ void Logger::run()
 								highWater = 0;
 							}
 
-#endif
-							data_written = true;
-#ifdef DBGPRINT
 							total_bytes += msg_size;
-#endif
+#endif /* DBGPRINT */
+
+							data_written = true;
 
 						} else {
+
 #ifdef DBGPRINT
 
 							if (dropout_start == 0)	{
@@ -500,7 +517,8 @@ void Logger::run()
 								dropout_count++;
 							}
 
-#endif
+#endif /* DBGPRINT */
+
 							break;	// Write buffer overflow, skip this record
 						}
 					}
@@ -524,7 +542,7 @@ void Logger::run()
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
 				PX4_INFO("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
-				      throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
+					 throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
 
 				total_bytes = 0;
 				highWater = 0,
@@ -533,7 +551,8 @@ void Logger::run()
 				timer_start = hrt_absolute_time();
 			}
 
-#endif
+#endif /* DBGPRINT */
+
 		}
 
 		usleep(_log_interval);
@@ -660,6 +679,7 @@ void Logger::write_formats()
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		msg.msg_size = msg_size - 2;
+
 		while (!_writer.write(&msg, msg_size)) {
 			_writer.unlock();
 			_writer.notify();

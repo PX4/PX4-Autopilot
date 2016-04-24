@@ -10,7 +10,7 @@
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
 #define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
-											// if we haven't succeeded before
+// if we haven't succeeded before
 
 namespace px4
 {
@@ -48,6 +48,8 @@ public:
 	static int start(char *const *argv);
 
 	static void usage(const char *reason);
+
+	void status();
 
 private:
 	static void run_trampoline(int argc, char *argv[]);
