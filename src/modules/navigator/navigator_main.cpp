@@ -418,6 +418,10 @@ Navigator::task_main()
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
 
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction = 1;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
 					rep->current.yaw = cmd.param4;
@@ -425,15 +429,11 @@ Navigator::task_main()
 					rep->current.yaw = NAN;
 				}
 
-				if (PX4_ISFINITE(cmd.param5)) {
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = cmd.param5 / (double)1e7;
-				} else {
-					rep->current.lat = get_global_position()->lat;
-				}
-
-				if (PX4_ISFINITE(cmd.param6)) {
 					rep->current.lon = cmd.param6 / (double)1e7;
 				} else {
+					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
 				}
 
