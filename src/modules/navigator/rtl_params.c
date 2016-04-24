@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,7 +83,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @min -1
  * @max 300
  * @decimal 1
- * @increment 1
+ * @increment 0.5
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);

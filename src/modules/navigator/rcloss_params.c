@@ -51,6 +51,8 @@
  *
  * @unit s
  * @min -1.0
+ * @decimal 1
+ * @increment 0.1
  * @group Radio Signal Loss
  */
 PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);
