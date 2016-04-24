@@ -142,6 +142,7 @@ public:
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	bool				    home_position_valid() { return (_home_pos.timestamp > 0); }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct position_setpoint_triplet_s* get_reposition_triplet() { return &_reposition_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
 	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
 	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
@@ -227,6 +228,7 @@ private:
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+	position_setpoint_triplet_s			_reposition_triplet;	/**< triplet for non-mission direct position command */
 
 	mission_result_s				_mission_result;
 	geofence_result_s				_geofence_result;

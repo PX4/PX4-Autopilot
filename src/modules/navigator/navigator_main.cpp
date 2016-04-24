@@ -128,6 +128,7 @@ Navigator::Navigator() :
 	_mission_item{},
 	_nav_caps{},
 	_pos_sp_triplet{},
+	_reposition_triplet{},
 	_mission_result{},
 	_att_sp{},
 	_mission_item_valid(false),
@@ -408,7 +409,43 @@ Navigator::task_main()
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
-				warnx("navigator: got reposition command");
+
+				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+				// store current position as previous position and goal as next
+				rep->previous.yaw = NAN;
+				rep->previous.lat = get_global_position()->lat;
+				rep->previous.lon = get_global_position()->lon;
+				rep->previous.alt = get_global_position()->alt;
+
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction = 1;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+				// Go on and check which changes had been requested
+				if (PX4_ISFINITE(cmd.param4)) {
+					rep->current.yaw = cmd.param4;
+				} else {
+					rep->current.yaw = NAN;
+				}
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = cmd.param5 / (double)1e7;
+					rep->current.lon = cmd.param6 / (double)1e7;
+				} else {
+					rep->current.lat = get_global_position()->lat;
+					rep->current.lon = get_global_position()->lon;
+				}
+
+				if (PX4_ISFINITE(cmd.param7)) {
+					rep->current.alt = cmd.param7;
+				} else {
+					rep->current.alt = get_global_position()->alt;
+				}
+
+				rep->previous.valid = true;
+				rep->current.valid = true;
+				rep->next.valid = false;
 			}
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {

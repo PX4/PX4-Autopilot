@@ -669,6 +669,29 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 	/* request to set different system mode */
 	switch (cmd->command) {
+	case vehicle_command_s::VEHICLE_CMD_DO_REPOSITION: {
+
+		// Just switch the flight mode here, the navigator takes care of
+		// doing something sensible with the coordinates. Its designed
+		// to not require navigator and command to receive / process
+		// the data at the exact same time.
+
+		// Check if a mode switch had been requested
+		if ((((uint8_t)cmd->param1) & 1) > 0) {
+			transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+
+			if ((main_ret != TRANSITION_DENIED)) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
+			}
+		} else {
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		}
+	}
+	break;
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t)cmd->param1;
 			uint8_t custom_main_mode = (uint8_t)cmd->param2;
