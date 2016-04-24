@@ -299,7 +299,7 @@ perf_end(perf_counter_t handle)
 #include <systemlib/err.h>
 
 void
-perf_set(perf_counter_t handle, int64_t elapsed)
+perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 {
 	if (handle == NULL) {
 		return;
@@ -340,6 +340,25 @@ perf_set(perf_counter_t handle, int64_t elapsed)
 	default:
 		break;
 	}
+}
+
+void
+perf_set_count(perf_counter_t handle, uint64_t count)
+{
+	if (handle == NULL) {
+		return;
+	}
+
+	switch (handle->type) {
+	case PC_COUNT: {
+			((struct perf_ctr_count *)handle)->event_count = count;
+		}
+		break;
+
+	default:
+		break;
+	}
+
 }
 
 void
