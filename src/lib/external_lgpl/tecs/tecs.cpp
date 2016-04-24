@@ -505,7 +505,7 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 		_integ6_state = 0.0f;
 		_integ7_state = 0.0f;
 		_last_throttle_dem = throttle_cruise;
-		_last_pitch_dem = pitch;
+		_last_pitch_dem = constrain(pitch, _PITCHminf, _PITCHmaxf);
 		_hgt_dem_adj_last = baro_altitude;
 		_hgt_dem_adj = _hgt_dem_adj_last;
 		_hgt_dem_prev = _hgt_dem_adj_last;

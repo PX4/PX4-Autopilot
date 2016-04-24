@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 /**
- * @file RunwayTakeoff.h
- * Runway takeoff handling for fixed-wing UAVs with steerable wheels.
+ * @file FixedWingTakeoff.h
+ * Fixed wing takeoff handling for UAVs including those with steerable wheels.
  *
  * @author Roman Bapst <roman@px4.io>
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#ifndef RUNWAYTAKEOFF_H
-#define RUNWAYTAKEOFF_H
+#ifndef FIXEDWINGTAKEOFF_H
+#define FIXEDWINGTAKEOFF_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -51,40 +51,41 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
-namespace runwaytakeoff
+namespace FixedWingTakeoff
 {
 
-enum RunwayTakeoffState {
+enum FixedWingTakeoffState {
 	THROTTLE_RAMP = 0, /**< ramping up throttle */
-	CLAMPED_TO_RUNWAY = 1, /**< clamped to runway, controlling yaw directly (wheel or rudder) */
+	ACCELERATE = 1, /**< clamped to runway, controlling yaw directly (wheel or rudder) */
 	TAKEOFF = 2, /**< taking off, get ground clearance, roll 0 */
 	CLIMBOUT = 3, /**< climbout to safe height before navigation, roll limited */
 	FLY = 4 /**< fly towards takeoff waypoint */
 };
 
-class __EXPORT RunwayTakeoff : public control::SuperBlock
+class __EXPORT FixedWingTakeoff : public control::SuperBlock
 {
 public:
-	RunwayTakeoff();
-	~RunwayTakeoff();
+	FixedWingTakeoff();
+	~FixedWingTakeoff();
 
-	void init(float yaw, double current_lat, double current_lon);
-	void update(float airspeed, float alt_agl, double current_lat, double current_lon, orb_advert_t *mavlink_log_pub);
+	void init(float yaw, double current_lat, double current_lon, float waypoint_alt);
+	void update(float airspeed, float alt, float alt_agl, double current_lat, double current_lon,
+		    orb_advert_t *mavlink_log_pub);
 
-	RunwayTakeoffState getState() { return _state; };
 	bool isInitialized() { return _initialized; };
 
-	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); };
-	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); };
-	float getInitYaw() { return _init_yaw; };
+	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff.get(); };
 
 	bool controlYaw();
-	bool climbout() { return _climbout; };
-	float getPitch(float tecsPitch);
+	bool climbout() { return _state < FLY; };
+
 	float getRoll(float navigatorRoll);
 	float getYaw(float navigatorYaw);
+	float getAirspeed(float missionAirspeed);
 	float getThrottle(float tecsThrottle);
+
 	bool resetIntegrators();
+
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
 	math::Vector<2> getStartWP();
@@ -94,20 +95,23 @@ public:
 protected:
 private:
 	/** state variables **/
-	RunwayTakeoffState _state;
+	FixedWingTakeoffState _state;
 	bool _initialized;
 	hrt_abstime _initialized_time;
 	float _init_yaw;
-	bool _climbout;
-	unsigned _throttle_ramp_time;
+	uint8_t _throttle_ramp_time;
+	uint8_t _min_airspeed_time;
 	math::Vector<2> _start_wp;
+	hrt_abstime _last_timestamp;
+	float _waypoint_alt;
+	float _airspeed_achieved_integrator;
 
 	/** parameters **/
-	control::BlockParamInt _runway_takeoff_enabled;
+	control::BlockParamInt _runway_takeoff;
 	control::BlockParamInt _heading_mode;
 	control::BlockParamFloat _nav_alt;
 	control::BlockParamFloat _takeoff_throttle;
-	control::BlockParamFloat _runway_pitch_sp;
+	control::BlockParamFloat _pitch_sp;
 	control::BlockParamFloat _max_takeoff_pitch;
 	control::BlockParamFloat _max_takeoff_roll;
 	control::BlockParamFloat _min_airspeed_scaling;
@@ -118,4 +122,4 @@ private:
 
 }
 
-#endif // RUNWAYTAKEOFF_H
+#endif // FIXEDWINGTAKEOFF_H

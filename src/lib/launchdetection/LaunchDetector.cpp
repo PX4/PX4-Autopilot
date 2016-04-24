@@ -53,7 +53,6 @@ LaunchDetector::LaunchDetector() :
 	/* init all detectors */
 	launchMethods[0] = new CatapultLaunchMethod(this);
 
-
 	/* update all parameters of all detectors */
 	updateParams();
 }
@@ -106,27 +105,24 @@ LaunchDetectionResult LaunchDetector::getLaunchDetected()
 	return LAUNCHDETECTION_RES_NONE;
 }
 
-float LaunchDetector::getPitchMax(float pitchMaxDefault)
+float LaunchDetector::getThrottle(float tecsThrottle)
 {
-	if (!launchdetection_on.get()) {
-		return pitchMaxDefault;
-	}
+	float throttle = tecsThrottle;
 
-	/* if a lauchdetectionmethod is active or only one exists return the pitch limit from this method,
-	 * otherwise use the default limit */
-	if (activeLaunchDetectionMethodIndex < 0) {
-		if (sizeof(launchMethods) / sizeof(LaunchMethod *) > 1) {
-			return pitchMaxDefault;
+	if (launchdetection_on.get()) {
+		switch (getLaunchDetected()) {
+		case LAUNCHDETECTION_RES_NONE:
+		case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
+			throttle = throttlePreTakeoff.get();
+			break;
 
-		} else {
-			return launchMethods[0]->getPitchMax(pitchMaxDefault);
+		case LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS:
+			/* do nothing */
+			break;
 		}
-
-	} else {
-		return launchMethods[activeLaunchDetectionMethodIndex]->getPitchMax(pitchMaxDefault);
 	}
 
+	return throttle;
 }
-
 
 }

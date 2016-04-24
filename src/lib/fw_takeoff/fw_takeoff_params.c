@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file runway_takeoff_params.c
+ * @file fw_takeoff_params.c
  *
- * Parameters for runway takeoff
+ * Parameters for fixed wing takeoff
  *
  * @author Andreas Antener <andreas@uaventure.com>
  */
@@ -43,12 +43,12 @@
  * Runway takeoff with landing gear
  *
  * @boolean
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
+PARAM_DEFINE_INT32(FW_TO_RWTO, 0);
 
 /**
- * Specifies which heading should be held during runnway takeoff.
+ * Specifies which heading should be held during takeoff.
  *
  * 0: airframe heading, 1: heading towards takeoff waypoint
  *
@@ -56,14 +56,14 @@ PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
  * @value 1 Waypoint
  * @min 0
  * @max 1
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_INT32(RWTO_HDG, 0);
+PARAM_DEFINE_INT32(FW_TO_HDG, 0);
 
 /**
  * Altitude AGL at which we have enough ground clearance to allow some roll.
- * Until RWTO_NAV_ALT is reached the plane is held level and only
- * rudder is used to keep the heading (see RWTO_HDG). This should be below
+ * Until FW_NAV_ALT is reached the plane is held level and only
+ * rudder is used to keep the heading (see FW_HDG). This should be below
  * FW_CLMBOUT_DIFF if FW_CLMBOUT_DIFF > 0.
  *
  * @unit m
@@ -71,12 +71,12 @@ PARAM_DEFINE_INT32(RWTO_HDG, 0);
  * @max 100.0
  * @decimal 1
  * @increment 1
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
+PARAM_DEFINE_FLOAT(FW_TO_NAV_ALT, 5.0);
 
 /**
- * Max throttle during runway takeoff.
+ * Max throttle during takeoff.
  * (Can be used to test taxi on runway)
  *
  * @unit norm
@@ -84,12 +84,12 @@ PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
+PARAM_DEFINE_FLOAT(FW_TO_MAX_THR, 1.0);
 
 /**
- * Pitch setpoint during taxi / before takeoff airspeed is reached.
+ * Pitch setpoint during before takeoff airspeed is reached.
  * A taildragger with stearable wheel might need to pitch up
  * a little to keep it's wheel on the ground before airspeed
  * to takeoff is reached.
@@ -99,9 +99,9 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
  * @max 20.0
  * @decimal 1
  * @increment 0.5
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
+PARAM_DEFINE_FLOAT(FW_TO_PSP, 0.0);
 
 /**
  * Max pitch during takeoff.
@@ -113,9 +113,9 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
  * @max 60.0
  * @decimal 1
  * @increment 0.5
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
+PARAM_DEFINE_FLOAT(FW_TO_MAX_PITCH, 20.0);
 
 /**
  * Max roll during climbout.
@@ -127,9 +127,9 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
  * @max 60.0
  * @decimal 1
  * @increment 0.5
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
+PARAM_DEFINE_FLOAT(FW_TO_MAX_ROLL, 15.0);
 
 /**
  * Min. airspeed scaling factor for takeoff.
@@ -141,6 +141,6 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
  * @max 2.0
  * @decimal 2
  * @increment 0.01
- * @group Runway Takeoff
+ * @group FW Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
+PARAM_DEFINE_FLOAT(FW_TO_AIRSPD_SCL, 1.3);

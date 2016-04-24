@@ -115,7 +115,7 @@ set(config_module_list
 	lib/conversion
 	lib/launchdetection
 	lib/terrain_estimation
-	lib/runway_takeoff
+	lib/fw_takeoff
 	lib/tailsitter_recovery
 	lib/DriverFramework/framework
 	platforms/nuttx

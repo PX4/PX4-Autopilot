@@ -59,7 +59,6 @@ public:
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected() const;
 	void reset();
-	float getPitchMax(float pitchMaxDefault);
 
 private:
 	hrt_abstime last_timestamp;

@@ -77,7 +77,7 @@
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
-#include <runway_takeoff/RunwayTakeoff.h>
+#include <fw_takeoff/FixedWingTakeoff.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
@@ -215,7 +215,7 @@ private:
 	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
 	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
 
-	runwaytakeoff::RunwayTakeoff _runway_takeoff;
+	FixedWingTakeoff::FixedWingTakeoff _fw_takeoff;
 
 	/* takeoff/launch states */
 	LaunchDetectionResult launch_detection_state;
@@ -573,7 +573,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	height_flare(0.0f),
 	_was_in_air(false),
 	_time_went_in_air(0),
-	_runway_takeoff(),
+	_fw_takeoff(),
 	launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	last_manual(false),
 	landingslope(),
@@ -777,7 +777,7 @@ FixedwingPositionControl::parameters_update()
 	/* Update Launch Detector Parameters */
 	launchDetector.updateParams();
 
-	_runway_takeoff.updateParams();
+	_fw_takeoff.updateParams();
 
 	return OK;
 }
@@ -1235,9 +1235,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
 	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
-	/* define altitude error */
-	float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
-
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
 
@@ -1604,163 +1601,105 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-			if (_runway_takeoff.runwayTakeoffEnabled()) {
-				if (!_runway_takeoff.isInitialized()) {
+			/* Perform launch detection */
+			if (launchDetector.launchDetectionEnabled() &&
+			    launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+				/* Inform user that launchdetection is running */
+				static hrt_abstime last_sent = 0;
+
+				if (hrt_absolute_time() - last_sent > 4e6) {
+					mavlink_log_critical(&_mavlink_log_pub, "#Launchdetection running");
+					last_sent = hrt_absolute_time();
+				}
+
+				/* Detect launch */
+				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
+
+				/* update our copy of the launch detection state */
+				launch_detection_state = launchDetector.getLaunchDetected();
+
+			} else {
+				/* no takeoff launch detection --> fly */
+				launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+			}
+
+			/* Set control values depending on the detection state */
+			if (launch_detection_state != LAUNCHDETECTION_RES_NONE) {
+				/* Launch has been detected, hence we have to control the plane. */
+
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				_att_sp.roll_body = _l1_control.nav_roll();
+				_att_sp.yaw_body = _l1_control.nav_bearing();
+
+				if (!_fw_takeoff.isInitialized()) {
 					math::Quaternion q(&_ctrl_state.q[0]);
 					math::Vector<3> euler = q.to_euler();
-					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon);
+					_fw_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon, pos_sp_triplet.current.alt);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
 					_takeoff_ground_alt = _global_pos.alt;
 
-					mavlink_log_info(&_mavlink_log_pub, "#Takeoff on runway");
+					mavlink_log_info(&_mavlink_log_pub, "#Fixed wing takeoff starting");
 				}
 
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
 
-				// update runway takeoff helper
-				_runway_takeoff.update(
-					_ctrl_state.airspeed,
-					_global_pos.alt - terrain_alt,
-					_global_pos.lat,
-					_global_pos.lon,
-					&_mavlink_log_pub);
+				// update fw takeoff helper
+				_fw_takeoff.update(_ctrl_state.airspeed, _global_pos.alt, _global_pos.alt - terrain_alt,
+						   _global_pos.lat, _global_pos.lon, &_mavlink_log_pub);
 
 				/*
-				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
+				 * Update navigation: _fw_takeoff returns the start WP according to mode and phase.
 				 * If we use the navigator heading or not is decided later.
 				 */
-				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
+				_l1_control.navigate_waypoints(_fw_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
+
+				float takeoff_max_throttle = _fw_takeoff.getThrottle(_parameters.throttle_max);
+
+				// override takeoff throttle when using the launch detector
+				if (launchDetector.launchDetectionEnabled()) {
+					takeoff_max_throttle = launchDetector.getThrottle(_parameters.throttle_max);
+				}
 
 				// update tecs
-				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
-				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
-
 				tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-							   calculate_target_airspeed(
-								   _runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
+							   _fw_takeoff.getAirspeed(calculate_target_airspeed(mission_airspeed)),
 							   eas2tas,
-							   math::radians(_parameters.pitch_limit_min),
-							   takeoff_pitch_max_rad,
+							   math::radians(_fw_takeoff.getMinPitch(pos_sp_triplet.current.pitch_min, 10.0f, _parameters.pitch_limit_min)),
+							   math::radians(_fw_takeoff.getMaxPitch(_parameters.pitch_limit_max)),
 							   _parameters.throttle_min,
-							   _parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
+							   takeoff_max_throttle,
 							   _parameters.throttle_cruise,
-							   _runway_takeoff.climbout(),
-							   math::radians(_runway_takeoff.getMinPitch(
-									   pos_sp_triplet.current.pitch_min,
-									   10.0f,
-									   _parameters.pitch_limit_min)),
+							   _fw_takeoff.climbout(),
+							   math::radians(_fw_takeoff.getMinPitch(pos_sp_triplet.current.pitch_min, 10.0f, _parameters.pitch_limit_min)),
 							   _global_pos.alt,
 							   ground_speed,
 							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				// assign values
-				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
-				_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
-				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
-				_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
+				_att_sp.roll_body = _fw_takeoff.getRoll(_l1_control.nav_roll());
+				_att_sp.yaw_body = _fw_takeoff.getYaw(_l1_control.nav_bearing());
+				_att_sp.fw_control_yaw = _fw_takeoff.controlYaw();
 
 				// reset integrals except yaw (which also counts for the wheel controller)
-				_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
-				_att_sp.pitch_reset_integral = _runway_takeoff.resetIntegrators();
+				_att_sp.roll_reset_integral = _fw_takeoff.resetIntegrators();
+				_att_sp.pitch_reset_integral = _fw_takeoff.resetIntegrators();
 
 				/*warnx("yaw: %.4f, roll: %.4f, pitch: %.4f", (double)_att_sp.yaw_body,
 					(double)_att_sp.roll_body, (double)_att_sp.pitch_body);*/
 
 			} else {
-				/* Perform launch detection */
-				if (launchDetector.launchDetectionEnabled() &&
-				    launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
-					/* Inform user that launchdetection is running */
-					static hrt_abstime last_sent = 0;
+				/* Tell the attitude controller to stop integrating while we are waiting
+				 * for the launch */
+				_att_sp.roll_reset_integral = true;
+				_att_sp.pitch_reset_integral = true;
+				_att_sp.yaw_reset_integral = true;
 
-					if (hrt_absolute_time() - last_sent > 4e6) {
-						mavlink_log_critical(&_mavlink_log_pub, "#Launchdetection running");
-						last_sent = hrt_absolute_time();
-					}
-
-					/* Detect launch */
-					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
-
-					/* update our copy of the launch detection state */
-					launch_detection_state = launchDetector.getLaunchDetected();
-
-				} else	{
-					/* no takeoff detection --> fly */
-					launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-				}
-
-				/* Set control values depending on the detection state */
-				if (launch_detection_state != LAUNCHDETECTION_RES_NONE) {
-					/* Launch has been detected, hence we have to control the plane. */
-
-					_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-					_att_sp.roll_body = _l1_control.nav_roll();
-					_att_sp.yaw_body = _l1_control.nav_bearing();
-
-					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
-					 * full throttle, otherwise we use the preTakeOff Throttle */
-					float takeoff_throttle = launch_detection_state !=
-								 LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
-								 launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
-
-					/* select maximum pitch: the launchdetector may impose another limit for the pitch
-					 * depending on the state of the launch */
-					float takeoff_pitch_max_deg = launchDetector.getPitchMax(_parameters.pitch_limit_max);
-					float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
-
-					/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
-					 * meters */
-					if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
-						/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-									   calculate_target_airspeed(1.3f * _parameters.airspeed_min),
-									   eas2tas,
-									   math::radians(_parameters.pitch_limit_min),
-									   takeoff_pitch_max_rad,
-									   _parameters.throttle_min, takeoff_throttle,
-									   _parameters.throttle_cruise,
-									   true,
-									   math::max(math::radians(pos_sp_triplet.current.pitch_min),
-										     math::radians(10.0f)),
-									   _global_pos.alt,
-									   ground_speed,
-									   tecs_status_s::TECS_MODE_TAKEOFF);
-
-						/* limit roll motion to ensure enough lift */
-						_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
-										    math::radians(15.0f));
-
-					} else {
-						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-									   calculate_target_airspeed(mission_airspeed),
-									   eas2tas,
-									   math::radians(_parameters.pitch_limit_min),
-									   math::radians(_parameters.pitch_limit_max),
-									   _parameters.throttle_min,
-									   takeoff_throttle,
-									   _parameters.throttle_cruise,
-									   false,
-									   math::radians(_parameters.pitch_limit_min),
-									   _global_pos.alt,
-									   ground_speed);
-					}
-
-				} else {
-					/* Tell the attitude controller to stop integrating while we are waiting
-					 * for the launch */
-					_att_sp.roll_reset_integral = true;
-					_att_sp.pitch_reset_integral = true;
-					_att_sp.yaw_reset_integral = true;
-
-					/* Set default roll and pitch setpoints during detection phase */
-					_att_sp.roll_body = 0.0f;
-					_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min),
-								       math::radians(10.0f));
-				}
+				/* Set default roll and pitch setpoints during detection phase */
+				_att_sp.roll_body = 0.0f;
+				_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f));
 			}
-
 		}
 
 		/* reset landing state */
@@ -1971,24 +1910,21 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-		   !_runway_takeoff.runwayTakeoffEnabled()) {
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = (launchDetector.launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() :
-				 _parameters.throttle_idle;
-
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _runway_takeoff.runwayTakeoffEnabled()) {
-		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
-
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
+
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
+		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+
+		float takeoff_throttle = _fw_takeoff.getThrottle(get_tecs_thrust());
+
+		// override takeoff throttle when using the launch detector
+		if (launchDetector.launchDetectionEnabled()) {
+			takeoff_throttle = launchDetector.getThrottle(get_tecs_thrust());
+		}
+
+		_att_sp.thrust = math::min(takeoff_throttle, throttle_max);
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
@@ -1999,19 +1935,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else {
 			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
 		}
-
-
 	}
 
-	/* During a takeoff waypoint while waiting for launch the pitch sp is set
-	 * already (not by tecs) */
-	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO && (
-		      (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		       (launch_detection_state == LAUNCHDETECTION_RES_NONE ||
-			_runway_takeoff.runwayTakeoffEnabled())) ||
-		      (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
-		       land_noreturn_vertical))
-	     )) {
+	/* during an auto landing (and after land_noreturn_vertical) the pitch sp is already set */
+	if (!((_control_mode_current ==  FW_POSCTRL_MODE_AUTO)
+	      && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND && land_noreturn_vertical))) {
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
 
@@ -2207,7 +2135,7 @@ void FixedwingPositionControl::reset_takeoff_state()
 {
 	launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	launchDetector.reset();
-	_runway_takeoff.reset();
+	_fw_takeoff.reset();
 }
 
 void FixedwingPositionControl::reset_landing_state()

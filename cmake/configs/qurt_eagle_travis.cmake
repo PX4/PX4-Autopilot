@@ -68,7 +68,7 @@ set(config_module_list
 	lib/conversion
 	lib/ecl
 	lib/terrain_estimation
-	lib/runway_takeoff
+	lib/fw_takeoff
 	lib/tailsitter_recovery
 	lib/DriverFramework/framework
 

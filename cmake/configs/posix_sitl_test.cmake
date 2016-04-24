@@ -68,7 +68,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/mathlib
 	lib/mathlib/math/filter
-	lib/runway_takeoff
+	lib/fw_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 
