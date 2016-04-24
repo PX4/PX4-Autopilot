@@ -1256,7 +1256,7 @@ PX4IO::io_set_control_state(unsigned group)
 
 			if (changed) {
 				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
-				perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
+				perf_set_elapsed(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
 			}
 		}
 		break;
