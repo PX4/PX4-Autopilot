@@ -416,15 +416,15 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_8:
 
-				/* report nav_state as DIY_NAVSTATE at 1Hz */
-				if (now - lastNAV_STATE > 1000 * 1000) {
+				/* report nav_state as DIY_NAVSTATE 2Hz */
+				if (now - lastNAV_STATE > 500 * 1000) {
 					lastNAV_STATE = now;
 					/* send T1 */
 					sPort_send_NAV_STATE(uart);
 				}
 
-				/* report satcount and fix as DIY_GPSFIX at 1Hz */
-				else if (now - lastGPS_FIX > 1000 * 1000) {
+				/* report satcount and fix as DIY_GPSFIX at 2Hz */
+				else if (now - lastGPS_FIX > 500 * 1000) {
 					lastGPS_FIX = now;
 					/* send T2 */
 					sPort_send_GPS_FIX(uart);
