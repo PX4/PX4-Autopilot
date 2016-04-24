@@ -227,38 +227,6 @@ void sPort_send_FUEL(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
-/*
- * Sends nav_state + 128
- */
-void sPort_send_T1(int uart)
-{
-	/* get a local copy of the vehicle status data */
-	struct vehicle_status_s vehicle_status;
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
-	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-
-	uint32_t navstate = (int)(128 + vehicle_status.nav_state);
-
-	/* send data */
-	sPort_send_data(uart, SMARTPORT_ID_T1, navstate);
-}
-
-// verified scaling
-// sends number of sats and type of gps fix
-void sPort_send_T2(int uart)
-{
-	/* get a local copy of the global position data */
-	struct vehicle_gps_position_s gps_pos;
-	memset(&gps_pos, 0, sizeof(gps_pos));
-	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
-
-	/* send data */
-	uint32_t satcount = (int)(gps_pos.satellites_used);
-	uint32_t fixtype = (int)(gps_pos.fix_type);
-	uint32_t t2 = satcount * 10 + fixtype;
-	sPort_send_data(uart, SMARTPORT_ID_T2, t2);
-}
-
 void sPort_send_GPS_LON(int uart)
 {
 	/* get a local copy of the global position data */
@@ -340,4 +308,36 @@ void sPort_send_GPS_TIME(int uart)
 	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, gps_pos.time_utc_usec);
+}
+
+/*
+ * Sends nav_state + 128
+ */
+void sPort_send_NAVSTATE(int uart)
+{
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	uint32_t navstate = (int)(128 + vehicle_status.nav_state);
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_DIY_NAVSTATE, navstate);
+}
+
+// verified scaling
+// sends number of sats and type of gps fix
+void sPort_send_GPSFIX(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send data */
+	uint32_t satcount = (int)(gps_pos.satellites_used);
+	uint32_t fixtype = (int)(gps_pos.fix_type);
+	uint32_t t2 = satcount * 10 + fixtype;
+	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
 }
