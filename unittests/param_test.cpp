@@ -10,8 +10,6 @@ struct param_info_s	param_array[256];
 struct param_info_s	*param_info_base;
 struct param_info_s	*param_info_limit;
 
-#define	param_info_count 4
-
 /*
  * Adds test parameters
  */

@@ -263,9 +263,9 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 unittest: posix_sitl_test
-	export CC=clang
-	export CXX=clang++
-	export ASAN_OPTIONS=symbolize=1
+	@export CC=clang
+	@export CXX=clang++
+	@export ASAN_OPTIONS=symbolize=1
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 	
