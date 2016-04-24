@@ -31,8 +31,8 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air)
 {
 	// Implement third order complementary filter for height and height rate
-	// estimted height rate = _integ2_state
-	// estimated height     = _integ3_state
+	// estimted height rate = _altitude_rate
+	// estimated height     = _altitude
 	// Reference Paper :
 	// Optimising the Gains of the Baro-Inertial Vertical Channel
 	// Widnall W.S, Sinha P.K,
@@ -58,8 +58,8 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	}
 
 	if (reset_altitude) {
-		_integ3_state = baro_altitude;
-		_integ2_state = 0.0f;
+		_altitude = baro_altitude;
+		_altitude_rate = 0.0f;
 		_integ1_state = 0.0f;
 
 		// Reset the filter state as we just switched from non-altitude control
@@ -77,20 +77,20 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	// Perform filter calculation using backwards Euler integration
 	// Coefficients selected to place all three filter poles at omega
 	float omega2 = _hgtCompFiltOmega * _hgtCompFiltOmega;
-	float hgt_err = baro_altitude - _integ3_state;
+	float hgt_err = baro_altitude - _altitude;
 	float integ1_input = hgt_err * omega2 * _hgtCompFiltOmega;
 	_integ1_state = _integ1_state + integ1_input * DT;
-	float integ2_input = _integ1_state + hgt_ddot_mea + hgt_err * omega2 * 3.0f;
-	_integ2_state = _integ2_state + integ2_input * DT;
-	float integ3_input = _integ2_state + hgt_err * _hgtCompFiltOmega * 3.0f;
+	float altitude_rate_delta = _integ1_state + hgt_ddot_mea + hgt_err * omega2 * 3.0f;
+	_altitude_rate = _altitude_rate + altitude_rate_delta * DT;
+	float altitude_delta = _altitude_rate + hgt_err * _hgtCompFiltOmega * 3.0f;
 
 	// If more than 1 second has elapsed since last update then reset the integrator state
 	// to the measured height
 	if (reset_altitude) {
-		_integ3_state = baro_altitude;
+		_altitude = baro_altitude;
 
 	} else {
-		_integ3_state = _integ3_state + integ3_input * DT;
+		_altitude = _altitude + altitude_delta * DT;
 	}
 
 	// Update and average speed rate of change
@@ -143,8 +143,8 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 
 	// Reset states on initial execution or if not active
 	if (_update_speed_last_usec == 0 || !_in_air) {
-		_integ4_state = 0.0f;
-		_integ5_state = (_EAS * EAS2TAS);
+		_airspeed_rate = 0.0f;
+		_TAS = (_EAS * EAS2TAS);
 	}
 
 	if (DT < DT_MIN || DT > DT_MAX) {
@@ -153,20 +153,20 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 
 	// Implement a second order complementary filter to obtain a
 	// smoothed airspeed estimate
-	// airspeed estimate is held in _integ5_state
-	float aspdErr = (_EAS * EAS2TAS) - _integ5_state;
+	// airspeed estimate is held in _TAS
+	float aspdErr = (_EAS * EAS2TAS) - _TAS;
 	float integ4_input = aspdErr * _spdCompFiltOmega * _spdCompFiltOmega;
 
 	// Prevent state from winding up
-	if (_integ5_state < 3.1f) {
-		integ4_input = max(integ4_input , 0.0f);
+	if (_TAS < 3.1f) {
+		integ4_input = max(integ4_input, 0.0f);
 	}
 
-	_integ4_state = _integ4_state + integ4_input * DT;
-	float integ5_input = _integ4_state + _vel_dot + aspdErr * _spdCompFiltOmega * 1.4142f;
-	_integ5_state = _integ5_state + integ5_input * DT;
+	_airspeed_rate = _airspeed_rate + integ4_input * DT;
+	float integ5_input = _airspeed_rate + _vel_dot + aspdErr * _spdCompFiltOmega * 1.4142f;
+	_TAS = _TAS + integ5_input * DT;
 	// limit the airspeed to a minimum of 3 m/s
-	_integ5_state = max(_integ5_state, 3.0f);
+	_TAS = max(_TAS, 3.0f);
 	_update_speed_last_usec = now;
 }
 
@@ -187,16 +187,16 @@ void TECS::_update_speed_demand(void)
 	// calculate velocity rate limits based on physical performance limits
 	// provision to use a different rate limit if bad descent or underspeed condition exists
 	// Use 50% of maximum energy rate to allow margin for total energy controller
-	float velRateMax;
-	float velRateMin;
+	float velRateMax = 0;
+	float velRateMin = 0;
 
 	if ((_badDescent) || (_underspeed)) {
-		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+		velRateMax = 0.5f * _STEdot_max / _TAS;
+		velRateMin = 0.5f * _STEdot_min / _TAS;
 
 	} else {
-		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+		velRateMax = 0.5f * _STEdot_max / _TAS;
+		velRateMin = 0.5f * _STEdot_min / _TAS;
 	}
 
 //	// Apply rate limit
@@ -216,14 +216,14 @@ void TECS::_update_speed_demand(void)
 //	}
 
 	_TAS_dem_adj = constrain(_TAS_dem, _TASmin, _TASmax);;
-	_TAS_rate_dem = constrain((_TAS_dem_adj - _integ5_state) * _speedrate_p, velRateMin, velRateMax); //xxx: using a p loop for now
+	_TAS_rate_dem = constrain((_TAS_dem_adj - _TAS) * _speedrate_p, velRateMin, velRateMax); //xxx: using a p loop for now
 
 //	_TAS_dem_last = _TAS_dem;
 
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
-//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state, _badDescent, _underspeed, velRateMin);
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f,  _badDescent %u , _underspeed %u",
-//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state,  _badDescent , _underspeed);
+//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _TAS %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
+//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_TAS, _badDescent, _underspeed, velRateMin);
+//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _TAS %.1f,  _badDescent %u , _underspeed %u",
+//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_TAS,  _badDescent , _underspeed);
 }
 
 void TECS::_update_height_demand(float demand, float state)
@@ -282,7 +282,7 @@ void TECS::_detect_underspeed(void)
 		return;
 	}
 
-	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj) && _underspeed)) {
+	if (((_TAS < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_altitude < _hgt_dem_adj) && _underspeed)) {
 		_underspeed = true;
 
 	} else {
@@ -298,15 +298,15 @@ void TECS::_update_energies(void)
 
 	// Calculate specific energy rate demands
 	_SPEdot_dem = _hgt_rate_dem * CONSTANTS_ONE_G;
-	_SKEdot_dem = _integ5_state * _TAS_rate_dem;
+	_SKEdot_dem = _TAS * _TAS_rate_dem;
 
 	// Calculate specific energy
-	_SPE_est = _integ3_state * CONSTANTS_ONE_G;
-	_SKE_est = 0.5f * _integ5_state * _integ5_state;
+	_SPE_est = _altitude * CONSTANTS_ONE_G;
+	_SKE_est = 0.5f * _TAS * _TAS;
 
 	// Calculate specific energy rate
-	_SPEdot = _integ2_state * CONSTANTS_ONE_G;
-	_SKEdot = _integ5_state * _vel_dot;
+	_SPEdot = _altitude_rate * CONSTANTS_ONE_G;
+	_SKEdot = _TAS * _vel_dot;
 }
 
 void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat)
@@ -422,10 +422,10 @@ void TECS::_detect_bad_descent(void)
 
 void TECS::_update_pitch(void)
 {
-	// Calculate Speed/Height Control Weighting
-	// This is used to determine how the pitch control prioritises speed and height control
+	// Calculate Airspeed/Altitude Control Weighting
+	// This is used to determine how the pitch control prioritizes airspeed and altitude control
 	// A weighting of 1 provides equal priority (this is the normal mode of operation)
-	// A SKE_weighting of 0 provides 100% priority to height control. This is used when no airspeed measurement is available
+	// A SKE_weighting of 0 provides 100% priority to altitude control. This is used when no airspeed measurement is available
 	// A SKE_weighting of 2 provides 100% priority to speed control. This is used when an underspeed condition is detected
 	// or during takeoff/climbout where a minimum pitch angle is set to ensure height is gained. In this instance, if airspeed
 	// rises above the demanded value, the pitch angle will be increased by the TECS controller.
@@ -447,41 +447,49 @@ void TECS::_update_pitch(void)
 	_SEBdot_error = SEBdot_dem - (_SPEdot * SPE_weighting - _SKEdot * SKE_weighting);
 
 	// Calculate integrator state, constraining input if pitch limits are exceeded
-	float integ7_input = _SEB_error * _integGain;
+	float TECS_error_I_delta = _SEB_error * _integGain;
 
+	// Unwind Pitch Integrator if Unconstrained Pitch Demand Exceeds Upper or Lower Limits
 	if (_pitch_dem_unc > _PITCHmaxf) {
-		integ7_input = min(integ7_input, _PITCHmaxf - _pitch_dem_unc);
+		TECS_error_I_delta = min(TECS_error_I_delta, _PITCHmaxf - _pitch_dem_unc);
 
 	} else if (_pitch_dem_unc < _PITCHminf) {
-		integ7_input = max(integ7_input, _PITCHminf - _pitch_dem_unc);
+		TECS_error_I_delta = max(TECS_error_I_delta, _PITCHminf - _pitch_dem_unc);
 	}
 
-	_integ7_state = _integ7_state + integ7_input * _DT;
+	// Increment Pitch Angle Integral Effort
+	_TECS_error_I = _TECS_error_I + TECS_error_I_delta * _DT;
 
-	// Apply max and min values for integrator state that will allow for no more than
-	// 5deg of saturation. This allows for some pitch variation due to gusts before the
-	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
+	// Compute Gain Inverse (NOTE: timeConst set to 5 by default - to which gain does this correspond?)
+	float gainInv = (_TAS * _timeConst * CONSTANTS_ONE_G);
+
+	// Compute Total Tracking Error (NOTE: What are the units here? They appear to be units of pitch-rad?)
+	float TECS_error_PD = _SEB_error + _SEBdot_error * _ptchDamp + SEBdot_dem * _timeConst;
+
+	// Add Minimum Pitch to Error if in Climbout Mode (NOTE: Should this be a lower limit rather than an increment?)
 	// During climbout/takeoff, bias the demanded pitch angle so that zero speed error produces a pitch angle
-	// demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
+	// demand equal to the minimum value (which is) set by the mission plan during this mode). Otherwise the
 	// integrator has to catch up before the nose can be raised to reduce speed during climbout.
-	float gainInv = (_integ5_state * _timeConst * CONSTANTS_ONE_G);
-	float temp = _SEB_error + _SEBdot_error * _ptchDamp + SEBdot_dem * _timeConst;
-	if (_climbOutDem)
-	{
-		temp += _PITCHminf * gainInv;
+	if (_climbOutDem) {
+		TECS_error_PD += _PITCHminf * gainInv;
 	}
-	_integ7_state = constrain(_integ7_state, (gainInv * (_PITCHminf - 0.0783f)) - temp, (gainInv * (_PITCHmaxf + 0.0783f)) - temp);
 
+	// Constrain TECS Integrator Error
+	// Apply max and min values for integrator state that will allow for no more than
+	// 5 degrees of saturation. This allows for some pitch variation due to gusts before the
+	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
+	float error_I_min = (gainInv * (_PITCHminf - math::radians(5.0f))) - TECS_error_PD;
+	float error_I_max = (gainInv * (_PITCHmaxf + math::radians(5.0f))) - TECS_error_PD;
+	_TECS_error_I = constrain(_TECS_error_I, error_I_min, error_I_max);
 
-	// Calculate pitch demand from specific energy balance signals
-	_pitch_dem_unc = (temp + _integ7_state) / gainInv;
+	// Compute Unconstrained Pitch Demand From PID Components
+	_pitch_dem_unc = (TECS_error_PD + _TECS_error_I) / gainInv;
 
-	// Constrain pitch demand
+	// Constrain Pitch Demand to +/ Pitch Limits
 	_pitch_dem = constrain(_pitch_dem_unc, _PITCHminf, _PITCHmaxf);
 
-	// Rate limit the pitch demand to comply with specified vertical
-	// acceleration limit
-	float ptchRateIncr = _DT * _vertAccLim / _integ5_state;
+	// Rate Limit Pitch Demand Based on Allowable Vertical Acceleration
+	float ptchRateIncr = _DT * _vertAccLim / _TAS;
 
 	if ((_pitch_dem - _last_pitch_dem) > ptchRateIncr) {
 		_pitch_dem = _last_pitch_dem + ptchRateIncr;
@@ -498,14 +506,15 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 	// Initialise states and variables if DT > 1 second or in climbout
 	if (_update_pitch_throttle_last_usec == 0 || _DT > DT_MAX || !_in_air || !_states_initalized) {
 		_integ1_state = 0.0f;
-		_integ2_state = 0.0f;
-		_integ3_state = baro_altitude;
-		_integ4_state = 0.0f;
-		_integ5_state = _EAS;
+		_altitude_rate = 0.0f;
+		_altitude = baro_altitude;
+		_airspeed_rate = 0.0f;
+		_TAS = _EAS;
 		_integ6_state = 0.0f;
-		_integ7_state = 0.0f;
+		_TECS_error_I = 0.0f;
+		//_AS_PID_I_effort = 0.0f;
 		_last_throttle_dem = throttle_cruise;
-		_last_pitch_dem = pitch;
+		_last_pitch_dem = constrain(pitch, _PITCHminf, _PITCHmaxf);
 		_hgt_dem_adj_last = baro_altitude;
 		_hgt_dem_adj = _hgt_dem_adj_last;
 		_hgt_dem_prev = _hgt_dem_adj_last;
@@ -610,13 +619,13 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	}
 
 	_tecs_state.altitude_sp = _hgt_dem_adj;
-	_tecs_state.altitude_filtered = _integ3_state;
+	_tecs_state.altitude_filtered = _altitude;
 	_tecs_state.altitude_rate_sp = _hgt_rate_dem;
-	_tecs_state.altitude_rate = _integ2_state;
+	_tecs_state.altitude_rate = _altitude_rate;
 
 	_tecs_state.airspeed_sp = _TAS_dem_adj;
 	_tecs_state.airspeed_rate_sp = _TAS_rate_dem;
-	_tecs_state.airspeed_filtered = _integ5_state;
+	_tecs_state.airspeed_filtered = _TAS;
 	_tecs_state.airspeed_rate = _vel_dot;
 
 	_tecs_state.total_energy_error = _STE_error;
@@ -625,10 +634,10 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	_tecs_state.energy_distribution_rate_error = _SEBdot_error;
 
 	_tecs_state.energy_error_integ = _integ6_state;
-	_tecs_state.energy_distribution_error_integ = _integ7_state;
+	_tecs_state.energy_distribution_error_integ = _TECS_error_I;
 
 	_tecs_state.throttle_integ 	= _integ6_state;
-	_tecs_state.pitch_integ 	= _integ7_state;
+	_tecs_state.pitch_integ 	= _TECS_error_I;
 
 	_update_pitch_throttle_last_usec = now;
 

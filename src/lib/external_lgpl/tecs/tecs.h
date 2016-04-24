@@ -52,12 +52,12 @@ public:
 		_throttle_dem(0.0f),
 		_pitch_dem(0.0f),
 		_integ1_state(0.0f),
-		_integ2_state(0.0f),
-		_integ3_state(0.0f),
-		_integ4_state(0.0f),
-		_integ5_state(0.0f),
+		_altitude_rate(0.0f),
+		_altitude(0.0f),
+		_airspeed_rate(0.0f),
+		_TAS(0.0f),
 		_integ6_state(0.0f),
-		_integ7_state(0.0f),
+		_TECS_error_I(0.0f),
 		_last_throttle_dem(0.0f),
 		_last_pitch_dem(0.0f),
 		_vel_dot(0.0f),
@@ -305,23 +305,23 @@ private:
 	// Integrator state 1 - height filter second derivative
 	float _integ1_state;
 
-	// Integrator state 2 - height rate
-	float _integ2_state;
+	// Altitude Rate - (Formerly _altitude_rate)
+	float _altitude_rate;
 
-	// Integrator state 3 - height
-	float _integ3_state;
+	// Altitude - (Formerly _integ3_state)
+	float _altitude;
 
 	// Integrator state 4 - airspeed filter first derivative
-	float _integ4_state;
+	float _airspeed_rate;
 
-	// Integrator state 5 - true airspeed
-	float _integ5_state;
+	// True airspeed  - (Formerly _integ5_state)
+	float _TAS;
 
 	// Integrator state 6 - throttle integrator
 	float _integ6_state;
 
-	// Integrator state 7 - pitch integrator
-	float _integ7_state;
+	// TECS Error - Integral Component  (Formerly _integ7_state)
+	float _TECS_error_I;
 
 	// throttle demand rate limiter state
 	float _last_throttle_dem;
