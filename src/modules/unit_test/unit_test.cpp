@@ -51,26 +51,26 @@ UnitTest::~UnitTest()
 void UnitTest::print_results(void)
 {
 	if (_tests_failed) {
-		warnx("SOME TESTS FAILED");
+		PX4_ERR("SOME TESTS FAILED");
 
 	} else {
-		warnx("ALL TESTS PASSED");
+		PX4_INFO("ALL TESTS PASSED");
 	}
 
-	warnx("  Tests passed : %d", _tests_passed);
-	warnx("  Tests failed : %d", _tests_failed);
-	warnx("  Assertions : %d", _assertions);
+	PX4_INFO("  Tests passed : %d", _tests_passed);
+	PX4_INFO("  Tests failed : %d", _tests_failed);
+	PX4_INFO("  Assertions : %d", _assertions);
 }
 
 /// @brief Used internally to the ut_assert macro to print assert failures.
 void UnitTest::_print_assert(const char *msg, const char *test, const char *file, int line)
 {
-	warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
+	PX4_ERR("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
 }
 
 /// @brief Used internally to the ut_compare macro to print assert failures.
 void UnitTest::_print_compare(const char *msg, const char *v1_text, int v1, const char *v2_text, int v2,
 			      const char *file, int line)
 {
-	warnx("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
+	PX4_ERR("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
 }

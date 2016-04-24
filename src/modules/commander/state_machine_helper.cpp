@@ -80,7 +80,7 @@ using namespace DriverFramework;
 #endif
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
-// are the current state. Using new state and current  state you can index into the array which
+// are the current state. Using new state and current state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
@@ -145,10 +145,11 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
 						     status_flags, battery);
 		}
+
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
-				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-				|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				&& ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+						|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
@@ -280,6 +281,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			if ((!status_flags->condition_system_prearm_error_reported &&
 			      status_flags->condition_system_hotplug_timeout) ||
 			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+
 				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
 				status_flags->condition_system_prearm_error_reported = true;
 			}

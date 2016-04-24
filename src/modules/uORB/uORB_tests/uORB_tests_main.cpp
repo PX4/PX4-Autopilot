@@ -44,31 +44,38 @@ extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
 
 static void usage()
 {
-	PX4_INFO("Usage: uorb_test 'test', 'latency_test'");
+	PX4_INFO("Usage: uorb_test 'latency_test'");
 }
 
 int
 uorb_tests_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage();
-		return -EINVAL;
-	}
 
 #ifndef __PX4_QURT
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
+	if (argc == 1) {
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
-		return t.test();
+		int rc = t.test();
+
+		if (rc == OK) {
+			fprintf(stdout, "  [uORBTest] \t\tPASS\n");
+			fflush(stdout);
+			return 0;
+
+		} else {
+			fprintf(stderr, "  [uORBTest] \t\tFAIL\n");
+			fflush(stderr);
+			return -1;
+		}
 	}
 
 	/*
 	 * Test the latency.
 	 */
-	if (!strcmp(argv[1], "latency_test")) {
+	if (argc > 1 && !strcmp(argv[1], "latency_test")) {
 
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 

@@ -78,16 +78,19 @@ const struct {
 #define OPT_NOALLTEST	(1<<1)
 #define OPT_NOJIGTEST	(1<<2)
 } tests[] = {
+#ifdef __PX4_NUTTX
 	{"led",			test_led,	0},
+	{"time",		test_time,	OPT_NOJIGTEST},
+	{"sensors",		test_sensors,	0},
+	{"adc",			test_adc,	OPT_NOJIGTEST},
+#endif /* __PX4_NUTTX */
 	{"int",			test_int,	0},
 	{"float",		test_float,	0},
-	{"sensors",		test_sensors,	0},
 	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
-	{"adc",			test_adc,	OPT_NOJIGTEST},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -96,9 +99,6 @@ const struct {
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"tone",		test_tone,	0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
-#ifdef __PX4_NUTTX
-	{"time",		test_time,	OPT_NOJIGTEST},
-#endif
 	{"perf",		test_perf,	OPT_NOJIGTEST},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -150,23 +150,29 @@ test_all(int argc, char *argv[])
 	for (i = 0; tests[i].name; i++) {
 		/* Only run tests that are not excluded */
 		if (!(tests[i].options & OPT_NOALLTEST)) {
-			printf("  [%s] \t\t\tSTARTING TEST\n", tests[i].name);
+			for (int j = 0; j < 80; j++) {
+				printf("-");
+			}
+
+			printf("\n");
+
+			printf("  [%s] \t\tSTARTING TEST\n", tests[i].name);
 			fflush(stdout);
 
 			/* Execute test */
 			if (tests[i].fn(1, args) != 0) {
-				fprintf(stderr, "  [%s] \t\t\tFAIL\n", tests[i].name);
+				fprintf(stderr, "  [%s] \t\tFAIL\n", tests[i].name);
 				fflush(stderr);
 				failcount++;
 				passed[i] = false;
 
 			} else {
-				printf("  [%s] \t\t\tPASS\n", tests[i].name);
+				printf("  [%s] \t\tPASS\n", tests[i].name);
 				fflush(stdout);
 				passed[i] = true;
 			}
 
-			for (int j = 0; j < 40; j++) {
+			for (int j = 0; j < 80; j++) {
 				printf("-");
 			}
 
@@ -179,8 +185,8 @@ test_all(int argc, char *argv[])
 	/* Print summary */
 	printf("\n");
 
-	for (int j = 0; j < 40; j++) {
-		printf("-");
+	for (int j = 0; j < 80; j++) {
+		printf("#");
 	}
 
 	printf("\n\n");
@@ -269,21 +275,33 @@ int test_jig(int argc, char *argv[])
 	for (i = 0; tests[i].name; i++) {
 		/* Only run tests that are not excluded */
 		if (!(tests[i].options & OPT_NOJIGTEST)) {
-			printf("  [%s] \t\t\tSTARTING TEST\n", tests[i].name);
+			for (int j = 0; j < 80; j++) {
+				printf("-");
+			}
+
+			printf("\n");
+
+			printf("  [%s] \t\tSTARTING TEST\n", tests[i].name);
 			fflush(stdout);
 
 			/* Execute test */
 			if (tests[i].fn(1, args) != 0) {
-				fprintf(stderr, "  [%s] \t\t\tFAIL\n", tests[i].name);
+				fprintf(stderr, "  [%s] \t\tFAIL\n", tests[i].name);
 				fflush(stderr);
 				failcount++;
 				passed[i] = false;
 
 			} else {
-				printf("  [%s] \t\t\tPASS\n", tests[i].name);
+				printf("  [%s] \t\tPASS\n", tests[i].name);
 				fflush(stdout);
 				passed[i] = true;
 			}
+
+			for (int j = 0; j < 80; j++) {
+				printf("-");
+			}
+
+			printf("\n");
 
 			testcount++;
 		}
@@ -291,9 +309,8 @@ int test_jig(int argc, char *argv[])
 
 	/* Print summary */
 	printf("\n");
-	int j;
 
-	for (j = 0; j < 40; j++) {
+	for (int j = 0; j < 80; j++) {
 		printf("-");
 	}
 
@@ -325,9 +342,7 @@ int test_jig(int argc, char *argv[])
 	/* Print failed tests */
 	if (failcount > 0) { printf(" Failed tests:\n\n"); }
 
-	unsigned int k;
-
-	for (k = 0; k < i; k++) {
+	for (int k = 0; k < i; k++) {
 		if (!passed[i] && !(tests[k].options & OPT_NOJIGTEST)) {
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}

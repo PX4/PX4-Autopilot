@@ -255,10 +255,10 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
 
         // Sensor tests
 
-        { "transition to standby error: init to standby - sensors not initialized",
-            { vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_NOT_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-            vehicle_status_s::ARMING_STATE_STANDBY,
-            { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
+        //{ "transition to standby error: init to standby - sensors not initialized",
+        //    { vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_NOT_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+        //    vehicle_status_s::ARMING_STATE_STANDBY,
+        //    { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
 
         // Safety switch arming tests
 
@@ -297,10 +297,10 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         		5.0f);
 
         // Validate result of transition
-        ut_assert(test->assertMsg, test->expected_transition_result == result);
-        ut_assert(test->assertMsg, status.arming_state == test->expected_state.arming_state);
-        ut_assert(test->assertMsg, armed.armed == test->expected_state.armed);
-        ut_assert(test->assertMsg, armed.ready_to_arm == test->expected_state.ready_to_arm);
+        ut_compare(test->assertMsg, test->expected_transition_result, result);
+        ut_compare(test->assertMsg, status.arming_state, test->expected_state.arming_state);
+        ut_compare(test->assertMsg, armed.armed, test->expected_state.armed);
+        ut_compare(test->assertMsg, armed.ready_to_arm, test->expected_state.ready_to_arm);
     }
 
 	return true;
@@ -449,16 +449,15 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 									&current_status_flags, &current_commander_state);
 
 		// Validate result of transition
-		ut_assert(test->assertMsg, test->expected_transition_result == result);
+		ut_compare(test->assertMsg, test->expected_transition_result, result);
 		if (test->expected_transition_result == result) {
 			if (test->expected_transition_result == TRANSITION_CHANGED) {
-				ut_assert(test->assertMsg, test->to_state == current_commander_state.main_state);
+				ut_compare(test->assertMsg, test->to_state, current_commander_state.main_state);
 			} else {
-				ut_assert(test->assertMsg, test->from_state == current_commander_state.main_state);
+				ut_compare(test->assertMsg, test->from_state, current_commander_state.main_state);
 			}
 		}
 	}
-
 
 	return true;
 }
@@ -473,31 +472,31 @@ bool StateMachineHelperTest::isSafeTest(void)
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_assert("is safe: not armed", is_safe(&current_state, &safety, &armed));
+	ut_compare("is safe: not armed", is_safe(&current_state, &safety, &armed), true);
 
 	armed.armed = false;
 	armed.lockdown = true;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_assert("is safe: software lockdown", is_safe(&current_state, &safety, &armed));
+	ut_compare("is safe: software lockdown", is_safe(&current_state, &safety, &armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_assert("not safe: safety off", !is_safe(&current_state, &safety, &armed));
+	ut_compare("not safe: safety off", is_safe(&current_state, &safety, &armed), false);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_assert("is safe: safety off", is_safe(&current_state, &safety, &armed));
+	ut_compare("is safe: safety off", is_safe(&current_state, &safety, &armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
-	ut_assert("not safe: no safety switch", !is_safe(&current_state, &safety, &armed));
+	ut_compare("not safe: no safety switch", is_safe(&current_state, &safety, &armed), false);
 
 	return true;
 }
