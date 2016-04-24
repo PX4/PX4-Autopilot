@@ -70,6 +70,7 @@ set(config_module_list
 	#
 	# Testing
 	#
+	drivers/test_ppm
 	modules/commander/commander_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
