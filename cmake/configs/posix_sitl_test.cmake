@@ -76,6 +76,7 @@ set(config_module_list
 	modules/controllib_test
 	#modules/mavlink/mavlink_tests
 	modules/unit_test
+	modules/uORB/uORB_tests
 	systemcmds/tests
 
 	)

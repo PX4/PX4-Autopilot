@@ -32,41 +32,17 @@
 ############################################################################
 
 # this includes the generated topics directory
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}
-	)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SRCS
-	objects_common.cpp
-	uORBUtils.cpp
-	uORB.cpp
-	uORBMain.cpp
-	Publication.cpp
-	Subscription.cpp
-	uORBManager.cpp
-	)
+set(SRCS uORB_tests_main.cpp)
 
-if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		uORBDevices_nuttx.cpp
-		)
-elseif(${OS} STREQUAL "posix")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		)
-elseif(${OS} STREQUAL "posix-arm")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		)
-elseif(${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		)
+if(NOT ${OS} STREQUAL "qurt")
+	list(APPEND SRCS uORBTest_UnitTest.cpp)
 endif()
 
 px4_add_module(
-	MODULE modules__uORB
-	MAIN uorb
+	MODULE modules__uORB__uORB_tests
+	MAIN uorb_tests
 	STACK_MAIN 2048
 	COMPILE_FLAGS
 		-Os
