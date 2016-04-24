@@ -87,7 +87,7 @@ set(config_extra_builtin_cmds
 	)
 
 set(config_sitl_rcS
-	posix-configs/SITL/init/rcS
+	posix-configs/SITL/init/rcS_test
 	CACHE FILEPATH "init script for sitl"
 	)
 
