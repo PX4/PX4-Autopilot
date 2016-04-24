@@ -52,7 +52,7 @@
 
 #include <shmem.h>
 
-#define SHMEM_DEBUG
+//#define SHMEM_DEBUG
 
 int mem_fd;
 unsigned char *map_base, *virt_addr;
