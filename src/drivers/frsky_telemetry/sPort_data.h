@@ -51,7 +51,8 @@
 #define SMARTPORT_POLL_4    0x16
 #define SMARTPORT_POLL_5    0xB7
 #define SMARTPORT_POLL_6    0x00
-#define SMARTPORT_POLL_7    0xBA
+#define SMARTPORT_POLL_7    0x83
+#define SMARTPORT_POLL_8    0xBA
 
 /* FrSky SmartPort sensor IDs. See more here: https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky.h#L109 */
 #define SMARTPORT_ID_RSSI          0xf101
@@ -74,11 +75,10 @@
 #define SMARTPORT_ID_GPS_LON_LAT   0x0800
 #define SMARTPORT_ID_GPS_ALT       0x0820
 #define SMARTPORT_ID_GPS_SPD       0x0830
-#define SMARTPORT_ID_GPS_CRS       0x0840  //CRS = Course... Something?!?
+#define SMARTPORT_ID_GPS_CRS       0x0840
 #define SMARTPORT_ID_GPS_TIME      0x0850
 
 // Public functions
-//TODO: Add GPS_ALT, GPS_SPEED, GPS_LON_LAT, GPS_CRS, GPS_TIME,
 void sPort_init(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
 void sPort_send_BATV(int uart);
@@ -89,7 +89,11 @@ void sPort_send_VSPD(int uart, float speed);
 void sPort_send_FUEL(int uart);
 void sPort_send_T1(int uart);
 void sPort_send_T2(int uart);
-
-
+void sPort_send_GPS_LON(int uart);
+void sPort_send_GPS_LAT(int uart);
+void sPort_send_GPS_ALT(int uart);
+void sPort_send_GPS_SPD(int uart);
+void sPort_send_GPS_CRS(int uart);
+void sPort_send_GPS_TIME(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */

@@ -258,3 +258,84 @@ void sPort_send_T2(int uart)
 	uint32_t t2 = satcount * 10 + fixtype;
 	sPort_send_data(uart, SMARTPORT_ID_T2, t2);
 }
+
+void sPort_send_GPS_LON(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send longitude */
+	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
+	/* precision is approximately 0.1m */
+	uint32_t iLon = 6E5 * fabs(gps_pos.lon);
+	iLon |= (1 << 31);
+	if (gps_pos.lon < 0) { iLon |= (1 << 30); }
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
+}
+
+void sPort_send_GPS_LAT(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send latitude */
+	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
+	uint32_t iLat = 6E5 * fabs(gps_pos.lat);
+	if (gps_pos.lat < 0) { iLat |= (1 << 30); }
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
+}
+
+void sPort_send_GPS_ALT(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send altitude */
+ 	/* convert to 100 * m/sec */
+ 	uint32_t iAlt = 100 * gps_pos.alt;
+ 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
+}
+
+void sPort_send_GPS_SPD(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send 100 * knots */
+	float speed  = sqrtf(gps_pos.vel_n_m_s * gps_pos.vel_n_m_s + gps_pos.vel_e_m_s * gps_pos.vel_e_m_s);
+	uint32_t ispeed = (int)(1944 * speed);
+	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
+}
+
+void sPort_send_GPS_CRS(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_global_position_s global_pos;
+	memset(&global_pos, 0, sizeof(global_pos));
+	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
+
+	/* send course */
+	int32_t iYaw = 100 * global_pos.yaw;
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
+}
+
+void sPort_send_GPS_TIME(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, gps_pos.time_utc_usec);
+}

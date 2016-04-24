@@ -270,6 +270,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastVSPD = 0;
 			static hrt_abstime lastT1 = 0;
 			static hrt_abstime lastT2 = 0;
+			static hrt_abstime lastGPS_LON = 0;
+			static hrt_abstime lastGPS_LAT = 0;
+			static hrt_abstime lastGPS_ALT = 0;
+			static hrt_abstime lastGPS_SPD = 0;
+			static hrt_abstime lastGPS_CRS = 0;
+			static hrt_abstime lastGPS_TIME = 0;
 
 			switch (sbuf[1]) {
 
@@ -365,7 +371,55 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				break;
+
+
+			case SMARTPORT_POLL_8:
+
+				/* report GPS_LON at 5Hz */
+				if (now - lastGPS_LON > 200 * 1000) {
+					lastGPS_LON = now;
+					/* send GPS_LON */
+					sPort_send_GPS_LON(uart);
+				}
+
+				/* report GPS_LAT at 5Hz */
+				else if (now - lastGPS_LAT > 200 * 1000) {
+					lastGPS_LAT = now;
+					/* send GPS_LAT */
+					sPort_send_GPS_LAT(uart);
+				}
+
+				/* report GPS_ALT at 5Hz */
+				else if (now - lastGPS_ALT > 200 * 1000) {
+					lastGPS_ALT = now;
+					/* send GPS_ALT */
+					sPort_send_GPS_ALT(uart);
+				}
+
+				/* report GPS_SPD at 5Hz */
+				else if (now - lastGPS_SPD > 200 * 1000) {
+					lastGPS_SPD = now;
+					/* send GPS_SPD */
+					sPort_send_GPS_SPD(uart);
+				}
+
+				/* report GPS_CRS at 5Hz */
+				else if (now - lastGPS_CRS > 200 * 1000) {
+					lastGPS_CRS = now;
+					/* send GPS_CRS */
+					sPort_send_GPS_CRS(uart);
+				}
+
+				/* report GPS_TIME at 5Hz */
+				else if (now - lastGPS_TIME > 200 * 1000) {
+					lastGPS_TIME = now;
+					/* send GPS_TIME */
+					sPort_send_GPS_TIME(uart);
+				}
+
+				break;
 			}
+
 		}
 
 	} else if (status >= 0) {
