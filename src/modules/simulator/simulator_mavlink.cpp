@@ -250,7 +250,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			px4_clock_gettime(CLOCK_REALTIME, &ts);
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
-			perf_set(_perf_sim_delay, timestamp - sim_timestamp);
+			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
 			perf_count(_perf_sim_interval);
 
 			if (publish) {
