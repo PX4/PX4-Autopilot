@@ -675,14 +675,20 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		// doing something sensible with the coordinates. Its designed
 		// to not require navigator and command to receive / process
 		// the data at the exact same time.
-		transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
-		if ((main_ret != TRANSITION_DENIED)) {
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		// Check if a mode switch had been requested
+		if ((((uint8_t)cmd->param1) & 1) > 0) {
+			transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
+			if ((main_ret != TRANSITION_DENIED)) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
+			}
 		} else {
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-			mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		}
 	}
 	break;

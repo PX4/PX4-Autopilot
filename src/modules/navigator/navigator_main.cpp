@@ -419,25 +419,25 @@ Navigator::task_main()
 				rep->previous.alt = get_global_position()->alt;
 
 				// Go on and check which changes had been requested
-				if (isfinite(cmd.param4)) {
+				if (PX4_ISFINITE(cmd.param4)) {
 					rep->current.yaw = cmd.param4;
 				} else {
 					rep->current.yaw = NAN;
 				}
 
-				if (isfinite(cmd.param5)) {
+				if (PX4_ISFINITE(cmd.param5)) {
 					rep->current.lat = cmd.param5 / (double)1e7;
 				} else {
 					rep->current.lat = get_global_position()->lat;
 				}
 
-				if (isfinite(cmd.param6)) {
+				if (PX4_ISFINITE(cmd.param6)) {
 					rep->current.lon = cmd.param6 / (double)1e7;
 				} else {
 					rep->current.lon = get_global_position()->lon;
 				}
 
-				if (isfinite(cmd.param7)) {
+				if (PX4_ISFINITE(cmd.param7)) {
 					rep->current.alt = cmd.param7;
 				} else {
 					rep->current.alt = get_global_position()->alt;
