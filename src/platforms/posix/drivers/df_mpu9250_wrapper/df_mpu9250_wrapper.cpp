@@ -53,6 +53,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -110,6 +111,8 @@ private:
 	orb_advert_t		    _accel_topic;
 	orb_advert_t		    _gyro_topic;
 
+	orb_advert_t		    _mavlink_log_pub;
+
 	int			    _param_update_sub;
 
 	struct accel_calibration_s {
@@ -155,6 +158,7 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	MPU9250(IMU_DEVICE_PATH),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
+	_mavlink_log_pub(nullptr),
 	_param_update_sub(-1),
 	_accel_calibration{},
 	_gyro_calibration{},
@@ -552,6 +556,21 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 		/* Notify anyone waiting for data. */
 		DevMgr::updateNotify(*this);
+
+		// Report if there are high vibrations, every 10 times it happens.
+		const bool threshold_reached = (data.accel_range_hit_counter - _last_accel_range_hit_count > 10);
+
+		// Report every 5s.
+		const bool due_to_report = (hrt_elapsed_time(&_last_accel_range_hit_time) > 5000000);
+
+		if (threshold_reached && due_to_report) {
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "High accelerations, range exceeded %llu times",
+					     data.accel_range_hit_counter);
+
+			_last_accel_range_hit_time = hrt_absolute_time();
+			_last_accel_range_hit_count = data.accel_range_hit_counter;
+		}
 	}
 
 	perf_end(_publish_perf);
