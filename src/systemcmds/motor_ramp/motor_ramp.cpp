@@ -36,6 +36,7 @@
  * Application to test motor ramp up.
  *
  * @author Andreas Antener <andreas@uaventure.com>
+ * @author Roman Bapst <bapstroman@gmail.com>
  */
 
 #include <px4_config.h>
@@ -63,6 +64,8 @@ static bool _thread_running = false;		/**< motor_ramp status flag */
 static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
 static float _ramp_time;
 static int _min_pwm;
+static bool _sine_output = false;
+
 
 enum RampState {
 	RAMP_INIT,
@@ -102,7 +105,8 @@ usage(const char *reason)
 	}
 
 	PX4_WARN("[motor_ramp]\n\nWARNING: motors will ramp up to full speed!\n");
-	PX4_WARN("[motor_ramp] usage: motor_ramp <min_pwm> <ramp_time>");
+	PX4_WARN("[motor_ramp] usage: motor_ramp <min_pwm> <ramp_time> <-s>");
+	PX4_WARN("[motor_ramp] setting option <-s> will enable sinus output with period <ramp_time>");
 	PX4_WARN("[motor_ramp] example:");
 	PX4_WARN("[motor_ramp] nsh> sdlog2 on");
 	PX4_WARN("[motor_ramp] nsh> mc_att_control stop");
@@ -138,6 +142,13 @@ int motor_ramp_main(int argc, char *argv[])
 	}
 
 	_ramp_time = atof(argv[2]);
+
+	// check if we should apply sine ouput instead of ramp
+	if (argc > 3) {
+		if (strcmp(argv[3], "-s") == 0) {
+			_sine_output = true;
+		}
+	}
 
 	if (!(_ramp_time > 0)) {
 		usage("ramp time must be greater than 0");
@@ -284,7 +295,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("[motor_ramp] starting ramp: %.2f sec", (double)_ramp_time);
+					PX4_WARN("[motor_ramp] starting %s: %.2f sec", _sine_output ? "sine" : "ramp", (double)_ramp_time);
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
@@ -294,13 +305,21 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_RAMP: {
-				output += dt / _ramp_time;
+				if (!_sine_output) {
+					output += dt / _ramp_time;
 
-				if (output > 1.0f) {
-					output = 1.0f;
+				} else {
+					// sine outpout with period T = _ramp_time and magnitude between [0,1]
+					// phase shift makes sure that it starts at zero when timer is zero
+					output = 0.5f * (1.0f + sinf(M_TWOPI_F * timer / (_ramp_time * 1e6f) - M_PI_2_F));
+				}
+
+				if ((output > 1.0f && !_sine_output) || (timer > 3.0f * _ramp_time * 1e6f && _sine_output)) {
+					// for ramp mode we set output to 1, for sine mode we just leave it as is
+					output = _sine_output ? output : 1.0f;
 					start = hrt_absolute_time();
 					ramp_state = RAMP_WAIT;
-					PX4_WARN("[motor_ramp] ramp finished, waiting");
+					PX4_WARN("[motor_ramp] %s finished, waiting", _sine_output ? "sine" : "ramp");
 				}
 
 				set_out(fd, max_channels, output);
