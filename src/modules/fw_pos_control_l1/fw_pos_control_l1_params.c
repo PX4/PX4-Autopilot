@@ -74,6 +74,7 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @group FW L1 Control
@@ -134,6 +135,7 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * For overpowered aircraft, this should be reduced to a value that
  * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @group FW L1 Control
@@ -152,6 +154,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @group FW L1 Control
@@ -166,6 +169,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * above desired idle rpm.
  *
+ * @unit norm
  * @min 0.0
  * @max 0.4
  * @group FW L1 Control
@@ -178,6 +182,7 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
  * before arcraft will flare.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @group FW L1 Control
