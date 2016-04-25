@@ -94,7 +94,7 @@
 #define SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS 0x5089
 
 /* Public functions
-TODO: add mission status/results, mavlink messages, home position
+TODO: mavlink messages, home position?
 */
 bool sPort_init(void);
 void sPort_deinit(void);
