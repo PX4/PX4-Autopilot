@@ -183,6 +183,13 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 
 DfMpu9250Wrapper::~DfMpu9250Wrapper()
 {
+	perf_free(_read_counter);
+	perf_free(_error_counter);
+	perf_free(_fifo_overflow_counter);
+	perf_free(_fifo_corruption_counter);
+	perf_free(_gyro_range_hit_counter);
+	perf_free(_accel_range_hit_counter);
+	perf_free(_publish_perf);
 }
 
 int DfMpu9250Wrapper::start()
