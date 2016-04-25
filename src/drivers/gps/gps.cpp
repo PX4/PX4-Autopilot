@@ -36,13 +36,11 @@
  * Driver for the GPS on a serial port
  */
 
-#ifndef __PX4_QURT
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #endif
-#include <fcntl.h>
-#endif
+
 
 #ifndef __PX4_QURT
 #include <termios.h>
@@ -53,6 +51,7 @@
 #endif
 
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
