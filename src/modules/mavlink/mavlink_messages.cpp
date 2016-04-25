@@ -441,7 +441,9 @@ protected:
 							PX4_WARN("mavlink logging disabled");
 						} else {
 							(void)fputs("\n", fp);
+#ifdef __PX4_NUTTX
 							fsync(fp->fs_filedes);
+#endif
 						}
 
 					} else if (write_err_count < write_err_threshold) {
@@ -460,7 +462,9 @@ protected:
 							fputs(": ", fp);
 							fputs(msg.text, fp);
 							fputs("\n", fp);
+#ifdef __PX4_NUTTX
 							fsync(fp->fs_filedes);
+#endif
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
 						}
