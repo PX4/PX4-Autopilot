@@ -67,7 +67,7 @@
 #define SMARTPORT_ID_FUEL          0x0600
 #define SMARTPORT_ID_ALT           0x0100
 #define SMARTPORT_ID_VARIO         0x0110   //VSPEED
-#define SMARTPORT_ID_ACCX          0x0700
+#define SMARTPORT_ID_ACCX          0x0700   //Measured in g!
 #define SMARTPORT_ID_ACCY          0x0710
 #define SMARTPORT_ID_ACCZ          0x0720
 #define SMARTPORT_ID_CURR          0x0200
@@ -88,9 +88,13 @@
 #define SMARTPORT_ID_DIY_ATTITUDE_ROLL  0x5083
 #define SMARTPORT_ID_DIY_ATTITUDE_PITCH   0x5084
 #define SMARTPORT_ID_DIY_ATTITUDE_YAW   0x5085
+#define SMARTPORT_ID_DIY_MISSION_COUNT 0x5086
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_REACHED 0x5087 //Sequence is an id for a mission item - "a thing to do"
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_CURRENT 0x5088
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS 0x5089
 
 /* Public functions
-TODO: add Home position, MavLink Messages, Mission status/results, Safety
+TODO: add mission status/results, mavlink messages, home position
 */
 bool sPort_init(void);
 void sPort_deinit(void);
@@ -102,17 +106,24 @@ void sPort_send_ALT(int uart);
 void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
 void sPort_send_FUEL(int uart);
-void sPort_send_ACC(int uart);
+void sPort_send_ACCX(int uart);
+void sPort_send_ACCY(int uart);
+void sPort_send_ACCZ(int uart);
 void sPort_send_GPS_LON(int uart);
 void sPort_send_GPS_LAT(int uart);
 void sPort_send_GPS_ALT(int uart);
 void sPort_send_GPS_SPD(int uart);
 void sPort_send_GPS_CRS(int uart);
+void sPort_send_GPS_DATE(int uart);
 void sPort_send_GPS_TIME(int uart);
 void sPort_send_GPS_FIX(int uart);
 void sPort_send_NAV_STATE(int uart);
 void sPort_send_ARMING_STATE(int uart);
-void sPort_send_ATTITUDE(int uart);
-
+void sPort_send_ATTITUDE_ROLL(int uart);
+void sPort_send_ATTITUDE_PITCH(int uart);
+void sPort_send_ATTITUDE_YAW(int uart);
+void sPort_send_MISSION_SEQUENCE_CURRENT(int uart);
+void sPort_send_MISSION_SEQUENCE_REACHED(int uart);
+void sPort_send_MISSION_SEQUENCE_STATUS(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */

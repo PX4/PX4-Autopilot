@@ -345,6 +345,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastGPS_FIX = 0;
 			static hrt_abstime lastARMING_STATE = 0;
 			static hrt_abstime lastATTITUDE = 0;
+			static hrt_abstime lastMISSION_SEQUENCE = 0;
 
 
 			switch (sbuf[1]) {
@@ -405,6 +406,28 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_FUEL(uart);
 				}
 
+				/* report vehicle attitude at roughly 3*10Hz */
+				else if (now - lastATTITUDE > 33 * 1000){
+					lastATTITUDE = now;
+
+					static int elementCountATTITUDE = 0;
+					switch(elementCountATTITUDE)
+					{
+						case 0:
+							elementCountATTITUDE++;
+							sPort_send_ATTITUDE_ROLL(uart);
+							break;
+						case 1:
+							elementCountATTITUDE++;
+							sPort_send_ATTITUDE_PITCH(uart);
+							break;
+						case 2:
+							elementCountATTITUDE = 0;
+							sPort_send_ATTITUDE_YAW(uart);
+							break;
+					}
+				}
+
 				break;
 
 			case SMARTPORT_POLL_6:
@@ -422,26 +445,75 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_VSPD(uart, speed);
 				}
 
-				/* report acceleration at 10Hz */
-				else if (now - lastAcc > 100 * 1000) {
-					sPort_send_ACC(uart);
+				/* report acceleration at roughly 3*10Hz */
+				else if (now - lastACC > 33 * 1000) {
+					lastACC = now;
+
+					static int elementCountACC = 0;
+					switch(elementCountACC)
+					{
+						case 0:
+							elementCountACC++;
+							sPort_send_ACCX(uart);
+							break;
+						case 1:
+							elementCountACC++;
+							sPort_send_ACCY(uart);
+							break;
+						case 2:
+							elementCountACC = 0;
+							sPort_send_ACCZ(uart);
+							break;
+					}
 				}
 				break;
 
 			case SMARTPORT_POLL_7:
 
-				/* report GPS data elements at 1Hz */
-				if (now - lastGPS > 1000 * 1000) {
+				/* report GPS data elements at roughly 7*1Hz */
+				if (now - lastGPS > 143 * 1000) {
 					lastGPS = now;
-					sPort_send_GPS_LON(uart);
-					sPort_send_GPS_LAT(uart);
-					sPort_send_GPS_CRS(uart);
-					sPort_send_GPS_ALT(uart);
-					sPort_send_GPS_SPD(uart);
-					sPort_send_GPS_TIME(uart);
-					}
+					static int elementCountGPS = 0;
 
+					switch (elementCountGPS) {
+
+					case 0:
+						sPort_send_GPS_LON(uart);
+						elementCountGPS++;
+						break;
+
+					case 1:
+						sPort_send_GPS_LAT(uart);
+						elementCountGPS++;
+						break;
+
+					case 2:
+						sPort_send_GPS_CRS(uart);
+						elementCountGPS++;
+						break;
+
+					case 3:
+						sPort_send_GPS_ALT(uart);
+						elementCountGPS++;
+						break;
+
+					case 4:
+						sPort_send_GPS_SPD(uart);
+						elementCountGPS++;
+						break;
+
+					case 5:
+						sPort_send_GPS_DATE(uart);
+						elementCountGPS++;
+						break;
+
+					case 6:
+						sPort_send_GPS_TIME(uart);
+						elementCountGPS = 0;
+						break;
+					}
 				}
+				break;
 
 			case SMARTPORT_POLL_8:
 
@@ -463,10 +535,25 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_ARMING_STATE(uart);
 				}
 
-				/* report vehicle attitude at 10Hz */
-				else if (now - lastATTITUDE > 100 * 1000){
-					lastATTITUDE = now;
-					sPort_send_ATTITUDE();
+				/* report mission item (sequence) data at roughly 3*1 Hz */
+				else if (now - lastMISSION_SEQUENCE > 333 * 1000){
+					lastMISSION_SEQUENCE = now;
+					static int elementCountMISSION = 0;
+					switch(elementCountMISSION)
+					{
+						case 0:
+							elementCountMISSION++;
+							sPort_send_MISSION_SEQUENCE_CURRENT(uart);
+							break;
+						case 1:
+							elementCountMISSION++;
+							sPort_send_MISSION_SEQUENCE_REACHED(uart);
+							break;
+						case 2:
+							elementCountMISSION = 0;
+							sPort_send_MISSION_SEQUENCE_STATUS(uart);
+							break;
+					}
 				}
 
 				break;

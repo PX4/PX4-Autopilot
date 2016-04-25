@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/mission_result.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -66,6 +67,7 @@ static int battery_status_sub = -1;
 static int vehicle_status_sub = -1;
 static int gps_position_sub = -1;
 static int vehicle_attitude_sub = -1;
+static int mission_result_sub = -1;
 
 static struct sensor_combined_s *sensor_combined;
 static struct vehicle_global_position_s *global_pos;
@@ -73,6 +75,7 @@ static struct battery_status_s *battery_status;
 static struct vehicle_status_s *vehicle_status;
 static struct vehicle_gps_position_s *gps_position;
 static struct vehicle_attitude_s *vehicle_attitude;
+static struct mission_result_s *mission_result;
 
 
 /**
@@ -87,10 +90,11 @@ bool sPort_init()
 	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 	vehicle_attitude = malloc(sizeof(struct vehicle_attitude_s));
+	mission_result = malloc(sizeof(struct mission_result_s));
 
 
 	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
-	    || gps_position == NULL || vehicle_attitude == NULL) {
+	    || gps_position == NULL || vehicle_attitude == NULL || mission_result == NULL) {
 		return false;
 	}
 
@@ -101,6 +105,7 @@ bool sPort_init()
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 
 	return true;
 }
@@ -113,6 +118,7 @@ void sPort_deinit()
 	free(vehicle_status);
 	free(gps_position);
 	free(vehicle_attitude);
+	free(mission_result);
 }
 
 void sPort_update_topics()
@@ -158,6 +164,13 @@ void sPort_update_topics()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
+	}
+
+	/* get a local copy of the mission result data */
+	orb_check(mission_result_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(mission_result), mission_result_sub, mission_result);
 	}
 }
 
@@ -278,13 +291,22 @@ void sPort_send_FUEL(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
-void sPort_send_ACC(int uart)
+void sPort_send_ACCX(int uart)
 {
 	/* send data. opentx expects acc values in g. */
-	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * 1/9.81f));
-	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * 1/9.81f));
-	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * 1/9.81f));
+	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1/9.81f)));
+}
 
+void sPort_send_ACCY(int uart)
+{
+	/* send data. opentx expects acc values in g. */
+	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * (1/9.81f)));
+}
+
+void sPort_send_ACCZ(int uart)
+{
+	/* send data. opentx expects acc values in g. */
+	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * (1/9.81f)));
 }
 
 void sPort_send_GPS_LON(int uart)
@@ -328,31 +350,41 @@ void sPort_send_GPS_CRS(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
 
-void sPort_send_GPS_TIME(int uart)
-{
-	/*
-		OpenTX Format in binary:
-		if last 4 bit are 0000:
-		 	YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
-		else
-			HHHHMMMMSSSS0001 (H = Hour, M = Minutes, S = Seconds)
+/*
+	OpenTX Format in binary:
+	if last 4 bit are 0000:
+		YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
+	else
+		HHHHMMMMSSSS0001 (H = Hour, M = Minutes, S = Seconds)
 
-		see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
-	*/
+	see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
+*/
+
+void sPort_send_GPS_DATE(int uart)
+{
 
 	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint8_t year = tm_gps->tm_year; //years since 1900
 	uint8_t month = tm_gps->tm_mon; //0-11
 	uint8_t day = tm_gps->tm_mday; //1-31
+
+	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0;
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_ymd);
+}
+
+void sPort_send_GPS_TIME(int uart)
+{
+	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
+	struct tm *tm_gps = gmtime(&time_gps);
+
 	uint8_t hour = tm_gps->tm_hour; //0-23
 	uint8_t minute = tm_gps->tm_min; //0-59
 	uint8_t second = tm_gps->tm_sec; //0-60
 
-	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0;
 	uint32_t frsky_time_hms = (hour << 24) | minute << 16 | second << 8 | 1;
 
-	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_ymd);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_hms);
 }
 
@@ -382,8 +414,6 @@ void sPort_send_GPS_FIX(int uart)
 void sPort_send_NAV_STATE(int uart)
 {
 	uint32_t navstate = (int)(vehicle_status->nav_state);
-
-	/* send data */
 	sPort_send_data(uart, SMARTPORT_ID_DIY_NAV_STATE, navstate);
 }
 
@@ -394,21 +424,49 @@ void sPort_send_NAV_STATE(int uart)
 void sPort_send_ARMING_STATE(int uart)
 {
 	uint32_t armingstate = (int)(vehicle_status->arming_state);
-
-	/* send data */
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ARMING_STATE, armingstate);
 }
 
-/*
- * Sends Attitude
- */
- void sPort_send_ATTITUDE(int uart)
- {
-	float32_t roll = roundf(sensor_combined->vehicle_attitude->roll * 1000.0f);
-	float32_t pitch = roundf(sensor_combined->vehicle_attitude->pitch * 1000.0f);
-	float32_t yaw = roundf(sensor_combined->vehicle_attitude->yaw * 1000.0f);
-
+void sPort_send_ATTITUDE_ROLL(int uart)
+{
+	uint32_t roll = roundf(vehicle_attitude->roll * 1000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_ROLL, roll);
+}
+
+void sPort_send_ATTITUDE_PITCH(int uart)
+{
+	uint32_t pitch = roundf(vehicle_attitude->pitch * 1000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_PITCH, pitch);
+}
+
+void sPort_send_ATTITUDE_YAW(int uart)
+{
+	uint32_t yaw = roundf(vehicle_attitude->yaw * 1000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_YAW, yaw);
- }
+}
+
+void sPort_send_MISSION_SEQUENCE_CURRENT(int uart)
+{
+	uint32_t seq_current = mission_result->seq_current;
+	sPort_send_data(uart, SMARTPORT_ID_DIY_MISSION_SEQUENCE_CURRENT, seq_current);
+}
+
+void sPort_send_MISSION_SEQUENCE_REACHED(int uart)
+{
+	uint32_t seq_reached = mission_result->seq_reached;
+	sPort_send_data(uart, SMARTPORT_ID_DIY_MISSION_SEQUENCE_REACHED, seq_reached);
+}
+
+void sPort_send_MISSION_SEQUENCE_STATUS(int uart)
+{
+	uint32_t seq_status =
+		(mission_result->valid << 7)
+			 | mission_result->warning << 6
+			 | mission_result->reached << 5
+			 | mission_result->finished << 4
+			 | mission_result->stay_in_failsafe << 3
+			 | mission_result->flight_termination << 2
+			 | mission_result->item_do_jump_changed << 1
+			 | mission_result->mission_failure;
+	sPort_send_data(uart, SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS, seq_status);
+}
