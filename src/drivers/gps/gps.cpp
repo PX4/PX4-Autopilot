@@ -244,7 +244,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	}
 
 	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
-		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
+		_orb_inject_data_fd[i] = -1;
 	}
 }
 
@@ -252,10 +252,6 @@ GPS::~GPS()
 {
 	/* tell the task we want it to go away */
 	_task_should_exit = true;
-
-	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
-		orb_unsubscribe(_orb_inject_data_fd[i]);
-	}
 
 	/* spin waiting for the task to stop */
 	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
@@ -538,6 +534,10 @@ GPS::task_main()
 	fcntl(_serial_fd, F_SETFL, flags | O_NONBLOCK);
 #endif
 
+	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
+		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
+	}
+
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
 
@@ -732,6 +732,11 @@ GPS::task_main()
 	}
 
 	PX4_WARN("exiting");
+
+	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
+		orb_unsubscribe(_orb_inject_data_fd[i]);
+		_orb_inject_data_fd[i] = -1;
+	}
 
 	::close(_serial_fd);
 
