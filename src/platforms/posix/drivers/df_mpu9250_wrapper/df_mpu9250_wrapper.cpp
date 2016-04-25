@@ -505,6 +505,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		return 0;
 	}
 
+	perf_begin(_publish_perf);
+
 	_publish_count = 0;
 
 	// TODO: get these right
@@ -551,6 +553,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		/* Notify anyone waiting for data. */
 		DevMgr::updateNotify(*this);
 	}
+
+	perf_end(_publish_perf);
 
 	// TODO: check the return codes of this function
 	return 0;
