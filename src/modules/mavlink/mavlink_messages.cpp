@@ -414,9 +414,21 @@ protected:
 
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
 #ifndef __PX4_POSIX_EAGLE
-				/* write log messages in first instance to disk */
+				/* write log messages in first instance to disk
+				 * timestamp each message with gps time
+				 */
+				timespec ts;
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+				struct tm tt;
+				gmtime_r(&gps_time_sec, &tt);
+				char tstamp[22];
+				int tslen = strftime(tstamp, sizeof(tstamp) - 1, "%Y_%m_%d_%H_%M_%S", &tt);
+
 				if (_mavlink->get_instance_id() == 0/* && _mavlink->get_logging_enabled()*/) {
 					if (fp != nullptr) {
+						fputs(tstamp, fp);
+						fputs(": ", fp);
 						if (EOF == fputs(msg.text, fp)) {
 							write_err_count++;
 						} else {
@@ -429,29 +441,26 @@ protected:
 							PX4_WARN("mavlink logging disabled");
 						} else {
 							(void)fputs("\n", fp);
+							fsync(fp->fs_filedes);
 						}
 
 					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_path[128];
-						log_file_path[0] = 0;
 
-						timespec ts;
-						px4_clock_gettime(CLOCK_REALTIME, &ts);
 						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-						struct tm tt;
-						gmtime_r(&gps_time_sec, &tt);
 
 						/* store the log file in the root directory */
-						int offs = snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/");
-						strftime(log_file_path + offs, sizeof(log_file_path) - offs, "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
+						snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/msgs_%s.txt", tstamp);
 						fp = fopen(log_file_path, "ab");
 
 						if (fp != nullptr) {
 							/* write first message */
+							fputs(tstamp, fp);
+							fputs(": ", fp);
 							fputs(msg.text, fp);
 							fputs("\n", fp);
+							fsync(fp->fs_filedes);
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
 						}
