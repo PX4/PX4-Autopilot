@@ -31,7 +31,7 @@ then
 				then
 				fi
 			else
-				if logger start -b 20
+				if logger start -b 32
 				then
 				fi
 			fi

@@ -63,7 +63,6 @@ private:
 	size_t			_count = 0;
 	size_t		_total_written = 0;
 	bool		_should_run = false;
-	bool		_running = false;
 	bool 		_exit_thread = false;
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
