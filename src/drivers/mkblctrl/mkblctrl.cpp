@@ -75,7 +75,6 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>

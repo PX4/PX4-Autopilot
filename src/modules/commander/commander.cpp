@@ -81,10 +81,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
