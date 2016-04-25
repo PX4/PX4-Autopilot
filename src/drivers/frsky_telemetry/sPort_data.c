@@ -308,7 +308,28 @@ void sPort_send_GPS_CRS(int uart)
 
 void sPort_send_GPS_TIME(int uart)
 {
-	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, gps_position->time_utc_usec);
+	/*
+		OpenTX Format in binary:
+		if last 4 bit are 0000:
+		 	YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
+		else
+			HHHHMMMMSSSS0001 (H = Hour, M = Minutes, S = Seconds)
+	*/
+
+	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
+	struct tm *tm_gps = gmtime(&time_gps);
+	uint8_t year = tm_gps->tm_year + 1900; //years since 1900
+	uint8_t month = tm_gps->tm_mon + 1; //0-11
+	uint8_t day = tm_gps->tm_mday; //1-31
+	uint8_t hour = tm_gps->tm_hour;
+	uint8_t minute = tm_gps->tm_min;
+	uint8_t second = tm_gps->tm_sec;
+
+	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0;
+	uint32_t frsky_time_hms = (hour << 24) | minute << 16 | second << 8 | 1;
+
+	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_ymd);
+	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_hms);
 }
 
 void sPort_send_GPS_SPD(int uart)
