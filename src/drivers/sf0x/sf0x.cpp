@@ -89,7 +89,7 @@ static const int ERROR = -1;
 
 #define SF0X_CONVERSION_INTERVAL	83334
 #define SF0X_TAKE_RANGE_REG		'd'
-#define SF02F_MIN_DISTANCE		0.0f
+#define SF02F_MIN_DISTANCE		0.3f
 #define SF02F_MAX_DISTANCE		40.0f
 
 // designated SERIAL4/5 on Pixhawk
@@ -203,8 +203,8 @@ SF0X::SF0X(const char *port) :
 	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buf_of"))
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));

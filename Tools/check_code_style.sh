@@ -14,6 +14,7 @@ for fn in $(find src/examples \
                  src/lib/rc \
                  src/lib/version \
                  src/modules/attitude_estimator_q \
+                 src/modules/fw_att_control \
                  src/modules/gpio_led \
                  src/modules/land_detector \
                  src/modules/muorb \
@@ -24,17 +25,15 @@ for fn in $(find src/examples \
                  src/modules/uORB \
                  src/modules/bottle_drop \
                  src/modules/dataman \
-                 src/modules/fixedwing_backside \
                  src/modules/segway \
                  src/modules/local_position_estimator \
                  src/modules/unit_test \
                  src/modules/systemlib \
-                 src/modules/controllib \
+                 src/lib/controllib \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
                    -path './src/lib/eigen' -prune -o \
-                   -path './src/lib/mathlib/CMSIS' -prune -o \
                    -path './src/modules/uavcan/libuavcan' -prune -o \
                    -path './src/modules/attitude_estimator_ekf/codegen' -prune -o \
                    -path './src/modules/ekf_att_pos_estimator' -prune -o \

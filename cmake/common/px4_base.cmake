@@ -90,7 +90,7 @@ include(CMakeParseArguments)
 #		endfunction()
 #
 #		test(NAME "hello" LIST a b c)
-#		
+#
 #		OUTPUT:
 #			name: hello
 #			list: a b c
@@ -140,7 +140,6 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule init ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
@@ -229,7 +228,9 @@ endfunction()
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			[ MAIN <string> ]
-#			[ STACK <string> ]
+#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
+#			[ STACK_MAIN <string> ]
+#			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
@@ -238,7 +239,9 @@ endfunction()
 #	Input:
 #		MODULE			: unique name of module
 #		MAIN			: entry point, if not given, assumed to be library
-#		STACK			: size of stack
+#		STACK			: deprecated use stack main instead
+#		STACK_MAIN		: size of stack for main function
+#		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS	: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
@@ -252,7 +255,7 @@ endfunction()
 #		px4_add_module(MODULE test
 #			SRCS
 #				file.cpp
-#			STACK 1024
+#			STACK_MAIN 1024
 #			DEPENDS
 #				git_nuttx
 #			)
@@ -261,12 +264,44 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK PRIORITY
+		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+
+	# set defaults if not set
+	set(MAIN_DEFAULT MAIN-NOTFOUND)
+	set(STACK_MAIN_DEFAULT 1024)
+	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
+
+	# default stack max to stack main
+	if(NOT STACK_MAIN AND STACK)
+		set(STACK_MAIN ${STACK})
+		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!!!!!!!!!!!!")
+	endif()
+
+	foreach(property MAIN STACK_MAIN PRIORITY)
+		if(NOT ${property})
+			set(${property} ${${property}_DEFAULT})
+		endif()
+		set_target_properties(${MODULE} PROPERTIES ${property}
+			${${property}})
+	endforeach()
+
+	# default stack max to stack main
+	if(NOT STACK_MAX)
+		set(STACK_MAX ${STACK_MAIN})
+	endif()
+	set_target_properties(${MODULE} PROPERTIES STACK_MAX
+		${STACK_MAX})
+
+	if(${OS} STREQUAL "qurt" )
+		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+	elseif(${OS} STREQUAL "nuttx" )
+		list(APPEND COMPILE_FLAGS -Wframe-larger-than=${STACK_MAX})
+	endif()
 
 	if(MAIN)
 		set_target_properties(${MODULE} PROPERTIES
@@ -290,8 +325,8 @@ function(px4_add_module)
 
 	# store module properties in target
 	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
-	# STACK, MAIN, PRIORITY are PX4 specific
-	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK MAIN PRIORITY)
+	# STACK_MAIN, MAIN, PRIORITY are PX4 specific
+	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
@@ -345,11 +380,11 @@ function(px4_generate_messages)
 		list(APPEND msg_files_out ${msg_out_path}/${msg}.h)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_files_out}
-		COMMAND ${PYTHON_EXECUTABLE} 
+		COMMAND ${PYTHON_EXECUTABLE}
 			Tools/px_generate_uorb_topic_headers.py
 			${QUIET}
 			-d msg
-			-o ${msg_out_path} 
+			-o ${msg_out_path}
 			-e msg/templates/uorb
 			-t ${CMAKE_BINARY_DIR}/topics_temporary
 		DEPENDS ${DEPENDS} ${MSG_FILES}
@@ -366,11 +401,11 @@ function(px4_generate_messages)
 		list(APPEND msg_multi_files_out ${msg_multi_out_path}/px4_${msg}.h)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_multi_files_out}
-		COMMAND ${PYTHON_EXECUTABLE} 
+		COMMAND ${PYTHON_EXECUTABLE}
 			Tools/px_generate_uorb_topic_headers.py
 			${QUIET}
 			-d msg
-			-o ${msg_multi_out_path} 
+			-o ${msg_multi_out_path}
 			-e msg/templates/px4/uorb
 			-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${OS}
 			-p "px4_"
@@ -439,6 +474,26 @@ function(px4_add_upload)
 		)
 endfunction()
 
+
+function(px4_add_adb_push)
+	px4_parse_function_args(
+		NAME px4_add_upload
+		ONE_VALUE OS BOARD OUT DEST
+		MULTI_VALUE FILES DEPENDS
+		REQUIRED OS BOARD OUT FILES DEPENDS DEST
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
+
 #=============================================================================
 #
 #	px4_add_common_flags
@@ -488,8 +543,8 @@ function(px4_add_common_flags)
 	set(warnings
 		-Wall
 		-Werror
-		-Wno-sign-compare
 		-Wextra
+		-Wno-sign-compare
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
@@ -510,10 +565,6 @@ function(px4_add_common_flags)
 		#               but generates too many false positives
 		)
 
-	if (${OS} STREQUAL "nuttx")
-		list(APPEND warnings -Wframe-larger-than=1024)
-	endif()
-
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
@@ -532,15 +583,32 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		set(max_optimization -O0)
 
-	set(optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g -fsanitize=address
+			)
+	else()
+		set(max_optimization -Os)
+
+		if ("${OS}" STREQUAL "qurt")
+			set(PIC_FLAG -fPIC)
+		endif()
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fomit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			${PIC_FLAG}
+			)
+	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
@@ -621,6 +689,7 @@ function(px4_add_common_flags)
 		${CMAKE_BINARY_DIR}/src/modules/px4_messages
 		${CMAKE_BINARY_DIR}/src/modules
 		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
+		${CMAKE_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		)
 
 	list(APPEND added_include_dirs
@@ -667,7 +736,7 @@ endfunction()
 #	Input:
 #		dirname					: path to module dir
 #
-#	Output: 
+#	Output:
 #		newname					: module name
 #
 #	Example:
@@ -698,8 +767,8 @@ endfunction()
 function(px4_create_git_hash_header)
 	px4_parse_function_args(
 		NAME px4_create_git_hash_header
-		ONE_VALUE HEADER 
-		REQUIRED HEADER 
+		ONE_VALUE HEADER
+		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
 		COMMAND git rev-parse HEAD
@@ -707,7 +776,7 @@ function(px4_create_git_hash_header)
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	message(STATUS "GIT_DESC = ${git_desc}")
+	#message(STATUS "GIT_DESC = ${git_desc}")
 	set(git_desc_short)
 	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)

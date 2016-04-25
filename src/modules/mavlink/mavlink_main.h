@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,8 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -67,6 +68,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
+#include "mavlink_log_handler.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -74,11 +76,7 @@ enum Protocol {
 	TCP,
 };
 
-#ifdef __PX4_NUTTX
 class Mavlink
-#else
-class Mavlink : public device::VDev
-#endif
 {
 
 public:
@@ -149,6 +147,7 @@ public:
 		MAVLINK_MODE_CUSTOM,
 		MAVLINK_MODE_ONBOARD,
 		MAVLINK_MODE_OSD,
+		MAVLINK_MODE_MAGIC,
 		MAVLINK_MODE_CONFIG
 	};
 
@@ -249,7 +248,7 @@ public:
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
-	int			get_mavlink_fd() { return _mavlink_fd; }
+	orb_advert_t		*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	/**
 	 * Send a status text with loglevel INFO
@@ -327,19 +326,39 @@ public:
 	 */
 	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
 
-	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
+	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
 	unsigned		get_system_type() { return _system_type; }
 
-	Protocol 		get_protocol() { return _protocol; };
+	Protocol 		get_protocol() { return _protocol; }
 
 	unsigned short		get_network_port() { return _network_port; }
 
+	unsigned short		get_remote_port() { return _remote_port; }
+
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
-	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+	struct sockaddr_in *	get_client_source_address() { return &_src_addr; }
+
+	void			set_client_source_initialized() { _src_addr_initialized = true; }
+
+	bool			get_client_source_initialized() { return _src_addr_initialized; }
+#else
+	bool			get_client_source_initialized() { return true; }
 #endif
+
+	uint64_t		get_start_time() { return _mavlink_start_time; }
+
 	static bool		boot_complete() { return _boot_complete; }
+
+	bool			is_usb_uart() { return _is_usb_uart; }
+
+	/**
+	 * Wether or not the system should be logging
+	 */
+	bool			get_logging_enabled() { return _logging_enabled; }
+
+	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
 
 protected:
 	Mavlink			*next;
@@ -347,7 +366,7 @@ protected:
 private:
 	int			_instance_id;
 
-	int			_mavlink_fd;
+	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
 
@@ -368,13 +387,14 @@ private:
 	MavlinkMissionManager		*_mission_manager;
 	MavlinkParametersManager	*_parameters_manager;
 	MavlinkFTP			*_mavlink_ftp;
+	MavlinkLogHandler		*_mavlink_log_handler;
 
 	MAVLINK_MODE 		_mode;
 
 	mavlink_channel_t	_channel;
 	int32_t			_radio_id;
 
-	struct mavlink_logbuffer _logbuffer;
+	ringbuffer::RingBuffer		_logbuffer;
 	unsigned int		_total_counter;
 
 	pthread_t		_receive_thread;
@@ -407,6 +427,7 @@ private:
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
+	uint64_t		_mavlink_start_time;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;
@@ -420,11 +441,14 @@ private:
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 	struct sockaddr_in _bcast_addr;
+	bool _src_addr_initialized;
+	bool _broadcast_address_found;
 
 #endif
 	int _socket_fd;
 	Protocol	_protocol;
 	unsigned short _network_port;
+	unsigned short _remote_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
@@ -441,6 +465,8 @@ private:
 	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
+	bool			_logging_enabled;
+
 	param_t			_param_system_id;
 	param_t			_param_component_id;
 	param_t			_param_radio_id;
@@ -493,13 +519,9 @@ private:
 	 */
 	void update_rate_mult();
 
-	void init_udp();
+	void find_broadcast_address();
 
-#ifdef __PX4_NUTTX
-	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
-#else
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
-#endif
+	void init_udp();
 
 	/**
 	 * Main mavlink task.

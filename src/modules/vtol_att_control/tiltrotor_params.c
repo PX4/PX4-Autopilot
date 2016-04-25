@@ -43,10 +43,10 @@
 /**
  * Position of tilt servo in mc mode
  *
- * Position of tilt servo in mc mode
- *
  * @min 0.0
- * @max 1
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
@@ -54,10 +54,10 @@ PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
 /**
  * Position of tilt servo in transition mode
  *
- * Position of tilt servo in transition mode
- *
  * @min 0.0
- * @max 1
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
@@ -65,10 +65,10 @@ PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
 /**
  * Position of tilt servo in fw mode
  *
- * Position of tilt servo in fw mode
- *
  * @min 0.0
- * @max 1
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
@@ -79,8 +79,11 @@ PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
  * Time in seconds it should take for the rotors to rotate forward completely from the point
  * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
  *
+ * @unit s
  * @min 0.1
- * @max 2
+ * @max 5.0
+ * @increment 0.01
+ * @decimal 3
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
@@ -88,9 +91,10 @@ PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
 /**
  * The channel number of motors that must be turned off in fixed wing mode.
  *
- *
  * @min 0
- * @max 123456
+ * @max 12345678
+ * @increment 1
+ * @decimal 0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFF, 0);
+PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);

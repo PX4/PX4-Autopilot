@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE examples__publisher
 	MAIN publisher
-	STACK 1200
+	STACK_MAIN 1200
 	SRCS
 		publisher_main.cpp
 		publisher_start_nuttx.cpp

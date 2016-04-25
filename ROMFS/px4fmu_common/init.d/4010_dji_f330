@@ -30,9 +30,3 @@ then
 	# DJI ESCs do not support calibration and need a higher min
 	param set PWM_MIN 1230
 fi
-
-# Transitional support: ensure suitable PWM min/max param values
-if param compare PWM_MIN 1075
-then
-	param set PWM_MIN 1230
-fi

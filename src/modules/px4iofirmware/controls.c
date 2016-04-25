@@ -46,6 +46,8 @@
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
+#include <rc/sbus.h>
+#include <rc/dsm.h>
 
 #include "px4io.h"
 
@@ -60,7 +62,8 @@ static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
 static perf_counter_t c_gather_ppm;
 
-static int _dsm_fd;
+static int _dsm_fd = -1;
+int _sbus_fd = -1;
 
 static uint16_t rc_value_override = 0;
 
@@ -71,15 +74,15 @@ static unsigned _rssi_adc_counts = 0;
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
 {
 	perf_begin(c_gather_dsm);
-	uint16_t temp_count = r_raw_rc_count;
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
-	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
+	bool dsm_11_bit;
+	*dsm_updated = dsm_input(_dsm_fd, r_raw_rc_values, &r_raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
+				 PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
-		r_raw_rc_count = temp_count & 0x7fff;
 
-		if (temp_count & 0x8000) {
+		if (dsm_11_bit) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 
 		} else {
@@ -158,7 +161,7 @@ controls_init(void)
 	_dsm_fd = dsm_init("/dev/ttyS0");
 
 	/* S.bus input (USART3) */
-	sbus_init("/dev/ttyS2");
+	_sbus_fd = sbus_init("/dev/ttyS2", false);
 
 	/* default to a 1:1 input map, all enabled */
 	for (unsigned i = 0; i < PX4IO_RC_INPUT_CHANNELS; i++) {
@@ -240,7 +243,7 @@ controls_tick()
 	perf_begin(c_gather_sbus);
 
 	bool sbus_failsafe, sbus_frame_drop;
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
+	bool sbus_updated = sbus_input(_sbus_fd, r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
 				       PX4IO_RC_INPUT_CHANNELS);
 
 	if (sbus_updated) {
@@ -484,7 +487,7 @@ controls_tick()
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
-	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
+	if ((!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
 	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 

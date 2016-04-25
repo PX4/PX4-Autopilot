@@ -128,20 +128,6 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-#include <math.h>
-
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
 __EXPORT int board_app_initialize(void)
 {
 
@@ -187,6 +173,6 @@ __EXPORT int board_app_initialize(void)
 	return OK;
 }
 
-__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
 }

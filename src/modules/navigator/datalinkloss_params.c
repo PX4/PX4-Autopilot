@@ -48,7 +48,7 @@
  *
  * The amount of time in seconds the system should wait at the comms hold waypoint
  *
- * @unit seconds
+ * @unit s
  * @min 0.0
  * @group Data Link Loss
  */
@@ -59,7 +59,7 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
  *
  * Latitude of comms hold waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -900000000
  * @max 900000000
  * @group Data Link Loss
@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
  *
  * Longitude of comms hold waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -1800000000
  * @max 1800000000
  * @group Data Link Loss
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
  *
  * The amount of time in seconds the system should wait at the airfield home waypoint
  *
- * @unit seconds
+ * @unit s
  * @min 0.0
  * @group Data Link Loss
  */
@@ -119,7 +119,6 @@ PARAM_DEFINE_INT32(NAV_DLL_N, 2);
  * airfield home
  *
  * @group Data Link Loss
- * @min 0
- * @max 1
+ * @boolean
  */
 PARAM_DEFINE_INT32(NAV_DLL_CHSK, 0);

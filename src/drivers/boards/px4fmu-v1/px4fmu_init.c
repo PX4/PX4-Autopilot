@@ -125,6 +125,10 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
+	/* configure always-on ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN10);
+	stm32_configgpio(GPIO_ADC1_IN11);
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
@@ -144,29 +148,10 @@ static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi3;
 
-#include <math.h>
-
-#if 0
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-#endif
-
 __EXPORT int board_app_initialize(void)
 {
 	int result;
 
-	/* configure always-on ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
 	/* IN12 and IN13 further below */
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)

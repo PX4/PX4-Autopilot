@@ -81,7 +81,7 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
-#define NUM_MSG 2
+#define NUM_MSG 1
 static char msg[NUM_MSG][40];
 
 static void heartbeat_blink(void);
@@ -231,6 +231,9 @@ calculate_fw_crc(void)
 int
 user_start(int argc, char *argv[])
 {
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	up_pwm_servo_init(0xff);
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -285,9 +288,6 @@ user_start(int argc, char *argv[])
 
 	/* start the safety switch handler */
 	safety_init();
-
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	up_pwm_servo_init(0xff);
 
 	/* initialise the control inputs */
 	controls_init();
@@ -373,7 +373,19 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-		if ((hrt_absolute_time() - last_heartbeat_time) > 250 * 1000) {
+		/*
+		  blink blue LED at 4Hz in normal operation. When in
+		  override blink 4x faster so the user can clearly see
+		  that override is happening. This helps when
+		  pre-flight testing the override system
+		 */
+		uint32_t heartbeat_period_us = 250 * 1000UL;
+
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+			heartbeat_period_us /= 4;
+		}
+
+		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
 			last_heartbeat_time = hrt_absolute_time();
 			heartbeat_blink();
 		}

@@ -49,6 +49,10 @@
  *
  * @min 0
  * @max 3
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @value 2 Dynamic ID/Update
+ * @value 3 Motors/Update
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
@@ -67,11 +71,9 @@ PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
 /**
  * UAVCAN CAN bus bitrate.
  *
+ * @unit bit/s
  * @min 20000
  * @max 1000000
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
-
-
-

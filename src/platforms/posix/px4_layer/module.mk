@@ -41,5 +41,8 @@ SRCS		 = 	\
 			lib_crc32.c \
 			drv_hrt.c \
 			px4_log.c
+ifeq ($(CONFIG_SHMEM), 1)
+SRCS		+=	shmem_posix.c
+endif
 
 MAXOPTIMIZATION	 = -Os

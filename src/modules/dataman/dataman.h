@@ -89,7 +89,7 @@ typedef enum {
 } dm_reset_reason;
 
 /** Maximum size in bytes of a single item instance */
-#define DM_MAX_DATA_SIZE 124
+#define DM_MAX_DATA_SIZE 126
 
 /** Retrieve from the data manager store */
 __EXPORT ssize_t
