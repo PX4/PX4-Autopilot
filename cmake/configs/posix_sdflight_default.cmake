@@ -38,6 +38,7 @@ set(config_module_list
 	modules/sensors
 	modules/dataman
 	modules/sdlog2
+	modules/logger
 	modules/simulator
 	modules/commander
 	modules/navigator

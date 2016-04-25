@@ -139,3 +139,15 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
+
+/**
+ * SD logger
+ *
+ * @value 0 sdlog2 (default)
+ * @value 1 new logger (experimental)
+ * @min 0
+ * @max 1
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_LOGGER, 0);
