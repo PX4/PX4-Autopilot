@@ -8,7 +8,6 @@
 #
 ###############################################################################################
 
-uint64 timestamp				# in microseconds since system start, is set whenever the writing thread stores new data
 
 float32 roll_body				# body angle in NED frame
 float32 pitch_body				# body angle in NED frame
@@ -35,3 +34,6 @@ bool fw_control_yaw					# control heading with rudder (used for auto takeoff on 
 bool disable_mc_yaw_control			# control yaw for mc (used for vtol weather-vane mode)
 
 bool apply_flaps
+
+# WAS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
+# TOPICS vehicle_attitude_setpoint
