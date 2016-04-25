@@ -118,7 +118,7 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
- * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
+ * @param _func		The pointer to a function that packs topic
  */
 #define ORB_DEFINE(_name, _struct, _fields)			\
 	const struct orb_metadata __orb_##_name = {	\

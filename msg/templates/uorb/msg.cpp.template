@@ -57,8 +57,7 @@ uorb_struct = '%s_s'%spec.short_name
 uorb_pack_func = 'pack_%s'%spec.short_name
 topic_name = spec.short_name
 
-type_map = {
-  'int8': 'int8_t',
+type_map = {'int8': 'int8_t',
   'int16': 'int16_t',
   'int32': 'int32_t',
   'int64': 'int64_t',
@@ -72,11 +71,9 @@ type_map = {
   'char': 'char',
   'fence_vertex': 'fence_vertex',
   'position_setpoint': 'position_setpoint',
-  'esc_report': 'esc_report'
-}
+  'esc_report': 'esc_report'}
 
-msgtype_size_map = {
-  'int8': 8,
+msgtype_size_map = {'int8': 8,
   'int16': 16,
   'int32': 32,
   'int64': 64,
@@ -90,8 +87,7 @@ msgtype_size_map = {
   'char': 1,
   'fence_vertex': 8,
   'position_setpoint': 104,
-  'esc_report': 36
-}
+  'esc_report': 36}
 
 def convert_type(spec_type):
     bare_type = spec_type
