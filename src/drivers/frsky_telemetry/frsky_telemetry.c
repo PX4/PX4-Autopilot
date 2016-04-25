@@ -342,6 +342,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastGPS = 0;
 			static hrt_abstime lastNAV_STATE = 0;
 			static hrt_abstime lastGPS_FIX = 0;
+			static hrt_abstime lastARMING_STATE = 0;
 
 
 			switch (sbuf[1]) {
@@ -464,18 +465,22 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_8:
 
-				/* report nav_state as DIY_NAVSTATE 2Hz */
+				/* report nav_state as DIY_NAV_STATE 2Hz */
 				if (now - lastNAV_STATE > 500 * 1000) {
 					lastNAV_STATE = now;
-					/* send T1 */
 					sPort_send_NAV_STATE(uart);
 				}
 
-				/* report satcount and fix as DIY_GPSFIX at 2Hz */
+				/* report satcount and fix as DIY_GPS_FIX at 2Hz */
 				else if (now - lastGPS_FIX > 500 * 1000) {
 					lastGPS_FIX = now;
-					/* send T2 */
 					sPort_send_GPS_FIX(uart);
+				}
+
+				/* report nav_state as DIY_ARMING_STATE at 2Hz */
+				else if (now - lastARMING_STATE > 500 * 1000) {
+					lastARMING_STATE= now;
+					sPort_send_ARMING_STATE(uart);
 				}
 
 				break;

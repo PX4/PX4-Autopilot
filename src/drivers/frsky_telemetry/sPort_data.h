@@ -84,7 +84,10 @@
 #define SMARTPORT_ID_DIY_GPS_FIX    0x5001
 #define SMARTPORT_ID_DIY_ARMING_STATE    0x5002
 
-// Public functions
+/* Public functions
+TODO: add ACCX, ACCY, ACCZ, Home position, MavLink Messages,
+     Mission status/results, Safety, Yaw&Pitch&Roll
+*/
 bool sPort_init(void);
 void sPort_deinit(void);
 void sPort_update_topics(void);
@@ -104,5 +107,6 @@ void sPort_send_GPS_TIME(int uart);
 void sPort_send_GPS_FIX(int uart);
 void sPort_send_NAV_STATE(int uart);
 void sPort_send_ARMING_STATE(int uart);
+
 
 #endif /* _SPORT_TELEMETRY_H */
