@@ -314,16 +314,18 @@ void sPort_send_GPS_TIME(int uart)
 		 	YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
 		else
 			HHHHMMMMSSSS0001 (H = Hour, M = Minutes, S = Seconds)
+
+		see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
 	*/
 
 	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
 	struct tm *tm_gps = gmtime(&time_gps);
-	uint8_t year = tm_gps->tm_year + 1900; //years since 1900
-	uint8_t month = tm_gps->tm_mon + 1; //0-11
+	uint8_t year = tm_gps->tm_year; //years since 1900
+	uint8_t month = tm_gps->tm_mon; //0-11
 	uint8_t day = tm_gps->tm_mday; //1-31
-	uint8_t hour = tm_gps->tm_hour;
-	uint8_t minute = tm_gps->tm_min;
-	uint8_t second = tm_gps->tm_sec;
+	uint8_t hour = tm_gps->tm_hour; //0-23
+	uint8_t minute = tm_gps->tm_min; //0-59
+	uint8_t second = tm_gps->tm_sec; //0-60
 
 	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0;
 	uint32_t frsky_time_hms = (hour << 24) | minute << 16 | second << 8 | 1;
