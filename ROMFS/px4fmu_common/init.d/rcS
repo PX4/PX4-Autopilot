@@ -822,6 +822,7 @@ then
 		fi
 
 		pwm failsafe -c 1234 -p 900
+		pwm disarmed -c 1234 -p 900
 
 		# Arm straightaway.
 		pwm arm
