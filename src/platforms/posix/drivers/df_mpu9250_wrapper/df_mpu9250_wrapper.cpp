@@ -94,6 +94,11 @@ public:
 	 */
 	int		stop();
 
+	/**
+	 * Print some debug info.
+	 */
+	void		info();
+
 private:
 	int _publish(struct imu_sensor_data &data);
 
@@ -141,6 +146,9 @@ private:
 	perf_counter_t		    _gyro_range_hit_counter;
 	perf_counter_t		    _accel_range_hit_counter;
 	perf_counter_t		    _publish_perf;
+
+	hrt_abstime		    _last_accel_range_hit_time;
+	uint64_t		    _last_accel_range_hit_count;
 };
 
 DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
@@ -163,7 +171,9 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_fifo_corruption_counter(perf_alloc(PC_COUNT, "mpu9250_fifo_corruptions")),
 	_gyro_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_gyro_range_hits")),
 	_accel_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_accel_range_hits")),
-	_publish_perf(perf_alloc(PC_ELAPSED, "mpu9250_publish"))
+	_publish_perf(perf_alloc(PC_ELAPSED, "mpu9250_publish")),
+	_last_accel_range_hit_time(0),
+	_last_accel_range_hit_count(0)
 {
 	// Set sane default calibration values
 	_accel_calibration.x_scale = 1.0f;
@@ -254,6 +264,17 @@ int DfMpu9250Wrapper::stop()
 	}
 
 	return 0;
+}
+
+void DfMpu9250Wrapper::info()
+{
+	perf_print_counter(_read_counter);
+	perf_print_counter(_error_counter);
+	perf_print_counter(_fifo_overflow_counter);
+	perf_print_counter(_fifo_corruption_counter);
+	perf_print_counter(_gyro_range_hit_counter);
+	perf_print_counter(_accel_range_hit_counter);
+	perf_print_counter(_publish_perf);
 }
 
 void DfMpu9250Wrapper::_update_gyro_calibration()
@@ -607,7 +628,8 @@ info()
 		return 1;
 	}
 
-	PX4_DEBUG("state @ %p", g_dev);
+	PX4_INFO("state @ %p", g_dev);
+	g_dev->info();
 
 	return 0;
 }
