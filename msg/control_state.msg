@@ -1,5 +1,4 @@
 # This is similar to the mavlink message CONTROL_SYSTEM_STATE, but for onboard use */
-uint64 timestamp		# in microseconds since system start
 float32 x_acc			# X acceleration in body frame
 float32 y_acc			# Y acceleration in body frame
 float32 z_acc			# Z acceleration in body frame

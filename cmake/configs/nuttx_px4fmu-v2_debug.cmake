@@ -1,8 +1,9 @@
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "build type")
+
+
 include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
-
-set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
@@ -80,10 +81,11 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
+	# Too high RAM usage due to static allocations
+	# modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -124,7 +126,6 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/DriverFramework/framework
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
@@ -172,11 +173,6 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v2
-	)
-
-set(config_extra_libs
-	#uavcan
-	#uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs

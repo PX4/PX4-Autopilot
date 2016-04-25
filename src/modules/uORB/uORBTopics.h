@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,20 @@
  *
  ****************************************************************************/
 
-#ifndef _uORBGtestTopics_hpp_
-#define _uORBGtestTopics_hpp_
+#ifndef MODULES_UORB_UORBTOPICS_H_
+#define MODULES_UORB_UORBTOPICS_H_
 
-#include "uORB/uORB.h"
+#include <uORB/uORB.h>
 
-namespace uORB_test
-{
-   struct orb_topic_A
-   {
-     int16_t val;
-   };
+/*
+ * Returns count of all declared topics.
+ * It is equal to size of array from orb_get_topics()
+ */
+extern size_t orb_topics_count() __EXPORT;
 
-   struct orb_topic_B
-   {
-     int16_t val;
-   };
+/*
+ * Returns array of topics metadata
+ */
+extern const struct orb_metadata **orb_get_topics() __EXPORT;
 
-   ORB_DEFINE( topicA, struct orb_topic_A, "TOPICA:int16 val;" );
-   ORB_DEFINE( topicB, struct orb_topic_B, "TOPICB:int16 val;" );
-
-   ORB_DEFINE( topicA_clone, struct orb_topic_A, "TOPICA_CLONE:int16 val;" );
-   ORB_DEFINE( topicB_clone, struct orb_topic_B, "TOPICB_CLONE:int16 val;"  );
-}
-
-#endif // _UnitTest_uORBTopics_hpp_
+#endif /* MODULES_UORB_UORBTOPICS_H_ */
