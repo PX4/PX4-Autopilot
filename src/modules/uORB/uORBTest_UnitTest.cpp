@@ -354,7 +354,7 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 
 	usleep(100 * 1000);
 
-	int message_counter = 0, num_messages = 100 * num_instances;
+	int message_counter = 0, num_messages = 50 * num_instances;
 
 	while (message_counter++ < num_messages) {
 		usleep(2); //make sure the timestamps are different
@@ -369,7 +369,7 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 		data_next_idx = (data_next_idx + 1) % num_instances;
 
 		if (data_next_idx == 0) {
-			usleep(10 * 1000);
+			usleep(50 * 1000);
 		}
 	}
 
