@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,18 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=2200)
+endif()
+
 px4_add_module(
-	MODULE drivers__lis3mdl
-	MAIN lis3mdl
-	STACK_MAIN 1200
+	MODULE modules__logger
+	MAIN logger
+	PRIORITY "SCHED_PRIORITY_MAX-30"
+	STACK_MAIN 2200
 	COMPILE_FLAGS
-		-Weffc++
+		${MODULE_CFLAGS}
 		-Os
 	SRCS
-		lis3mdl_i2c.cpp
-		lis3mdl_spi.cpp
-		lis3mdl.cpp
+		logger.cpp
+		log_writer.cpp
 	DEPENDS
 		platforms__common
+		modules__uORB
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
