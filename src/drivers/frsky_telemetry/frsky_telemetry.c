@@ -339,10 +339,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastSPD = 0;
 			static hrt_abstime lastFUEL = 0;
 			static hrt_abstime lastVSPD = 0;
+			static hrt_abstime lastACC = 0;
 			static hrt_abstime lastGPS = 0;
 			static hrt_abstime lastNAV_STATE = 0;
 			static hrt_abstime lastGPS_FIX = 0;
 			static hrt_abstime lastARMING_STATE = 0;
+			static hrt_abstime lastATTITUDE = 0;
 
 
 			switch (sbuf[1]) {
@@ -420,45 +422,23 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_VSPD(uart, speed);
 				}
 
+				/* report acceleration at 10Hz */
+				else if (now - lastAcc > 100 * 1000) {
+					sPort_send_ACC(uart);
+				}
 				break;
 
 			case SMARTPORT_POLL_7:
 
-				/* report GPS data elements at 5*5Hz */
-				if (now - lastGPS > 100 * 1000) {
-					static int elementCount = 0;
-
-					switch (elementCount) {
-
-					case 0:
-						sPort_send_GPS_LON(uart);
-						elementCount++;
-						break;
-
-					case 1:
-						sPort_send_GPS_LAT(uart);
-						elementCount++;
-						break;
-
-					case 2:
-						sPort_send_GPS_CRS(uart);
-						elementCount++;
-						break;
-
-					case 3:
-						sPort_send_GPS_ALT(uart);
-						elementCount++;
-						break;
-
-					case 4:
-						sPort_send_GPS_SPD(uart);
-						elementCount++;
-						break;
-
-					case 5:
-						sPort_send_GPS_TIME(uart);
-						elementCount = 0;
-						break;
+				/* report GPS data elements at 1Hz */
+				if (now - lastGPS > 1000 * 1000) {
+					lastGPS = now;
+					sPort_send_GPS_LON(uart);
+					sPort_send_GPS_LAT(uart);
+					sPort_send_GPS_CRS(uart);
+					sPort_send_GPS_ALT(uart);
+					sPort_send_GPS_SPD(uart);
+					sPort_send_GPS_TIME(uart);
 					}
 
 				}
@@ -471,16 +451,22 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_NAV_STATE(uart);
 				}
 
-				/* report satcount and fix as DIY_GPS_FIX at 2Hz */
-				else if (now - lastGPS_FIX > 500 * 1000) {
+				/* report satcount and fix as DIY_GPS_FIX at 1Hz */
+				else if (now - lastGPS_FIX > 1000 * 1000) {
 					lastGPS_FIX = now;
 					sPort_send_GPS_FIX(uart);
 				}
 
 				/* report nav_state as DIY_ARMING_STATE at 2Hz */
 				else if (now - lastARMING_STATE > 500 * 1000) {
-					lastARMING_STATE= now;
+					lastARMING_STATE = now;
 					sPort_send_ARMING_STATE(uart);
+				}
+
+				/* report vehicle attitude at 10Hz */
+				else if (now - lastATTITUDE > 100 * 1000){
+					lastATTITUDE = now;
+					sPort_send_ATTITUDE();
 				}
 
 				break;

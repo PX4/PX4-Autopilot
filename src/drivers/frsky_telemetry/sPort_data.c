@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -64,12 +65,14 @@ static int global_position_sub = -1;
 static int battery_status_sub = -1;
 static int vehicle_status_sub = -1;
 static int gps_position_sub = -1;
+static int vehicle_attitude_sub = -1;
 
 static struct sensor_combined_s *sensor_combined;
 static struct vehicle_global_position_s *global_pos;
 static struct battery_status_s *battery_status;
 static struct vehicle_status_s *vehicle_status;
 static struct vehicle_gps_position_s *gps_position;
+static struct vehicle_attitude_s *vehicle_attitude;
 
 
 /**
@@ -83,10 +86,11 @@ bool sPort_init()
 	battery_status = malloc(sizeof(struct battery_status_s));
 	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
+	vehicle_attitude = malloc(sizeof(struct vehicle_attitude_s));
 
 
 	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
-	    || gps_position == NULL) {
+	    || gps_position == NULL || vehicle_attitude == NULL) {
 		return false;
 	}
 
@@ -96,6 +100,7 @@ bool sPort_init()
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	return true;
 }
@@ -107,6 +112,7 @@ void sPort_deinit()
 	free(battery_status);
 	free(vehicle_status);
 	free(gps_position);
+	free(vehicle_attitude);
 }
 
 void sPort_update_topics()
@@ -145,6 +151,13 @@ void sPort_update_topics()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, gps_position);
+	}
+
+	/* get a local copy of the vehicle attitude data */
+	orb_check(vehicle_attitude_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
 	}
 }
 
@@ -265,6 +278,15 @@ void sPort_send_FUEL(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
+void sPort_send_ACC(int uart)
+{
+	/* send data. opentx expects acc values in g. */
+	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * 1/9.81f));
+	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * 1/9.81f));
+	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * 1/9.81f));
+
+}
+
 void sPort_send_GPS_LON(int uart)
 {
 	/* send longitude */
@@ -355,20 +377,38 @@ void sPort_send_GPS_FIX(int uart)
 
 
 /*
- * Sends nav_state + 128
+ * Sends nav_state
  */
 void sPort_send_NAV_STATE(int uart)
 {
-	uint32_t navstate = (int)(128 + vehicle_status->nav_state);
+	uint32_t navstate = (int)(vehicle_status->nav_state);
 
 	/* send data */
 	sPort_send_data(uart, SMARTPORT_ID_DIY_NAV_STATE, navstate);
 }
 
+/*
+ * Sends arming_state
+ */
+
 void sPort_send_ARMING_STATE(int uart)
 {
-	uint32_t armingstate = (int)(128 + vehicle_status->arming_state);
+	uint32_t armingstate = (int)(vehicle_status->arming_state);
 
 	/* send data */
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ARMING_STATE, armingstate);
 }
+
+/*
+ * Sends Attitude
+ */
+ void sPort_send_ATTITUDE(int uart)
+ {
+	float32_t roll = roundf(sensor_combined->vehicle_attitude->roll * 1000.0f);
+	float32_t pitch = roundf(sensor_combined->vehicle_attitude->pitch * 1000.0f);
+	float32_t yaw = roundf(sensor_combined->vehicle_attitude->yaw * 1000.0f);
+
+	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_ROLL, roll);
+	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_PITCH, pitch);
+	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_YAW, yaw);
+ }

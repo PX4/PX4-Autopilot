@@ -78,15 +78,19 @@
 #define SMARTPORT_ID_GPS_SPD       0x0830
 #define SMARTPORT_ID_GPS_CRS       0x0840
 #define SMARTPORT_ID_GPS_TIME      0x0850
-#define SMARTPORT_ID_DIY_FIRST     0x5000
-#define SMARTPORT_ID_DIY_LAST      0x50ff  //We have 256 possible ID's for custom values :)
-#define SMARTPORT_ID_DIY_NAV_STATE  0x5000
-#define SMARTPORT_ID_DIY_GPS_FIX    0x5001
-#define SMARTPORT_ID_DIY_ARMING_STATE    0x5002
+
+/* We have 256 possible ID's for custom values, from 0x5000 to 0x50ff
+ * These are offset by 128 for future compability with APM (0-128 for APM, 128-255 for PX4)
+ */
+#define SMARTPORT_ID_DIY_NAV_STATE  0x5080
+#define SMARTPORT_ID_DIY_GPS_FIX    0x5081
+#define SMARTPORT_ID_DIY_ARMING_STATE    0x5082
+#define SMARTPORT_ID_DIY_ATTITUDE_ROLL  0x5083
+#define SMARTPORT_ID_DIY_ATTITUDE_PITCH   0x5084
+#define SMARTPORT_ID_DIY_ATTITUDE_YAW   0x5085
 
 /* Public functions
-TODO: add ACCX, ACCY, ACCZ, Home position, MavLink Messages,
-     Mission status/results, Safety, Yaw&Pitch&Roll
+TODO: add Home position, MavLink Messages, Mission status/results, Safety
 */
 bool sPort_init(void);
 void sPort_deinit(void);
@@ -98,6 +102,7 @@ void sPort_send_ALT(int uart);
 void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
 void sPort_send_FUEL(int uart);
+void sPort_send_ACC(int uart);
 void sPort_send_GPS_LON(int uart);
 void sPort_send_GPS_LAT(int uart);
 void sPort_send_GPS_ALT(int uart);
@@ -107,6 +112,7 @@ void sPort_send_GPS_TIME(int uart);
 void sPort_send_GPS_FIX(int uart);
 void sPort_send_NAV_STATE(int uart);
 void sPort_send_ARMING_STATE(int uart);
+void sPort_send_ATTITUDE(int uart);
 
 
 #endif /* _SPORT_TELEMETRY_H */
