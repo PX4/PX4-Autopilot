@@ -70,7 +70,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
 	_paramHandle.acc_threshold_m_s2 = param_find("LNDMC_FFALL_THR");
-	_paramHandle.ff_trigger_time_ms = param_find("LNDMC_FFALL_TRIG");
+	_paramHandle.ff_trigger_time = param_find("LNDMC_FFALL_TTRI");
 }
 
 void MulticopterLandDetector::initialize()
@@ -139,7 +139,7 @@ bool MulticopterLandDetector::get_freefall_state()
 		return false;
 	}
 
-	return (now - _freefallTimer) / 1000 > _params.ff_trigger_time_ms;
+	return (now - _freefallTimer) / 1000000.0f > _params.ff_trigger_time;
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -225,7 +225,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
 		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
-		param_get(_paramHandle.ff_trigger_time_ms, &_params.ff_trigger_time_ms);
+		param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
 	}
 }
 
