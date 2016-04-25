@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -68,6 +69,7 @@ static int vehicle_status_sub = -1;
 static int gps_position_sub = -1;
 static int vehicle_attitude_sub = -1;
 static int mission_result_sub = -1;
+static int mavlink_log_sub = -1;
 
 static struct sensor_combined_s *sensor_combined;
 static struct vehicle_global_position_s *global_pos;
@@ -76,6 +78,7 @@ static struct vehicle_status_s *vehicle_status;
 static struct vehicle_gps_position_s *gps_position;
 static struct vehicle_attitude_s *vehicle_attitude;
 static struct mission_result_s *mission_result;
+static struct mavlink_log_s *mavlink_log;
 
 
 /**
@@ -91,10 +94,10 @@ bool sPort_init()
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 	vehicle_attitude = malloc(sizeof(struct vehicle_attitude_s));
 	mission_result = malloc(sizeof(struct mission_result_s));
-
+	mavlink_log = malloc(sizeof(struct mavlink_log_s));
 
 	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
-	    || gps_position == NULL || vehicle_attitude == NULL || mission_result == NULL) {
+	    || gps_position == NULL || vehicle_attitude == NULL || mission_result == NULL || mavlink_log == NULL) {
 		return false;
 	}
 
@@ -106,6 +109,7 @@ bool sPort_init()
 	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	mission_result_sub = orb_subscribe(ORB_ID(mission_result));
+	mavlink_log_sub = orb_subscribe(ORB_ID(mavlink_log));
 
 	return true;
 }
@@ -119,6 +123,7 @@ void sPort_deinit()
 	free(gps_position);
 	free(vehicle_attitude);
 	free(mission_result);
+	free(mavlink_log);
 }
 
 void sPort_update_topics()
@@ -171,6 +176,15 @@ void sPort_update_topics()
 
 	if (updated) {
 		orb_copy(ORB_ID(mission_result), mission_result_sub, mission_result);
+	}
+
+	/* get a local copy of the mavlink log data */
+	orb_check(mavlink_log_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(mavlink_log), mavlink_log_sub, mavlink_log);
+
+		//TODO push message to a message queue if severity over <= 5
 	}
 }
 
@@ -469,4 +483,23 @@ void sPort_send_MISSION_SEQUENCE_STATUS(int uart)
 			 | mission_result->item_do_jump_changed << 1
 			 | mission_result->mission_failure;
 	sPort_send_data(uart, SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS, seq_status);
+}
+
+void sPort_send_MAVLINK_MESSAGE(int uart)
+{
+	/* from mavlink_log.msg: uint8[50] text.
+	 * each character is 8 bit or 1 byte.
+	 * which means messages are worst case 400 Bit -> 12.5 * uint32_t
+	 * so the text buffer is at maximum 416 Bit = 13 * uint32_t
+	 * the first 8 bit and last 8 bit will be used for the start (0x02) and end (0x03) frame.
+	 * at a rate of transimitting 20 Hz, we could theoretically transmit 20 uint_32_t per second
+	 * so one message should theoretically transmit in under a second.
+	 * LUA INFO: string.format("%c", 0xFF)  will convert from hex to ascii char
+	 * maximum severity we will send is MAV_SEVERITY_NOTICE = 5
+	 *
+	 * logic:
+	 * if new message and last message sucessfully transmitted (bytes_to_send queue is empty) then
+	 * 	->> convert message to sequence of bytes with start and stop frame, push to a bytes_to_send queue
+	 * pop one byte from bytes_to_send queue and send
+	 */
 }

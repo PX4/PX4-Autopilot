@@ -346,6 +346,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastARMING_STATE = 0;
 			static hrt_abstime lastATTITUDE = 0;
 			static hrt_abstime lastMISSION_SEQUENCE = 0;
+			static hrt_abstime lastMAVLINK_MESSAGE = 0;
 
 
 			switch (sbuf[1]) {
@@ -357,6 +358,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastBATV = now;
 					/* send battery voltage */
 					sPort_send_BATV(uart);
+				}
+
+				else if (now - lastMAVLINK_MESSAGE)
+				{
+					lastMAVLINK_MESSAGE = now;
+					sPort_send_MAVLINK_MESSAGE(uart);
 				}
 
 				break;
