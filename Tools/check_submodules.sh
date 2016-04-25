@@ -76,6 +76,7 @@ check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix
 check_git_submodule src/modules/uavcan/libuavcan
 check_git_submodule unittests/googletest
+check_git_submodule src/drivers/gps/devices
 
 exit 0
 
