@@ -819,6 +819,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (!should_transmit()) {
+		if(msgid == MAVLINK_MSG_ID_EAG_RAW) PX4_ERR("[Mavlink::send_message] should not transmit");
 		return;
 	}
 
@@ -910,6 +911,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	} else {
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
+		if(msgid == MAVLINK_MSG_ID_EAG_RAW) PX4_INFO("[Mavlink::send_message] EAG_RAW message sent");
 	}
 
 	pthread_mutex_unlock(&_send_mutex);
@@ -2378,6 +2380,3 @@ int mavlink_main(int argc, char *argv[])
 
 	return 0;
 }
-
-
-

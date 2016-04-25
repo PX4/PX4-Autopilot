@@ -316,6 +316,13 @@ void MavlinkReceiver::handle_message_eag_raw(mavlink_message_t *msg) {
 
 	f.timestamp = hrt_absolute_time();
 	f.raw_data = raw.raw_data;
+
+	if(_eag_raw_pub == nullptr){
+		_eag_raw_pub = orb_advertise(ORB_ID(eag_raw), &f);
+	}
+	else {
+		orb_publish(ORB_ID(eag_raw), _eag_raw_pub, &f);
+	}
 }
 
 void

@@ -47,6 +47,7 @@
 #include <lib/geo/geo.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/eag_raw.h>
+#include "v1.0/smellocopter/mavlink.h"
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -268,6 +269,70 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	}
 }
 
+/*
+* @class MavlinkStreamEagRaw
+* Mavlink stream for the eag sensor.
+* @author Joseph Sullivan <jgs.424112@gmail.com>
+*/
+class MavlinkStreamEagRaw : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamEagRaw::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "EAG_RAW";
+	}
+
+	uint8_t get_id()
+
+	{
+		return MAVLINK_MSG_ID_EAG_RAW;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamEagRaw(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_EAG_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_eag_sub;
+	uint64_t _eag_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamEagRaw(MavlinkStreamEagRaw &);
+	MavlinkStreamEagRaw& operator = (const MavlinkStreamEagRaw &);
+
+protected:
+	explicit MavlinkStreamEagRaw(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		_eag_sub = _mavlink->add_orb_subscription(ORB_ID(eag_raw));
+		_eag_time = 0;
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct eag_raw_s msg;
+
+		if(_eag_sub->update(&_eag_time, &msg)){
+			mavlink_eag_raw_t data;
+
+			data.raw_data = msg.raw_data;
+			data.time_stamp = msg.timestamp;
+			// _mavlink->send_statustext_info("eag data received");
+			PX4_INFO("[MavlinkStreamEagRaw::send] sending");
+			_mavlink->send_message(MAVLINK_MSG_ID_EAG_RAW, &data);
+		}
+	}
+};
 
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
@@ -2859,5 +2924,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
+	new StreamListItem(&MavlinkStreamEagRaw::new_instance, &MavlinkStreamEagRaw::get_name_static),
 	nullptr
 };

@@ -150,7 +150,16 @@ set(config_module_list
 
 	# Test script
 	examples/px4_port_echo
-	
+
+	# Another test script
+	examples/px4_arduino_serial
+
+	# eag sensor uORB message publish test
+	examples/px4_eag_publish
+
+	# eag sensor uORB message subscribe timestamp
+	examples/px4_eag_subscribe
+
 	# Tutorial code from
 	# https://px4.io/dev/daemon
 	#examples/px4_daemon_app
