@@ -74,6 +74,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  * threshold.
  *
  * @group Battery Calibration
+ * @unit norm
  * @decimal 2
  * @min 0.15
  * @max 0.5
@@ -89,6 +90,7 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.18f);
  * the low threshold. This threshold commonly will trigger RTL or landing.
  *
  * @group Battery Calibration
+ * @unit norm
  * @decimal 2
  * @min 0.05
  * @max 0.14
