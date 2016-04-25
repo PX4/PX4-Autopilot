@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  *
  * @group Commander
  * @unit s
- * @min 0
+ * @min 5
  * @max 300
  * @decimal 1
  * @increment 0.5
@@ -115,7 +115,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * @group Commander
  * @unit s
  * @min 0
- * @max 30
+ * @max 3
  * @decimal 1
  * @increment 0.5
  */
