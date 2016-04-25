@@ -1,4 +1,3 @@
-uint64 timestamp
 uint64 error_count
 float32 x
 float32 y

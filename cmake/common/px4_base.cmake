@@ -359,13 +359,15 @@ function(px4_generate_messages)
 		NAME px4_generate_messages
 		OPTIONS VERBOSE
 		ONE_VALUE OS TARGET
-		MULTI_VALUE MSG_FILES DEPENDS
+		MULTI_VALUE MSG_FILES DEPENDS INCLUDES
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
 	set(QUIET)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
 	endif()
+
+	# headers
 	set(msg_out_path ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
 	set(msg_list)
 	foreach(msg_file ${MSG_FILES})
@@ -390,6 +392,26 @@ function(px4_generate_messages)
 		VERBATIM
 		)
 
+	# !sources
+	set(msg_source_out_path	${CMAKE_BINARY_DIR}/topics_sources)
+	set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
+	foreach(msg ${msg_list})
+		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_source_files_out}
+		COMMAND ${PYTHON_EXECUTABLE} 
+			Tools/px_generate_uorb_topic_sources.py
+			${QUIET}
+			-d msg
+			-e msg/templates/uorb
+			-o ${msg_source_out_path}
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		COMMENT "Generating uORB topic sources"
+		VERBATIM
+		)
+	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
+
 	# multi messages for target OS
 	set(msg_multi_out_path
 		${CMAKE_BINARY_DIR}/src/platforms/${OS}/px4_messages)
@@ -411,8 +433,13 @@ function(px4_generate_messages)
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
-	add_custom_target(${TARGET}
-		DEPENDS ${msg_multi_files_out} ${msg_files_out})
+
+	add_library(${TARGET}
+		${msg_source_files_out}
+		${msg_multi_files_out}
+		${msg_files_out}
+		)
+
 endfunction()
 
 #=============================================================================

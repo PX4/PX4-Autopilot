@@ -1,5 +1,3 @@
-uint64 timestamp		# timestamp this topic was emitted
-
 float32 nav_roll
 float32 nav_pitch
 float32 nav_bearing
