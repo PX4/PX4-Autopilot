@@ -18,6 +18,7 @@
 
     <include file="$(find px4)/launch/mavros.launch">
         <arg name="ns" value="$(arg ns)"/>
+        <arg name="gcs_url" value=""/> <!-- GCS link is provided by SITL -->
         <arg name="fcu_url" value="$(arg fcu_url)"/>
     </include>
 </launch>
