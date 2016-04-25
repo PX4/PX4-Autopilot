@@ -129,6 +129,8 @@ private:
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
+	float				_rate_rtcm_injection;				///< RTCM message injection rate
+	unsigned			_last_rate_rtcm_injection_count; 		///< counter for number of RTCM messages
 	bool				_fake_gps;					///< fake gps output
 
 	static const int _orb_inject_data_fd_count = 4;
@@ -221,6 +223,8 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
+	_rate_rtcm_injection(0.0f),
+	_last_rate_rtcm_injection_count(0),
 	_fake_gps(fake_gps)
 {
 	/* store port name */
@@ -390,6 +394,7 @@ void GPS::handleInjectDataTopic()
 
 			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd_count;
 
+			++_last_rate_rtcm_injection_count;
 		}
 	} while (updated);
 }
@@ -661,9 +666,12 @@ GPS::task_main()
 
 					/* measure update rate every 5 seconds */
 					if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
-						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
+						float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
+						_rate = last_rate_count / dt;
+						_rate_rtcm_injection = _last_rate_rtcm_injection_count / dt;
 						last_rate_measurement = hrt_absolute_time();
 						last_rate_count = 0;
+						_last_rate_rtcm_injection_count = 0;
 						_helper->storeUpdateRates();
 						_helper->resetUpdateRates();
 					}
@@ -698,6 +706,7 @@ GPS::task_main()
 					PX4_WARN("GPS module lost");
 					_healthy = false;
 					_rate = 0.0f;
+					_rate_rtcm_injection = 0.0f;
 				}
 			}
 
@@ -787,9 +796,10 @@ GPS::print_info()
 			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
 		PX4_WARN("hdop: %.2f, vdop: %.2f", (double)_report_gps_pos.hdop, (double)_report_gps_pos.vdop);
 		PX4_WARN("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
-		PX4_WARN("rate position: \t%6.2f Hz", (double)_helper->getPositionUpdateRate());
-		PX4_WARN("rate velocity: \t%6.2f Hz", (double)_helper->getVelocityUpdateRate());
-		PX4_WARN("rate publication:\t%6.2f Hz", (double)_rate);
+		PX4_WARN("rate position: \t\t%6.2f Hz", (double)_helper->getPositionUpdateRate());
+		PX4_WARN("rate velocity: \t\t%6.2f Hz", (double)_helper->getVelocityUpdateRate());
+		PX4_WARN("rate publication:\t\t%6.2f Hz", (double)_rate);
+		PX4_WARN("rate RTCM injection:\t%6.2f Hz", (double)_rate_rtcm_injection);
 
 	}
 
