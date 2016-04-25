@@ -379,16 +379,17 @@ private:
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
 #ifndef __PX4_POSIX_EAGLE
-	FILE *fp = nullptr;
+	FILE *fp;
 #endif
 
 protected:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink),
+	fp(nullptr)
 	{}
 
 	~MavlinkStreamStatustext() {
 #ifndef __PX4_POSIX_EAGLE
-		if (fp) {
+		if (fp != nullptr) {
 			fclose(fp);
 		}
 #endif
@@ -412,8 +413,8 @@ protected:
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
 #ifndef __PX4_POSIX_EAGLE
 				/* write log messages in first instance to disk */
-				if (_mavlink->get_instance_id() == 0 && _mavlink->get_logging_enabled()) {
-					if (fp) {
+				if (_mavlink->get_instance_id() == 0/* && _mavlink->get_logging_enabled()*/) {
+					if (fp != nullptr) {
 						if (EOF == fputs(msg.text, fp)) {
 							write_err_count++;
 						} else {
@@ -423,9 +424,9 @@ protected:
 						if (write_err_count >= write_err_threshold) {
 							(void)fclose(fp);
 							fp = nullptr;
+							PX4_WARN("mavlink logging disabled");
 						} else {
 							(void)fputs("\n", fp);
-							(void)fsync(fileno(fp));
 						}
 
 					} else if (write_err_count < write_err_threshold) {
@@ -442,15 +443,15 @@ protected:
 
 						/* store the log file in the root directory */
 						int offs = snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/");
-						strftime(log_file_path + offs, sizeof(log_file_path), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
+						strftime(log_file_path + offs, sizeof(log_file_path) - offs, "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						fp = fopen(log_file_path, "ab");
 
-						if (fp != NULL) {
+						if (fp != nullptr) {
 							/* write first message */
 							fputs(msg.text, fp);
 							fputs("\n", fp);
 						} else {
-							PX4_WARN("Failed to open MAVLink log: %s errno=%d", log_file_path, errno);
+							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
 						}
 					}
 				}
