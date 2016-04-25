@@ -253,19 +253,19 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 		return -EIO;
 	}
 
-	/* Perform an atomic copy. */
 	lock();
 	memcpy(_data, buffer, _meta->o_size);
-	unlock();
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 	_generation++;
 
+	_published = true;
+
+	unlock();
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
-
-	_published = true;
 
 	return _meta->o_size;
 }
@@ -278,16 +278,22 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE:
+		lock();
 		*(hrt_abstime *)arg = _last_update;
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCUPDATED:
+		lock();
 		*(bool *)arg = appears_updated(sd);
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCSETINTERVAL:
+		lock();
 		sd->update_interval = arg;
 		sd->last_update = hrt_absolute_time();
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCGADVERTISER:
@@ -385,6 +391,7 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
+
 	/* block if in simulation mode */
 	while (px4_sim_delay_enabled()) {
 		usleep(100);
@@ -396,8 +403,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
-		ret = false;
-		goto out;
+		return false;
 	}
 
 	/*
@@ -443,8 +449,6 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		break;
 	}
 
-out:
-	/* consider it updated */
 	return ret;
 }
 
@@ -511,14 +515,14 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int16_t uORB::DeviceNode::process_remove_subscription()
 {
-	return 0;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -584,9 +588,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* ensure that only one advertiser runs through this critical section */
-			lock();
-
 			ret = ERROR;
 
 			/* try for topic groups */
@@ -600,10 +601,11 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				group_tries = *adv->instance;
 
 				if (group_tries >= max_group_tries) {
-					unlock();
 					return -ENOMEM;
 				}
 			}
+
+			SmartLock smart_lock(*this);
 
 			do {
 				/* if path is modifyable change try index */
@@ -617,7 +619,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
-					unlock();
 					return -ENOMEM;
 				}
 
@@ -625,7 +626,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					unlock();
 					free((void *)objname);
 					return -ENOMEM;
 				}
@@ -635,7 +635,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					unlock();
 					free((void *)objname);
 					free((void *)devpath);
 					return -ENOMEM;
@@ -679,9 +678,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
-
-			/* the file handle for the driver has been created, unlock */
-			unlock();
 
 			return ret;
 		}
