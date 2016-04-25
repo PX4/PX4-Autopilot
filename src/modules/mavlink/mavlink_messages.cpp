@@ -423,7 +423,7 @@ protected:
 				struct tm tt;
 				gmtime_r(&gps_time_sec, &tt);
 				char tstamp[22];
-				int tslen = strftime(tstamp, sizeof(tstamp) - 1, "%Y_%m_%d_%H_%M_%S", &tt);
+				strftime(tstamp, sizeof(tstamp) - 1, "%Y_%m_%d_%H_%M_%S", &tt);
 
 				if (_mavlink->get_instance_id() == 0/* && _mavlink->get_logging_enabled()*/) {
 					if (fp != nullptr) {
