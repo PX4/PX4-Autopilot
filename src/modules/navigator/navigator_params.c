@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
  * Set data link loss failsafe mode
  *
  * The data link loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. Once the timeout occurs the selected
+ * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
  * action will be executed. Setting this parameter to 4 will enable CASA
  * Outback Challenge rules, which are only recommended to participants
  * of that competition.
