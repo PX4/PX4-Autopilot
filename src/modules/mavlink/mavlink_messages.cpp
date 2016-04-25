@@ -383,8 +383,10 @@ private:
 #endif
 
 protected:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink),
-	fp(nullptr)
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+#ifndef __PX4_POSIX_EAGLE
+	, fp(nullptr)
+#endif
 	{}
 
 	~MavlinkStreamStatustext() {
