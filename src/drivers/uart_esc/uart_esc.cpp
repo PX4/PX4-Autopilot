@@ -90,9 +90,9 @@ input_rc_s 		_rc;
 pwm_limit_t	_pwm_limit;
 
 // esc parameters
-uint16_t _pwm_disarmed;
-uint16_t _pwm_min;
-uint16_t _pwm_max;
+int32_t _pwm_disarmed;
+int32_t _pwm_min;
+int32_t _pwm_max;
 
 MultirotorMixer *_mixer = nullptr;
 

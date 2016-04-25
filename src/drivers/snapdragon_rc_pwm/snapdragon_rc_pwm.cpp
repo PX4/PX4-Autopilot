@@ -75,7 +75,7 @@ static int _uart_fd = -1;
 int _pwm_fd = -1;
 static bool _flow_control_enabled = false;
 int _rc_sub = -1;
-uint16_t _pwm_disarmed;
+int32_t _pwm_disarmed;
 
 hrt_abstime _last_actuator_controls_received = 0;
 
