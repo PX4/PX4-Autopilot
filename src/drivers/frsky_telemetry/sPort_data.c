@@ -342,17 +342,6 @@ void sPort_send_GPS_SPD(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
 }
 
-/*
- * Sends nav_state + 128
- */
-void sPort_send_NAV_STATE(int uart)
-{
-	uint32_t navstate = (int)(128 + vehicle_status->nav_state);
-
-	/* send data */
-	sPort_send_data(uart, SMARTPORT_ID_DIY_NAVSTATE, navstate);
-}
-
 // verified scaling
 // sends number of sats and type of gps fix
 void sPort_send_GPS_FIX(int uart)
@@ -361,5 +350,25 @@ void sPort_send_GPS_FIX(int uart)
 	uint32_t satcount = (int)(gps_position->satellites_used);
 	uint32_t fixtype = (int)(gps_position->fix_type);
 	uint32_t t2 = satcount * 10 + fixtype;
-	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
+	sPort_send_data(uart, SMARTPORT_ID_DIY_GPS_FIX, t2);
+}
+
+
+/*
+ * Sends nav_state + 128
+ */
+void sPort_send_NAV_STATE(int uart)
+{
+	uint32_t navstate = (int)(128 + vehicle_status->nav_state);
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_DIY_NAV_STATE, navstate);
+}
+
+void sPort_send_ARMING_STATE(int uart)
+{
+	uint32_t armingstate = (int)(128 + vehicle_status->arming_state);
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_DIY_ARMING_STATE, armingstate);
 }
