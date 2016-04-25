@@ -1,5 +1,4 @@
 
-uint64 timestamp				# in microseconds since system start
 						# is set whenever the writing thread stores new data
 
 bool flag_armed
