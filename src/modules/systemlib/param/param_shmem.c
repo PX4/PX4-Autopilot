@@ -1,5 +1,3 @@
-
-
 /****************************************************************************
  *
  * Copyright (c) 2015 Vijay Venkatraman. All rights reserved.
@@ -125,6 +123,8 @@ uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
 
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
+extern void update_index_from_shmem(void);
+
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved);
 unsigned char set_called_from_get = 0;
 
@@ -967,6 +967,10 @@ param_export(int fd, bool only_unsaved)
 		result = 0;
 		goto out;
 	}
+
+	/* First of all, update the index which will call param_get for params
+	 * that have recently been changed. */
+	update_index_from_shmem();
 
 	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
 
