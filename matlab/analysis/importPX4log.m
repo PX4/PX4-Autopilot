@@ -99,7 +99,7 @@ while 1
                     if isnumeric(msg_data{k})
                         allData.(msg_descr{3}).(msg_descr{5}{k})(ind) = msg_data{k};
                         try
-                            allData.(msg_descr{3}).T(ind) = double(allData.TIME.StartTime(max(1,allData.TIME.index-1)))*1e-6;
+                            allData.(msg_descr{3}).Tsec(ind) = double(allData.TIME.StartTime(max(1,allData.TIME.index-1)))*1e-6;
                         end
                         noInc = false;
                     else
