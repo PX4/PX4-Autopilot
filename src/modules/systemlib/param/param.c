@@ -845,10 +845,10 @@ param_bus_lock(bool lock)
 
 	// we lock like this for Pixracer for now
 	if (lock) {
-		state = irqsave();
+		state = enter_critical_section();
 
 	} else {
-		irqrestore(state);
+		leave_critical_section(state);
 	}
 
 #endif
