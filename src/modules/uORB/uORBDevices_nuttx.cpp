@@ -267,9 +267,12 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
-	case ORBIOCLASTUPDATE:
-		*(hrt_abstime *)arg = _last_update;
-		return OK;
+	case ORBIOCLASTUPDATE: {
+			irqstate_t state = irqsave();
+			*(hrt_abstime *)arg = _last_update;
+			irqrestore(state);
+			return OK;
+		}
 
 	case ORBIOCUPDATED:
 		*(bool *)arg = appears_updated(sd);
