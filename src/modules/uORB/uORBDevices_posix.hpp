@@ -168,7 +168,7 @@ class uORB::DeviceMaster : public device::VDev
 {
 public:
 	DeviceMaster(Flavor f);
-	~DeviceMaster();
+	virtual ~DeviceMaster();
 
 	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
 
