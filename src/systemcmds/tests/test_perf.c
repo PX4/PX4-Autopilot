@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file test_conv.cpp
- * Tests conversions used across the system.
- *
- */
-
 #include <px4_config.h>
+#include <px4_posix.h>
 
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <poll.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
+#include <systemlib/perf_counter.h>
 
 #include "tests.h"
 
-#include <math.h>
-#include <float.h>
-
-#include <systemlib/err.h>
-#include <unit_test/unit_test.h>
-#include <px4iofirmware/protocol.h>
-
-int test_conv(int argc, char *argv[])
+int
+test_perf(int argc, char *argv[])
 {
-	//PX4_INFO("Testing system conversions");
+	perf_counter_t cc = perf_alloc(PC_COUNT, "test_count");
+	perf_counter_t ec = perf_alloc(PC_ELAPSED, "test_elapsed");
 
-	for (int i = -10000; i <= 10000; i += 1) {
-		float f = i / 10000.0f;
-		float fres = REG_TO_FLOAT(FLOAT_TO_REG(f));
-
-		if (fabsf(f - fres) > 0.0001f) {
-			PX4_ERR("conversion fail: input: %8.4f, intermediate: %d, result: %8.4f", (double)f, REG_TO_SIGNED(FLOAT_TO_REG(f)),
-				(double)fres);
-			return 1;
-		}
+	if ((cc == NULL) || (ec == NULL)) {
+		printf("perf: counter alloc failed\n");
+		return 1;
 	}
 
-	//PX4_INFO("All conversions clean");
+	perf_begin(ec);
+	perf_count(cc);
+	perf_count(cc);
+	perf_count(cc);
+	perf_count(cc);
+	printf("perf: expect count of 4\n");
+	perf_print_counter(cc);
+	perf_end(ec);
+	printf("perf: expect count of 1\n");
+	perf_print_counter(ec);
+	printf("perf: expect at least two counters\n");
+	perf_print_all(0);
 
-	return 0;
+	perf_free(cc);
+	perf_free(ec);
+
+	return OK;
 }

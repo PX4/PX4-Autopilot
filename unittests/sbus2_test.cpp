@@ -19,20 +19,20 @@ TEST(SBUS2Test, SBUS2)
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
-	ASSERT_TRUE(fp);
-	warnx("loading data from: %s", filepath);
+	ASSERT_NE(fp, nullptr);
+	//warnx("loading data from: %s", filepath);
 
 	// if (argc < 2)
 	// 	errx(1, "Need a filename for the input file");
 
-	int byte_offset = 7;
+	//int byte_offset = 7;
 
 	// if (argc > 2) {
 	// 	char* end;
 	// 	byte_offset = strtol(argv[2],&end,10);
 	// }
 
-	warnx("RUNNING TEST WITH BYTE OFFSET OF: %d", byte_offset);
+	//warnx("RUNNING TEST WITH BYTE OFFSET OF: %d", byte_offset);
 
 	float f;
 	unsigned x;
@@ -57,6 +57,7 @@ TEST(SBUS2Test, SBUS2)
 	int rate_limiter = 0;
 	unsigned last_drop = 0;
 
+	ASSERT_NE(fp, nullptr);
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
 		ASSERT_GT(ret, 0);

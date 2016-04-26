@@ -31,14 +31,17 @@
  *
  ****************************************************************************/
 
+#include "uORBGtestTopics.hpp"
 #include "uORBCommunicatorMock.hpp"
 #include "uORBCommunicatorMockLoopback.hpp"
-#include "gtest/gtest.h"
+
 #include "uORB.h"
+#include "gtest/gtest.h"
 #include "uORBManager.hpp"
-#include "uORBGtestTopics.hpp"
+
 #include "uORBDevices.hpp"
 #include "px4_log.h"
+
 #include <errno.h>
 
 #define LOG_TAG "uORBCommunicator_gtests.cpp"
@@ -50,7 +53,6 @@ namespace px4
 
 namespace uORB_test
 {
-
    class uORBCommunicatorTest : public ::testing::Test
    {
     public:
@@ -206,7 +208,7 @@ namespace uORB_test
      ASSERT_EQ( c._send_messageCount, 0 );
 
      //step 1.
-     ORB_DEFINE( topicA_sndmsg, struct orb_topic_A, nullptr, "TOPICA_SNDMSG:int16_t val;" );
+     ORB_DEFINE( topicA_sndmsg, struct orb_topic_A, 2, "TOPICA_SNDMSG:int16_t val;" );
      _topicA.val = 1;
      _pub_ptr = orb_advertise(ORB_ID(topicA_sndmsg ), &_topicA );
      ASSERT_TRUE( ( _pub_ptr != nullptr ) ) << "Failed to advertize uORB Topic topicA_sndmsg: errno: " << errno;
@@ -477,7 +479,3 @@ namespace uORB_test
 
    }
 }
-
-
-
-

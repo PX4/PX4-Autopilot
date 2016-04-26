@@ -122,29 +122,6 @@ target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms)
 #    add_executable(example_test example_test.cpp)
 #    add_gtest(example_test)
 
-
-# autodeclination_test
-add_executable(autodeclination_test autodeclination_test.cpp ${PX4_SRC}/lib/geo_lookup/geo_mag_declination.c)
-add_gtest(autodeclination_test)
-
-# mixer_test
-add_custom_command(OUTPUT ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.generated.h
-                   COMMAND ${PX4_SRC}/modules/systemlib/mixer/multi_tables.py > ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.generated.h)
-add_executable(mixer_test mixer_test.cpp
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer.cpp
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer_group.cpp
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer_load.c
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.cpp
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer_multirotor.generated.h
-                          ${PX4_SRC}/modules/systemlib/mixer/mixer_simple.cpp
-                          ${PX4_SRC}/modules/systemlib/pwm_limit/pwm_limit.c
-                          ${PX4_SRC}/systemcmds/tests/test_mixer.cpp)
-add_gtest(mixer_test)
-
-# conversion_test
-add_executable(conversion_test conversion_test.cpp ${PX4_SRC}/systemcmds/tests/test_conv.cpp)
-add_gtest(conversion_test)
-
 # sbus2_test
 add_executable(sbus2_test sbus2_test.cpp
 						${PX4_SRC}/lib/rc/sbus.c)
@@ -177,4 +154,7 @@ add_gtest(param_test)
 #add_executable(param_shmem_test param_test.cpp uorb_stub.cpp
 #						${PX4_SRC}/modules/systemlib/bson/tinybson.c
 #						${PX4_SRC}/modules/systemlib/param/param_shmem.c)
+#target_link_libraries(param_shmem_test ${PX4_SITL_BUILD}/libmsg_gen.a)
 #add_gtest(param_shmem_test)
+
+#add_subdirectory(uorb_unittests)

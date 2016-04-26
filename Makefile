@@ -305,6 +305,12 @@ endif
 
 unittest: posix_sitl_test
 	$(call cmake-build-other,unittest, ../unittests)
+
+	@mkdir -p build_posix_sitl_test/src/firmware/posix/rootfs/fs/microsd
+	@mkdir -p build_posix_sitl_test/src/firmware/posix/rootfs/eeprom
+	@touch build_posix_sitl_test/src/firmware/posix/rootfs/eeprom/parameters
+	@(cd build_posix_sitl_test/src/firmware/posix && ./mainapp -d ../../../../posix-configs/SITL/init/rcS_test)
+	
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 tests: posix_sitl_test unittest

@@ -20,7 +20,7 @@ TEST(DSMTest, DSM)
 	fp = fopen(filepath, "rt");
 
 	ASSERT_TRUE(fp);
-	warnx("loading data from: %s", filepath);
+	//warnx("loading data from: %s", filepath);
 
 	float f;
 	unsigned x;
@@ -55,15 +55,15 @@ TEST(DSMTest, DSM)
 						&dsm_11_bit, &dsm_frame_drops, max_channels);
 
 		if (result) {
-			warnx("decoded packet with %d channels and %s encoding:", num_values, (dsm_11_bit) ? "11 bit" : "10 bit");
+			//warnx("decoded packet with %d channels and %s encoding:", num_values, (dsm_11_bit) ? "11 bit" : "10 bit");
 
 			for (unsigned i = 0; i < num_values; i++) {
-				printf("chan #%u:\t%d\n", i, (int)rc_values[i]);
+				//printf("chan #%u:\t%d\n", i, (int)rc_values[i]);
 			}
 		}
 
 		if (last_drop != (dsm_frame_drops)) {
-			warnx("frame dropped, now #%d", (dsm_frame_drops));
+			//warnx("frame dropped, now #%d", (dsm_frame_drops));
 			last_drop = dsm_frame_drops;
 		}
 

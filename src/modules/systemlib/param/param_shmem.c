@@ -88,7 +88,7 @@ extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #define param_info_count	(param_info_limit - param_info_base)
 #else
-static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
+static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
 #define	param_info_count		px4_parameters.param_count
 #endif /* _UNIT_TEST */
 
@@ -249,7 +249,9 @@ param_find_changed(param_t param)
 static void
 param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved };
+	struct parameter_update_s pup;
+	pup.timestamp = hrt_absolute_time();
+	pup.saved = is_saved;
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -269,6 +271,7 @@ param_find_internal(const char *name, bool notification)
 	param_t param;
 
 	/* perform a linear search of the known parameters */
+
 	for (param = 0; handle_in_range(param); param++) {
 		if (!strcmp(param_info_base[param].name, name)) {
 			if (notification) {
@@ -341,6 +344,10 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
+#ifdef _UNIT_TEST
+	return param_for_index(index);
+#endif
+
 #if 0
 	int count = get_param_info_count();
 

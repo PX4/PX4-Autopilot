@@ -37,6 +37,17 @@
 
 #include <systemlib/err.h>
 
+#define ut_declare_test_c(test_function, test_class)	\
+	extern "C" {										\
+		int test_function(int argc, char *argv[])		\
+		{												\
+			test_class* test = new test_class();		\
+			bool success = test->run_tests();			\
+			test->print_results();						\
+			return success ? 0 : -1;					\
+		}												\
+	}
+
 /// @brief Base class to be used for unit tests.
 class __EXPORT UnitTest
 {

@@ -39,7 +39,6 @@ TEST(SF0XTest, SF0X)
 	unsigned _parsebuf_index = 0;
 
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {
-
 		//printf("\n%s", _linebuf);
 
 		int parse_ret;
@@ -55,6 +54,4 @@ TEST(SF0XTest, SF0X)
 		//printf("%s", lines[l]);
 
 	}
-
-	warnx("test finished");
 }

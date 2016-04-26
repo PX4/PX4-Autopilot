@@ -79,12 +79,13 @@ set(config_module_list
 	#
 	modules/commander/commander_tests
 	modules/controllib_test
-	#modules/mavlink/mavlink_tests
+	modules/mavlink/mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
-
 	)
+	
+set(config_testing 1)
 
 set(config_extra_builtin_cmds
 	serdis
