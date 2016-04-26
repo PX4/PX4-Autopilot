@@ -360,7 +360,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					sPort_send_BATV(uart);
 				}
 
-				else if (now - lastMAVLINK_MESSAGE)
+				/* report mavlink message bytes at 20Hz (enough to transmit one message per second) */
+				else if (now - lastMAVLINK_MESSAGE > 50 * 1000)
 				{
 					lastMAVLINK_MESSAGE = now;
 					sPort_send_MAVLINK_MESSAGE(uart);

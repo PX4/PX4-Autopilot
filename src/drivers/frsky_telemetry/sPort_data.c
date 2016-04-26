@@ -494,8 +494,10 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 	 * the first 8 bit and last 8 bit will be used for the start (0x02) and end (0x03) frame.
 	 * at a rate of transimitting 20 Hz, we could theoretically transmit 20 uint_32_t per second
 	 * so one message should theoretically transmit in under a second.
-	 * LUA INFO: string.format("%c", 0xFF)  will convert from hex to ascii char
 	 * maximum severity we will send is MAV_SEVERITY_NOTICE = 5
+	 * LUA INFO:
+	 *	string.format("%c", 0xFF)  will convert from hex to ascii char
+	 *  if another startbyte is found without an endbyte, rest of message got lost.
 	 *
 	 * logic:
 	 * if new message and last message sucessfully transmitted (bytes_to_send queue is empty) then
