@@ -37,7 +37,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		queue.cpp
 		frsky_data.c
 		sPort_data.c
 		frsky_telemetry.c

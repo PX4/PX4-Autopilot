@@ -42,7 +42,7 @@
  */
 
 #include "sPort_data.h"
-#include "queue.h"
+#include "fifo.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -81,8 +81,8 @@ static struct vehicle_attitude_s *vehicle_attitude;
 static struct mission_result_s *mission_result;
 static struct mavlink_log_s *mavlink_log;
 
-static Queue<uint8_t[50]> mavlink_log_messages_queue(8);
-static Queue<uint8_t> mavlink_bytes_to_send_queue(52); //Queue of bytes (8 Bit)
+static Fifo<uint8_t[50], 8> mavlink_log_messages_queue;
+static Fifo<uint8_t, 52> mavlink_bytes_to_send_queue; //Queue of bytes (8 Bit)
 
 /**
  * Initializes the uORB subscriptions.
@@ -187,7 +187,7 @@ void sPort_update_topics()
 	if (updated) {
 		orb_copy(ORB_ID(mavlink_log), mavlink_log_sub, mavlink_log);
 
-		if(mavlink_log->severity <= 5) mavlink_log_messages_queue.Enqueue(mavlink_log->text);
+		if(mavlink_log->severity <= 5) mavlink_log_messages_queue.push(mavlink_log->text);
 	}
 }
 
@@ -509,22 +509,26 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 	 */
 
 	 //check if there's a mavlink_log message to send in the queue
-	 message_elem = mavlink_log_messages_queue.Dequeue();
-	 byte_elem = mavlink_bytes_to_send_queue.Dequeue();
+	 uint_8_t[50] message_elem;
+	 uint8_t byte_element;
 	 uint8_t startbyte = 0x02;
 	 uint8_t endbyte = 0x03;
 
-	 if(message_elem)
+	 if(mavlink_log_messages_queue.pop(message_elem))
 	 {
 		//There's still bytes to be sent
-		if(byte_elem)
+		if(mavlink_bytes_to_send_queue.pop(byte_element))
 		{
 			//Send one uint_32_t consiting of 4 x uint8_t
 			//So we need to take 4 bytes and combine them
-			uint8_t first_byte = 0;
-			uint8_t second_byte 0;
-			uint8_t third_byte = 0;
-			uint8_t fourth_byte = 0;
+			uint8_t first_byte = byte_elem;
+			uint8_t second_byte;
+			uint8_t third_byte;
+			uint8_t fourth_byte;
+
+			second_byte = (mavlink_bytes_to_send_queue.pop(second_byte)) second_byte : 0;
+			third_byte = (mavlink_bytes_to_send_queue.pop(third_byte)) third_byte : 0;
+			fourth_byte = (mavlink_bytes_to_send_queue.pop(fourth_byte)) fourth_byte : 0;
 
 			uint32_t byte_to_send = (first_byte << 24) | second_byte << 16 | third_byte << 8 | fourth_byte;
 
