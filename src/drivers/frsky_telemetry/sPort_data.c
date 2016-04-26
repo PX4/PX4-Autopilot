@@ -194,22 +194,19 @@ void sPort_update_topics()
 		uint8_t startbyte = 0x02;
 		uint8_t endbyte = 0x03;
 
-		if(mavlink_log->severity <= 5) {
+		if (mavlink_log->severity <= 5) {
 
 			fifo_push(startbyte); //start byte
 
-			for(int x = 0; x<=50; x++)
-			{
-				if(mavlink_log->text[x] != 0)
-				{
-					if(fifo_push(mavlink_log->text[x]))
-						{
-							warnx("mavlink byte fifo is full!");
-							uint8_t last_element;
-							fifo_pop(&last_element);
-							fifo_push(endbyte); //end byte
-							return;
-						}
+			for (int x = 0; x <= 50; x++) {
+				if (mavlink_log->text[x] != 0) {
+					if (fifo_push(mavlink_log->text[x])) {
+						warnx("mavlink byte fifo is full!");
+						uint8_t last_element;
+						fifo_pop(&last_element);
+						fifo_push(endbyte); //end byte
+						return;
+					}
 				}
 			}
 
@@ -535,11 +532,10 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 	 * pop one byte from bytes_to_send queue and send
 	 */
 
-	 //check if there's a mavlink_log message to send in the queue
+	//check if there's a mavlink_log message to send in the queue
 	uint8_t byte_element = 0;
 
-	if(!fifo_pop(&byte_element))
-	{
+	if (!fifo_pop(&byte_element)) {
 		//Send one uint_32_t consiting of 4 x uint8_t
 		//So we need to take 4 bytes and combine them
 		uint8_t first_byte = byte_element;
@@ -559,31 +555,29 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 
 void fifo_init(void)
 {
-    fifoIn = fifoOut = 0;
+	fifoIn = fifoOut = 0;
 }
 
 int fifo_push(uint8_t new)
 {
-    if(fifoIn == (( fifoOut - 1 + FIFO_SIZE) % FIFO_SIZE))
-    {
-        return -1; /* fifo full*/
-    }
+	if (fifoIn == ((fifoOut - 1 + FIFO_SIZE) % FIFO_SIZE)) {
+		return -1; /* fifo full*/
+	}
 
-    fifo[fifoIn] = new;
-    fifoIn = (fifoIn + 1) % FIFO_SIZE;
+	fifo[fifoIn] = new;
+	fifoIn = (fifoIn + 1) % FIFO_SIZE;
 
 	return 0;
 }
 
 int fifo_pop(uint8_t *old)
 {
-    if(fifoIn == fifoOut)
-    {
-        return -1; /* Queue Empty - nothing to get*/
-    }
+	if (fifoIn == fifoOut) {
+		return -1; /* Queue Empty - nothing to get*/
+	}
 
-    *old = fifo[fifoOut];
-    fifoOut = (fifoOut + 1) % FIFO_SIZE;
+	*old = fifo[fifoOut];
+	fifoOut = (fifoOut + 1) % FIFO_SIZE;
 
 	return 0;
 }
