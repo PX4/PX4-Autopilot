@@ -34,7 +34,7 @@
 px4_add_module(
 	MODULE modules__uavcanesc__nshterm
 	MAIN nshterm
-	STACK 1500
+	STACK_MAIN 1500
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
 		-Os
