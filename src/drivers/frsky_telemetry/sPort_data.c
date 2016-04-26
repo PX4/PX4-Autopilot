@@ -194,19 +194,20 @@ void sPort_update_topics()
 		uint8_t startbyte = 0x02;
 		uint8_t endbyte = 0x03;
 
-		if (mavlink_log->severity <= 5) {
+		if (mavlink_log->severity <= 6) {
 
 			fifo_push(startbyte); //start byte
 
 			for (int x = 0; x <= 50; x++) {
-				if (mavlink_log->text[x] != 0) {
-					if (fifo_push(mavlink_log->text[x])) {
-						warnx("mavlink byte fifo is full!");
-						uint8_t last_element;
-						fifo_pop(&last_element);
-						fifo_push(endbyte); //end byte
-						return;
-					}
+
+				if (mavlink_log->text[x] == '\0') { break; };
+
+				if (fifo_push(mavlink_log->text[x])) {
+					warnx("mavlink byte fifo is full!");
+					uint8_t last_element;
+					fifo_pop(&last_element);
+					fifo_push(endbyte); //end byte
+					return;
 				}
 			}
 
@@ -548,7 +549,6 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 		fourth_byte = (!fifo_pop(&fourth_byte)) ? fourth_byte : 0;
 
 		uint32_t byte_to_send = (first_byte << 24) | second_byte << 16 | third_byte << 8 | fourth_byte;
-
 		sPort_send_data(uart, SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE, byte_to_send);
 	}
 }
@@ -566,7 +566,6 @@ int fifo_push(uint8_t new)
 
 	fifo[fifoIn] = new;
 	fifoIn = (fifoIn + 1) % FIFO_SIZE;
-
 	return 0;
 }
 
