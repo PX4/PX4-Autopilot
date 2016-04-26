@@ -368,7 +368,8 @@ void Logger::run()
 		return;
 	}
 
-	add_topic("manual_control_setpoint", 10);
+	add_topic("sensor_gyro", 10);
+	add_topic("sensor_accel", 10);
 	add_topic("vehicle_rates_setpoint", 10);
 	add_topic("vehicle_attitude_setpoint", 10);
 	add_topic("vehicle_attitude", 10);
@@ -378,7 +379,7 @@ void Logger::run()
 	add_topic("actuator_controls", 10);
 	add_topic("vehicle_local_position_setpoint", 30);
 	add_topic("rc_channels", 100);
-	add_topic("ekf2_innovations", 20);
+//	add_topic("ekf2_innovations", 20);
 	add_topic("commander_state", 100);
 	add_topic("vehicle_local_position", 10);
 	add_topic("vehicle_global_position", 10);
@@ -386,8 +387,8 @@ void Logger::run()
 	add_topic("servorail_status", 100);
 	add_topic("mc_att_ctrl_status", 50);
 	add_topic("control_state");
-	add_topic("estimator_status");
-	add_topic("vehicle_status", 20);
+//	add_topic("estimator_status");
+	add_topic("vehicle_status", 100);
 
 	_writer_thread = _writer.thread_start();
 
