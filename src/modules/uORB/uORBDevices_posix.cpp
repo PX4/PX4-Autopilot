@@ -41,6 +41,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
+#include <px4_sem.hpp>
 #include <stdlib.h>
 
 std::map<std::string, uORB::DeviceNode *> uORB::DeviceMaster::_node_map;
@@ -629,7 +630,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 
-			SmartLock smart_lock(*this);
+			SmartLock smart_lock(_lock);
 
 			do {
 				/* if path is modifyable change try index */

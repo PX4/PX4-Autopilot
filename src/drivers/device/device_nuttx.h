@@ -188,6 +188,8 @@ protected:
 	 * Each driver instance has its own lock/semaphore.
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
+	 *
+	 * Careful: lock() calls cannot be nested!
 	 */
 	void		lock()
 	{
@@ -202,10 +204,11 @@ protected:
 		sem_post(&_lock);
 	}
 
+	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
+
 private:
 	int		_irq;
 	bool		_irq_attached;
-	sem_t		_lock;
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);

@@ -40,6 +40,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
+#include <px4_sem.hpp>
 #include <stdlib.h>
 
 uORB::ORBMap uORB::DeviceMaster::_node_map;
@@ -603,9 +604,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* ensure that only one advertiser runs through this critical section */
-			lock();
-
 			ret = ERROR;
 
 			/* try for topic groups */
@@ -619,10 +617,11 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				group_tries = *adv->instance;
 
 				if (group_tries >= max_group_tries) {
-					unlock();
 					return -ENOMEM;
 				}
 			}
+
+			SmartLock smart_lock(_lock);
 
 			do {
 				/* if path is modifyable change try index */
@@ -636,7 +635,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
-					unlock();
 					return -ENOMEM;
 				}
 
@@ -644,7 +642,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					unlock();
 					free((void *)objname);
 					return -ENOMEM;
 				}
@@ -654,7 +651,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					unlock();
 					free((void *)objname);
 					free((void *)devpath);
 					return -ENOMEM;
@@ -697,9 +693,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
-
-			/* the file handle for the driver has been created, unlock */
-			unlock();
 
 			return ret;
 		}
