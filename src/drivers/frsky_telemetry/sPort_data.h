@@ -92,7 +92,7 @@
 #define SMARTPORT_ID_DIY_MISSION_SEQUENCE_REACHED 0x5087 //Sequence is an id for a mission item - "a thing to do"
 #define SMARTPORT_ID_DIY_MISSION_SEQUENCE_CURRENT 0x5088
 #define SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS 0x5089
-#define SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE 0x5090
+#define SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE 0x508a //Start bit is 0x02, End bit is 0x03
 
 /* Public functions
 TODO: mavlink messages, home position?
