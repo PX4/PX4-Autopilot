@@ -42,6 +42,7 @@
  */
 
 #include "sPort_data.h"
+#include "queue.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -80,6 +81,8 @@ static struct vehicle_attitude_s *vehicle_attitude;
 static struct mission_result_s *mission_result;
 static struct mavlink_log_s *mavlink_log;
 
+static Queue<uint8_t[50]> mavlink_log_messages_queue(8);
+static Queue<uint8_t> mavlink_bytes_to_send_queue(52); //Queue of bytes (8 Bit)
 
 /**
  * Initializes the uORB subscriptions.
@@ -184,7 +187,7 @@ void sPort_update_topics()
 	if (updated) {
 		orb_copy(ORB_ID(mavlink_log), mavlink_log_sub, mavlink_log);
 
-		//TODO push message to a message queue if severity over <= 5
+		if(mavlink_log->severity <= 5) mavlink_log_messages_queue.Enqueue(mavlink_log->text);
 	}
 }
 
@@ -504,4 +507,40 @@ void sPort_send_MAVLINK_MESSAGE(int uart)
 	 * 	->> convert message to sequence of bytes with start and stop frame, push to a bytes_to_send queue
 	 * pop one byte from bytes_to_send queue and send
 	 */
+
+	 //check if there's a mavlink_log message to send in the queue
+	 message_elem = mavlink_log_messages_queue.Dequeue();
+	 byte_elem = mavlink_bytes_to_send_queue.Dequeue();
+	 uint8_t startbyte = 0x02;
+	 uint8_t endbyte = 0x03;
+
+	 if(message_elem)
+	 {
+		//There's still bytes to be sent
+		if(byte_elem)
+		{
+			//Send one uint_32_t consiting of 4 x uint8_t
+			//So we need to take 4 bytes and combine them
+			uint8_t first_byte = 0;
+			uint8_t second_byte 0;
+			uint8_t third_byte = 0;
+			uint8_t fourth_byte = 0;
+
+			uint32_t byte_to_send = (first_byte << 24) | second_byte << 16 | third_byte << 8 | fourth_byte;
+
+			sPort_send_data(uart, SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE, byte_to_send);
+		}
+
+		else
+		{
+			byte_elem.Enqueue(startbyte); //start byte
+
+			for(int x = 0; x<=50; x++)
+			{
+				if(message_elem[x] != 0) byte_elem.Enqueue(message_elem[x]);
+			}
+
+			byte_elem.Enqueue(endbyte); //start byte
+			}
+	 }
 }
