@@ -52,6 +52,7 @@
 #include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/centripetal.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
@@ -129,6 +130,7 @@ private:
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
 	orb_advert_t	_est_state_pub = nullptr;
+	orb_advert_t	_centripetal_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -163,6 +165,8 @@ private:
 
 	vision_position_estimate_s _vision = {};
 	Vector<3>	_vision_hdg;
+
+	struct centripetal_s _centrip;
 
 	att_pos_mocap_s _mocap = {};
 	Vector<3>	_mocap_hdg;
@@ -567,9 +571,12 @@ void AttitudeEstimatorQ::task_main()
 			dt = _dt_max;
 		}
 
+		_centrip.timestamp = sensors.timestamp;
 		if (!update(dt)) {
 			continue;
 		}
+		int cinst;
+		orb_publish_auto(ORB_ID(centripetal), &_centripetal_pub, &_centrip, &cinst, ORB_PRIO_HIGH);
 
 		Vector<3> euler = _q.to_euler();
 
@@ -797,23 +804,62 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	_q.normalize();
 
+	// If rotation rate is below about 10 deg/sec
+	// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
+	if (_gyro.length() < 0.18f) {
 
-	// Accelerometer correction
-	// Project 'k' unit vector of earth frame to body frame
-	// Vector<3> k = _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, 1.0f));
-	// Optimized version with dropped zeros
-	Vector<3> k(
-		2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),
-		2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
-		(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
-	);
+		// Accelerometer correction
+		// Project 'k' unit vector of earth frame to body frame
+		// Vector<3> k = _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, 1.0f));
+		// Optimized version with dropped zeros
+		Vector<3> k(
+			2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),
+			2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
+			(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
+		);
 
-	corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+//		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+		corr += (k % _accel.normalized()) * _w_accel;
+
+	} else {
+
+		// estimate centripetal acceleration in the earth frame
+		//warnx("_accel: (%8.3f, %8.3f, %8.3f)", (double)_accel.data[0], (double)_accel.data[1], (double)_accel.data[2]);
+		Vector<3> aE = _q.conjugate(_accel);
+		//warnx("aE: (%8.3f, %8.3f, %8.3f)", (double)aE.data[0], (double)aE.data[1], (double)aE.data[2]);
+		Vector<3> centripE = aE - Vector<3>(0.0f, 0.0f, -9.8f);
+		//warnx("centripE: (%8.3f, %8.3f, %8.3f)", (double)centripE.data[0], (double)centripE.data[1], (double)centripE.data[2]);
+
+		// estimate tangential velocity in earth frame
+		Vector<3> omegaE = _q.conjugate(_gyro);
+		_centrip.tV = abs(_centrip.centripMag / omegaE.data[2]);
+
+		// construct centripetal accel vector in body frame
+		// k = earth z axis in body frame
+		Vector<3> k(
+			2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),
+			2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
+			(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
+		);
+		// assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
+		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % _q.conjugate(Vector<3>(1.0f, 0.0f, 0.0f));
+		_centrip.centripMag = centripE * centripA;
+		centripA *= _centrip.centripMag;
+		//warnx("centripA: (%8.3f, %8.3f, %8.3f)", (double)centripA.data[0], (double)centripA.data[1], (double)centripA.data[2]);
+		Vector<3> estG = aE - centripA;
+		//warnx("estG: (%8.3f, %8.3f, %8.3f)", (double)estG.data[0], (double)estG.data[1], (double)estG.data[2]);
+
+		for (int i=0; i<3; i++) {
+			_centrip.aE[i] = aE.data[i];
+			_centrip.centripA[i] = centripA.data[i];
+			_centrip.omegaE[i] = omegaE.data[i];
+			_centrip.estG[i] = estG.data[i];
+		}
+
+	}
 
 	// Gyro bias estimation
-	if (_gyro.length() < 1.0f) {
-		_gyro_bias += corr * (_w_gyro_bias * dt);
-	}
+	_gyro_bias += corr * (_w_gyro_bias * dt);
 
 	for (int i = 0; i < 3; i++) {
 		_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);

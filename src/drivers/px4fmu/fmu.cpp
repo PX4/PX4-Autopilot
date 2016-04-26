@@ -167,6 +167,7 @@ private:
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
+	unsigned sbus_drop_count = 0;
 
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
@@ -1202,6 +1203,18 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
+					if (sbus_frame_drop) {
+						if (sbus_drop_count > 50) {
+							// lost RC link
+							sbus_failsafe = true;	/* this has no effect */
+							_armed.lockdown = true;
+						} else {
+							sbus_drop_count++;
+							warnx("sbus frame drops: %d", sbus_drop_count);
+						}
+					} else {
+						sbus_drop_count = 0;
+					}
 					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
 					_rc_scan_locked = true;
