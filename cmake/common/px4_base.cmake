@@ -566,6 +566,7 @@ function(px4_add_common_flags)
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
 			list(APPEND warnings
+				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
 			)
@@ -701,14 +702,11 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		set(added_exe_link_flags
+	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
+		set(added_exe_linker_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections
-			)
-	else()
-		set(added_exe_link_flags
-			-Wl,--warn-common
+			#,--print-gc-sections 
 			)
 	endif()
 
