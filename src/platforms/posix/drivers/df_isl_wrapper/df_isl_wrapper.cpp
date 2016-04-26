@@ -35,7 +35,8 @@
  * @file df_isl_wrapper.cpp
  * Driver to access the ISL of the DriverFramework.
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Zach Lovett <zach.lovett@3drobotics.com>
+ * @author Siddharth B Purohit <sid@3drobotics.com>
  */
 
 #include <px4_config.h>
@@ -296,6 +297,10 @@ probe()
 
 /**
  * Calibration
+ * runs calibration routine for ISL
+ * TODO: implement calibration user interface and parameter system to store calib
+ * Note: Currently only serves debugging purpose, user is required to manually 
+ * set offset inside code. 
  */
 int
 calibration()
@@ -314,7 +319,7 @@ calibration()
 	ret = g_dev->calibration();
 
 	if (ret) {
-		PX4_ERR("Failed to probe");
+		PX4_ERR("Failed to calibrate");
 		return ret;
 	}
 
@@ -327,7 +332,7 @@ calibration()
 void
 usage()
 {
-	PX4_WARN("Usage: df_isl_wrapper 'start', 'info', 'stop'");
+	PX4_WARN("Usage: df_isl_wrapper 'start', 'info', 'stop', 'calib', 'probe'");
 }
 
 } // namespace df_isl_wrapper
