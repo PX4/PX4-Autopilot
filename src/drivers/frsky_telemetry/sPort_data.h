@@ -127,5 +127,8 @@ void sPort_send_MISSION_SEQUENCE_CURRENT(int uart);
 void sPort_send_MISSION_SEQUENCE_REACHED(int uart);
 void sPort_send_MISSION_SEQUENCE_STATUS(int uart);
 void sPort_send_MAVLINK_MESSAGE(int uart);
+void fifo_init(void);
+int fifo_push(uint8_t new);
+int fifo_pop(uint8_t *old);
 
 #endif /* _SPORT_TELEMETRY_H */
