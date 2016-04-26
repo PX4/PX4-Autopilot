@@ -245,16 +245,17 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	/* Perform an atomic copy. */
 	irqstate_t flags = irqsave();
 	memcpy(_data, buffer, _meta->o_size);
-	irqrestore(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 	_generation++;
 
+	_published = true;
+
+	irqrestore(flags);
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
-
-	_published = true;
 
 	return _meta->o_size;
 }
