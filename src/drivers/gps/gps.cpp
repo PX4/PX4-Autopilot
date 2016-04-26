@@ -124,8 +124,8 @@ private:
 	GPSHelper			*_helper;					///< instance of GPS parser
 	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
-	orb_advert_t			_report_gps_pos_pub[2];				///< uORB pub for gps position
-	int					_gps_orb_instance[2];				///< uORB multi-topic instance
+	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
+	int					_gps_orb_instance;				///< uORB multi-topic instance
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
@@ -226,8 +226,8 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_mode(GPS_DRIVER_MODE_UBX),
 	_helper(nullptr),
 	_sat_info(nullptr),
-	_report_gps_pos_pub{ nullptr, nullptr},
-	_gps_orb_instance{ -1, -1},
+	_report_gps_pos_pub{nullptr},
+	_gps_orb_instance(-1),
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
@@ -803,24 +803,7 @@ GPS::print_info()
 void
 GPS::publish()
 {
-	if (_gps_num == 1) {
-		if (_report_gps_pos_pub[0] != nullptr) {
-			orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub[0], &_report_gps_pos);
-
-		} else {
-			_report_gps_pos_pub[0] = orb_advertise_multi(ORB_ID(vehicle_gps_position), &_report_gps_pos, &_gps_orb_instance[0], ORB_PRIO_DEFAULT);
-			orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub[0], &_report_gps_pos);
-		}
-
-	} else {
-		if (_report_gps_pos_pub[1] != nullptr) {
-			orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub[1], &_report_gps_pos);
-
-		} else {
-			_report_gps_pos_pub[1] = orb_advertise_multi(ORB_ID(vehicle_gps_position), &_report_gps_pos, &_gps_orb_instance[1], ORB_PRIO_DEFAULT);
-			orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub[1], &_report_gps_pos);
-		}
-	}
+			orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance, ORB_PRIO_DEFAULT);
 }
 
 /**
