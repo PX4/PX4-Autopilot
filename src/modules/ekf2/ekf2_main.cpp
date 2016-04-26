@@ -493,7 +493,8 @@ void Ekf2::task_main()
 			flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
 			flow.dt = optical_flow.integration_timespan;
 
-			if (!isnan(optical_flow.pixel_flow_y_integral) && !isnan(optical_flow.pixel_flow_x_integral)) {
+			if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
+			    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
 				_ekf->setOpticalFlowData(optical_flow.timestamp, &flow);
 			}
 		}
