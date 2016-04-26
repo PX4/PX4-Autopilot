@@ -64,11 +64,14 @@ uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 static unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1];
 
 // Small helper to get log2 for ints
-static unsigned log2_for_int(unsigned v) {
+static unsigned log2_for_int(unsigned v)
+{
 	unsigned r = 0;
+
 	while (v >>= 1) {
 		++r;
 	}
+
 	return r;
 }
 
@@ -236,7 +239,7 @@ void update_index_from_shmem(void)
 			// If a param has changed, we need to find out which one.
 			// From the byte and bit that is different, we can resolve the param number.
 			unsigned bit = log2_for_int(krait_changed_index[i] ^ shmem_info_p->krait_changed_index[i]);
-			param_t param_to_get = i*8+bit;
+			param_t param_to_get = i * 8 + bit;
 
 			// Update our krait_changed_index as well.
 			krait_changed_index[i] = shmem_info_p->krait_changed_index[i];
@@ -312,7 +315,7 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	//else {PX4_INFO("no change to param %s\n", param_name(param));}
 
-	PX4_DEBUG("%s %d bit on krait changed index[%d]\n", (retval)?"cleared":"unchanged", bit_changed, byte_changed);
+	PX4_DEBUG("%s %d bit on krait changed index[%d]\n", (retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
 
 	return retval;
 }
