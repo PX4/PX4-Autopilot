@@ -3038,9 +3038,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		} else {
 			res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
+			/* ensure that the mode selection does not get stuck here */
+			int maxcount = 5;
+
 			/* enable the use of break */
 			/* fallback strategies, give the user the closest mode to what he wanted */
-			while (res == TRANSITION_DENIED) {
+			while (res == TRANSITION_DENIED && maxcount > 0) {
+
+				maxcount--;
 
 				if (new_mode == commander_state_s::MAIN_STATE_AUTO_MISSION) {
 
@@ -3054,11 +3059,59 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 					}
 				}
 
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_RTL) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO RTL");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_LAND) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO LAND");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_TAKEOFF) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO TAKEOFF");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO FOLLOW");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
 				if (new_mode == commander_state_s::MAIN_STATE_AUTO_LOITER) {
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_POSCTL;
-					print_reject_mode(status_local, "AUTO PAUSE");
+					print_reject_mode(status_local, "AUTO HOLD");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
