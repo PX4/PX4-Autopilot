@@ -299,8 +299,8 @@ probe()
  * Calibration
  * runs calibration routine for ISL
  * TODO: implement calibration user interface and parameter system to store calib
- * Note: Currently only serves debugging purpose, user is required to manually 
- * set offset inside code. 
+ * Note: Currently only serves debugging purpose, user is required to manually
+ * set offset inside code.
  */
 int
 calibration()
@@ -345,16 +345,6 @@ df_isl_wrapper_main(int argc, char *argv[])
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
-
-	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-
-		default:
-			df_isl_wrapper::usage();
-			return 0;
-		}
-	}
 
 	if (argc <= 1) {
 		df_isl_wrapper::usage();
