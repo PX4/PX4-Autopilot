@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2016 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#download, build and install eigen
-wget -O eigen.tar.bz2 http://bitbucket.org/eigen/eigen/get/3.2.8.tar.bz2
-mkdir eigen
-tar -xvjf eigen.tar.bz2 -C eigen --strip-components=1
-mkdir eigen-build
-cd eigen-build
-cmake ../eigen
-make
-sudo make install
 
 #build EKF shared library
 cd ..

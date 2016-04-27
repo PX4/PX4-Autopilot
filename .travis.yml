@@ -7,7 +7,7 @@ before_install:
 - sudo apt-get update -qq
 
 install:
-- sudo apt-get install -qq g++-4.8
+- sudo apt-get install -qq g++-4.8 libeigen3-dev
 - export CXX="g++-4.8"
 
 before_script:
