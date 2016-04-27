@@ -39,6 +39,7 @@ set(CMAKE_CURRENT_SOURCE_DIR ./)
 set(CMAKE_CXX_FLAGS "-DPOSIX_SHARED")
 
 set(CMAKE_MODULE_PATH ./)
+message("looking for FindEigen3.cmake in ${CMAKE_MODULE_PATH}")
 find_package(Eigen3 REQUIRED)
 
 if( NOT EIGEN3_INCLUDE_DIR )
