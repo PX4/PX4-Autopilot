@@ -99,7 +99,7 @@ env:
 script:
   - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      arm-none-eabi-gcc --version && make check VECTORCONTROL=1;
+      arm-none-eabi-gcc --version && make check VECTORCONTROL=1 && make sizes;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi

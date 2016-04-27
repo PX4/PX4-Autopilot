@@ -259,6 +259,9 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
+sizes:
+	@-find build_* -name firmware_nuttx -type f | xargs size
+
 check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_mavstation_default check_px4cannode-v1_default check_px4esc-v1_default check_s2740vc-v1_default check_px4cannode-v1_bootloader check_px4esc-v1_bootloader check_px4flow-v2_bootloader check_s2740vc-v1_bootloader check_zubaxgnss-v1_bootloader check_posix_sitl_default check_unittest check_format
 
 check_format:
