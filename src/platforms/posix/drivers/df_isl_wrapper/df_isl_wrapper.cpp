@@ -64,7 +64,7 @@
 
 #include <board_config.h>
 
-#include <isl/isl.hpp>
+#include <isl29501/isl29501.hpp>
 #include <DevMgr.hpp>
 
 
@@ -73,7 +73,7 @@ extern "C" { __EXPORT int df_isl_wrapper_main(int argc, char *argv[]); }
 using namespace DriverFramework;
 
 
-class DfISLWrapper : public ISL
+class DfISLWrapper : public ISL29501
 {
 public:
 	DfISLWrapper();
@@ -106,7 +106,7 @@ private:
 };
 
 DfISLWrapper::DfISLWrapper(/*enum Rotation rotation*/) :
-	ISL(ISL_DEVICE_PATH),
+	ISL29501(ISL_DEVICE_PATH),
 	_range_topic(nullptr),
 	_orb_class_instance(-1)
 {
@@ -124,14 +124,14 @@ int DfISLWrapper::start()
 					   &_orb_class_instance, ORB_PRIO_DEFAULT);
 
 	int ret;
-	ret = ISL::init();
+	ret = ISL29501::init();
 
 	if (ret != 0) {
 		PX4_ERR("ISL init fail: %d", ret);
 		return ret;
 	}
 
-	ret = ISL::start();
+	ret = ISL29501::start();
 
 	if (ret != 0) {
 		PX4_ERR("ISL start fail: %d", ret);
@@ -144,7 +144,7 @@ int DfISLWrapper::start()
 int DfISLWrapper::stop()
 {
 	/* Stop sensor. */
-	int ret = ISL::stop();
+	int ret = ISL29501::stop();
 
 	if (ret != 0) {
 		PX4_ERR("ISL stop fail: %d", ret);
@@ -341,10 +341,8 @@ usage()
 int
 df_isl_wrapper_main(int argc, char *argv[])
 {
-	int ch;
 	int ret = 0;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
 
 	if (argc <= 1) {
 		df_isl_wrapper::usage();

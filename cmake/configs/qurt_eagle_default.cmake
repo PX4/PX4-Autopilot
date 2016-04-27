@@ -93,5 +93,5 @@ set(config_df_driver_list
 	bmp280
 	hmc5883
 	trone
-	isl
+	isl29501
 	)
