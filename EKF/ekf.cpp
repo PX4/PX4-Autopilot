@@ -342,8 +342,8 @@ bool Ekf::update()
 	// the output observer always runs
 	calculateOutputStates();
 
-	// check for NaN on attitude states
-	if (isnan(_state.quat_nominal(0)) || isnan(_output_new.quat_nominal(0))) {
+	// check for NaN or inf on attitude states
+	if (!std::isfinite(_state.quat_nominal(0)) || !std::isfinite(_output_new.quat_nominal(0))) {
 		return false;
 	}
 
