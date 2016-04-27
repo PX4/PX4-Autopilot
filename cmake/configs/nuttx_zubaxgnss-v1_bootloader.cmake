@@ -21,13 +21,6 @@ set(config_module_list
 
 	drivers/boards/zubaxgnss-v1/bootloader
 
-	#
-	# Libraries
-	#
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/nuttx
-	platforms/common
-
 )
 
 #

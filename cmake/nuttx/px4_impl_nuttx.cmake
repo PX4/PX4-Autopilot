@@ -505,8 +505,11 @@ function(px4_os_add_flags)
 		)
 	set(added_definitions
 		-D__PX4_NUTTX
-		-D__DF_NUTTX
 		)
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		list(APPEND added_definitions -D__DF_NUTTX)
+	endif()
+
 	set(added_c_flags
 		-nodefaultlibs
 		-nostdlib
@@ -544,7 +547,12 @@ function(px4_os_add_flags)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
-	set(DF_TARGET "nuttx" PARENT_SCOPE)
+	if("${config_nuttx_config}" STREQUAL "bootloader")
+		set(DF_TARGET "do_not_use_df_driver_framework" PARENT_SCOPE)
+	else()
+		set(DF_TARGET "nuttx" PARENT_SCOPE)
+	endif()
+
 
 endfunction()
 

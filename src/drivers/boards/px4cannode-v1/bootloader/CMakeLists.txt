@@ -58,7 +58,7 @@ px4_add_module(
 		${px4_bootloader_base}src/arch/stm32/drivers/can/driver.c
 		${px4_bootloader_base}src/protocol/uavcan.c
 	DEPENDS
-		platforms__nuttx
+		nuttx_export_${BOARD}
 )
 
 
