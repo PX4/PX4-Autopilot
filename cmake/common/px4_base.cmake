@@ -145,7 +145,9 @@ function(px4_add_git_submodule)
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND Tools/check_submodules.sh ${PATH}
+# todo:Not have 2 list of submodues one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt) 
+# using the list of submodules from the CMake file to drive the test
+#		COMMAND Tools/check_submodules.sh ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
