@@ -122,6 +122,8 @@ public:
 		const void *data
 	);
 
+	static int        unadvertise(orb_advert_t handle);
+
 	/**
 	 * processes a request for add subscription from remote
 	 * @param rateInHz
@@ -184,7 +186,8 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	pid_t     _publisher; /**< if nonzero, current publisher */
+	pid_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+					We allow one publisher to have an open file descriptor at the same time. */
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
 
