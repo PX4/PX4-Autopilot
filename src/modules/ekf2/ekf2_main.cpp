@@ -342,11 +342,10 @@ Ekf2::Ekf2():
 	_rng_pos_z(new control::BlockParamFloat(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2))),
 	_flow_pos_x(new control::BlockParamFloat(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0))),
 	_flow_pos_y(new control::BlockParamFloat(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1))),
-	_flow_pos_z(new control::BlockParamFloat(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)))
+	_flow_pos_z(new control::BlockParamFloat(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2))),
 	_ev_pos_x(new control::BlockParamFloat(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0))),
 	_ev_pos_y(new control::BlockParamFloat(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1))),
 	_ev_pos_z(new control::BlockParamFloat(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)))
-
 {
 
 }
@@ -542,7 +541,7 @@ void Ekf2::task_main()
 			ev_data.quat(1) = ev.q(1);
 			ev_data.quat(2) = ev.q(2);
 			ev_data.quat(3) = ev.q(3);
-			ev_data.posErr = 0.05;  // XXX constant 5 cm for now for all axis all measurements. Replace with actual variance later
+			ev_data.posErr = 0.01;  // XXX constant 1 cm for now for all axis all measurements. Replace with actual variance later
 			ev_data.angErr = 0.01;  // XXX some small value in radians. Replace with actual variance later
 			_ekf->setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
