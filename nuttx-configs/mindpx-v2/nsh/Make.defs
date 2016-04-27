@@ -1,5 +1,5 @@
 ############################################################################
-# configs/mindpx-v2/nsh/Make.defs
+# nuttx-configs/mindpx-v2/nsh/Make.defs
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -68,11 +68,11 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
 endif
 
-# pull in *just* libm from the toolchain ... this is grody
+# Pull in *just* libm from the toolchain ... this is grody
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 EXTRA_LIBS		+= $(LIBM)
 
-# use our linker script
+# Use our linker script
 LDSCRIPT		 = ld.script
 
 ifeq ($(WINTOOL),y)
@@ -94,18 +94,20 @@ else
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
     # Linux/Cygwin-native toolchain
-    MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
+    MKDEP		 = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   endif
 endif
 
-# tool versions
+# Tool versions
+
 ARCHCCVERSION		 = ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		 = ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
-# optimisation flags
+# Optimization flags
+
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
