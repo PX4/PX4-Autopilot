@@ -1,3 +1,4 @@
+#!/bin/sh
 ############################################################################
 #
 #   Copyright (c) 2015-2016 ECL Development Team. All rights reserved.
@@ -30,6 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+# Exit on any error.
+set -e
 
 # Build EKF shared library.
 mkdir Build
