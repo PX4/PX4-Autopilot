@@ -59,7 +59,9 @@
 #include <fstream>
 #include <sstream>
 
-#include <uORB/topics/ekf2_replay.h>
+#include <matrix/matrix/math.hpp>
+#include <mathlib/mathlib.h>
+
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -413,7 +415,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	} else if (type == LOG_RPL5_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
 		parseMessage(data, dest_ptr, type);
-		_ev.timestamp = replay_part5.time_ev_usec;
+		_ev.timestamp_boot = replay_part5.time_ev_usec;
 		_ev.timestamp_computer = replay_part5.time_ev_usec;
 		_ev.x = replay_part5.x;
 		_ev.y = replay_part5.y;
@@ -425,9 +427,11 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		euler_init(0) = 0.0;
 		euler_init(0) = 0.0;
 		euler_init(2) = replay_part5.yaw;
-		_ev.quat = Quaternion(euler_init);  // Ensure this back and forth convertion of heading is correct
-		_ev.posErr = 0.01;  // XXX constant 1 cm for now for all axis all measurements. Replace with actual variance later
-		_ev.angErr = 0.01;  // XXX some small value in radians. Replace with actual variance later
+		matrix::Quaternion<float> q_init(euler_init);  // Ensure this back and forth convertion of heading is correct
+		_ev.q[0] = q_init(0);
+		_ev.q[1] = q_init(1);
+		_ev.q[2] = q_init(2);
+		_ev.q[3] = q_init(3);
 
 		_read_part5 = true;
 
