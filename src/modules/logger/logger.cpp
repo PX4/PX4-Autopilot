@@ -356,7 +356,7 @@ void Logger::run()
 	struct mallinfo alloc_info = {};
 #endif /* DBGPRINT */
 
-	PX4_WARN("started");
+	PX4_WARN("logger started");
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
