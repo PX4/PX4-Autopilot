@@ -2001,7 +2001,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
-				    !low_battery_voltage_actions_done) {
+				   !low_battery_voltage_actions_done) {
 					low_battery_voltage_actions_done = true;
 					if (armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
@@ -2027,8 +2027,14 @@ int commander_thread_main(int argc, char *argv[])
 									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 								}
 							}
+						} else if (low_bat_action == 2) {
+							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+							} else {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
+							}
 						} else {
-							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LAND IMMEDIATELY");
+							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
 						}
 					}
 
@@ -2743,7 +2749,8 @@ int commander_thread_main(int argc, char *argv[])
 			set_tune(TONE_ARMING_WARNING_TUNE);
 			arm_tune_played = true;
 
-		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		} else if (!status_flags.usb_connected &&
+			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);

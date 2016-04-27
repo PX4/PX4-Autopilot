@@ -256,8 +256,9 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * Action the system takes on low battery. Defaults to off
  *
  * @group Commander
- * @value 0 No action
- * @value 1 RTL on low battery
+ * @value 0 Warning
+ * @value 1 Return to Land
+ * @value 2 Land at current position
  * @decimal 0
  * @increment 1
  */
