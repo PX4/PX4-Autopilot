@@ -176,12 +176,9 @@ struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 static void
 ramtron_attach(void)
 {
-	/* find the right spi */
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-	struct spi_dev_s *spi = stm32_spibus_initialize(4);
-#else
-	struct spi_dev_s *spi = stm32_spibus_initialize(2);
-#endif
+	/* initialize the right spi */
+	struct spi_dev_s *spi = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
+
 	/* this resets the spi bus, set correct bus speed again */
 	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
 	SPI_SETBITS(spi, 8);
@@ -267,10 +264,10 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	}
 
 	if (!attached) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		at24xxx_attach();
-#else
+#ifdef CONFIG_MTD_RAMTRON
 		ramtron_attach();
+#else
+		at24xxx_attach();
 #endif
 	}
 

@@ -35,10 +35,9 @@
 #include <algorithm>
 #include <drivers/drv_hrt.h>
 
-// static intialization.
+// static initialization.
 uORB::FastRpcChannel uORB::FastRpcChannel::_Instance;
 
-static hrt_abstime _check_time;
 static unsigned long _dropped_pkts;
 static unsigned long _get_min = 0xFFFFFF;
 static unsigned long _get_max = 0;
@@ -136,7 +135,6 @@ int16_t uORB::FastRpcChannel::send_message(const char *messageName, int32_t leng
 	int16_t rc = 0;
 	hrt_abstime t1, t2;
 	static hrt_abstime check_time = 0;
-	int32_t initial_queue_size = 0;
 
 	if (_RemoteSubscribers.find(messageName) == _RemoteSubscribers.end()) {
 		//there is no-remote subscriber. So do not queue the message.
@@ -280,7 +278,7 @@ int16_t uORB::FastRpcChannel::get_data
 	static hrt_abstime check_time = 0;
 	hrt_abstime t1 = hrt_absolute_time();
 	_DataAvailableSemaphore.wait();
-	hrt_abstime t2 = hrt_absolute_time();
+	// hrt_abstime t2 = hrt_absolute_time();
 	_QueueMutex.lock();
 
 	if (DataQSize() != 0 || ControlQSize() != 0) {
@@ -395,7 +393,7 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	static hrt_abstime check_time = 0;
 	hrt_abstime t1 = hrt_absolute_time();
 	_DataAvailableSemaphore.wait();
-	hrt_abstime t2 = hrt_absolute_time();
+	//hrt_abstime t2 = hrt_absolute_time();
 
 	_QueueMutex.lock();
 

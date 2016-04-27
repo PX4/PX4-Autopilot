@@ -48,7 +48,7 @@ static void list_builtins(void)
 
 static int shutdown_main(int argc, char *argv[])
 {
-	printf("Shutting down\\n");
+	printf("Shutting down\n");
 	exit(0);
 }
 

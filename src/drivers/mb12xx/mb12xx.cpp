@@ -214,8 +214,8 @@ MB12XX::MB12XX(int bus, int address) :
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
+	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buf_of")),
 	_cycle_counter(0),	/* initialising counter for cycling function to zero */
 	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */

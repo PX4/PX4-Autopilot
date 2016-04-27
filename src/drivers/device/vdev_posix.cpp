@@ -53,17 +53,13 @@
 using namespace device;
 
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
+px4_sem_t lockstep_sem;
+bool sim_lockstep = false;
+bool sim_delay = false;
 
 extern "C" {
 
-	static void timer_cb(void *data)
-	{
-		px4_sem_t *p_sem = (px4_sem_t *)data;
-		px4_sem_post(p_sem);
-		PX4_DEBUG("timer_handler: Timer expired");
-	}
-
-#define PX4_MAX_FD 200
+#define PX4_MAX_FD 300
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
 	int px4_errno;
@@ -106,7 +102,7 @@ extern "C" {
 		    strncmp(path, "/dev/", 5) != 0) {
 			va_list p;
 			va_start(p, flags);
-			mode = va_arg(p, mode_t);
+			mode = va_arg(p, int);
 			va_end(p);
 
 			// Create the file
@@ -131,7 +127,22 @@ extern "C" {
 				ret = dev->open(filemap[i]);
 
 			} else {
-				PX4_WARN("exceeded maximum number of file descriptors!");
+
+				const unsigned NAMELEN = 32;
+				char thread_name[NAMELEN] = {};
+
+#ifndef __PX4_QURT
+				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+
+				if (nret || thread_name[0] == 0) {
+					PX4_WARN("failed getting thread name");
+				}
+
+				PX4_BACKTRACE();
+#endif
+
+				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
+					 thread_name, path);
 				ret = -ENOENT;
 			}
 
@@ -240,15 +251,38 @@ extern "C" {
 
 	int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 	{
+		if (nfds == 0) {
+			PX4_WARN("px4_poll with no fds");
+			return -1;
+		}
+
 		px4_sem_t sem;
 		int count = 0;
 		int ret = -1;
 		unsigned int i;
 
+		const unsigned NAMELEN = 32;
+		char thread_name[NAMELEN] = {};
+
+#ifndef __PX4_QURT
+		int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+
+		if (nret || thread_name[0] == 0) {
+			PX4_WARN("failed getting thread name");
+		}
+
+#endif
+
+		while (sim_delay) {
+			usleep(100);
+		}
+
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 		px4_sem_init(&sem, 0, 0);
 
-		// For each fd
+		// Go through all fds and check them for a pollable state
+		bool fd_pollable = false;
+
 		for (i = 0; i < nfds; ++i) {
 			fds[i].sem     = &sem;
 			fds[i].revents = 0;
@@ -258,42 +292,72 @@ extern "C" {
 
 			// If fd is valid
 			if (dev) {
-				PX4_DEBUG("px4_poll: VDev->poll(setup) %d", fds[i].fd);
+				PX4_DEBUG("%s: px4_poll: VDev->poll(setup) %d", thread_name, fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {
+					PX4_WARN("%s: px4_poll() error: %s",
+						 thread_name, strerror(errno));
 					break;
+				}
+
+				if (ret >= 0) {
+					fd_pollable = true;
 				}
 			}
 		}
 
-		if (ret >= 0) {
+		// If any FD can be polled, lock the semaphore and
+		// check for new data
+		if (fd_pollable) {
 			if (timeout > 0) {
-				// Use a work queue task
-				work_s _hpwork;
 
-				hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000 * timeout);
-				px4_sem_wait(&sem);
+				// Get the current time
+				struct timespec ts;
+				// FIXME: check if QURT should probably be using CLOCK_MONOTONIC
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
 
-				// Make sure timer thread is killed before sem goes
-				// out of scope
-				hrt_work_cancel(&_hpwork);
+				// Calculate an absolute time in the future
+				const unsigned billion = (1000 * 1000 * 1000);
+				unsigned tdiff = timeout;
+				uint64_t nsecs = ts.tv_nsec + (tdiff * 1000 * 1000);
+				ts.tv_sec += nsecs / billion;
+				nsecs -= (nsecs / billion) * billion;
+				ts.tv_nsec = nsecs;
+
+				// Execute a blocking wait for that time in the future
+				errno = 0;
+				ret = px4_sem_timedwait(&sem, &ts);
+#ifndef __PX4_DARWIN
+				ret = errno;
+#endif
+
+				// Ensure ret is negative on failure
+				if (ret > 0) {
+					ret = -ret;
+				}
+
+				if (ret && ret != -ETIMEDOUT) {
+					PX4_WARN("%s: px4_poll() sem error", thread_name);
+				}
 
 			} else if (timeout < 0) {
 				px4_sem_wait(&sem);
 			}
 
-			// For each fd
+			// We have waited now (or not, depending on timeout),
+			// go through all fds and count how many have data
 			for (i = 0; i < nfds; ++i) {
 
 				VDev *dev = get_vdev(fds[i].fd);
 
 				// If fd is valid
 				if (dev) {
-					PX4_DEBUG("px4_poll: VDev->poll(teardown) %d", fds[i].fd);
+					PX4_DEBUG("%s: px4_poll: VDev->poll(teardown) %d", thread_name, fds[i].fd);
 					ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 
 					if (ret < 0) {
+						PX4_WARN("%s: px4_poll() 2nd poll fail", thread_name);
 						break;
 					}
 
@@ -306,7 +370,9 @@ extern "C" {
 
 		px4_sem_destroy(&sem);
 
-		return count;
+		// Return the positive count if present,
+		// return the negative error number if failed
+		return (count) ? count : ret;
 	}
 
 	int px4_fsync(int fd)
@@ -338,6 +404,28 @@ extern "C" {
 	void px4_show_files()
 	{
 		VDev::showFiles();
+	}
+
+	void px4_enable_sim_lockstep()
+	{
+		px4_sem_init(&lockstep_sem, 0, 0);
+		sim_lockstep = true;
+		sim_delay = false;
+	}
+
+	void px4_sim_start_delay()
+	{
+		sim_delay = true;
+	}
+
+	void px4_sim_stop_delay()
+	{
+		sim_delay = false;
+	}
+
+	bool px4_sim_delay_enabled()
+	{
+		return sim_delay;
 	}
 
 	const char *px4_get_device_names(unsigned int *handle)

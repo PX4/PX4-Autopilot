@@ -11,8 +11,16 @@ then
 		then
 		fi
 	else
-		if sdlog2 start -r 100 -a -b 12 -t
+		# check if we should increase logging rate for ekf2 replay message logging
+		if param greater EKF2_REC_RPL 0
 		then
+			if sdlog2 start -r 500 -e -b 20 -t
+			then
+			fi
+		else
+			if sdlog2 start -r 100 -a -b 12 -t
+			then
+			fi
 		fi
 	fi
 fi

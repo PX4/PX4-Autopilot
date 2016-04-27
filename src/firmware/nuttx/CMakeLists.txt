@@ -16,16 +16,22 @@ set(link_libs
 		apps nuttx m gcc
 	)
 
-set(startup_libs)
-
 if("${romfs_used}" STREQUAL "y")
 	list(APPEND link_libs romfs)
 endif()
+
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+	list(APPEND link_libs df_driver_framework)
+endif()
+
+
 
 #
 # Bootloaders use a different ld file, a seperate startup file
 # and need to override the os version of sched_process_timer
 #
+set(startup_libs)
+
 if("${config_nuttx_config}" STREQUAL "bootloader")
 	set(nuttx_ld_prefix "bootloader")
 	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})

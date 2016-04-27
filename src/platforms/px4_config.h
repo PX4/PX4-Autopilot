@@ -43,6 +43,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
+#include <board_config.h>
 
 #elif defined (__PX4_POSIX)
 

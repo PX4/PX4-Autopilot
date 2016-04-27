@@ -36,7 +36,7 @@ px4_add_module(
 		-Os
 	SRCS
 		px4iov2_init.c
-		px4iov2_pwm_servo.c
+		px4iov2_timer_config.c
 	DEPENDS
 		platforms__common
 	)

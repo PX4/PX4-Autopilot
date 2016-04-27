@@ -242,9 +242,9 @@ TRONE::TRONE(int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "tr1_buf_of"))
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;

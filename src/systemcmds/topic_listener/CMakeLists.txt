@@ -43,7 +43,7 @@ add_custom_target(generate_topic_listener
 px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
-	STACK 1800
+	STACK_MAIN 1800
 	COMPILE_FLAGS
 		-Os
 	SRCS

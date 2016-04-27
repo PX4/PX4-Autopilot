@@ -84,11 +84,9 @@ __BEGIN_DECLS
 #define GPIO_LED1       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
 			 GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_GREEN  GPIO_LED1
-#define LED_GREEN       0
 #define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
 			 GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_YELLOW GPIO_LED2
-#define LED_YELLOW      1
 
 /* BUTTON ***************************************************************************
  *

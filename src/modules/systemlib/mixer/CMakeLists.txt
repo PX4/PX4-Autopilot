@@ -38,7 +38,7 @@ add_custom_command(OUTPUT mixer_multirotor.generated.h
 	> mixer_multirotor.generated.h)
 
 add_custom_target(mixer_gen
-	DEPENDS mixer_multirotor.generated.h)
+	DEPENDS mixer_multirotor.generated.h multi_tables.py)
 
 px4_add_module(
 	MODULE modules__systemlib__mixer
@@ -51,5 +51,6 @@ px4_add_module(
 		mixer_multirotor.generated.h
 	DEPENDS
 		platforms__common
+		mixer_gen
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

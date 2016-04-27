@@ -449,8 +449,9 @@ class uploader(object):
                 if self.board_type != fw.property('board_id'):
                         msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
                                 self.board_type, fw.property('board_id'))
+                        print("WARNING: %s" % msg)
                         if args.force:
-                                print("WARNING: %s" % msg)
+                                print("FORCED WRITE, FLASHING ANYWAY!")
                         else:
                                 raise IOError(msg)
                 if self.fw_maxsize < fw.property('image_size'):

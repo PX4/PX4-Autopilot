@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		st24.c
 		sumd.c
+		sbus.c
+		dsm.c
 	DEPENDS
 		platforms__common
 	)

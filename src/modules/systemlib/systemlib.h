@@ -55,9 +55,9 @@ enum MULT_PORTS {
 	MULT_COUNT
 };
 
+#if defined(__cplusplus)
 /* Check max multi port count */
-#if (MULT_COUNT > 33)
-#error "MULT_COUNT HAS TO BE LESS THAN OR EQUAL 33"
+static_assert(MULT_COUNT <= 33, "MULT_COUNT HAS TO BE LESS THAN OR EQUAL 33");
 #endif
 
 /* FMU board info, to be stored in the first 64 bytes of the FMU EEPROM */

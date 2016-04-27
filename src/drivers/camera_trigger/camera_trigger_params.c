@@ -46,7 +46,7 @@
  *
  * This parameter sets the time between two consecutive trigger events
  *
- * @unit milliseconds
+ * @unit ms
  * @min 4.0
  * @max 10000.0
  * @group Camera trigger
@@ -58,6 +58,8 @@ PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
  *
  * This parameter sets the polarity of the trigger (0 = ACTIVE_LOW, 1 = ACTIVE_HIGH )
  *
+ * @value 0 ACTIVE_LOW
+ * @value 1 ACTIVE_HIGH
  * @min 0
  * @max 1
  * @group Camera trigger
@@ -69,7 +71,7 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  *
  * This parameter sets the time the trigger needs to pulled high or low.
  *
- * @unit milliseconds
+ * @unit ms
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
@@ -77,10 +79,14 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
 /**
  * Camera trigger mode
  *
- * 0 disables the trigger, 1 sets it to enabled on command, 2 always on
+ * 0 disables the trigger, 1 sets it to enabled on command, 2 always on, 3 distance based, 4 distance based enabled on command
  *
+ * @value 0 Disable
+ * @value 1 CMD
+ * @value 2 Always
+ * @value 3 Distance
  * @min 0
- * @max 2
+ * @max 4
  * @group Camera trigger
  */
 PARAM_DEFINE_INT32(TRIG_MODE, 0);
@@ -95,3 +101,14 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * @group Camera trigger
  */
 PARAM_DEFINE_INT32(TRIG_PINS, 12);
+
+/**
+ * Camera trigger distance
+ *
+ * Sets the distance at which to trigger the camera.
+ *
+ * @unit m
+ * @min 0
+ * @group Camera trigger
+ */
+PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);

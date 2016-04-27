@@ -65,7 +65,7 @@ include_directories(../uavcan/libuavcan/libuavcan_drivers/stm32/driver/include)
 px4_add_module(
 	MODULE modules__uavcannode
 	MAIN uavcannode
-	STACK 1048
+	STACK_MAIN 1048
 	COMPILE_FLAGS
 		-Wframe-larger-than=1500
 		-Wno-deprecated-declarations

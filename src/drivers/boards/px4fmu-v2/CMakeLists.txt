@@ -37,11 +37,11 @@ px4_add_module(
 	SRCS
 		px4fmu_can.c
 		px4fmu2_init.c
-		px4fmu_pwm_servo.c
+		px4fmu_timer_config.c
 		px4fmu_spi.c
 		px4fmu_usb.c
 		px4fmu2_led.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

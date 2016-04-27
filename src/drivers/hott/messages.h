@@ -211,7 +211,7 @@ struct gps_module_msg {
 	uint8_t resolution_L;		/**< 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
 	uint8_t resolution_H;		/**< 117 = High Byte m/s resolution 0.01m */
 	uint8_t unknown1;		/**< 120 = 0m/3s */
-	uint8_t gps_num_sat;		/**< GPS.Satellites (number of satelites) (1 byte) */
+	uint8_t gps_num_sat;		/**< GPS.Satellites (number of satellites) (1 byte) */
 	uint8_t gps_fix_char;		/**< GPS.FixChar. (GPS fix character. display, if DGPS, 2D oder 3D) (1 byte) */
 	uint8_t home_direction;		/**< HomeDirection (direction from starting point to Model position) (1 byte) */
 	uint8_t angle_x_direction;	/**< angle x-direction (1 byte) */

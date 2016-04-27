@@ -46,11 +46,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef CONFIG_ARCH_ARM
-#include "../CMSIS/Include/arm_math.h"
-#else
 #include "matrix/math.hpp"
-#endif
 #include <platforms/px4_defines.h>
 
 namespace math
@@ -72,11 +68,7 @@ public:
 	/**
 	 * struct for using arm_math functions
 	 */
-#ifdef CONFIG_ARCH_ARM
-	arm_matrix_instance_f32 arm_mat;
-#else
 	eigen_matrix_instance arm_mat;
-#endif
 
 	/**
 	 * trivial ctor
@@ -302,47 +294,29 @@ public:
 	 */
 	template <unsigned int P>
 	Matrix<M, P> operator *(const Matrix<N, P> &m) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<M, P> res;
-		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
-		return res;
-#else
 		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
 		matrix::Matrix<float, N, P> Him(m.arm_mat.pData);
 		matrix::Matrix<float, M, P> Product = Me * Him;
 		Matrix<M, P> res(Product.data());
 		return res;
-#endif
 	}
 
 	/**
 	 * transpose the matrix
 	 */
 	Matrix<N, M> transposed(void) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<N, M> res;
-		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
-		return res;
-#else
 		matrix::Matrix<float, N, M> Me(this->arm_mat.pData);
 		Matrix<N, M> res(Me.transpose().data());
 		return res;
-#endif
 	}
 
 	/**
 	 * invert the matrix
 	 */
 	Matrix<M, N> inversed(void) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<M, N> res;
-		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
-		return res;
-#else
 		matrix::SquareMatrix<float, M> Me = matrix::Matrix<float, M, N>(this->arm_mat.pData);
 		Matrix<M, N> res(Me.I().data());
 		return res;
-#endif
 	}
 
 	/**
@@ -401,15 +375,10 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<M> operator *(const Vector<N> &v) const {
-#ifdef CONFIG_ARCH_ARM
-		Vector<M> res;
-		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
-#else
 		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
 		matrix::Matrix<float, N, 1> Vec(v.arm_col.pData);
 		matrix::Matrix<float, M, 1> Product = Me * Vec;
 		Vector<M> res(Product.data());
-#endif
 		return res;
 	}
 };

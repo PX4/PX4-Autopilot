@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include "px4muorb.hpp"
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
@@ -49,13 +50,25 @@ __END_DECLS
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);
+
 	// register the fastrpc muorb with uORBManager.
 	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
-	const char *argv[] = { "dspal", "start" };
+	const char *argv[] = {"dspal", "start"};
 	int argc = 2;
 	int rc;
 	rc = dspal_main(argc, (char **)argv);
 	return rc;
+}
+
+int px4muorb_set_absolute_time_offset(int32_t time_diff_us)
+{
+	return hrt_set_absolute_time_offset(time_diff_us);
+}
+
+int px4muorb_get_absolute_time(uint64_t *time_us)
+{
+	*time_us = hrt_absolute_time();
+	return 0;
 }
 
 int px4muorb_add_subscriber(const char *name)

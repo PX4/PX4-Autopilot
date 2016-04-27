@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * MAVLink 1.0 protocol implementation.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -51,11 +51,13 @@
 #include <assert.h>
 #include <math.h>
 #include <poll.h>
-#ifndef __PX4_POSIX
 #include <termios.h>
-#endif
 #include <time.h>
 #include <math.h> /* isinf / isnan checks */
+
+#ifdef __PX4_POSIX
+#include <net/if.h>
+#endif
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -71,12 +73,14 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/mcu_version.h>
 #include <systemlib/git_version.h>
+#include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 //#include <mathlib/mathlib.h>
-#include <mavlink/mavlink_log.h>
 
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/mavlink_log.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
@@ -102,11 +106,6 @@ static const int ERROR = -1;
 
 static Mavlink *_mavlink_instances = nullptr;
 
-#ifdef __PX4_NUTTX
-/* TODO: if this is a class member it crashes */
-static struct file_operations fops;
-#endif
-
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
@@ -124,14 +123,11 @@ static void usage(void);
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
-#ifndef __PX4_NUTTX
-	VDev("mavlink-log", MAVLINK_LOG_DEVICE),
-#endif
-	_device_name(DEFAULT_DEVICE_NAME),
+	_device_name("/dev/ttyS1"),
 	_task_should_exit(false),
 	next(nullptr),
 	_instance_id(0),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 	_task_running(false),
 	_hil_enabled(false),
 	_generate_rc(false),
@@ -146,18 +142,17 @@ Mavlink::Mavlink() :
 	_mission_manager(nullptr),
 	_parameters_manager(nullptr),
 	_mavlink_ftp(nullptr),
+	_mavlink_log_handler(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
-	_logbuffer {},
+	_logbuffer(5, sizeof(mavlink_log_s)),
 	_total_counter(0),
-	_receive_thread {},
+	_receive_thread{},
 	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
-#ifndef __PX4_POSIX
 	_uart_fd(-1),
-#endif
 	_baudrate(57600),
 	_datarate(1000),
 	_datarate_events(500),
@@ -171,6 +166,7 @@ Mavlink::Mavlink() :
 	_flow_control_enabled(true),
 	_last_write_success_time(0),
 	_last_write_try_time(0),
+	_mavlink_start_time(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
 	_bytes_rx(0),
@@ -182,10 +178,13 @@ Mavlink::Mavlink() :
 	_myaddr{},
 	_src_addr{},
 	_bcast_addr{},
+	_src_addr_initialized(false),
+	_broadcast_address_found(false),
 #endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
+	_remote_port(DEFAULT_REMOTE_PORT_UDP),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -203,10 +202,6 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
 	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
-#ifdef __PX4_NUTTX
-	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
-#endif
-
 	_instance_id = Mavlink::instance_count();
 
 	/* set channel according to instance id */
@@ -475,60 +470,6 @@ Mavlink::get_channel()
 	return _channel;
 }
 
-/****************************************************************************
- * MAVLink text message logger
- ****************************************************************************/
-
-int
-#ifdef __PX4_NUTTX
-Mavlink::mavlink_dev_ioctl(struct file *filp, int cmd, unsigned long arg)
-#else
-Mavlink::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-#endif
-{
-	switch (cmd) {
-	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
-	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
-	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
-
-			const char *txt = (const char *)arg;
-			struct mavlink_logmessage msg;
-			strncpy(msg.text, txt, sizeof(msg.text));
-
-			switch (cmd) {
-			case MAVLINK_IOC_SEND_TEXT_INFO:
-				msg.severity = MAV_SEVERITY_INFO;
-				break;
-
-			case MAVLINK_IOC_SEND_TEXT_CRITICAL:
-				msg.severity = MAV_SEVERITY_CRITICAL;
-				break;
-
-			case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
-				msg.severity = MAV_SEVERITY_EMERGENCY;
-				break;
-
-			default:
-				msg.severity = MAV_SEVERITY_INFO;
-				break;
-			}
-
-			Mavlink *inst;
-			LL_FOREACH(_mavlink_instances, inst) {
-				if (!inst->_task_should_exit) {
-					mavlink_logbuffer_write(&inst->_logbuffer, &msg);
-					inst->_total_counter++;
-				}
-			}
-
-			return OK;
-		}
-
-	default:
-		return ENOTTY;
-	}
-}
-
 void Mavlink::mavlink_update_system(void)
 {
 	if (!_param_initialized) {
@@ -605,9 +546,16 @@ int Mavlink::get_component_id()
 	return mavlink_system.compid;
 }
 
-#ifndef __PX4_POSIX
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original)
 {
+#ifndef B460800
+	#define B460800 460800
+#endif
+
+#ifndef B921600
+	#define B921600 921600
+#endif
+
 	/* process baud rate */
 	int speed;
 
@@ -660,8 +608,47 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return -EINVAL;
 	}
 
+	/* back off 1800 ms to avoid running into the USB setup timing */
+	while (_mode == MAVLINK_MODE_CONFIG &&
+		hrt_absolute_time() < 1800U * 1000U) {
+		usleep(50000);
+	}
+
 	/* open uart */
 	_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* if this is a config link, stay here and wait for it to open */
+	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+
+		int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+		struct actuator_armed_s armed;
+
+		/* get the system arming state and abort on arming */
+		while (_uart_fd < 0) {
+
+			/* abort if an arming topic is published and system is armed */
+			bool updated = false;
+			orb_check(armed_fd, &updated);
+
+			if (updated) {
+				/* the system is now providing arming status feedback.
+				 * instead of timing out, we resort to abort bringing
+				 * up the terminal.
+				 */
+				orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+
+				if (armed.armed) {
+					/* this is not an error, but we are done */
+					return -1;
+				}
+			}
+
+			usleep(100000);
+			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+		};
+
+		::close(armed_fd);
+	}
 
 	if (_uart_fd < 0) {
 		return _uart_fd;
@@ -744,6 +731,7 @@ Mavlink::enable_flow_control(bool enabled)
 {
 	// We can't do this on USB - skip
 	if (_is_usb_uart) {
+		_flow_control_enabled = false;
 		return OK;
 	}
 
@@ -766,8 +754,6 @@ Mavlink::enable_flow_control(bool enabled)
 
 	return ret;
 }
-
-#endif
 
 int
 Mavlink::set_hil_enabled(bool hil_enabled)
@@ -801,31 +787,27 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
-#ifndef __PX4_POSIX
-
-// No FIONWRITE on Linux
-#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
-	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
-#endif
-
-	if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
-		/* Disable hardware flow control:
-		 * if no successful write since a defined time
-		 * and if the last try was not the last successful write
-		 */
-		if (_last_write_try_time != 0 &&
-		    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
-		    _last_write_success_time != _last_write_try_time) {
-			warnx("Disabling hardware flow control");
-			enable_flow_control(false);
-		}
-	}
-
-#endif
-
-	// if we are using network sockets, return max lenght of one packet
+	// if we are using network sockets, return max length of one packet
 	if (get_protocol() == UDP || get_protocol() == TCP ) {
 		return  1500;
+	} else {
+		// No FIONWRITE on Linux
+#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
+		(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+#endif
+
+		if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
+			/* Disable hardware flow control:
+			 * if no successful write since a defined time
+			 * and if the last try was not the last successful write
+			 */
+			if (_last_write_try_time != 0 &&
+			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
+			    _last_write_success_time != _last_write_try_time) {
+				warnx("Disabling hardware flow control");
+				enable_flow_control(false);
+			}
+		}
 	}
 
 	return buf_free;
@@ -846,6 +828,10 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	_last_write_try_time = hrt_absolute_time();
+
+	if (_mavlink_start_time == 0) {
+		_mavlink_start_time = _last_write_try_time;
+	}
 
 	if (get_protocol() == SERIAL) {
 		/* check if there is space in the buffer, let it overflow else */
@@ -883,26 +869,35 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
 	size_t ret = -1;
-#ifndef __PX4_POSIX
+
 	/* send message to UART */
 	if (get_protocol() == SERIAL) {
 		ret = ::write(_uart_fd, buf, packet_len);
 	}
-#else
+
+#ifdef __PX4_POSIX
 	if (get_protocol() == UDP) {
 		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend heartbeat via broadcast */
-		if (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
-			(tstatus.heartbeat_time == 0)) &&
-			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+		if ((_mode != MAVLINK_MODE_ONBOARD) &&
+			(!get_client_source_initialized()
+			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
+			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
-			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+			if (!_broadcast_address_found) {
+				find_broadcast_address();
+			}
 
-			if (bret <= 0) {
-				PX4_WARN("sending broadcast failed");
+			if (_broadcast_address_found) {
+
+				int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+
+				if (bret <= 0) {
+					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+				}
 			}
 		}
 
@@ -959,62 +954,182 @@ Mavlink::resend_message(mavlink_message_t *msg)
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
 
-#ifndef __PX4_POSIX
-	/* send message to UART */
-	ssize_t ret = ::write(_uart_fd, buf, packet_len);
+	if (_uart_fd >= 0) {
+		/* send message to UART */
+		ssize_t ret = ::write(_uart_fd, buf, packet_len);
 
-	if (ret != (int) packet_len) {
-		count_txerr();
-		count_txerrbytes(packet_len);
+		if (ret != (int) packet_len) {
+			count_txerr();
+			count_txerrbytes(packet_len);
 
-	} else {
-		_last_write_success_time = _last_write_try_time;
-		count_txbytes(packet_len);
+		} else {
+			_last_write_success_time = _last_write_try_time;
+			count_txbytes(packet_len);
+		}
 	}
 
+	pthread_mutex_unlock(&_send_mutex);
+}
+
+void
+Mavlink::find_broadcast_address()
+{
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+	struct ifconf ifconf;
+	int ret;
+
+#if defined(__APPLE__) && defined(__MACH__)
+	// On Mac, we can't determine the required buffer
+	// size in advance, so we just use what tends to work.
+	ifconf.ifc_len = 1024;
+#else
+	// On Linux, we can determine the required size of the
+	// buffer first by providing NULL to ifc_req.
+	ifconf.ifc_req = NULL;
+	ifconf.ifc_len = 0;
+
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_WARN("getting required buffer size failed");
+		return;
+	}
 #endif
 
-	pthread_mutex_unlock(&_send_mutex);
+	PX4_DEBUG("need to allocate %d bytes", ifconf.ifc_len);
+
+	// Allocate buffer.
+	ifconf.ifc_req = (struct ifreq *)(new uint8_t[ifconf.ifc_len]);
+	if (ifconf.ifc_req == nullptr) {
+		PX4_ERR("Could not allocate ifconf buffer");
+		return;
+	}
+
+	memset(ifconf.ifc_req, 0, ifconf.ifc_len);
+
+	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
+	if (ret != 0) {
+		PX4_ERR("getting network config failed");
+		delete[] ifconf.ifc_req;
+		return;
+	}
+
+	size_t offset = 0;
+	// Later used to point to next network interface in buffer.
+	struct ifreq *cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
+
+	// The ugly `for` construct is used because it allows to use
+	// `continue` and `break`.
+	for (;
+	     offset < ifconf.ifc_len;
+#if defined(__APPLE__) && defined(__MACH__)
+	     // On Mac, to get to next entry in buffer, jump by the size of
+	     // the interface name size plus whatever is greater, either the
+	     // sizeof sockaddr or ifr_addr.sa_len.
+	     offset += IF_NAMESIZE
+	               + (sizeof(struct sockaddr) > cur_ifreq->ifr_addr.sa_len ?
+		          sizeof(struct sockaddr) : cur_ifreq->ifr_addr.sa_len)
+#else
+	    // On Linux, it's much easier to traverse the buffer, every entry
+	    // has the constant length.
+	    offset += sizeof(struct ifreq)
+#endif
+	    ) {
+
+		// Point to next network interface in buffer.
+		cur_ifreq = (struct ifreq *)&(((uint8_t *)ifconf.ifc_req)[offset]);
+
+		PX4_DEBUG("looking at %s", cur_ifreq->ifr_name);
+
+		// ignore loopback network
+		if (strcmp(cur_ifreq->ifr_name, "lo") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo0") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo1") == 0 ||
+		    strcmp(cur_ifreq->ifr_name, "lo2") == 0) {
+			PX4_DEBUG("skipping loopback");
+			continue;
+		}
+
+		struct ifreq bc_ifreq;
+		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
+		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
+		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
+		if (ret != 0) {
+			PX4_DEBUG("getting broadcast address failed for %s", cur_ifreq->ifr_name);
+			continue;
+		}
+
+		struct in_addr &sin_addr = ((struct sockaddr_in *)&cur_ifreq->ifr_addr)->sin_addr;
+
+		// Accept network interfaces to local network only. This means it's an IP starting with:
+		// 192./172./10.
+		// Also see https://tools.ietf.org/html/rfc1918#section-3
+
+		uint8_t first_byte = sin_addr.s_addr & 0xFF;
+
+		if (first_byte != 192 && first_byte != 172 && first_byte != 10) {
+			continue;
+		}
+
+		if (!_broadcast_address_found) {
+			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+
+			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
+			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
+
+			_bcast_addr.sin_family = AF_INET;
+			_bcast_addr.sin_addr = bc_addr;
+
+			_broadcast_address_found = true;
+		} else {
+			PX4_INFO("ignoring additional network interface %s, IP:  %s",
+				 cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+		}
+	}
+
+	if (_broadcast_address_found) {
+		_bcast_addr.sin_port = htons(_remote_port);
+
+		int broadcast_opt = 1;
+		if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
+			PX4_WARN("setting broadcast permission failed");
+		}
+
+	} else {
+		PX4_WARN("no broadcasting address found");
+	}
+
+	delete[] ifconf.ifc_req;
+
+#endif
 }
 
 void
 Mavlink::init_udp()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
-	PX4_INFO("Setting up UDP w/port %d",_network_port);
 
-	memset((char *)&_myaddr, 0, sizeof(_myaddr));
+	PX4_INFO("Setting up UDP w/port %d", _network_port);
+
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed");
-		return;
-	}
-
-	int broadcast_opt = 1;
-	if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
-		PX4_WARN("setting broadcast permission failed");
+		PX4_WARN("create socket failed: %s", strerror(errno));
 		return;
 	}
 
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed");
+		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
 	}
 
-	/* set default target address */
-	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	_src_addr.sin_family = AF_INET;
-	inet_aton("127.0.0.1", &_src_addr.sin_addr);
-	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
-
-	/* default broadcast address */
-	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
-	_bcast_addr.sin_family = AF_INET;
-	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
-	_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	/* set default target address, but not for onboard mode (will be set on first received packet) */
+	if (!_src_addr_initialized) {
+		_src_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	}
+	_src_addr.sin_port = htons(_remote_port);
 
 #endif
 }
@@ -1031,6 +1146,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/* handle packet with ftp component */
 	_mavlink_ftp->handle_message(msg);
 
+	/* handle packet with log component */
+	_mavlink_log_handler->handle_message(msg);
+
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
@@ -1040,29 +1158,19 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 void
 Mavlink::send_statustext_info(const char *string)
 {
-	send_statustext(MAV_SEVERITY_INFO, string);
+	mavlink_log_info(&_mavlink_log_pub, string);
 }
 
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	send_statustext(MAV_SEVERITY_CRITICAL, string);
+	mavlink_log_critical(&_mavlink_log_pub, string);
 }
 
 void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	send_statustext(MAV_SEVERITY_EMERGENCY, string);
-}
-
-void
-Mavlink::send_statustext(unsigned char severity, const char *string)
-{
-	struct mavlink_logmessage logmsg;
-	strncpy(logmsg.text, string, sizeof(logmsg.text));
-	logmsg.severity = severity;
-
-	mavlink_logbuffer_write(&_logbuffer, &logmsg);
+	mavlink_log_emergency(&_mavlink_log_pub, string);
 }
 
 void Mavlink::send_autopilot_capabilites()
@@ -1232,7 +1340,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 			usleep(MAIN_LOOP_DELAY / 2);
 		} while (_subscribe_to_stream != nullptr);
 
-		delete s;
+		delete[] s;
 	}
 }
 
@@ -1412,7 +1520,7 @@ Mavlink::update_rate_mult()
 	/* scale down if we have a TX err rate suggesting link congestion */
 	if (_rate_txerr > 0.0f && !radio_critical) {
 		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
-	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
+	} else if (radio_found && tstatus.telem_time != _last_hw_rate_timestamp) {
 
 		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
 			/* this indicates link congestion, reduce rate by 20% */
@@ -1426,12 +1534,13 @@ Mavlink::update_rate_mult()
 			/* limit to a max multiplier of 1 */
 			hardware_mult = fminf(1.0f, hardware_mult);
 		}
-	} else {
+
+	} else if (!radio_found) {
 		/* no limitation, set hardware to 1 */
 		hardware_mult = 1.0f;
 	}
 
-	_last_hw_rate_timestamp = tstatus.timestamp;
+	_last_hw_rate_timestamp = tstatus.telem_time;
 
 	/* pick the minimum from bandwidth mult and hardware mult as limit */
 	_rate_mult = fminf(bandwidth_mult, hardware_mult);
@@ -1464,10 +1573,12 @@ Mavlink::task_main(int argc, char *argv[])
 	bool err_flag = false;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+#ifdef __PX4_POSIX
 	char* eptr;
 	int temp_int_arg;
+#endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1493,7 +1604,8 @@ Mavlink::task_main(int argc, char *argv[])
 			_device_name = myoptarg;
 			set_protocol(SERIAL);
 			break;
-			
+
+#ifdef __PX4_POSIX
 		case 'u':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
@@ -1504,6 +1616,36 @@ Mavlink::task_main(int argc, char *argv[])
 				err_flag = true;
 			}
 			break;
+
+		case 'o':
+			temp_int_arg = strtoul(myoptarg, &eptr, 10);
+			if ( *eptr == '\0' ) {
+				warnx("set remote port %d", temp_int_arg);
+				_remote_port = temp_int_arg;
+				set_protocol(UDP);
+			} else {
+				warnx("invalid remote udp_port '%s'", myoptarg);
+				err_flag = true;
+			}
+			break;
+
+		case 't':
+			_src_addr.sin_family = AF_INET;
+			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
+				_src_addr_initialized = true;
+			} else {
+				warnx("invalid partner ip '%s'", myoptarg);
+				err_flag = true;
+			}
+			break;
+#else
+		case 'u':
+		case 'o':
+		case 't':
+			warnx("UDP options not supported on this platform");
+			err_flag = true;
+			break;
+#endif
 
 //		case 'e':
 //			mavlink_link_termination_allowed = true;
@@ -1522,6 +1664,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 			} else if (strcmp(myoptarg, "osd") == 0) {
 				_mode = MAVLINK_MODE_OSD;
+
+			} else if (strcmp(myoptarg, "magic") == 0) {
+				_mode = MAVLINK_MODE_MAGIC;
 
 			} else if (strcmp(myoptarg, "config") == 0) {
 				_mode = MAVLINK_MODE_CONFIG;
@@ -1565,37 +1710,41 @@ Mavlink::task_main(int argc, char *argv[])
 		_datarate = MAX_DATA_RATE;
 	}
 
-	if (Mavlink::instance_exists(_device_name, this)) {
-		warnx("%s already running", _device_name);
-		return ERROR;
-	}
+	struct termios uart_config_original = {};
 
 	if (get_protocol() == SERIAL) {
-	warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+		if (Mavlink::instance_exists(_device_name, this)) {
+			warnx("%s already running", _device_name);
+			return ERROR;
+		}
+
+		warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+
+		/* flush stdout in case MAVLink is about to take it over */
+		fflush(stdout);
+
+		/* default values for arguments */
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
+
+		if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
+			warn("could not open %s", _device_name);
+			return ERROR;
+		} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+			/* the config link is optional */
+			return OK;
+		}
+
 	} else if (get_protocol() == UDP) {
+		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
+			warnx("port %d already occupied", _network_port);
+			return ERROR;
+		}
+
 		warnx("mode: %u, data rate: %d B/s on udp port %hu", _mode, _datarate, _network_port);
 	}
-	/* flush stdout in case MAVLink is about to take it over */
-	fflush(stdout);
-
-#ifndef __PX4_POSIX
-	struct termios uart_config_original;
-
-	/* default values for arguments */
-	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
-
-	if (_uart_fd < 0) {
-		warn("could not open %s", _device_name);
-		return ERROR;
-	}
-
-#endif
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, NULL);
-
-	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on || _ftp_on) {
@@ -1612,33 +1761,25 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, NULL);
 	}
 
-	/* create the device node that's used for sending text log messages, etc. */
-#ifdef __PX4_NUTTX
-	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
-#else
-	int ret;
-	ret = VDev::init();
-	if (ret != OK) {
-		PX4_WARN("VDev setup for mavlink log device failed!\n");
-	}
-#endif
-
-	/* initialize logging device */
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-
 	/* Initialize system properties */
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	_receive_thread = MavlinkReceiver::receive_start(this);
+	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
+	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
+	uint64_t ack_time = 0;
+	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
+	uint64_t mavlink_log_time = 0;
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
+	struct vehicle_command_ack_s command_ack;
+	ack_sub->update(&ack_time, &command_ack);
 
 	/* add default streams depending on mode */
 
@@ -1660,6 +1801,11 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
 	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
 	LL_APPEND(_streams, _mavlink_ftp);
+
+	/* MAVLINK_Log_Handler */
+	_mavlink_log_handler = (MavlinkLogHandler *) MavlinkLogHandler::new_instance(this);
+	_mavlink_log_handler->set_interval(interval_from_rate(80.0f));
+	LL_APPEND(_streams, _mavlink_log_handler);
 
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
 	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
@@ -1686,6 +1832,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 0.5f);
+		configure_stream("ADSB_VEHICLE", 2.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1709,24 +1860,34 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		/* camera trigger is rate limited at the source, do not limit here */
+		//camera trigger is rate limited at the source, do not limit here
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		configure_stream("ADSB_VEHICLE", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("ATTITUDE_TARGET", 10.0f);
-		configure_stream("BATTERY_STATUS", 1.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		break;
+
+	case MAVLINK_MODE_MAGIC:
+		//stream nothing
 		break;
 
 	case MAVLINK_MODE_CONFIG:
@@ -1735,7 +1896,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
-		configure_stream("PARAM_VALUE", 300.0f);
+		//configure_stream("PARAM_VALUE", 300.0f);
 		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -1743,7 +1904,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("ATTITUDE", 100.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
-		configure_stream("RC_CHANNELS", 5.0f);
+		configure_stream("RC_CHANNELS", 10.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
@@ -1753,7 +1914,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 20.0f);
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
-
+		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream("ESTIMATOR_STATUS", 5.0f);
+		configure_stream("ADSB_VEHICLE", 20.0f);
 	default:
 		break;
 	}
@@ -1761,11 +1926,17 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
+	/* hard limit to 500 Hz at max */
+	if (_main_loop_delay < 2000) {
+		_main_loop_delay = 2000;
+	}
+
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
 	/* init socket if necessary */
 	if (get_protocol() == UDP) {
+		find_broadcast_address();
 		init_udp();
 	}
 
@@ -1783,7 +1954,7 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-		
+
 		_mission_manager->check_active_mission();
 
 		if (param_sub->update(&param_time, nullptr)) {
@@ -1792,10 +1963,10 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* radio config check */
-		if (_radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+		if (_uart_fd >= 0 && _radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 			/* request to configure radio and radio is present */
 			FILE *fs = fdopen(_uart_fd, "w");
-			
+
 			if (fs) {
 				/* switch to AT command mode */
 				usleep(1200000);
@@ -1840,6 +2011,20 @@ Mavlink::task_main(int argc, char *argv[])
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
 			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+		}
+
+		/* send command ACK */
+		if (ack_sub->update(&ack_time, &command_ack)) {
+			mavlink_command_ack_t msg;
+			msg.result = command_ack.result;
+			msg.command = command_ack.command;
+
+			send_message(MAVLINK_MSG_ID_COMMAND_ACK, &msg);
+		}
+
+		struct mavlink_log_s mavlink_log;
+		if (mavlink_log_sub->update(&mavlink_log_time, &mavlink_log)) {
+			_logbuffer.put(&mavlink_log);
 		}
 
 		/* check for requested subscriptions */
@@ -1948,6 +2133,9 @@ Mavlink::task_main(int argc, char *argv[])
 		_task_running = true;
 	}
 
+	/* first wait for threads to complete before tearing down anything */
+	pthread_join(_receive_thread, NULL);
+
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
@@ -1975,27 +2163,18 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_subscriptions = nullptr;
 
-	/* wait for threads to complete */
-	pthread_join(_receive_thread, NULL);
+	if (_uart_fd >= 0 && !_is_usb_uart) {
+		/* reset the UART flags to original state */
+		tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
 
-#ifndef __PX4_POSIX
-	/* reset the UART flags to original state */
-	tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
-
-	/* close UART */
-	::close(_uart_fd);
-#endif
-
-	/* close mavlink logging device */
-	px4_close(_mavlink_fd);
+		/* close UART */
+		::close(_uart_fd);
+	}
 
 	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
-
-	/* destroy log buffer */
-	mavlink_logbuffer_destroy(&_logbuffer);
 
 	warnx("exiting");
 	_task_running = false;
@@ -2051,7 +2230,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2400,
+			   2700,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 
@@ -2113,6 +2292,7 @@ Mavlink::display_status()
 		printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
 		printf("\trx errors:\t%u\n", _rstatus.rxerrors);
 		printf("\tfixed:\t\t%u\n", _rstatus.fixed);
+		printf("\tflow control:\t%s\n", (_flow_control_enabled) ? "ON" : "OFF");
 
 	} else {
 		printf("\tno telem status.\n");
@@ -2225,7 +2405,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u udp_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -2243,7 +2423,7 @@ int mavlink_main(int argc, char *argv[])
 		usage();
 		return 1;
 
-	} else if (!strcmp(argv[1], "stop-all")) {
+	} else if (!strcmp(argv[1], "stop") || !strcmp(argv[1], "stop-all") ) {
 		return Mavlink::destroy_all_instances();
 
 	} else if (!strcmp(argv[1], "status")) {
@@ -2263,3 +2443,6 @@ int mavlink_main(int argc, char *argv[])
 
 	return 0;
 }
+
+
+

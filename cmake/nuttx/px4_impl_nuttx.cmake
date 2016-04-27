@@ -166,7 +166,7 @@ function(px4_nuttx_make_uavcan_bootloadable)
 	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/make_can_boot_descriptor.py
 			-v --use-git-hash ${BIN} ${uavcan_bl_imange_name}
-		DEPENDS firmware_nuttx ${BIN}
+		DEPENDS firmware_nuttx
 		)
 	add_custom_target(build_uavcan_bl_${BOARD} ALL DEPENDS ${uavcan_bl_imange_name})
 endfunction()
@@ -203,20 +203,12 @@ function(px4_nuttx_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		#message("generating builtin for: ${module}")
-		# default
-		set(MAIN_DEFAULT MAIN-NOTFOUND)
-		set(STACK_DEFAULT 1024)
-		set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-		foreach(property MAIN STACK PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY) 
 			get_target_property(${property} ${module} ${property})
-			if(NOT ${property})
-				set(${property} ${${property}_DEFAULT})
-			endif()
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
-				"${builtin_apps_string}\t{\"${MAIN}\", ${PRIORITY}, ${STACK}, ${MAIN}_main},\n")
+				"${builtin_apps_string}\t{\"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main},\n")
 			set(builtin_apps_decl_string
 				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
@@ -307,6 +299,8 @@ function(px4_nuttx_add_export)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Config.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
@@ -512,6 +506,10 @@ function(px4_os_add_flags)
 	set(added_definitions
 		-D__PX4_NUTTX
 		)
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		list(APPEND added_definitions -D__DF_NUTTX)
+	endif()
+
 	set(added_c_flags
 		-nodefaultlibs
 		-nostdlib
@@ -548,6 +546,13 @@ function(px4_os_add_flags)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
+
+	if("${config_nuttx_config}" STREQUAL "bootloader")
+		set(DF_TARGET "do_not_use_df_driver_framework" PARENT_SCOPE)
+	else()
+		set(DF_TARGET "nuttx" PARENT_SCOPE)
+	endif()
+
 
 endfunction()
 
