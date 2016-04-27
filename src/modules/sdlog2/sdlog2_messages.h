@@ -577,6 +577,17 @@ struct log_RPL4_s {
 };
 
 
+/* --- EKF2 REPLAY Part 5 --- */
+#define LOG_RPL5_MSG 58
+struct log_RPL5_s {
+	uint64_t time_ev_usec;
+	float x;
+	float y;
+	float z;
+	float yaw;
+};
+
+
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
 struct log_CAMT_s {
@@ -673,6 +684,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
+	LOG_FORMAT(RPL5, "Qffff", "Tev,x,y,z,yaw"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

@@ -846,6 +846,22 @@ void Ekf2::task_main()
 				replay.rng_timestamp = 0;
 			}
 
+			if (vision_position_updated) {
+				replay.ev_timestamp = ev.timestamp_computer;
+				replay.x = ev.x;
+				replay.y = ev.y;
+				replay.z = ev.z;
+				// calculate yaw from quat here just like ecl does.
+				// skip logging whole quat
+				Quaternion q(ev.q);
+				matrix::Quaternion<float> q_obs(q(0), q(1), q(2), q(3));
+				matrix::Euler<float> euler_obs(q_obs);
+				replay.yaw = euler_obs(2);
+
+			} else {
+				replay.ev_timestamp = 0;
+			}
+
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
 
