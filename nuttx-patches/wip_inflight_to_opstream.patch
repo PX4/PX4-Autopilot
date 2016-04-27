@@ -1,13 +1,12 @@
 diff --git NuttX/nuttx/fs/procfs/fs_procfsproc.c NuttX/nuttx/fs/procfs/fs_procfsproc.c
-index eb93fc5..f5f6c03 100644
+index 84484a5..f5f6c03 100644
 --- NuttX/nuttx/fs/procfs/fs_procfsproc.c
 +++ NuttX/nuttx/fs/procfs/fs_procfsproc.c
-@@ -919,7 +919,7 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
-   totalsize = 0;
+@@ -920,6 +920,7 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
  
  #if CONFIG_NFILE_DESCRIPTORS > 0 /* Guaranteed to be true */
--  linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%3-s %-8s %s\n",
-+  linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%-3s %-8s %s\n",
-                         "FD", "POS", "OFLAGS");
+   linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%-3s %-8s %s\n",
++                        "FD", "POS", "OFLAGS");
    copysize   = procfs_memcpy(procfile->line, linesize, buffer, remaining, &offset);
  
+   totalsize += copysize;
