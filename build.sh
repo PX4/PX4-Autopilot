@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-#build EKF shared library
-cd ..
+# Build EKF shared library.
 mkdir Build
 cd Build
 cmake ../EKF
 make
+cd ..
