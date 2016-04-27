@@ -125,7 +125,7 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			irqstate_t flags = enter_critical_section();
 
-			if (!_reports->resize(arg)) {
+			if (!_reports.resize(arg)) {
 				leave_critical_section(flags);
 				return -ENOMEM;
 			}
