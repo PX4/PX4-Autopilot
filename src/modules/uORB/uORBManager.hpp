@@ -131,6 +131,14 @@ public:
 
 
 	/**
+	 * Unadvertise a topic.
+	 *
+	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
+	 * @return 0 on success
+	 */
+	int orb_unadvertise(orb_advert_t handle);
+
+	/**
 	 * Publish new data to a topic.
 	 *
 	 * The data is atomically published to the topic and any waiting subscribers

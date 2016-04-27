@@ -352,6 +352,30 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	return PX4_OK;
 }
 
+int uORB::DeviceNode::unadvertise(orb_advert_t handle)
+{
+	if (handle == nullptr) {
+		return -EINVAL;
+	}
+
+	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
+
+	/*
+	 * We are cheating a bit here. First, with the current implementation, we can only
+	 * have multiple publishers for instance 0. In this case the caller will have
+	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
+	 * necessary.
+	 * In case of multiple instances, we have at most 1 publisher per instance and
+	 * we can signal an instance as 'free' by setting _published to false.
+	 * We never really free the DeviceNode, for this we would need reference counting
+	 * of subscribers and publishers. But we also do not have a leak since future
+	 * publishers reuse the same DeviceNode object.
+	 */
+	devnode->_published = false;
+
+	return PX4_OK;
+}
+
 pollevent_t
 uORB::DeviceNode::poll_state(device::file_t *filp)
 {

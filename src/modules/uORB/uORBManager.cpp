@@ -129,6 +129,11 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	return advertiser;
 }
 
+int uORB::Manager::orb_unadvertise(orb_advert_t handle)
+{
+	return uORB::DeviceNode::unadvertise(handle);
+}
+
 int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 {
 	return node_open(PUBSUB, meta, nullptr, false);

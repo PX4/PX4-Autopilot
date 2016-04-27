@@ -96,6 +96,7 @@ void PublicationBase::update(void *data)
 
 PublicationBase::~PublicationBase()
 {
+	orb_unadvertise(getHandle());
 }
 
 PublicationNode::PublicationNode(const struct orb_metadata *meta,
