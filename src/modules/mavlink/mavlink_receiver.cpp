@@ -682,7 +682,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	mavlink_msg_set_position_target_local_ned_decode(msg, &set_position_target_local_ned);
 
 	struct offboard_control_mode_s offboard_control_mode = {};
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
 
 	bool values_finite =
 		PX4_ISFINITE(set_position_target_local_ned.x) &&
@@ -858,11 +857,9 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	mavlink_set_actuator_control_target_t set_actuator_control_target;
 	mavlink_msg_set_actuator_control_target_decode(msg, &set_actuator_control_target);
 
-	struct offboard_control_mode_s offboard_control_mode;
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
+	struct offboard_control_mode_s offboard_control_mode = {};
 
 	struct actuator_controls_s actuator_controls = {};
-	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
 
 	bool values_finite =
 		PX4_ISFINITE(set_actuator_control_target.controls[0]) &&
