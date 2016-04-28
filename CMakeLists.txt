@@ -298,7 +298,7 @@ px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
 include_directories(${include_dirs})
-message("INCLUDE_DIRS=${include_dirs}")
+#message("INCLUDE_DIRS=${include_dirs}")
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
@@ -333,7 +333,7 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 #=============================================================================
 # DriverFramework Drivers
 #
-message("ADDING DRIVERS")
+#message("ADDING DRIVERS")
 set(df_driver_libs)
 foreach(driver ${config_df_driver_list})
 	add_subdirectory(src/lib/DriverFramework/drivers/${driver})

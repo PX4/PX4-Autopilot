@@ -447,13 +447,13 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		/* inform user which orientations are still needed */
-		char pendingStr[256];
+		char pendingStr[80];
 		pendingStr[0] = 0;
 
 		for (unsigned int cur_orientation=0; cur_orientation<detect_orientation_side_count; cur_orientation++) {
 			if (!side_data_collected[cur_orientation]) {
-				strcat(pendingStr, " ");
-				strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
+				strncat(pendingStr, " ", sizeof(pendingStr) - 1);
+				strncat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation), sizeof(pendingStr) - 1);
 			}
 		}
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);

@@ -5,10 +5,14 @@ px4_posix_generate_builtin_commands(
 	MODULE_LIST ${module_libraries})
 
 if ("${BOARD}" STREQUAL "eagle")
+
+	include(fastrpc)
+	include(linux_app)
+
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
-	QURT_APP(
+	LINUX_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb
 		APPS_DEST "/home/linaro"
@@ -31,7 +35,7 @@ if ("${BOARD}" STREQUAL "eagle")
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
-			 DEPENDS build_mainapp_apps
+			 DEPENDS mainapp
 			 DEST /home/linaro)
 
 else()

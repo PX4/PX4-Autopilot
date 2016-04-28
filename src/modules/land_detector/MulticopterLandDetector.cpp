@@ -45,6 +45,9 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 
+namespace landdetection
+{
+
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
@@ -58,12 +61,16 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_actuators{},
 	_arming{},
 	_vehicleAttitude{},
-	_landTimer(0)
+	_ctrl_state{},
+	_landTimer(0),
+	_freefallTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
+	_paramHandle.acc_threshold_m_s2 = param_find("LNDMC_FFALL_THR");
+	_paramHandle.ff_trigger_time = param_find("LNDMC_FFALL_TTRI");
 }
 
 void MulticopterLandDetector::initialize()
@@ -75,6 +82,7 @@ void MulticopterLandDetector::initialize()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 
 	// download parameters
 	updateParameterCache(true);
@@ -87,16 +95,51 @@ void MulticopterLandDetector::updateSubscriptions()
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
+	orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 }
 
-bool MulticopterLandDetector::update()
+LandDetectionResult MulticopterLandDetector::update()
 {
 	// first poll for new data from our subscriptions
 	updateSubscriptions();
 
 	updateParameterCache(false);
 
-	return get_landed_state();
+	if (get_freefall_state()) {
+		_state = LANDDETECTION_RES_FREEFALL;
+
+	} else if (get_landed_state()) {
+		_state = LANDDETECTION_RES_LANDED;
+
+	} else {
+		_state = LANDDETECTION_RES_FLYING;
+	}
+
+	return _state;
+}
+
+bool MulticopterLandDetector::get_freefall_state()
+{
+	if (_params.acc_threshold_m_s2 < 0.1f
+	    || _params.acc_threshold_m_s2 > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
+		return false;
+	}
+
+	const uint64_t now = hrt_absolute_time();
+
+	float acc_norm = _ctrl_state.x_acc * _ctrl_state.x_acc
+			 + _ctrl_state.y_acc * _ctrl_state.y_acc
+			 + _ctrl_state.z_acc * _ctrl_state.z_acc;
+	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
+
+	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
+
+	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
+		_freefallTimer = now;
+		return false;
+	}
+
+	return (now - _freefallTimer) / 1000000.0f > _params.ff_trigger_time;
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -181,5 +224,9 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
+		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
+		param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
 	}
+}
+
 }

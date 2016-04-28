@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator.h"
 #include "mission_block.h"
@@ -95,7 +96,7 @@ MissionBlock::is_mission_item_reached()
 
 		case NAV_CMD_LAND: /* fall through */
 		case NAV_CMD_VTOL_LAND:
-			return _navigator->get_vstatus()->condition_landed;
+			return _navigator->get_land_detected()->landed;
 
 		/* TODO: count turns */
 		/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
@@ -136,7 +137,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_vstatus()->condition_landed == false)
+	if ((_navigator->get_land_detected()->landed == false)
 		&& !_waypoint_position_reached) {
 
 		float dist = -1.0f;
@@ -337,7 +338,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	/* set the correct setpoint for vtol transition */
 
 	if(item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && PX4_ISFINITE(item->yaw)
-			&& item->params[0] >= vehicle_status_s::VEHICLE_VTOL_STATE_FW - 0.5f) {
+			&& item->params[0] >= vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW - 0.5f) {
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,
 										   _navigator->get_global_position()->lon,
@@ -405,15 +406,15 @@ MissionBlock::set_previous_pos_setpoint()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-    if (pos_sp_triplet->current.valid) {
-        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-    }
+	if (pos_sp_triplet->current.valid) {
+		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+	}
 }
 
 void
 MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
@@ -454,7 +455,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 void
 MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
@@ -523,7 +524,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if(_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
@@ -547,7 +548,6 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();

@@ -330,7 +330,12 @@ then
 	sh /etc/init.d/rc.sensors
 
 	# Needs to be this early for in-air-restarts
-	commander start
+	if [ $OUTPUT_MODE == hil ]
+	then
+	    commander start -hil
+	else
+	    commander start
+	fi
 
 	#
 	# Start primary output
@@ -489,7 +494,7 @@ then
 			then
 				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
-				mavlink start -r 40000 -m config -b 921600 -d /dev/ttyS0
+				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
 	fi
@@ -568,6 +573,54 @@ then
 			tone_alarm $TUNE_ERR
 		fi
 	fi
+
+	#
+	# Optional drivers
+	#
+
+	# Sensors on the PWM interface bank
+	if param compare SENS_EN_LL40LS 1
+	then
+		if pwm_input start
+		then
+			if ll40ls start pwm
+			then
+			fi
+		fi
+	fi
+
+	# sf0x lidar sensor
+	if param compare SENS_EN_SF0X 1
+	then
+		sf0x start
+	fi
+
+	if ver hwcmp PX4FMU_V4
+	then
+		frsky_telemetry start -d /dev/ttyS6
+	fi
+
+	if ver hwcmp PX4FMU_V2
+	then
+		# Check for flow sensor - as it is a background task, launch it last
+		px4flow start &
+	fi
+
+	if ver hwcmp MINDPX_V2
+	then
+		#mindxp also need flow
+		px4flow start &
+	fi
+
+	# Start USB shell if no microSD present, MAVLink else
+	if [ $LOG_FILE == /dev/null ]
+	then
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	else
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
+
 
 	#
 	# Logging
@@ -745,6 +798,7 @@ then
 	if [ $VEHICLE_TYPE == passthrough ]
 	then
 		mavlink stop-all
+		commander stop
 
 		# Stop multicopter attitude controller if it is running, the controls come
 		# from Snapdragon.
@@ -766,6 +820,9 @@ then
 			snapdragon_rc_pwm start -d /dev/ttyS2
 			fmu mode_pwm4
 		fi
+
+		pwm failsafe -c 1234 -p 900
+		pwm disarmed -c 1234 -p 900
 
 		# Arm straightaway.
 		pwm arm
@@ -817,44 +874,6 @@ unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
-
-# Sensors on the PWM interface bank
-if param compare SENS_EN_LL40LS 1
-then
-	if pwm_input start
-	then
-		if ll40ls start pwm
-		then
-		fi
-	fi
-fi
-
-if ver hwcmp PX4FMU_V4
-then
-	frsky_telemetry start -d /dev/ttyS6
-fi
-
-if ver hwcmp PX4FMU_V2
-then
-	# Check for flow sensor - as it is a background task, launch it last
-	px4flow start &
-fi
-
-if ver hwcmp MINDPX_V2
-then
-	#mindxp also need flow
-	px4flow start &
-fi
-
-# Start USB shell if no microSD present, MAVLink else
-if [ $LOG_FILE == /dev/null ]
-then
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
-else
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-fi
-
 
 if [ $EXIT_ON_END == yes ]
 then

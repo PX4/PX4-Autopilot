@@ -89,6 +89,10 @@ input_rc_s 		_rc;
 
 pwm_limit_t	_pwm_limit;
 
+// esc parameters
+int32_t _pwm_disarmed;
+int32_t _pwm_min;
+int32_t _pwm_max;
 
 MultirotorMixer *_mixer = nullptr;
 
@@ -414,10 +418,16 @@ void task_main(int argc, char *argv[])
 			}
 
 			const uint16_t reverse_mask = 0;
-			// TODO FIXME: these should probably be params
-			const uint16_t disarmed_pwm[4] = {900, 900, 900, 900};
-			const uint16_t min_pwm[4] = {1230, 1230, 1230, 1230};
-			const uint16_t max_pwm[4] = {1900, 1900, 1900, 1900};
+			uint16_t disarmed_pwm[4];
+			uint16_t min_pwm[4];
+			uint16_t max_pwm[4];
+
+			for (unsigned int i = 0; i < 4; i++) {
+				disarmed_pwm[i] = _pwm_disarmed;
+				min_pwm[i] = _pwm_min;
+				max_pwm[i] = _pwm_max;
+			}
+
 			uint16_t pwm[4];
 
 			// TODO FIXME: pre-armed seems broken
@@ -522,6 +532,11 @@ int uart_esc_main(int argc, char *argv[])
 			break;
 		}
 	}
+
+	// gets the parameters for the esc's pwm
+	param_get(param_find("PWM_DISARMED"), &uart_esc::_pwm_disarmed);
+	param_get(param_find("PWM_MIN"), &uart_esc::_pwm_min);
+	param_get(param_find("PWM_MAX"), &uart_esc::_pwm_max);
 
 	/*
 	 * Start/load the driver.

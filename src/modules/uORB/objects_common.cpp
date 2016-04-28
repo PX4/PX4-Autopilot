@@ -288,3 +288,12 @@ ORB_DEFINE(mavlink_log, struct mavlink_log_s);
 
 #include "topics/follow_target.h"
 ORB_DEFINE(follow_target, struct follow_target_s);
+
+#include "topics/commander_state.h"
+ORB_DEFINE(commander_state, struct commander_state_s);
+
+#include "topics/transponder_report.h"
+ORB_DEFINE(transponder_report, struct transponder_report_s);
+
+#include "topics/gps_inject_data.h"
+ORB_DEFINE(gps_inject_data, struct gps_inject_data_s);

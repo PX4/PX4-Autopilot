@@ -43,9 +43,10 @@
  *
  * It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
+ * @unit norm
  * @min 0.05
  * @max 1.0
- * @decimal 3
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
@@ -60,8 +61,10 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * throttle stick near center, which is then interpreted as (near)
  * zero demand for vertical speed.
  *
+ * @unit norm
  * @min 0.2
  * @max 0.8
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
@@ -73,8 +76,10 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
  * This is the halfwidth of the center region of the ALTCTL throttle
  * curve. It extends from center-dz to center+dz.
  *
+ * @unit norm
  * @min 0.0
  * @max 0.2
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
@@ -88,6 +93,7 @@ PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
  *
  * @min 0.0
  * @max 0.2
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ALTCTL_DY, 0.0f);
@@ -100,6 +106,7 @@ PARAM_DEFINE_FLOAT(MPC_ALTCTL_DY, 0.0f);
  * the motors is possible any more. A value of 0.8 - 0.9
  * is recommended.
  *
+ * @unit norm
  * @min 0.0
  * @max 0.95
  * @decimal 2
@@ -112,9 +119,10 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
- * @decimal 3
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
@@ -127,6 +135,7 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
  * the motors is possible any more. A value of 0.8 - 0.9
  * is recommended.
  *
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -402,3 +411,14 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+
+/**
+ * Altitude control mode, note mode 1 only tested with LPE
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Altitude following
+ * @value 1 Terrain following
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);

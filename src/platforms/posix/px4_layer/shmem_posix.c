@@ -52,7 +52,7 @@
 
 #include <shmem.h>
 
-#define SHMEM_DEBUG
+//#define SHMEM_DEBUG
 
 int mem_fd;
 unsigned char *map_base, *virt_addr;
@@ -65,6 +65,7 @@ void init_shared_memory(void);
 void copy_params_to_shmem(struct param_info_s *);
 void update_to_shmem(param_t param, union param_value_u value);
 int update_from_shmem(param_t param, union param_value_u *value);
+void update_index_from_shmem(void);
 uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 static unsigned char adsp_changed_index[MAX_SHMEM_PARAMS / 8 + 1];
 
@@ -184,7 +185,7 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 #endif
 	}
 
-	//PX4_DEBUG("written %u params to shmem offset %lu", param_count(), (unsigned char*)&shmem_info_p->params_count-(unsigned char*)shmem_info_p);
+	PX4_DEBUG("written %u params to shmem", param_count());
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
 		shmem_info_p->krait_changed_index[i] = 0;
@@ -230,7 +231,7 @@ void update_to_shmem(param_t param, union param_value_u value)
 
 }
 
-static void update_index_from_shmem(void)
+void update_index_from_shmem(void)
 {
 	unsigned int i;
 

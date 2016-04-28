@@ -659,12 +659,12 @@ HC_SR04::start()
 
 
 	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		SUBSYSTEM_TYPE_RANGEFINDER
-	};
+	struct subsystem_info_s info = {};
+	info.present = true;
+	info.enabled = true;
+	info.ok = true;
+	info.subsystem_type = SUBSYSTEM_TYPE_RANGEFINDER;
+
 	static orb_advert_t pub = nullptr;
 
 	if (pub != nullptr) {

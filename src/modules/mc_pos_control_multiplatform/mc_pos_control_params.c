@@ -39,10 +39,6 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_defines.h>
-#include "mc_pos_control_params.h"
-#include <systemlib/param/param.h>
-
 /**
  * Minimum thrust
  *

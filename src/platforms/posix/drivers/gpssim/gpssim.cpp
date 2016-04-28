@@ -466,7 +466,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
 
 	if (!h.isValid()) {
-		PX4_ERR("getHandle failed: %s", GPS0_DEVICE_PATH);
+		PX4_ERR("getHandle failed: %s", GPSSIM_DEVICE_PATH);
 		goto fail;
 	}
 
@@ -529,6 +529,7 @@ info()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("gpssim not running");
+		return;
 	}
 
 	g_dev->print_info();

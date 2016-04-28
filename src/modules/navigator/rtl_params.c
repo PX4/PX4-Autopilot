@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,8 @@
  * @unit m
  * @min 0
  * @max 150
+ * @decimal 1
+ * @increment 0.5
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
@@ -65,6 +67,8 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * @unit m
  * @min 2
  * @max 100
+ * @decimal 1
+ * @increment 0.5
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
@@ -78,6 +82,24 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @unit s
  * @min -1
  * @max 300
+ * @decimal 1
+ * @increment 0.5
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+
+/**
+ * Minimum distance to trigger rising to a safe altitude
+ *
+ * If the system is horizontally closer than this distance to home
+ * it will land straight on home instead of raising to the return
+ * altitude first.
+ *
+ * @unit m
+ * @min 0.5
+ * @max 20
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);

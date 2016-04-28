@@ -74,6 +74,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
+#include <systemlib/battery.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -308,9 +309,13 @@ private:
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
 
+	Battery			_battery;
+
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
 	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+
+	float			_last_throttle; ///< last throttle value for battery calculation
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -538,9 +543,11 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_last_timestamp(0),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
+	_battery{},
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
-	_rssi_pwm_min(0)
+	_rssi_pwm_min(0),
+	_last_throttle(0.0f)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -685,6 +692,12 @@ PX4IO::init()
 
 		DEVICE_LOG("config read error");
 		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.");
+
+		// ask IO to reboot into bootloader as the failure may
+		// be due to mismatched firmware versions and we want
+		// the startup script to be able to load a new IO
+		// firmware
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
 		return -1;
 	}
 
@@ -1065,11 +1078,13 @@ PX4IO::task_main()
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
 
-				/* re-upload RC input config as it may have changed */
-				io_set_rc_config();
+				if (!_rc_handling_disabled) {
+					/* re-upload RC input config as it may have changed */
+					io_set_rc_config();
+				}
 
 				/* re-set the battery scaling */
-				int32_t voltage_scaling_val;
+				int32_t voltage_scaling_val = 10000;
 				param_t voltage_scaling_param;
 
 				/* set battery voltage scaling */
@@ -1188,6 +1203,9 @@ PX4IO::task_main()
 								    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 					}
 				}
+
+				// Also trigger param update in Battery instance.
+				_battery.updateParams();
 			}
 
 		}
@@ -1238,7 +1256,7 @@ PX4IO::io_set_control_state(unsigned group)
 
 			if (changed) {
 				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
-				perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
+				perf_set_elapsed(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
 			}
 		}
 		break;
@@ -1295,6 +1313,11 @@ PX4IO::io_set_control_state(unsigned group)
 		}
 
 		regs[i] = FLOAT_TO_REG(ctrl);
+	}
+
+	// save last throttle for battery calculation
+	if (group == 0) {
+		_last_throttle = controls.control[3];
 	}
 
 	/* copy values to registers in IO */
@@ -1648,29 +1671,19 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	}
 
 	battery_status_s	battery_status;
-	battery_status.timestamp = hrt_absolute_time();
 
+	const hrt_abstime timestamp = hrt_absolute_time();
 	/* voltage is scaled to mV */
-	battery_status.voltage_v = vbatt / 1000.0f;
-	battery_status.voltage_filtered_v = vbatt / 1000.0f;
+	const float voltage_v = vbatt / 1000.0f;
 
 	/*
 	  ibatt contains the raw ADC count, as 12 bit ADC
 	  value, with full range being 3.3v
 	*/
-	battery_status.current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
-	battery_status.current_a += _battery_amp_bias;
+	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
+	current_a += _battery_amp_bias;
 
-	/*
-	  integrate battery over time to get total mAh used
-	*/
-	if (_battery_last_timestamp != 0) {
-		_battery_mamphour_total += battery_status.current_a *
-					   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-	}
-
-	battery_status.discharged_mah = _battery_mamphour_total;
-	_battery_last_timestamp = battery_status.timestamp;
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, &battery_status);
 
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
@@ -2328,10 +2341,11 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
 #endif
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	printf("rates 0x%04x default %u alt %u\n",
+	printf("rates 0x%04x default %u alt %u sbus %u\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
@@ -2605,6 +2619,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 		break;
 
+	case PWM_SERVO_SET_SBUS_RATE:
+		/* set the requested SBUS frame rate */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, arg);
+		break;
+
 	case DSM_BIND_START:
 
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
@@ -2637,7 +2656,10 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			/* TODO: we could go lower for e.g. TurboPWM */
 			unsigned channel = cmd - PWM_SERVO_SET(0);
 
-			if ((channel >= _max_actuators) || (arg < PWM_LOWEST_MIN) || (arg > PWM_HIGHEST_MAX)) {
+			/* PWM needs to be either 0 or in the valid range. */
+			if ((arg != 0) && ((channel >= _max_actuators) ||
+					   (arg < PWM_LOWEST_MIN) ||
+					   (arg > PWM_HIGHEST_MAX))) {
 				ret = -EINVAL;
 
 			} else {

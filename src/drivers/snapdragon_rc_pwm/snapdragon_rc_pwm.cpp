@@ -75,6 +75,7 @@ static int _uart_fd = -1;
 int _pwm_fd = -1;
 static bool _flow_control_enabled = false;
 int _rc_sub = -1;
+int32_t _pwm_disarmed;
 
 hrt_abstime _last_actuator_controls_received = 0;
 
@@ -128,7 +129,9 @@ void task_main(int argc, char *argv[])
 	fds[0].fd = _uart_fd;
 	fds[0].events = POLLIN;
 
-	while (true) {
+	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+
+	while (!_task_should_exit) {
 
 		// wait for up to 100ms for data
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
@@ -204,9 +207,9 @@ void handle_message(mavlink_message_t *msg)
 void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls)
 {
 	if (actuator_controls == nullptr) {
-		// Without valid argument, set all channels to 0
+		// Without valid argument, set all channels to PWM_DISARMED
 		for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
-			int ret = ::ioctl(_pwm_fd, PWM_SERVO_SET(i), 0);
+			int ret = ::ioctl(_pwm_fd, PWM_SERVO_SET(i), _pwm_disarmed);
 
 			if (ret != OK) {
 				PX4_ERR("PWM_SERVO_SET(%d)", i);
@@ -393,6 +396,8 @@ void stop()
 {
 	// TODO - set thread exit signal to terminate the task main thread
 
+	_task_should_exit = true;
+
 	_is_running = false;
 	_task_handle = -1;
 }
@@ -428,21 +433,23 @@ int snapdragon_rc_pwm_main(int argc, char *argv[])
 		}
 	}
 
-	// Check on required arguments
-	if (device == NULL || strlen(device) == 0) {
-		snapdragon_rc_pwm::usage();
-		return 1;
-	}
-
-	memset(snapdragon_rc_pwm::_device, 0, MAX_LEN_DEV_PATH);
-	strncpy(snapdragon_rc_pwm::_device, device, strlen(device));
-
 	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
+
+		// Check on required arguments
+		if (device == NULL || strlen(device) == 0) {
+			snapdragon_rc_pwm::usage();
+			return 1;
+		}
+
+		memset(snapdragon_rc_pwm::_device, 0, MAX_LEN_DEV_PATH);
+		strncpy(snapdragon_rc_pwm::_device, device, strlen(device));
+
+
 		if (snapdragon_rc_pwm::_is_running) {
 			PX4_WARN("uart_esc already running");
 			return 1;
@@ -452,7 +459,7 @@ int snapdragon_rc_pwm_main(int argc, char *argv[])
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (snapdragon_rc_pwm::_is_running) {
+		if (!snapdragon_rc_pwm::_is_running) {
 			PX4_WARN("snapdragon_rc_pwm is not running");
 			return 1;
 		}

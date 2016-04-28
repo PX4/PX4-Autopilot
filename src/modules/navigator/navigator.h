@@ -57,6 +57,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -133,6 +134,7 @@ public:
 	 * Getters
 	 */
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
+	struct vehicle_land_detected_s*	    get_land_detected() { return &_land_detected; }
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
@@ -140,6 +142,7 @@ public:
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	bool				    home_position_valid() { return (_home_pos.timestamp > 0); }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct position_setpoint_triplet_s* get_reposition_triplet() { return &_reposition_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
 	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
 	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
@@ -200,6 +203,7 @@ private:
 	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
+	int		_land_detected_sub;		/**< vehicle land detected subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
@@ -215,6 +219,7 @@ private:
 							  when pos control is deactivated */
 
 	vehicle_status_s				_vstatus;		/**< vehicle status */
+	vehicle_land_detected_s				_land_detected;		/**< vehicle land_detected */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos;		/**< gps position */
@@ -223,6 +228,7 @@ private:
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+	position_setpoint_triplet_s			_reposition_triplet;	/**< triplet for non-mission direct position command */
 
 	mission_result_s				_mission_result;
 	geofence_result_s				_geofence_result;
@@ -262,8 +268,8 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
-	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
-	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
+	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
+	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
@@ -299,6 +305,11 @@ private:
 	 * Retrieve vehicle status
 	 */
 	void		vehicle_status_update();
+
+	/**
+	 * Retrieve vehicle land detected
+	 */
+	void		vehicle_land_detected_update();
 
 	/**
 	 * Retrieve vehicle control mode

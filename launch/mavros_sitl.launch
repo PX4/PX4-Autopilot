@@ -1,14 +1,13 @@
 <launch>
-<!-- vim: set ft=xml noet : -->
-<!-- example launch script for PX4 based FCU's -->
+<!-- MAVROS launch script for deprecated multiplatform SITL -->
 
 <arg name="ns" default="/" />
-<group ns="$(arg ns)">
-	<arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
-	<arg name="gcs_url" default="" />
-	<arg name="tgt_system" default="1" />
-	<arg name="tgt_component" default="50" />
+<arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
+<arg name="gcs_url" default="" />
+<arg name="tgt_system" default="1" />
+<arg name="tgt_component" default="50" />
 
+<group ns="$(arg ns)">
 	<include file="$(find mavros)/launch/node.launch">
 		<arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
 		<arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
