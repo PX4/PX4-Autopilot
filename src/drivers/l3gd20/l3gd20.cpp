@@ -1082,7 +1082,7 @@ L3GD20::measure()
 	math::Vector<3> gval(xin, yin, zin);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
+	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, &report.integral_dt);
 	report.x_integral = gval_integrated(0);
 	report.y_integral = gval_integrated(1);
 	report.z_integral = gval_integrated(2);
