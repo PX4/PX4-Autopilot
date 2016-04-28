@@ -42,6 +42,21 @@
 #include "ekf.h"
 #include "mathlib.h"
 
+#ifndef __PX4_QURT
+#if defined(__cplusplus)
+#include <cmath>
+#define ISFINITE(x) std::isfinite(x)
+#else
+#define ISFINITE(x) isfinite(x)
+#endif
+#endif
+
+#if defined(__PX4_QURT)
+// Missing math.h defines
+#define ISFINITE(x) __builtin_isfinite(x)
+#endif
+
+
 Ekf::Ekf():
 	_filter_initialised(false),
 	_earth_rate_initialised(false),
@@ -343,7 +358,7 @@ bool Ekf::update()
 	calculateOutputStates();
 
 	// check for NaN or inf on attitude states
-	if (!std::isfinite(_state.quat_nominal(0)) || !std::isfinite(_output_new.quat_nominal(0))) {
+	if (!ISFINITE(_state.quat_nominal(0)) || !ISFINITE(_output_new.quat_nominal(0))) {
 		return false;
 	}
 
