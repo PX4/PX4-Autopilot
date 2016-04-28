@@ -469,7 +469,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	_accel_int.put(accel_report.timestamp,
 		       accel_val,
 		       accel_val_integrated_unused,
-		       accel_report.integral_dt);
+		       &accel_report.integral_dt);
 
 	gyro_report.x = (data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
 	gyro_report.y = (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
@@ -483,7 +483,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	_gyro_int.put(gyro_report.timestamp,
 		      gyro_val,
 		      gyro_val_integrated_unused,
-		      gyro_report.integral_dt);
+		      &gyro_report.integral_dt);
 
 	perf_set_count(_read_counter, data.read_counter);
 	perf_set_count(_error_counter, data.error_counter);
@@ -532,8 +532,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.z_raw = NAN;
 
 	// Read and reset.
-	math::Vector<3> gyro_val_integrated = _gyro_int.get(true, gyro_report.integral_dt);
-	math::Vector<3> accel_val_integrated = _accel_int.get(true, accel_report.integral_dt);
+	math::Vector<3> gyro_val_integrated = _gyro_int.get(true, &gyro_report.integral_dt);
+	math::Vector<3> accel_val_integrated = _accel_int.get(true, &accel_report.integral_dt);
 
 	gyro_report.x_integral = gyro_val_integrated(0);
 	gyro_report.y_integral = gyro_val_integrated(1);
