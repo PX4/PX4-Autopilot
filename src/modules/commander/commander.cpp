@@ -2297,23 +2297,26 @@ int commander_thread_main(int argc, char *argv[])
 		 * home tune.
 		 */
 		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
 			_last_mission_instance != mission_result.instance_count) {
-			if (!mission_result.valid) {
-				/* the mission is invalid */
-				tune_mission_fail(true);
-				warnx("mission fail");
-			} else if (mission_result.warning) {
-				/* the mission has a warning */
-				tune_mission_fail(true);
-				warnx("mission warning");
-			} else {
-				/* the mission is valid */
-				tune_mission_ok(true);
-			}
+			hrt_abstime now = hrt_absolute_time();
+			if ((now - _home.timestamp) > 2000000) {
 
-			/* prevent further feedback until the mission changes */
-			_last_mission_instance = mission_result.instance_count;
+				if (!mission_result.valid) {
+					/* the mission is invalid */
+					tune_mission_fail(true);
+					warnx("mission fail");
+				} else if (mission_result.warning) {
+					/* the mission has a warning */
+					tune_mission_fail(true);
+					warnx("mission warning");
+				} else {
+					/* the mission is valid */
+					tune_mission_ok(true);
+				}
+
+				/* prevent further feedback until the mission changes */
+				_last_mission_instance = mission_result.instance_count;
+			}
 		}
 
 		/* RC input check */
