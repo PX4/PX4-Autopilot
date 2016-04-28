@@ -132,7 +132,7 @@ void
 Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 {
 	// XXX this time constant needs to become tunable but really, the right fix are smart batteries.
-	const float filtered_next = _throttle_filtered * 0.97f + throttle_normalized * 0.03f;
+	const float filtered_next = _throttle_filtered * 0.97f + fabsf(throttle_normalized) * 0.03f;
 
 	if (PX4_ISFINITE(filtered_next)) {
 		_throttle_filtered = filtered_next;
