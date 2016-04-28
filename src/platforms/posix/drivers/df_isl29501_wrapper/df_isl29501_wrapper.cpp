@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file df_isl_wrapper.cpp
- * Driver to access the ISL of the DriverFramework.
+ * @file df_isl29501_wrapper.cpp
+ * Driver to access the ISL29501 of the DriverFramework.
  *
  * @author Zach Lovett <zach.lovett@3drobotics.com>
  * @author Siddharth B Purohit <sid@3drobotics.com>
@@ -68,16 +68,16 @@
 #include <DevMgr.hpp>
 
 
-extern "C" { __EXPORT int df_isl_wrapper_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int df_isl29501_wrapper_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
 
 
-class DfISLWrapper : public ISL29501
+class DfISL29501Wrapper : public ISL29501
 {
 public:
-	DfISLWrapper();
-	~DfISLWrapper();
+	DfISL29501Wrapper();
+	~DfISL29501Wrapper();
 
 
 	/**
@@ -105,18 +105,18 @@ private:
 
 };
 
-DfISLWrapper::DfISLWrapper(/*enum Rotation rotation*/) :
+DfISL29501Wrapper::DfISL29501Wrapper(/*enum Rotation rotation*/) :
 	ISL29501(ISL_DEVICE_PATH),
 	_range_topic(nullptr),
 	_orb_class_instance(-1)
 {
 }
 
-DfISLWrapper::~DfISLWrapper()
+DfISL29501Wrapper::~DfISL29501Wrapper()
 {
 }
 
-int DfISLWrapper::start()
+int DfISL29501Wrapper::start()
 {
 
 	struct distance_sensor_s d;
@@ -141,7 +141,7 @@ int DfISLWrapper::start()
 	return 0;
 }
 
-int DfISLWrapper::stop()
+int DfISL29501Wrapper::stop()
 {
 	/* Stop sensor. */
 	int ret = ISL29501::stop();
@@ -154,7 +154,7 @@ int DfISLWrapper::stop()
 	return 0;
 }
 
-int DfISLWrapper::_publish(struct range_sensor_data &data)
+int DfISL29501Wrapper::_publish(struct range_sensor_data &data)
 {
 	if (!_range_topic) {
 		return 1;
@@ -187,10 +187,10 @@ int DfISLWrapper::_publish(struct range_sensor_data &data)
 };
 
 
-namespace df_isl_wrapper
+namespace df_isl29501_wrapper
 {
 
-DfISLWrapper *g_dev = nullptr;
+DfISL29501Wrapper *g_dev = nullptr;
 
 int start();
 int stop();
@@ -202,17 +202,17 @@ void usage();
 int start()
 {
 	PX4_ERR("start");
-	g_dev = new DfISLWrapper();
+	g_dev = new DfISL29501Wrapper();
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating DfISLWrapper object");
+		PX4_ERR("failed instantiating DfISL29501Wrapper object");
 		return -1;
 	}
 
 	int ret = g_dev->start();
 
 	if (ret != 0) {
-		PX4_ERR("DfISLWrapper start failed");
+		PX4_ERR("DfISL29501Wrapper start failed");
 		return ret;
 	}
 
@@ -297,7 +297,7 @@ probe()
 
 /**
  * Calibration
- * runs calibration routine for ISL
+ * runs calibration routine for ISL29501
  * TODO: implement calibration user interface and parameter system to store calib
  * Note: Currently only serves debugging purpose, user is required to manually
  * set offset inside code.
@@ -339,13 +339,13 @@ usage()
 
 
 int
-df_isl_wrapper_main(int argc, char *argv[])
+df_isl29501_wrapper_main(int argc, char *argv[])
 {
 	int ret = 0;
 	int myoptind = 1;
 
 	if (argc <= 1) {
-		df_isl_wrapper::usage();
+		df_isl29501_wrapper::usage();
 		return 1;
 	}
 
@@ -353,28 +353,28 @@ df_isl_wrapper_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_isl_wrapper::start(/*rotation*/);
+		ret = df_isl29501_wrapper::start(/*rotation*/);
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		ret = df_isl_wrapper::stop();
+		ret = df_isl29501_wrapper::stop();
 	}
 
 	else if (!strcmp(verb, "info")) {
-		ret = df_isl_wrapper::info();
+		ret = df_isl29501_wrapper::info();
 	}
 
 	else if (!strcmp(verb, "probe")) {
-		ret = df_isl_wrapper::probe();
+		ret = df_isl29501_wrapper::probe();
 	}
 
 	else if (!strcmp(verb, "calib")) {
-		df_isl_wrapper::calibration();
+		df_isl29501_wrapper::calibration();
 		return 1;
 	}
 
 	else {
-		df_isl_wrapper::usage();
+		df_isl29501_wrapper::usage();
 		return 1;
 	}
 
