@@ -1703,7 +1703,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			if (updated_battery) {
 				// XXX TODO: throttle is hardcoded here. The dependency to throttle would need to be
 				// removed, or it needs to be subscribed to actuator controls.
-				const float throttle = 0.0f;
+				const float throttle = 0.5f;
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, throttle, &_battery_status);
 
 				/* announce the battery status if needed, just publish else */
