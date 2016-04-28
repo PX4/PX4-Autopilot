@@ -1649,7 +1649,7 @@ LSM303D::measure()
 	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
 	math::Vector<3> aval_integrated;
 
-	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
+	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, &accel_report.integral_dt);
 	accel_report.x_integral = aval_integrated(0);
 	accel_report.y_integral = aval_integrated(1);
 	accel_report.z_integral = aval_integrated(2);
