@@ -17,6 +17,7 @@ int main()
     Vector3<float> diag_check(1, 5, 10);
 
     TEST(isEqual(A.diag(), diag_check));
+    TEST(A.trace() - 16 < 1e-3);
 
     float data_check[9] = {
         1.01158503f,  0.02190432f,  0.03238144f,

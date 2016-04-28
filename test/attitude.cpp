@@ -231,6 +231,12 @@ int main()
     TEST(fabsf(q(2) - q_true(2)) < eps);
     TEST(fabsf(q(3) - q_true(3)) < eps);
 
+    // Quaternion initialisation per array
+    float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
+    Quaternion<float>q_from_array(q_array);
+    for(int i = 0; i < 4; i++)
+        TEST(fabsf(q_from_array(i) - q_array[i]) < eps);
+
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

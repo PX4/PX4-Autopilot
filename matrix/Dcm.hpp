@@ -83,6 +83,15 @@ public:
         dcm(2, 1) = sinPhi * cosThe;
         dcm(2, 2) = cosPhi * cosThe;
     }
+
+    Vector<Type, 3> vee() const {    // inverse to Vector.hat() operation
+        const Dcm &A(*this);
+        Vector<Type, 3> v;
+        v(0) = -A(1,2);
+        v(1) =  A(0,2);
+        v(2) = -A(0,1);
+        return v;
+    }
 };
 
 typedef Dcm<float> Dcmf;

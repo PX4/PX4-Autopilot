@@ -274,28 +274,14 @@ public:
 
     void write_string(char * buf, size_t n) const
     {
+        buf[0] = '\0'; // make an empty string to begin with (we need the '\0' for strlen to work)
         const Matrix<Type, M, N> &self = *this;
-        char data_buf[500] = {0};
         for (size_t i = 0; i < M; i++) {
-            char data_line[100] = {0};
-            char data_line_formatted[100] = {0};
             for (size_t j = 0; j < N; j++) {
-                char val_buf[15];
-                if (j == N-1) {
-                    snprintf(val_buf, 15, "\t%10g", double(self(i, j)));
-                } else {
-                    snprintf(val_buf, 15, "\t%10g,", double(self(i, j)));
-                }
-                strncat(data_line, val_buf, 300);
+                snprintf(buf + strlen(buf), n - strlen(buf), "\t%.2g", double(self(i, j))); // directly append to the string buffer
             }
-            if (i == M-1) {
-                snprintf(data_line_formatted, n, "[%s]", data_line);
-            } else {
-                snprintf(data_line_formatted, n, "[%s],\n", data_line);
-            }
-            strncat(data_buf, data_line_formatted, n);
+            snprintf(buf + strlen(buf), n - strlen(buf), "\n");
         }
-        snprintf(buf, n, "[%s]", data_buf);
     }
 
     void print() const
@@ -510,8 +496,6 @@ std::ostream& operator<<(std::ostream& os,
     return os;
 }
 #endif // defined(SUPPORT_STDIOSTREAM)
-
-typedef Matrix<float, 3, 3> Matrix3f;
 
 } // namespace matrix
 

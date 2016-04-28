@@ -15,6 +15,7 @@ set(tests
 	integration
 	squareMatrix
 	helper
+	hatvee
 	)
 
 add_custom_target(test_build)

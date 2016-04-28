@@ -17,6 +17,9 @@ template <typename Type, size_t M>
 class Vector;
 
 template<typename Type>
+class Dcm;
+
+template<typename Type>
 class Vector3 : public Vector<Type, 3>
 {
 public:
@@ -59,6 +62,21 @@ public:
 
     Vector3 operator%(const Matrix31 & b) const {
         return (*this).cross(b);
+    }
+
+    Dcm<Type> hat() const {    // inverse to Dcm.vee() operation
+        const Vector3 &v(*this);
+        Dcm<Type> A;
+        A(0,0) = 0;
+        A(0,1) = -v(2);
+        A(0,2) = v(1);
+        A(1,0) = v(2);
+        A(1,1) = 0;
+        A(1,2) = -v(0);
+        A(2,0) = -v(1);
+        A(2,1) = v(0);
+        A(2,2) = 0;
+        return A;
     }
 
 };
