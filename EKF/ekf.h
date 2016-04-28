@@ -121,7 +121,8 @@ public:
 	// return the estimated terrain vertical position relative to the NED origin
 	bool get_terrain_vert_pos(float *ret);
 
-	void get_accel_bias(float *bias) {*bias = _state.accel_z_bias;}
+	// get the accerometer bias in m/s/s
+	void get_accel_bias(float bias[3]);
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
@@ -134,6 +135,8 @@ private:
 	static const uint8_t _k_num_states = 24;
 	const float _k_earth_rate = 0.000072921f;
 	const float _gravity_mss = 9.80665f;
+
+	float _dt_ekf_avg;		// average update rate of the ekf
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
@@ -264,9 +267,6 @@ private:
 
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
 	void fuseHeading();
-
-	// fuse projecton of magnetometer onto horizontal plane
-	void fuseMag2D();
 
 	// fuse magnetometer declination measurement
 	void fuseDeclination();

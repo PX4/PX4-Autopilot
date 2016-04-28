@@ -12,20 +12,12 @@
 
 % Author:  Paul Riseborough
 
-% Based on use of a rotation vector for attitude estimation as described
-% here:
-
-% Mark E. Pittelkau.  "Rotation Vector in Attitude Estimation", 
-% Journal of Guidance, Control, and Dynamics, Vol. 26, No. 6 (2003), 
-% pp. 855-860.
-
 % State vector:
-% error rotation vector in body frame (X,Y,Z)
+% attitude quaternion
 % Velocity - m/sec (North, East, Down)
 % Position - m (North, East, Down)
 % Delta Angle bias - rad (X,Y,Z)
-% Delta Angle scale factor (X,Y,Z)
-% Delta Velocity bias - m/s (Z)
+% Delta Velocity bias - m/s (X,Y,Z)
 % Earth Magnetic Field Vector - (North, East, Down)
 % Body Magnetic Field Vector - (X,Y,Z)
 % Wind Vector  - m/sec (North,East)
@@ -51,11 +43,10 @@ syms q0 q1 q2 q3 real % quaternions defining attitude of body axes relative to l
 syms vn ve vd real % NED velocity - m/sec
 syms pn pe pd real % NED position - m
 syms dax_b day_b daz_b real % delta angle bias - rad
-syms dax_s day_s daz_s real % delta angle scale factor
-syms dvz_b dvy_b dvz_b real % delta velocity bias - m/sec
+syms dvx_b dvy_b dvz_b real % delta velocity bias - m/sec
 syms dt real % IMU time step - sec
 syms gravity real % gravity  - m/sec^2
-syms daxNoise dayNoise dazNoise dvxNoise dvyNoise dvzNoise real; % IMU delta angle and delta velocity measurement noise
+syms daxVar dayVar dazVar dvxVar dvyVar dvzVar real; % IMU delta angle and delta velocity measurement variances
 syms vwn vwe real; % NE wind velocity - m/sec
 syms magX magY magZ real; % XYZ body fixed magnetic field measurements - milligauss
 syms magN magE magD real; % NED earth fixed magnetic field components - milligauss
@@ -66,7 +57,6 @@ syms R_MAG real  % variance for magnetic flux measurements - milligauss^2
 syms R_BETA real % variance of sidelsip measurements rad^2
 syms R_LOS real % variance of LOS angular rate mesurements (rad/sec)^2
 syms ptd real % location of terrain in D axis
-syms rotErrX rotErrY rotErrZ real; % error rotation vector in body frame
 syms decl real; % earth magnetic field declination from true north
 syms R_DECL R_YAW real; % variance of declination or yaw angle observation
 syms BCXinv BCYinv real % inverse of ballistic coefficient for wind relative movement along the x and y  body axes
@@ -82,28 +72,23 @@ dVelMeas = [dvx; dvy; dvz];
 
 % define the IMU bias errors and scale factor
 dAngBias = [dax_b; day_b; daz_b];
-dAngScale = [dax_s; day_s; daz_s];
-dVelBias = [0;0;dvz_b];
+dVelBias = [dvx_b; dvy_b; dvz_b];
 
 % define the quaternion rotation vector for the state estimate
-estQuat = [q0;q1;q2;q3];
-
-% define the attitude error rotation vector, where error = truth - estimate
-errRotVec = [rotErrX;rotErrY;rotErrZ];
-
-% define the attitude error quaternion using a first order linearisation
-errQuat = [1;0.5*errRotVec];
-
-% Define the truth quaternion as the estimate + error
-truthQuat = QuatMult(estQuat, errQuat);
+quat = [q0;q1;q2;q3];
 
 % derive the truth body to nav direction cosine matrix
-Tbn = Quat2Tbn(truthQuat);
+Tbn = Quat2Tbn(quat);
 
 % define the truth delta angle
 % ignore coning compensation as these effects are negligible in terms of 
 % covariance growth for our application and grade of sensor
-dAngTruth = dAngMeas.*dAngScale - dAngBias - [daxNoise;dayNoise;dazNoise];
+dAngTruth = dAngMeas - dAngBias;
+
+% Define the truth delta velocity -ignore sculling and transport rate
+% corrections as these negligible are in terms of covariance growth for our
+% application and grade of sensor
+dVelTruth = dVelMeas - dVelBias;
 
 % define the attitude update equations
 % use a first order expansion of rotation to calculate the quaternion increment
@@ -113,16 +98,7 @@ deltaQuat = [1;
     0.5*dAngTruth(2);
     0.5*dAngTruth(3);
     ];
-truthQuatNew = QuatMult(truthQuat,deltaQuat);
-% calculate the updated attitude error quaternion with respect to the previous estimate
-errQuatNew = QuatDivide(truthQuatNew,estQuat);
-% change to a rotaton vector - this is the error rotation vector updated state
-errRotNew = 2 * [errQuatNew(2);errQuatNew(3);errQuatNew(4)];
-
-% Define the truth delta velocity -ignore sculling and transport rate
-% corrections as these negligible are in terms of covariance growth for our
-% application and grade of sensor
-dVelTruth = dVelMeas - dVelBias - [dvxNoise;dvyNoise;dvzNoise];
+quatNew = QuatMult(quat,deltaQuat);
 
 % define the velocity update equations
 % ignore coriolis terms for linearisation purposes
@@ -132,9 +108,8 @@ vNew = [vn;ve;vd] + [0;0;gravity]*dt + Tbn*dVelTruth;
 pNew = [pn;pe;pd] + [vn;ve;vd]*dt;
 
 % define the IMU error update equations
-dabNew = [dax_b; day_b; daz_b];
-dasNew = [dax_s; day_s; daz_s];
-dvbNew = dvz_b;
+dAngBiasNew = dAngBias;
+dVelBiasNew = dVelBias;
 
 % define the wind velocity update equations
 vwnNew = vwn;
@@ -151,16 +126,15 @@ magYnew = magY;
 magZnew = magZ;
 
 % Define the state vector & number of states
-stateVector = [errRotVec;vn;ve;vd;pn;pe;pd;dax_b;day_b;daz_b;dax_s;day_s;daz_s;dvz_b;magN;magE;magD;magX;magY;magZ;vwn;vwe];
+stateVector = [quat;vn;ve;vd;pn;pe;pd;dAngBias;dVelBias;magN;magE;magD;magX;magY;magZ;vwn;vwe];
 nStates=numel(stateVector);
 
 % Define vector of process equations
-newStateVector = [errRotNew;vNew;pNew;dabNew;dasNew;dvbNew;magNnew;magEnew;magDnew;magXnew;magYnew;magZnew;vwnNew;vweNew];
+newStateVector = [quatNew;vNew;pNew;dAngBiasNew;dVelBiasNew;magNnew;magEnew;magDnew;magXnew;magYnew;magZnew;vwnNew;vweNew];
 
 % derive the state transition matrix
 F = jacobian(newStateVector, stateVector);
 % set the rotation error states to zero
-F = subs(F, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [F,SF]=OptimiseAlgebra(F,'SF');
 
 % define a symbolic covariance matrix using strings to represent 
@@ -181,26 +155,18 @@ save 'StatePrediction.mat';
 % This reduces the number of floating point operations by a factor of 6 or
 % more compared to using the standard matrix operations in code
 
-% Define the control (disturbance) vector. Error growth in the inertial
-% solution is assumed to be driven by 'noise' in the delta angles and
-% velocities, after bias effects have been removed. This is OK becasue we
-% have sensor bias accounted for in the state equations.
-distVector = [daxNoise;dayNoise;dazNoise;dvxNoise;dvyNoise;dvzNoise];
+% Error growth in the inertial solution is assumed to be driven by 'noise' in the delta angles and
+% velocities, after bias effects have been removed. 
 
-% derive the control(disturbance) influence matrix
-G = jacobian(newStateVector, distVector);
-G = subs(G, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
+% derive the control(disturbance) influence matrix from IMu noise to state
+% noise
+G = jacobian(newStateVector, [dAngMeas;dVelMeas]);
 [G,SG]=OptimiseAlgebra(G,'SG');
 
 % derive the state error matrix
-distMatrix = diag(distVector.^2);
+distMatrix = diag([daxVar dayVar dazVar dvxVar dvyVar dvzVar]);
 Q = G*distMatrix*transpose(G);
 [Q,SQ]=OptimiseAlgebra(Q,'SQ');
-
-% remove the disturbance noise from the process equations as it is only
-% needed when calculating the disturbance influence matrix
-vNew = subs(vNew,{'daxNoise','dayNoise','dazNoise','dvxNoise','dvyNoise','dvzNoise'}, {0,0,0,0,0,0});
-errRotNew = subs(errRotNew,{'daxNoise','dayNoise','dazNoise','dvxNoise','dvyNoise','dvzNoise'}, {0,0,0,0,0,0});
 
 % Derive the predicted covariance matrix using the standard equation
 PP = F*P*transpose(F) + Q;
@@ -216,7 +182,6 @@ reset(symengine);
 load('StatePrediction.mat');
 VtasPred = sqrt((vn-vwn)^2 + (ve-vwe)^2 + vd^2); % predicted measurement
 H_TAS = jacobian(VtasPred,stateVector); % measurement Jacobian
-H_TAS = subs(H_TAS, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [H_TAS,SH_TAS]=OptimiseAlgebra(H_TAS,'SH_TAS'); % optimise processing
 K_TAS = (P*transpose(H_TAS))/(H_TAS*P*transpose(H_TAS) + R_TAS);
 [K_TAS,SK_TAS]=OptimiseAlgebra(K_TAS,'SK_TAS'); % Kalman gain vector
@@ -230,11 +195,10 @@ reset(symengine);
 load('StatePrediction.mat');
 
 % calculate wind relative velocities in nav frame and rotate into body frame
-Vbw = Tbn'*[(vn-vwn);(ve-vwe);vd];
+Vbw = transpose(Tbn)*[(vn-vwn);(ve-vwe);vd];
 % calculate predicted angle of sideslip using small angle assumption
 BetaPred = Vbw(2)/Vbw(1);
 H_BETA = jacobian(BetaPred,stateVector); % measurement Jacobian
-H_BETA = subs(H_BETA, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [H_BETA,SH_BETA]=OptimiseAlgebra(H_BETA,'SH_BETA'); % optimise processing
 K_BETA = (P*transpose(H_BETA))/(H_BETA*P*transpose(H_BETA) + R_BETA);[K_BETA,SK_BETA]=OptimiseAlgebra(K_BETA,'SK_BETA'); % Kalman gain vector
 
@@ -248,7 +212,6 @@ load('StatePrediction.mat');
 
 magMeas = transpose(Tbn)*[magN;magE;magD] + [magX;magY;magZ]; % predicted measurement
 H_MAG = jacobian(magMeas,stateVector); % measurement Jacobian
-H_MAG = subs(H_MAG, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [H_MAG,SH_MAG]=OptimiseAlgebra(H_MAG,'SH_MAG');
 
 K_MX = (P*transpose(H_MAG(1,:)))/(H_MAG(1,:)*P*transpose(H_MAG(1,:)) + R_MAG); % Kalman gain vector
@@ -281,7 +244,6 @@ save('temp1.mat','losRateX','losRateY');
 
 % calculate the observation Jacobian for the X axis
 H_LOSX = jacobian(losRateX,stateVector); % measurement Jacobian
-H_LOSX = subs(H_LOSX, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_LOSX = simplify(H_LOSX);
 save('temp2.mat','H_LOSX');
 ccode(H_LOSX,'file','H_LOSX.c');
@@ -294,7 +256,6 @@ load('temp1.mat');
 
 % calculate the observation Jacobian for the Y axis
 H_LOSY = jacobian(losRateY,stateVector); % measurement Jacobian
-H_LOSY = subs(H_LOSY, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_LOSY = simplify(H_LOSY);
 save('temp3.mat','H_LOSY');
 ccode(H_LOSY,'file','H_LOSY.c');
@@ -308,7 +269,6 @@ load('temp2.mat');
 
 % calculate Kalman gain vector for the X axis
 K_LOSX = (P*transpose(H_LOSX))/(H_LOSX*P*transpose(H_LOSX) + R_LOS); % Kalman gain vector
-K_LOSX = subs(K_LOSX, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 K_LOSX = simplify(K_LOSX);
 ccode(K_LOSX,'file','K_LOSX.c');
 fix_c_code('K_LOSX.c');
@@ -321,7 +281,6 @@ load('temp3.mat');
 
 % calculate Kalman gain vector for the Y axis
 K_LOSY = (P*transpose(H_LOSY))/(H_LOSY*P*transpose(H_LOSY) + R_LOS); % Kalman gain vector
-K_LOSY = subs(K_LOSY, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 K_LOSY = simplify(K_LOSY);
 ccode(K_LOSY,'file','K_LOSY.c');
 fix_c_code('K_LOSY.c');
@@ -336,7 +295,6 @@ load('StatePrediction.mat');
 % Calculate the yaw (first rotation) angle from the 321 rotation sequence
 angMeas = atan(Tbn(2,1)/Tbn(1,1));
 H_YAW321 = jacobian(angMeas,stateVector); % measurement Jacobian
-H_YAW321 = subs(H_YAW321, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_YAW321 = simplify(H_YAW321);
 ccode(H_YAW321,'file','calcH_YAW321.c');
 fix_c_code('calcH_YAW321.c');
@@ -351,7 +309,6 @@ load('StatePrediction.mat');
 % Calculate the yaw (first rotation) angle from an Euler 312 sequence
 angMeas = atan(-Tbn(1,2)/Tbn(2,2));
 H_YAW312 = jacobian(angMeas,stateVector); % measurement Jacobianclea
-H_YAW312 = subs(H_YAW312, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_YAW312 = simplify(H_YAW312);
 ccode(H_YAW312,'file','calcH_YAW312.c');
 fix_c_code('calcH_YAW312.c');
@@ -367,7 +324,6 @@ load('StatePrediction.mat');
 % component of the measured field
 angMeas = atan(magE/magN);
 H_MAGD = jacobian(angMeas,stateVector); % measurement Jacobian
-H_MAGD = subs(H_MAGD, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_MAGD = simplify(H_MAGD);
 K_MAGD = (P*transpose(H_MAGD))/(H_MAGD*P*transpose(H_MAGD) + R_DECL);
 K_MAGD = simplify(K_MAGD);
@@ -404,7 +360,6 @@ accYpred = -Kaccy*vrel(2); % predicted acceleration measured along Y body axis
 
 % Derive observation Jacobian and Kalman gain matrix for X accel fusion
 H_ACCX = jacobian(accXpred,stateVector); % measurement Jacobian
-H_ACCX = subs(H_ACCX, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_ACCX = simplify(H_ACCX);
 [H_ACCX,SH_ACCX]=OptimiseAlgebra(H_ACCX,'SH_ACCX'); % optimise processing
 K_ACCX = (P*transpose(H_ACCX))/(H_ACCX*P*transpose(H_ACCX) + R_ACC);
@@ -412,7 +367,6 @@ K_ACCX = (P*transpose(H_ACCX))/(H_ACCX*P*transpose(H_ACCX) + R_ACC);
 
 % Derive observation Jacobian and Kalman gain matrix for Y accel fusion
 H_ACCY = jacobian(accYpred,stateVector); % measurement Jacobian
-H_ACCY = subs(H_ACCY, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_ACCY = simplify(H_ACCY);
 [H_ACCY,SH_ACCY]=OptimiseAlgebra(H_ACCY,'SH_ACCY'); % optimise processing
 K_ACCY = (P*transpose(H_ACCY))/(H_ACCY*P*transpose(H_ACCY) + R_ACC);

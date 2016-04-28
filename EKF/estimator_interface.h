@@ -209,7 +209,7 @@ public:
 		*val = _mag_declination_to_save_deg;
 	}
 
-	virtual void get_accel_bias(float *bias) = 0;
+	virtual void get_accel_bias(float bias[3]) = 0;
 
 	// get EKF mode status
 	void get_control_mode(uint16_t *val)

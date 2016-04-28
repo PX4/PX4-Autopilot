@@ -363,7 +363,6 @@ void Ekf::controlFusionModes()
 		if (!_control_status.flags.armed) {
 			// use heading fusion for initial startup
 			_control_status.flags.mag_hdg = true;
-			_control_status.flags.mag_2D = false;
 			_control_status.flags.mag_3D = false;
 
 		} else {
@@ -375,13 +374,11 @@ void Ekf::controlFusionModes()
 
 				// use 3D mag fusion when airborne
 				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_2D = false;
 				_control_status.flags.mag_3D = true;
 
 			} else {
 				// use heading fusion when on the ground
 				_control_status.flags.mag_hdg = true;
-				_control_status.flags.mag_2D = false;
 				_control_status.flags.mag_3D = false;
 			}
 		}
@@ -389,13 +386,6 @@ void Ekf::controlFusionModes()
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 		// always use heading fusion
 		_control_status.flags.mag_hdg = true;
-		_control_status.flags.mag_2D = false;
-		_control_status.flags.mag_3D = false;
-
-	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_2D) {
-		// always use 2D mag fusion
-		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = true;
 		_control_status.flags.mag_3D = false;
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
@@ -406,13 +396,11 @@ void Ekf::controlFusionModes()
 
 		// always use 3-axis mag fusion
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = true;
 
 	} else {
 		// do no magnetometer fusion at all
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = false;
 	}
 

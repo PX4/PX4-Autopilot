@@ -196,7 +196,7 @@ void Ekf::fuseVelPosHeight()
 			continue;
 		}
 
-		unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+		unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
 
 		// calculate kalman gain K = PHS, where S = 1/innovation variance
 		for (int row = 0; row <= 15; row++) {
@@ -227,23 +227,8 @@ void Ekf::fuseVelPosHeight()
 			}
 		}
 
-		// sum the attitude error from velocity and position fusion only
-		// used as a metric for convergence monitoring
-		if (obs_index != 5) {
-			_tilt_err_vec += _state.ang_error;
-		}
-
-		// by definition the angle error state is zero at the fusion time
-		_state.ang_error.setZero();
-
-		// fuse the observation
+		// update the states
 		fuse(Kfusion, _vel_pos_innov[obs_index]);
-
-		// correct the nominal quaternion
-		Quaternion dq;
-		dq.from_axis_angle(_state.ang_error);
-		_state.quat_nominal = dq * _state.quat_nominal;
-		_state.quat_nominal.normalize();
 
 		// update covarinace matrix via Pnew = (I - KH)P
 		for (unsigned row = 0; row < _k_num_states; row++) {
