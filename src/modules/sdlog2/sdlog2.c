@@ -1405,7 +1405,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			continue;
 		}
 
-		// copy topic always
+		// copy topic always to mark them as read
+		// so poll doesn't return immediately
 		if (record_replay_log) {
 			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 		} else {
@@ -1471,6 +1472,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- EKF2 REPLAY --- */
 		if(record_replay_log) {
 			// we poll on the replay topic so we know that it was updated
+			// but we need to copy it again since we are re-using the buffer.
+			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 			log_msg.msg_type = LOG_RPL1_MSG;
 			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
 			log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
@@ -1531,7 +1534,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		} else { /* !record_replay_log */
 
-			/* we poll on sensor combined, so we know it has updated just now */
+			// we poll on sensor combined, so we know it has updated just now
+			// but we need to copy it again because we are re-using the buffer
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+
 			for (unsigned i = 0; i < 3; i++) {
 				bool write_IMU = false;
 				bool write_SENS = false;
