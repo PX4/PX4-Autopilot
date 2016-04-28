@@ -46,6 +46,13 @@
 // Hack until everything is using this header
 #include <systemlib/visibility.h>
 
+// Macro to define packed structures
+#ifdef __GNUC__
+#define ORBPACKED( __Declaration__ ) __Declaration__ __attribute__((aligned(4), packed))
+#else
+#define ORBPACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
+#endif
+
 /**
  * Object metadata.
  */

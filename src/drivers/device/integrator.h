@@ -60,7 +60,7 @@ public:
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt);
+	bool put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t *integral_dt);
 
 	/**
 	 * Put an item into the integral but provide an interval instead of a timestamp.
@@ -84,7 +84,7 @@ public:
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
 	 * @return		the integral since the last read-reset
 	 */
-	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
+	math::Vector<3>		get(bool reset, uint64_t *integral_dt);
 
 	/**
 	 * Get the current integral and reset the integrator if needed. Additionally give the
@@ -115,5 +115,5 @@ private:
 	 *
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 */
-	void _reset(uint64_t &integral_dt);
+	void _reset(uint64_t *integral_dt);
 };
