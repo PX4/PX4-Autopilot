@@ -4,6 +4,8 @@ px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
+set(config_uavcan_num_ifaces 2)
+
 set(config_module_list
 	#
 	# Board support modules
@@ -23,16 +25,16 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
-	drivers/mb12xx
+	#drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
+	#drivers/hott
+	#drivers/hott/hott_telemetry
+	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
@@ -41,10 +43,13 @@ set(config_module_list
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
-	drivers/oreoled
+	#drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
+	drivers/bst
+	drivers/snapdragon_rc_pwm
+	drivers/lis3mdl
 
 	#
 	# System commands
@@ -105,14 +110,13 @@ set(config_module_list
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
-	modules/controllib
 	modules/uORB
 	modules/dataman
 
 	#
 	# Libraries
 	#
-	#lib/mathlib/CMSIS
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
@@ -121,6 +125,9 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
+	lib/tailsitter_recovery
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
@@ -130,12 +137,12 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	#modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+	#examples/rover_steering_control
 
 	#
 	# Demo apps
@@ -171,19 +178,19 @@ set(config_io_board
 	)
 
 set(config_extra_libs
-	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
 	uavcan
 	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs
-	#${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "sercon" STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "serdis" STACK_MAIN "2048")

@@ -571,11 +571,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -592,6 +587,18 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
 
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					unlock();
+					return -ENOMEM;
+				}
+			}
+
 			do {
 				/* if path is modifyable change try index */
 				if (adv->instance != nullptr) {
@@ -604,6 +611,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
+					unlock();
 					return -ENOMEM;
 				}
 
@@ -611,6 +619,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
+					unlock();
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -620,6 +630,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
 					unlock();
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -657,7 +669,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			} while (ret != OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
 

@@ -36,7 +36,7 @@ px4_add_module(
 		-Os
 	SRCS
 		mavstation_init.c
-		mavstation_pwm_servo.c
+		mavstation_timer_config.c
 		mavstation_usb.c
 		mavstation_led.c
 	DEPENDS

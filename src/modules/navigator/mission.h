@@ -88,7 +88,8 @@ public:
 		MISSION_YAWMODE_NONE = 0,
 		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
 		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3
+		MISSION_YAWMODE_BACK_TO_HOME = 3,
+		MISSION_YAWMODE_MAX = 4
 	};
 
 private:
@@ -119,6 +120,36 @@ private:
 	void set_mission_items();
 
 	/**
+	 * Returns true if we need to do a takeoff at the current state
+	 */
+	bool do_need_takeoff();
+
+	/**
+	 * Returns true if we need to move to waypoint location before starting descent
+	 */
+	bool do_need_move_to_land();
+
+	/**
+	 * Returns true if we need to move to waypoint location after vtol takeoff
+	 */
+	bool do_need_move_to_takeoff();
+
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
+
+	/**
+	 * Calculate takeoff height for mission item considering ground clearance
+	 */
+	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
+
+	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
 	 */
 	void heading_sp_update();
@@ -133,13 +164,24 @@ private:
 	 */
 	void altitude_sp_foh_reset();
 
-	int get_absolute_altitude_for_item(struct mission_item_s &mission_item);
+	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
 	/**
-	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
+	 * Read the current and the next mission item. The next mission item read is the
+	 * next mission item that contains a position.
+	 *
+	 * @return true if current mission item available
+	 */
+	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
+		struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
+
+	/**
+	 * Read current (offset == 0) or a specific (offset > 0) mission item
+	 * from the dataman and watch out for DO_JUMPS
+	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
+	bool read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
@@ -171,11 +213,22 @@ private:
 	 */
 	bool check_mission_valid();
 
+	/**
+	 * Reset offboard mission
+	 */
+	void reset_offboard_mission(struct mission_s &mission);
+
+	/**
+	 * Returns true if we need to reset the mission
+	 */
+	bool need_to_reset_mission(bool active);
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
+	control::BlockParamInt _param_force_vtol;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
@@ -183,7 +236,6 @@ private:
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
 	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
-	bool _takeoff;						/**< takeoff state flag */
 
 	enum {
 		MISSION_TYPE_NONE,
@@ -193,8 +245,9 @@ private:
 
 	bool _inited;
 	bool _home_inited;
+	bool _need_mission_reset;
 
-	MissionFeasibilityChecker _missionFeasiblityChecker; /**< class that checks if a mission is feasible */
+	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
 	float _min_current_sp_distance_xy; /**< minimum distance which was achieved to the current waypoint  */
 	float _mission_item_previous_alt; /**< holds the altitude of the previous mission item,
@@ -202,6 +255,18 @@ private:
 	float _on_arrival_yaw; /**< holds the yaw value that should be applied when the current waypoint is reached */
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
+
+	enum work_item_type {
+		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
+		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
+		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
+		WORK_ITEM_TYPE_CMD_BEFORE_MOVE,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND,	/**<  */
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION	/**<  */
+	} _work_item_type;	/**< current type of work to do (sub mission item) */
+
 };
 
 #endif

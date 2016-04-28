@@ -93,7 +93,6 @@
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
-#define PX4IO_P_CONFIG_CONTROL_GROUP_COUNT	8	/**< hardcoded # of control groups*/
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -238,6 +237,8 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_TRIM_ROLL			16	/**< Roll trim, in actuator units */
 #define PX4IO_P_SETUP_TRIM_PITCH		17	/**< Pitch trim, in actuator units */
 #define PX4IO_P_SETUP_TRIM_YAW			18	/**< Yaw trim, in actuator units */
+
+#define PX4IO_P_SETUP_SBUS_RATE			19	/* frame rate of SBUS1 output in Hz */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */

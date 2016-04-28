@@ -84,15 +84,8 @@ function(px4_qurt_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		# default
-		set(MAIN_DEFAULT MAIN-NOTFOUND)
-		set(STACK_DEFAULT 1024)
-		set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-		foreach(property MAIN STACK PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY) 
 			get_target_property(${property} ${module} ${property})
-			if(NOT ${property})
-				set(${property} ${${property}_DEFAULT})
-			endif()
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
@@ -158,7 +151,7 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-        set(DSPAL_ROOT src/lib/dspal)
+        set(DSPAL_ROOT src/lib/DriverFramework/dspal)
         set(added_include_dirs
                 ${DSPAL_ROOT}/include 
                 ${DSPAL_ROOT}/sys 
@@ -172,18 +165,19 @@ function(px4_os_add_flags)
         set(added_definitions
                 -D__PX4_QURT 
 		-D__PX4_POSIX
+		-D__QAIC_SKEL_EXPORT=__EXPORT
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
 	# Add the toolchain specific flags
-        set(added_cflags ${QURT_CMAKE_C_FLAGS})
-        set(added_cxx_flags ${QURT_CMAKE_CXX_FLAGS})
+        set(added_cflags -O0)
+        set(added_cxx_flags -O0)
 
-	# FIXME @jgoppert - how to work around issues like this?
-	# Without changing global variables?
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})
@@ -222,7 +216,7 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT} DEPENDS git_dspal)
+	add_custom_target(${OUT} DEPENDS git_driverframework)
 
 endfunction()
 

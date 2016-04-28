@@ -66,7 +66,7 @@ include_directories(../systemlib/flashparams)
 px4_add_module(
 	MODULE modules__uavcanesc
 	MAIN uavcanesc
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
 		-O3

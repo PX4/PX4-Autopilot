@@ -29,16 +29,16 @@ set(config_module_list
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
+	#drivers/hott
+	#drivers/hott/hott_telemetry
+	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	drivers/mkblctrl
+	#drivers/mkblctrl
 	drivers/px4flow
 
 	#
@@ -75,6 +75,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -97,14 +98,13 @@ set(config_module_list
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
-	modules/controllib
 	modules/uORB
 	modules/dataman
 
 	#
 	# Libraries
 	#
-	#lib/mathlib/CMSIS
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
@@ -113,6 +113,9 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
+	lib/tailsitter_recovery
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
@@ -163,17 +166,19 @@ set(config_io_board
 	)
 
 set(config_extra_libs
-	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
 	)
 
 set(config_io_extra_libs
-	#${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "sercon"
+	STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "serdis"
+	STACK_MAIN "2048")

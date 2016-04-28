@@ -38,6 +38,8 @@
 *
 * @author Simon Wilks 		<simon@uaventure.com>
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Andreas Antener	<andreas@uaventure.com>
+* @author Sander Smeets 	<sander@droneslab.com>
 *
 */
 
@@ -55,11 +57,12 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard();
 
-	void update_vtol_state();
-	void update_mc_state();
-	void update_fw_state();
-	void update_transition_state();
-	void update_external_state();
+	virtual void update_vtol_state();
+	virtual void update_transition_state();
+	virtual void update_fw_state();
+	virtual void update_mc_state();
+	virtual void fill_actuator_outputs();
+	virtual void waiting_on_tecs();
 
 private:
 
@@ -69,6 +72,10 @@ private:
 		float pusher_trans;
 		float airspeed_blend;
 		float airspeed_trans;
+		float front_trans_timeout;
+		float front_trans_time_min;
+		float down_pitch_max;
+		float forward_thurst_scale;
 	} _params_standard;
 
 	struct {
@@ -77,6 +84,10 @@ private:
 		param_t pusher_trans;
 		param_t airspeed_blend;
 		param_t airspeed_trans;
+		param_t front_trans_timeout;
+		param_t front_trans_time_min;
+		param_t down_pitch_max;
+		param_t forward_thurst_scale;
 	} _params_handles_standard;
 
 	enum vtol_mode {
@@ -92,10 +103,9 @@ private:
 	} _vtol_schedule;
 
 	bool _flag_enable_mc_motors;
-	float _pusher_throttle;
+	float _pusher_throttle;	
 	float _airspeed_trans_blend_margin;
 
-	void fill_actuator_outputs();
 	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();

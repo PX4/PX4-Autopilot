@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__hmc5883
 	MAIN hmc5883
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++
 		-Os

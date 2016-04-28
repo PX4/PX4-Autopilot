@@ -47,6 +47,8 @@
 
 #define NUM_MISSIONS_SUPPORTED 256
 
+#define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
+
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
@@ -59,10 +61,18 @@ enum NAV_CMD {
 	NAV_CMD_TAKEOFF = 22,
 	NAV_CMD_ROI = 80,
 	NAV_CMD_PATHPLANNING = 81,
+	NAV_CMD_FOLLOW_TARGET = 194, // temporary placeholder
+	NAV_CMD_GOTO_TAREGT = 195,
+	NAV_CMD_VTOL_TAKEOFF = 84,
+	NAV_CMD_VTOL_LAND = 85,
 	NAV_CMD_DO_JUMP = 177,
+	NAV_CMD_DO_CHANGE_SPEED = 178,
 	NAV_CMD_DO_SET_SERVO=183,
-	NAV_CMD_DO_REPEAT_SERVO=184
-
+	NAV_CMD_DO_REPEAT_SERVO=184,
+	NAV_CMD_DO_DIGICAM_CONTROL=203,
+	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
+	NAV_CMD_DO_VTOL_TRANSITION=3000,
+	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
 enum ORIGIN {
@@ -81,6 +91,7 @@ enum ORIGIN {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
+#pragma pack(push, 1)
 struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	double lat;			/**< latitude in degrees				*/
@@ -89,19 +100,20 @@ struct mission_item_s {
 	float yaw;			/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
 	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< navigation command					*/
+	unsigned nav_cmd;		/**< navigation command					*/
 	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
+	unsigned origin;		/**< where the waypoint has been generated		*/
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
-	int actuator_num;               /**< actuator number to be set 0..5 ( corresponds to AUX outputs 1..6    */
-	int actuator_value;             /**< new value for selected actuator in ms 900...2000         */
+	float params[7];		/**< array to store mission command values for MAV_FRAME_MISSION ***/
+	int8_t frame;			/**< mission frame ***/
+	bool force_heading;		/**< heading needs to be reached ***/
 };
-
+#pragma pack(pop)
 #include <uORB/topics/mission.h>
 
 /**

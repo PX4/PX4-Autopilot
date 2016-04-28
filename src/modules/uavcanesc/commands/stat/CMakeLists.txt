@@ -34,7 +34,7 @@
 px4_add_module(
 	MODULE modules__uavcanesc__commands__stat
 	MAIN cfg
-	STACK 1024
+	STACK_MAIN 1024
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
 		-O3

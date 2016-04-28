@@ -197,6 +197,30 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* configure ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+
+	/* configure power supply control/sense pins */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	stm32_configgpio(GPIO_VDD_SERVO_VALID);
+	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
@@ -217,40 +241,8 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
-#include <math.h>
-
-/* TODO XXX commented this out to get cmake build working */
-/*#ifdef __cplusplus*/
-/*__EXPORT int matherr(struct __exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#else*/
-/*__EXPORT int matherr(struct exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#endif*/
-
 __EXPORT int board_app_initialize(void)
 {
-
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
-
-	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 

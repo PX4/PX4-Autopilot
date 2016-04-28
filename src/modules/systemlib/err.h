@@ -75,8 +75,11 @@ __EXPORT const char *getprogname(void);
 
 #ifdef __PX4_POSIX
 
-#define err(...)					ERROR
-#define errx(...)					ERROR
+#include <errno.h>
+#include <px4_tasks.h>
+#define err(eval, ...)					do { PX4_ERR(__VA_ARGS__); PX4_ERR("Task exited with errno=%i\n", errno); \
+		px4_task_exit(eval); } while(0)
+#define errx(eval, ...)				do { PX4_ERR(__VA_ARGS__); px4_task_exit(eval); } while(0)
 #define warn(...) 					PX4_WARN(__VA_ARGS__)
 #define warnx(...) 					PX4_WARN(__VA_ARGS__)
 

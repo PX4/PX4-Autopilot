@@ -44,14 +44,15 @@
 #include <string.h>
 #include <dataman/dataman.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <px4_config.h>
 #include <unistd.h>
-#include <mavlink/mavlink_log.h>
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
+#include "navigator.h"
 
 #define GEOFENCE_RANGE_WARNING_LIMIT 3000000
 
@@ -61,8 +62,10 @@
 #endif
 static const int ERROR = -1;
 
-Geofence::Geofence() :
+
+Geofence::Geofence(Navigator *navigator) :
 	SuperBlock(NULL, "GF"),
+	_navigator(navigator),
 	_fence_pub(nullptr),
 	_home_pos{},
 	_home_pos_set(false),
@@ -77,8 +80,7 @@ Geofence::Geofence() :
 	_param_counter_threshold(this, "COUNT"),
 	_param_max_hor_distance(this, "MAX_HOR_DIST"),
 	_param_max_ver_distance(this, "MAX_VER_DIST"),
-	_outside_counter(0),
-	_mavlinkFd(-1)
+	_outside_counter(0)
 {
 	/* Load initial params */
 	updateParams();
@@ -145,8 +147,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
 					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
-								     (double)(dist_z - max_vertical_distance));
+						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+										 "Geofence exceeded max vertical distance by %.1f m",
+									         (double)(dist_z - max_vertical_distance));
 						_last_vertical_range_warning = hrt_absolute_time();
 					}
 
@@ -155,8 +158,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
 					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
-								     (double)(dist_xy - max_horizontal_distance));
+						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+										 "Geofence exceeded max horizontal distance by %.1f m",
+									         (double)(dist_xy - max_horizontal_distance));
 						_last_horizontal_range_warning = hrt_absolute_time();
 					}
 
@@ -403,12 +407,12 @@ Geofence::loadFromFile(const char *filename)
 	if (gotVertical && pointCounter > 0) {
 		_vertices_count = pointCounter;
 		warnx("Geofence: imported successfully");
-		mavlink_log_info(_mavlinkFd, "Geofence imported");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported");
 		rc = OK;
 
 	} else {
 		warnx("Geofence: import error");
-		mavlink_log_critical(_mavlinkFd, "Geofence import error");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence import error");
 	}
 
 error:

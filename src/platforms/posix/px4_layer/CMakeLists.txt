@@ -30,6 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+if("${CONFIG_SHMEM}" STREQUAL "1")
+	list(APPEND SHMEM_SRCS
+		shmem_posix.c
+	)
+	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
+endif()
+
 px4_add_module(
 	MODULE platforms__posix__px4_layer
 	COMPILE_FLAGS
@@ -41,7 +50,8 @@ px4_add_module(
 		lib_crc32.c
 		drv_hrt.c
 		px4_log.c
+		${SHMEM_SRCS}
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

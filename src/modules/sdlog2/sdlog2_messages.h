@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +37,8 @@
  * Log messages and structures definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Roman Bapst <roman@px4.io>
  */
 
 #ifndef SDLOG2_MESSAGES_H_
@@ -177,25 +178,25 @@ struct log_ATTC_s {
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
 	uint8_t main_state;
+	uint8_t nav_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
-	float battery_remaining;
-	uint8_t battery_warning;
-	uint8_t landed;
 	float load;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
 #define LOG_RC_MSG 11
 struct log_RC_s {
-	float channel[8];
+	float channel[12];
+	uint8_t rssi;
 	uint8_t channel_count;
 	uint8_t signal_lost;
+	uint32_t frame_drop;
 };
 
-/* --- OUT0 - ACTUATOR_0 OUTPUT --- */
+/* --- OUT - ACTUATOR OUTPUT --- */
 #define LOG_OUT0_MSG 12
-struct log_OUT0_s {
+struct log_OUT_s {
 	float output[8];
 };
 
@@ -292,6 +293,8 @@ struct log_BATT_s {
 	float voltage_filtered;
 	float current;
 	float discharged;
+	float remaining;
+	uint8_t warning;
 };
 
 /* --- DIST - RANGE SENSOR DISTANCE --- */
@@ -406,12 +409,32 @@ struct log_EST1_s {
 #define LOG_EST2_MSG 34
 struct log_EST2_s {
     float cov[12];
+    uint16_t gps_check_fail_flags;
+    uint16_t control_mode_flags;
 };
 
 /* --- EST3 - ESTIMATOR STATUS --- */
 #define LOG_EST3_MSG 35
 struct log_EST3_s {
     float cov[16];
+};
+
+/* --- EST4 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST4_MSG 48
+struct log_EST4_s {
+    float s[12];
+};
+
+/* --- EST5 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST5_MSG 49
+struct log_EST5_s {
+    float s[10];
+};
+
+/* --- EST6 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST6_MSG 53
+struct log_EST6_s {
+    float s[6];
 };
 
 /* --- TEL0..3 - TELEMETRY STATUS --- */
@@ -461,6 +484,9 @@ struct log_ENCD_s {
 #define LOG_VTOL_MSG 43
 struct log_VTOL_s {
 	float airspeed_tot;
+	uint8_t rw_mode;
+	uint8_t trans_mode;
+	uint8_t failsafe_mode;
 };
 
 /* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
@@ -477,6 +503,8 @@ struct log_MACS_s {
 	float yaw_rate_integ;
 };
 
+/* WARNING: ID 46 is already in use for ATTC1 */
+
 /* --- CONTROL STATE --- */
 #define LOG_CTS_MSG 47
 struct log_CTS_s {
@@ -489,7 +517,77 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
-/* WARNING: ID 46 is already in use for ATTC1 */
+#define LOG_OUT1_MSG 50
+
+/* --- EKF2 REPLAY Part 1 --- */
+#define LOG_RPL1_MSG 51
+struct log_RPL1_s {
+	uint64_t time_ref;
+	uint64_t gyro_integral_dt;
+	uint64_t accelerometer_integral_dt;
+	uint64_t magnetometer_timestamp;
+	uint64_t baro_timestamp;
+	float gyro_integral_x_rad;
+	float gyro_integral_y_rad;
+	float gyro_integral_z_rad;
+	float accelerometer_integral_x_m_s;
+	float accelerometer_integral_y_m_s;
+	float accelerometer_integral_z_m_s;
+	float magnetometer_x_ga;
+	float magnetometer_y_ga;
+	float magnetometer_z_ga;
+	float baro_alt_meter;
+};
+/* --- EKF2 REPLAY Part 2 --- */
+#define LOG_RPL2_MSG 52
+struct log_RPL2_s {
+	uint64_t time_pos_usec;
+	uint64_t time_vel_usec;
+	int32_t lat;
+	int32_t lon;
+	int32_t alt;
+	uint8_t fix_type;
+	uint8_t nsats;
+	float eph;
+	float epv;
+	float sacc;
+	float vel_m_s;
+	float vel_n_m_s;
+	float vel_e_m_s;
+	float vel_d_m_s;
+	bool vel_ned_valid;
+};
+/* --- EKF2 REPLAY Part 3 --- */
+#define LOG_RPL3_MSG 54
+struct log_RPL3_s {
+	uint64_t time_flow_usec;
+	float flow_integral_x;
+	float flow_integral_y;
+	float gyro_integral_x;
+	float gyro_integral_y;
+	uint32_t flow_time_integral;
+	uint8_t flow_quality;
+};
+
+/* --- EKF2 REPLAY Part 4 --- */
+#define LOG_RPL4_MSG 56
+struct log_RPL4_s {
+	uint64_t time_rng_usec;
+	float range_to_ground;
+};
+
+
+/* --- CAMERA TRIGGER --- */
+#define LOG_CAMT_MSG 55
+struct log_CAMT_s {
+	uint64_t timestamp;
+	uint32_t seq;
+};
+
+#define LOG_LAND_MSG 57
+struct log_LAND_s {
+	uint8_t landed;
+};
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -513,6 +611,9 @@ struct log_PARM_s {
 	float value;
 };
 
+// the lower type of initialisation is not supported in C++
+#ifndef __cplusplus
+
 #pragma pack(pop)
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
@@ -529,11 +630,12 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
-	LOG_FORMAT(VTOL, "f",		"Arsp"),
+	LOG_FORMAT(STAT, "BBBBf",		"MainState,NavState,ArmS,Failsafe,Load"),
+	LOG_FORMAT(VTOL, "fBBB",		"Arsp,RwMode,TransMode,Failsafe"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
-	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
-	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
+	LOG_FORMAT_S(OUT0, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT_S(OUT1, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
@@ -541,7 +643,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
-	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
+	LOG_FORMAT(BATT, "fffffB",		"V,VFilt,C,Discharged,Remaining,Warning"),
 	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
@@ -549,8 +651,11 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
-	LOG_FORMAT(EST2, "ffffffffffff",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11"),
+	LOG_FORMAT(EST2, "ffffffffffffHH",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,GCHK,CTRL"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
+	LOG_FORMAT(EST4, "ffffffffffff", "VxI,VyI,VzI,PxI,PyI,PzI,VxIV,VyIV,VzIV,PxIV,PyIV,PzIV"),
+	LOG_FORMAT(EST5, "ffffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV,AirI,AirIV"),
+	LOG_FORMAT(EST6, "ffffff", "FxI,FyI,FxIV,FyIV,HAGLI,HAGLIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
 	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),
@@ -563,7 +668,12 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
-
+	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
+	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
+	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
+	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
+	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
+	LOG_FORMAT(LAND, "B", "Landed"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
@@ -572,5 +682,7 @@ static const struct log_format_s log_formats[] = {
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);
+
+#endif
 
 #endif /* SDLOG2_MESSAGES_H_ */

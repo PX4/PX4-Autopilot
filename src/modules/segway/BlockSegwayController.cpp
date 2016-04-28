@@ -3,7 +3,7 @@
 void BlockSegwayController::update()
 {
 	// wait for a sensor update, check for exit condition every 100 ms
-	if (poll(&_attPoll, 1, 100) < 0) { return; } // poll error
+	if (px4_poll(&_attPoll, 1, 100) < 0) { return; } // poll error
 
 	uint64_t newTimeStamp = hrt_absolute_time();
 	float dt = (newTimeStamp - _timeStamp) / 1.0e6f;

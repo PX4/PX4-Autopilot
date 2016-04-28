@@ -40,6 +40,7 @@
 #include <px4_defines.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
+#include <px4_defines.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <signal.h>
@@ -49,12 +50,17 @@
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
+#include <pthread.h>
 
 extern pthread_t _shell_task_id;
 
 __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
+
+#ifdef CONFIG_SHMEM
+extern void init_params(void);
+#endif
 
 __END_DECLS
 
@@ -70,6 +76,11 @@ void init_once(void)
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
+
+#ifdef CONFIG_SHMEM
+	PX4_INFO("Syncing params to shared memory\n");
+	init_params();
+#endif
 }
 
 void init(int argc, char *argv[], const char *app_name)
@@ -86,6 +97,13 @@ void init(int argc, char *argv[], const char *app_name)
 	printf("Ready to fly.\n");
 	printf("\n");
 	printf("\n");
+
+	// set the threads name
+#ifdef __PX4_DARWIN
+	(void)pthread_setname_np(app_name);
+#else
+	(void)pthread_setname_np(pthread_self(), app_name);
+#endif
 }
 
 uint64_t get_time_micros()
