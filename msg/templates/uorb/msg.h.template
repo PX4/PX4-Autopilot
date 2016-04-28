@@ -173,7 +173,8 @@ def print_parsed_fields():
 
 }@
 
-// #pragma pack(push, 1) badly breaks alignment everywhere!
+// #pragma pack(push, 1)
+ORBPACKED(
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
@@ -198,7 +199,7 @@ for constant in spec.constants:
   print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
 #endif
-};
+});
 //#pragma pack(pop)
 
 /* register this as object request broker structure */
