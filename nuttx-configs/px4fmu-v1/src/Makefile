@@ -1,5 +1,4 @@
 ############################################################################
-# configs/px4fmu-v1/src/Makefile
 #
 #   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

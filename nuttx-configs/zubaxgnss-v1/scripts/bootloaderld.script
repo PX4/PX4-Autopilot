@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/zubaxgnss-v1/scripts/bootloaderld.script
+ * nuttx-configs/zubaxgnss-v1/scripts/bootloaderld.script
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

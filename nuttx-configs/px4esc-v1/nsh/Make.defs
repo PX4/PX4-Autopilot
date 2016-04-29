@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4esc-v1/nsh/Make.defs
+# nuttx-configs/px4esc-v1/nsh/Make.defs
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

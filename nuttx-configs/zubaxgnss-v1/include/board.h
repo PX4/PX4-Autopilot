@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/zubaxgnss-v1/include/board.h
+ * nuttx-configs/zubaxgnss-v1/include/board.h
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

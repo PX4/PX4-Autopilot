@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/s2740vc/scripts/ld.script
+ * configs/s2740vc-v1/scripts/ld.script
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -55,6 +55,7 @@ EXTERN(_vectors)  /* force the vectors to be included in the output */
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
+
 SECTIONS
 {
   .text : {
@@ -106,7 +107,7 @@ SECTIONS
 
   _eronly = ABSOLUTE(.);
 
-  /* The STM32F103CB has 20Kb of SRAM beginning at the following address */
+  /* The STM32F302K8 has 16Kb of SRAM beginning at the following address */
 
   .data : {
     _sdata = ABSOLUTE(.);

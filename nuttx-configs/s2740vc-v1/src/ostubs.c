@@ -95,7 +95,7 @@ int __wrap_up_svcall(int irq, FAR void *context);
 
 void os_start(void)
 {
-  /* Intalize the timer software subsystem */
+  /* Initialize the timer software subsystem */
 
   timer_init();
 

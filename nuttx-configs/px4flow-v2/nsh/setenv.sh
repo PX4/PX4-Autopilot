@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/px4cannode-v1/smallnsh/setenv.sh
+# nuttx-configs/px4flow-v2/nsh/setenv.sh
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

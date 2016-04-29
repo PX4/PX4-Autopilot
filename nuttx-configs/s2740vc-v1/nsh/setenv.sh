@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/px4cannode-v1/smallnsh/setenv.sh
+# configs/s2740vc-v1/nsh/setenv.sh
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
