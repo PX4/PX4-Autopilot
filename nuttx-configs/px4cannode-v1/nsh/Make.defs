@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4cannode-v1/smallnsh/Make.defs
+# nuttx-configs/px4cannode-v1/nsh/Make.defs
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

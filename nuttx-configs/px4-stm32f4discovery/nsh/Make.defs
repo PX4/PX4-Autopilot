@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4-stm32f4discovery/nsh/Make.defs
+# nuttx-configs/px4stm32f4discovery/nsh/Make.defs
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
