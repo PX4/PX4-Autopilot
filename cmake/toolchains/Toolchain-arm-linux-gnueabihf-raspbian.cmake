@@ -71,6 +71,10 @@ foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
 	endif()
 endforeach()
 
+add_definitions(
+	-D __RPI2
+	)
+
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
 set(CMAKE_C_FLAGS ${C_FLAGS})
