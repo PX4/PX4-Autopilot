@@ -165,6 +165,7 @@ bool MulticopterLandDetector::get_landed_state()
 
 	if (minimalThrust && _min_trust_start == 0) {
 		_min_trust_start = now;
+
 	} else if (!minimalThrust) {
 		_min_trust_start = 0;
 	}
@@ -197,8 +198,9 @@ bool MulticopterLandDetector::get_landed_state()
 		// falling consider it to be landed. This should even sustain
 		// quite acrobatic flight.
 		if ((_min_trust_start > 0) &&
-			(hrt_elapsed_time(&_min_trust_start) > 8 * 1000 * 1000)) {
+		    (hrt_elapsed_time(&_min_trust_start) > 8 * 1000 * 1000)) {
 			return !get_freefall_state();
+
 		} else {
 			return false;
 		}
