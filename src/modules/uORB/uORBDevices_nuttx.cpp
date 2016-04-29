@@ -43,8 +43,6 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
-uORB::ORBMap uORB::DeviceMaster::_node_map;
-
 uORB::DeviceNode::DeviceNode
 (
 	const struct orb_metadata *meta,
@@ -737,7 +735,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (ret == -EEXIST) {
 						/* if the node exists already, get the existing one and check if
 						 * something has been published yet. */
-						uORB::DeviceNode *existing_node = GetDeviceNode(devpath);
+						uORB::DeviceNode *existing_node = getDeviceNodeLocked(devpath);
 
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
@@ -773,7 +771,17 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
+{
+	lock();
+	uORB::DeviceNode *node = getDeviceNodeLocked(nodepath);
+	unlock();
+	//We can safely return the node that can be used by any thread, because
+	//a DeviceNode never gets deleted.
+	return node;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
 {
 	uORB::DeviceNode *rc = nullptr;
 
