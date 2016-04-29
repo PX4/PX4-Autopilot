@@ -244,14 +244,14 @@ struct parameters {
 		range_delay_ms = 5.0f;
 
 		// input noise
-		gyro_noise = 6.0e-2f;
+		gyro_noise = 5.0e-2f;
 		accel_noise = 2.5e-1f;
 
 		// process noise
-		gyro_bias_p_noise = 2.5e-6f;
-		accel_bias_p_noise = 3.0e-5f;
+		gyro_bias_p_noise = 5.0e-5f;
+		accel_bias_p_noise = 1.0e-7f;
 		mage_p_noise = 2.5e-3f;
-		magb_p_noise = 5.0e-4f;
+		magb_p_noise = 1.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 5.0f;
 		terrain_gradient = 0.5f;
