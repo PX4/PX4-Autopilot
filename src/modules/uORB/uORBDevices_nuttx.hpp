@@ -257,16 +257,30 @@ private: // private class methods.
 class uORB::DeviceMaster : public device::CDev
 {
 public:
+	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	/**
+	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNode(const char *node_name);
+
+private:
+	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
 	virtual ~DeviceMaster();
 
 	friend class uORB::Manager;
 
-	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
-	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
-private:
+	/**
+	 * Find a node give its name.
+	 * _lock must already be held when calling this.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
+
 	const Flavor  _flavor;
-	static ORBMap _node_map;
+	ORBMap _node_map;
 };
 
 
