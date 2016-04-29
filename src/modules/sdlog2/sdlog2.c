@@ -1123,6 +1123,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct vehicle_command_s buf_cmd;
 	memset(&buf_cmd, 0, sizeof(buf_cmd));
 
+	struct commander_state_s buf_commander_state;
+	memset(&buf_commander_state, 0, sizeof(buf_commander_state));
+
 	// check if we are gathering data for a replay log for ekf2
 	// is yes then disable logging of some topics to avoid dropouts
 	param_t replay_handle = param_find("EKF2_REC_RPL");
@@ -1170,7 +1173,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
 		struct vehicle_land_detected_s land_detected;
-		struct commander_state_s commander_state;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1190,7 +1192,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
-			struct log_COMM_s log_COMM;
 			struct log_VTOL_s log_VTOL;
 			struct log_RC_s log_RC;
 			struct log_OUT_s log_OUT;
@@ -1453,24 +1454,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 		log_msg.body.log_TIME.t = hrt_absolute_time();
 		LOGBUFFER_WRITE_AND_COUNT(TIME);
 
+		/* --- COMMANDER INTERNAL STATE --- */
+		copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
+				&buf_commander_state);
+
 		/* --- VEHICLE STATUS --- */
 		if (status_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
+			log_msg.body.log_STAT.main_state = buf_commander_state.main_state;
 			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
-		}
-
-		/* --- COMMANDER INTERNAL STATE --- */
-		bool commander_state_updated = copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
-							       &buf.commander_state);
-
-		if (commander_state_updated) {
-			log_msg.msg_type = LOG_COMM_MSG;
-			log_msg.body.log_COMM.main_state = buf.commander_state.main_state;
-			LOGBUFFER_WRITE_AND_COUNT(COMM);
 		}
 
 		/* --- EKF2 REPLAY --- */
