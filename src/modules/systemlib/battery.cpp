@@ -51,8 +51,9 @@ Battery::Battery() :
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
 	_voltage_filtered_v(-1.0f),
-	_throttle_filtered(0.0f),
 	_discharged_mah(0.0f),
+	_remaining_voltage(1.0f),
+	_remaining_capacity(1.0f),
 	_remaining(1.0f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
@@ -84,7 +85,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, throttle_normalized);
+	estimateRemaining(voltage_v, throttle_normalized);
 	determineWarning();
 
 	if (_voltage_filtered_v > 2.1f) {
@@ -106,7 +107,7 @@ Battery::filterVoltage(float voltage_v)
 	}
 
 	// TODO: inspect that filter performance
-	const float filtered_next = _voltage_filtered_v * 0.999f + voltage_v * 0.001f;
+	const float filtered_next = _voltage_filtered_v * 0.99f + voltage_v * 0.01f;
 
 	if (PX4_ISFINITE(filtered_next)) {
 		_voltage_filtered_v = filtered_next;
@@ -135,34 +136,45 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 void
 Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 {
-	// XXX this time constant needs to become tunable but really, the right fix are smart batteries.
-	const float filtered_next = _throttle_filtered * 0.97f + fabsf(throttle_normalized) * 0.03f;
+	// remaining charge estimate based on voltage and internal resistance (drop under load)
+	const float bat_v_empty_dynamic = _param_v_empty.get() - (_param_v_load_drop.get() * fabsf(throttle_normalized));
 
-	if (PX4_ISFINITE(filtered_next)) {
-		_throttle_filtered = filtered_next;
+	// the range from full to empty is the same for batteries under load and without load,
+	// since the voltage drop applies to both the full and empty state
+	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
+	
+	// remaining battery capacity based on voltage
+	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
+					/ (_param_n_cells.get() * voltage_range);
+	const float rvoltage_filt = rvoltage * 0.99f + _remaining_voltage * 0.01f;
+	if (PX4_ISFINITE(rvoltage_filt)) {
+		_remaining_voltage = rvoltage_filt;
 	}
 
-	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	const float bat_v_empty_dynamic = _param_v_empty.get() - (_param_v_load_drop.get() * _throttle_filtered);
-	/* the range from full to empty is the same for batteries under load and without load,
-	 * since the voltage drop applies to both the full and empty state
-	 */
-	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
-	const float remaining_voltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
-					/ (_param_n_cells.get() * voltage_range);
+	// remaining battery capacity based on used current integrated time
+	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
+	const float rcap_filt = rcap * 0.99f + _remaining_capacity * 0.01f;
+	if (PX4_ISFINITE(rcap_filt)) {
+		_remaining_capacity = rcap_filt;
+	}
 
+	// limit to sane values
+	_remaining_voltage = (_remaining_voltage < 0.0f) ? 0.0f : _remaining_voltage;
+	_remaining_voltage = (_remaining_voltage > 1.0f) ? 1.0f : _remaining_voltage;
+
+	_remaining_capacity = (_remaining_capacity < 0.0f) ? 0.0f : _remaining_capacity;
+	_remaining_capacity = (_remaining_capacity > 1.0f) ? 1.0f : _remaining_capacity;
+
+	// choose which quantity we're using for final reporting
 	if (_param_capacity.get() > 0.0f) {
-		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
-		_remaining = fminf(remaining_voltage, 1.0f - _discharged_mah / _param_capacity.get());
+		// if battery capacity is known, use discharged current for estimate,
+		// but don't show more than voltage estimate
+		_remaining = fminf(_remaining_voltage, _remaining_capacity);
 
 	} else {
-		/* else use voltage */
-		_remaining = remaining_voltage;
+		// else use voltage
+		_remaining = _remaining_voltage;
 	}
-
-	/* limit to sane values */
-	_remaining = (_remaining < 0.0f) ? 0.0f : _remaining;
-	_remaining = (_remaining > 1.0f) ? 1.0f : _remaining;
 }
 
 void

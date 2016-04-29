@@ -106,12 +106,12 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.09f);
  *
  * @group Battery Calibration
  * @unit V
- * @min 0.0
- * @max 1.5
+ * @min 0.07
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.25f);
 
 /**
  * Number of cells.

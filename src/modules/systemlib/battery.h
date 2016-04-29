@@ -105,9 +105,10 @@ private:
 	control::BlockParamFloat _param_crit_thr;
 
 	float _voltage_filtered_v;
-	float _throttle_filtered;
 	float _discharged_mah;
-	float _remaining;
+	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
+	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity
+	float _remaining;			///< normalized battery charge level, selected based on config param
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 };
