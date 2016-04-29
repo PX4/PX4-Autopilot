@@ -178,10 +178,10 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 	const double R  = 287.05;	/* ideal gas constant in J/kg/K */
 
 	/* current pressure at MSL in kPa */
-	double p1 = MSL_PRESSURE / 1000.0;
+	double p1 = MSL_PRESSURE / 1000.0f;
 
 	/* measured pressure in kPa */
-	double p = data.pressure_pa / 1000.0;
+	double p = data.pressure_pa / 1000.0f;
 
 	/*
 	 * Solve:
