@@ -331,6 +331,11 @@ then
 	fi
 
 	#
+	# Start CPU load monitor
+	#
+	load_mon start
+
+	#
 	# Start primary output
 	#
 	set TTYS1_BUSY no
