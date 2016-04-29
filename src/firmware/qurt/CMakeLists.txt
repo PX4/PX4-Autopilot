@@ -35,6 +35,7 @@ else()
 	message("module_libraries = ${module_libraries}")
 	message("target_libraries = ${target_libraries}")
 	message("df_driver_libs = ${df_driver_libs}")
+	message("module_external_libraries = ${module_external_libraries}")
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
 	QURT_LIB(LIB_NAME mainapp
@@ -47,6 +48,7 @@ else()
 			df_driver_framework
 			${df_driver_libs}
 			m
+			${module_external_libraries}
 		)
 
 	px4_add_adb_push(OUT upload
