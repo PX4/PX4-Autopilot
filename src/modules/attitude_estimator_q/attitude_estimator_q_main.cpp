@@ -151,7 +151,7 @@ private:
 	bool		_mag_decl_auto = false;
 	bool		_acc_comp = false;
 	float		_bias_max = 0.0f;
-	float		_vibration_warning_threshold = 1.0f;
+	float		_vibration_warning_threshold = 2.0f;
 	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
 
