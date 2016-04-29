@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file load_mon.c
+ * @file load_mon.cpp
  *
  * @author Jonathan Challinger <jonathan@3drobotics.com>
  */
