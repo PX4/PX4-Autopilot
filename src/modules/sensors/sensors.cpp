@@ -951,9 +951,9 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-#ifndef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__RPI2)
 
-	// TODO: this needs fixing for QURT
+	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
 		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
@@ -1519,7 +1519,7 @@ Sensors::parameter_update_poll(bool forced)
 bool
 Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#ifndef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1540,7 +1540,7 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *g
 bool
 Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#ifndef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1561,7 +1561,7 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s 
 bool
 Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#ifndef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
@@ -2064,7 +2064,7 @@ Sensors::task_main()
 	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
 	ret = sensors_init();
 
-#ifndef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__RPI2)
 	// TODO: move adc_init into the sensors_init call.
 	ret = ret || adc_init();
 #endif
