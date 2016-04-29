@@ -2295,8 +2295,9 @@ int commander_thread_main(int argc, char *argv[])
 		 * rejection. Back off 2 seconds to not overlay
 		 * home tune.
 		 */
+		uint64_t ts = _home.timestamp;
 		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			(hrt_elapsed_time(&ts) > 2000000) &&
 			_last_mission_instance != mission_result.instance_count) {
 			if (!mission_result.valid) {
 				/* the mission is invalid */
