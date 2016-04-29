@@ -142,11 +142,12 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 	// the range from full to empty is the same for batteries under load and without load,
 	// since the voltage drop applies to both the full and empty state
 	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
-	
+
 	// remaining battery capacity based on voltage
 	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
-					/ (_param_n_cells.get() * voltage_range);
+			       / (_param_n_cells.get() * voltage_range);
 	const float rvoltage_filt = rvoltage * 0.99f + _remaining_voltage * 0.01f;
+
 	if (PX4_ISFINITE(rvoltage_filt)) {
 		_remaining_voltage = rvoltage_filt;
 	}
@@ -154,6 +155,7 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 	// remaining battery capacity based on used current integrated time
 	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
 	const float rcap_filt = rcap * 0.99f + _remaining_capacity * 0.01f;
+
 	if (PX4_ISFINITE(rcap_filt)) {
 		_remaining_capacity = rcap_filt;
 	}
