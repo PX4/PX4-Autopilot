@@ -64,6 +64,9 @@ bool uORB::Manager::initialize()
 uORB::Manager::Manager()
 	: _comm_channel(nullptr)
 {
+	for (int i = 0; i < Flavor_count; ++i) {
+		_device_masters[i] = nullptr;
+	}
 
 #ifdef ORB_USE_PUBLISHER_RULES
 	const char *file_name = "./rootfs/orb_publisher.rules";
@@ -79,6 +82,39 @@ uORB::Manager::Manager()
 
 #endif /* ORB_USE_PUBLISHER_RULES */
 
+}
+
+uORB::Manager::~Manager()
+{
+	for (int i = 0; i < Flavor_count; ++i) {
+		if (_device_masters[i]) {
+			delete _device_masters[i];
+		}
+	}
+}
+
+uORB::DeviceMaster *uORB::Manager::get_device_master(Flavor flavor)
+{
+	if (!_device_masters[flavor]) {
+		_device_masters[flavor] = new DeviceMaster(flavor);
+
+		if (_device_masters[flavor]) {
+			int ret = _device_masters[flavor]->init();
+
+			if (ret != PX4_OK) {
+				PX4_ERR("Initialization of DeviceMaster failed (%i)", ret);
+				errno = -ret;
+				delete _device_masters[flavor];
+				_device_masters[flavor] = nullptr;
+			}
+
+		} else {
+			PX4_ERR("Failed to allocate DeviceMaster");
+			errno = ENOMEM;
+		}
+	}
+
+	return _device_masters[flavor];
 }
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
