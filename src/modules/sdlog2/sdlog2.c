@@ -1123,6 +1123,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct vehicle_command_s buf_cmd;
 	memset(&buf_cmd, 0, sizeof(buf_cmd));
 
+	struct commander_state_s buf_commander_state;
+	memset(&buf_commander_state, 0, sizeof(buf_commander_state));
+
 	// check if we are gathering data for a replay log for ekf2
 	// is yes then disable logging of some topics to avoid dropouts
 	param_t replay_handle = param_find("EKF2_REC_RPL");
@@ -1170,7 +1173,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
 		struct vehicle_land_detected_s land_detected;
-		struct commander_state_s commander_state;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1429,10 +1431,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 		bool status_updated = copy_if_updated(ORB_ID(vehicle_status), &subs.status_sub, &buf_status);
 
-		/* --- COMMANDER INTERNAL STATE - LOG MANAGEMENT --- */
-		bool commander_state_updated = copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
-							       &buf.commander_state);
-
 		if (status_updated) {
 			if (log_when_armed) {
 				handle_status(&buf_status);
@@ -1456,12 +1454,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		log_msg.body.log_TIME.t = hrt_absolute_time();
 		LOGBUFFER_WRITE_AND_COUNT(TIME);
 
-		/* --- VEHICLE STATUS / COMMANDER DEBUGGING --- */
-		if (status_updated || commander_state_updated) {
+		/* --- COMMANDER INTERNAL STATE --- */
+		copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
+				&buf_commander_state);
+
+		/* --- VEHICLE STATUS --- */
+		if (status_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
-			// TODO: This field should get DEPRECATED in favor of nav_state. main_state is only for
-			// commander debugging.
-			log_msg.body.log_STAT.main_state = buf.commander_state.main_state;
+			log_msg.body.log_STAT.main_state = buf_commander_state.main_state;
 			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
