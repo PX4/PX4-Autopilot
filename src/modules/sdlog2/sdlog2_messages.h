@@ -177,11 +177,9 @@ struct log_ATTC_s {
 /* --- STAT - VEHICLE STATE --- */
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
-	uint8_t main_state;
 	uint8_t nav_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
-	float load;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -597,9 +595,22 @@ struct log_CAMT_s {
 	uint32_t seq;
 };
 
+/* --- LAND DETECTOR --- */
 #define LOG_LAND_MSG 57
 struct log_LAND_s {
 	uint8_t landed;
+};
+
+/* --- SYSTEM LOAD --- */
+#define LOG_LOAD_MSG 58
+struct log_LOAD_s {
+	float cpu_load;
+};
+
+/* --- COMMANDER INTERNAL STATE --- */
+#define LOG_COMM_MSG 59
+struct log_COMM_s {
+	uint8_t main_state;
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -643,7 +654,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBBf",		"MainState,NavState,ArmS,Failsafe,Load"),
+	LOG_FORMAT(STAT, "BBB",		"NavState,ArmS,Failsafe"),
 	LOG_FORMAT(VTOL, "fBBB",		"Arsp,RwMode,TransMode,Failsafe"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
@@ -688,6 +699,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
 	LOG_FORMAT(RPL6, "Qfffff", "Tasp,inAsp,trAsp,ufAsp,tpAsp,confAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
+	LOG_FORMAT(LOAD, "f", "CPU"),
+	LOG_FORMAT(COMM, "B", "MainState"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
