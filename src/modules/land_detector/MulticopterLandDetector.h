@@ -102,6 +102,7 @@ private:
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t maxThrottle;
+		param_t minManThrottle;
 		param_t acc_threshold_m_s2;
 		param_t ff_trigger_time;
 	}		_paramHandle;
@@ -111,6 +112,7 @@ private:
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float maxThrottle;
+		float minManThrottle;
 		float acc_threshold_m_s2;
 		float ff_trigger_time;
 	} _params;
@@ -129,10 +131,11 @@ private:
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
 	struct manual_control_setpoint_s	_manual;
-	struct control_state_s				_ctrl_state;
+	struct control_state_s			_ctrl_state;
 
-	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
-	uint64_t _freefallTimer;							/**< timestamp in microseconds since a possible freefall was detected*/
+	uint64_t _landTimer;			///< timestamp in microseconds since a possible land was detected
+	uint64_t _freefallTimer;		///< timestamp in microseconds since a possible freefall was detected
+	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 };
 
 }
