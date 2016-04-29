@@ -36,6 +36,30 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
 			 DEPENDS mainapp
 			 DEST /home/linaro)
+			 
+elseif ("${BOARD}" STREQUAL "rpi2")
+
+	add_executable(mainapp
+		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		apps.h
+		)
+		
+	target_link_libraries(mainapp
+		-Wl,--start-group
+		${module_libraries}
+		df_driver_framework
+		${df_driver_libs}
+		pthread m rt
+		-Wl,--end-group
+		)
+
+	px4_add_scp_push(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi2/mainapp.config
+			 DEPENDS mainapp
+			 DEST /home/pi)
 
 else()
 	add_executable(mainapp
