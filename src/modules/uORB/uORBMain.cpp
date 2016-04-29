@@ -72,18 +72,10 @@ uorb_main(int argc, char *argv[])
 		}
 
 		/* create the driver */
-		g_dev = new uORB::DeviceMaster(uORB::PUBSUB);
+		g_dev = uORB::Manager::get_instance()->get_device_master(uORB::PUBSUB);
 
 		if (g_dev == nullptr) {
-			PX4_ERR("driver alloc failed");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			PX4_ERR("driver init failed");
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
+			return -errno;
 		}
 
 		return OK;

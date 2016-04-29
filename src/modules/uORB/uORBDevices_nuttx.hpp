@@ -45,6 +45,7 @@ namespace uORB
 {
 class DeviceNode;
 class DeviceMaster;
+class Manager;
 }
 
 /**
@@ -258,6 +259,8 @@ class uORB::DeviceMaster : public device::CDev
 public:
 	DeviceMaster(Flavor f);
 	virtual ~DeviceMaster();
+
+	friend class uORB::Manager;
 
 	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
 	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
