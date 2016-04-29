@@ -71,8 +71,8 @@
 #define SMARTPORT_ID_ACCY          0x0710
 #define SMARTPORT_ID_ACCZ          0x0720
 #define SMARTPORT_ID_CURR          0x0200
-#define SMARTPORT_ID_VFAS          0x0210  //Volt per Cell
-#define SMARTPORT_ID_CELLS         0x0300
+#define SMARTPORT_ID_VFAS          0x0210  //Battery Voltage
+#define SMARTPORT_ID_CELLS         0x0300  //Volt per cell
 #define SMARTPORT_ID_GPS_LON_LAT   0x0800
 #define SMARTPORT_ID_GPS_ALT       0x0820
 #define SMARTPORT_ID_GPS_SPD       0x0830
@@ -101,10 +101,10 @@ bool sPort_init(void);
 void sPort_deinit(void);
 void sPort_update_topics(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
-void sPort_send_BATV(int uart);
+void sPort_send_VFAS(int uart);
+void sPort_send_CELLS(int uart);
 void sPort_send_CUR(int uart);
 void sPort_send_ALT(int uart);
-void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
 void sPort_send_FUEL(int uart);
 void sPort_send_ACCX(int uart);

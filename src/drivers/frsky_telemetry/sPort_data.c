@@ -283,11 +283,18 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 
 
 // scaling correct with OpenTX 2.1.7
-void sPort_send_BATV(int uart)
+void sPort_send_VFAS(int uart)
 {
 	/* send battery voltage as VFAS */
 	uint32_t voltage = (int)(100 * battery_status->voltage_v);
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
+}
+
+void sPort_send_CELLS(int uart)
+{
+	/* send battery voltage as VFAS */
+	uint32_t voltage_cells = (int)((100 * battery_status->voltage_v) / battery_status->cell_count);
+	sPort_send_data(uart, SMARTPORT_ID_CELLS, voltage_cells);
 }
 
 // verified scaling
@@ -308,14 +315,6 @@ void sPort_send_ALT(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
-// verified scaling for "calculated" option
-void sPort_send_SPD(int uart)
-{
-	/* send data for A2 */
-	float speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e);
-	uint32_t ispeed = (int)(10 * speed);
-	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
-}
 
 // TODO: verify scaling
 void sPort_send_VSPD(int uart, float speed)
@@ -395,9 +394,9 @@ void sPort_send_GPS_CRS(int uart)
 /*
 	OpenTX Format in binary:
 	if last 4 bit are 0000:
-		YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
-	else
 		HHHHMMMMSSSS0001 (H = Hour, M = Minutes, S = Seconds)
+	else
+		YYYYMMMMDDDD0000 (Y = Year, M = Month, D = Day)
 
 	see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
 */
@@ -411,7 +410,7 @@ void sPort_send_GPS_DATE(int uart)
 	uint8_t month = tm_gps->tm_mon; //0-11
 	uint8_t day = tm_gps->tm_mday; //1-31
 
-	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0;
+	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 1;
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_ymd);
 }
@@ -425,7 +424,7 @@ void sPort_send_GPS_TIME(int uart)
 	uint8_t minute = tm_gps->tm_min; //0-59
 	uint8_t second = tm_gps->tm_sec; //0-60
 
-	uint32_t frsky_time_hms = (hour << 24) | minute << 16 | second << 8 | 1;
+	uint32_t frsky_time_hms = (hour << 24) | minute << 16 | second << 8 | 0;
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_hms);
 }

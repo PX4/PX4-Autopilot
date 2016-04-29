@@ -333,10 +333,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			sPort_update_topics();
 
-			static hrt_abstime lastBATV = 0;
+			static hrt_abstime lastVFAS = 0;
+			static hrt_abstime lastCELLS = 0;
 			static hrt_abstime lastCUR = 0;
 			static hrt_abstime lastALT = 0;
-			static hrt_abstime lastSPD = 0;
 			static hrt_abstime lastFUEL = 0;
 			static hrt_abstime lastVSPD = 0;
 			static hrt_abstime lastACC = 0;
@@ -353,11 +353,18 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_1:
 
-				/* report BATV at 1Hz */
-				if (now - lastBATV > 1000 * 1000) {
-					lastBATV = now;
+				/* report VFAS at 1Hz */
+				if (now - lastVFAS > 1000 * 1000) {
+					lastVFAS = now;
 					/* send battery voltage */
-					sPort_send_BATV(uart);
+					sPort_send_VFAS(uart);
+				}
+
+				/* report CELLS at 1Hz */
+				else if (now - lastCELLS > 1000 * 1000) {
+					lastCELLS = now;
+					/* send average cell voltage */
+					sPort_send_CELLS(uart);
 				}
 
 				break;
@@ -370,12 +377,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastCUR = now;
 					/* send battery current */
 					sPort_send_CUR(uart);
-				}
-
-				/* report mavlink message bytes at 20Hz (enough to transmit one message per second) */
-				else if (now - lastMAVLINK_MESSAGE > 50 * 1000) {
-					lastMAVLINK_MESSAGE = now;
-					sPort_send_MAVLINK_MESSAGE(uart);
 				}
 
 				break;
@@ -395,11 +396,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_4:
 
-				/* report speed at 5Hz */
-				if (now - lastSPD > 200 * 1000) {
-					lastSPD = now;
-					/* send speed */
-					sPort_send_SPD(uart);
+				/* report mavlink message bytes at 20Hz (enough to transmit one message per second) */
+				if (now - lastMAVLINK_MESSAGE > 50 * 1000) {
+					lastMAVLINK_MESSAGE = now;
+					sPort_send_MAVLINK_MESSAGE(uart);
 				}
 
 				break;
