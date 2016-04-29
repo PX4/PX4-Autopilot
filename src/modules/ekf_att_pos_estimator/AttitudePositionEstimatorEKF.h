@@ -191,7 +191,7 @@ private:
     float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
-    float       _vibration_warning_threshold = 1.0f;
+    float       _vibration_warning_threshold = 2.0f;
     hrt_abstime _vibration_warning_timestamp = 0;
 
     perf_counter_t  _loop_perf;         ///< loop performance counter
