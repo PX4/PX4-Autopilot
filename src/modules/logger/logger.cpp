@@ -196,7 +196,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 	} else {
 
-#ifdef DBGPRINT
+#if defined(DBGPRINT) && defined(__PX4_NUTTX)
 		alloc_info = mallinfo();
 		warnx("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
