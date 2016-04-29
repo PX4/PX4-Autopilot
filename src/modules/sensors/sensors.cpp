@@ -1704,7 +1704,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			if (updated_battery) {
 				actuator_controls_s ctrl;
 				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE], &_battery_status);
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+							     &_battery_status);
 
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub != nullptr) {
