@@ -183,12 +183,24 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
+#ifdef DBGPRINT
+	struct mallinfo alloc_info = mallinfo();
+	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
+	warnx("allocating %d bytes for log_buffer", log_buffer_size);
+#endif /* DBGPRINT */
+
 	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
-	if (logger_ptr == nullptr) {
-		PX4_WARN("alloc failed");
+	if (logger_ptr->_log_buffer == nullptr) {
+		PX4_WARN("log buffer malloc failed");
 
 	} else {
+
+#ifdef DBGPRINT
+		alloc_info = mallinfo();
+		warnx("remaining free heap: %d bytes", alloc_info.fordblks);
+#endif /* DBGPRINT */
+
 		logger_ptr->run();
 	}
 }
