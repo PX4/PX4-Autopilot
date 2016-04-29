@@ -28,6 +28,7 @@ void LogWriter::start_log(const char *filename)
 		PX4_WARN("can't open log file %s", _filename);
 		_should_run = false;
 		return;
+
 	} else {
 		PX4_WARN("opened log file: %s", _filename);
 		_should_run = true;
@@ -171,9 +172,11 @@ void LogWriter::run()
 
 				if (res) {
 					PX4_WARN("error closing log file");
+
 				} else {
 					PX4_WARN("closed logfile: %s, bytes written: %zu", _filename, _total_written);
 				}
+
 				break;
 			}
 		}
