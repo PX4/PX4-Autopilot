@@ -35,6 +35,7 @@
  * @file load_mon.cpp
  *
  * @author Jonathan Challinger <jonathan@3drobotics.com>
+ * @author Julian Oes <julian@oes.ch
  */
 
 #include <stdio.h>
@@ -42,9 +43,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <poll.h>
-
 #include <px4_config.h>
+#include <px4_workqueue.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -55,55 +55,123 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/cpuload.h>
 
-#define LOAD_MON_INTERVAL_SEC 1.0f
-#define LOAD_MON_INTERVAL_US (LOAD_MON_INTERVAL_SEC*1.0e6f)
+extern struct system_load_s system_load;
+
+
+namespace load_mon
+{
 
 extern "C" __EXPORT int load_mon_main(int argc, char *argv[]);
-int load_mon_thread(int argc, char *argv[]);
 
-static const char *module_name = "load_mon";
-static bool thread_should_exit = false;		/**< daemon exit flag */
-static bool thread_running = false;		/**< daemon status flag */
-static int daemon_task;				/**< Handle of daemon task / thread */
+// Run it at 1 Hz.
+const unsigned LOAD_MON_INTERVAL_US = 1000000;
 
-
-extern struct system_load_s system_load;
-struct cpuload_s cpuload;
-static orb_advert_t cpuload_publish_handle = nullptr;
-
-/**
- * Mainloop of load_mon.
- */
-int load_mon_thread(int argc, char *argv[])
+class LoadMon
 {
-	warnx("[%s] starting\n", module_name);
-	thread_running = true;
+public:
+	LoadMon();
+	~LoadMon();
 
-	hrt_abstime last_idle_time = system_load.tasks[0].total_runtime;
+	/* Start the load monitoring
+	 *
+	 * @return 0 if successfull, -1 on error. */
+	int start();
 
-	while (!thread_should_exit) {
-		usleep(LOAD_MON_INTERVAL_US);
+	/* Stop the load monitoring */
+	void stop();
 
-		/* compute system load */
-		uint64_t interval_idletime = system_load.tasks[0].total_runtime - last_idle_time;
-		last_idle_time = system_load.tasks[0].total_runtime;
+	/* Trampoline for the work queue. */
+	static void cycle_trampoline(void *arg);
 
-		cpuload.timestamp = hrt_absolute_time();
-		cpuload.load = 1.0f - (float)interval_idletime / LOAD_MON_INTERVAL_US;
+	bool isRunning() { return _taskIsRunning; }
 
-		if (cpuload_publish_handle == nullptr) {
-			cpuload_publish_handle = orb_advertise(ORB_ID(cpuload), &cpuload);
-		} else {
-			orb_publish(ORB_ID(cpuload), cpuload_publish_handle, &cpuload);
-		}
+private:
+	/* Do a compute and schedule the next cycle. */
+	void _cycle();
+
+	/* Do a calculation of the CPU load and publish it. */
+	void _compute();
+
+	bool _taskShouldExit;
+	bool _taskIsRunning;
+	struct work_s _work;
+
+	struct cpuload_s _cpuload;
+	orb_advert_t _cpuload_pub;
+	hrt_abstime _last_idle_time;
+};
+
+
+LoadMon::LoadMon() :
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_work{},
+	_cpuload{},
+	_cpuload_pub(nullptr),
+	_last_idle_time(0)
+{}
+
+LoadMon::~LoadMon()
+{
+	work_cancel(HPWORK, &_work);
+	_taskIsRunning = false;
+}
+
+int LoadMon::start()
+{
+	/* Schedule a cycle to start things. */
+	return work_queue(HPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this, 0);
+}
+
+void LoadMon::stop()
+{
+	_taskShouldExit = true;
+}
+
+void
+LoadMon::cycle_trampoline(void *arg)
+{
+	LoadMon *dev = reinterpret_cast<LoadMon *>(arg);
+
+	dev->_cycle();
+}
+
+void LoadMon::_cycle()
+{
+	_taskIsRunning = true;
+
+	_compute();
+
+	if (!_taskShouldExit) {
+		work_queue(HPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this,
+			   USEC2TICK(LOAD_MON_INTERVAL_US));
+	}
+}
+
+void LoadMon::_compute()
+{
+	if (_last_idle_time == 0) {
+		/* Just get the time in the first iteration */
+		_last_idle_time = system_load.tasks[0].total_runtime;
+		return;
 	}
 
-	warnx("[%s] exiting.\n", module_name);
+	/* compute system load */
+	const hrt_abstime interval_idletime = system_load.tasks[0].total_runtime - _last_idle_time;
+	_last_idle_time = system_load.tasks[0].total_runtime;
 
-	thread_running = false;
+	_cpuload.timestamp = hrt_absolute_time();
+	_cpuload.load = 1.0f - (float)interval_idletime / (float)LOAD_MON_INTERVAL_US;
 
-	return 0;
+	if (_cpuload_pub == nullptr) {
+		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &_cpuload);
+
+	} else {
+		orb_publish(ORB_ID(cpuload), _cpuload_pub, &_cpuload);
+	}
 }
+
+
 
 /**
  * Print the correct usage.
@@ -114,11 +182,14 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		warnx("%s\n", reason);
+		PX4_ERR("%s", reason);
 	}
 
-	warnx("usage: %s {start|stop|status} [-p <additional params>]\n\n", module_name);
+	PX4_INFO("usage: load_mon {start|stop|status}");
 }
+
+
+static LoadMon *load_mon = nullptr;
 
 /**
  * The daemon app only briefly exists to start
@@ -137,32 +208,60 @@ int load_mon_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
-			warnx("daemon already running\n");
+		if (load_mon != nullptr && load_mon->isRunning()) {
+			PX4_WARN("already running");
 			/* this is not an error */
 			return 0;
 		}
 
-		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd(module_name,
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT,
-						 2000,
-						 load_mon_thread,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+		load_mon = new LoadMon();
+
+		// Check if alloc worked.
+		if (load_mon == nullptr) {
+			PX4_ERR("alloc failed");
+			return -1;
+		}
+
+		int ret = load_mon->start();
+
+		if (ret != 0) {
+			PX4_ERR("start failed");
+		}
+
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
+
+		if (load_mon == nullptr || load_mon->isRunning()) {
+			PX4_WARN("not running");
+			/* this is not an error */
+			return 0;
+		}
+
+		load_mon->stop();
+
+		// Wait for task to die
+		int i = 0;
+
+		do {
+			/* wait up to 3s */
+			usleep(100000);
+
+		} while (load_mon->isRunning() && ++i < 30);
+
+		delete load_mon;
+		load_mon = nullptr;
+
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("\trunning\n");
+		if (load_mon != nullptr && load_mon->isRunning()) {
+			PX4_INFO("running");
+
 		} else {
-			warnx("\tnot started\n");
+			PX4_INFO("not running\n");
 		}
 
 		return 0;
@@ -172,3 +271,4 @@ int load_mon_main(int argc, char *argv[])
 	return 1;
 }
 
+} // namespace load_mon
