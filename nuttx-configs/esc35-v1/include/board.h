@@ -121,17 +121,82 @@
 
 #define STM32_CFGR_USBPRE       0
 
+/* Leds *************************************************************************/
+
+/* LED index values for use with board_setled() */
+
+#define BOARD_LED1                0
+#define BOARD_LED_RED             BOARD_LED1
+#define BOARD_LED2                1
+#define BOARD_LED_GREEN           BOARD_LED2
+#define BOARD_LED3                2
+#define BOARD_LED_BLUE            BOARD_LED3
+#define BOARD_NLEDS               3
+
+/* LED bits for use with board_setleds() */
+
+#define BOARD_LED_RED_BIT     (1 << BOARD_LED_RED)
+#define BOARD_LED_GREEN_BIT   (1 << BOARD_LED_GREEN)
+#define BOARD_LED_BLUE_BIT    (1 << BOARD_LED_BLUE)
+
+/* TODO:define these
+ * These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
+ *
+ * defined.  In that case, the usage by the board port is as follows:
+ *
+ *   SYMBOL                     Meaning                      LED state
+ *                                                         Red   Green Blue
+ *   ------------------------  --------------------------  ------ ------ ----*/
+
+#define LED_STARTED          0 /* NuttX has been started   OFF    OFF   OFF */
+#define LED_HEAPALLOCATE     1 /* Heap has been allocated  OFF    OFF   ON  */
+#define LED_IRQSENABLED      2 /* Interrupts enabled       OFF    ON    OFF */
+#define LED_STACKCREATED     3 /* Idle stack created       OFF    ON    ON  */
+#define LED_INIRQ            4 /* In an interrupt          N/C    GLOW  N/C */
+#define LED_SIGNAL           5 /* In a signal handler      N/C    GLOW  N/C */
+#define LED_ASSERTION        6 /* An assertion failed      GLOW   GLOW  N/C */
+#define LED_PANIC            7 /* The system has crashed   Blk    OFF   N/C */
+#define LED_IDLE             8  /* MCU is is sleep mode    ON     OFF   OFF */
+
+/*
+ * Thus if the blue is statically on, NuttX has successfully booted and is,
+ * apparently, running normally.  If the Red LED is flashing at
+ * approximately 2Hz, then a fatal error has been detected and the system
+ * has halted.
+ *
+ */
+
+
+/* Alternate function pin selections ************************************************/
+
+/* UARTs */
+
 #define GPIO_USART2_RX         GPIO_USART2_RX_3
 #define GPIO_USART2_TX         GPIO_USART2_TX_3
+
+/* CAN
+ *
+ * CAN1 is routed to the onboard transceiver.
+ * CAN2 is routed to the onboard transceiver.
+ */
+
+#define GPIO_CAN1_RX     GPIO_CAN_RX_3
+#define GPIO_CAN1_TX     GPIO_CAN_TX_3
+//#define GPIO_CAN1_RX     GPIO_CAN1_RX_2
+//#define GPIO_CAN1_TX     GPIO_CAN1_TX_2
+//#define GPIO_CAN2_RX     GPIO_CAN2_RX_2
+//#define GPIO_CAN2_TX     GPIO_CAN2_TX_2
+
+/* TIMERS */
+
+#define GPIO_TIM3_CH2OUT        GPIO_TIM3_CH2OUT_3
+#define GPIO_TIM3_CH3OUT        GPIO_TIM3_CH3OUT_2
+#define GPIO_TIM3_CH4OUT        GPIO_TIM3_CH4OUT_2
 
 /* Probes unused */
 #define PROBE_INIT(mask)
 #define PROBE(n,s)
 #define PROBE_MARK(n)
-
-#define GPIO_TIM3_CH2OUT        GPIO_TIM3_CH2OUT_3
-#define GPIO_TIM3_CH3OUT        GPIO_TIM3_CH3OUT_2
-#define GPIO_TIM3_CH4OUT        GPIO_TIM3_CH4OUT_2
 
 /************************************************************************************
  * Public Data

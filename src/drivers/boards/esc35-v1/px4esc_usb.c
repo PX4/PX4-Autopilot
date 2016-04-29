@@ -91,6 +91,25 @@ __EXPORT void stm32_usbinitialize(void)
 }
 
 /************************************************************************************
+ * Name:  stm32_usbpullup
+ *
+ * Description:
+ *   If USB is supported and the board supports a pullup via GPIO (for USB software
+ *   connect and disconnect), then the board software must provide stm32_pullup.
+ *   See include/nuttx/usb/usbdev.h for additional description of this method.
+ *   Alternatively, if no pull-up GPIO the following EXTERN can be redefined to be
+ *   NULL.
+ *
+ ************************************************************************************/
+
+__EXPORT int stm32_usbpullup(FAR struct usbdev_s *dev, bool enable)
+{
+//	usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
+//	stm32_gpiowrite(GPIO_USB_PULLUP, true);
+	return OK;
+}
+
+/************************************************************************************
  * Name:  stm32_usbsuspend
  *
  * Description:
