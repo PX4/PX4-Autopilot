@@ -52,7 +52,7 @@
 
 using namespace DriverFramework;
 
-#if defined(__PX4_QURT) || defined(__RPI2)
+#if defined(__PX4_QURT) || defined(__PX4_POSIX_RPI2)
 
 // Sensor initialization is performed automatically when the QuRT sensor drivers
 // are loaded.
