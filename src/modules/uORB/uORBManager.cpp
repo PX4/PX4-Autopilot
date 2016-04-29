@@ -385,10 +385,10 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 	_remote_subscriber_topics.insert(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		// get the node name.
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		if (node == nullptr) {
 			warnx("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
@@ -417,9 +417,10 @@ int16_t uORB::Manager::process_remove_subscription(
 	_remote_subscriber_topics.erase(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {
@@ -446,9 +447,10 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 	int16_t rc = -1;
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {
