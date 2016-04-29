@@ -348,6 +348,9 @@ foreach(module ${config_module_list})
 	#message(STATUS "adding module: ${module}")
 endforeach()
 
+# Keep track of external shared libs required for modules
+set(module_shared_libraries "${module_shared_libraries}" CACHE INTERNAL "module_shared_libraries")
+
 add_subdirectory(src/firmware/${OS})
 
 #add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
