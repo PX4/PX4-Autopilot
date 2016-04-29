@@ -133,8 +133,6 @@
 #endif
 static const int ERROR = -1;
 
-extern struct system_load_s system_load;
-
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
 /* Decouple update interval and hysteris counters, all depends on intervals */
