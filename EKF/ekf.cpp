@@ -519,8 +519,18 @@ void Ekf::predictState()
 		}
 	}
 
+	// correct delta angles for bias offsets and scale factors
+	Vector3f corrected_delta_ang;
+	corrected_delta_ang(0) = _imu_sample_delayed.delta_ang(0) * _state.gyro_scale(0) - _state.gyro_bias(0);
+	corrected_delta_ang(1) = _imu_sample_delayed.delta_ang(1) * _state.gyro_scale(1) - _state.gyro_bias(1);
+	corrected_delta_ang(2) = _imu_sample_delayed.delta_ang(2) * _state.gyro_scale(2) - _state.gyro_bias(2);
+
+	// correct delta velocity for bias offsets
+	Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel;
+	corrected_delta_vel(2) -= _state.accel_z_bias;
+
 	// correct delta angles for earth rotation rate
-	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_to_earth.transpose() * _earth_rate_NED *
+	corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_to_earth.transpose() * _earth_rate_NED *
 				       _imu_sample_delayed.delta_ang_dt;
 
 	// convert the delta angle to a delta quaternion
@@ -536,15 +546,9 @@ void Ekf::predictState()
 	// save the previous value of velocity so we can use trapzoidal integration
 	Vector3f vel_last = _state.vel;
 
-	// calculate the increment in velocity using the previous orientation
-	Vector3f delta_vel_earth_1 = _R_to_earth * _imu_sample_delayed.delta_vel;
-
 	// update the rotation matrix and calculate the increment in velocity using the current orientation
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
-	Vector3f delta_vel_earth_2 = _R_to_earth * _imu_sample_delayed.delta_vel;
-
-	// Update the velocity assuming constant angular rate and acceleration across the same delta time interval
-	_state.vel += (delta_vel_earth_1 + delta_vel_earth_2) * 0.5f;
+	_state.vel += _R_to_earth * corrected_delta_vel;
 
 	// compensate for acceleration due to gravity
 	_state.vel(2) += _gravity_mss * _imu_sample_delayed.delta_vel_dt;
@@ -560,13 +564,6 @@ void Ekf::predictState()
 
 bool Ekf::collect_imu(imuSample &imu)
 {
-	imu.delta_ang(0) = imu.delta_ang(0) * _state.gyro_scale(0);
-	imu.delta_ang(1) = imu.delta_ang(1) * _state.gyro_scale(1);
-	imu.delta_ang(2) = imu.delta_ang(2) * _state.gyro_scale(2);
-
-	imu.delta_ang -= _state.gyro_bias * imu.delta_ang_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);
-	imu.delta_vel(2) -= _state.accel_z_bias * imu.delta_vel_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);;
-
 	_imu_sample_new.delta_ang	= imu.delta_ang;
 	_imu_sample_new.delta_vel	= imu.delta_vel;
 	_imu_sample_new.delta_ang_dt	= imu.delta_ang_dt;
@@ -621,15 +618,15 @@ void Ekf::calculateOutputStates()
 	// use latest IMU data
 	imuSample imu_new = _imu_sample_new;
 
-	// Get the delta angle and velocity from the latest IMU data
-	// Note: We do no not need to consider any bias or scale correction here
-	// since the base class has already corrected the imu sample
+	// correct delta angles for bias offsets and scale factors
 	Vector3f delta_angle;
-	delta_angle(0) = imu_new.delta_ang(0);
-	delta_angle(1) = imu_new.delta_ang(1);
-	delta_angle(2) = imu_new.delta_ang(2);
+	delta_angle(0) = _imu_sample_new.delta_ang(0) * _state.gyro_scale(0) - _state.gyro_bias(0);
+	delta_angle(1) = _imu_sample_new.delta_ang(1) * _state.gyro_scale(1) - _state.gyro_bias(1);
+	delta_angle(2) = _imu_sample_new.delta_ang(2) * _state.gyro_scale(2) - _state.gyro_bias(2);
 
-	Vector3f delta_vel = imu_new.delta_vel;
+	// correct delta velocity for bias offsets
+	Vector3f delta_vel = _imu_sample_new.delta_vel;
+	delta_vel(2) -= _state.accel_z_bias;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
