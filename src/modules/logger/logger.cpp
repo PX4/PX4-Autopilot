@@ -183,7 +183,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-#ifdef DBGPRINT
+#if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
 	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
 	warnx("allocating %d bytes for log_buffer", log_buffer_size);
