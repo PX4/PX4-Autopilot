@@ -278,6 +278,7 @@ GPS::~GPS()
 	}
 
 	g_dev = nullptr;
+	orb_unadvertise(_report_gps_pos_pub);
 
 }
 
