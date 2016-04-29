@@ -217,6 +217,7 @@ private:
 	int		_accel_sub[SENSOR_COUNT_MAX];	/**< raw accel data subscription */
 	int		_mag_sub[SENSOR_COUNT_MAX];	/**< raw mag data subscription */
 	int		_baro_sub[SENSOR_COUNT_MAX];	/**< raw baro data subscription */
+	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
 	unsigned	_gyro_count;			/**< raw gyro data count */
 	unsigned	_accel_count;			/**< raw accel data count */
 	unsigned	_mag_count;			/**< raw mag data count */
@@ -1701,10 +1702,9 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			}
 
 			if (updated_battery) {
-				// XXX TODO: throttle is hardcoded here. The dependency to throttle would need to be
-				// removed, or it needs to be subscribed to actuator controls.
-				const float throttle = 0.5f;
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, throttle, &_battery_status);
+				actuator_controls_s ctrl;
+				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE], &_battery_status);
 
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub != nullptr) {
@@ -2123,6 +2123,7 @@ Sensors::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
 	/*
 	 * do advertisements
