@@ -1423,6 +1423,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* Subscribe to land detector */
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	struct vehicle_land_detected_s land_detector = {};
+	land_detector.landed = true;
 
 	/*
 	 * The home position is set based on GPS only, to prevent a dependency between
