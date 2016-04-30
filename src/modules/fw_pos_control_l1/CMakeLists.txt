@@ -40,8 +40,6 @@ px4_add_module(
 	SRCS
 		fw_pos_control_l1_main.cpp
 		landingslope.cpp
-		mtecs/mTecs.cpp
-		mtecs/limitoverride.cpp
 	DEPENDS
 		platforms__common
 		git_ecl
