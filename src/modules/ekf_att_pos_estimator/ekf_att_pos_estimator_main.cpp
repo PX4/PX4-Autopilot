@@ -1461,10 +1461,10 @@ void AttitudePositionEstimatorEKF::pollData()
 
 		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 			_vibration_warning = true;
-			mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-							 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
-							 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
-							 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
+			// mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+			// 				 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
+			// 				 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
+			// 				 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
 		}
 
 	} else {
