@@ -6,6 +6,8 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
+#include <version/version.h>
+#include <systemlib/git_version.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -67,6 +69,10 @@ private:
 	void stop_log();
 
 	void write_formats();
+
+	void write_version();
+
+	void write_info(const char *name, const char *value);
 
 	void write_parameters();
 
