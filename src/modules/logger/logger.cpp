@@ -718,7 +718,7 @@ void Logger::write_info(const char *name, const char *value)
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
-	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%d] %s", vlen, name);
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%u] %s", (unsigned)vlen, name);
 	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 	/* copy string value directly to buffer */
