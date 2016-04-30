@@ -223,7 +223,7 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
  * @unit m/s
  * @min 2.0
  * @max 10.0
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
 
