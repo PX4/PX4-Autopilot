@@ -690,15 +690,19 @@ void Ekf::calculateOutputStates()
 	delta_ang_error(1) = scalar * q_error(2);
 	delta_ang_error(2) = scalar * q_error(3);
 
+	// calculate gains that provides tight tracking of the estimator states and
+	// adjust for changes in time delay to mantain consistent overshoot
+	float omega = 1e6f / (_imu_sample_new.time_us - _imu_sample_delayed.time_us);
+
 	// calculate a corrrection to the delta angle
-	// that will cause the INS to track the EKF quaternions with a 1 sec time constant
-	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt;
+	// that will cause the INS to track the EKF quaternions
+	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt * omega * 0.5f;
 
 	// calculate a correction to the delta velocity
-	// that will cause the INS to track the EKF velocity with a 1 sec time constant
-	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
+	// that will cause the INS to track the EKF velocity
+	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt * omega * 0.5f;
 
 	// calculate a correction to the INS velocity
-	// that will cause the INS to track the EKF position with a 1 sec time constant
-	_vel_corr = (_state.pos - _output_sample_delayed.pos);
+	// that will cause the INS to track the EKF position
+	_vel_corr = (_state.pos - _output_sample_delayed.pos) * omega * 0.6f;
 }
