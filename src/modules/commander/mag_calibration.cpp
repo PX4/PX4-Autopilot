@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@ static const int ERROR = -1;
 static const char *sensor_name = "mag";
 static constexpr unsigned max_mags = 3;
 static constexpr float mag_sphere_radius = 0.2f;
-static constexpr unsigned int calibration_sides = 6;			///< The total number of sides
+static constexpr unsigned int calibration_sides = 3;			///< The total number of sides
 static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
 
@@ -79,6 +79,7 @@ int32_t	device_ids[max_mags];
 bool internal[max_mags];
 int device_prio_max = 0;
 int32_t device_id_primary = 0;
+static unsigned _last_mag_progress = 0;
 
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&device_ids)[max_mags]);
 
@@ -119,6 +120,8 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	for (size_t i=0; i<max_mags; i++) {
 		device_ids[i] = 0; // signals no mag
 	}
+
+	_last_mag_progress = 0;
 
 	for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 #ifndef __PX4_QURT
@@ -397,12 +400,18 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			} else {
 				calibration_counter_side++;
 
-				// Progress indicator for side
-				calibration_log_info(worker_data->mavlink_log_pub,
-							     "[cal] %s side calibration: progress <%u>",
-							     detect_orientation_str(orientation), progress_percentage(worker_data) +
-							     (unsigned)((100 / calibration_sides) * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)));
-				usleep(20000);
+				unsigned new_progress = progress_percentage(worker_data) +
+							     (unsigned)((100 / calibration_sides) * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside));
+
+				if (new_progress - _last_mag_progress > 3) {
+					// Progress indicator for side
+					calibration_log_info(worker_data->mavlink_log_pub,
+								     "[cal] %s side calibration: progress <%u>",
+								     detect_orientation_str(orientation), new_progress);
+					usleep(20000);
+
+					_last_mag_progress = new_progress;
+				}
 			}
 		} else {
 			poll_errcount++;
@@ -442,9 +451,34 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_LEFT] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_NOSE_DOWN] = false;
-	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = false;
-	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = false;
-	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = false;
+	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = true;
+	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = true;
+	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = true;
+
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_TAIL_DOWN));
+	usleep(100000);
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_TAIL_DOWN));
+	usleep(100000);
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_UPSIDE_DOWN));
+	usleep(100000);
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_UPSIDE_DOWN));
+	usleep(100000);
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_RIGHT));
+	usleep(100000);
+	calibration_log_info(mavlink_log_pub,
+		"[cal] %s side done, rotate to a different side",
+		detect_orientation_str(DETECT_ORIENTATION_RIGHT));
+	usleep(100000);
 
 	for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
 		// Initialize to no subscription
@@ -715,6 +749,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 									     cur_mag,
 									     (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale);
 #endif
+						usleep(200000);
 					}
 				}
 			}
