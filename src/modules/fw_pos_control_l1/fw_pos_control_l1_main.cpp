@@ -52,52 +52,54 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
+
+#include "landingslope.h"
 #include <arch/board/board.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/tecs_status.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <systemlib/pid/pid.h>
-#include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
-#include <launchdetection/LaunchDetector.h>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
-#include "landingslope.h"
+#include <geo/geo.h>
+#include <launchdetection/LaunchDetector.h>
+#include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
 #include <runway_takeoff/RunwayTakeoff.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
+#include <systemlib/pid/pid.h>
+#include <systemlib/systemlib.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/fw_virtual_attitude_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
@@ -920,18 +922,21 @@ float
 FixedwingPositionControl::get_demanded_airspeed()
 {
 	float altctrl_airspeed = 0;
+
 	// neutral throttle corresponds to trim airspeed
 	if (_manual.z < 0.5f) {
 		// lower half of throttle is min to trim airspeed
 		altctrl_airspeed = _parameters.airspeed_min +
-							(_parameters.airspeed_trim - _parameters.airspeed_min) *
-							_manual.z * 2;
+				   (_parameters.airspeed_trim - _parameters.airspeed_min) *
+				   _manual.z * 2;
+
 	} else {
 		// upper half of throttle is trim to max airspeed
 		altctrl_airspeed = _parameters.airspeed_trim +
-							(_parameters.airspeed_max - _parameters.airspeed_trim) *
-							(_manual.z * 2 - 1);
+				   (_parameters.airspeed_max - _parameters.airspeed_trim) *
+				   (_manual.z * 2 - 1);
 	}
+
 	return altctrl_airspeed;
 }
 
@@ -1301,8 +1306,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		float mission_airspeed = _parameters.airspeed_trim;
+
 		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-			_pos_sp_triplet.current.cruising_speed > 0.1f) {
+		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
 			mission_airspeed = _pos_sp_triplet.current.cruising_speed;
 		}
 
@@ -1975,7 +1981,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
 		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = (launchDetector.launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() : _parameters.throttle_idle;
+		_att_sp.thrust = (launchDetector.launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() :
+				 _parameters.throttle_idle;
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
@@ -2023,7 +2030,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 }
 
 float
-FixedwingPositionControl::get_tecs_pitch() {
+FixedwingPositionControl::get_tecs_pitch()
+{
 	if (_is_tecs_running) {
 		return _tecs.get_pitch_demand();
 
@@ -2034,7 +2042,8 @@ FixedwingPositionControl::get_tecs_pitch() {
 }
 
 float
-FixedwingPositionControl::get_tecs_thrust() {
+FixedwingPositionControl::get_tecs_thrust()
+{
 	if (_is_tecs_running) {
 		return _tecs.get_throttle_demand();
 
@@ -2236,7 +2245,8 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_was_in_transition = true;
 		_asp_after_transition = _ctrl_state.airspeed;
 
-	// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+
 	} else if (_was_in_transition) {
 		_asp_after_transition += dt * 2; // increase 2m/s
 
@@ -2251,6 +2261,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	}
 
 	_is_tecs_running = run_tecs;
+
 	if (!run_tecs) {
 		// next time we run TECS we should reinitialize states
 		_reinitialize_tecs = true;
@@ -2278,9 +2289,9 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
 	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		math::Matrix<3,3> R_offset;
+		math::Matrix<3, 3> R_offset;
 		R_offset.from_euler(0, M_PI_2_F, 0);
-		math::Matrix<3,3> R_fixed_wing = _R_nb * R_offset;
+		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
 		math::Vector<3> euler = R_fixed_wing.to_euler();
 		pitch_for_tecs = euler(1);
 	}
