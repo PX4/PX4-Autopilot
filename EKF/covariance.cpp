@@ -173,30 +173,21 @@ void Ekf::predictCovariance()
 		wind_vel_sig = 0.0f;
 	}
 
+	// Construct the process noise variance diagonal for those states with a stationary process model
+	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
 	for (unsigned i = 0; i <= 9; i++) {
 		process_noise[i] = 0.0f;
 	}
-
-	for (unsigned i = 10; i <= 12; i++) {
-		process_noise[i] = sq(d_ang_bias_sig);
-	}
-
-	for (unsigned i = 13; i <= 15; i++) {
-		process_noise[i] = sq(d_vel_bias_sig);
-	}
-
-	for (unsigned i = 16; i < 19; i++) {
-		process_noise[i] = sq(mag_I_sig);
-	}
-
-	for (unsigned i = 19; i < 22; i++) {
-		process_noise[i] = sq(mag_B_sig);
-	}
-
-	for (unsigned i = 22; i < 24; i++) {
-		process_noise[i] = sq(wind_vel_sig);
-	}
-
+	// delta angle bias states
+	process_noise[12] = process_noise[11] = process_noise[10] = sq(d_ang_bias_sig);
+	// delta_velocity bias states
+	process_noise[15] = process_noise[14] = process_noise[13] = sq(d_vel_bias_sig);
+	// earth frame magnetic field states
+	process_noise[18] = process_noise[17] = process_noise[16] = sq(mag_I_sig);
+	// body frame magnetic field states
+	process_noise[21] = process_noise[20] = process_noise[19] = sq(mag_B_sig);
+	// wind velocity states
+	process_noise[23] = process_noise[22] = sq(wind_vel_sig);
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
