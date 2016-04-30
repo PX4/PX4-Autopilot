@@ -2302,7 +2302,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	struct TECS::tecs_state s;
 	_tecs.get_tecs_state(s);
 
-	struct tecs_status_s t;
+	struct tecs_status_s t = {};
 
 	t.timestamp = s.timestamp;
 
