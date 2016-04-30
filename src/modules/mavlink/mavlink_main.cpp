@@ -121,6 +121,7 @@ extern mavlink_system_t mavlink_system;
 static void usage(void);
 
 bool Mavlink::_boot_complete = false;
+bool Mavlink::_config_link_on = false;
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -654,7 +655,6 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return _uart_fd;
 	}
 
-
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
@@ -1137,6 +1137,10 @@ Mavlink::init_udp()
 void
 Mavlink::handle_message(const mavlink_message_t *msg)
 {
+	if (!accepting_commands()) {
+		return;
+	}
+
 	/* handle packet with mission manager */
 	_mission_manager->handle_message(msg);
 
@@ -1931,6 +1935,11 @@ Mavlink::task_main(int argc, char *argv[])
 		_main_loop_delay = 2000;
 	}
 
+	/* hard limit to 100 Hz at least */
+	if (_main_loop_delay > 10000) {
+		_main_loop_delay = 10000;
+	}
+
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
@@ -2274,6 +2283,13 @@ Mavlink::display_status()
 		switch (_rstatus.type) {
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
 			printf("3DR RADIO\n");
+			printf("\trssi:\t\t%d\n", _rstatus.rssi);
+			printf("\tremote rssi:\t%u\n", _rstatus.remote_rssi);
+			printf("\ttxbuf:\t\t%u\n", _rstatus.txbuf);
+			printf("\tnoise:\t\t%d\n", _rstatus.noise);
+			printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
+			printf("\trx errors:\t%u\n", _rstatus.rxerrors);
+			printf("\tfixed:\t\t%u\n", _rstatus.fixed);
 			break;
 
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
@@ -2285,24 +2301,17 @@ Mavlink::display_status()
 			break;
 		}
 
-		printf("\trssi:\t\t%d\n", _rstatus.rssi);
-		printf("\tremote rssi:\t%u\n", _rstatus.remote_rssi);
-		printf("\ttxbuf:\t\t%u\n", _rstatus.txbuf);
-		printf("\tnoise:\t\t%d\n", _rstatus.noise);
-		printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
-		printf("\trx errors:\t%u\n", _rstatus.rxerrors);
-		printf("\tfixed:\t\t%u\n", _rstatus.fixed);
-		printf("\tflow control:\t%s\n", (_flow_control_enabled) ? "ON" : "OFF");
-
 	} else {
 		printf("\tno telem status.\n");
 	}
 
+	printf("\tflow control:\t%s\n", (_flow_control_enabled) ? "ON" : "OFF");
 	printf("\trates:\n");
 	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
 	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
 	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
 	printf("\trate mult: %.3f\n", (double)_rate_mult);
+	printf("\taccepting commands: %s\n", (accepting_commands()) ? "YES" : "NO");
 }
 
 int

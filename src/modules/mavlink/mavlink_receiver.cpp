@@ -155,13 +155,23 @@ MavlinkReceiver::~MavlinkReceiver()
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
+	if (!_mavlink->get_config_link_on()) {
+		if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_CONFIG) {
+			_mavlink->set_config_link_on(true);
+		}
+	}
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
-		handle_message_command_long(msg);
+		if (_mavlink->accepting_commands()) {
+			handle_message_command_long(msg);
+		}
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
-		handle_message_command_int(msg);
+		if (_mavlink->accepting_commands()) {
+			handle_message_command_int(msg);
+		}
 		break;
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
@@ -173,7 +183,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_SET_MODE:
-		handle_message_set_mode(msg);
+		if (_mavlink->accepting_commands()) {
+			handle_message_set_mode(msg);
+		}
 		break;
 
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
@@ -213,7 +225,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
-		handle_message_request_data_stream(msg);
+		if (_mavlink->accepting_commands()) {
+			handle_message_request_data_stream(msg);
+		}
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
