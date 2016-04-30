@@ -494,8 +494,7 @@ private:
 					bool climbout_mode, float climbout_pitch_min_rad,
 					float altitude,
 					const math::Vector<3> &ground_speed,
-					unsigned mode = tecs_status_s::TECS_MODE_NORMAL,
-					bool pitch_max_special = false);
+					unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
 
@@ -1654,8 +1653,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 									   _parameters.pitch_limit_min)),
 							   _global_pos.alt,
 							   ground_speed,
-							   tecs_status_s::TECS_MODE_TAKEOFF,
-							   takeoff_pitch_max_deg != _parameters.pitch_limit_max);
+							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				// assign values
 				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
@@ -1728,8 +1726,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 										     math::radians(10.0f)),
 									   _global_pos.alt,
 									   ground_speed,
-									   tecs_status_s::TECS_MODE_TAKEOFF,
-									   takeoff_pitch_max_deg != _parameters.pitch_limit_max);
+									   tecs_status_s::TECS_MODE_TAKEOFF);
 
 						/* limit roll motion to ensure enough lift */
 						_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
@@ -2220,7 +2217,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		unsigned mode, bool pitch_max_special)
+		unsigned mode)
 {
 	bool run_tecs = true;
 	float dt = 0.01f; // prevent division with 0
