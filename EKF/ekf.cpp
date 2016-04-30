@@ -530,8 +530,7 @@ void Ekf::predictState()
 	corrected_delta_vel(2) -= _state.accel_z_bias;
 
 	// correct delta angles for earth rotation rate
-	corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_to_earth.transpose() * _earth_rate_NED *
-				       _imu_sample_delayed.delta_ang_dt;
+	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
 
 	// convert the delta angle to a delta quaternion
 	Quaternion dq;
