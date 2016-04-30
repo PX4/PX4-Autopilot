@@ -452,6 +452,14 @@ void Logger::run()
 
 			bool data_written = false;
 
+			/* Check if parameters have changed */
+			// this needs to change to a timestamped record to record a history of parameter changes
+			if (_parameter_update_sub.check_updated()) {
+				warnx("parameter update");
+				_parameter_update_sub.update();
+				write_changed_parameters();
+			}
+
 			// Write data messages for normal subscriptions
 			int msg_id = 0;
 
@@ -757,12 +765,80 @@ void Logger::write_parameters()
 	param_t param = 0;
 
 	do {
+		// get next parameter which is invalid OR used
 		do {
 			param = param_for_index(param_idx);
 			++param_idx;
 		} while (param != PARAM_INVALID && !param_used(param));
 
+		// save parameters which are valid AND used
 		if (param != PARAM_INVALID) {
+			/* get parameter type and size */
+			const char *type_str;
+			param_type_t type = param_type(param);
+			size_t value_size = 0;
+
+			switch (type) {
+			case PARAM_TYPE_INT32:
+				type_str = "int32_t";
+				value_size = sizeof(int32_t);
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				type_str = "float";
+				value_size = sizeof(float);
+				break;
+
+			default:
+				continue;
+			}
+
+			/* format parameter key (type and name) */
+			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
+			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+
+			/* copy parameter value directly to buffer */
+			param_get(param, &buffer[msg_size]);
+			msg_size += value_size;
+
+			msg->msg_size = msg_size - 2;
+
+			/* write message */
+			while (!_writer.write(buffer, msg_size)) {
+				/* wait if buffer is full, don't skip PARAMETER messages */
+				_writer.unlock();
+				_writer.notify();
+				usleep(_log_interval);
+				_writer.lock();
+			}
+		}
+	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
+
+	_writer.unlock();
+	_writer.notify();
+}
+
+void Logger::write_changed_parameters()
+{
+	_writer.lock();
+	uint8_t buffer[sizeof(message_parameter_header_s) + sizeof(param_value_u)];
+	message_parameter_header_s *msg = reinterpret_cast<message_parameter_header_s *>(buffer);
+
+	msg->msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	int param_idx = 0;
+	param_t param = 0;
+
+	do {
+		// get next parameter which is invalid OR used
+		do {
+			param = param_for_index(param_idx);
+			++param_idx;
+		} while (param != PARAM_INVALID && !param_used(param));
+
+		// log parameters which are valid AND used AND unsaved
+		if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
+			warnx("logging change to parameter %s", param_name(param));
+
 			/* get parameter type and size */
 			const char *type_str;
 			param_type_t type = param_type(param);
