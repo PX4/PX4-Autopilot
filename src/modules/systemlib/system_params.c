@@ -105,6 +105,8 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 0);
  * companion computer interface.
  * Set to zero to disable, set to these values to enable (NO OTHER VALUES SUPPORTED!).
  *
+ * @value 0 Disabled
+ * @value 10 FrSky Telemetry
  * @value 921600 Companion Link (921600 baud, 8N1)
  * @value 57600 Companion Link (57600 baud, 8N1)
  * @value 157600 OSD (57600 baud, 8N1)
