@@ -612,13 +612,12 @@ void Ekf::calculateOutputStates()
 
 	// correct delta angles for bias offsets and scale factors
 	Vector3f delta_angle;
-	delta_angle(0) = _imu_sample_new.delta_ang(0) * _state.gyro_scale(0) - _state.gyro_bias(0);
-	delta_angle(1) = _imu_sample_new.delta_ang(1) * _state.gyro_scale(1) - _state.gyro_bias(1);
-	delta_angle(2) = _imu_sample_new.delta_ang(2) * _state.gyro_scale(2) - _state.gyro_bias(2);
+	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0);
+	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1);
+	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2);
 
 	// correct delta velocity for bias offsets
-	Vector3f delta_vel = _imu_sample_new.delta_vel;
-	delta_vel(2) -= _state.accel_z_bias;
+	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
