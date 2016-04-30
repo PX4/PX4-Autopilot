@@ -669,6 +669,7 @@ void Logger::start_log()
 	}
 
 	_writer.start_log(file_name);
+	write_version();
 	write_formats();
 	write_parameters();
 	_enabled = true;
@@ -705,6 +706,44 @@ void Logger::write_formats()
 
 	_writer.unlock();
 	_writer.notify();
+}
+
+/* write info message */
+void Logger::write_info(const char *name, const char *value)
+{
+	_writer.lock();
+	uint8_t buffer[sizeof(message_info_header_s)];
+	message_info_header_s *msg = reinterpret_cast<message_info_header_s *>(buffer);
+	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
+
+	/* construct format key (type and name) */
+	size_t vlen = strlen(value);
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%d] %s", vlen, name);
+	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+
+	/* copy string value directly to buffer */
+	if (vlen < (sizeof(*msg) - msg_size)) {
+		memcpy(&buffer[msg_size], value, vlen);
+		msg_size += vlen;
+
+		msg->msg_size = msg_size - 2;
+
+		/* write message */
+		while (!_writer.write(buffer, msg_size)) {
+			/* wait if buffer is full, don't skip INFO messages */
+			_writer.unlock();
+			_writer.notify();
+			usleep(_log_interval);
+			_writer.lock();
+		}
+	}
+}
+
+/* write version info messages */
+void Logger::write_version()
+{
+	write_info("ver_sw", PX4_GIT_VERSION_STR);
+	write_info("ver_hw", HW_ARCH);
 }
 
 void Logger::write_parameters()
