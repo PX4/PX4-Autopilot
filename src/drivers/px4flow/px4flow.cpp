@@ -541,9 +541,9 @@ PX4FLOW::collect()
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
 
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
+	rotate_3f(_sensor_rotation, &report.pixel_flow_x_integral, &report.pixel_flow_y_integral, &zeroval);
 
-	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+	rotate_3f(_sensor_rotation, &report.gyro_x_rate_integral, &report.gyro_y_rate_integral, &report.gyro_z_rate_integral);
 
 	if (_px4flow_topic == nullptr) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
@@ -592,12 +592,12 @@ PX4FLOW::start()
 	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this, 1);
 
 	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW
-	};
+	struct subsystem_info_s info = {};
+	info.present = true;
+	info.enabled = true;
+	info.ok = true;
+	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW;
+
 	static orb_advert_t pub = nullptr;
 
 	if (pub != nullptr) {

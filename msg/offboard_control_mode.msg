@@ -1,5 +1,4 @@
 # Off-board control mode
-uint64 timestamp
 
 bool ignore_thrust
 bool ignore_attitude

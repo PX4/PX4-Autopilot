@@ -1,6 +1,17 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.cpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@###############################################
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +42,29 @@
  *
  ****************************************************************************/
 
-#ifndef _uORBGtestTopics_hpp_
-#define _uORBGtestTopics_hpp_
+#include <uORB/uORBTopics.h>
+#include <uORB/uORB.h>
+@{
+msgs_count = len(msgs)
+msg_names = [mn.replace(".msg", "") for mn in msgs]
+}@
+@[for msg_name in msg_names]@
+#include <uORB/topics/@(msg_name).h>
+@[end for]
 
-#include "uORB/uORB.h"
+const size_t _uorb_topics_count = @(msgs_count);
+const struct orb_metadata* _uorb_topics_list[_uorb_topics_count] = { 
+@[for idx, msg_name in enumerate(msg_names, 1)]@
+    ORB_ID(@(msg_name))@[if idx != msgs_count],@[end if]
+@[end for]
+};
 
-namespace uORB_test
+size_t orb_topics_count()
 {
-   struct orb_topic_A
-   {
-     int16_t val;
-   };
-
-   struct orb_topic_B
-   {
-     int16_t val;
-   };
-
-   ORB_DEFINE( topicA, struct orb_topic_A, "TOPICA:int16 val;" );
-   ORB_DEFINE( topicB, struct orb_topic_B, "TOPICB:int16 val;" );
-
-   ORB_DEFINE( topicA_clone, struct orb_topic_A, "TOPICA_CLONE:int16 val;" );
-   ORB_DEFINE( topicB_clone, struct orb_topic_B, "TOPICB_CLONE:int16 val;"  );
+	return _uorb_topics_count;
 }
 
-#endif // _UnitTest_uORBTopics_hpp_
+const struct orb_metadata **orb_get_topics()
+{
+	return _uorb_topics_list;
+}

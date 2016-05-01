@@ -25,7 +25,6 @@ uint32 SENSOR_PRIO_MAX = 255
 #
 # NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes Change with consideration only
 
-uint64 timestamp			# Timestamp in microseconds since boot, from gyro
 uint64[3] gyro_timestamp			# Gyro timestamps
 int16[9] gyro_raw			# Raw sensor values of angular velocity
 float32[9] gyro_rad_s			# Angular velocity in radian per seconds
