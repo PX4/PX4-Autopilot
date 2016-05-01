@@ -874,8 +874,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 			_rc_in.rssi = rssi;
 
 		} else {
-			_rc_in.rssi =
-				(!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+			_rc_in.rssi = 255;
 		}
 
 	} else {
