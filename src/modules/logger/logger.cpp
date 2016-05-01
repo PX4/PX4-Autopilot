@@ -492,8 +492,7 @@ void Logger::run()
 						 */
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						/* the ORB topic data object has 2 unused trailing bytes? */
-						header->msg_size = static_cast<uint16_t>(msg_size - 2);
+						header->msg_size = static_cast<uint16_t>(msg_size - 3);
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 
@@ -700,7 +699,7 @@ void Logger::write_formats()
 		msg.msg_id = msg_id;
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
-		msg.msg_size = msg_size - 2;
+		msg.msg_size = msg_size - 3;
 
 		while (!_writer.write(&msg, msg_size)) {
 			_writer.unlock();
@@ -734,7 +733,7 @@ void Logger::write_info(const char *name, const char *value)
 		memcpy(&buffer[msg_size], value, vlen);
 		msg_size += vlen;
 
-		msg->msg_size = msg_size - 2;
+		msg->msg_size = msg_size - 3;
 
 		/* write message */
 		while (!_writer.write(buffer, msg_size)) {
@@ -801,7 +800,7 @@ void Logger::write_parameters()
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - 2;
+			msg->msg_size = msg_size - 3;
 
 			/* write message */
 			while (!_writer.write(buffer, msg_size)) {
@@ -859,15 +858,16 @@ void Logger::write_changed_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name) */
-			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
+			/* format parameter key (type and name and timestamp) */
+			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s ", type_str, param_name(param));
 			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 			/* copy parameter value directly to buffer */
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - 2;
+			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
+			msg->msg_size = msg_size - 3;
 
 			/* write message */
 			while (!_writer.write(buffer, msg_size)) {
