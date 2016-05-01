@@ -846,7 +846,7 @@ function(px4_generate_parameters_source)
 		PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${generated_files}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
-		DEPENDS ${XML} ${DEPS}
+		DEPENDS ${XML} ${DEPS} ${CMAKE_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
