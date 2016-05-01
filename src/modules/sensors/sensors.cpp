@@ -1996,8 +1996,7 @@ Sensors::rc_poll()
 			}
 
 			/* copy from mapped manual control to control group 3 */
-			struct actuator_controls_s actuator_group_3;
-			memset(&actuator_group_3, 0 , sizeof(actuator_group_3));
+			struct actuator_controls_s actuator_group_3 = {};
 
 			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
 
