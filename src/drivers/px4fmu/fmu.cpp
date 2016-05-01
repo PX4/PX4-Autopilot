@@ -184,6 +184,7 @@ private:
 	int		_adc_sub;
 	struct rc_input_values	_rc_in;
 	float		_analog_rc_rssi_volt;
+	bool		_analog_rc_rssi_stable;
 	orb_advert_t	_to_input_rc;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
@@ -367,6 +368,7 @@ PX4FMU::PX4FMU() :
 	_adc_sub(-1),
 	_rc_in{},
 	_analog_rc_rssi_volt(-1.0f),
+	_analog_rc_rssi_stable(false),
 	_to_input_rc(nullptr),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
@@ -858,7 +860,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	if (rssi == -1) {
 
 		/* set RSSI if analog RSSI input is present */
-		if (_analog_rc_rssi_volt > 0.0f) {
+		if (_analog_rc_rssi_stable) {
 			_rc_in.rssi = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
 
 			if (_rc_in.rssi > 100) {
@@ -1202,13 +1204,15 @@ PX4FMU::cycle()
 		for (unsigned i = 0; i < adc_chans; i++) {
 			if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
 
-				/* only allow this to be used if we see a high RSSI once */
-				if (_analog_rc_rssi_volt < 0.0f && adc.channel_value[i] > 2.5f) {
+				if (_analog_rc_rssi_volt < 0.0f) {
 					_analog_rc_rssi_volt = adc.channel_value[i];
 				}
 
-				if (_analog_rc_rssi_volt > 0.0f) {
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+				_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+
+				/* only allow this to be used if we see a high RSSI once */
+				if (_analog_rc_rssi_volt > 2.5f) {
+					_analog_rc_rssi_stable = true;
 				}
 			}
 		}
