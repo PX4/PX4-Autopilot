@@ -2446,7 +2446,7 @@ PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
 /**
- * AUX1 channel
+ * AUX1 Passthrough RC Channel
  *
  * Default function: Camera pitch
  *
@@ -2476,7 +2476,7 @@ PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
 /**
- * AUX2 channel
+ * AUX2 Passthrough RC Channel
  *
  * Default function: Camera roll
  *
@@ -2506,7 +2506,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
 /**
- * AUX3 Channel
+ * AUX3 Passthrough RC Channel
  *
  * Default function: Camera azimuth / yaw
  *
