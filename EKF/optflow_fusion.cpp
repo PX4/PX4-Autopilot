@@ -279,7 +279,7 @@ void Ekf::fuseOptFlow()
 			H_LOS[1][5] = -t2*(q0*q3*2.0f+q1*q2*2.0f);
 			H_LOS[1][6] = t2*(q0*q2*2.0f-q1*q3*2.0f);
 
-			// calculate intermediate variables for the X observaton innovatoin variance and klmna gains
+			// calculate intermediate variables for the Y observaton innovatoin variance and Kalman gains
 			float t3 = q3*ve*2.0f;
 			float t4 = q0*vn*2.0f;
 			float t11 = q2*vd*2.0f;
@@ -372,7 +372,7 @@ void Ekf::fuseOptFlow()
 			float t94 = t2*t10*t76;
 			float t77 = R_LOS+t37+t43+t56+t63+t70-t85-t94;
 			float t78;
-			// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
+			// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
 				t78 = 1.0f / t77;
 				_flow_innov_var[1] = t77;
@@ -383,7 +383,7 @@ void Ekf::fuseOptFlow()
 				return;
 			}
 
-			// calculate Kalman gains for X-axis observation
+			// calculate Kalman gains for Y-axis observation
 			Kfusion[0][1] = -t78*(t12+P[0][5]*t2*t8-P[0][6]*t2*t10+P[0][1]*t2*t16-P[0][2]*t2*t19+P[0][3]*t2*t22+P[0][4]*t2*t27);
 			Kfusion[1][1] = -t78*(t31+P[1][0]*t2*t5+P[1][5]*t2*t8-P[1][6]*t2*t10-P[1][2]*t2*t19+P[1][3]*t2*t22+P[1][4]*t2*t27);
 			Kfusion[2][1] = -t78*(-t79+P[2][0]*t2*t5+P[2][5]*t2*t8-P[2][6]*t2*t10+P[2][1]*t2*t16+P[2][3]*t2*t22+P[2][4]*t2*t27);
