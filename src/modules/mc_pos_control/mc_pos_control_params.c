@@ -247,7 +247,9 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 /**
  * Nominal horizontal velocity
  *
- * Normal horizontal velocity in AUTO mode and endpoint for position stabilized mode (POSCTRL).
+ * Normal horizontal velocity in AUTO modes (includes
+ * also RTL / hold / etc.) and endpoint for
+ * position stabilized mode (POSCTRL).
  *
  * @unit m/s
  * @min 0.0
@@ -259,7 +261,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode.
+ * Maximum horizontal velocity in AUTO mode. If higher speeds
+ * are commanded in a mission they will be capped to this velocity.
  *
  * @unit m/s
  * @min 0.0
