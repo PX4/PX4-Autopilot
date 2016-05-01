@@ -861,11 +861,17 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 
 		/* set RSSI if analog RSSI input is present */
 		if (_analog_rc_rssi_stable) {
-			_rc_in.rssi = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
+			float rssi = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
 
-			if (_rc_in.rssi > 100) {
-				_rc_in.rssi = 100;
+			if (rssi > 100.0f) {
+				rssi = 100.0f;
 			}
+
+			if (rssi < 0.0f) {
+				rssi = 0.0f;
+			}
+
+			_rc_in.rssi = rssi;
 
 		} else {
 			_rc_in.rssi =
