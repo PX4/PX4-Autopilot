@@ -844,6 +844,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 
 	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
 		_rc_in.values[i] = raw_rc_values[i];
+
 		if (raw_rc_values[i] != UINT16_MAX) {
 			valid_chans++;
 		}
@@ -863,6 +864,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 			if (_rc_in.rssi > 100) {
 				_rc_in.rssi = 100;
 			}
+
 		} else {
 			_rc_in.rssi =
 				(!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
@@ -877,7 +879,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	}
 
 	_rc_in.rc_failsafe = failsafe;
-	_rc_in.rc_lost = (valid_chans > 0);
+	_rc_in.rc_lost = (valid_chans == 0);
 	_rc_in.rc_lost_frame_count = frame_drops;
 	_rc_in.rc_total_frame_count = 0;
 }
@@ -1211,6 +1213,7 @@ PX4FMU::cycle()
 			}
 		}
 	}
+
 #endif
 
 	bool rc_updated = false;
