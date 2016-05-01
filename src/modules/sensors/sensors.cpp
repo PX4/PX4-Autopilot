@@ -249,7 +249,6 @@ private:
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
-	float _analog_rc_rssi_volt;			/**< analog RSSI indicator */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -553,7 +552,6 @@ Sensors::Sensors() :
 	_airspeed_validator(),
 
 	_param_rc_values{},
-	_analog_rc_rssi_volt(-1.0f),
 	_board_rotation{},
 	_mag_rotation{}
 {
@@ -1700,21 +1698,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					}
 
 #endif
-#ifdef ADC_RC_RSSI_CHANNEL
-
-				} else if (ADC_RC_RSSI_CHANNEL == buf_adc[i].am_channel) {
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f;
-
-					if (voltage > 0.2f) {
-
-						if (_analog_rc_rssi_volt < 0.0f) {
-							_analog_rc_rssi_volt = voltage;
-						}
-
-						_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.999f + voltage * 0.001f;
-					}
-
-#endif
 				}
 			}
 
@@ -1924,12 +1907,6 @@ Sensors::rc_poll()
 
 		_rc.channel_count = rc_input.channel_count;
 		_rc.rssi = rc_input.rssi;
-
-		/* overwrite RSSI if analog RSSI input is present */
-		if (_analog_rc_rssi_volt > 0.2f) {
-			_rc.rssi = (_analog_rc_rssi_volt / 3.0f) * 100.0f;
-		}
-
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
 		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
