@@ -103,9 +103,17 @@ void Ekf::resetHeight()
 		if (_time_last_imu - range_newest.time_us < 2 * RNG_MAX_INTERVAL) {
 			// calculate the new vertical position using range sensor
 			float new_pos_down = _hgt_sensor_offset - range_newest.rng;
+
 			// update the state and assoicated variance
 			_state.pos(2) = new_pos_down;
+
+			// reset the associated covariance values
+			zeroRows(P, 8, 8);
+			zeroCols(P, 8, 8);
+
+			// the state variance is the same as the observation
 			P[8][8] = sq(_params.range_noise);
+
 			vert_pos_reset = true;
 
 		} else {
@@ -122,7 +130,14 @@ void Ekf::resetHeight()
 
 		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
+
+			// reset the associated covariance values
+			zeroRows(P, 8, 8);
+			zeroCols(P, 8, 8);
+
+			// the state variance is th esame as the observation
 			P[8][8] = sq(_params.baro_noise);
+
 			vert_pos_reset = true;
 
 		} else {
@@ -133,7 +148,14 @@ void Ekf::resetHeight()
 		// initialize vertical position and velocity with newest gps measurement
 		if (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
+
+			// reset the associated covarince values
+			zeroRows(P, 8, 8);
+			zeroCols(P, 8, 8);
+
+			// the state variance is the same as the observation
 			P[8][8] = sq(gps_newest.hacc);
+
 			vert_pos_reset = true;
 
 		} else {
@@ -145,13 +167,26 @@ void Ekf::resetHeight()
 		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 	}
 
-	// If we are using GPS, then use it to reset the vertical velocity
+	// reset the vertical velocity covariance values
+	zeroRows(P, 5, 5);
+	zeroCols(P, 5, 5);
+
+	// reset the vertical velocity state
 	if (_control_status.flags.gps && (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL)) {
+		// If we are using GPS, then use it to reset the vertical velocity
 		_state.vel(2) = gps_newest.vel(2);
+
+		// the state variance is the same as the observation
 		P[5][5] = sq(1.5f * gps_newest.sacc);
+
 	} else {
-		P[5][5] = fminf(sq(_state.vel(2)),1000.0f);
+		// we don't know what the vertical velocity is, so set it to zero
 		_state.vel(2) = 0.0f;
+
+		// Set the variance to a value large enough to allow the state to converge quickly
+		// that does not destabilise the filter
+		P[5][5] = fminf(sq(_state.vel(2)),100.0f);
+
 	}
 	vert_vel_reset = true;
 
