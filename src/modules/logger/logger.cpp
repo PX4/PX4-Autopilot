@@ -328,7 +328,7 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
 			fd = add_topic(topics[i]);
-			printf("logging topic: %zu, %s\n", i, topics[i]->o_name);
+			PX4_INFO("logging topic: %zu, %s\n", i, topics[i]->o_name);
 			break;
 		}
 	}
@@ -549,7 +549,7 @@ void Logger::run()
 
 							if (dropout_start == 0)	{
 								available = _writer._count;
-								PX4_WARN("dropout, available: %d/%d", available, _writer._buffer_size);
+								PX4_WARN("dropout, available: %zu/%zu", available, _writer._buffer_size);
 								dropout_start = trytime;
 								dropout_count++;
 							}
@@ -578,7 +578,7 @@ void Logger::run()
 			if (deltat > 4.0) {
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
-				PX4_INFO("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+				PX4_INFO("%8.1e Kbytes/sec, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
 					 throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
 
 				total_bytes = 0;
