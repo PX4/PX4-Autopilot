@@ -334,13 +334,11 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 # DriverFramework Drivers
 #
 set(df_driver_libs)
-if(NOT "${config_df_driver_list}" STREQUAL "")
-	foreach(driver ${config_df_driver_list})
-		add_subdirectory(src/lib/DriverFramework/drivers/${driver})
-		list(APPEND df_driver_libs df_${driver})
-		message("Adding DF driver: ${driver}")
-	endforeach()
-endif()
+foreach(driver ${config_df_driver_list})
+	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
+	list(APPEND df_driver_libs df_${driver})
+	message("Adding DF driver: ${driver}")
+endforeach()
 
 #=============================================================================
 # subdirectories
