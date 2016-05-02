@@ -17,7 +17,12 @@ class LogWriter
 public:
 	LogWriter(uint8_t *buffer, size_t buffer_size);
 
-	pthread_t thread_start();
+	/**
+	 * start the thread
+	 * @param thread will be set to the created thread on success
+	 * @return 0 on success, error number otherwise (@see pthread_create)
+	 */
+	int thread_start(pthread_t &thread);
 
 	void thread_stop();
 

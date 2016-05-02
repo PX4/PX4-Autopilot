@@ -48,7 +48,7 @@ void LogWriter::stop_log()
 	notify();
 }
 
-pthread_t LogWriter::thread_start()
+int LogWriter::thread_start(pthread_t &thread)
 {
 	pthread_attr_t thr_attr;
 	pthread_attr_init(&thr_attr);
@@ -60,15 +60,10 @@ pthread_t LogWriter::thread_start()
 
 	pthread_attr_setstacksize(&thr_attr, 1024);
 
-	pthread_t thr;
-
-	if (0 != pthread_create(&thr, &thr_attr, &LogWriter::run_helper, this)) {
-		PX4_WARN("error creating logwriter thread");
-	}
-
+	int ret = pthread_create(&thread, &thr_attr, &LogWriter::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
 
-	return thr;
+	return ret;
 }
 
 void LogWriter::thread_stop()
