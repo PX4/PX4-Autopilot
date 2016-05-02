@@ -134,7 +134,7 @@ void LogWriter::run()
 				available = get_read_ptr(&read_ptr, &is_part);
 
 				/* if sufficient data available or partial read or terminating, exit this wait loop */
-				if ((available > _min_write_chunk) || is_part || !_should_run) {
+				if ((available >= _min_write_chunk) || is_part || !_should_run) {
 					/* GOTO end of block */
 					break;
 				}
@@ -182,6 +182,7 @@ void LogWriter::run()
 				_count = 0;
 
 				int res = ::close(_fd);
+				_fd = -1;
 
 				if (res) {
 					PX4_WARN("error closing log file");
