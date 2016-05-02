@@ -72,7 +72,7 @@ void Ekf::initialiseCovariance()
 	P[9][9] = sq(fmaxf(_params.baro_noise, 0.01f));
 
 	// gyro bias
-	P[10][10] = sq(0.035f * dt);
+	P[10][10] = sq(0.1f * dt);
 	P[11][11] = P[10][10];
 	P[12][12] = P[10][10];
 
