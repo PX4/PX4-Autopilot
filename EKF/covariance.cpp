@@ -140,7 +140,7 @@ void Ekf::predictCovariance()
 
 	float dt = _imu_sample_delayed.delta_ang_dt;
 
-	// compute process noise
+	// compute noise variance for stationary processes
 	float process_noise[_k_num_states] = {};
 
 	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
@@ -197,6 +197,14 @@ void Ekf::predictCovariance()
 	daxVar = dayVar = dazVar = sq(dt * gyro_noise);
 	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
+
+	// force symmetry on the covariance matrix before we use it for the prediction step
+	for (unsigned row = 1; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < row; column++) {
+			P[row][column] = 0.5f * (P[row][column] + P[column][row]);
+			P[column][row] = P[row][column];
+		}
+	}
 
 	// predict the covariance
 
@@ -262,11 +270,6 @@ void Ekf::predictCovariance()
 
 	// covariance update
 	float nextP[24][24];
-
-	// add noise variances for states with stationary process models
-	for (unsigned i = 0; i < _k_num_states; i++) {
-		nextP[i][i] += process_noise[i];
-	}
 
 	nextP[0][0] = P[0][0] + P[1][0]*SF[9] + P[2][0]*SF[11] + P[3][0]*SF[10] + P[10][0]*SF[14] + P[11][0]*SF[15] + P[12][0]*SPP[10] + (daxVar*SQ[10])*0.25f + SF[9]*(P[0][1] + P[1][1]*SF[9] + P[2][1]*SF[11] + P[3][1]*SF[10] + P[10][1]*SF[14] + P[11][1]*SF[15] + P[12][1]*SPP[10]) + SF[11]*(P[0][2] + P[1][2]*SF[9] + P[2][2]*SF[11] + P[3][2]*SF[10] + P[10][2]*SF[14] + P[11][2]*SF[15] + P[12][2]*SPP[10]) + SF[10]*(P[0][3] + P[1][3]*SF[9] + P[2][3]*SF[11] + P[3][3]*SF[10] + P[10][3]*SF[14] + P[11][3]*SF[15] + P[12][3]*SPP[10]) + SF[14]*(P[0][10] + P[1][10]*SF[9] + P[2][10]*SF[11] + P[3][10]*SF[10] + P[10][10]*SF[14] + P[11][10]*SF[15] + P[12][10]*SPP[10]) + SF[15]*(P[0][11] + P[1][11]*SF[9] + P[2][11]*SF[11] + P[3][11]*SF[10] + P[10][11]*SF[14] + P[11][11]*SF[15] + P[12][11]*SPP[10]) + SPP[10]*(P[0][12] + P[1][12]*SF[9] + P[2][12]*SF[11] + P[3][12]*SF[10] + P[10][12]*SF[14] + P[11][12]*SF[15] + P[12][12]*SPP[10]) + (dayVar*sq(q2))*0.25f + (dazVar*sq(q3))*0.25f;
 	nextP[0][1] = P[0][1] + SQ[8] + P[1][1]*SF[9] + P[2][1]*SF[11] + P[3][1]*SF[10] + P[10][1]*SF[14] + P[11][1]*SF[15] + P[12][1]*SPP[10] + SF[8]*(P[0][0] + P[1][0]*SF[9] + P[2][0]*SF[11] + P[3][0]*SF[10] + P[10][0]*SF[14] + P[11][0]*SF[15] + P[12][0]*SPP[10]) + SF[7]*(P[0][2] + P[1][2]*SF[9] + P[2][2]*SF[11] + P[3][2]*SF[10] + P[10][2]*SF[14] + P[11][2]*SF[15] + P[12][2]*SPP[10]) + SF[11]*(P[0][3] + P[1][3]*SF[9] + P[2][3]*SF[11] + P[3][3]*SF[10] + P[10][3]*SF[14] + P[11][3]*SF[15] + P[12][3]*SPP[10]) - SF[15]*(P[0][12] + P[1][12]*SF[9] + P[2][12]*SF[11] + P[3][12]*SF[10] + P[10][12]*SF[14] + P[11][12]*SF[15] + P[12][12]*SPP[10]) + SPP[10]*(P[0][11] + P[1][11]*SF[9] + P[2][11]*SF[11] + P[3][11]*SF[10] + P[10][11]*SF[14] + P[11][11]*SF[15] + P[12][11]*SPP[10]) - (q0*(P[0][10] + P[1][10]*SF[9] + P[2][10]*SF[11] + P[3][10]*SF[10] + P[10][10]*SF[14] + P[11][10]*SF[15] + P[12][10]*SPP[10]))*0.5f;
@@ -360,6 +363,11 @@ void Ekf::predictCovariance()
 	nextP[11][12] = P[11][12];
 	nextP[12][12] = P[12][12];
 
+	// add process noise that is not from the IMU
+	for (unsigned i = 0; i <= 12; i++) {
+		nextP[i][i] += process_noise[i];
+	}
+
 	// Don't calculate these covariance terms if we are not estimating XY delta velocity bias errors
 	if (_params.fusion_mode & MASK_USE_3D_ACC_BIAS) {
 		nextP[0][13] = P[0][13] + P[1][13]*SF[9] + P[2][13]*SF[11] + P[3][13]*SF[10] + P[10][13]*SF[14] + P[11][13]*SF[15] + P[12][13]*SPP[10];
@@ -391,9 +399,12 @@ void Ekf::predictCovariance()
 		nextP[12][14] = P[12][14];
 		nextP[13][14] = P[13][14];
 		nextP[14][14] = P[14][14];
-	} else {
-		zeroRows(nextP,13,14);
-		zeroCols(nextP,13,14);
+
+		// add process noise that is not from the IMU
+		for (unsigned i = 13; i <= 14; i++) {
+			nextP[i][i] += process_noise[i];
+		}
+
 	}
 
 	nextP[0][15] = P[0][15] + P[1][15]*SF[9] + P[2][15]*SF[11] + P[3][15]*SF[10] + P[10][15]*SF[14] + P[11][15]*SF[15] + P[12][15]*SPP[10];
@@ -412,6 +423,9 @@ void Ekf::predictCovariance()
 	nextP[13][15] = P[13][15];
 	nextP[14][15] = P[14][15];
 	nextP[15][15] = P[15][15];
+
+	// add process noise that is not from the IMU
+	nextP[15][15] += process_noise[15];
 
 	// Don't do covariance prediction on magnetic field states unless we are using 3-axis fusion
 	if (_control_status.flags.mag_3D) {
@@ -540,9 +554,10 @@ void Ekf::predictCovariance()
 		nextP[20][21] = P[20][21];
 		nextP[21][21] = P[21][21];
 
-	} else {
-		zeroRows(nextP,16,21);
-		zeroCols(nextP,16,21);
+		// add process noise that is not from the IMU
+		for (unsigned i = 16; i <= 21; i++) {
+			nextP[i][i] += process_noise[i];
+		}
 
 	}
 
@@ -641,9 +656,10 @@ void Ekf::predictCovariance()
 		nextP[22][23] = P[22][23];
 		nextP[23][23] = P[23][23];
 
-	} else {
-		zeroRows(nextP,22,23);
-		zeroCols(nextP,22,23);
+		// add process noise that is not from the IMU
+		for (unsigned i = 22; i <= 23; i++) {
+			nextP[i][i] += process_noise[i];
+		}
 
 	}
 
@@ -661,27 +677,35 @@ void Ekf::predictCovariance()
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 1; row < _k_num_states; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
-			nextP[row][column] = nextP[column][row];
+			P[row][column] = P[column][row] = nextP[column][row];
 		}
 	}
 
 	// copy variances (diagonals)
 	for (unsigned i = 0; i < _k_num_states; i++) {
-		if(!_control_status.flags.wind && i > 21) {
-			continue;
-		}
 		P[i][i] = nextP[i][i];
 	}
 
-	// force symmetry
-	for (unsigned row = 1; row < _k_num_states; row++) {
-		for (unsigned column = 0; column < row; column++) {
-			P[row][column] = 0.5f * (nextP[row][column] + nextP[column][row]);
-			P[column][row] = P[row][column];
+	// prevent variances from becoming too large or negative
+	limitCov();
+
+	// ensure coresponding rows and zeros for unwanted states are zero
+	if (!(_params.fusion_mode & MASK_USE_3D_ACC_BIAS)) {
+		// deactivate XY accel bias states
+		zeroRows(P,13,14);
+		zeroCols(P,13,14);
 		}
+	if (!_control_status.flags.mag_3D) {
+		// deactivate magnetic field states
+		zeroRows(P,16,21);
+		zeroCols(P,16,21);
+	}
+	if (!_control_status.flags.wind) {
+		// deactivate wind states
+		zeroRows(P,22,23);
+		zeroCols(P,22,23);
 	}
 
-	limitCov();
 }
 
 void Ekf::limitCov()
