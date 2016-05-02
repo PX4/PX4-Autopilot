@@ -84,7 +84,7 @@ void Logger::usage(const char *reason)
 
 	PX4_INFO("usage: logger {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-		 "\t-b\tLog buffer size in KiB, default is 8\n"
+		 "\t-b\tLog buffer size in KiB, default is 12\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
 		 "\t-a\tLog only when armed (can be still overriden by command)\n"
 		 "\t-t\tUse date/time for naming log directories and files\n"
