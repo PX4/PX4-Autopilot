@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#define MAX_SHMEM_PARAMS 3850 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
+#define MAX_SHMEM_PARAMS 2000 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
 
 struct shmem_info {
 	union param_value_u params_val[MAX_SHMEM_PARAMS];
@@ -44,7 +44,11 @@ struct shmem_info {
 } __attribute__((packed));
 #endif
 
+#if (defined(__PX4_POSIX_EXCELSIOR) || defined(__PX4_QURT_EXCELSIOR))
+#define MAP_ADDRESS    0x861FC000
+#else
 #define MAP_ADDRESS	0xfbfc000
+#endif
 #define MAP_SIZE 	16384
 #define MAP_MASK 	(MAP_SIZE - 1)
 

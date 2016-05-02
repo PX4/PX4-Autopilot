@@ -197,7 +197,7 @@ else()
 
 endif()
 
-if ("${BOARD}" STREQUAL "eagle")
+if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
 
 	if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 		message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")

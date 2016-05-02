@@ -166,7 +166,7 @@ hrt_abstime _hrt_absolute_time_internal(void)
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts) + dsp_offset;
 
-#elif defined(__PX4_POSIX_EAGLE)
+#elif (defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR))
 	// Don't do any offseting on the Linux side on the Snapdragon.
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts);

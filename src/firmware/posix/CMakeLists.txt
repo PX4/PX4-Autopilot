@@ -4,7 +4,7 @@ px4_posix_generate_builtin_commands(
 	OUT apps.h
 	MODULE_LIST ${module_libraries})
 
-if ("${BOARD}" STREQUAL "eagle")
+if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	include(fastrpc)
 	include(linux_app)
