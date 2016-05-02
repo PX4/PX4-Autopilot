@@ -2,21 +2,39 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include <mathlib/mathlib.h>
+
 namespace px4
 {
 namespace logger
 {
 
-LogWriter::LogWriter(uint8_t *buffer, size_t buffer_size) :
-	_buffer(buffer),
-	_buffer_size(buffer_size),
-	_min_write_chunk(4096)
+LogWriter::LogWriter(size_t buffer_size) :
+	_buffer_size(math::max(buffer_size, _min_write_chunk))
 {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 	/* allocate write performance counters */
 	perf_write = perf_alloc(PC_ELAPSED, "sd write");
 	perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
+}
+
+bool LogWriter::init()
+{
+	if (_buffer) {
+		return true;
+	}
+
+	_buffer = new uint8_t[_buffer_size];
+
+	return _buffer;
+}
+
+LogWriter::~LogWriter()
+{
+	if (_buffer) {
+		delete[] _buffer;
+	}
 }
 
 void LogWriter::start_log(const char *filename)
