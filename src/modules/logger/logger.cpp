@@ -191,18 +191,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
-	if (logger_ptr->_log_buffer == nullptr) {
-		PX4_WARN("log buffer malloc failed");
-
-	} else {
-
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
-		alloc_info = mallinfo();
-		warnx("remaining free heap: %d bytes", alloc_info.fordblks);
+	alloc_info = mallinfo();
+	warnx("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
 
-		logger_ptr->run();
-	}
+	logger_ptr->run();
 }
 
 enum class MessageType : uint8_t {
@@ -325,7 +319,7 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
 			fd = add_topic(topics[i]);
-			PX4_INFO("logging topic: %zu, %s\n", i, topics[i]->o_name);
+			PX4_INFO("logging topic: %zu, %s", i, topics[i]->o_name);
 			break;
 		}
 	}
