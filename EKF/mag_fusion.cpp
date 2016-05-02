@@ -598,14 +598,13 @@ void Ekf::fuseDeclination()
 	float R_DECL = sq(0.5f);
 
 	// Calculate intermediate variables
-	// if the horizontal magnetic field is too small, this calculation will be badly conditioned
-	if (magN < 0.001f) {
-		return;
-	}
-
 	float t2 = magE*magE;
 	float t3 = magN*magN;
 	float t4 = t2+t3;
+	// if the horizontal magnetic field is too small, this calculation will be badly conditioned
+	if (t4 < 1e-4f) {
+		return;
+	}
 	float t5 = P[16][16]*t2;
 	float t6 = P[17][17]*t3;
 	float t7 = t2*t2;
@@ -622,10 +621,8 @@ void Ekf::fuseDeclination()
 	} else {
 		return;
 	}
-	float t16 = magE;
-	float t17 = magN;
-	float t18 = t16*t16;
-	float t19 = t17*t17;
+	float t18 = magE*magE;
+	float t19 = magN*magN;
 	float t20 = t18+t19;
 	float t21;
 	if (fabsf(t20) > 1e-6f) {
@@ -637,8 +634,8 @@ void Ekf::fuseDeclination()
 	// Calculate the observation Jacobian
 	// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
 	float H_DECL[24] = {};
-	H_DECL[16] = -t16*t21;
-	H_DECL[17] = t17*t21;
+	H_DECL[16] = -magE*t21;
+	H_DECL[17] = magN*t21;
 
 	// Calculate the Kalman gains
 	float Kfusion[_k_num_states] = {};
@@ -668,7 +665,7 @@ void Ekf::fuseDeclination()
 	Kfusion[23] = -t4*t13*(P[23][16]*magE-P[23][17]*magN);
 
 	// calculate innovation and constrain
-	float innovation = atanf(magE / magN) - _mag_declination;
+	float innovation = atan2f(magE , magN) - _mag_declination;
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 
 	// perform the state correction
