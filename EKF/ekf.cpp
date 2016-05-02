@@ -555,27 +555,37 @@ void Ekf::predictState()
 
 bool Ekf::collect_imu(imuSample &imu)
 {
+	// accumulate and downsample IMU data across a period FILTER_UPDATE_PERRIOD_MS long
+
+	// copy imu data to local variables
 	_imu_sample_new.delta_ang	= imu.delta_ang;
 	_imu_sample_new.delta_vel	= imu.delta_vel;
 	_imu_sample_new.delta_ang_dt	= imu.delta_ang_dt;
 	_imu_sample_new.delta_vel_dt	= imu.delta_vel_dt;
-	_imu_sample_new.time_us	= imu.time_us;
+	_imu_sample_new.time_us		= imu.time_us;
 
+	// accumulate the time deltas
 	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu.delta_vel_dt;
 
+	// use a quaternion to accumulate delta angle data
+	// this quaternion represents the rotation from the start to end of the accumulation period
 	Quaternion delta_q;
 	delta_q.rotate(imu.delta_ang);
 	_q_down_sampled =  _q_down_sampled * delta_q;
 	_q_down_sampled.normalize();
 
+	// rotate the accumulated delta velocity data forward each time so it is always in the updated rotation frame
 	matrix::Dcm<float> delta_R(delta_q.inversed());
 	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
-	_imu_down_sampled.delta_vel += imu.delta_vel;
 
-	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) ||
-	    _dt_imu_avg * _imu_ticks >= 0.02f ||
-	     _imu_ticks >= 2) {
+	// accumulate the most recent delta velocity data at the updated rotation frame
+	// assume effective sample time is halfway between the previous and current rotation frame
+	_imu_down_sampled.delta_vel += (_imu_sample_new.delta_vel + delta_R * _imu_sample_new.delta_vel) * 0.5f;
+
+	// if the target time delta between filter prediction steps has been exceeded
+	// write the accumulated IMu data to the ring buffer
+	if (_imu_down_sampled.delta_ang_dt >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) {
 
 		imu.delta_ang     = _q_down_sampled.to_axis_angle();
 		imu.delta_vel     = _imu_down_sampled.delta_vel;
