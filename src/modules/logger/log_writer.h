@@ -15,7 +15,10 @@ class LogWriter
 {
 	friend class Logger;
 public:
-	LogWriter(uint8_t *buffer, size_t buffer_size);
+	LogWriter(size_t buffer_size);
+	~LogWriter();
+
+	bool init();
 
 	/**
 	 * start the thread
@@ -59,13 +62,15 @@ private:
 		_count -= n;
 	}
 
+	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
+	static const size_t	_min_write_chunk = 4096;
+
 	char		_filename[64];
 	int			_fd;
-	uint8_t 	*_buffer;
+	uint8_t 	*_buffer = nullptr;
 	const size_t	_buffer_size;
-	const size_t	_min_write_chunk;	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
-	size_t			_head = 0;
-	size_t			_count = 0;
+	size_t			_head = 0; ///< next position to write to
+	size_t			_count = 0; ///< number of bytes in _buffer to be written
 	size_t		_total_written = 0;
 	bool		_should_run = false;
 	bool		_running = false;

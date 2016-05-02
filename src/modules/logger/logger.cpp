@@ -254,7 +254,7 @@ static constexpr size_t MAX_DATA_SIZE = 740;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start) :
 	_log_on_start(log_on_start),
-	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
+	_writer(buffer_size),
 	_log_interval(log_interval)
 {
 }
@@ -280,9 +280,6 @@ Logger::~Logger()
 			}
 		} while (logger_task != -1);
 	}
-
-	delete [] _log_buffer;
-	logger_ptr = nullptr;
 }
 
 int Logger::add_topic(const orb_metadata *topic)
@@ -413,6 +410,11 @@ void Logger::run()
 	add_topic("control_state");
 //	add_topic("estimator_status");
 	add_topic("vehicle_status", 100);
+
+	if (!_writer.init()) {
+		PX4_ERR("logger: init of writer failed");
+		return;
+	}
 
 	int ret = _writer.thread_start(_writer_thread);
 
