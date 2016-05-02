@@ -63,7 +63,7 @@ private:
 	}
 
 	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
-	static const size_t	_min_write_chunk = 4096;
+	static constexpr size_t	_min_write_chunk = 4096;
 
 	char		_filename[64];
 	int			_fd;
