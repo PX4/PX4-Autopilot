@@ -8,6 +8,8 @@ namespace px4
 {
 namespace logger
 {
+constexpr size_t LogWriter::_min_write_chunk;
+
 
 LogWriter::LogWriter(size_t buffer_size) :
 	_buffer_size(math::max(buffer_size, _min_write_chunk))
