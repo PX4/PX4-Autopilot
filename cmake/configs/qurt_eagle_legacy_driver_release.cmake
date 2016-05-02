@@ -87,6 +87,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port
