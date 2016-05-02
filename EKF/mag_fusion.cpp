@@ -55,7 +55,7 @@ void Ekf::fuseMag()
 	float magD = _state.mag_I(2);
 
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-	float R_MAG = fmaxf(_params.mag_noise, 1.0);
+	float R_MAG = fmaxf(_params.mag_noise, 0.0f);
 	R_MAG = R_MAG * R_MAG;
 
 	// intermediate variables from algebraic optimisation
