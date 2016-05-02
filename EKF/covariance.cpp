@@ -694,7 +694,7 @@ void Ekf::predictCovariance()
 		// deactivate XY accel bias states
 		zeroRows(P,13,14);
 		zeroCols(P,13,14);
-		}
+	}
 	if (!_control_status.flags.mag_3D) {
 		// deactivate magnetic field states
 		zeroRows(P,16,21);
@@ -710,17 +710,20 @@ void Ekf::predictCovariance()
 
 void Ekf::limitCov()
 {
+	// NOTE: This limiting is a last resort and should not be relied on
+	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
+	// and set corresponding entries in Q to zero when states exceed 50% of the limit
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
 	float P_lim[8] = {};
 	P_lim[0] = 1.0f;		// quaternion max var
-	P_lim[1] = 1000.0f;		// velocity max var
-	P_lim[2] = 1000000.0f;		// positiion max var
-	P_lim[3] = 0.001f;		// gyro bias max var
-	P_lim[4] = 0.1f;		// delta velocity z bias max var
-	P_lim[5] = 0.1f;		// earth mag field max var
-	P_lim[6] = 0.1f;		// body mag field max var
-	P_lim[7] = 1000.0f;		// wind max var
+	P_lim[1] = 1e6f;		// velocity max var
+	P_lim[2] = 1e6f;		// positiion max var
+	P_lim[3] = 1.0f;		// gyro bias max var
+	P_lim[4] = 1.0f;		// delta velocity z bias max var
+	P_lim[5] = 1.0f;		// earth mag field max var
+	P_lim[6] = 1.0f;		// body mag field max var
+	P_lim[7] = 1e6f;		// wind max var
 
 	for (int i = 0; i <= 3; i++) {
 
