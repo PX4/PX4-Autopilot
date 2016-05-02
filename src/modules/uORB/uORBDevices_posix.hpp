@@ -48,7 +48,8 @@ class DeviceMaster;
 class uORB::DeviceNode : public device::VDev
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path, int priority);
+	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
+		   int priority, unsigned int queue_size = 1);
 	~DeviceNode();
 
 	virtual int   open(device::file_t *filp);
@@ -105,6 +106,15 @@ public:
 	 * and publish to this node or if another node should be tried. */
 	bool is_published();
 
+	/**
+	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
+	 * This is the case, for example when orb_subscribe was called before an orb_advertise.
+	 * The queue size can only be increased.
+	 * @param queue_size new size of the queue
+	 * @return PX4_OK if queue size successfully set
+	 */
+	int update_queue_size(unsigned int queue_size);
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void    poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -128,6 +138,7 @@ private:
 					We allow one publisher to have an open file descriptor at the same time. */
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
+	unsigned int _queue_size; /**< maximum number of elements in the queue */
 
 	static SubscriberData    *filp_to_sd(device::file_t *filp);
 
