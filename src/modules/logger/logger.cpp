@@ -380,27 +380,27 @@ void Logger::run()
 		return;
 	}
 
-	add_topic("sensor_gyro", 10);
-	add_topic("sensor_accel", 10);
+	add_topic("sensor_gyro", 0);
+	add_topic("sensor_accel", 0);
 	add_topic("vehicle_rates_setpoint", 10);
 	add_topic("vehicle_attitude_setpoint", 10);
-	add_topic("vehicle_attitude", 10);
+	add_topic("vehicle_attitude", 0);
 	add_topic("actuator_outputs", 50);
 	add_topic("battery_status", 100);
 	add_topic("vehicle_command", 100);
 	add_topic("actuator_controls", 10);
-	add_topic("vehicle_local_position_setpoint", 30);
-	add_topic("rc_channels", 100);
+	add_topic("vehicle_local_position_setpoint", 200);
+	add_topic("rc_channels", 20);
 //	add_topic("ekf2_innovations", 20);
 	add_topic("commander_state", 100);
-	add_topic("vehicle_local_position", 10);
-	add_topic("vehicle_global_position", 10);
+	add_topic("vehicle_local_position", 200);
+	add_topic("vehicle_global_position", 200);
 	add_topic("system_power", 100);
-	add_topic("servorail_status", 100);
+	add_topic("servorail_status", 200);
 	add_topic("mc_att_ctrl_status", 50);
-	add_topic("control_state");
+//	add_topic("control_state");
 //	add_topic("estimator_status");
-	add_topic("vehicle_status", 100);
+	add_topic("vehicle_status", 200);
 
 	_writer_thread = _writer.thread_start();
 
@@ -725,7 +725,7 @@ void Logger::write_info(const char *name, const char *value)
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
-	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%u] %s", (unsigned)vlen, name);
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%zu] %s", vlen, name);
 	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 	/* copy string value directly to buffer */
@@ -858,7 +858,7 @@ void Logger::write_changed_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name and timestamp) */
+			/* format parameter key (type and name) */
 			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s ", type_str, param_name(param));
 			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
