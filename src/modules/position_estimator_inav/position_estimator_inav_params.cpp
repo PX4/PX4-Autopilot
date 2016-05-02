@@ -306,8 +306,7 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
  *
  * Disable mocap
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
@@ -317,8 +316,7 @@ PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
  *
  * Enable LIDAR for altitude estimation
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_LIDAR_EST, 0);
@@ -340,24 +338,12 @@ PARAM_DEFINE_FLOAT(INAV_LIDAR_OFF, 0.0f);
  *
  * Set to the appropriate key (328754) to disable vision input.
  *
+ * @reboot_required true
  * @min 0
- * @max 1
+ * @max 328754
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
-
-/**
- * INAV enabled
- *
- * If set to 1, use INAV for position estimation.
- * Else the system uses the combined attitude / position
- * filter framework.
- *
- * @min 0
- * @max 1
- * @group Position Estimator INAV
- */
-PARAM_DEFINE_INT32(INAV_ENABLED, 1);
 
 int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 {

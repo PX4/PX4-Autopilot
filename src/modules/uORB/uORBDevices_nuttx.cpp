@@ -40,6 +40,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
+#include <px4_sem.hpp>
 #include <stdlib.h>
 
 uORB::ORBMap uORB::DeviceMaster::_node_map;
@@ -245,16 +246,17 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	/* Perform an atomic copy. */
 	irqstate_t flags = irqsave();
 	memcpy(_data, buffer, _meta->o_size);
-	irqrestore(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 	_generation++;
 
+	_published = true;
+
+	irqrestore(flags);
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
-
-	_published = true;
 
 	return _meta->o_size;
 }
@@ -265,9 +267,12 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
-	case ORBIOCLASTUPDATE:
-		*(hrt_abstime *)arg = _last_update;
-		return OK;
+	case ORBIOCLASTUPDATE: {
+			irqstate_t state = irqsave();
+			*(hrt_abstime *)arg = _last_update;
+			irqrestore(state);
+			return OK;
+		}
 
 	case ORBIOCUPDATED:
 		*(bool *)arg = appears_updated(sd);
@@ -334,6 +339,30 @@ uORB::DeviceNode::publish
 	}
 
 	return OK;
+}
+
+int uORB::DeviceNode::unadvertise(orb_advert_t handle)
+{
+	if (handle == nullptr) {
+		return -EINVAL;
+	}
+
+	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
+
+	/*
+	 * We are cheating a bit here. First, with the current implementation, we can only
+	 * have multiple publishers for instance 0. In this case the caller will have
+	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
+	 * necessary.
+	 * In case of multiple instances, we have at most 1 publisher per instance and
+	 * we can signal an instance as 'free' by setting _published to false.
+	 * We never really free the DeviceNode, for this we would need reference counting
+	 * of subscribers and publishers. But we also do not have a leak since future
+	 * publishers reuse the same DeviceNode object.
+	 */
+	devnode->_published = false;
+
+	return PX4_OK;
 }
 
 pollevent_t
@@ -571,11 +600,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -583,14 +607,24 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* ensure that only one advertiser runs through this critical section */
-			lock();
-
 			ret = ERROR;
 
 			/* try for topic groups */
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
+
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					return -ENOMEM;
+				}
+			}
+
+			SmartLock smart_lock(_lock);
 
 			do {
 				/* if path is modifyable change try index */
@@ -611,6 +645,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -619,7 +654,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					unlock();
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -657,12 +693,9 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			} while (ret != OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
-
-			/* the file handle for the driver has been created, unlock */
-			unlock();
 
 			return ret;
 		}

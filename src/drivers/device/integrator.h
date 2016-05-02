@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * A resettable integrator
  *
  * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #pragma once
@@ -52,46 +53,41 @@ public:
 	/**
 	 * Put an item into the integral.
 	 *
-	 * @param timestamp	Timestamp of the current value
-	 * @param val		Item to put
+	 * @param timestamp	Timestamp of the current value.
+	 * @param val		Item to put.
 	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
-	 * @return		true if putting the item triggered an integral reset
-	 *			and the integral should be published
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @return		true if putting the item triggered an integral reset and the integral should be
+	 *			published.
 	 */
 	bool			put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt);
 
 	/**
-	 * Get the current integral value
+	 * Get the current integral and reset the integrator if needed.
 	 *
-	 * @return		the integral since the last auto-reset
-	 */
-	math::Vector<3>		get() { return _integral_auto; }
-
-	/**
-	 * Read from the integral
-	 *
-	 * @param auto_reset	Reset the integral to zero on read
+	 * @param reset	    	Reset the integral to zero.
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
 	 * @return		the integral since the last read-reset
 	 */
-	math::Vector<3>		read(bool auto_reset);
-
-	/**
-	 * Get current integral start time
-	 */
-	uint64_t		current_integral_start() { return _last_auto; }
+	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
 
 private:
-	uint64_t _auto_reset_interval;		/**< the interval after which the content will be published and the integrator reset */
-	uint64_t _last_integration;			/**< timestamp of the last integration step */
-	uint64_t _last_auto;				/**< last auto-announcement of integral value */
-	math::Vector<3> _integral_auto;			/**< the integrated value which auto-resets after _auto_reset_interval */
-	math::Vector<3> _integral_read;			/**< the integrated value since the last read */
+	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
+							     and the integrator reset, 0 if no auto-reset */
+	uint64_t _last_integration_time;		/**< timestamp of the last integration step */
+	uint64_t _last_reset_time;			/**< last auto-announcement of integral value */
+	math::Vector<3> _integral;			/**< the integrated value */
 	math::Vector<3> _last_val;			/**< previously integrated last value */
 	math::Vector<3> _last_delta;			/**< last local delta */
-	void (*_auto_callback)(uint64_t, math::Vector<3>);	/**< the function callback for auto-reset */
 	bool _coning_comp_on;				/**< coning compensation */
 
 	/* we don't want this class to be copied */
 	Integrator(const Integrator &);
 	Integrator operator=(const Integrator &);
+
+	/* Do a reset.
+	 *
+	 * @param integral_dt	Get the dt in us of the current integration.
+	 */
+	void _reset(uint64_t &integral_dt);
 };

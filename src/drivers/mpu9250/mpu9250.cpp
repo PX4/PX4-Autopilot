@@ -234,14 +234,14 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const c
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(1000),
-	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_accel_read")),
+	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_registers")),
-	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_transfers")),
-	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset_retries")),
-	_duplicates(perf_alloc(PC_COUNT, "mpu9250_duplicates")),
+	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_trans")),
+	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_reg")),
+	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
+	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
+	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
@@ -910,7 +910,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_scale *s = (struct accel_scale *) arg;
+			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -924,7 +924,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -1006,12 +1006,12 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:

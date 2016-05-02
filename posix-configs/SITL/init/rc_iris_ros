@@ -1,5 +1,4 @@
 uorb start
-simulator start -s
 param load
 param set MAV_TYPE 2
 param set MC_PITCHRATE_P 0.15
@@ -34,6 +33,7 @@ param set MPP_XY_VEL_MAX 2.0
 param set MPP_Z_VEL_P 0.3
 param set MPP_Z_P 2
 param set SENS_BOARD_ROT 8
+param set SENS_BOARD_X_OFF 0.000001
 param set MP_ROLL_P 3
 param set MP_ROLLRATE_P 0.3
 param set MP_ROLLRATE_I 0.001
@@ -41,6 +41,8 @@ param set MP_ROLLRATE_D 0.001
 param set MP_PITCH_P 4
 param set MP_PITCHRATE_P 0.3
 param set COM_RC_IN_MODE 1
+param set NAV_DLL_ACT 2
+simulator start -s
 rgbled start
 tone_alarm start
 gyrosim start
@@ -64,6 +66,7 @@ mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 80 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 80 -s GLOBAL_POSITION_INT -u 14556
 mavlink stream -r 80 -s ATTITUDE -u 14556
+mavlink stream -r 80 -s ATTITUDE_QUATERNION -u 14556
 mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556

@@ -22,6 +22,7 @@
 [submodule "unittests/googletest"]
 	path = unittests/googletest
 	url = https://github.com/google/googletest.git
+	ignore = untracked
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git
@@ -34,3 +35,6 @@
 [submodule "cmake/cmake_hexagon"]
 	path = cmake/cmake_hexagon
 	url = https://github.com/ATLFlight/cmake_hexagon
+[submodule "src/drivers/gps/devices"]
+	path = src/drivers/gps/devices
+	url = https://github.com/PX4/GpsDrivers.git

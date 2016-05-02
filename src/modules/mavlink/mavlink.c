@@ -47,8 +47,8 @@
 #include <systemlib/param/param.h>
 
 mavlink_system_t mavlink_system = {
-	100,
-	50
+	1,
+	1
 }; // System ID, 1-255, Component/Subsystem ID, 1-255
 
 /*

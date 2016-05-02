@@ -100,7 +100,7 @@ int test_mixer(int argc, char *argv[])
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	unsigned loaded = strlen(buf);
 
-	PX4_INFO("loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
@@ -144,7 +144,7 @@ int test_mixer(int argc, char *argv[])
 
 	while (transmitted < loaded) {
 
-		unsigned	text_length = (loaded - transmitted > chunk_size) ? chunk_size : loaded - transmitted;
+		unsigned text_length = (loaded - transmitted > chunk_size) ? chunk_size : loaded - transmitted;
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
@@ -155,7 +155,7 @@ int test_mixer(int argc, char *argv[])
 		memcpy(&mixer_text[mixer_text_length], &buf[transmitted], text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		PX4_INFO("buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
+		fprintf(stderr, "buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -163,7 +163,7 @@ int test_mixer(int argc, char *argv[])
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			PX4_INFO("used %u", mixer_text_length - resid);
+			fprintf(stderr, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -209,7 +209,7 @@ int test_mixer(int argc, char *argv[])
 	//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 	for (unsigned i = 0; i < mixed; i++) {
 
-		warnx("pre-arm:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
+		fprintf(stderr, "pre-arm:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
@@ -250,7 +250,7 @@ int test_mixer(int argc, char *argv[])
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 		for (unsigned i = 0; i < mixed; i++) {
 
-			warnx("ramp:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
+			fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			/* check mixed outputs to be zero during init phase */
 			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
@@ -292,13 +292,14 @@ int test_mixer(int argc, char *argv[])
 			       r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
-		PX4_INFO("mixed %d outputs (max %d)", mixed, output_max);
+		fprintf(stderr, "mixed %d outputs (max %d)", mixed, output_max);
 
 		for (unsigned i = 0; i < mixed; i++) {
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 
 			if (abs(servo_predicted[i] - r_page_servos[i]) > 2) {
-				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
+				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
+					(int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
 				return 1;
 			}
@@ -323,7 +324,7 @@ int test_mixer(int argc, char *argv[])
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 		for (unsigned i = 0; i < mixed; i++) {
 
-			warnx("disarmed:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
+			fprintf(stderr, "disarmed:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			/* check mixed outputs to be zero during init phase */
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
@@ -365,7 +366,7 @@ int test_mixer(int argc, char *argv[])
 
 			/* check ramp */
 
-			warnx("ramp:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
+			fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			if (hrt_elapsed_time(&starttime) < RAMP_TIME_US &&
 			    (r_page_servos[i] + 1 <= r_page_servo_disarmed[i] ||
@@ -401,20 +402,20 @@ int test_mixer(int argc, char *argv[])
 		filename = argv[2];
 
 	} else {
-		filename = "/etc/mixers/quad_w.main.mix";
+		filename = "/etc/mixers/quad_test.mix";
 	}
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	loaded = strlen(buf);
 
-	PX4_INFO("loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	unsigned mc_loaded = loaded;
 	mixer_group.load_from_buf(&buf[0], mc_loaded);
 	PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
 
 	if (mixer_group.count() != 5) {
-		PX4_ERR("FAIL: Quad W mixer load failed");
+		PX4_ERR("FAIL: Quad test mixer load failed");
 		return 1;
 	}
 

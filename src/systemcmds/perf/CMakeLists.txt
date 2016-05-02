@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__perf
 	MAIN perf
-	STACK 1800
+	STACK_MAIN 1800
 	COMPILE_FLAGS
 		-Os
 	SRCS

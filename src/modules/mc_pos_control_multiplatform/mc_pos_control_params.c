@@ -39,10 +39,6 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_defines.h>
-#include "mc_pos_control_params.h"
-#include <systemlib/param/param.h>
-
 /**
  * Minimum thrust
  *
@@ -238,4 +234,3 @@ PX4_PARAM_DEFINE_FLOAT(MPP_MAN_P_MAX);
  * @group Multicopter Attitude Control
  */
 PX4_PARAM_DEFINE_FLOAT(MPP_MAN_Y_MAX);
-

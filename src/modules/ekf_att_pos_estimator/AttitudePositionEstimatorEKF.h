@@ -50,9 +50,9 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
@@ -147,7 +147,8 @@ private:
     int     _airspeed_sub;          /**< airspeed subscription */
     int     _baro_sub;          /**< barometer subscription */
     int     _gps_sub;           /**< GPS subscription */
-    int     _vstatus_sub;           /**< vehicle status subscription */
+    int     _vehicle_status_sub;
+    int     _vehicle_land_detected_sub;
     int     _params_sub;            /**< notification of parameter updates */
     int     _manual_control_sub;        /**< notification of manual control updates */
     int     _mission_sub;
@@ -169,13 +170,13 @@ private:
     struct mag_report                   _mag;
     struct airspeed_s                   _airspeed;      /**< airspeed */
     struct baro_report                  _baro;          /**< baro readings */
-    struct vehicle_status_s             _vstatus;       /**< vehicle status */
+    struct vehicle_status_s		_vehicle_status;
+    struct vehicle_land_detected_s      _vehicle_land_detected;
     struct vehicle_global_position_s    _global_pos;        /**< global vehicle position */
     struct vehicle_local_position_s     _local_pos;     /**< local vehicle position */
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
     struct wind_estimate_s              _wind;          /**< wind estimate */
     struct distance_sensor_s            _distance;      /**< distance estimate */
-    struct vehicle_land_detected_s      _landDetector;
     struct actuator_armed_s             _armed;
 
     hrt_abstime _last_accel;
@@ -190,7 +191,7 @@ private:
     float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
-    float       _vibration_warning_threshold = 1.0f;
+    float       _vibration_warning_threshold = 2.0f;
     hrt_abstime _vibration_warning_timestamp = 0;
 
     perf_counter_t  _loop_perf;         ///< loop performance counter
@@ -229,7 +230,7 @@ private:
     bool            _newDataMag;
     bool            _newRangeData;
 
-    int             _mavlink_fd;
+    orb_advert_t    _mavlink_log_pub;
 
     control::BlockParamFloat _mag_offset_x;
     control::BlockParamFloat _mag_offset_y;
@@ -299,9 +300,14 @@ private:
     void        control_update();
 
     /**
-     * Check for changes in vehicle status.
+     * Check for changes in land detected.
      */
     void        vehicle_status_poll();
+
+    /**
+     * Check for changes in land detected.
+     */
+    void        vehicle_land_detected_poll();
 
     /**
      * Shim for calling task_main from task_create.
@@ -356,7 +362,7 @@ private:
     *   Runs the sensor fusion step of the filter. The parameters determine which of the sensors
     *   are fused with each other
     **/
-    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor, 
+    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor,
             const bool fuseBaro, const bool fuseAirSpeed);
 
     /**

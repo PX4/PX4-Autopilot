@@ -1,30 +1,16 @@
 include(qurt/px4_impl_qurt)
 
-#if ("${HEXAGON_DRIVERS_ROOT}" #STREQUAL "")
-#	message(FATAL_ERROR "HEXAGON_DRIVERS_ROOT is not set")
-#endif()
-
-#if ("${EAGLE_DRIVERS_SRC}" STREQUAL "")
-#	message(FATAL_ERROR "EAGLE_DRIVERS_SRC is not set")
-#endif()
-
-#include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
+else()
+	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
+endif()
 
 set(CONFIG_SHMEM "1")
 
-# For Actual flight we need to link against the driver dynamic libraries
-#set(target_libraries
-#	-L${HEXAGON_DRIVERS_ROOT}/libs
-# The plan is to replace these with our drivers
-#	mpu9x50
-#	uart_esc
-#	csr_gps
-#	rc_receiver
-#	)
-
-
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
 set(config_module_list
 	#
@@ -32,14 +18,11 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-# The plan is to replace these with our drivers
-#	$(EAGLE_DRIVERS_SRC)/mpu9x50
-#	$(EAGLE_DRIVERS_SRC)/uart_esc
-#	$(EAGLE_DRIVERS_SRC)/rc_receiver
-#	$(EAGLE_DRIVERS_SRC)/csr_gps
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
 	platforms/posix/drivers/df_hmc5883_wrapper
+	platforms/posix/drivers/df_trone_wrapper
+	platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
@@ -53,6 +36,7 @@ set(config_module_list
 	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -68,17 +52,19 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/controllib
+	modules/land_detector
 
 	#
 	# PX4 drivers
 	#
-	# TODO: make the GPS driver compile
 	drivers/gps
+	drivers/uart_esc
+	drivers/qshell/qurt
 
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
@@ -106,4 +92,6 @@ set(config_df_driver_list
 	mpu9250
 	bmp280
 	hmc5883
+	trone
+	isl29501
 	)

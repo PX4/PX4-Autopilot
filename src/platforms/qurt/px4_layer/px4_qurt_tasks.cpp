@@ -94,7 +94,7 @@ static void *entry_adapter(void *ptr)
 	data = (pthdata_t *) ptr;
 
 	data->entry(data->argc, data->argv);
-	PX4_WARN("Before waiting infinte busy loop");
+	//PX4_WARN("Before waiting infinte busy loop");
 	//for( ;; )
 	//{
 	//   volatile int x = 0;

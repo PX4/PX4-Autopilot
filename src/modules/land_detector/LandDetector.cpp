@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,13 +45,17 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
+namespace landdetection
+{
+
 LandDetector::LandDetector() :
 	_landDetectedPub(0),
-	_landDetected( {0, false}),
-	       _arming_time(0),
-	       _taskShouldExit(false),
-	       _taskIsRunning(false),
-_work{} {
+	_landDetected{0, false, false},
+	_arming_time(0),
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_work{}
+{
 	// ctor
 }
 
@@ -88,6 +92,7 @@ void LandDetector::cycle()
 		// advertise the first land detected uORB
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = false;
+		_landDetected.freefall = false;
 		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 
 		// initialize land detection algorithm
@@ -98,12 +103,15 @@ void LandDetector::cycle()
 		_taskShouldExit = false;
 	}
 
-	bool landDetected = update();
+	LandDetectionResult current_state = update();
+	bool landDetected = (current_state == LANDDETECTION_RES_LANDED);
+	bool freefallDetected = (current_state == LANDDETECTION_RES_FREEFALL);
 
 	// publish if land detection state has changed
-	if (_landDetected.landed != landDetected) {
+	if ((_landDetected.landed != landDetected) || (_landDetected.freefall != freefallDetected)) {
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = landDetected;
+		_landDetected.freefall = freefallDetected;
 
 		// publish the land detected broadcast
 		orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
@@ -134,4 +142,6 @@ bool LandDetector::orb_update(const struct orb_metadata *meta, int handle, void 
 	}
 
 	return true;
+}
+
 }

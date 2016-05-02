@@ -235,7 +235,7 @@ private:
 
 	ringbuffer::RingBuffer	*_reports;
 
-	struct gyro_scale	_gyro_scale;
+	struct gyro_calibration_s	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
@@ -426,9 +426,9 @@ L3GD20::L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotati
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
-	_errors(perf_alloc(PC_COUNT, "l3gd20_errors")),
-	_bad_registers(perf_alloc(PC_COUNT, "l3gd20_bad_registers")),
-	_duplicates(perf_alloc(PC_COUNT, "l3gd20_duplicates")),
+	_errors(perf_alloc(PC_COUNT, "l3gd20_err")),
+	_bad_registers(perf_alloc(PC_COUNT, "l3gd20_bad_reg")),
+	_duplicates(perf_alloc(PC_COUNT, "l3gd20_dupe")),
 	_register_wait(0),
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
@@ -704,12 +704,12 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -1050,6 +1050,18 @@ L3GD20::measure()
 
 	report.z_raw = raw_report.z;
 
+#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+	int16_t tx = -report.y_raw;
+	int16_t ty = -report.x_raw;
+	int16_t tz = -report.z_raw;
+	report.x_raw = tx;
+	report.y_raw = ty;
+	report.z_raw = tz;
+#endif
+
+
+
+
 	report.temperature_raw = raw_report.temp;
 
 	float xraw_f = report.x_raw;
@@ -1210,7 +1222,7 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#ifdef PX4_SPI_BUS_EXT
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
 		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		errx(0, "External SPI not available");

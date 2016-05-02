@@ -74,6 +74,7 @@ PARAM_DEFINE_INT32(MAV_TYPE, 1);
  *
  * If set to 1 incoming HIL GPS messages are parsed.
  *
+ * @boolean
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
@@ -84,6 +85,7 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
  * If set to 1 incoming external setpoint messages will be directly forwarded
  * to the controllers if in offboard control mode
  *
+ * @boolean
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
@@ -99,4 +101,3 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * @max 1000
  */
 PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
-

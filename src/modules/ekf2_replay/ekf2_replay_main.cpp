@@ -34,10 +34,12 @@
 /**
  * @file ekf2_replay_main.cpp
  * Replay module for ekf2. This module reads ekf2 replay messages from a px4 logfile.
- * It uses this data to create sensor data for the ekf2 module.
+ * It uses this data to create sensor data for the ekf2 module. It also subscribes to the
+ * output data of the estimator and writes it to a replay log file.
  *
  * @author Roman Bapst
 */
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -45,7 +47,7 @@
 #include <px4_time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -53,6 +55,9 @@
 #include <poll.h>
 #include <time.h>
 #include <float.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/sensor_combined.h>
@@ -61,7 +66,9 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -84,6 +91,7 @@ struct {
 		struct log_EST3_s est3;
 		struct log_EST4_s innov;
 		struct log_EST5_s innov2;
+		struct log_EST6_s innov3;
 	} body;
 } log_message;
 
@@ -122,7 +130,9 @@ private:
 
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
-	orb_advert_t _status_pub;
+	orb_advert_t _landed_pub;
+	orb_advert_t _flow_pub;
+	orb_advert_t _range_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -135,12 +145,18 @@ private:
 	struct log_format_s _formats[100];
 	struct sensor_combined_s _sensors;
 	struct vehicle_gps_position_s _gps;
-	struct vehicle_status_s _status;
+	struct vehicle_land_detected_s _land_detected;
+	struct optical_flow_s _flow;
+	struct distance_sensor_s _range;
 
-	bool _read_part1;
-	bool _read_part2;
+	unsigned _message_counter; // counter which will increase with every message read from the log
+	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
+	bool _read_part2;				// indicates if part 2 of replay message has been read
+	bool _read_part3;
+	bool _read_part4;
 
 	int _write_fd = -1;
+	px4_pollfd_struct_t _fds[1];
 
 	// parse replay message from buffer
 	// @source 			pointer to log message data (excluding header)
@@ -170,12 +186,21 @@ private:
 
 	// get estimator output messages and write them to replay log
 	void logIfUpdated();
+
+	// this will call the method to publish the input data for the estimator
+	// it will then wait for the output data from the estimator and call the propoper
+	// functions to handle it
+	void publishAndWaitForEstimator();
+
+	void setUserParams(const char *filename);
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
-	_status_pub(nullptr),
+	_landed_pub(nullptr),
+	_flow_pub(nullptr),
+	_range_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -184,9 +209,14 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_formats{},
 	_sensors{},
 	_gps{},
-	_status{},
-	_read_part1(false),
+	_land_detected{},
+	_flow{},
+	_range{},
+	_message_counter(0),
+	_part1_counter_ref(0),
 	_read_part2(false),
+	_read_part3(false),
+	_read_part4(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -197,7 +227,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_file_name = path_to_log;
 
 	// we always start landed
-	_status.condition_landed = true;
+	_land_detected.landed = true;
 }
 
 Ekf2Replay::~Ekf2Replay()
@@ -207,17 +237,37 @@ Ekf2Replay::~Ekf2Replay()
 
 void Ekf2Replay::publishEstimatorInput()
 {
-	if (_gps_pub == nullptr && _gps.timestamp_position > 0) {
+	if (_gps_pub == nullptr && _read_part2) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_gps);
 
-	} else if (_gps_pub != nullptr && _gps.timestamp_position > 0) {
+	} else if (_gps_pub != nullptr && _read_part2) {
 		orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &_gps);
 	}
 
-	if (_sensors_pub == nullptr && _read_part1) {
+	_read_part2 = false;
+
+	if (_flow_pub == nullptr && _read_part3) {
+		_flow_pub = orb_advertise(ORB_ID(optical_flow), &_flow);
+
+	} else if (_flow_pub != nullptr && _read_part3) {
+		orb_publish(ORB_ID(optical_flow), _flow_pub, &_flow);
+	}
+
+	_read_part3 = false;
+
+	if (_range_pub == nullptr && _read_part4) {
+		_range_pub = orb_advertise(ORB_ID(distance_sensor), &_range);
+
+	} else if (_range_pub != nullptr && _read_part4) {
+		orb_publish(ORB_ID(distance_sensor), _range_pub, &_range);
+	}
+
+	_read_part4 = false;
+
+	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
 
-	} else if (_sensors_pub != nullptr && _read_part1) {
+	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
 }
@@ -256,6 +306,16 @@ void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t typ
 			write_index += sizeof(uint8_t);
 			break;
 
+		case 'I':
+			memcpy(&destination[write_index], &source[write_index], sizeof(uint32_t));
+			write_index += sizeof(uint32_t);
+			break;
+
+		case 'i':
+			memcpy(&destination[write_index], &source[write_index], sizeof(int32_t));
+			write_index += sizeof(int32_t);
+			break;
+
 		default:
 			PX4_WARN("found unsupported data type in replay message, exiting!");
 			_task_should_exit = true;
@@ -270,7 +330,9 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 {
 	struct log_RPL1_s replay_part1 = {};
 	struct log_RPL2_s replay_part2 = {};
-	struct log_STAT_s vehicle_status = {};
+	struct log_RPL3_s replay_part3 = {};
+	struct log_RPL4_s replay_part4 = {};
+	struct log_LAND_s vehicle_landed = {};
 
 	if (type == LOG_RPL1_MSG) {
 
@@ -291,7 +353,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;
 		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
-		_read_part1 = true;
+		_part1_counter_ref = _message_counter;
 
 	} else if (type == LOG_RPL2_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
@@ -301,26 +363,47 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_gps.lat = replay_part2.lat;
 		_gps.lon = replay_part2.lon;
 		_gps.fix_type = replay_part2.fix_type;
+		_gps.satellites_used = replay_part2.nsats;
 		_gps.eph = replay_part2.eph;
 		_gps.epv = replay_part2.epv;
+		_gps.s_variance_m_s = replay_part2.sacc;
 		_gps.vel_m_s = replay_part2.vel_m_s;
 		_gps.vel_n_m_s = replay_part2.vel_n_m_s;
 		_gps.vel_e_m_s = replay_part2.vel_e_m_s;
 		_gps.vel_d_m_s = replay_part2.vel_d_m_s;
 		_gps.vel_ned_valid = replay_part2.vel_ned_valid;
+		_gps.alt = replay_part2.alt;
 		_read_part2 = true;
 
-	} else if (type == LOG_STAT_MSG) {
-		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+	} else if (type == LOG_RPL3_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part3.time_flow_usec;
 		parseMessage(data, dest_ptr, type);
-		_status.arming_state = vehicle_status.arming_state;
-		_status.condition_landed = (bool)vehicle_status.landed;
+		_flow.timestamp = replay_part3.time_flow_usec;
+		_flow.pixel_flow_x_integral = replay_part3.flow_integral_x;
+		_flow.pixel_flow_y_integral = replay_part3.flow_integral_y;
+		_flow.gyro_x_rate_integral = replay_part3.gyro_integral_x;
+		_flow.gyro_y_rate_integral = replay_part3.gyro_integral_y;
+		_flow.integration_timespan = replay_part3.flow_time_integral;
+		_flow.quality = replay_part3.flow_quality;
+		_read_part3 = true;
 
-		if (_status_pub == nullptr) {
-			_status_pub = orb_advertise(ORB_ID(vehicle_status), &_status);
+	} else if (type == LOG_RPL4_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part4.time_rng_usec;
+		parseMessage(data, dest_ptr, type);
+		_range.timestamp = replay_part4.time_rng_usec;
+		_range.current_distance = replay_part4.range_to_ground;
+		_read_part4 = true;
 
-		} else if (_status_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_status), _status_pub, &_status);
+	} else if (type == LOG_LAND_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
+		parseMessage(data, dest_ptr, type);
+		_land_detected.landed =  vehicle_landed.landed;
+
+		if (_landed_pub == nullptr) {
+			_landed_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_land_detected);
+
+		} else if (_landed_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);
 		}
 	}
 }
@@ -342,6 +425,7 @@ bool Ekf2Replay::needToSaveMessage(uint8_t type)
 	    type == LOG_EST3_MSG ||
 	    type == LOG_EST4_MSG ||
 	    type == LOG_EST5_MSG ||
+	    type == LOG_EST6_MSG ||
 	    type == LOG_CTS_MSG) {
 		return false;
 	}
@@ -357,6 +441,13 @@ void Ekf2Replay::logIfUpdated()
 	// update attitude
 	struct vehicle_attitude_s att = {};
 	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+
+	// if the timestamp of the attitude is zero, then this means that the ekf did not
+	// do an update so we can ignore this message and just continue
+	if (att.timestamp == 0) {
+		return;
+	}
+
 	memset(&log_message.body.att.q_w, 0, sizeof(log_ATT_s));
 
 	log_message.type = LOG_ATT_MSG;
@@ -492,6 +583,21 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
+
+		// optical flow innovations and innovation variances
+		log_message.type = LOG_EST6_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		memset(&(log_message.body.innov3.s), 0, sizeof(log_message.body.innov3.s));
+
+		for (unsigned i = 0; i < 2; i++) {
+			log_message.body.innov3.s[i] = innov.flow_innov[i];
+			log_message.body.innov3.s[i + 2] = innov.flow_innov_var[i];
+		}
+
+		log_message.body.innov3.s[4] = innov.hagl_innov;
+		log_message.body.innov3.s[5] = innov.hagl_innov_var;
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST6_MSG].length);
 	}
 
 	// update control state
@@ -514,11 +620,76 @@ void Ekf2Replay::logIfUpdated()
 	}
 }
 
+void Ekf2Replay::publishAndWaitForEstimator()
+{
+	// reset the counter reference for the imu replay topic
+	_part1_counter_ref = 0;
+
+	publishEstimatorInput();
+
+	// wait for estimator output to arrive
+	int pret = px4_poll(&_fds[0], (sizeof(_fds) / sizeof(_fds[0])), 1000);
+
+	if (pret == 0) {
+		PX4_WARN("timeout");
+	}
+
+	if (pret < 0) {
+		PX4_WARN("poll error");
+	}
+
+	if (_fds[0].revents & POLLIN) {
+		// write all estimator messages to replay log file
+		logIfUpdated();
+	}
+}
+
+void Ekf2Replay::setUserParams(const char *filename)
+{
+	std::string line;
+	std::ifstream myfile(filename);
+	std::string param_name;
+	std::string value_string;
+
+	if (myfile.is_open()) {
+		while (! myfile.eof()) {
+			getline(myfile, line);
+
+			if (line.empty()) {
+				continue;
+			}
+
+			std::istringstream mystrstream(line);
+			mystrstream >> param_name;
+			mystrstream >> value_string;
+
+			double param_value_double = std::stod(value_string);
+
+			param_t handle = param_find(param_name.c_str());
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_value_double;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				float value = 0;
+				value = (float)param_value_double;
+				param_set(handle, (const void *)&value);
+			}
+		}
+
+		myfile.close();
+	}
+}
+
 void Ekf2Replay::task_main()
 {
 	// formats
 	const int _k_max_data_size = 1024;	// 16x16 bytes
 	uint8_t data[_k_max_data_size] = {};
+	const char param_file[] = "./rootfs/replay_params.txt";
 
 	// Open log file from which we read data
 	// TODO Check if file exists
@@ -543,6 +714,25 @@ void Ekf2Replay::task_main()
 	// open logfile to write
 	_write_fd = ::open(path_to_replay_log, O_WRONLY | O_CREAT, S_IRWXU);
 
+	std::ifstream tmp_file;
+	tmp_file.open(param_file);
+
+	std::string line;
+	bool set_default_params_in_file = false;
+
+	if (tmp_file.is_open() && ! tmp_file.eof()) {
+		getline(tmp_file, line);
+
+		if (line.empty()) {
+			// the parameter file is empty so write the default values to it
+			set_default_params_in_file = true;
+		}
+	}
+
+	tmp_file.close();
+
+	std::ofstream myfile(param_file, std::ios::app);
+
 	// subscribe to estimator topics
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
@@ -550,18 +740,18 @@ void Ekf2Replay::task_main()
 	_lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_control_state_sub = orb_subscribe(ORB_ID(control_state));
 
-	px4_pollfd_struct_t fds[1];
-
 	// we use attitude updates from the estimator for synchronisation
-	fds[0].fd = _att_sub;
-	fds[0].events = POLLIN;
+	_fds[0].fd = _att_sub;
+	_fds[0].events = POLLIN;
 
 	bool read_first_header = false;
+	bool set_user_params = false;
 
 	PX4_INFO("Replay in progress... \n");
 	PX4_INFO("Log data will be written to %s\n", replay_file_location);
 
 	while (!_task_should_exit) {
+		_message_counter++;
 		uint8_t header[3] = {};
 
 		if (::read(fd, header, 3) != 3) {
@@ -578,8 +768,9 @@ void Ekf2Replay::task_main()
 
 		read_first_header = true;
 
-		if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
-			PX4_WARN("bad log header\n");
+		if ((header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2)) {
+			// we assume that the log file is finished here
+			PX4_WARN("Done!");
 			_task_should_exit = true;
 			continue;
 		}
@@ -613,6 +804,43 @@ void Ekf2Replay::task_main()
 
 			writeMessage(_write_fd, &data[0], sizeof(log_PARM_s));
 
+			// apply the parameters
+			char param_name[16];
+
+			for (unsigned i = 0; i < 16; i++) {
+				param_name[i] = data[i];
+
+				if (data[i] == '\0') {
+					break;
+				}
+			}
+
+			float param_data = 0;
+			memcpy(&param_data, &data[16], sizeof(float));
+			param_t handle = param_find(param_name);
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_data;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				param_set(handle, (const void *)&param_data);
+			}
+
+			// if the user param file was empty then we fill it with the ekf2 parameter values from
+			// the log file
+			if (set_default_params_in_file) {
+				if (strncmp(param_name, "EKF2", 4) == 0) {
+					std::ostringstream os;
+					double value = (double)param_data;
+					os << std::string(param_name) << " ";
+					os << value << "\n";
+					myfile << os.str();
+				}
+			}
+
 		} else if (header[2] == LOG_VER_MSG) {
 			// version message
 			if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
@@ -635,6 +863,14 @@ void Ekf2Replay::task_main()
 			writeMessage(_write_fd, &data[0], sizeof(log_TIME_s));
 
 		} else {
+			// the first time we arrive here we should apply the parameters specified in the user file
+			// this makes sure they are applied after the parameter values of the log file
+			if (!set_user_params) {
+				myfile.close();
+				setUserParams(param_file);
+				set_user_params = true;
+			}
+
 			// data message
 			if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
 				PX4_INFO("Done!");
@@ -648,30 +884,20 @@ void Ekf2Replay::task_main()
 				writeMessage(_write_fd, &data[0], _formats[header[2]].length - 3);
 			}
 
+			if (header[2] == LOG_RPL1_MSG && _part1_counter_ref > 0) {
+				// we have found another imu replay message while we still have one waiting to be published.
+				// so publish that now
+				publishAndWaitForEstimator();
+			}
+
 			// set estimator input data
 			setEstimatorInput(&data[0], header[2]);
 
-			// we have read both messages, publish them
-			if (_read_part1 && _read_part2) {
-				publishEstimatorInput();
-
-				// wait for estimator output to arrive
-				int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
-
-				if (pret == 0) {
-					PX4_WARN("timeout");
-				}
-
-				if (pret < 0) {
-					PX4_WARN("poll error");
-				}
-
-				if (fds[0].revents & POLLIN) {
-					// write all estimator messages to replay log file
-					logIfUpdated();
-
-					_read_part1 = _read_part2 = false;
-				}
+			// we have read the imu replay message (part 1) and have waited 3 more cycles for other replay message parts
+			// e.g. flow, gps or range. we know that in case they were written to the log file they should come right after
+			// the first replay message, therefore, we can kick the estimator now
+			if (_part1_counter_ref > 0 && _part1_counter_ref < _message_counter - 3) {
+				publishAndWaitForEstimator();
 			}
 		}
 	}

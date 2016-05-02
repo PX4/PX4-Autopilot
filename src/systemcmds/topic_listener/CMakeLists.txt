@@ -43,7 +43,7 @@ add_custom_target(generate_topic_listener
 px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
-	STACK 1800
+	STACK_MAIN 1800
 	COMPILE_FLAGS
 		-Os
 	SRCS
@@ -51,5 +51,6 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		generate_topic_listener
+		msg_gen
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -79,28 +79,54 @@
 
 /* mpu9250 master i2c bus specific register address and bit definitions */
 
-#define DIR_READ                    0x80
-#define DIR_WRITE                   0x00
+#define MPUREG_I2C_MST_STATUS       0x36
+
+#define BIT_I2C_READ_FLAG           0x80
 
 #define MPUREG_I2C_MST_CTRL         0x24
 #define MPUREG_I2C_SLV0_ADDR        0x25
 #define MPUREG_I2C_SLV0_REG         0x26
 #define MPUREG_I2C_SLV0_CTRL        0x27
 
+#define MPUREG_I2C_SLV4_ADDR        0x31
+#define MPUREG_I2C_SLV4_REG         0x32
+#define MPUREG_I2C_SLV4_DO          0x33
+#define MPUREG_I2C_SLV4_CTRL        0x34
+#define MPUREG_I2C_SLV4_DI          0x35
+
 #define MPUREG_EXT_SENS_DATA_00     0x49
+
 #define MPUREG_I2C_SLV0_D0          0x63
 #define MPUREG_I2C_MST_DELAY_CTRL   0x67
 #define MPUREG_USER_CTRL            0x6A
 
-#define BIT_I2C_MST_P_NSR           0x10
+#define BIT_I2C_SLV0_NACK           0x01
+#define BIT_I2C_FIFO_EN             0x40
 #define BIT_I2C_MST_EN              0x20
+#define BIT_I2C_IF_DIS              0x10
+#define BIT_FIFO_RST                0x04
+#define BIT_I2C_MST_RST             0x02
+#define BIT_SIG_COND_RST            0x01
+
+#define BIT_I2C_SLV0_EN             0x80
+#define BIT_I2C_SLV0_BYTE_SW        0x40
+#define BIT_I2C_SLV0_REG_DIS        0x20
+#define BIT_I2C_SLV0_REG_GRP        0x10
+
+#define BIT_I2C_MST_MULT_MST_EN     0x80
+#define BIT_I2C_MST_WAIT_FOR_ES     0x40
+#define BIT_I2C_MST_SLV_3_FIFO_EN   0x20
+#define BIT_I2C_MST_P_NSR           0x10
+#define BITS_I2C_MST_CLOCK_258HZ    0x08
 #define BITS_I2C_MST_CLOCK_400HZ    0x0D
+
+#define BIT_I2C_SLV0_DLY_EN         0x01
+#define BIT_I2C_SLV1_DLY_EN         0x02
+#define BIT_I2C_SLV2_DLY_EN         0x04
+#define BIT_I2C_SLV3_DLY_EN         0x08
 
 
 /* ak8963 register address and bit definitions */
-
-#define BIT_I2C_SLVO_EN   0x80
-#define BIT_I2C_READ_FLAG 0x80
 
 #define AK8963_I2C_ADDR         0x0C
 #define AK8963_DEVICE_ID        0x48
@@ -133,10 +159,15 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
 	_mag_reports(nullptr),
 	_mag_scale{},
 	_mag_range_scale(),
-	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_read")),
+	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_reads")),
+	_mag_errors(perf_alloc(PC_COUNT, "mpu9250_mag_errors")),
+	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
+	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
+	_mag_duplicates(perf_alloc(PC_COUNT, "mpu9250_mag_duplicates")),
 	_mag_asa_x(1.0),
 	_mag_asa_y(1.0),
-	_mag_asa_z(1.0)
+	_mag_asa_z(1.0),
+	_last_mag_data{}
 {
 	// default mag scale factors
 	_mag_scale.x_offset = 0;
@@ -160,6 +191,10 @@ MPU9250_mag::~MPU9250_mag()
 	}
 
 	perf_free(_mag_reads);
+	perf_free(_mag_errors);
+	perf_free(_mag_overruns);
+	perf_free(_mag_overflows);
+	perf_free(_mag_duplicates);
 }
 
 int
@@ -201,29 +236,39 @@ out:
 	return ret;
 }
 
+bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
+{
+	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
+		// it isn't new data - wait for next timer
+		return true;
+
+	} else {
+		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
+		return false;
+	}
+}
+
 void
 MPU9250_mag::measure(struct ak8963_regs data)
 {
 	bool mag_notify = true;
 
-	if (data.st1 & 0x01) {
-		if (false == _mag_reading_data) {
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | sizeof(struct ak8963_regs));
-			_mag_reading_data = true;
-			return;
-
-		} else {
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
-			_mag_reading_data = false;
-		}
-
-	} else {
-		if (true == _mag_reading_data) {
-			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
-			_mag_reading_data = false;
-		}
-
+	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
+		perf_count(_mag_duplicates);
 		return;
+	}
+
+	/* monitor for if data overrun flag is ever set */
+	if (data.st1 & 0x02) {
+		perf_count(_mag_overruns);
+	}
+
+	/* monitor for if magnetic sensor overflow flag is ever set noting that st2
+	 * is usually not even refreshed, but will always be in the same place in the
+	 * mpu's buffers regardless, hence the actual count would be bogus
+	 */
+	if (data.st2 & 0x08) {
+		perf_count(_mag_overflows);
 	}
 
 	mag_report	mrb;
@@ -251,7 +296,7 @@ MPU9250_mag::measure(struct ak8963_regs data)
 	mrb.scaling = _mag_range_scale;
 	mrb.temperature = _parent->_last_temperature;
 
-	mrb.error_count = 0;
+	mrb.error_count = perf_event_count(_mag_errors);
 
 	_mag_reports->force(&mrb);
 
@@ -456,7 +501,7 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 
 	_parent->write_reg(MPUREG_I2C_SLV0_ADDR, addr);
 	_parent->write_reg(MPUREG_I2C_SLV0_REG,  reg);
-	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, size | BIT_I2C_SLVO_EN);
+	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, size | BIT_I2C_SLV0_EN);
 }
 
 void
@@ -493,6 +538,7 @@ MPU9250_mag::ak8963_check_id(void)
 
 	return false;
 }
+
 /*
  * 400kHz I2C bus speed = 2.5us per bit = 25us per byte
  */
@@ -545,7 +591,7 @@ MPU9250_mag::ak8963_setup(void)
 	// enable the I2C master to slaves on the aux bus
 	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
 	_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
-	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BITS_I2C_MST_CLOCK_400HZ);
+	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 
 	if (!ak8963_check_id()) {
 		::printf("AK8963: bad id\n");
@@ -560,6 +606,7 @@ MPU9250_mag::ak8963_setup(void)
 
 	passthrough_write(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
-	set_passthrough(AK8963REG_ST1, 1);
+	set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+
 	return true;
 }

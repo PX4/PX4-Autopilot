@@ -66,6 +66,7 @@
 #include <systemlib/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
+#include <uORB/topics/adc_report.h>
 
 /*
  * Register accessors.
@@ -123,6 +124,7 @@ private:
 	adc_msg_s		*_samples;		/**< sample buffer */
 
 	orb_advert_t		_to_system_power;
+	orb_advert_t		_to_adc_report;
 
 	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
@@ -140,7 +142,9 @@ private:
 	uint16_t		_sample(unsigned channel);
 
 	// update system_power ORB topic, only on FMUv2
-	void update_system_power(void);
+	void update_system_power(hrt_abstime now);
+
+	void update_adc_report(hrt_abstime now);
 };
 
 ADC::ADC(uint32_t channels) :
@@ -148,7 +152,8 @@ ADC::ADC(uint32_t channels) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
-	_to_system_power(nullptr)
+	_to_system_power(nullptr),
+	_to_adc_report(nullptr)
 {
 	_debug_enabled = true;
 
@@ -303,20 +308,46 @@ ADC::_tick_trampoline(void *arg)
 void
 ADC::_tick()
 {
+	hrt_abstime now = hrt_absolute_time();
+
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
 
-	update_system_power();
+	update_adc_report(now);
+	update_system_power(now);
 }
 
 void
-ADC::update_system_power(void)
+ADC::update_adc_report(hrt_abstime now)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	adc_report_s adc = {};
+	adc.timestamp = now;
+
+	unsigned max_num = _channel_count;
+
+	if (max_num > (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]))) {
+		max_num = (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]));
+	}
+
+	for (unsigned i = 0; i < max_num; i++) {
+		adc.channel_id[i] = _samples[i].am_channel;
+		adc.channel_value[i] = _samples[i].am_data * 3.3f / 4096.0f;
+	}
+
+	int instance;
+	orb_publish_auto(ORB_ID(adc_report), &_to_adc_report, &adc, &instance, ORB_PRIO_HIGH);
+}
+
+void
+ADC::update_system_power(hrt_abstime now)
+{
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+    defined (CONFIG_ARCH_BOARD_MINDPX_V2) || \
+    defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 	system_power_s system_power = {};
-	system_power.timestamp = hrt_absolute_time();
+	system_power.timestamp = now;
 
 	system_power.voltage5V_v = 0;
 
@@ -331,6 +362,23 @@ ADC::update_system_power(void)
 	// publish these to the same topic
 	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
 
+#if defined (CONFIG_ARCH_BOARD_MINDPX_V2)
+	// note that the valid pins are active low
+	system_power.brick_valid   = 1;
+	system_power.servo_valid   = 1;
+
+	// OC pins are active low
+	system_power.periph_5V_OC  = 1;
+	system_power.hipower_5V_OC = 1;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+	// note that the valid pins are active high
+	system_power.brick_valid   = stm32_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.servo_valid   = 1;
+
+	// OC pins are not supported
+	system_power.periph_5V_OC  = 0;
+	system_power.hipower_5V_OC = 0;
+#else
 	// note that the valid pins are active low
 	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
 	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
@@ -338,6 +386,7 @@ ADC::update_system_power(void)
 	// OC pins are active low
 	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
 	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+#endif
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
@@ -348,40 +397,6 @@ ADC::update_system_power(void)
 	}
 
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-	system_power_s system_power = {};
-	system_power.timestamp = hrt_absolute_time();
-
-	system_power.voltage5V_v = 0;
-
-	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
-			// it is 2:1 scaled
-			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
-		}
-	}
-
-	// these are not ADC related, but it is convenient to
-	// publish these to the same topic
-	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
-
-	// note that the valid pins are active High
-	system_power.brick_valid   = stm32_gpioread(GPIO_VDD_BRICK_VALID);
-	system_power.servo_valid   = 1;
-
-	// OC pins are not supported
-	system_power.periph_5V_OC  = 0;
-	system_power.hipower_5V_OC = 0;
-
-	/* lazily publish */
-	if (_to_system_power != nullptr) {
-		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
-
-	} else {
-		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
-	}
-
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V4
 }
 
 uint16_t

@@ -32,7 +32,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file mTecs_params.c
  *
@@ -48,8 +47,7 @@
  *
  * Set to 1 to enable mTECS
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group mTECS
  */
 PARAM_DEFINE_INT32(MT_ENABLED, 0);
@@ -123,7 +121,6 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
  */
 PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
 
-
 /**
  * Total Energy Distribution Offset (Cruise pitch sp)
  *
@@ -174,6 +171,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 /**
  * Lowpass (cutoff freq.) for altitude
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
@@ -181,6 +179,7 @@ PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
 /**
  * Lowpass (cutoff freq.) for the flight path angle
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_LP, 1.0f);
@@ -211,7 +210,6 @@ PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
-
 
 /**
  * Minimal flight path angle setpoint
@@ -277,7 +275,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 0.5f);
 /**
  * Minimal acceleration (air)
  *
- * @unit m/s^2
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
@@ -285,7 +283,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 /**
  * Maximal acceleration (air)
  *
-* @unit m/s^2
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);

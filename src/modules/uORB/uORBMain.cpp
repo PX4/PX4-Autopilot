@@ -33,6 +33,7 @@
 
 #include <string.h>
 #include "uORBDevices.hpp"
+#include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
 
@@ -70,6 +71,11 @@ uorb_main(int argc, char *argv[])
 			return 0;
 		}
 
+		if (!uORB::Manager::initialize()) {
+			PX4_ERR("uorb manager alloc failed");
+			return -ENOMEM;
+		}
+
 		/* create the driver */
 		g_dev = new uORB::DeviceMaster(uORB::PUBSUB);
 
@@ -94,6 +100,11 @@ uorb_main(int argc, char *argv[])
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
+		if (!g_dev) {
+			PX4_WARN("orb is not running! start it first");
+			return -ESRCH;
+		}
+
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 		return t.test();
 	}

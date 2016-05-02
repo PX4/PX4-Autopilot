@@ -138,15 +138,11 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule update --init --recursive ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-# This is NOT a good approach as it overwrites checked out branches
-# behind the back of a developer
-		#COMMAND git submodule update --recursive ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
@@ -229,7 +225,9 @@ endfunction()
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			[ MAIN <string> ]
-#			[ STACK <string> ]
+#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
+#			[ STACK_MAIN <string> ]
+#			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
@@ -238,7 +236,9 @@ endfunction()
 #	Input:
 #		MODULE			: unique name of module
 #		MAIN			: entry point, if not given, assumed to be library
-#		STACK			: size of stack
+#		STACK			: deprecated use stack main instead
+#		STACK_MAIN		: size of stack for main function
+#		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS	: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
@@ -252,7 +252,7 @@ endfunction()
 #		px4_add_module(MODULE test
 #			SRCS
 #				file.cpp
-#			STACK 1024
+#			STACK_MAIN 1024
 #			DEPENDS
 #				git_nuttx
 #			)
@@ -261,15 +261,43 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK PRIORITY
+		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
+	# set defaults if not set
+	set(MAIN_DEFAULT MAIN-NOTFOUND)
+	set(STACK_MAIN_DEFAULT 1024)
+	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
+
+	# default stack max to stack main
+	if(NOT STACK_MAIN AND STACK)
+		set(STACK_MAIN ${STACK})
+		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!!!!!!!!!!!!")
+	endif()
+
+	foreach(property MAIN STACK_MAIN PRIORITY)
+		if(NOT ${property})
+			set(${property} ${${property}_DEFAULT})
+		endif()
+		set_target_properties(${MODULE} PROPERTIES ${property}
+			${${property}})
+	endforeach()
+
+	# default stack max to stack main
+	if(NOT STACK_MAX)
+		set(STACK_MAX ${STACK_MAIN})
+	endif()
+	set_target_properties(${MODULE} PROPERTIES STACK_MAX
+		${STACK_MAX})
+
 	if(${OS} STREQUAL "qurt" )
 		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+	elseif(${OS} STREQUAL "nuttx" )
+		list(APPEND COMPILE_FLAGS -Wframe-larger-than=${STACK_MAX})
 	endif()
 
 	if(MAIN)
@@ -294,8 +322,8 @@ function(px4_add_module)
 
 	# store module properties in target
 	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
-	# STACK, MAIN, PRIORITY are PX4 specific
-	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK MAIN PRIORITY)
+	# STACK_MAIN, MAIN, PRIORITY are PX4 specific
+	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
@@ -443,6 +471,26 @@ function(px4_add_upload)
 		)
 endfunction()
 
+
+function(px4_add_adb_push)
+	px4_parse_function_args(
+		NAME px4_add_upload
+		ONE_VALUE OS BOARD OUT DEST
+		MULTI_VALUE FILES DEPENDS
+		REQUIRED OS BOARD OUT FILES DEPENDS DEST
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
+
 #=============================================================================
 #
 #	px4_add_common_flags
@@ -514,14 +562,11 @@ function(px4_add_common_flags)
 		#               but generates too many false positives
 		)
 
-	if (${OS} STREQUAL "nuttx")
-		list(APPEND warnings -Wframe-larger-than=1024)
-	endif()
-
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
 			list(APPEND warnings
+				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
 			)
@@ -657,14 +702,11 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		set(added_exe_link_flags
+	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
+		set(added_exe_linker_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections
-			)
-	else()
-		set(added_exe_link_flags
-			-Wl,--warn-common
+			#,--print-gc-sections 
 			)
 	endif()
 
@@ -729,7 +771,7 @@ function(px4_create_git_hash_header)
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	message(STATUS "GIT_DESC = ${git_desc}")
+	#message(STATUS "GIT_DESC = ${git_desc}")
 	set(git_desc_short)
 	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
@@ -778,22 +820,23 @@ endfunction()
 #	Generates a source file with all parameters.
 #
 #	Usage:
-#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file>)
+#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> [SCOPE <cmake file for scoping>])
 #
 #	Input:
-#		XML : the parameters.xml file
-#		DEPS : target dependencies
+#		XML   : the parameters.xml file
+#		SCOPE : the cmake file used to limit scope of the paramaters
+#		DEPS  : target dependencies
 #
 #	Output:
 #		OUT	: the generated source files
 #
 #	Example:
-#		px4_generate_parameters_source(OUT param_files XML parameters.xml)
+#		px4_generate_parameters_source(OUT param_files XML parameters.xml SCOPE ${OS}_${BOARD}_${LABEL}.cmake )
 #
 function(px4_generate_parameters_source)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_source
-		ONE_VALUE OUT XML DEPS
+		ONE_VALUE OUT XML SCOPE DEPS
 		REQUIRED OUT XML
 		ARGN ${ARGN})
 	set(generated_files
@@ -802,8 +845,8 @@ function(px4_generate_parameters_source)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
-		DEPENDS ${XML} ${DEPS}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
+		DEPENDS ${XML} ${DEPS} ${CMAKE_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()

@@ -282,9 +282,10 @@ GPSSIM::receive(int timeout)
 	_report_gps_pos.lat = gps.lat;
 	_report_gps_pos.lon = gps.lon;
 	_report_gps_pos.alt = gps.alt;
-	_report_gps_pos.timestamp_variance = hrt_absolute_time();
+	_report_gps_pos.timestamp_variance = _report_gps_pos.timestamp_position;
 	_report_gps_pos.eph = (float)gps.eph * 1e-2f;
 	_report_gps_pos.epv = (float)gps.epv * 1e-2f;
+	_report_gps_pos.timestamp_velocity = _report_gps_pos.timestamp_position;
 	_report_gps_pos.vel_m_s = (float)(gps.vel) / 100.0f;
 	_report_gps_pos.vel_n_m_s = (float)(gps.vn) / 100.0f;
 	_report_gps_pos.vel_e_m_s = (float)(gps.ve) / 100.0f;
@@ -309,13 +310,13 @@ GPSSIM::task_main()
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.timestamp_variance = hrt_absolute_time();
+			_report_gps_pos.timestamp_variance = _report_gps_pos.timestamp_position;
 			_report_gps_pos.s_variance_m_s = 10.0f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;
 			_report_gps_pos.eph = 0.9f;
 			_report_gps_pos.epv = 1.8f;
-			_report_gps_pos.timestamp_velocity = hrt_absolute_time();
+			_report_gps_pos.timestamp_velocity = _report_gps_pos.timestamp_position;
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
@@ -465,7 +466,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
 
 	if (!h.isValid()) {
-		PX4_ERR("getHandle failed: %s", GPS0_DEVICE_PATH);
+		PX4_ERR("getHandle failed: %s", GPSSIM_DEVICE_PATH);
 		goto fail;
 	}
 
@@ -528,6 +529,7 @@ info()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("gpssim not running");
+		return;
 	}
 
 	g_dev->print_info();

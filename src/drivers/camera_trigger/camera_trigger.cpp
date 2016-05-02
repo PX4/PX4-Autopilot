@@ -51,6 +51,8 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
+#include <systemlib/mavlink_log.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/sensor_combined.h>
@@ -59,7 +61,6 @@
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
-#include <mavlink/mavlink_log.h>
 #include <board_config.h>
 
 #define TRIGGER_PIN_DEFAULT 1

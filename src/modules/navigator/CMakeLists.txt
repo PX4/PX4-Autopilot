@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Wno-sign-compare
 		-Os
@@ -52,6 +52,7 @@ px4_add_module(
 		rcloss.cpp
 		enginefailure.cpp
 		gpsfailure.cpp
+		follow_target.cpp
 	DEPENDS
 		platforms__common
 	)

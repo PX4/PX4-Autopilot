@@ -61,7 +61,6 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
@@ -137,10 +136,6 @@ private:
 
 	orb_advert_t			_actuator_controls_2_topic;
 
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
-	perf_counter_t			_buffer_overflows;
-
 	struct vehicle_command_s _control_cmd;
 	struct vehicle_command_s _config_cmd;
 	struct manual_control_setpoint_s _manual_control;
@@ -207,10 +202,7 @@ Gimbal::Gimbal() :
 	_attitude_compensation_pitch(true),
 	_attitude_compensation_yaw(true),
 	_initialized(false),
-	_actuator_controls_2_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "gimbal_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "gimbal_buffer_overflows"))
+	_actuator_controls_2_topic(nullptr)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -332,8 +324,6 @@ Gimbal::cycle()
 	}
 
 	bool	updated = false;
-
-	perf_begin(_sample_perf);
 
 	float roll = 0.0f;
 	float pitch = 0.0f;
@@ -536,8 +526,6 @@ Gimbal::cycle()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	perf_end(_sample_perf);
-
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(LPWORK,
 		   &_work,
@@ -549,9 +537,6 @@ Gimbal::cycle()
 void
 Gimbal::print_info()
 {
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 }
 
 /**

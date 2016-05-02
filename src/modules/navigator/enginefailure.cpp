@@ -41,7 +41,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <navigator/navigation.h>
@@ -141,7 +141,7 @@ EngineFailure::advance_ef()
 {
 	switch (_ef_state) {
 	case EF_STATE_NONE:
-		mavlink_log_emergency(_navigator->get_mavlink_fd(), "Engine failure. Loitering down");
+		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
 	default:

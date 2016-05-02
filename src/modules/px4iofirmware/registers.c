@@ -48,6 +48,7 @@
 #include <systemlib/systemlib.h>
 #include <stm32_pwr.h>
 #include <rc/dsm.h>
+#include <rc/sbus.h>
 
 #include "px4io.h"
 #include "protocol.h"
@@ -157,6 +158,7 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
 	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
+	[PX4IO_P_SETUP_SBUS_RATE]		= 72,
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 #else
@@ -648,6 +650,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_ON:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
+			} else {
+				return -1;
 			}
 
 			break;
@@ -655,6 +660,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
+			} else {
+				return -1;
 			}
 
 			break;
@@ -674,6 +682,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_TRIM_PITCH:
 		case PX4IO_P_SETUP_TRIM_YAW:
 			r_page_setup[offset] = value;
+			break;
+
+		case PX4IO_P_SETUP_SBUS_RATE:
+			r_page_setup[offset] = value;
+			sbus1_set_output_rate_hz(value);
 			break;
 
 		default:

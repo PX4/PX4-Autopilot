@@ -31,14 +31,12 @@
 #
 ############################################################################
 set(MIXER_CFLAGS -Os)
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2100)
-endif()
 
 px4_add_module(
 	MODULE systemcmds__mixer
 	MAIN mixer
-	STACK 4096
+	STACK_MAIN 4096
+	STACK_MAX 2100
 	COMPILE_FLAGS ${MIXER_CFLAGS}
 	SRCS
 		mixer.cpp

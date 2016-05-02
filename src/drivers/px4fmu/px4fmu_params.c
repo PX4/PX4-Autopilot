@@ -48,9 +48,7 @@
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
@@ -61,9 +59,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
@@ -74,9 +70,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
@@ -87,9 +81,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
@@ -100,9 +92,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
@@ -113,9 +103,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * Set to 1 to invert the channel, 0 for default direction.
  *
  * @reboot_required true
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
