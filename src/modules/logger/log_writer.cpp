@@ -103,21 +103,20 @@ void *LogWriter::run_helper(void *context)
 
 void LogWriter::run()
 {
-	// Wait for _should_run flag
-	while (!_exit_thread) {
-		bool start = false;
-		pthread_mutex_lock(&_mtx);
-		pthread_cond_wait(&_cv, &_mtx);
-		start = _should_run;
-		pthread_mutex_unlock(&_mtx);
-
-		if (start) {
-			break;
-		}
-	}
-
 	while (!_exit_thread) {
 		// Outer endless loop
+		// Wait for _should_run flag
+		while (!_exit_thread) {
+			bool start = false;
+			pthread_mutex_lock(&_mtx);
+			pthread_cond_wait(&_cv, &_mtx);
+			start = _should_run;
+			pthread_mutex_unlock(&_mtx);
+
+			if (start) {
+				break;
+			}
+		}
 
 		int poll_count = 0;
 		int written = 0;
@@ -196,7 +195,6 @@ void LogWriter::run()
 				break;
 			}
 		}
-
 	}
 }
 
