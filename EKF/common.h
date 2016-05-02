@@ -246,13 +246,13 @@ struct parameters {
 		range_delay_ms = 5.0f;
 
 		// input noise
-		gyro_noise = 5.0e-2f;
+		gyro_noise = 2.0e-2f;
 		accel_noise = 2.5e-1f;
 
 		// process noise
-		gyro_bias_p_noise = 5.0e-5f;
+		gyro_bias_p_noise = 5.0e-6f;
 		accel_bias_p_noise = 1.0e-7f;
-		mage_p_noise = 2.5e-3f;
+		mage_p_noise = 1.0e-3f;
 		magb_p_noise = 1.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 5.0f;
@@ -274,7 +274,7 @@ struct parameters {
 		mag_declination_deg = 0.0f;
 		heading_innov_gate = 2.6f;
 		mag_innov_gate = 3.0f;
-		mag_declination_source = 3;
+		mag_declination_source = 7;
 		mag_fusion_type = 0;
 
 		// airspeed fusion
