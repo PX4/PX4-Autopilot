@@ -291,18 +291,30 @@ int Logger::add_topic(const orb_metadata *topic)
 
 	if (topic->o_size > MAX_DATA_SIZE) {
 		PX4_WARN("skip topic %s, data size is too large: %zu (max is %zu)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
+		return -1;
 
-	} else {
-		size_t fields_len = strlen(topic->o_fields);
+	}
 
-		if (fields_len > sizeof(message_format_s::format)) {
-			PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-				 sizeof(message_format_s::format));
+	size_t fields_len = strlen(topic->o_fields);
 
-		} else {
-			fd = orb_subscribe(topic);
-			_subscriptions.push_back(LoggerSubscription(fd, topic));
-		}
+	if (fields_len > sizeof(message_format_s::format)) {
+		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
+			 sizeof(message_format_s::format));
+
+		return -1;
+	}
+
+	fd = orb_subscribe(topic);
+
+	if (fd < 0) {
+		PX4_WARN("logger: orb_subscribe failed");
+		return -1;
+	}
+
+	if (!_subscriptions.push_back(LoggerSubscription(fd, topic))) {
+		PX4_WARN("logger: failed to add topic. Too many subscriptions");
+		orb_unsubscribe(fd);
+		fd = -1;
 	}
 
 	return fd;
