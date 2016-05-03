@@ -349,7 +349,7 @@ foreach(module ${config_module_list})
 endforeach()
 
 # Keep track of external shared libs required for modules
-set(module_shared_libraries "${module_shared_libraries}" CACHE INTERNAL "module_shared_libraries")
+set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "module_external_libraries")
 
 add_subdirectory(src/firmware/${OS})
 
