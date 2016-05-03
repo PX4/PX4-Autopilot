@@ -301,7 +301,8 @@ void Standard::update_mc_state()
 	// get projection of thrust vector on body x axis. This is used to
 	// determine the desired forward acceleration which we want to achieve with the pusher
 	math::Matrix<3,3> R(&_v_att->R[0]);
-	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+	math::Quaternion q_sp(_v_att_sp->q_d[0], _v_att_sp->q_d[1], _v_att_sp->q_d[2], _v_att_sp->q_d[3]);
+	math::Matrix<3,3> R_sp = q_sp.to_dcm();
 	math::Vector<3> thrust_sp_axis(-R_sp(0,2), -R_sp(1,2), -R_sp(2,2));
 	math::Vector<3> euler = R.to_euler();
 	R.from_euler(0, 0, euler(2));
@@ -311,16 +312,14 @@ void Standard::update_mc_state()
 	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust * _params_standard.forward_thurst_scale;
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
-	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max : _v_att_sp->pitch_body;
+	float pitch_sp_corrected = _euler_sp(1) < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max : _euler_sp(1);
 
 	// compute new desired rotation matrix with corrected pitch angle
 	// and copy data to attitude setpoint topic
 	euler = R_sp.to_euler();
 	euler(1) = pitch_sp_corrected;
 	R_sp.from_euler(euler(0), euler(1), euler(2));
-	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
-	_v_att_sp->pitch_body = pitch_sp_corrected;
-	math::Quaternion q_sp;
+	_euler_sp(1) = pitch_sp_corrected;
 	q_sp.from_dcm(R_sp);
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }

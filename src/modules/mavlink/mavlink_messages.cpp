@@ -2265,11 +2265,13 @@ protected:
 			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
-			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
-
-			msg.body_roll_rate = att_rates_sp.roll;
-			msg.body_pitch_rate = att_rates_sp.pitch;
-			msg.body_yaw_rate = att_rates_sp.yaw;
+			
+			// XXX Why are we missusing this message like this?
+			matrix::Quaternion<float> q(&att_sp.q_d[0]);
+			matrix::Euler<float> euler(q);
+			msg.body_roll_rate = euler(0);
+			msg.body_pitch_rate = euler(1);
+			msg.body_yaw_rate = euler(2);
 
 			msg.thrust = att_sp.thrust;
 

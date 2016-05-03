@@ -246,7 +246,9 @@ MulticopterPositionControlMultiplatform::reset_alt_sp()
 
 		//XXX hack until #1741 is in/ported
 		/* reset yaw sp */
-		_att_sp_msg.data().yaw_body = _att->data().yaw;
+		matrix::Quaternion<float> q(&_att->data().q[0]);
+		matrix::Euler<float> euler(q);
+		_att_sp_msg.data().yaw_body = euler(2);
 
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));

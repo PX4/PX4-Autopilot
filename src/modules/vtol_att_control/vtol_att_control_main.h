@@ -134,6 +134,7 @@ public:
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 
 	struct Params 					*get_params() {return &_params;}
+	matrix::Euler<float> 			*get_euler_sp() {return &euler_sp;}
 
 
 private:
@@ -219,6 +220,8 @@ private:
 	Tiltrotor *_tiltrotor;	// tailsitter vtol type
 	Tailsitter *_tailsitter;	// tiltrotor vtol type
 	Standard *_standard;	// standard vtol type
+
+	matrix::Euler<float> euler_sp;
 
 //*****************Member functions***********************************************************************
 
