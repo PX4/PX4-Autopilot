@@ -46,12 +46,12 @@
 // Hack until everything is using this header
 #include <systemlib/visibility.h>
 
-// Macro to define packed structures
-#ifdef __GNUC__
-#define ORBPACKED( __Declaration__ ) __Declaration__ __attribute__((aligned(4), packed))
-#else
-#define ORBPACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
-#endif
+struct orb_output_buffer {
+	void *data;
+	size_t next;
+};
+
+typedef void (*func_ptr)(void *in, struct orb_output_buffer *out);
 
 /**
  * Object metadata.
@@ -59,6 +59,7 @@
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const size_t o_size;		/**< object size */
+	func_ptr serialize;			/**< serialization function for this orb topic */
 	const char *o_fields;		/**< semicolon separated list of fields */
 };
 
@@ -118,13 +119,15 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
- * @param _func		The pointer to a function that packs topic
+ * @param _func		The pointer to a function that serializes this topic
+ * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
  */
-#define ORB_DEFINE(_name, _struct, _fields)			\
+#define ORB_DEFINE(_name, _struct, _func, _fields)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
-		_fields				\
+		_func,					\
+		_fields					\
 	}; struct hack
 
 __BEGIN_DECLS

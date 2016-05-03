@@ -4,8 +4,11 @@
 #include <errno.h>
 #include <string.h>
 
+#include <uORB/uORB.h>
 #include <uORB/uORBTopics.h>
+#include <px4_includes.h>
 #include <px4_getopt.h>
+#include <px4_log.h>
 
 #define DBGPRINT
 
@@ -25,6 +28,14 @@ using namespace px4::logger;
 
 int logger_main(int argc, char *argv[])
 {
+	// logger currently assumes little endian
+	int num = 1;
+
+	if (*(char *)&num != 1) {
+		PX4_ERR("Logger only works on little endian!\n");
+		return 1;
+	}
+
 	if (argc < 2) {
 		PX4_INFO("usage: logger {start|stop|status}");
 		return 1;
@@ -196,7 +207,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 	warnx("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
 
-	logger_ptr->run();
+	if (logger_ptr == nullptr) {
+		PX4_WARN("alloc failed");
+
+	} else {
+		logger_ptr->run();
+	}
 }
 
 enum class MessageType : uint8_t {
@@ -480,8 +496,8 @@ void Logger::run()
 				/* each message consists of a header followed by an orb data object
 				 * The size of the data object is given by orb_metadata.o_size
 				 */
-				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
-				uint8_t buffer[msg_size];
+				size_t padded_msg_size = sub.metadata->o_size;
+				uint8_t orb_msg_padded[padded_msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
@@ -489,8 +505,15 @@ void Logger::run()
 				//orb_check(sub.fd, &updated);	// check whether a non-multi topic has been updated
 				/* this works for both single and multi-instances */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s),
-								  &sub.time_tried_subscribe)) {
+					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], &orb_msg_padded, &sub.time_tried_subscribe)) {
+
+						struct orb_output_buffer output_buffer = {};
+						uint8_t buffer[sizeof(message_data_header_s) + padded_msg_size];
+						output_buffer.data = &buffer;
+						output_buffer.next = sizeof(message_data_header_s);
+
+						sub.metadata->serialize(&orb_msg_padded, &output_buffer);
+						size_t msg_size = output_buffer.next;
 
 						//uint64_t timestamp;
 						//memcpy(&timestamp, buffer + sizeof(message_data_header_s), sizeof(timestamp));
@@ -505,9 +528,13 @@ void Logger::run()
 						 */
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						header->msg_size = static_cast<uint16_t>(msg_size - 3);
+						/* the ORB topic data object has 2 unused trailing bytes? */
+						//header->msg_size = static_cast<uint16_t>(msg_size - 3);
+						header->msg_size = msg_size;
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
+
+						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
 #ifdef DBGPRINT
 						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
@@ -527,7 +554,9 @@ void Logger::run()
 							if (dropout_start != 0) {
 								double drop_len = (double)(trytime - dropout_start)  * 1e-6;
 
-								if (drop_len > max_drop_len) { max_drop_len = drop_len; }
+								if (drop_len > max_drop_len) {
+									max_drop_len = drop_len;
+								}
 
 								PX4_WARN("dropout length: %5.3f seconds", drop_len);
 								dropout_start = 0;
