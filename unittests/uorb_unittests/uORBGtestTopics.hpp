@@ -48,11 +48,11 @@ namespace uORB_test
      int16_t val;
    };
 
-   ORB_DEFINE( topicA, struct orb_topic_A, "TOPICA:int16 val;" );
-   ORB_DEFINE( topicB, struct orb_topic_B, "TOPICB:int16 val;" );
+   ORB_DEFINE(topicA, struct orb_topic_A, nullptr, "TOPICA:int16 val;");
+   ORB_DEFINE(topicB, struct orb_topic_B, nullptr, "TOPICB:int16 val;");
 
-   ORB_DEFINE( topicA_clone, struct orb_topic_A, "TOPICA_CLONE:int16 val;" );
-   ORB_DEFINE( topicB_clone, struct orb_topic_B, "TOPICB_CLONE:int16 val;"  );
+   ORB_DEFINE(topicA_clone, struct orb_topic_A, nullptr, "TOPICA_CLONE:int16 val;";
+   ORB_DEFINE(topicB_clone, struct orb_topic_B, nullptr, "TOPICB_CLONE:int16 val;");
 }
 
 #endif // _UnitTest_uORBTopics_hpp_
