@@ -27,7 +27,6 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		-Wl,--start-group
 		${module_libraries}
                 ${target_libraries}
-                df_driver_framework
                 ${df_driver_libs}
 		-Wl,--end-group
 		)
@@ -44,7 +43,6 @@ else()
 		LINK_LIBS
 			${module_libraries}
 			${target_libraries}
-			df_driver_framework
 			${df_driver_libs}
 			m
 		)

@@ -29,6 +29,7 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
+	lib/DriverFramework/framework
 
 	platforms/common
 	platforms/posix/px4_layer

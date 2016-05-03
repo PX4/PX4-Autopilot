@@ -150,16 +150,6 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-if("${OS}" STREQUAL "posix")
-	if (APPLE)
-		set(DF_TARGET darwin)
-	else()
-		set(DF_TARGET linux)
-	endif()
-else()
-	set(DF_TARGET ${OS})
-endif()
-
 message(STATUS "${target_name}")
 
 # switch to ros CMake file if building ros
@@ -333,12 +323,11 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 #=============================================================================
 # DriverFramework Drivers
 #
-#message("ADDING DRIVERS")
 set(df_driver_libs)
 foreach(driver ${config_df_driver_list})
 	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
 	list(APPEND df_driver_libs df_${driver})
-	message("adding driver: ${driver}")
+	message("Adding DF driver: ${driver}")
 endforeach()
 
 #=============================================================================
@@ -360,8 +349,6 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
-
-add_subdirectory(src/lib/DriverFramework/framework/src)
 
 #add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
 if (NOT "${OS}" STREQUAL "nuttx")

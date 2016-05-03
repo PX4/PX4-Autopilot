@@ -500,8 +500,6 @@ function(px4_os_add_flags)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
-	set(DF_TARGET "nuttx" PARENT_SCOPE)
-
 endfunction()
 
 #=============================================================================
