@@ -766,6 +766,13 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
+		COMMAND git describe --tags
+		OUTPUT_VARIABLE git_tag
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		)
+	message(STATUS "GIT_TAG = ${git_tag}")
+	execute_process(
 		COMMAND git rev-parse HEAD
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
