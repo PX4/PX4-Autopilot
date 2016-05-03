@@ -146,6 +146,11 @@ Mission::on_inactive()
 	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_land_detected()->landed) {
 		_need_takeoff = true;
+		/* Reset work item type to default if auto take-off has been paused or aborted,
+		   and we landed in manual mode. */
+		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;		
+		}
 	}
 }
 
