@@ -150,16 +150,6 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-if("${OS}" STREQUAL "posix")
-	if (APPLE)
-		set(DF_TARGET darwin)
-	else()
-		set(DF_TARGET linux)
-	endif()
-else()
-	set(DF_TARGET ${OS})
-endif()
-
 message(STATUS "${target_name}")
 
 # switch to ros CMake file if building ros
