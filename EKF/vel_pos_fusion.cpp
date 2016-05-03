@@ -176,13 +176,11 @@ void Ekf::fuseVelPosHeight()
 	// record the successful velocity fusion time
 	if (vel_check_pass && _fuse_hor_vel) {
 		_time_last_vel_fuse = _time_last_imu;
-		_tilt_err_vec.setZero();
 	}
 
 	// record the successful position fusion time
 	if (pos_check_pass && _fuse_pos) {
 		_time_last_pos_fuse = _time_last_imu;
-		_tilt_err_vec.setZero();
 	}
 
 	// record the successful height fusion time

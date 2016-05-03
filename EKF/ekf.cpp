@@ -470,9 +470,6 @@ bool Ekf::initialiseFilter(void)
 		// update transformation matrix from body to world frame
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
-		// initialise the filtered alignment error estimate to a larger starting value
-		_tilt_err_length_filt = 1.0f;
-
 		// calculate the averaged magnetometer reading
 		Vector3f mag_init = _mag_filt_state;
 

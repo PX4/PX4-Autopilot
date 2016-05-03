@@ -180,9 +180,6 @@ private:
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance
 
-	Vector3f _tilt_err_vec;         // Vector of the most recent attitude error correction from velocity and position fusion
-	float _tilt_err_length_filt;    // filtered length of _tilt_err_vec
-
 	// optical flow processing
 	float _flow_innov[2];		// flow measurement innovation
 	float _flow_innov_var[2];	// flow innovation variance
