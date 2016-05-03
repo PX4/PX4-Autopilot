@@ -211,12 +211,7 @@ void Ekf::predictCovariance()
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
 	// force symmetry on the covariance matrix before we use it for the prediction step
-	for (unsigned row = 1; row < _k_num_states; row++) {
-		for (unsigned column = 0; column < row; column++) {
-			P[row][column] = 0.5f * (P[row][column] + P[column][row]);
-			P[column][row] = P[row][column];
-		}
-	}
+	makeSymmetrical();
 
 	// predict the covariance
 
