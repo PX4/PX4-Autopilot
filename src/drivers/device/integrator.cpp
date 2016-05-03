@@ -111,6 +111,26 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 	}
 }
 
+bool
+Integrator::put_with_interval(unsigned interval_us, math::Vector<3> &val, math::Vector<3> &integral,
+			      uint64_t &integral_dt)
+{
+	if (_last_integration_time == 0) {
+		/* this is the first item in the integrator */
+		uint64_t now = hrt_absolute_time();
+		_last_integration_time = now;
+		_last_reset_time = now;
+		_last_val = val;
+
+		return false;
+	}
+
+	// Create the timestamp artifically.
+	uint64_t timestamp = _last_integration_time + interval_us;
+
+	return put(timestamp, val, integral, integral_dt);
+}
+
 math::Vector<3>
 Integrator::get(bool reset, uint64_t &integral_dt)
 {
