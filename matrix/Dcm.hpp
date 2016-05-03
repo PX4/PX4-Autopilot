@@ -46,7 +46,7 @@ public:
     /**
      * Constructor from array
      *
-     * Copies the given scalar value to all matrix fields.
+     * More elaborate function description
      *
      * @param other array
      */

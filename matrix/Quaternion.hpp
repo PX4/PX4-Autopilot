@@ -37,7 +37,7 @@ public:
     /**
      * Constructor from array
      *
-     * Copies the given scalar value to all quaternion fields.
+     * More elaborate function description
      *
      * @param data_ array
      */
