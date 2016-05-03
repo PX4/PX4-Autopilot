@@ -68,6 +68,7 @@ topic_name = spec.short_name
 #else
 #include <string.h>
 #endif
+
 #include <uORB/uORB.h>
 
 @##############################
@@ -93,7 +94,8 @@ for field in spec.parsed_fields():
 @# Main struct of message
 @##############################
 @{
-type_map = {'int8': 'int8_t',
+type_map = {
+  'int8': 'int8_t',
   'int16': 'int16_t',
   'int32': 'int32_t',
   'int64': 'int64_t',
@@ -111,49 +113,22 @@ type_map = {'int8': 'int8_t',
 }
 
 msgtype_size_map = {
-  'int8': 8,
-  'int16': 16,
-  'int32': 32,
-  'int64': 64,
-  'uint8': 8,
-  'uint16': 16,
-  'uint32': 32,
-  'uint64': 64,
-  'float32': 32,
-  'float64': 64,
+  'int8': 1,
+  'int16': 2,
+  'int32': 4,
+  'int64': 8,
+  'uint8': 1,
+  'uint16': 2,
+  'uint32': 4,
+  'uint64': 8,
+  'float32': 4,
+  'float64': 8,
   'bool': 1,
   'char': 1,
   'fence_vertex': 8,
   'position_setpoint': 104,
   'esc_report': 36
 }
-
-def bare_name(msg_type):
-    bare = msg_type
-    if '/' in msg_type:
-        # removing prefix
-        bare = (msg_type.split('/'))[1]
-    # removing suffix
-    return bare.split('[')[0]
-
-def sizeof_field_type(field):
-    return msgtype_size_map[bare_name(field.type)]
-
-msgtype_size_map = {'int8': 8,
-  'int16': 16,
-  'int32': 32,
-  'int64': 64,
-  'uint8': 8,
-  'uint16': 16,
-  'uint32': 32,
-  'uint64': 64,
-  'float32': 32,
-  'float64': 64,
-  'bool': 1,
-  'char': 1,
-  'fence_vertex': 8,
-  'position_setpoint': 104,
-  'esc_report': 36}
 
 def bare_name(msg_type):
     bare = msg_type
@@ -196,7 +171,7 @@ def print_field_def(field):
 
 def print_parsed_fields():
   # sort fields
-  sorted_fields = sorted(spec.parsed_fields(), key = sizeof_field_type, reverse=True)
+  sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
   # loop over all fields and print the type and name
   for field in sorted_fields:
     if (not field.is_header):
@@ -204,7 +179,6 @@ def print_parsed_fields():
 
 }@
 
-#pragma pack(push, 1)
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
@@ -230,11 +204,8 @@ for constant in spec.constants:
 }
 #endif
 };
-#pragma pack(pop)
 
-/**
- * @@}
- */
+void serialize_@(topic_name)(void *in, struct orb_output_buffer *buffer);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@

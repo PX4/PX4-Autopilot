@@ -18,15 +18,15 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
-	#drivers/mpu9250
+	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
-	#drivers/hmc5883
+	drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
-	#drivers/srf02
-	#drivers/sf0x
-	#drivers/ll40ls
+	drivers/srf02
+	drivers/sf0x
+	drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
@@ -37,17 +37,17 @@ set(config_module_list
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
-	#drivers/frsky_telemetry
+	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
-	#drivers/px4flow
+	drivers/px4flow
 	#drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	#drivers/snapdragon_rc_pwm
-	#drivers/lis3mdl
+	drivers/snapdragon_rc_pwm
+	drivers/lis3mdl
 
 	#
 	# System commands
@@ -74,7 +74,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
-	#modules/uavcan
+	modules/uavcan
 	modules/land_detector
 
 	#
@@ -83,7 +83,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/local_position_estimator
+	#modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -98,7 +98,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/logger
+	#modules/logger
 	modules/sdlog2
 
 	#
@@ -176,8 +176,8 @@ set(config_io_board
 	)
 
 set(config_extra_libs
-	#uavcan
-	#uavcan_stm32_driver
+	uavcan
+	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs

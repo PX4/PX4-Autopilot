@@ -206,7 +206,7 @@ namespace uORB_test
      ASSERT_EQ( c._send_messageCount, 0 );
 
      //step 1.
-     ORB_DEFINE( topicA_sndmsg, struct orb_topic_A, "TOPICA_SNDMSG:int16_t val;" );
+     ORB_DEFINE( topicA_sndmsg, struct orb_topic_A, nullptr, "TOPICA_SNDMSG:int16_t val;" );
      _topicA.val = 1;
      _pub_ptr = orb_advertise(ORB_ID(topicA_sndmsg ), &_topicA );
      ASSERT_TRUE( ( _pub_ptr != nullptr ) ) << "Failed to advertize uORB Topic topicA_sndmsg: errno: " << errno;
