@@ -240,11 +240,13 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 				taskmap[taskid].isused = false;
+				pthread_mutex_unlock(&task_mutex);
 				free(taskdata);
 				return (rv < 0) ? rv : -rv;
 			}
 
 		} else {
+			pthread_mutex_unlock(&task_mutex);
 			free(taskdata);
 			return (rv < 0) ? rv : -rv;
 		}
