@@ -140,7 +140,6 @@ private:
 	Integrator		    _gyro_int;
 
 	unsigned		    _publish_count;
-	hrt_abstime		    _first_sample_time;
 
 	perf_counter_t		    _read_counter;
 	perf_counter_t		    _error_counter;
@@ -168,7 +167,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
 	/*_rotation(rotation)*/
 	_publish_count(0),
-	_first_sample_time(0),
 	_read_counter(perf_alloc(PC_COUNT, "mpu9250_reads")),
 	_error_counter(perf_alloc(PC_COUNT, "mpu9250_errors")),
 	_fifo_overflow_counter(perf_alloc(PC_COUNT, "mpu9250_fifo_overflows")),
@@ -449,14 +447,6 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report accel_report = {};
 	gyro_report gyro_report = {};
 
-	// Only take a timestamp once for a series of consecutive samples.
-	// 0 is the reset value.
-	if (_first_sample_time == 0) {
-		_first_sample_time = hrt_absolute_time();
-	}
-
-	accel_report.timestamp = gyro_report.timestamp = _first_sample_time + data.time_offset_us;
-
 	accel_report.x = (data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale;
 	accel_report.y = (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale;
 	accel_report.z = (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale;
@@ -466,10 +456,10 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 				  accel_report.z);
 	math::Vector<3> accel_val_integrated_unused;
 
-	_accel_int.put(accel_report.timestamp,
-		       accel_val,
-		       accel_val_integrated_unused,
-		       accel_report.integral_dt);
+	_accel_int.put_with_interval(data.fifo_sample_interval_us,
+				     accel_val,
+				     accel_val_integrated_unused,
+				     accel_report.integral_dt);
 
 	gyro_report.x = (data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
 	gyro_report.y = (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
@@ -480,11 +470,28 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 				 gyro_report.z);
 	math::Vector<3> gyro_val_integrated_unused;
 
-	_gyro_int.put(gyro_report.timestamp,
-		      gyro_val,
-		      gyro_val_integrated_unused,
-		      gyro_report.integral_dt);
+	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
+				    gyro_val,
+				    gyro_val_integrated_unused,
+				    gyro_report.integral_dt);
 
+	// If we are not receiving the last sample from the FIFO buffer yet, let's stop here
+	// and wait for more packets.
+	if (!data.is_last_fifo_sample) {
+		return 0;
+	}
+
+	// The driver empties the FIFO buffer at 1kHz, however we only need to publish at 250Hz.
+	// Therefore, only publish every forth time.
+	++_publish_count;
+
+	if (_publish_count < 4) {
+		return 0;
+	}
+
+	_publish_count = 0;
+
+	// Update all the counters.
 	perf_set_count(_read_counter, data.read_counter);
 	perf_set_count(_error_counter, data.error_counter);
 	perf_set_count(_fifo_overflow_counter, data.fifo_overflow_counter);
@@ -492,26 +499,9 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_set_count(_gyro_range_hit_counter, data.gyro_range_hit_counter);
 	perf_set_count(_accel_range_hit_counter, data.accel_range_hit_counter);
 
-	/* If the time offset is 0, we are receiving the latest sample and can publish,
-	 * at least every 4th time because the driver is running at 1kHz but we should
-	 * only publish at 250 Hz. */
-	if (data.time_offset_us != 0) {
-		return 0;
-	}
-
-	/* reset the first sample time to the reset value */
-	_first_sample_time = 0;
-
-	// Bail out if it's not the 4th time yet.
-	++_publish_count;
-
-	if (_publish_count < 4) {
-		return 0;
-	}
-
 	perf_begin(_publish_perf);
 
-	_publish_count = 0;
+	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
