@@ -56,8 +56,7 @@ int px4muorb_orb_initialize()
 	// Register the fastrpc muorb with uORBManager.
 	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
 
-	// Now call the normal startup where uorb, muorb are started, called again but that
-	// doesn't matter.
+	// Now continue with the usual dspal startup.
 	const char *argv[] = {"dspal", "start"};
 	int argc = 2;
 	int rc;
