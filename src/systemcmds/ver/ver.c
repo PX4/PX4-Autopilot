@@ -73,7 +73,7 @@ __EXPORT const uint32_t px4_board_version = 1;
 /**
  * Convert a version tag string to a number
  */
-uint32_t version_tag_to_number(const char* tag)
+uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
@@ -86,11 +86,14 @@ uint32_t version_tag_to_number(const char* tag)
 
 			ver += number * mag;
 			mag *= 10;
+
 		} else if (tag[i] == '.') {
 			continue;
+
 		} else if (ver > 100 && dotparsed) {
 			/* this is a full version and we have enough digits */
 			return ver;
+
 		} else if (tag[i] != 'v') {
 			/* reset, because we don't have a full tag but
 			 * are seeing non-numeric characters again

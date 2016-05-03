@@ -51,6 +51,6 @@ __EXPORT extern const char *px4_git_tag;
 __EXPORT extern const char *os_git_tag;
 __EXPORT extern const uint32_t px4_board_version;
 
-__EXPORT uint32_t version_tag_to_number(const char* tag);
+__EXPORT uint32_t version_tag_to_number(const char *tag);
 
 __END_DECLS
