@@ -32,7 +32,9 @@ struct LoggerSubscription {
 		fd[0] = fd_;
 		time_tried_subscribe = 0;
 
-		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) { fd[i] = -1; }
+		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			fd[i] = -1;
+		}
 	}
 };
 
