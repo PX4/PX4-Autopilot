@@ -170,8 +170,8 @@ struct parameters {
 	float accel_noise;		// IMU acceleration noise use for covariance prediction (m/sec/sec)
 
 	// process noise
-	float gyro_bias_p_noise;	// process noise for IMU delta angle bias prediction (rad/sec)
-	float accel_bias_p_noise;	// process noise for IMU delta velocity bias prediction (m/sec/sec)
+	float gyro_bias_p_noise;	// process noise for IMU rate gyro bias prediction (rad/sec**2)
+	float accel_bias_p_noise;	// process noise for IMU accelerometer bias prediction (m/sec**3)
 	float mage_p_noise;		// process noise for earth magnetic field prediction (Guass/sec)
 	float magb_p_noise;		// process noise for body magnetic field prediction (Guass/sec)
 	float wind_vel_p_noise;		// process noise for wind velocity prediction (m/sec/sec)
@@ -250,8 +250,8 @@ struct parameters {
 		accel_noise = 2.5e-1f;
 
 		// process noise
-		gyro_bias_p_noise = 5.0e-6f;
-		accel_bias_p_noise = 1.0e-7f;
+		gyro_bias_p_noise = 1.0e-3f;
+		accel_bias_p_noise = 1.0e-5f;
 		mage_p_noise = 1.0e-3f;
 		magb_p_noise = 1.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;

@@ -143,11 +143,14 @@ void Ekf::predictCovariance()
 	// compute noise variance for stationary processes
 	float process_noise[_k_num_states] = {};
 
-	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
-	float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
-	float mag_I_sig, mag_B_sig;
+	// convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
+	float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
+
+	// convert rate of change of acceerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
+	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	float mag_I_sig;
 	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][8]) < 0.1f) {
 		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1.0f);
 
@@ -156,6 +159,7 @@ void Ekf::predictCovariance()
 	}
 
 	// Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	float mag_B_sig;
 	if (_control_status.flags.mag_3D && (P[19][19] + P[20][20] + P[21][21]) < 0.1f) {
 		mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.0f, 1.0f);
 
