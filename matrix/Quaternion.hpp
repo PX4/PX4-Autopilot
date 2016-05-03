@@ -20,6 +20,11 @@ class Dcm;
 template <typename Type>
 class Euler;
 
+/**
+ * Quaternion class
+ *
+ * More elaborate class description
+ */
 template<typename Type>
 class Quaternion : public Vector<Type, 4>
 {
@@ -29,11 +34,23 @@ public:
     typedef Matrix<Type, 4, 1> Matrix41;
     typedef Matrix<Type, 3, 1> Matrix31;
 
+    /**
+     * Constructor from array
+     *
+     * Copies the given scalar value to all quaternion fields.
+     *
+     * @param data_ array
+     */
     Quaternion(const Type *data_) :
         Vector<Type, 4>(data_)
     {
     }
 
+    /**
+     * Standard constructor
+     *
+     * More elaborate function description
+     */
     Quaternion() :
         Vector<Type, 4>()
     {
@@ -44,13 +61,68 @@ public:
         q(3) = 0;
     }
 
+    /**
+     * Constructor from Matrix41
+     *
+     * More elaborate function description
+     *
+     * @param other Matrix41 to copy
+     */
     Quaternion(const Matrix41 & other) :
         Vector<Type, 4>(other)
     {
     }
 
+    /**
+     * Constructor from dcm
+     *
+     * More elaborate function description
+     *
+     * @param dcm dcm to set quaternion to
+     */
     Quaternion(const Dcm<Type> & dcm) :
         Vector<Type, 4>()
+    {
+        set_from_dcm(dcm);
+    }
+
+    /**
+     * Constructor from euler angles
+     *
+     * More elaborate function description
+     *
+     * @param euler euler angles to set quaternion to
+     */
+    Quaternion(const Euler<Type> & euler) :
+        Vector<Type, 4>()
+    {
+        set_from_euler(euler);
+    }
+
+    /**
+     * Constructor from quaternion values
+     *
+     * More elaborate function description
+     *
+     * @param a set quaternion value 0
+     * @param b set quaternion value 1
+     * @param c set quaternion value 2
+     * @param d set quaternion value 3
+     */
+    Quaternion(Type a, Type b, Type c, Type d) :
+        Vector<Type, 4>()
+    {
+        set_from_quaternion(a, b, c, d);
+    }
+
+    /**
+     * Set from dcm
+     *
+     * More elaborate function description
+     *
+     * @param dcm dcm to set quaternion to
+     */
+    void set_from_dcm(const Dcm<Type> & dcm)
     {
         Quaternion &q = *this;
         q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
@@ -63,8 +135,14 @@ public:
                     (4 * q(0)));
     }
 
-    Quaternion(const Euler<Type> & euler) :
-        Vector<Type, 4>()
+    /**
+     * Set from euler angles
+     *
+     * More elaborate function description
+     *
+     * @param euler euler angles to set quaternion to
+     */
+    void set_from_euler(const Euler<Type> & euler)
     {
         Quaternion &q = *this;
         Type cosPhi_2 = Type(cos(euler.phi() / (Type)2.0));
@@ -83,8 +161,17 @@ public:
                sinPhi_2 * sinTheta_2 * cosPsi_2;
     }
 
-    Quaternion(Type a, Type b, Type c, Type d) :
-        Vector<Type, 4>()
+    /**
+     * Set from quaternion values
+     *
+     * More elaborate function description
+     *
+     * @param a set quaternion value 0
+     * @param b set quaternion value 1
+     * @param c set quaternion value 2
+     * @param d set quaternion value 3
+     */
+    void set_from_quaternion(Type a, Type b, Type c, Type d)
     {
         Quaternion &q = *this;
         q(0) = a;
@@ -93,6 +180,14 @@ public:
         q(3) = d;
     }
 
+    /**
+     * Quaternion multiplication operator
+     *
+     * More elaborate function description
+     *
+     * @param q quaternion to multiply with
+     * @return product
+     */
     Quaternion operator*(const Quaternion &q) const
     {
         const Quaternion &p = *this;
@@ -104,24 +199,53 @@ public:
         return r;
     }
 
+    /**
+     * Self-multiplication operator
+     *
+     * More elaborate function description
+     *
+     * @param other quaternion to multiply with
+     */
     void operator*=(const Quaternion & other)
     {
         Quaternion &self = *this;
         self = self * other;
     }
 
+    /**
+     * Scalar multiplication operator
+     *
+     * More elaborate function description
+     *
+     * @param scalar scalar to multiply with
+     * @return product
+     */
     Quaternion operator*(Type scalar) const
     {
         const Quaternion &q = *this;
         return scalar * q;
     }
 
+    /**
+     * Scalar self-multiplication operator
+     *
+     * More elaborate function description
+     *
+     * @param scalar scalar to multiply with
+     */
     void operator*=(Type scalar)
     {
         Quaternion &q = *this;
         q = q * scalar;
     }
 
+    /**
+     * Computes the derivative
+     *
+     * More elaborate function description
+     *
+     * @param w direction
+     */
     Matrix41 derivative(const Matrix31 & w) const {
         const Quaternion &q = *this;
         Type dataQ[] = {
@@ -139,6 +263,11 @@ public:
         return Q * v * Type(0.5);
     }
 
+    /**
+     * Invert quaternion
+     *
+     * More elaborate function description
+     */
     void invert() {
         Quaternion &q = *this;
         q(1) *= -1;
@@ -146,6 +275,13 @@ public:
         q(3) *= -1;
     }
 
+    /**
+     * Invert quaternion
+     *
+     * More elaborate function description
+     *
+     * @return inverted quaternion
+     */
     Quaternion inversed() {
         Quaternion &q = *this;
         Quaternion ret;
@@ -156,12 +292,27 @@ public:
         return ret;
     }
 
+    /**
+     * Rotate quaternion from rotation vector
+     *
+     * More elaborate function description
+     *
+     * @param vec rotation vector
+     */
     void rotate(const Vector<Type, 3> &vec) {
         Quaternion res;
         res.from_axis_angle(vec);
         (*this) = (*this) * res;
     }
 
+    /**
+     * Rotation quaternion from vector
+     *
+     * More elaborate function description
+     *
+     * @param vec rotation vector
+     * @return quaternion representing the rotation
+     */
     void from_axis_angle(Vector<Type, 3> vec) {
         Quaternion &q = *this;
         Type theta = vec.norm();
@@ -174,6 +325,15 @@ public:
         from_axis_angle(vec,theta);
     }
 
+    /**
+     * Rotation quaternion from axis and scalar
+     *
+     * More elaborate function description
+     *
+     * @param axis axis of rotation
+     * @param theta scalar describing angle of rotation
+     * @return quaternion representing the rotation
+     */
     void from_axis_angle(const Vector<Type, 3> &axis, Type theta) {
         Quaternion &q = *this;
         if(theta < (Type)1e-10) {
@@ -188,6 +348,14 @@ public:
         q(3) = axis(2) * magnitude;
     }
 
+
+    /**
+     * Rotation vector from quaternion
+     *
+     * More elaborate function description
+     *
+     * @return vector, direction representing rotation axis and norm representing angle
+     */
     Vector<Type, 3> to_axis_angle() {
         Quaternion &q = *this;
         Type axis_magnitude = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));

@@ -23,34 +23,113 @@ class Dcm;
 template <typename Type>
 class Quaternion;
 
+/**
+ * Euler angles class
+ *
+ * More elaborate class description
+ */
 template<typename Type>
 class Euler : public Vector<Type, 3>
 {
 public:
     virtual ~Euler() {};
 
+    /**
+     * Standard constructor
+     *
+     * More elaborate function description
+     */
     Euler() : Vector<Type, 3>()
     {
     }
 
+    /**
+     * Copy constructor
+     *
+     * More elaborate function description
+     *
+     * @param other vector to copy
+     */
     Euler(const Vector<Type, 3> & other) :
         Vector<Type, 3>(other)
     {
     }
 
+    /**
+     * Constructor from Matrix31
+     *
+     * More elaborate function description
+     *
+     * @param other Matrix31 to copy
+     */
     Euler(const Matrix<Type, 3, 1> & other) :
         Vector<Type, 3>(other)
     {
     }
 
+    /**
+     * Constructor from euler angles
+     *
+     * More elaborate function description
+     *
+     * @param phi_   roll
+     * @param theta_ pitch
+     * @param psi_   yaw
+     */
     Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
+    {
+        set_from_euler(phi_, theta_, psi_);
+    }
+
+    /**
+     * Constructor from dcm
+     *
+     * More elaborate function description
+     *
+     * @param dcm_ dcm to set angles to
+     */
+    Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
+    {
+        set_from_dcm(dcm);
+    }
+
+    /**
+     * Constructor from quaternion
+     *
+     * More elaborate function description
+     *
+     * @param q quaternion to set angles to
+     */
+    Euler(const Quaternion<Type> & q) :
+        Vector<Type, 3>()
+    {
+        set_from_quaternion(q);
+    }
+
+    /**
+     * Set from euler angles
+     *
+     * More elaborate function description
+     *
+     * @param phi_   roll
+     * @param theta_ pitch
+     * @param psi_   yaw
+     */
+    void set_from_euler(Type phi_, Type theta_, Type psi_)
     {
         phi() = phi_;
         theta() = theta_;
         psi() = psi_;
     }
 
-    Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
+    /**
+     * Set from dcm
+     *
+     * More elaborate function description
+     *
+     * @param dcm_ dcm to set angles to
+     */
+    void set_from_dcm(const Dcm<Type> & dcm)
     {
         Type phi_val = Type(atan2(dcm(2,1), dcm(2,2)));
         Type theta_val = Type(asin(-dcm(2,0)));
@@ -70,8 +149,14 @@ public:
         psi() = psi_val;
     }
 
-    Euler(const Quaternion<Type> & q) :
-        Vector<Type, 3>()
+    /**
+     * Set from dcm
+     *
+     * More elaborate function description
+     *
+     * @param q quaternion to set angles to
+     */
+    void set_from_quaternion(const Quaternion<Type> & q)
     {
         *this = Euler(Dcm<Type>(q));
     }
