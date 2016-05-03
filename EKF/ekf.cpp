@@ -94,6 +94,7 @@ Ekf::Ekf():
 	_time_last_mag(0),
 	_hgt_sensor_offset(0.0f),
 	_terrain_vpos(0.0f),
+	_terrain_var(1.e4f),
 	_hagl_innov(0.0f),
 	_hagl_innov_var(0.0f),
 	_time_last_hagl_fuse(0),
