@@ -1190,14 +1190,13 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
-		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
-		msg.flight_sw_version = 0;
-		msg.middleware_sw_version = 0;
-		msg.os_sw_version = 0;
-		msg.board_version = 0;
+		msg.flight_sw_version = version_tag_to_number(px4_git_version);
+		msg.middleware_sw_version = version_tag_to_number(px4_git_version);
+		msg.os_sw_version = version_tag_to_number(os_git_tag);
+		msg.board_version = px4_board_version;
 		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
 		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
 		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
