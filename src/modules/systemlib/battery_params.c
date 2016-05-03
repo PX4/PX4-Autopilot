@@ -55,7 +55,7 @@
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
 /**
  * Full cell voltage (5C load)
@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.1f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
 /**
  * Low threshold
@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.25f);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
  * Number of cells.

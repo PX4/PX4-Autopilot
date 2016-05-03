@@ -102,7 +102,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::filterVoltage(float voltage_v)
 {
-	if (_voltage_filtered_v < 0) {
+	if (_voltage_filtered_v < 0.0f) {
 		_voltage_filtered_v = voltage_v;
 	}
 
@@ -146,7 +146,7 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 	// remaining battery capacity based on voltage
 	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
 			       / (_param_n_cells.get() * voltage_range);
-	const float rvoltage_filt = rvoltage * 0.99f + _remaining_voltage * 0.01f;
+	const float rvoltage_filt = rvoltage * 0.997f + _remaining_voltage * 0.003f;
 
 	if (PX4_ISFINITE(rvoltage_filt)) {
 		_remaining_voltage = rvoltage_filt;
