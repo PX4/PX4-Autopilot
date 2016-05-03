@@ -902,15 +902,15 @@ int ekf2_main(int argc, char *argv[])
 
 		ekf2::instance = new Ekf2();
 
+		if (ekf2::instance == nullptr) {
+			PX4_WARN("alloc failed");
+			return 1;
+		}
+
 		if (argc >= 3) {
 			if (!strcmp(argv[2], "--replay")) {
 				ekf2::instance->set_replay_mode(true);
 			}
-		}
-
-		if (ekf2::instance == nullptr) {
-			PX4_WARN("alloc failed");
-			return 1;
 		}
 
 		if (OK != ekf2::instance->start()) {
