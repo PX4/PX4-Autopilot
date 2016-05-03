@@ -69,7 +69,15 @@ void Ekf::initialiseCovariance()
 	// position
 	P[7][7] = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 	P[8][8] = P[7][7];
-	P[9][9] = sq(fmaxf(_params.baro_noise, 0.01f));
+	if (_control_status.flags.rng_hgt) {
+		P[9][9] = sq(fmaxf(_params.range_noise, 0.01f));
+	} else if (_control_status.flags.gps_hgt) {
+		float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
+		float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+		P[9][9] = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+	} else {
+		P[9][9] = sq(fmaxf(_params.baro_noise, 0.01f));
+	}
 
 	// gyro bias
 	P[10][10] = sq(0.1f * dt);
