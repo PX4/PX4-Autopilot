@@ -60,7 +60,7 @@ Integrator::~Integrator()
 }
 
 bool
-Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t *integral_dt)
+Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -132,7 +132,7 @@ Integrator::put_with_interval(unsigned interval_us, math::Vector<3> &val, math::
 }
 
 math::Vector<3>
-Integrator::get(bool reset, uint64_t *integral_dt)
+Integrator::get(bool reset, uint64_t &integral_dt)
 {
 	math::Vector<3> val = _integral;
 
@@ -158,12 +158,12 @@ Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> 
 }
 
 void
-Integrator::_reset(uint64_t *integral_dt)
+Integrator::_reset(uint64_t &integral_dt)
 {
 	_integral(0) = 0.0f;
 	_integral(1) = 0.0f;
 	_integral(2) = 0.0f;
 
-	*integral_dt = (_last_integration_time - _last_reset_time);
+	integral_dt = (_last_integration_time - _last_reset_time);
 	_last_reset_time = _last_integration_time;
 }

@@ -1103,7 +1103,7 @@ GYROSIM::_measure()
 	math::Vector<3> aval(mpu_report.accel_x, mpu_report.accel_y, mpu_report.accel_z);
 	math::Vector<3> aval_integrated;
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, &arb.integral_dt);
+	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
 	arb.x_integral = aval_integrated(0);
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
@@ -1125,7 +1125,7 @@ GYROSIM::_measure()
 	math::Vector<3> gval(mpu_report.gyro_x, mpu_report.gyro_y, mpu_report.gyro_z);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, &grb.integral_dt);
+	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
 	grb.x_integral = gval_integrated(0);
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
