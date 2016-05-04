@@ -215,7 +215,7 @@ namespace
 {
 
 GPS	*g_dev[2] = {nullptr, nullptr};
-
+volatile bool is_gps1_advertised = false;
 }
 
 
@@ -814,8 +814,16 @@ GPS::print_info()
 void
 GPS::publish()
 {
+	if(_gps_num == 1){
 	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 			 ORB_PRIO_DEFAULT);
+	is_gps1_advertised = true;
+	}
+	else if(is_gps1_advertised){
+			orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+			 ORB_PRIO_DEFAULT);
+	}
+
 }
 
 /**
