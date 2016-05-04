@@ -53,7 +53,7 @@ void Ekf::controlFusionModes()
 
 	// Once the angular uncertainty has reduced sufficiently, initialise the yaw and magnetic field states
 	float total_angle_variance = P[0][0] + P[1][1] + P[2][2] + P[3][3];
-	if (total_angle_variance < 0.001f && !_control_status.flags.tilt_align) {
+	if (total_angle_variance < 0.002f && !_control_status.flags.tilt_align) {
 		_control_status.flags.tilt_align = true;
 		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 	}
