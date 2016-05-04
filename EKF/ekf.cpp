@@ -546,6 +546,10 @@ void Ekf::predictState()
 	constrainStates();
 
 	// calculate an average filter update time
+	float input = 0.5f*(_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
+
+	// filter and limit input between -50% and +100% of nominal value
+	input = math::constrain(input,0.0005f * (float)(FILTER_UPDATE_PERRIOD_MS),0.002f * (float)(FILTER_UPDATE_PERRIOD_MS));
 	_dt_ekf_avg = 0.99f*_dt_ekf_avg + 0.005f*(_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 }
 
@@ -618,12 +622,13 @@ void Ekf::calculateOutputStates()
 
 	// correct delta angles for bias offsets and scale factors
 	Vector3f delta_angle;
-	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0);
-	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1);
-	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2);
+	float dt_scale_correction = _dt_imu_avg/_dt_ekf_avg;
+	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0)*dt_scale_correction;
+	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1)*dt_scale_correction;
+	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2)*dt_scale_correction;
 
 	// correct delta velocity for bias offsets
-	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias;
+	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias*dt_scale_correction;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
