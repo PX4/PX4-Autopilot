@@ -81,7 +81,7 @@ int device_prio_max = 0;
 int32_t device_id_primary = 0;
 static unsigned _last_mag_progress = 0;
 
-calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&device_ids)[max_mags]);
+calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub);
 
 /// Data passed to calibration worker routine
 typedef struct  {
@@ -117,7 +117,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 	char str[30];
 
-	for (size_t i=0; i<max_mags; i++) {
+	for (size_t i=0; i < max_mags; i++) {
 		device_ids[i] = 0; // signals no mag
 	}
 
@@ -202,7 +202,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 	// Calibrate all mags at the same time
 	if (result == OK) {
-		switch (mag_calibrate_all(mavlink_log_pub, device_ids)) {
+		switch (mag_calibrate_all(mavlink_log_pub)) {
 			case calibrate_return_cancelled:
 				// Cancel message already displayed, we're done here
 				result = ERROR;
@@ -435,7 +435,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	return result;
 }
 
-calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&device_ids)[max_mags])
+calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 {
 	calibrate_return result = calibrate_return_ok;
 
