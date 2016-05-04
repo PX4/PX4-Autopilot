@@ -215,6 +215,7 @@ namespace
 {
 
 GPS	*g_dev[2] = {nullptr, nullptr};
+// Variable to ensure that gps1 is always publishing to first topic
 volatile bool is_gps1_advertised = false;
 }
 
@@ -282,9 +283,9 @@ GPS::~GPS()
 int GPS::init()
 {
 
+	// needed in order to give task_main_trampoline the information which gps instance shall be called
 	char gps_num;
 	sprintf(&gps_num, "%d", _gps_num);
-
 	static char *gps_num_ptr;
 	gps_num_ptr = &gps_num;
 
@@ -303,6 +304,7 @@ int GPS::init()
 
 void GPS::task_main_trampoline(int argc, char *argv[])
 {
+	// check which gps instance to call
 	if (!strcmp(argv[1], "1")) {
 		g_dev[0]->task_main();
 
@@ -739,6 +741,7 @@ GPS::task_main()
 
 	::close(_serial_fd);
 
+	// free multitopic instances	
 	orb_unadvertise(_report_gps_pos_pub);
 
 	/* tell the dtor that we are exiting */
@@ -815,6 +818,7 @@ GPS::print_info()
 void
 GPS::publish()
 {
+	// publish to correct topic
 	if (_gps_num == 1) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
