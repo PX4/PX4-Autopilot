@@ -62,13 +62,14 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 			   -mfpu=fpv4-sp-d16 \
 			   -mfloat-abi=hard
 
+# Enable precise stack overflow tracking
 
-# enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
 endif
 
-# pull in *just* libm from the toolchain ... this is grody
+# Pull in *just* libm from the toolchain ... this is grody
+
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 EXTRA_LIBS		+= $(LIBM)
 

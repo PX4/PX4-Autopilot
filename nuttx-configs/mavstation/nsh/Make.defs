@@ -60,13 +60,14 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m
 
-# enable precise stack overflow tracking
+# Enable precise stack overflow tracking
+
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 INSTRUMENTATIONDEFINES  = -finstrument-functions -ffixed-r10
 endif
 
+# Use our linker script
 
-# use our linker script
 LDSCRIPT		 = ld.script
 
 ifeq ($(WINTOOL),y)
@@ -87,15 +88,16 @@ else
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
-    # Linux/Cygwin-native toolchain 
-    MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
+    # Linux/Cygwin-native toolchain
+    MKDEP		 = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   endif
 endif
 
-# tool versions
+# Tool versions
+
 ARCHCCVERSION		 = ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		 = ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
@@ -104,10 +106,10 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
-   			   -funsafe-math-optimizations \
-   			   -fno-builtin-printf \
-   			   -ffunction-sections \
-   			   -fdata-sections
+			   -funsafe-math-optimizations \
+			   -fno-builtin-printf \
+			   -ffunction-sections \
+			   -fdata-sections
 
 ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
 ARCHOPTIMIZATION	+= -g
@@ -115,35 +117,14 @@ endif
 
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
-ARCHWARNINGS		 = -Wall \
-			   -Wno-sign-compare \
-			   -Wextra \
-			   -Wdouble-promotion \
-			   -Wshadow \
-			   -Wfloat-equal \
-			   -Wframe-larger-than=1024 \
-			   -Wpointer-arith \
-			   -Wlogical-op \
-			   -Wmissing-declarations \
-			   -Wpacked \
-			   -Wno-unused-parameter
-#   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
-#   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
-#   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
-
-ARCHCWARNINGS		 = $(ARCHWARNINGS) \
-			   -Wbad-function-cast \
-			   -Wstrict-prototypes \
-			   -Wold-style-declaration \
-			   -Wmissing-parameter-type \
-			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
-ARCHWARNINGSXX		 = $(ARCHWARNINGS)
+ARCHWARNINGS		 = $(PX4_ARCHWARNINGS)
+ARCHCWARNINGS		 = $(PX4_ARCHWARNINGS) $(PX4_ARCHCWARNINGS)
+ARCHWARNINGSXX		 = $(ARCHWARNINGS) $(PX4_ARCHWARNINGSXX)
 ARCHDEFINES		 = 
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
-# this seems to be the only way to add linker flags
+# This seems to be the only way to add linker flags
+
 EXTRA_LIBS		+= --warn-common \
 			   --gc-sections
 
@@ -162,7 +143,8 @@ OBJEXT			 = .o
 LIBEXT			 = .a
 EXEEXT			 =
 
-# produce partially-linked $1 from files in $2
+# Produce partially-linked $1 from files in $2
+
 define PRELINK
 	@echo "PRELINK: $1"
 	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
