@@ -692,6 +692,7 @@ void Logger::start_log()
 	write_version();
 	write_formats();
 	write_parameters();
+	_writer.notify();
 	_enabled = true;
 }
 
@@ -732,7 +733,6 @@ void Logger::write_formats()
 	}
 
 	_writer.unlock();
-	_writer.notify();
 }
 
 /* write info message */
@@ -757,6 +757,7 @@ void Logger::write_info(const char *name, const char *value)
 
 		write_wait(buffer, msg_size);
 	}
+	_writer.unlock();
 }
 
 /* write version info messages */
