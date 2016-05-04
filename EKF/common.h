@@ -140,7 +140,7 @@ struct flowSample {
 #define MASK_USE_GPS    (1<<0)  // set to true to use GPS data
 #define MASK_USE_OF     (1<<1)  // set to true to use optical flow data
 
-#define MASK_USE_3D_ACC_BIAS (1<<3)  // set to true to estimate delta velocity bias for XYZ axes, set to false to estimate only for Z
+#define MASK_INHIBIT_ACC_BIAS (1<<3)  // set to true to inhibit estimation of accelerometer delta velocity bias
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
@@ -234,7 +234,7 @@ struct parameters {
 	parameters()
 	{
 		// measurement source control
-		fusion_mode = MASK_USE_GPS + MASK_USE_3D_ACC_BIAS;
+		fusion_mode = MASK_USE_GPS;
 		vdist_sensor_type = VDIST_SENSOR_BARO;
 
 		// measurement time delays
