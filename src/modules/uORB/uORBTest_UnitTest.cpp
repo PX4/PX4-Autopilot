@@ -181,14 +181,14 @@ int uORBTest::UnitTest::test_unadvertise()
 	}
 
 	//try to advertise and see whether we get the right instance
-	int instance[4];
+	int instance_test[4];
 	struct orb_test t;
 
 	for (int i = 0; i < 4; ++i) {
-		_pfd[i] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance[i], ORB_PRIO_MAX);
+		_pfd[i] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance_test[i], ORB_PRIO_MAX);
 
-		if (instance[i] != i) {
-			return test_fail("got wrong instance (should be %i, is %i)", i, instance[i]);
+		if (instance_test[i] != i) {
+			return test_fail("got wrong instance (should be %i, is %i)", i, instance_test[i]);
 		}
 	}
 

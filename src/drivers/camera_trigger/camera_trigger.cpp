@@ -116,7 +116,7 @@ private:
 	int 			_gpio_fd;
 
 	int 			_polarity;
-	int			_mode;
+	int				_mode;
 	float 			_activation_time;
 	float  			_interval;
 	float  			_distance;
@@ -229,9 +229,9 @@ CameraTrigger::CameraTrigger() :
 		i++;
 	}
 
-	struct camera_trigger_s	trigger = {};
+	struct camera_trigger_s	camera_trigger = {};
 
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &camera_trigger);
 }
 
 CameraTrigger::~CameraTrigger()

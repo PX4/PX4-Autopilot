@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN gyrosim
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-packed
 		-Os
 	SRCS
 		gyrosim.cpp
