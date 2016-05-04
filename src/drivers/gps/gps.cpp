@@ -303,7 +303,6 @@ int GPS::init()
 
 void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	warnx("arg = %i %c %i", argc, *argv[0], *argv[0]);
 	 if (!strcmp(argv[1], "1"))
 	 g_dev[0]->task_main();
 	 else if (!strcmp(argv[1], "2"))
