@@ -741,7 +741,7 @@ GPS::task_main()
 
 	::close(_serial_fd);
 
-	// free multitopic instances	
+	// free multitopic instances
 	orb_unadvertise(_report_gps_pos_pub);
 
 	/* tell the dtor that we are exiting */
