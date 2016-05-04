@@ -127,6 +127,7 @@ private:
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
 	int					_gps_orb_instance;				///< uORB multi-topic instance
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
+	int					_gps_sat_orb_instance;				///< uORB multi-topic instance for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	float				_rate_rtcm_injection;				///< RTCM message injection rate
@@ -167,6 +168,11 @@ private:
 	 * Publish the gps struct
 	 */
 	void 				publish();
+
+	/**
+	 * Publish the satellite info
+	 */
+	void 				publishSatelliteInfo();
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -652,7 +658,7 @@ GPS::task_main()
 					}
 
 					if (_p_report_sat_info && (helper_ret & 2)) {
-						publish();
+						publishSatelliteInfo();
 					}
 
 					/* measure update rate every 5 seconds */
@@ -817,6 +823,18 @@ GPS::publish()
 	} else if (is_gps1_advertised) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
+	}
+
+}
+void
+GPS::publishSatelliteInfo()
+{
+	if (_gps_num == 1) {
+		orb_publish_auto(ORB_ID(satellite_info), &_report_sat_info_pub, _p_report_sat_info, &_gps_sat_orb_instance,
+				 ORB_PRIO_DEFAULT);
+
+	} else {
+		//we don't publish satellite info for the secondary gps
 	}
 
 }
