@@ -530,11 +530,17 @@ void Logger::run()
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
 						/* the ORB topic data object has 2 unused trailing bytes? */
 						//header->msg_size = static_cast<uint16_t>(msg_size - 3);
-						header->msg_size = msg_size;
+						header->msg_size = msg_size - 3;
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 
-						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
+						// WIP calculate packed size and compare
+						//size_t calc_size = sub.metadata->packed_size(&orb_msg_padded);
+						//PX4_INFO("topic: %s, size = %zu, out_size = %zu, calc_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size, calc_size);
+
+						//if (calc_size + sizeof(message_data_header_s) != msg_size) {
+						//PX4_INFO("topic: %s, size = %zu, out_size = %zu, calc_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size, calc_size);
+						//}
 
 #ifdef DBGPRINT
 						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);

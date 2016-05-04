@@ -206,6 +206,7 @@ for constant in spec.constants:
 };
 
 void serialize_@(topic_name)(void *in, struct orb_output_buffer *buffer);
+size_t sizeof_@(topic_name)(void *in);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@

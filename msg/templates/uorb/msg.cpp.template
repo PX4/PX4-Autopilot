@@ -140,29 +140,58 @@ buffer_memcpy_expr = "	memcpy(((char *)buffer->data) + buffer->next, &topic->{fi
 buffer_next_expr = "	buffer->next += sizeof(topic->{field});"
 
 for each_field in sorted_fields:
-  if not each_field.is_header:
+    if not each_field.is_header:
   
-    # call appropriate serialize functions for fields that are orb messages
-    if bare_name(each_field.type) in msgtypes_composite:
-      
-      if each_field.is_array:
-        for i in range(each_field.array_len):
-          print(serialize_array_expr.format(type=type_map[bare_name(each_field.type)], field=each_field.name, index=i))
+        # call appropriate serialize functions for fields that are orb messages
+        if bare_name(each_field.type) in msgtypes_composite:
+            if each_field.is_array:
+                for i in range(each_field.array_len):
+                    print(serialize_array_expr.format(type=type_map[bare_name(each_field.type)], field=each_field.name, index=i))
 
-      else:
-    	print(serialize_expr.format(type=type_map[bare_name(each_field.type)], field=each_field.name))
+            else:
+                print(serialize_expr.format(type=type_map[bare_name(each_field.type)], field=each_field.name))
 
-	# copy primitive fields
-    else:
-    	print(buffer_memcpy_expr.format(field=each_field.name))
-    	print(buffer_next_expr.format(field=each_field.name))
+        else:
+            # copy primitive fields
+            print(buffer_memcpy_expr.format(field=each_field.name))
+            print(buffer_next_expr.format(field=each_field.name))
 
 }@
+}
+
+size_t sizeof_@(topic_name)(void *in)
+{
+	struct @(uorb_struct) *topic = static_cast<struct @(uorb_struct) *>(in);
+
+	size_t total_size = 0;
+@{
+
+sizeof_call_expr = "	total_size += sizeof_{type}(topic);"
+sizeof_array_call_expr = "	total_size += {size} * sizeof_{type}(topic);"
+
+sizeof_expr = "	total_size += sizeof(topic->{field});"
+
+for each_field in sorted_fields:
+    if not each_field.is_header:
+
+        # call appropriate sizeof functions for fields that are orb messages
+        if bare_name(each_field.type) in msgtypes_composite:
+            if each_field.is_array:
+                print(sizeof_array_call_expr.format(type=type_map[bare_name(each_field.type)], size=each_field.array_len))
+
+            else:
+                print(sizeof_call_expr.format(type=type_map[bare_name(each_field.type)]))
+
+        else:
+            print(sizeof_expr.format(field=each_field.name))
+
+}@
+	return total_size;
 }
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 const char *__orb_@(topic_name)_fields = "@( topic_name.upper() ):@( ";".join(topic_fields) );";
 
 @[for multi_topic in topics]@
-ORB_DEFINE(@multi_topic, struct @uorb_struct, &serialize_@(topic_name), __orb_@(topic_name)_fields);
+ORB_DEFINE(@multi_topic, struct @uorb_struct, &serialize_@(topic_name), &sizeof_@(topic_name), __orb_@(topic_name)_fields);
 @[end for]
