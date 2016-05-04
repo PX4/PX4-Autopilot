@@ -33,6 +33,10 @@ public:
 
 	void stop_log();
 
+	/**
+	 * Write data to be logged. The caller must call lock() before calling this.
+	 * @return true on success, false if not enough space in the buffer left
+	 */
 	bool write(void *ptr, size_t size);
 
 	void lock()

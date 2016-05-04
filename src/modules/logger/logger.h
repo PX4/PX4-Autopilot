@@ -80,6 +80,12 @@ private:
 
 	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked);
 
+	/**
+	 * Write data to the logger. Waits if buffer is full until all data is written.
+	 * Must be called with _writer.lock() held.
+	 */
+	bool write_wait(void *ptr, size_t size);
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
