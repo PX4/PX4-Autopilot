@@ -575,7 +575,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
-    MavlinkOrbSubscription *_cpuload_sub;
+	MavlinkOrbSubscription *_cpuload_sub;
 	MavlinkOrbSubscription *_battery_status_sub;
 
 	/* do not allow top copying this class */
