@@ -303,10 +303,12 @@ int GPS::init()
 
 void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	 if (!strcmp(argv[1], "1"))
-	 g_dev[0]->task_main();
-	 else if (!strcmp(argv[1], "2"))
-	 g_dev[1]->task_main();
+	if (!strcmp(argv[1], "1")) {
+		g_dev[0]->task_main();
+
+	} else if (!strcmp(argv[1], "2")) {
+		g_dev[1]->task_main();
+	}
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
@@ -813,14 +815,14 @@ GPS::print_info()
 void
 GPS::publish()
 {
-	if(_gps_num == 1){
-	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
-			 ORB_PRIO_DEFAULT);
-	is_gps1_advertised = true;
-	}
-	else if(is_gps1_advertised){
-			orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
-			 ORB_PRIO_DEFAULT);
+	if (_gps_num == 1) {
+		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+				 ORB_PRIO_DEFAULT);
+		is_gps1_advertised = true;
+
+	} else if (is_gps1_advertised) {
+		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+				 ORB_PRIO_DEFAULT);
 	}
 
 }
@@ -860,6 +862,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 		if (OK != g_dev[0]->init()) {
 			goto fail1;
 		}
+
 		return;
 
 	} else {
@@ -879,6 +882,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 			if (OK != g_dev[1]->init()) {
 				goto fail2;
 			}
+
 			return;
 
 		}
