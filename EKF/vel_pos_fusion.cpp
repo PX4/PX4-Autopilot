@@ -246,8 +246,6 @@ void Ekf::fuseVelPosHeight()
 		_state.quat_nominal.normalize();
 
 		// update covarinace matrix via Pnew = (I - KH)P
-		float KHP[_k_num_states][_k_num_states] = {};
-
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				KHP[row][column] = Kfusion[row] * P[state_index][column];

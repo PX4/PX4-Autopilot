@@ -196,9 +196,6 @@ void Ekf::fuseAirspeed()
 		_state.quat_nominal.normalize();
 
 		// update covariance matrix via Pnew = (I - KH)P = P - KHP
-		float KH[_k_num_states][_k_num_states] = {};
-		float KHP[_k_num_states][_k_num_states] = {};
-
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) { // Here it will be a lot of zeros, should optimize that...
 				KH[row][column] = Kfusion[row] * H_TAS[column];

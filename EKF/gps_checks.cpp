@@ -197,10 +197,10 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	// This check can only be used if the vehicle is stationary during alignment
 	if (!_control_status.flags.armed) {
 		vel_limit = 10.0f * _params.req_hdrift;
-		float velN = fminf(fmaxf(gps->vel_ned[0], -vel_limit), vel_limit);
-		float velE = fminf(fmaxf(gps->vel_ned[1], -vel_limit), vel_limit);
-		_gps_velN_filt = velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
-		_gps_velE_filt  = velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
+		float gps_velN = fminf(fmaxf(gps->vel_ned[0], -vel_limit), vel_limit);
+		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vel_limit), vel_limit);
+		_gps_velN_filt = gps_velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
+		_gps_velE_filt  = gps_velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
 		float horiz_speed = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
 		_gps_check_fail_status.flags.hspeed = (horiz_speed > _params.req_hdrift);
 
