@@ -88,7 +88,7 @@ enum BMP280_BUS {
 class BMP280 : public device::CDev
 {
 public:
-	BMP280(bmp280::IBMP280 *interface, const char* path);
+	BMP280(bmp280::IBMP280 *interface, const char *path);
 	~BMP280();
 
 	virtual int		init();
@@ -102,7 +102,7 @@ public:
 	void			print_info();
 
 private:
-	bmp280::IBMP280*	_interface;
+	bmp280::IBMP280	*_interface;
 
 	uint8_t				_curr_ctrl;
 
@@ -126,7 +126,7 @@ private:
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 
-	struct bmp280::calibration_s* _cal; //stored calibration constants
+	struct bmp280::calibration_s *_cal; //stored calibration constants
 	struct bmp280::fcalibration_s _fcal; //pre processed calibration constants
 
 	float			_P; /* in Pa */
@@ -148,7 +148,7 @@ private:
  */
 extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
 
-BMP280::BMP280(bmp280::IBMP280 *interface, const char* path) :
+BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	CDev("BMP280", path),
 	_interface(interface),
 	_report_ticks(0),
@@ -172,12 +172,14 @@ BMP280::~BMP280()
 	/* make sure we are truly inactive */
 	stop_cycle();
 
-	if (_class_instance != -1)
+	if (_class_instance != -1) {
 		unregister_class_devname(get_devname(), _class_instance);
+	}
 
 	/* free any existing reports */
-	if (_reports != nullptr)
+	if (_reports != nullptr) {
 		delete _reports;
+	}
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -196,6 +198,7 @@ BMP280::init()
 	int ret;
 
 	ret = CDev::init();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");
 		return ret;
@@ -214,37 +217,37 @@ BMP280::init()
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	/* reset sensor */
-	_interface->set_reg(BPM280_VALUE_RESET,BPM280_ADDR_RESET);
+	_interface->set_reg(BPM280_VALUE_RESET, BPM280_ADDR_RESET);
 	usleep(10000);
 
 	/* check  id*/
-	if ( _interface->get_reg(BPM280_ADDR_ID) != BPM280_VALUE_ID ) {
-		warnx("id of your baro is not: 0x%02x",BPM280_VALUE_ID);
+	if (_interface->get_reg(BPM280_ADDR_ID) != BPM280_VALUE_ID) {
+		warnx("id of your baro is not: 0x%02x", BPM280_VALUE_ID);
 		return -EIO;
 	}
 
 	/* set config, recommended settings */
 	_curr_ctrl = BPM280_CTRL_P16 | BPM280_CTRL_T2;
-	_interface->set_reg(_curr_ctrl,BPM280_ADDR_CTRL);
-	_max_mesure_ticks = USEC2TICK( BPM280_MT_INIT + BPM280_MT*(16-1 + 2-1) );
-	_interface->set_reg(BPM280_CONFIG_F16,BPM280_ADDR_CONFIG);
+	_interface->set_reg(_curr_ctrl, BPM280_ADDR_CTRL);
+	_max_mesure_ticks = USEC2TICK(BPM280_MT_INIT + BPM280_MT * (16 - 1 + 2 - 1));
+	_interface->set_reg(BPM280_CONFIG_F16, BPM280_ADDR_CONFIG);
 
 	/* get calibration and pre process them*/
 	_cal = _interface->get_calibration(BPM280_ADDR_CAL);
 
-	_fcal.t1 =  _cal->t1 * powf(2,  4 );
+	_fcal.t1 =  _cal->t1 * powf(2,  4);
 	_fcal.t2 =  _cal->t2 * powf(2, -14);
 	_fcal.t3 =  _cal->t3 * powf(2, -34);
 
-	_fcal.p1 = _cal->p1            * (powf(2,  4 ) / -100000.0f);
+	_fcal.p1 = _cal->p1            * (powf(2,  4) / -100000.0f);
 	_fcal.p2 = _cal->p1 * _cal->p2 * (powf(2, -31) / -100000.0f);
 	_fcal.p3 = _cal->p1 * _cal->p3 * (powf(2, -51) / -100000.0f);
 
-	_fcal.p4 = _cal->p4 * powf(2,  4 ) - powf(2, 20);
+	_fcal.p4 = _cal->p4 * powf(2,  4) - powf(2, 20);
 	_fcal.p5 = _cal->p5 * powf(2, -14);
 	_fcal.p6 = _cal->p6 * powf(2, -31);
 
-	_fcal.p7 = _cal->p7 * powf(2, -4 );
+	_fcal.p7 = _cal->p7 * powf(2, -4);
 	_fcal.p8 = _cal->p8 * powf(2, -19) + 1.0f;
 	_fcal.p9 = _cal->p9 * powf(2, -35);
 
@@ -252,20 +255,20 @@ BMP280::init()
 	struct baro_report brp;
 	_reports->flush();
 
-	if ( measure() ) {
+	if (measure()) {
 		return -EIO;
 	}
 
-	usleep( TICK2USEC(_max_mesure_ticks) );
+	usleep(TICK2USEC(_max_mesure_ticks));
 
-	if ( collect() ) {
+	if (collect()) {
 		return -EIO;
 	}
 
 	_reports->get(&brp);
 
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-				&_orb_class_instance, _interface->is_external()? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, _interface->is_external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_baro_topic == nullptr) {
 		warnx("failed to create sensor_baro publication");
@@ -284,8 +287,9 @@ BMP280::read(struct file *filp, char *buffer, size_t buflen)
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
 	if (_report_ticks > 0) {
@@ -310,13 +314,13 @@ BMP280::read(struct file *filp, char *buffer, size_t buflen)
 
 	_reports->flush();
 
-	if ( measure() ) {
+	if (measure()) {
 		return -EIO;
 	}
 
-	usleep( TICK2USEC(_max_mesure_ticks) );
+	usleep(TICK2USEC(_max_mesure_ticks));
 
-	if ( collect() ) {
+	if (collect()) {
 		return -EIO;
 	}
 
@@ -334,9 +338,9 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSPOLLRATE: {
 
-		unsigned ticks = 0;
+			unsigned ticks = 0;
 
-		switch (arg) {
+			switch (arg) {
 
 			case SENSOR_POLLRATE_MANUAL:
 				stop_cycle();
@@ -349,48 +353,57 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
-					ticks = _max_mesure_ticks;
+				ticks = _max_mesure_ticks;
+
 			default: {
 					if (ticks == 0) {
 						ticks = USEC2TICK(USEC_PER_SEC / arg);
 					}
+
 					/* do we need to start internal polling? */
 					bool want_start = (_report_ticks == 0);
 
 					/* check against maximum rate */
-					if (ticks < _max_mesure_ticks)
+					if (ticks < _max_mesure_ticks) {
 						return -EINVAL;
+					}
 
 					_report_ticks = ticks;
-					if (want_start)
+
+					if (want_start) {
 						start_cycle();
+					}
 
 					return OK;
 				}
-		}
+			}
 
-		break;
-	}
+			break;
+		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_report_ticks == 0)
+		if (_report_ticks == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
-		return (USEC_PER_SEC/USEC_PER_TICK/_report_ticks);
+		return (USEC_PER_SEC / USEC_PER_TICK / _report_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = irqsave();
-		if (!_reports->resize(arg)) {
+			irqstate_t flags = irqsave();
+
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
 			irqrestore(flags);
-			return -ENOMEM;
+			return OK;
 		}
-		irqrestore(flags);
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
@@ -405,8 +418,9 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case BAROIOCSMSLPRESSURE:
 
 		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000))
+		if ((arg < 80000) || (arg > 120000)) {
 			return -EINVAL;
+		}
 
 		_msl_pressure = arg;
 		return OK;
@@ -454,15 +468,16 @@ BMP280::cycle()
 		collect();
 		unsigned wait_gap = _report_ticks - _max_mesure_ticks;
 
-		if ( wait_gap != 0 ) {
-			work_queue(HPWORK,&_work,(worker_t)&BMP280::cycle_trampoline,this,wait_gap); //need to wait some time before new measurement
+		if (wait_gap != 0) {
+			work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this,
+				   wait_gap); //need to wait some time before new measurement
 			return;
 		}
 
 	}
 
 	measure();
-	work_queue(HPWORK,&_work,(worker_t)&BMP280::cycle_trampoline,this,_max_mesure_ticks);
+	work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this, _max_mesure_ticks);
 
 }
 
@@ -474,9 +489,9 @@ BMP280::measure()
 	perf_begin(_measure_perf);
 
 	/* start measure */
-	int ret = _interface->set_reg(_curr_ctrl | BPM280_CTRL_MODE_FORCE,BPM280_ADDR_CTRL);
+	int ret = _interface->set_reg(_curr_ctrl | BPM280_CTRL_MODE_FORCE, BPM280_ADDR_CTRL);
 
-	if ( ret != OK) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 		perf_cancel(_measure_perf);
 		return -EIO;
@@ -497,23 +512,24 @@ BMP280::collect()
 	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-    report.error_count = perf_event_count(_comms_errors);
+	report.error_count = perf_event_count(_comms_errors);
 
-    bmp280::data_s* data = _interface->get_data(BPM280_ADDR_DATA);
-    if (data == nullptr) {
-    	perf_count(_comms_errors);
-    	perf_cancel(_sample_perf);
-    	return -EIO;
-    }
+	bmp280::data_s *data = _interface->get_data(BPM280_ADDR_DATA);
 
-    //convert data to number 20 bit
-    uint32_t p_raw =  data->p_msb<<12 | data->p_lsb<<4 | data->p_xlsb>>4;
-    uint32_t t_raw =  data->t_msb<<12 | data->t_lsb<<4 | data->t_xlsb>>4;
+	if (data == nullptr) {
+		perf_count(_comms_errors);
+		perf_cancel(_sample_perf);
+		return -EIO;
+	}
 
-    // Temperature
+	//convert data to number 20 bit
+	uint32_t p_raw =  data->p_msb << 12 | data->p_lsb << 4 | data->p_xlsb >> 4;
+	uint32_t t_raw =  data->t_msb << 12 | data->t_lsb << 4 | data->t_xlsb >> 4;
+
+	// Temperature
 	float ofs = (float) t_raw - _fcal.t1;
 	float t_fine = (ofs * _fcal.t3 + _fcal.t2) * ofs;
-	_T = t_fine * (1.0f/5120.0f);
+	_T = t_fine * (1.0f / 5120.0f);
 
 	// Pressure
 	float tf = t_fine - 128000.0f;
@@ -525,7 +541,7 @@ BMP280::collect()
 
 
 	report.temperature = _T;
-	report.pressure = _P/100.0f; // to mbar
+	report.pressure = _P / 100.0f; // to mbar
 
 
 	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
@@ -603,13 +619,13 @@ struct bmp280_bus_option {
 	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO , true , NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS,PX4_SPIDEV_BARO, false ,NULL },
+	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false , NULL },
 #endif
 #ifdef PX4_I2C_OBDEV_BMP280
 	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", nullptr, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_EXT_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION,PX4_I2C_EXT_OBDEV_BMP280 , true , NULL },
+	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280 , true , NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -630,10 +646,12 @@ void	usage();
 bool
 start_bus(struct bmp280_bus_option &bus)
 {
-	if (bus.dev != nullptr)
-		errx(1,"bus option already started");
+	if (bus.dev != nullptr) {
+		errx(1, "bus option already started");
+	}
 
 	bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.device, bus.external);
+
 	if (interface->init() != OK) {
 		delete interface;
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -641,6 +659,7 @@ start_bus(struct bmp280_bus_option &bus)
 	}
 
 	bus.dev = new BMP280(interface, bus.devpath);
+
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
@@ -653,6 +672,7 @@ start_bus(struct bmp280_bus_option &bus)
 	if (fd == -1) {
 		errx(1, "can't open baro device");
 	}
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
 		errx(1, "failed setting default poll rate");
@@ -675,20 +695,23 @@ start(enum BMP280_BUS busid)
 	uint8_t i;
 	bool started = false;
 
-	for (i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (busid == BMP280_BUS_ALL && bus_options[i].dev != NULL) {
 			// this device is already started
 			continue;
 		}
+
 		if (busid != BMP280_BUS_ALL && bus_options[i].busid != busid) {
 			// not the one that is asked for
 			continue;
 		}
+
 		started |= start_bus(bus_options[i]);
 	}
 
-	if (!started)
+	if (!started) {
 		errx(1, "driver start failed");
+	}
 
 	// one or more drivers started OK
 	exit(0);
@@ -700,13 +723,14 @@ start(enum BMP280_BUS busid)
  */
 struct bmp280_bus_option &find_bus(enum BMP280_BUS busid)
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if ((busid == BMP280_BUS_ALL ||
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
 			return bus_options[i];
 		}
 	}
-	errx(1,"bus %u not started", (unsigned)busid);
+
+	errx(1, "bus %u not started", (unsigned)busid);
 }
 
 /**
@@ -725,14 +749,17 @@ test(enum BMP280_BUS busid)
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+
+	if (fd < 0) {
 		err(1, "open failed (try 'bmp280 start' if the driver is not running)");
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
+	if (sz != sizeof(report)) {
 		err(1, "immediate read failed");
+	}
 
 	warnx("single read");
 	warnx("pressure:    %10.4f", (double)report.pressure);
@@ -741,12 +768,14 @@ test(enum BMP280_BUS busid)
 	warnx("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
 		errx(1, "failed to set queue depth");
+	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
+	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
@@ -757,14 +786,16 @@ test(enum BMP280_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 2000);
 
-		if (ret != 1)
+		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
+		if (sz != sizeof(report)) {
 			err(1, "periodic read failed");
+		}
 
 		warnx("periodic read %u", i);
 		warnx("pressure:    %10.4f", (double)report.pressure);
@@ -787,14 +818,18 @@ reset(enum BMP280_BUS busid)
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
 	exit(0);
 }
@@ -805,13 +840,15 @@ reset(enum BMP280_BUS busid)
 void
 info()
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		struct bmp280_bus_option &bus = bus_options[i];
+
 		if (bus.dev != nullptr) {
 			warnx("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
+
 	exit(0);
 }
 
@@ -830,12 +867,14 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 
 	fd = open(bus.devpath, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open failed (try 'bmp280 start' if the driver is not running)");
+	}
 
 	/* start the sensor polling at max */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
 		errx(1, "failed to set poll rate");
+	}
 
 	/* average a few measurements */
 	pressure = 0.0f;
@@ -850,14 +889,16 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 1000);
 
-		if (ret != 1)
+		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
+		if (sz != sizeof(report)) {
 			err(1, "sensor read failed");
+		}
 
 		pressure += report.pressure;
 	}
@@ -880,8 +921,9 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
-	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
+	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
 		err(1, "BAROIOCSMSLPRESSURE");
+	}
 
 	close(fd);
 	exit(0);
@@ -913,16 +955,20 @@ bmp280_main(int argc, char *argv[])
 			busid = BMP280_BUS_I2C_EXTERNAL;
 			errx(1, "not supported yet");
 			break;
+
 		case 'I':
 			busid = BMP280_BUS_I2C_INTERNAL;
 			errx(1, "not supported yet");
 			break;
+
 		case 'S':
 			busid = BMP280_BUS_SPI_EXTERNAL;
 			break;
+
 		case 's':
 			busid = BMP280_BUS_SPI_INTERNAL;
 			break;
+
 		default:
 			bmp280::usage();
 			exit(0);
@@ -934,35 +980,40 @@ bmp280_main(int argc, char *argv[])
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		bmp280::start(busid);
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(verb, "test"))
+	if (!strcmp(verb, "test")) {
 		bmp280::test(busid);
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(verb, "reset"))
+	if (!strcmp(verb, "reset")) {
 		bmp280::reset(busid);
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info"))
+	if (!strcmp(verb, "info")) {
 		bmp280::info();
+	}
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
 	if (!strcmp(verb, "calibrate")) {
-		if (argc < 2)
+		if (argc < 2) {
 			errx(1, "missing altitude");
+		}
 
-		long altitude = strtol(argv[optind+1], nullptr, 10);
+		long altitude = strtol(argv[optind + 1], nullptr, 10);
 
 		bmp280::calibrate(altitude, busid);
 	}
