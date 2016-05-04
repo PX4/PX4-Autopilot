@@ -541,8 +541,9 @@ function(px4_add_common_flags)
 		-Wall
 		-Werror
 		-Wextra
+		-Wpacked
 		-Wno-sign-compare
-		#-Wshadow # very verbose due to eigen
+		-Wshadow
 		-Wfloat-equal
 		-Wpointer-arith
 		-Wmissing-declarations

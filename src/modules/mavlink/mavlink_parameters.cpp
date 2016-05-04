@@ -182,13 +182,13 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						uint32_t hash = param_hash_check();
 
 						/* build the one-off response message */
-						mavlink_param_value_t msg;
-						msg.param_count = param_count_used();
-						msg.param_index = -1;
-						strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-						msg.param_type = MAV_PARAM_TYPE_UINT32;
-						memcpy(&msg.param_value, &hash, sizeof(hash));
-						_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg);
+						mavlink_param_value_t param_value;
+						param_value.param_count = param_count_used();
+						param_value.param_index = -1;
+						strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+						param_value.param_type = MAV_PARAM_TYPE_UINT32;
+						memcpy(&param_value.param_value, &hash, sizeof(hash));
+						_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &param_value);
 					} else {
 						/* local name buffer to enforce null-terminated string */
 						char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
