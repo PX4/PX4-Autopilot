@@ -701,6 +701,18 @@ void Logger::stop_log()
 	_writer.stop_log();
 }
 
+bool Logger::write_wait(void *ptr, size_t size)
+{
+	while (!_writer.write(ptr, size)) {
+		_writer.unlock();
+		_writer.notify();
+		usleep(_log_interval);
+		_writer.lock();
+	}
+
+	return true;
+}
+
 void Logger::write_formats()
 {
 	_writer.lock();
@@ -714,12 +726,7 @@ void Logger::write_formats()
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		msg.msg_size = msg_size - 3;
 
-		while (!_writer.write(&msg, msg_size)) {
-			_writer.unlock();
-			_writer.notify();
-			usleep(_log_interval);	// Wait if buffer is full, don't skip FORMAT messages
-			_writer.lock();
-		}
+		write_wait(&msg, msg_size);
 
 		msg_id++;
 	}
@@ -748,14 +755,7 @@ void Logger::write_info(const char *name, const char *value)
 
 		msg->msg_size = msg_size - 3;
 
-		/* write message */
-		while (!_writer.write(buffer, msg_size)) {
-			/* wait if buffer is full, don't skip INFO messages */
-			_writer.unlock();
-			_writer.notify();
-			usleep(_log_interval);
-			_writer.lock();
-		}
+		write_wait(buffer, msg_size);
 	}
 }
 
@@ -815,14 +815,7 @@ void Logger::write_parameters()
 
 			msg->msg_size = msg_size - 3;
 
-			/* write message */
-			while (!_writer.write(buffer, msg_size)) {
-				/* wait if buffer is full, don't skip PARAMETER messages */
-				_writer.unlock();
-				_writer.notify();
-				usleep(_log_interval);
-				_writer.lock();
-			}
+			write_wait(buffer, msg_size);
 		}
 	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
 
@@ -882,14 +875,7 @@ void Logger::write_changed_parameters()
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
 			msg->msg_size = msg_size - 3;
 
-			/* write message */
-			while (!_writer.write(buffer, msg_size)) {
-				/* wait if buffer is full, don't skip PARAMETER messages */
-				_writer.unlock();
-				_writer.notify();
-				usleep(_log_interval);
-				_writer.lock();
-			}
+			write_wait(buffer, msg_size);
 		}
 	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
 
