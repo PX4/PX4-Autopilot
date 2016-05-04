@@ -234,7 +234,7 @@ struct parameters {
 	parameters()
 	{
 		// measurement source control
-		fusion_mode = MASK_USE_GPS;
+		fusion_mode = MASK_USE_GPS + MASK_USE_3D_ACC_BIAS;
 		vdist_sensor_type = VDIST_SENSOR_BARO;
 
 		// measurement time delays
@@ -251,7 +251,7 @@ struct parameters {
 
 		// process noise
 		gyro_bias_p_noise = 1.0e-3f;
-		accel_bias_p_noise = 1.0e-5f;
+		accel_bias_p_noise = 1.0e-3f;
 		mage_p_noise = 1.0e-3f;
 		magb_p_noise = 1.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;
