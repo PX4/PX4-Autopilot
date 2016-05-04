@@ -85,67 +85,68 @@ namespace bmp280
 {
 
 #pragma pack(push,1)
-	struct calibration_s {
-		uint16_t t1;
-		int16_t t2;
-		int16_t t3;
+struct calibration_s {
+	uint16_t t1;
+	int16_t t2;
+	int16_t t3;
 
-		uint16_t p1;
-		int16_t p2;
-		int16_t p3;
-		int16_t p4;
-		int16_t p5;
-		int16_t p6;
-		int16_t p7;
-		int16_t p8;
-		int16_t p9;
-	}; //calibration data
+	uint16_t p1;
+	int16_t p2;
+	int16_t p3;
+	int16_t p4;
+	int16_t p5;
+	int16_t p6;
+	int16_t p7;
+	int16_t p8;
+	int16_t p9;
+}; //calibration data
 
-	struct data_s {
-			uint8_t p_msb;
-			uint8_t p_lsb;
-			uint8_t p_xlsb;
+struct data_s {
+	uint8_t p_msb;
+	uint8_t p_lsb;
+	uint8_t p_xlsb;
 
-			uint8_t t_msb;
-			uint8_t t_lsb;
-			uint8_t t_xlsb;
-		}; // data
+	uint8_t t_msb;
+	uint8_t t_lsb;
+	uint8_t t_xlsb;
+}; // data
 #pragma pack(pop)
 
-	struct fcalibration_s {
-			float t1;
-			float t2;
-			float t3;
+struct fcalibration_s {
+	float t1;
+	float t2;
+	float t3;
 
-			float p1;
-			float p2;
-			float p3;
-			float p4;
-			float p5;
-			float p6;
-			float p7;
-			float p8;
-			float p9;
-		};
+	float p1;
+	float p2;
+	float p3;
+	float p4;
+	float p5;
+	float p6;
+	float p7;
+	float p8;
+	float p9;
+};
 
-	class IBMP280
-	{
-		public:
-			virtual ~IBMP280() = 0;
+class IBMP280
+{
+public:
+	virtual ~IBMP280() = 0;
 
-			virtual bool is_external() = 0;
-			virtual int init() = 0;
+	virtual bool is_external() = 0;
+	virtual int init() = 0;
 
-			virtual uint8_t get_reg(uint8_t addr) = 0; //read reg value
-			virtual int set_reg(uint8_t value, uint8_t addr) = 0; //write reg value
-			virtual bmp280::data_s* get_data(uint8_t addr) = 0; //bulk read of data into buffer, return same pointer
-			virtual bmp280::calibration_s* get_calibration(uint8_t addr) = 0; //bulk read of calibration data into buffer, return same pointer
+	virtual uint8_t get_reg(uint8_t addr) = 0; //read reg value
+	virtual int set_reg(uint8_t value, uint8_t addr) = 0; //write reg value
+	virtual bmp280::data_s *get_data(uint8_t addr) = 0; //bulk read of data into buffer, return same pointer
+	virtual bmp280::calibration_s *get_calibration(uint8_t addr) =
+		0; //bulk read of calibration data into buffer, return same pointer
 
-	};
+};
 
 } /* namespace */
 
 /* interface factories */
-extern bmp280::IBMP280* bmp280_spi_interface(uint8_t busnum, uint8_t device, bool external);
-extern bmp280::IBMP280* bmp280_i2c_interface(uint8_t busnum, uint8_t device, bool external);
-typedef bmp280::IBMP280* (*BMP280_constructor)(uint8_t, uint8_t, bool);
+extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint8_t device, bool external);
+extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint8_t device, bool external);
+typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t, uint8_t, bool);
