@@ -215,7 +215,8 @@ namespace
 {
 
 GPS	*g_dev[2] = {nullptr, nullptr};
-volatile bool is_gps1_advertised = false;
+volatile bool is_gps1_advertised = false; ///< for the second gps we want to make sure that it gets instance 1
+/// and thus we wait until the first one publishes at least one message.
 }
 
 
@@ -282,16 +283,12 @@ GPS::~GPS()
 int GPS::init()
 {
 
-	char gps_num;
-	sprintf(&gps_num, "%d", _gps_num);
-
-	static char *gps_num_ptr;
-	gps_num_ptr = &gps_num;
-
+	char gps_num[2] = {(char)('0' + _gps_num), 0};
+	char *const args[2] = { gps_num, NULL };
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, &gps_num_ptr);
+				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, args);
 
 	if (_task < 0) {
 		PX4_WARN("task start failed: %d", errno);
@@ -303,12 +300,7 @@ int GPS::init()
 
 void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	if (!strcmp(argv[1], "1")) {
-		g_dev[0]->task_main();
-
-	} else if (!strcmp(argv[1], "2")) {
-		g_dev[1]->task_main();
-	}
+	g_dev[argv[1][0] - '1']->task_main();
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
@@ -764,6 +756,8 @@ GPS::cmd_reset()
 void
 GPS::print_info()
 {
+	PX4_WARN("GPS %i:", _gps_num);
+
 	//GPS Mode
 	if (_fake_gps) {
 		PX4_WARN("protocol: SIMULATED");
@@ -846,68 +840,22 @@ void	info();
 void
 start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 {
-	if (gps_num == 1) {
-		if (g_dev[0] != nullptr) {
-			PX4_WARN("GPS 1 already started");
-			return;
-		}
-
-		/* create the driver */
-		g_dev[0] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
-
-		if (g_dev[0] == nullptr) {
-			goto fail1;
-		}
-
-		if (OK != g_dev[0]->init()) {
-			goto fail1;
-		}
-
+	if (g_dev[gps_num - 1] != nullptr) {
+		PX4_WARN("GPS %i already started", gps_num);
 		return;
+	}
 
-	} else {
-		if (gps_num == 2) {
-			if (g_dev[1] != nullptr) {
-				PX4_WARN("GPS 2 already started");
-				return;
-			}
+	/* create the driver */
+	g_dev[gps_num - 1] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
 
-			/* create the driver */
-			g_dev[1] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
-
-			if (g_dev[1] == nullptr) {
-				goto fail2;
-			}
-
-			if (OK != g_dev[1]->init()) {
-				goto fail2;
-			}
-
-			return;
-
+	if (!g_dev[gps_num - 1] || OK != g_dev[gps_num - 1]->init()) {
+		if (g_dev[gps_num - 1] != nullptr) {
+			delete g_dev[gps_num - 1];
+			g_dev[gps_num - 1] = nullptr;
 		}
+
+		PX4_ERR("start of GPS %i failed", gps_num);
 	}
-
-
-fail1:
-
-	if (g_dev[0] != nullptr) {
-		delete g_dev[0];
-		g_dev[0] = nullptr;
-	}
-
-	PX4_ERR("start of GPS 1 failed");
-	return;
-
-fail2:
-
-	if (g_dev[1] != nullptr) {
-		delete g_dev[1];
-		g_dev[1] = nullptr;
-	}
-
-	PX4_ERR("start of GPS 2 failed");
-	return;
 }
 
 /**
@@ -924,8 +872,6 @@ stop()
 	}
 
 	g_dev[1] = nullptr;
-
-	px4_task_exit(0);
 }
 
 /**
@@ -1029,7 +975,7 @@ gps_main(int argc, char *argv[])
 
 		gps::start(device_name, fake_gps, enable_sat_info, 1);
 
-		if (!(device_name2 == nullptr)) {
+		if (device_name2) {
 			gps::start(device_name2, fake_gps, enable_sat_info, 2);
 		}
 
