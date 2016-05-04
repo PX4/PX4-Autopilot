@@ -248,7 +248,6 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* we need this potentially before it could be set in task_main */
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 	/* create satellite info data object if requested */
