@@ -7,6 +7,7 @@ else()
 endif()
 
 set(CONFIG_SHMEM "1")
+set(config_generate_parameters_scope ALL)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
 
