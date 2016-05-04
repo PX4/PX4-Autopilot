@@ -40,7 +40,7 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
-	float DT = max((now - _update_50hz_last_usec), 0ULL) * 1.0e-6f;
+	float DT = max((now - _update_50hz_last_usec), UINT64_C(0)) * 1.0e-6f;
 
 	// printf("dt: %10.6f baro alt: %6.2f eas: %6.2f R(0,0): %6.2f, R(1,1): %6.2f\naccel body: %6.2f %6.2f %6.2f\naccel earth: %6.2f %6.2f %6.2f\n",
 	// 	DT, baro_altitude, airspeed, rotMat(0, 0), rotMat(1, 1), accel_body(0), accel_body(1), accel_body(2),
@@ -122,7 +122,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 {
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
-	float DT = max((now - _update_speed_last_usec), 0ULL) * 1.0e-6f;
+	float DT = max((now - _update_speed_last_usec), UINT64_C(0)) * 1.0e-6f;
 
 	// Convert equivalent airspeeds to true airspeeds
 
@@ -550,7 +550,7 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
-	_DT = max((now - _update_pitch_throttle_last_usec), 0ULL) * 1.0e-6f;
+	_DT = max((now - _update_pitch_throttle_last_usec), UINT64_C(0)) * 1.0e-6f;
 
 	// printf("tecs in: dt:%10.6f pitch: %6.2f baro_alt: %6.2f alt sp: %6.2f\neas sp: %6.2f eas: %6.2f, eas2tas: %6.2f\n %s pitch min C0: %6.2f thr min: %6.2f, thr max: %6.2f thr cruis: %6.2f pt min: %6.2f, pt max: %6.2f\n",
 	// 	_DT, pitch, baro_altitude, hgt_dem, EAS_dem, indicated_airspeed, EAS2TAS, (climbOutDem) ? "climb" : "level", ptchMinCO, throttle_min, throttle_max, throttle_cruise, pitch_limit_min, pitch_limit_max);

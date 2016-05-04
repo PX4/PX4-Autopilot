@@ -81,10 +81,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
@@ -2300,8 +2296,9 @@ int commander_thread_main(int argc, char *argv[])
 		 * rejection. Back off 2 seconds to not overlay
 		 * home tune.
 		 */
+		uint64_t ts = _home.timestamp;
 		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			(hrt_elapsed_time(&ts) > 2000000) &&
 			_last_mission_instance != mission_result.instance_count) {
 			if (!mission_result.valid) {
 				/* the mission is invalid */
