@@ -242,7 +242,6 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_port[sizeof(_port) - 1] = '\0';
 
 	/* we need this potentially before it could be set in task_main */
-	g_dev[gps_num -1] = this;
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 	/* create satellite info data object if requested */
@@ -277,7 +276,6 @@ GPS::~GPS()
 		delete(_sat_info);
 	}
 
-	g_dev[_gps_num-1] = nullptr;
 
 }
 
@@ -826,8 +824,6 @@ GPS::publish()
 namespace gps
 {
 
-GPS	*g_dev = nullptr;
-GPS	*g_dev2 = nullptr;
 
 void	start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num);
 void	stop();
@@ -842,38 +838,38 @@ void
 start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 {
 	if (gps_num == 1) {
-		if (g_dev != nullptr) {
+		if (g_dev[0] != nullptr) {
 			PX4_WARN("GPS 1 already started");
 			return;
 		}
 
 		/* create the driver */
-		g_dev = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
+		g_dev[0] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
 
-		if (g_dev == nullptr) {
+		if (g_dev[0] == nullptr) {
 			goto fail1;
 		}
 
-		if (OK != g_dev->init()) {
+		if (OK != g_dev[0]->init()) {
 			goto fail1;
 		}
 		return;
 
 	} else {
 		if (gps_num == 2) {
-			if (g_dev2 != nullptr) {
+			if (g_dev[1] != nullptr) {
 				PX4_WARN("GPS 2 already started");
 				return;
 			}
 
 			/* create the driver */
-			g_dev2 = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
+			g_dev[1] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
 
-			if (g_dev2 == nullptr) {
+			if (g_dev[1] == nullptr) {
 				goto fail2;
 			}
 
-			if (OK != g_dev2->init()) {
+			if (OK != g_dev[1]->init()) {
 				goto fail2;
 			}
 			return;
@@ -884,9 +880,9 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 
 fail1:
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (g_dev[0] != nullptr) {
+		delete g_dev[0];
+		g_dev[0] = nullptr;
 	}
 
 	PX4_ERR("start of GPS 1 failed");
@@ -894,9 +890,9 @@ fail1:
 
 fail2:
 
-	if (g_dev2 != nullptr) {
-		delete g_dev2;
-		g_dev2 = nullptr;
+	if (g_dev[1] != nullptr) {
+		delete g_dev[1];
+		g_dev[1] = nullptr;
 	}
 
 	PX4_ERR("start of GPS 2 failed");
@@ -909,14 +905,14 @@ fail2:
 void
 stop()
 {
-	delete g_dev;
-	g_dev = nullptr;
+	delete g_dev[0];
+	g_dev[0] = nullptr;
 
-	if (g_dev2 != nullptr) {
-		delete g_dev2;
+	if (g_dev[1] != nullptr) {
+		delete g_dev[1];
 	}
 
-	g_dev2 = nullptr;
+	g_dev[1] = nullptr;
 
 	px4_task_exit(0);
 }
@@ -949,15 +945,15 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr) {
+	if (g_dev[0] == nullptr) {
 		PX4_ERR("GPS Not running");
 		return;
 	}
 
-	g_dev->print_info();
+	g_dev[0]->print_info();
 
-	if (g_dev2 != nullptr) {
-		g_dev2->print_info();
+	if (g_dev[1] != nullptr) {
+		g_dev[1]->print_info();
 	}
 
 	return;
