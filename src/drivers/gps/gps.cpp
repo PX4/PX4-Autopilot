@@ -146,7 +146,7 @@ private:
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void task_main_trampoline(void *arg);
+	static void task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
@@ -214,7 +214,7 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 namespace
 {
 
-GPS	*g_dev = nullptr;
+GPS	*g_dev[2] = {nullptr, nullptr};
 
 }
 
@@ -242,7 +242,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_port[sizeof(_port) - 1] = '\0';
 
 	/* we need this potentially before it could be set in task_main */
-	g_dev = this;
+	g_dev[gps_num -1] = this;
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 	/* create satellite info data object if requested */
@@ -277,17 +277,23 @@ GPS::~GPS()
 		delete(_sat_info);
 	}
 
-	g_dev = nullptr;
-	orb_unadvertise(_report_gps_pos_pub);
+	g_dev[_gps_num-1] = nullptr;
 
 }
 
 int GPS::init()
 {
 
+	char gps_num;
+	sprintf(&gps_num, "%d", _gps_num);
+
+	static char *gps_num_ptr;
+	gps_num_ptr = &gps_num;
+
+
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, nullptr);
+				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, &gps_num_ptr);
 
 	if (_task < 0) {
 		PX4_WARN("task start failed: %d", errno);
@@ -297,9 +303,13 @@ int GPS::init()
 	return OK;
 }
 
-void GPS::task_main_trampoline(void *arg)
+void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	g_dev->task_main();
+	warnx("arg = %i %c %i", argc, *argv[0], *argv[0]);
+	 if (!strcmp(argv[1], "1"))
+	 g_dev[0]->task_main();
+	 else if (!strcmp(argv[1], "2"))
+	 g_dev[1]->task_main();
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
@@ -730,6 +740,8 @@ GPS::task_main()
 
 	::close(_serial_fd);
 
+	orb_unadvertise(_report_gps_pos_pub);
+
 	/* tell the dtor that we are exiting */
 	_task = -1;
 	px4_task_exit(0);
@@ -832,6 +844,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 	if (gps_num == 1) {
 		if (g_dev != nullptr) {
 			PX4_WARN("GPS 1 already started");
+			return;
 		}
 
 		/* create the driver */
@@ -844,13 +857,13 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 		if (OK != g_dev->init()) {
 			goto fail1;
 		}
-
 		return;
 
 	} else {
 		if (gps_num == 2) {
 			if (g_dev2 != nullptr) {
 				PX4_WARN("GPS 2 already started");
+				return;
 			}
 
 			/* create the driver */
@@ -863,8 +876,8 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 			if (OK != g_dev2->init()) {
 				goto fail2;
 			}
-
 			return;
+
 		}
 	}
 
