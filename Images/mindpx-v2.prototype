@@ -1,6 +1,6 @@
 {
     "board_id": 9, 
-    "magic": "PX4FWv1", 
+    "magic": "PX4FWv2",
     "description": "Firmware for the MindPx-V2  board", 
     "image": "", 
     "build_time": 0, 
