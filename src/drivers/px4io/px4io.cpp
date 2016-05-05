@@ -900,7 +900,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1500,
+				   1400,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
