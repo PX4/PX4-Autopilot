@@ -56,6 +56,7 @@ set(config_module_list
 
 	lib/controllib
 	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
