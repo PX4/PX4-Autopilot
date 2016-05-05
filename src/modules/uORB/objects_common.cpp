@@ -300,3 +300,7 @@ ORB_DEFINE(gps_inject_data, struct gps_inject_data_s);
 
 #include "topics/adc_report.h"
 ORB_DEFINE(adc_report, struct adc_report_s);
+
+#include <drivers/drv_gps.h>
+ORB_DEFINE(vehicle_gps_1_position, struct vehicle_gps_position_s);
+ORB_DEFINE(vehicle_gps_2_position, struct vehicle_gps_position_s);
