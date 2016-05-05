@@ -548,7 +548,7 @@ Sensors::Sensors() :
 	_diff_pres_pub(nullptr),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_airspeed_validator(),
 
 	_param_rc_values{},
