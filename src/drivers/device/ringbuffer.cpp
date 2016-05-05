@@ -46,15 +46,16 @@ namespace ringbuffer
 RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
 	_num_items(num_items),
 	_item_size(item_size),
-	_buf(new char[(_num_items+1) * item_size]),
- 	_head(_num_items),
- 	_tail(_num_items)
+	_buf(new char[(_num_items + 1) * item_size]),
+	_head(_num_items),
+	_tail(_num_items)
 {}
 
 RingBuffer::~RingBuffer()
 {
-	if (_buf != nullptr)
+	if (_buf != nullptr) {
 		delete[] _buf;
+	}
 }
 
 unsigned
@@ -84,20 +85,25 @@ RingBuffer::size()
 void
 RingBuffer::flush()
 {
-	while (!empty())
+	while (!empty()) {
 		get(NULL);
+	}
 }
 
 bool
 RingBuffer::put(const void *val, size_t val_size)
 {
 	unsigned next = _next(_head);
+
 	if (next != _tail) {
-		if ((val_size == 0) || (val_size > _item_size))
+		if ((val_size == 0) || (val_size > _item_size)) {
 			val_size = _item_size;
+		}
+
 		memcpy(&_buf[_head * _item_size], val, val_size);
 		_head = next;
 		return true;
+
 	} else {
 		return false;
 	}
@@ -169,11 +175,14 @@ RingBuffer::force(const void *val, size_t val_size)
 	bool overwrote = false;
 
 	for (;;) {
-		if (put(val, val_size))
+		if (put(val, val_size)) {
 			break;
+		}
+
 		get(NULL);
 		overwrote = true;
 	}
+
 	return overwrote;
 }
 
@@ -246,6 +255,7 @@ static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned 
 		*a = c;
 		return true;
 	}
+
 	return false;
 }
 
@@ -259,8 +269,9 @@ RingBuffer::get(void *val, size_t val_size)
 		unsigned candidate;
 		unsigned next;
 
-		if ((val_size == 0) || (val_size > _item_size))
+		if ((val_size == 0) || (val_size > _item_size)) {
 			val_size = _item_size;
+		}
 
 		do {
 			/* decide which element we think we're going to read */
@@ -270,13 +281,15 @@ RingBuffer::get(void *val, size_t val_size)
 			next = _next(candidate);
 
 			/* go ahead and read from this index */
-			if (val != NULL)
+			if (val != NULL) {
 				memcpy(val, &_buf[candidate * _item_size], val_size);
+			}
 
 			/* if the tail pointer didn't change, we got our item */
 		} while (!__PX4_SBCAP(&_tail, candidate, next));
 
 		return true;
+
 	} else {
 		return false;
 	}
@@ -377,10 +390,12 @@ bool
 RingBuffer::resize(unsigned new_size)
 {
 	char *old_buffer;
-	char *new_buffer = new char [(new_size+1) * _item_size];
+	char *new_buffer = new char [(new_size + 1) * _item_size];
+
 	if (new_buffer == nullptr) {
 		return false;
 	}
+
 	old_buffer = _buf;
 	_buf = new_buffer;
 	_num_items = new_size;

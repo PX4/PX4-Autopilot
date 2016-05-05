@@ -47,7 +47,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
@@ -76,8 +75,8 @@ int test_rc(int argc, char *argv[])
 	bool rc_updated;
 	orb_check(_rc_sub, &rc_updated);
 
-	warnx("Reading PPM values - press any key to abort");
-	warnx("This test guarantees: 10 Hz update rates, no glitches (channel values), no channel count changes.");
+	PX4_INFO("Reading PPM values - press any key to abort");
+	PX4_INFO("This test guarantees: 10 Hz update rates, no glitches (channel values), no channel count changes.");
 
 	if (rc_updated) {
 
@@ -107,8 +106,8 @@ int test_rc(int argc, char *argv[])
 
 					/* go and check values */
 					for (unsigned i = 0; i < rc_input.channel_count; i++) {
-						if (fabsf(rc_input.values[i] - rc_last.values[i]) > 20) {
-							warnx("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
+						if (abs(rc_input.values[i] - rc_last.values[i]) > 20) {
+							PX4_ERR("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
 							(void)close(_rc_sub);
 							return ERROR;
 						}
@@ -117,13 +116,13 @@ int test_rc(int argc, char *argv[])
 					}
 
 					if (rc_last.channel_count != rc_input.channel_count) {
-						warnx("channel count mismatch: last: %d, now: %d", rc_last.channel_count, rc_input.channel_count);
+						PX4_ERR("channel count mismatch: last: %d, now: %d", rc_last.channel_count, rc_input.channel_count);
 						(void)close(_rc_sub);
 						return ERROR;
 					}
 
 					if (hrt_absolute_time() - rc_input.timestamp_last_signal > 100000) {
-						warnx("TIMEOUT, less than 10 Hz updates");
+						PX4_ERR("TIMEOUT, less than 10 Hz updates");
 						(void)close(_rc_sub);
 						return ERROR;
 					}
@@ -137,11 +136,11 @@ int test_rc(int argc, char *argv[])
 		}
 
 	} else {
-		warnx("failed reading RC input data");
+		PX4_ERR("failed reading RC input data");
 		return ERROR;
 	}
 
-	warnx("PPM CONTINUITY TEST PASSED SUCCESSFULLY!");
+	PX4_INFO("PPM CONTINUITY TEST PASSED SUCCESSFULLY!");
 
 	return 0;
 }

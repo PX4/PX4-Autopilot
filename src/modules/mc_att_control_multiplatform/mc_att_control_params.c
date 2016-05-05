@@ -36,13 +36,9 @@
  * Parameters for multicopter attitude controller.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
-
-#include <px4_defines.h>
-#include "mc_att_control_params.h"
-#include <systemlib/param/param.h>
 
 /**
  * Roll P gain

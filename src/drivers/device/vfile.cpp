@@ -48,7 +48,7 @@ VFile::VFile(const char *fname, mode_t mode) :
 {
 }
 
-VFile * VFile::createFile(const char *fname, mode_t mode)
+VFile *VFile::createFile(const char *fname, mode_t mode)
 {
 	VFile *me = new VFile(fname, mode);
 	me->register_driver(fname, me);

@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  * Copyright (c) 2015 Mark Charlebois. All rights reserved.
@@ -75,7 +76,6 @@ class uORB_test::uORBCommunicatorMock : public uORBCommunicator::IChannel
    */
   virtual int16_t add_subscription( const char *messageName, int32_t msgRateInHz );
 
-
   /**
    * @brief Interface to notify the remote entity of removal of a subscription
    *
@@ -126,8 +126,8 @@ class uORB_test::uORBCommunicatorMock : public uORBCommunicator::IChannel
 
  private:
   uORBCommunicator::IChannelRxHandler* _rx_handler;
-  int _sub_topicA_copy_fd;
-  int _sub_topicB_copy_fd;
+  //int _sub_topicA_copy_fd;
+  //int _sub_topicB_copy_fd;
 
   std::map<std::string, std::string> _topic_translation_map;
 

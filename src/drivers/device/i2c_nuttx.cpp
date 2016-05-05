@@ -44,6 +44,10 @@
 
 namespace device
 {
+/*
+ *  N.B. By defaulting the value of _bus_clocks to non Zero
+ *  All calls to init() will NOT set the buss frequency
+ */
 
 unsigned int I2C::_bus_clocks[3] = { 100000, 100000, 100000 };
 
@@ -69,13 +73,13 @@ I2C::I2C(const char *name,
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
 	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;     
+	_device_id.devid_s.devtype = 0;
 }
 
 I2C::~I2C()
 {
 	if (_dev) {
-		up_i2cuninitialize(_dev);
+		stm32_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
 }
@@ -90,8 +94,9 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 	}
 
 	if (_bus_clocks[index] > 0) {
-		// debug("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
+		// DEVICE_DEBUG("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
 	}
+
 	_bus_clocks[index] = clock_hz;
 
 	return OK;
@@ -104,10 +109,10 @@ I2C::init()
 	unsigned bus_index;
 
 	// attach to the i2c bus
-	_dev = up_i2cinitialize(_bus);
+	_dev = stm32_i2cbus_initialize(_bus);
 
 	if (_dev == nullptr) {
-		debug("failed to init I2C");
+		DEVICE_DEBUG("failed to init I2C");
 		ret = -ENOENT;
 		goto out;
 	}
@@ -119,18 +124,12 @@ I2C::init()
 	// abort if the max frequency we allow (the frequency we ask)
 	// is smaller than the bus frequency
 	if (_bus_clocks[bus_index] > _frequency) {
-		(void)up_i2cuninitialize(_dev);
+		(void)stm32_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
-		log("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
-			_bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+			   _bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
-	}
-
-	// set the bus frequency on the first access if it has
-	// not been set yet
-	if (_bus_clocks[bus_index] == 0) {
-		_bus_clocks[bus_index] = _frequency;
 	}
 
 	// set frequency for this instance once to the bus speed
@@ -142,13 +141,18 @@ I2C::init()
 	// This is necessary as automatically lowering the bus speed
 	// for maximum compatibility could induce timing issues on
 	// critical sensors the adopter might be unaware of.
-	I2C_SETFREQUENCY(_dev, _bus_clocks[bus_index]);
+
+	// set the bus frequency on the first access if it has
+	// not been set yet
+	if (_bus_clocks[bus_index] == 0) {
+		_bus_clocks[bus_index] = _frequency;
+	}
 
 	// call the probe function to check whether the device is present
 	ret = probe();
 
 	if (ret != OK) {
-		debug("probe failed");
+		DEVICE_DEBUG("probe failed");
 		goto out;
 	}
 
@@ -156,19 +160,21 @@ I2C::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		debug("cdev init failed");
+		DEVICE_DEBUG("cdev init failed");
 		goto out;
 	}
 
 	// tell the world where we are
-	log("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		_bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		   _bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
+
 	if ((ret != OK) && (_dev != nullptr)) {
-		up_i2cuninitialize(_dev);
+		stm32_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
+
 	return ret;
 }
 
@@ -188,11 +194,12 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	unsigned retry_count = 0;
 
 	do {
-		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		//	DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
 		msgs = 0;
 
 		if (send_len > 0) {
+			msgv[msgs].frequency = _bus_clocks[_bus - 1];
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = 0;
 			msgv[msgs].buffer = const_cast<uint8_t *>(send);
@@ -201,6 +208,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
+			msgv[msgs].frequency = _bus_clocks[_bus - 1];;
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;
@@ -208,18 +216,21 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 			msgs++;
 		}
 
-		if (msgs == 0)
+		if (msgs == 0) {
 			return -EINVAL;
+		}
 
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		/* success */
-		if (ret == OK)
+		if (ret == OK) {
 			break;
+		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
-			up_i2creset(_dev);
+		if ((retry_count >= 1) || (retry_count >= _retries)) {
+			I2C_RESET(_dev);
+		}
 
 	} while (retry_count++ < _retries);
 
@@ -233,21 +244,25 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 	int ret;
 	unsigned retry_count = 0;
 
-	/* force the device address into the message vector */
-	for (unsigned i = 0; i < msgs; i++)
+	/* force the device address and Frequency into the message vector */
+	for (unsigned i = 0; i < msgs; i++) {
+		msgv[msgs].frequency = _bus_clocks[_bus - 1];
 		msgv[i].addr = _address;
+	}
 
 
 	do {
 		ret = I2C_TRANSFER(_dev, msgv, msgs);
 
 		/* success */
-		if (ret == OK)
+		if (ret == OK) {
 			break;
+		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
-			up_i2creset(_dev);
+		if ((retry_count >= 1) || (retry_count >= _retries)) {
+			I2C_RESET(_dev);
+		}
 
 	} while (retry_count++ < _retries);
 

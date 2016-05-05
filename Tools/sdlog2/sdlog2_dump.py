@@ -48,6 +48,7 @@ class SDLog2Parser:
         "i": ("i", None),
         "I": ("I", None),
         "f": ("f", None),
+        "d": ("d", None),
         "n": ("4s", None),
         "N": ("16s", None),
         "Z": ("64s", None),

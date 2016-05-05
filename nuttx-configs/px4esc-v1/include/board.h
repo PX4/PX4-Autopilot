@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4esc-v1/include/board.h
+ * nuttx-configs/px4esc-v1/include/board.h
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -121,11 +121,11 @@
 
 #define STM32_RCC_DCKCFGR_PLLI2SDIVQ RCC_DCKCFGR_PLLI2SDIVQ(1)
 #define STM32_RCC_DCKCFGR_PLLSAIDIVQ RCC_DCKCFGR_PLLSAIDIVQ(1)
-#define STM32_RCC_DCKCFGR_SAI1SRC       RCC_DCKCFGR_SAI1SRC(RCC_SAI1CLKSRC_PLLSAI)
-#define STM32_RCC_DCKCFGR_SAI2SRC       RCC_DCKCFGR_SAI2SRC(RCC_SAI2CLKSRC_PLLSAI)
+#define STM32_RCC_DCKCFGR_SAI1SRC       RCC_DCKCFGR_SAI1SRC_PLLSAI
+#define STM32_RCC_DCKCFGR_SAI2SRC       RCC_DCKCFGR_SAI2SRC_PLLSAI
 #define STM32_RCC_DCKCFGR_TIMPRE        0
-#define STM32_RCC_DCKCFGR_I2S1SRC       RCC_DCKCFGR_I2S1SRC(RCC_SAI1CLKSRC_PLLR)
-#define STM32_RCC_DCKCFGR_I2S2SRC       RCC_DCKCFGR_I2S2SRC(RCC_SAI1CLKSRC_PLLR)
+#define STM32_RCC_DCKCFGR_I2S1SRC       RCC_DCKCFGR_SAI1SRC_PLL
+#define STM32_RCC_DCKCFGR_I2S2SRC       RCC_DCKCFGR_SAI2SRC_PLL
 
 
 
@@ -143,8 +143,8 @@
 #define STM32_RCC_DCKCFGR2_FMPI2C1SEL RCC_DCKCFGR2_FMPI2C1SEL_APB
 #define STM32_RCC_DCKCFGR2_CECSEL     RCC_DCKCFGR2_CECSEL_HSI
 #define STM32_RCC_DCKCFGR2_CK48MSEL   RCC_DCKCFGR2_CK48MSEL_PLLSAI
-#define STM32_RCC_DCKCFGR2_SDIOCSEL   RCC_DCKCFGR2_SDIOCSEL_48MHZ
-#define STM32_RCC_DCKCFGR2_SPDIFRXEL  RCC_DCKCFGR2_SPDIFRXEL_48MHZ
+#define STM32_RCC_DCKCFGR2_SDIOSEL    RCC_DCKCFGR2_SDIOSEL_48MHZ
+#define STM32_RCC_DCKCFGR2_SPDIFRXSEL RCC_DCKCFGR2_SPDIFRXSEL_PLL
 
 #define STM32_SYSCLK_FREQUENCY  180000000ul
 
@@ -271,11 +271,11 @@
 # define PROBE_3        GPIO_TEST4
 
 # define PROBE_INIT(mask) \
-        do { \
-                if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-                if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-                if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-        } while(0)
+	do { \
+		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+	} while(0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)

@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <nuttx/config.h>
 
 #include <cstdlib>
 #include <cstdint>
@@ -50,13 +50,6 @@
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
-#ifdef DEBUG_VCAN_DRIVER
-#define PX4_DEBUG(fmt,...) syslog(LOG_DEBUG, fmt"\n",__VA_ARGS__)
-#define PX4_VDEBUG(fmt,...)
-#else
-#define PX4_DEBUG(fmt,...)
-#define PX4_VDEBUG(fmt,...)
-#endif
 /*
  * General purpose wrapper around os's mutual exclusion
  * mechanism.
@@ -87,13 +80,11 @@ public:
 
 	static int init(pthread_mutex_t &thier_mutex_)
 	{
-		PX4_DEBUG("init(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
 		return pthread_mutex_init(&thier_mutex_, NULL);
 	}
 
 	static int deinit(pthread_mutex_t &thier_mutex_)
 	{
-		PX4_DEBUG("deinit(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
 		return pthread_mutex_destroy(&thier_mutex_);
 	}
 
@@ -121,6 +112,14 @@ public:
 		allocator_(arg_allocator, block_allocation_quota)
 	{
 		uavcan::IsDynamicallyAllocatable<Item>::check();
+	}
+
+	~Queue()
+	{
+		while (!isEmpty())
+		{
+			pop();
+		}
 	}
 
 	bool isEmpty() const { return list_.isEmpty(); }
@@ -201,8 +200,7 @@ class VirtualCanIface : public uavcan::ICanIface,
 	 * Simple inheritance or composition won't work here, because the 40 byte limit will be exceeded,
 	 * rendering this class unusable with Queue<>.
 	 */
-	struct RxItem: public uavcan::CanFrame
-	{
+	struct RxItem: public uavcan::CanFrame {
 		const uavcan::MonotonicTime ts_mono;
 		const uavcan::UtcTime ts_utc;
 		const uavcan::CanIOFlags flags;
@@ -300,9 +298,9 @@ public:
 			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
 								uavcan::CanTxQueue::Qos(e->qos), e->flags);
 
-                        prioritized_tx_queue_.remove(e);
+			prioritized_tx_queue_.remove(e);
 
-                        if (res <= 0) {
+			if (res <= 0) {
 				break;
 			}
 
@@ -339,11 +337,7 @@ public:
 /**
  * Objects of this class are owned by the sub-node thread.
  * This class does not use heap memory.
- * @tparam SharedMemoryPoolSize         Amount of memory, in bytes, that will be statically allocated for the
- *                                      memory pool that will be shared across all interfaces for RX/TX queues.
- *                                      Typically this value should be no less than 4K per interface.
  */
-template <unsigned SharedMemoryPoolSize>
 class VirtualCanDriver : public uavcan::ICanDriver,
 	public uavcan::IRxFrameListener,
 	public ITxQueueInjector,
@@ -358,13 +352,11 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		int init()
 		{
-			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
 			return sem_init(&sem, 0, 0);
 		}
 
 		int deinit()
 		{
-			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
 			return sem_destroy(&sem);
 		}
 
@@ -383,7 +375,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
-			static const unsigned NsPerSec = 1000000000;
+			static const int NsPerSec = 1000000000;
 
 			if (duration.isPositive()) {
 				auto abstime = ::timespec();
@@ -403,19 +395,17 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void signal()
 		{
-			PX4_VDEBUG("signal()=0x%8x)", &sem);
 			int count;
 			int rv = sem_getvalue(&sem, &count);
 
 			if (rv > 0 && count <= 0) {
-				sem_post(&sem);
+				px4_sem_post(&sem);
 			}
 		}
 	};
 
-	Event event_;               ///< Used to unblock the select() call when IO happens.
+	Event event_;                     ///< Used to unblock the select() call when IO happens.
 	pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
-	uavcan::PoolAllocator<SharedMemoryPoolSize, uavcan::MemPoolBlockSize> allocator_;   ///< Shared across all ifaces
 	uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
 	const unsigned num_ifaces_;
 	uavcan::ISystemClock &clock_;
@@ -431,7 +421,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	 * This and other methods of ICanDriver will be invoked by the sub-node thread.
 	 */
 	int16_t select(uavcan::CanSelectMasks &inout_masks,
-		       const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+		       const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 		       uavcan::MonotonicTime blocking_deadline) override
 	{
 		bool need_block = (inout_masks.write == 0);    // Write queue is infinite
@@ -489,7 +479,10 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	}
 
 public:
-	VirtualCanDriver(unsigned arg_num_ifaces, uavcan::ISystemClock &system_clock) :
+	VirtualCanDriver(unsigned arg_num_ifaces,
+		         uavcan::ISystemClock &system_clock,
+		         uavcan::IPoolAllocator& allocator,
+		         unsigned virtual_iface_block_allocation_quota) :
 		num_ifaces_(arg_num_ifaces),
 		clock_(system_clock)
 	{
@@ -498,15 +491,11 @@ public:
 
 		assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
 
-		const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
-		const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
-
-		UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
-			     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
+		const unsigned quota_per_queue = virtual_iface_block_allocation_quota;             // 2x overcommit
 
 		for (unsigned i = 0; i < num_ifaces_; i++) {
-			ifaces_[i].template construct<uavcan::IPoolAllocator &, uavcan::ISystemClock &,
-				pthread_mutex_t &, unsigned>(allocator_, clock_, driver_mutex_, quota_per_queue);
+			ifaces_[i].construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&, pthread_mutex_t&,
+					     unsigned>(allocator, clock_, driver_mutex_, quota_per_queue);
 		}
 	}
 

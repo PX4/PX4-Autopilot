@@ -46,9 +46,10 @@
 namespace ringbuffer __EXPORT
 {
 
-class RingBuffer {
+class RingBuffer
+{
 public:
-	RingBuffer(unsigned ring_size, size_t entry_size);
+	RingBuffer(unsigned num_items, size_t item_size);
 	virtual ~RingBuffer();
 
 	/**
@@ -171,8 +172,8 @@ private:
 	unsigned		_next(unsigned index);
 
 	/* we don't want this class to be copied */
-	RingBuffer(const RingBuffer&);
-	RingBuffer operator=(const RingBuffer&);
+	RingBuffer(const RingBuffer &);
+	RingBuffer operator=(const RingBuffer &);
 };
 
 } // namespace ringbuffer

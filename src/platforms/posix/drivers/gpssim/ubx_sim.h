@@ -39,9 +39,6 @@
 #ifndef UBX_SIM_H_
 #define UBX_SIM_H_
 
-
-
-
 class UBX_SIM
 {
 public:
@@ -51,9 +48,6 @@ public:
 	int			configure(unsigned &baudrate);
 
 private:
-
-	
-
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
 	struct satellite_info_s *_satellite_info;

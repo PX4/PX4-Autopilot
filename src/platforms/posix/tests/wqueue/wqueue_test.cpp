@@ -65,8 +65,11 @@ void WQueueTest::do_lp_work()
 {
 	static int iter = 0;
 	printf("done lp work\n");
-	if (iter > 5)
+
+	if (iter > 5) {
 		_lpwork_done = true;
+	}
+
 	++iter;
 
 	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
@@ -76,8 +79,11 @@ void WQueueTest::do_hp_work()
 {
 	static int iter = 0;
 	printf("done hp work\n");
-	if (iter > 5)
+
+	if (iter > 5) {
 		_hpwork_done = true;
+	}
+
 	++iter;
 
 	// requeue

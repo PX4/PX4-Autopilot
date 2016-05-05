@@ -83,15 +83,15 @@ __BEGIN_DECLS
  */
 
 #define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                        GPIO_PORTC | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTC | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_CAN1   GPIO_LED2
 
 #define GPIO_LED3       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                        GPIO_PORTC | GPIO_PIN4 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTC | GPIO_PIN4 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_CAN2   GPIO_LED3
 
 #define GPIO_LED4       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                        GPIO_PORTB | GPIO_PIN0 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTB | GPIO_PIN0 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_INFO   GPIO_LED4
 
 /* SPI ***************************************************************************

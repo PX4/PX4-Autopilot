@@ -46,6 +46,8 @@
 #error "Devices not supported in ROS"
 
 #elif defined (__PX4_NUTTX)
+__BEGIN_DECLS
+
 /*
  * Building for NuttX
  */
@@ -53,7 +55,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#include <nuttx/i2c.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/irq.h>
 #include <nuttx/wqueue.h>
 #include <chip.h>
@@ -64,7 +66,8 @@
 
 #define px4_i2c_msg_t i2c_msg_s
 
-typedef struct i2c_dev_s px4_i2c_dev_t;
+typedef struct i2c_master_s px4_i2c_dev_t;
+__END_DECLS
 
 #elif defined(__PX4_POSIX)
 #include <stdint.h>
@@ -75,23 +78,19 @@ typedef struct i2c_dev_s px4_i2c_dev_t;
 
 // NOTE - This is a copy of the NuttX i2c_msg_s structure
 typedef struct {
-  uint16_t  addr;                  /* Slave address */
-  uint16_t  flags;                 /* See I2C_M_* definitions */
-  uint8_t  *buffer;
-  int       length;
+	uint16_t  addr;                  /* Slave address */
+	uint16_t  flags;                 /* See I2C_M_* definitions */
+	uint8_t  *buffer;
+	int       length;
 } px4_i2c_msg_t;
 
 // NOTE - This is a copy of the NuttX i2c_ops_s structure
 typedef struct {
-  const struct px4_i2c_ops_t *ops; /* I2C vtable */
+	const struct px4_i2c_ops_t *ops; /* I2C vtable */
 } px4_i2c_dev_t;
 
-// FIXME - Empty defines for I2C ops
-// Original version commented out
-//#define I2C_SETFREQUENCY(d,f) ((d)->ops->setfrequency(d,f))
-#define I2C_SETFREQUENCY(d,f) 
 //#define SPI_SELECT(d,id,s) ((d)->ops->select(d,id,s))
-#define SPI_SELECT(d,id,s) 
+#define SPI_SELECT(d,id,s)
 
 // FIXME - Stub implementation
 // Original version commented out
@@ -101,8 +100,7 @@ inline int I2C_TRANSFER(px4_i2c_dev_t *dev, px4_i2c_msg_t *msg, int count) { ret
 
 #ifdef __PX4_QURT
 
-struct i2c_msg
-{
+struct i2c_msg {
 	uint16_t  addr;                  /* Slave address */
 	uint16_t  flags;                 /* See I2C_M_* definitions */
 	uint8_t  *buf;

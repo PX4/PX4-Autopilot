@@ -48,11 +48,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
-
 #include <systemlib/perf_counter.h>
+
+// Not using Eigen at the moment
+#define TESTS_EIGEN_DISABLE
 
 #include "tests.h"
 
@@ -95,7 +96,9 @@ const struct {
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"tone",		test_tone,	0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
+#ifdef __PX4_NUTTX
 	{"time",		test_time,	OPT_NOJIGTEST},
+#endif
 	{"perf",		test_perf,	OPT_NOJIGTEST},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -110,7 +113,9 @@ const struct {
 #ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
 #endif
+#ifndef TESTS_EIGEN_DISABLE
 	{"eigen",		test_eigen,	OPT_NOJIGTEST},
+#endif
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };

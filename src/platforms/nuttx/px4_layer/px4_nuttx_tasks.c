@@ -50,7 +50,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef CONFIG_ARCH_BOARD_SIM
+#define stm32_pwr_enablebkp(onoff)
+#else
 #include <stm32_pwr.h>
+#endif
 
 #include <systemlib/systemlib.h>
 
@@ -67,13 +71,14 @@ px4_systemreset(bool to_bootloader)
 		*(uint32_t *)0x40002850 = 0xb007b007;
 		stm32_pwr_enablebkp(false);
 	}
+
 	up_systemreset();
 
 	/* lock up here */
-	while(true);
+	while (true);
 }
 
-int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char * const argv[])
+int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
 	int pid;
 

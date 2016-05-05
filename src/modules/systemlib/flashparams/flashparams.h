@@ -60,7 +60,7 @@ __BEGIN_DECLS
 
 __EXPORT extern UT_array        *param_values;
 __EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
-__EXPORT const void * param_get_value_ptr_external(param_t param);
+__EXPORT const void *param_get_value_ptr_external(param_t param);
 
 /* The interface hooks to the Flash based storage */
 __EXPORT int flash_param_save(void);

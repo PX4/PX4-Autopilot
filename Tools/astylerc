@@ -1,0 +1,18 @@
+indent=force-tab=8
+style=linux
+indent-preprocessor
+indent-cases
+break-blocks=all
+pad-oper
+pad-header
+unpad-paren
+keep-one-line-blocks
+keep-one-line-statements
+align-pointer=name
+align-reference=name
+-n #--suffix=none
+ignore-exclude-errors-x
+lineend=linux
+exclude=EASTL
+add-brackets
+max-code-length=120

@@ -1,0 +1,4 @@
+/* Auto Magically Generated file */
+/* Do not edit! */
+#define PX4_GIT_VERSION_STR  "@git_desc@"
+#define PX4_GIT_VERSION_BINARY 0x@git_desc_short@

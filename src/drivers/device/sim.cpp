@@ -69,7 +69,7 @@ SIM::SIM(const char *name,
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
 	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;     
+	_device_id.devid_s.devtype = 0;
 }
 
 SIM::~SIM()
@@ -104,7 +104,7 @@ SIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 
 	if (recv_len > 0) {
 		PX4_DEBUG("SIM: receiving %d bytes", recv_len);
-		
+
 		// TODO - write data to recv;
 	}
 

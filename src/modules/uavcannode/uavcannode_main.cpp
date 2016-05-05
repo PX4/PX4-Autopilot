@@ -31,6 +31,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
@@ -433,7 +434,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			log("poll error %d", errno);
+			PX4_ERR("poll error %d", errno);
 			continue;
 
 		} else {
@@ -560,8 +561,8 @@ int uavcannode_start(int argc, char *argv[])
 	} else {
 
 		// Node ID
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+		(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
+		(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 	}
 
 	if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {

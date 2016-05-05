@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/zubaxgnss-v1/smallnsh/setenv.sh
+# nuttx-configs/zubaxgnss-v1/nsh/setenv.sh
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

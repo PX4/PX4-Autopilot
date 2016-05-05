@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/px4esc-v1//scripts/ld.script
+ * nuttx-configs/px4esc-v1/scripts/bootloaderld.script
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

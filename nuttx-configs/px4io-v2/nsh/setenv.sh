@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/stm3210e-eval/dfu/setenv.sh
+# nuttx-configs/px4io-v2/nsh/setenv.sh
 #
 #   Copyright (C) 2009 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

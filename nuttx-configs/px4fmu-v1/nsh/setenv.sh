@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/px4fmu-v1/usbnsh/setenv.sh
+# nuttx-configs/px4fmu-v1/nsh/setenv.sh
 #
 #   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

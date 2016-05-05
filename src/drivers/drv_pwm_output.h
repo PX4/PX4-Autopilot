@@ -61,15 +61,27 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
+#include <uORB/topics/output_pwm.h>
+#define pwm_output_values output_pwm_s
+
+#ifndef PWM_OUTPUT_MAX_CHANNELS
+#define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
+#endif
+
 /**
  * Maximum number of PWM output channels supported by the device.
  */
-#define PWM_OUTPUT_MAX_CHANNELS	16
+//#define PWM_OUTPUT_MAX_CHANNELS	16
 
 /**
  * Lowest minimum PWM in us
  */
-#define PWM_LOWEST_MIN 900
+#define PWM_LOWEST_MIN 90
+
+/**
+ * Default value for a shutdown motor
+ */
+#define PWM_MOTOR_OFF	900
 
 /**
  * Default minimum PWM in us
@@ -84,7 +96,7 @@ __BEGIN_DECLS
 /**
  * Highest maximum PWM in us
  */
-#define PWM_HIGHEST_MAX 2100
+#define PWM_HIGHEST_MAX 2150
 
 /**
  * Default maximum PWM in us
@@ -94,7 +106,7 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 1400
+#define PWM_LOWEST_MAX 200
 
 /**
  * Do not output a channel with this value
@@ -106,19 +118,6 @@ __BEGIN_DECLS
  * width in microseconds.
  */
 typedef uint16_t	servo_position_t;
-
-/**
- * Servo output status structure.
- *
- * May be published to output_pwm, or written to a PWM output
- * device.
- */
-struct pwm_output_values {
-	/** desired pulse widths for each of the supported channels */
-	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
-	unsigned			channel_count;
-};
-
 
 /**
  * RC config values for a channel
@@ -137,11 +136,6 @@ struct pwm_output_rc_config {
 };
 
 /*
- * ORB tag for PWM outputs.
- */
-ORB_DECLARE(output_pwm);
-
-/*
  * ioctl() definitions
  *
  * Note that ioctls and ORB updates should not be mixed, as the
@@ -156,7 +150,7 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_DISARM	_PX4_IOC(_PWM_SERVO_BASE, 1)
 
 /** get default servo update rate */
-#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 2)
 
 /** set alternate servo update rate */
 #define PWM_SERVO_SET_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 3)
@@ -247,24 +241,41 @@ ORB_DECLARE(output_pwm);
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
 #define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 30)
 
+/** set SBUS output frame rate in Hz */
+#define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 31)
+
+/** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
+#define PWM_SERVO_MODE_NONE			0
+#define PWM_SERVO_MODE_2PWM			1
+#define PWM_SERVO_MODE_2PWM2CAP			2
+#define PWM_SERVO_MODE_3PWM			3
+#define PWM_SERVO_MODE_3PWM1CAP			4
+#define PWM_SERVO_MODE_4PWM			5
+#define PWM_SERVO_MODE_6PWM			6
+#define PWM_SERVO_MODE_8PWM			7
+#define PWM_SERVO_MODE_4CAP			8
+#define PWM_SERVO_MODE_5CAP			9
+#define PWM_SERVO_MODE_6CAP		       10
+#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 32)
+
 /*
  *
  *
- * WARNING WARNING WARNING! DO NOT EXCEED 31 IN IOC INDICES HERE!
+ * WARNING WARNING WARNING! DO NOT EXCEED 47 IN IOC INDICES HERE!
  *
  *
  */
 
 /** set a single servo to a specific value */
-#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
+#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x30 + _servo)
 
 /** get a single specific servo value */
-#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x40 + _servo)
+#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x50 + _servo)
 
 /** get the _n'th rate group's channels; *(uint32_t *)arg returns a bitmap of channels
  *  whose update rates must be the same.
  */
-#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x60 + _n)
+#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
 /*
  * Low-level PWM output interface.

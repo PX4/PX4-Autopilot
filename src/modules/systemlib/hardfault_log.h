@@ -77,12 +77,12 @@
 #define BBSRAM_PATH "/fs/bbr"
 /* The sizes of the files to create (-1) use rest of BBSRAM memory */
 #define BSRAM_FILE_SIZES { \
-    BBSRAM_SIZE_FN0,   /* For Time stamp only */                  \
-    BBSRAM_SIZE_FN1,   /* For Current Flight Parameters Copy A */ \
-    BBSRAM_SIZE_FN2,   /* For Current Flight Parameters Copy B*/  \
-    BBSRAM_SIZE_FN3,   /* For the Panic Log use rest of space */  \
-    0                  /* End of table marker */                  \
-}
+		BBSRAM_SIZE_FN0,   /* For Time stamp only */                  \
+		BBSRAM_SIZE_FN1,   /* For Current Flight Parameters Copy A */ \
+		BBSRAM_SIZE_FN2,   /* For Current Flight Parameters Copy B*/  \
+		BBSRAM_SIZE_FN3,   /* For the Panic Log use rest of space */  \
+		0                  /* End of table marker */                  \
+	}
 
 /* For Assert keep this much of the file name*/
 #define MAX_FILE_PATH_LENGTH 40
@@ -127,239 +127,238 @@ EXTERN {
 #define EXTERN extern
 #endif
 
-/* Used for stack frame storage */
-typedef uint32_t stack_word_t;
+	/* Used for stack frame storage */
+	typedef uint32_t stack_word_t;
 
-/* Stack related data */
+	/* Stack related data */
 
-typedef struct {
-  uint32_t sp;
-  uint32_t top;
-  uint32_t size;
+	typedef struct {
+		uint32_t sp;
+		uint32_t top;
+		uint32_t size;
 
-} _stack_s;
+	} _stack_s;
 
-typedef struct {
-  _stack_s user;
+	typedef struct {
+		_stack_s user;
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
-  _stack_s interrupt;
+		_stack_s interrupt;
 #endif
 
-} stack_t;
+	} stack_t;
 
-/* Not Used for reference only */
+	/* Not Used for reference only */
 
-typedef struct
-{
-  uint32_t r0;
-  uint32_t r1;
-  uint32_t r2;
-  uint32_t r3;
-  uint32_t r4;
-  uint32_t r5;
-  uint32_t r6;
-  uint32_t r7;
-  uint32_t r8;
-  uint32_t r9;
-  uint32_t r10;
-  uint32_t r11;
-  uint32_t r12;
-  uint32_t sp;
-  uint32_t lr;
-  uint32_t pc;
-  uint32_t xpsr;
-  uint32_t d0;
-  uint32_t d1;
-  uint32_t d2;
-  uint32_t d3;
-  uint32_t d4;
-  uint32_t d5;
-  uint32_t d6;
-  uint32_t d7;
-  uint32_t d8;
-  uint32_t d9;
-  uint32_t d10;
-  uint32_t d11;
-  uint32_t d12;
-  uint32_t d13;
-  uint32_t d14;
-  uint32_t d15;
-  uint32_t fpscr;
-  uint32_t sp_main;
-  uint32_t sp_process;
-  uint32_t apsr;
-  uint32_t ipsr;
-  uint32_t epsr;
-  uint32_t primask;
-  uint32_t basepri;
-  uint32_t faultmask;
-  uint32_t control;
-  uint32_t s0;
-  uint32_t s1;
-  uint32_t s2;
-  uint32_t s3;
-  uint32_t s4;
-  uint32_t s5;
-  uint32_t s6;
-  uint32_t s7;
-  uint32_t s8;
-  uint32_t s9;
-  uint32_t s10;
-  uint32_t s11;
-  uint32_t s12;
-  uint32_t s13;
-  uint32_t s14;
-  uint32_t s15;
-  uint32_t s16;
-  uint32_t s17;
-  uint32_t s18;
-  uint32_t s19;
-  uint32_t s20;
-  uint32_t s21;
-  uint32_t s22;
-  uint32_t s23;
-  uint32_t s24;
-  uint32_t s25;
-  uint32_t s26;
-  uint32_t s27;
-  uint32_t s28;
-  uint32_t s29;
-  uint32_t s30;
-  uint32_t s31;
-} proc_regs_s;
+	typedef struct {
+		uint32_t r0;
+		uint32_t r1;
+		uint32_t r2;
+		uint32_t r3;
+		uint32_t r4;
+		uint32_t r5;
+		uint32_t r6;
+		uint32_t r7;
+		uint32_t r8;
+		uint32_t r9;
+		uint32_t r10;
+		uint32_t r11;
+		uint32_t r12;
+		uint32_t sp;
+		uint32_t lr;
+		uint32_t pc;
+		uint32_t xpsr;
+		uint32_t d0;
+		uint32_t d1;
+		uint32_t d2;
+		uint32_t d3;
+		uint32_t d4;
+		uint32_t d5;
+		uint32_t d6;
+		uint32_t d7;
+		uint32_t d8;
+		uint32_t d9;
+		uint32_t d10;
+		uint32_t d11;
+		uint32_t d12;
+		uint32_t d13;
+		uint32_t d14;
+		uint32_t d15;
+		uint32_t fpscr;
+		uint32_t sp_main;
+		uint32_t sp_process;
+		uint32_t apsr;
+		uint32_t ipsr;
+		uint32_t epsr;
+		uint32_t primask;
+		uint32_t basepri;
+		uint32_t faultmask;
+		uint32_t control;
+		uint32_t s0;
+		uint32_t s1;
+		uint32_t s2;
+		uint32_t s3;
+		uint32_t s4;
+		uint32_t s5;
+		uint32_t s6;
+		uint32_t s7;
+		uint32_t s8;
+		uint32_t s9;
+		uint32_t s10;
+		uint32_t s11;
+		uint32_t s12;
+		uint32_t s13;
+		uint32_t s14;
+		uint32_t s15;
+		uint32_t s16;
+		uint32_t s17;
+		uint32_t s18;
+		uint32_t s19;
+		uint32_t s20;
+		uint32_t s21;
+		uint32_t s22;
+		uint32_t s23;
+		uint32_t s24;
+		uint32_t s25;
+		uint32_t s26;
+		uint32_t s27;
+		uint32_t s28;
+		uint32_t s29;
+		uint32_t s30;
+		uint32_t s31;
+	} proc_regs_s;
 
 
-/* Flags to identify what is in the dump */
-typedef enum {
-  eRegsPresent          = 0x01,
-  eUserStackPresent     = 0x02,
-  eIntStackPresent      = 0x04,
-  eInvalidUserStackPtr  = 0x20,
-  eInvalidIntStackPrt   = 0x40,
-} fault_flags_t;
+	/* Flags to identify what is in the dump */
+	typedef enum {
+		eRegsPresent          = 0x01,
+		eUserStackPresent     = 0x02,
+		eIntStackPresent      = 0x04,
+		eInvalidUserStackPtr  = 0x20,
+		eInvalidIntStackPrt   = 0x40,
+	} fault_flags_t;
 
-typedef struct {
-  fault_flags_t         flags;                  /* What is in the dump */
-  uintptr_t             current_regs;           /* Used to validate the dump */
-  int                   lineno;                 /* __LINE__ to up_assert */
-  int                   pid;                    /* Process ID */
-  uint32_t              regs[XCPTCONTEXT_REGS]; /* Interrupt register save
+	typedef struct {
+		fault_flags_t         flags;                  /* What is in the dump */
+		uintptr_t             current_regs;           /* Used to validate the dump */
+		int                   lineno;                 /* __LINE__ to up_assert */
+		int                   pid;                    /* Process ID */
+		uint32_t              regs[XCPTCONTEXT_REGS]; /* Interrupt register save
                                                  * area */
-  stack_t               stacks;                 /* Stack info */
+		stack_t               stacks;                 /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
-  char                  name[CONFIG_TASK_NAME_SIZE+1]; /* Task name (with NULL
+		char                  name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
                                                         * terminator) */
 #endif
-  char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
+		char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
                                                       * __FILE__ to up_assert */
-} info_s;
+	} info_s;
 
-typedef struct {
-  info_s    info;                       /* The info */
+	typedef struct {
+		info_s    info;                       /* The info */
 #if CONFIG_ARCH_INTERRUPTSTACK > 3      /* The amount of stack data is compile time
                                          * sized backed on what is left after the
                                          * other BBSRAM files are defined
                                          * The order is such that only the
                                          * ustack should be truncated
                                          */
-  stack_word_t istack[CONFIG_USTACK_SIZE];
+		stack_word_t istack[CONFIG_USTACK_SIZE];
 #endif
-  stack_word_t ustack[CONFIG_ISTACK_SIZE];
-} fullcontext_s;
+		stack_word_t ustack[CONFIG_ISTACK_SIZE];
+	} fullcontext_s;
 
-/****************************************************************************
- * Name: hardfault_check_status
- *
- * Description:
- *      Check the status of the BBSRAM hard fault file which can be in
- *      one of two states Armed, Valid or Broken.
- *
- *      Armed - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
- *
- *      Valid - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
- *
- * Inputs:
- *   - caller:  A label to display in syslog output
- *
- *  Returned Value:
- *   -ENOENT    Armed - The file in the armed state
- *    OK        Valid - The file contains data from a fault that has not
- *                      been committed to disk (see write_hardfault).
- *   -  Any < 0 Broken - Should not happen
- *
- ****************************************************************************/
-int hardfault_check_status(char *caller);
+	/****************************************************************************
+	 * Name: hardfault_check_status
+	 *
+	 * Description:
+	 *      Check the status of the BBSRAM hard fault file which can be in
+	 *      one of two states Armed, Valid or Broken.
+	 *
+	 *      Armed - The file in the armed state is not accessible in the fs
+	 *              the act of unlinking it is what arms it.
+	 *
+	 *      Valid - The file in the armed state is not accessible in the fs
+	 *              the act of unlinking it is what arms it.
+	 *
+	 * Inputs:
+	 *   - caller:  A label to display in syslog output
+	 *
+	 *  Returned Value:
+	 *   -ENOENT    Armed - The file in the armed state
+	 *    OK        Valid - The file contains data from a fault that has not
+	 *                      been committed to disk (see write_hardfault).
+	 *   -  Any < 0 Broken - Should not happen
+	 *
+	 ****************************************************************************/
+	int hardfault_check_status(char *caller);
 
-/****************************************************************************
- * Name: hardfault_write
- *
- * Description:
- *      Will parse and write a human readable output of the data
- *      in the BBSRAM file. Once
- *
- *
- * Inputs:
- *   - caller:  A label to display in syslog output
- *   - fd:      An FD to write the data to
- *   - format:  Select which format to use.
- *
- *              HARDFAULT_DISPLAY_FORMAT  On the console the details are
- *                                        at the bottom
- *              HARDFAULT_FILE_FORMAT     In a file details are at the top
- *                                        of the log file
- *
- *    - rearm: If true will move the file to the Armed state, if
- *             false the file is not armed and can be read again
- *
- *  Returned Value:
- *
- *    OK  or errno
- *
- *
- ****************************************************************************/
-int hardfault_write(char *caller, int fd, int format, bool rearm);
+	/****************************************************************************
+	 * Name: hardfault_write
+	 *
+	 * Description:
+	 *      Will parse and write a human readable output of the data
+	 *      in the BBSRAM file. Once
+	 *
+	 *
+	 * Inputs:
+	 *   - caller:  A label to display in syslog output
+	 *   - fd:      An FD to write the data to
+	 *   - format:  Select which format to use.
+	 *
+	 *              HARDFAULT_DISPLAY_FORMAT  On the console the details are
+	 *                                        at the bottom
+	 *              HARDFAULT_FILE_FORMAT     In a file details are at the top
+	 *                                        of the log file
+	 *
+	 *    - rearm: If true will move the file to the Armed state, if
+	 *             false the file is not armed and can be read again
+	 *
+	 *  Returned Value:
+	 *
+	 *    OK  or errno
+	 *
+	 *
+	 ****************************************************************************/
+	int hardfault_write(char *caller, int fd, int format, bool rearm);
 
-/****************************************************************************
- * Name: hardfault_rearm
- *
- * Description:
- *      Will move the file to the Armed state
- *
- *
- * Inputs:
- *   - caller:  A label to display in syslog output
- *
- *  Returned Value:
- *
- *    OK  or errno
- *
- *
- ****************************************************************************/
-int hardfault_rearm(char *caller);
+	/****************************************************************************
+	 * Name: hardfault_rearm
+	 *
+	 * Description:
+	 *      Will move the file to the Armed state
+	 *
+	 *
+	 * Inputs:
+	 *   - caller:  A label to display in syslog output
+	 *
+	 *  Returned Value:
+	 *
+	 *    OK  or errno
+	 *
+	 *
+	 ****************************************************************************/
+	int hardfault_rearm(char *caller);
 
-/****************************************************************************
- * Name: hardfault_increment_reboot
- *
- * Description:
- *      Will increment the reboot counter. The reboot counter will help
- *      detect reboot loops.
- *
- *
- * Inputs:
- *   - caller:  A label to display in syslog output
- *   - reset :  when set will reset the reboot counter to 0.
- *
- *  Returned Value:
- *
- *    The current value of the reboot counter (post increment).
- *
- *
- ****************************************************************************/
-int hardfault_increment_reboot(char *caller, bool reset);
+	/****************************************************************************
+	 * Name: hardfault_increment_reboot
+	 *
+	 * Description:
+	 *      Will increment the reboot counter. The reboot counter will help
+	 *      detect reboot loops.
+	 *
+	 *
+	 * Inputs:
+	 *   - caller:  A label to display in syslog output
+	 *   - reset :  when set will reset the reboot counter to 0.
+	 *
+	 *  Returned Value:
+	 *
+	 *    The current value of the reboot counter (post increment).
+	 *
+	 *
+	 ****************************************************************************/
+	int hardfault_increment_reboot(char *caller, bool reset);
 
 #if defined(__cplusplus)
-extern "C"
+	extern "C"
 }
 #endif

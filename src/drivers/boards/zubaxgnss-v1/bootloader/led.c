@@ -52,40 +52,44 @@ static int period;
 
 static void led_process(bl_timer_id id, void *context)
 {
-        static int dc = 0;
-        static bool toggle = true;
-        dc  += LED_TICK;
-        if (dc >= period) {
-            dc = 0;
-            toggle ^= true;
-        }
+	static int dc = 0;
+	static bool toggle = true;
+	dc  += LED_TICK;
 
-        stm32_gpiowrite(GPIO_LED_INFO, led_a ? toggle : false);
-        stm32_gpiowrite(GPIO_LED_CAN1, led_b ? toggle : false);
-        stm32_gpiowrite(GPIO_LED_CAN2, led_c ? toggle : false);
+	if (dc >= period) {
+		dc = 0;
+		toggle ^= true;
+	}
+
+	stm32_gpiowrite(GPIO_LED_INFO, led_a ? toggle : false);
+	stm32_gpiowrite(GPIO_LED_CAN1, led_b ? toggle : false);
+	stm32_gpiowrite(GPIO_LED_CAN2, led_c ? toggle : false);
 
 }
 
 
 void set_leds(bool a, bool b, bool c, int freqs)
 {
-	static bl_timer_id  tid = (bl_timer_id)-1;
+	static bl_timer_id  tid = (bl_timer_id) - 1;
 
-	if ( tid == (bl_timer_id) -1) {
+	if (tid == (bl_timer_id) - 1) {
 
-	    bl_timer_cb_t p = null_cb;
-	    p.cb = led_process;
+		bl_timer_cb_t p = null_cb;
+		p.cb = led_process;
 
-	    tid = timer_allocate(modeRepeating | modeStarted, LED_TICK, &p);
+		tid = timer_allocate(modeRepeating | modeStarted, LED_TICK, &p);
 	}
+
 	led_a = a;
 	led_b = b;
 	led_c = c;
+
 	if (freqs == 0) {
-	    timer_stop(tid);
+		timer_stop(tid);
+
 	} else {
-	    period = 1000 / freqs;
-	    timer_restart(tid, LED_TICK);
+		period = 1000 / freqs;
+		timer_restart(tid, LED_TICK);
 	}
 
 }

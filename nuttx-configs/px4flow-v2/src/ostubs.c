@@ -132,7 +132,7 @@ inline static void irq_stack_collor(void *pv, unsigned int nwords)
 void os_start(void)
 {
 
-  /* Collor the irq stack */
+  /* Color the irq stack */
 #ifdef CONFIG_STACK_COLORATION
 
   irq_stack_collor((void *)&g_intstackalloc, CONFIG_ARCH_INTERRUPTSTACK/sizeof(uint32_t));

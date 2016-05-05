@@ -42,10 +42,15 @@
 #define __FIXED_WING_LAND_DETECTOR_H__
 
 #include "LandDetector.h"
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/airspeed.h>
 #include <systemlib/param/param.h>
+
+namespace landdetection
+{
 
 class FixedwingLandDetector : public LandDetector
 {
@@ -56,7 +61,7 @@ protected:
 	/**
 	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
 	**/
-	bool update() override;
+	LandDetectionResult update() override;
 
 	/**
 	* @brief Initializes the land detection algorithm
@@ -67,6 +72,16 @@ protected:
 	* @brief  polls all subscriptions and pulls any data that has changed
 	**/
 	void updateSubscriptions();
+
+	/**
+	* @brief get UAV landed state
+	**/
+	bool get_landed_state();
+
+	/**
+	* @brief returns true if UAV is in free-fall state
+	**/
+	bool get_freefall_state();
 
 private:
 	/**
@@ -81,25 +96,32 @@ private:
 		param_t maxVelocity;
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
+		param_t maxIntVelocity;
 	}		_paramHandle;
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
+		float maxIntVelocity;
 	} _params;
 
 private:
-	int                                     _vehicleLocalPositionSub;   /**< notification of local position */
-	struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
-	int                                     _airspeedSub;
-	struct airspeed_s                       _airspeed;
-	int 									_parameterSub;
+	int					_controlStateSub;	/**< notification of local position */
+	int					_armingSub;
+	int					_airspeedSub;
+	struct control_state_s			_controlState;		/**< the result from local position subscription */
+	struct actuator_armed_s			_arming;
+	struct airspeed_s			_airspeed;
+	int 					_parameterSub;
 
 	float _velocity_xy_filtered;
 	float _velocity_z_filtered;
 	float _airspeed_filtered;
+	float _accel_horz_lp;
 	uint64_t _landDetectTrigger;
 };
+
+}
 
 #endif //__FIXED_WING_LAND_DETECTOR_H__

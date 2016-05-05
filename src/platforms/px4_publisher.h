@@ -86,7 +86,8 @@ public:
 	 */
 	PublisherROS(ros::NodeHandle *rnh) :
 		Publisher<T>(),
-		_ros_pub(rnh->advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault))
+		_ros_pub(rnh->advertise < typename std::remove_reference < decltype(((T *)nullptr)->data()) >::type & > (T::handle(),
+				kQueueSizeDefault))
 	{}
 
 	~PublisherROS() {};
@@ -136,7 +137,8 @@ public:
 		_uorb_pub(new uORB::PublicationBase(T::handle()))
 	{}
 
-	~PublisherUORB() {
+	~PublisherUORB()
+	{
 		delete _uorb_pub;
 	};
 
@@ -145,7 +147,7 @@ public:
 	 */
 	int publish(const T &msg)
 	{
-		_uorb_pub->update((void *)&(msg.data()));
+		_uorb_pub->update((void *) & (msg.data()));
 		return 0;
 	}
 
@@ -154,7 +156,7 @@ public:
 	 */
 	void update() {} ;
 private:
-	uORB::PublicationBase * _uorb_pub;	/**< Handle to the publisher */
+	uORB::PublicationBase *_uorb_pub;	/**< Handle to the publisher */
 
 };
 #endif

@@ -98,20 +98,25 @@ Mixer::scale(const mixer_scaler_s &scaler, float input)
 int
 Mixer::scale_check(struct mixer_scaler_s &scaler)
 {
-	if (scaler.offset > 1.001f)
+	if (scaler.offset > 1.001f) {
 		return 1;
+	}
 
-	if (scaler.offset < -1.001f)
+	if (scaler.offset < -1.001f) {
 		return 2;
+	}
 
-	if (scaler.min_output > scaler.max_output)
+	if (scaler.min_output > scaler.max_output) {
 		return 3;
+	}
 
-	if (scaler.min_output < -1.001f)
+	if (scaler.min_output < -1.001f) {
 		return 4;
+	}
 
-	if (scaler.max_output > 1.001f)
+	if (scaler.max_output > 1.001f) {
 		return 5;
+	}
 
 	return 0;
 }
@@ -120,11 +125,14 @@ const char *
 Mixer::findtag(const char *buf, unsigned &buflen, char tag)
 {
 	while (buflen >= 2) {
-		if ((buf[0] == tag) && (buf[1] == ':'))
+		if ((buf[0] == tag) && (buf[1] == ':')) {
 			return buf;
+		}
+
 		buf++;
 		buflen--;
 	}
+
 	return nullptr;
 }
 
@@ -174,13 +182,15 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 
 	/* enforce that the mixer ends with space or a new line */
 	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0')
+		if (buf[i] == '\0') {
 			continue;
+		}
 
 		/* require a space or newline at the end of the buffer, fail on printable chars */
 		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
 			/* found a line ending or space, so no split symbols / numbers. good. */
 			break;
+
 		} else {
 			return nm;
 		}

@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/px4fmu-v1/scripts/ld.script
+ * configs/px4-stm32f4discovery/scripts/ld.script
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -43,7 +43,8 @@
 
 class VCDevNode;
 
-class VCDevExample {
+class VCDevExample
+{
 public:
 	VCDevExample() : _node(0) {};
 
@@ -54,5 +55,7 @@ public:
 	static px4::AppState appState; /* track requests to terminate app */
 
 private:
+	int do_poll(int fd, int timeout, int iterations, int delayms_after_poll);
+
 	VCDevNode *_node;
 };

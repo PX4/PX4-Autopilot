@@ -39,17 +39,6 @@
 #include <systemlib/param/param.h>
 
 /**
- * Enable UAVCAN.
- *
- * Enables support for UAVCAN-interfaced actuators and sensors.
- *
- * @min 0
- * @max 1
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
-
-/**
  * UAVCAN Node ID.
  *
  * Read the specs at http://uavcan.org to learn more about Node ID.
@@ -58,7 +47,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
  * @max 125
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 120);
+PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 
 /**
  * UAVCAN CAN bus bitrate.
@@ -67,7 +56,7 @@ PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 120);
  * @max 1000000
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
+PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 
 
 

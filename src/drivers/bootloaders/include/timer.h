@@ -376,7 +376,7 @@ static inline time_hrt_cycles_t timer_hrt_read(void)
 
 static inline void timer_hrt_clear_wrap(void)
 {
-        (void)timer_hrt_read();
+	(void)timer_hrt_read();
 }
 /****************************************************************************
  * Name: timer_hrt_wrap
@@ -395,8 +395,8 @@ static inline void timer_hrt_clear_wrap(void)
 
 static inline bool timer_hrt_wrap(void)
 {
-        uint32_t rv = getreg32(NVIC_SYSTICK_CTRL);
-        return ((rv  & NVIC_SYSTICK_CTRL_COUNTFLAG) ? true : false);
+	uint32_t rv = getreg32(NVIC_SYSTICK_CTRL);
+	return ((rv  & NVIC_SYSTICK_CTRL_COUNTFLAG) ? true : false);
 }
 
 /****************************************************************************

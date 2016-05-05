@@ -716,7 +716,7 @@ static sector_descriptor_t *check_free_space_in_sector(flash_entry_header_t
  ****************************************************************************/
 
 int parameter_flashfs_read(flash_file_token_t token, uint8_t **buffer, size_t
-			 *buf_size)
+			   *buf_size)
 {
 	int rv = -ENXIO;
 

@@ -1,0 +1,88 @@
+#!nsh
+#
+# @name 3DR Solo
+#
+# @type Quadrotor x
+#
+# @maintainer Andreas Antener <andreas@uaventure.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+    # tuning
+    param set MC_PITCHRATE_P    0.11
+    param set MC_ROLLRATE_P     0.11
+    param set MPC_MANTHR_MIN    0.08
+    param set MPC_XY_VEL_MAX    3.0
+    param set MPC_Z_VEL_MAX     2.0
+
+    # INAV: higher GPS weights for better altitude control
+    param set INAV_W_Z_BARO     0.3
+    param set INAV_W_Z_GPS_P    0.8
+    param set INAV_W_Z_GPS_V    0.8
+
+    # takeoff, land and RTL settings
+    param set MIS_TAKEOFF_ALT   4.0
+    param set COM_DISARM_LAND   1
+    param set RTL_LAND_DELAY    1
+    param set RTL_DESCEND_ALT   5.0
+    param set RTL_RETURN_ALT    15.0
+    param set MPC_TILTMAX_LND   8.0
+    param set MPC_LAND_SPEED    0.4
+    param set MPC_HOLD_MAX_Z    1.5
+    param set MPC_TKO_JMPSPD    2.0
+    param set MPC_TKO_SPEED     1.5
+
+    # setup
+    # main board rotation: pitch 180
+    param set SENS_BOARD_ROT    12
+    # solo external mag rotation
+    param set CAL_MAG0_ROT      30
+    # no safety switch
+    param set CBRK_IO_SAFETY    22027
+    # battery voltage not available yet
+    param set CBRK_SUPPLY_CHK   894281
+
+    # RC configuration
+    param set RC_MAP_MODE_SW    5
+    param set RC_MAP_PITCH      2
+    param set RC_MAP_ROLL       1
+    param set RC_MAP_THROTTLE   3
+    param set RC_MAP_YAW        4
+
+    param set RC1_DZ            10
+    param set RC1_MAX           1988
+    param set RC1_MIN           1003
+    param set RC1_REV           1
+    param set RC1_TRIM          1499
+    param set RC2_DZ            10
+    param set RC2_MAX           1987
+    param set RC2_MIN           1023
+    param set RC2_REV           -1
+    param set RC2_TRIM          1499
+    param set RC3_DZ            10
+    param set RC3_MAX           1877
+    param set RC3_MIN           1023
+    param set RC3_REV           1
+    param set RC3_TRIM          1023
+    param set RC4_DZ            10
+    param set RC4_MAX           1998
+    param set RC4_MIN           1012
+    param set RC4_REV           1
+    param set RC4_TRIM          1500
+    param set RC5_DZ            10
+    param set RC5_MAX           2000
+    param set RC5_MIN           1000
+    param set RC5_REV           1
+    param set RC5_TRIM          1500
+fi
+
+set MIXER solo
+
+set PWM_OUT 1234
+set MIXER_AUX none
+
+# enable high-speed link on telem 1
+set MAVLINK_F "-d /dev/ttyS1 -b 921600 -r 80000 -m onboard -x"

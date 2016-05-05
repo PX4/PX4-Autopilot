@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/px4esc-v1/nsh/setenv.sh
+# nuttx-configs/px4esc-v1/nsh/setenv.sh
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

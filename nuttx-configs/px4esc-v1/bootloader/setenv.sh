@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/olimexino-stm32/tiny/setenv.sh
+# nuttx-configs/px4esc-v1/setenv.sh
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

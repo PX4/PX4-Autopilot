@@ -37,45 +37,46 @@
 
 int uORB::Utils::node_mkpath
 (
-        char *buf,
-        Flavor f,
-        const struct orb_metadata *meta,
-        int *instance
+	char *buf,
+	Flavor f,
+	const struct orb_metadata *meta,
+	int *instance
 )
 {
-  unsigned len;
+	unsigned len;
 
-  unsigned index = 0;
+	unsigned index = 0;
 
-  if (instance != nullptr) {
-    index = *instance;
-  }
+	if (instance != nullptr) {
+		index = *instance;
+	}
 
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d",
-      (f == PUBSUB) ? "obj" : "param",
-      meta->o_name, index);
+	len = snprintf(buf, orb_maxpath, "/%s/%s%d",
+		       (f == PUBSUB) ? "obj" : "param",
+		       meta->o_name, index);
 
-  if (len >= orb_maxpath) {
-    return -ENAMETOOLONG;
-  }
+	if (len >= orb_maxpath) {
+		return -ENAMETOOLONG;
+	}
 
-  return OK;
+	return OK;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int uORB::Utils::node_mkpath(char *buf, Flavor f,
-                               const char *orbMsgName )
+			     const char *orbMsgName)
 {
-  unsigned len;
+	unsigned len;
 
-  unsigned index = 0;
+	unsigned index = 0;
 
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
-                 orbMsgName, index );
+	len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
+		       orbMsgName, index);
 
-  if (len >= orb_maxpath)
-    return -ENAMETOOLONG;
+	if (len >= orb_maxpath) {
+		return -ENAMETOOLONG;
+	}
 
-  return OK;
+	return OK;
 }

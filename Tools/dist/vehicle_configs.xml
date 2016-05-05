@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<vehicle_configs>
+	<vehicle class="multirotor" rotors="4" geometry="x" propeller_diameter="8" weight="1.0" id="4010">
+		<title>Standard 8" Prop Quadrotor (x)</title>
+		<short_desc>Standard quadrotor configuration in x configuration for 8-" propellers</short_desc>
+		<mixer>/etc/mixers/quad_x.main.mix</mixer>
+	</vehicle>
+	<vehicle class="multirotor" rotors="4" geometry="+" propeller_diameter="8" weight="1.0" id="5001">
+		<title>Standard 8" Prop Quadrotor (+)</title>
+		<short_desc>Standard quadrotor configuration in + configuration for 8-" propellers</short_desc>
+		<mixer>/etc/mixers/quad_+.main.mix</mixer>
+	</vehicle>
+	<vehicle class="multirotor" rotors="4" geometry="x" propeller_diameter="10" weight="1.5" id="4011">
+		<title>Standard 8" Prop Quadrotor (x)</title>
+		<short_desc>Standard quadrotor configuration in x configuration for 8-" propellers</short_desc>
+		<mixer>/etc/mixers/quad_x.main.mix</mixer>
+	</vehicle>
+	<vehicle class="fixed_wing" wingspan="0.85" elevons="yes" ailerons="no" rudder="no" weight="1.5" id="3033">
+		<title>Zeta Science Wing Wing Z-84</title>
+		<short_desc>Configuration for a small flying wing.</short_desc>
+		<mixer>/etc/mixers/wingwing.main.mix</mixer>
+	</vehicle>
+</vehicle_configs>

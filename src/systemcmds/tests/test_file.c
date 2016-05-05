@@ -97,7 +97,7 @@ test_file(int argc, char *argv[])
 	/* check if microSD card is mounted */
 	struct stat buffer;
 
-	if (stat("/fs/microsd/", &buffer)) {
+	if (stat(PX4_ROOTFSDIR "/fs/microsd/", &buffer)) {
 		warnx("no microSD card mounted, aborting file test");
 		return 1;
 	}
@@ -125,7 +125,7 @@ test_file(int argc, char *argv[])
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 			hrt_abstime start, end;
 
-			int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			int fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			warnx("testing unaligned writes - please wait..");
 
@@ -154,10 +154,10 @@ test_file(int argc, char *argv[])
 
 			end = hrt_absolute_time();
 
-			warnx("write took %llu us", (end - start));
+			warnx("write took %" PRIu64 " us", (end - start));
 
 			close(fd);
-			fd = open("/fs/microsd/testfile", O_RDONLY);
+			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			/* read back data for validation */
 			for (unsigned i = 0; i < iterations; i++) {
@@ -195,8 +195,8 @@ test_file(int argc, char *argv[])
 			 */
 
 			close(fd);
-			int ret = unlink("/fs/microsd/testfile");
-			fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			int ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
+			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
@@ -219,7 +219,7 @@ test_file(int argc, char *argv[])
 			warnx("reading data aligned..");
 
 			close(fd);
-			fd = open("/fs/microsd/testfile", O_RDONLY);
+			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			bool align_read_ok = true;
 
@@ -256,7 +256,7 @@ test_file(int argc, char *argv[])
 			warnx("reading data unaligned..");
 
 			close(fd);
-			fd = open("/fs/microsd/testfile", O_RDONLY);
+			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			bool unalign_read_ok = true;
 			int unalign_read_err_count = 0;
@@ -297,7 +297,7 @@ test_file(int argc, char *argv[])
 
 			}
 
-			ret = unlink("/fs/microsd/testfile");
+			ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
 			close(fd);
 
 			if (ret) {
@@ -310,7 +310,7 @@ test_file(int argc, char *argv[])
 	/* list directory */
 	DIR		*d;
 	struct dirent	*dir;
-	d = opendir("/fs/microsd");
+	d = opendir(PX4_ROOTFSDIR "/fs/microsd");
 
 	if (d) {
 

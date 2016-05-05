@@ -45,12 +45,9 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
-#ifdef CONFIG_ARCH_ARM
-#include "../CMSIS/Include/arm_math.h"
-#else
 #include <platforms/ros/eigen_math.h>
-#endif
 
 #include <platforms/px4_defines.h>
 
@@ -72,11 +69,7 @@ public:
 	/**
 	 * struct for using arm_math functions, represents column vector
 	 */
-	#ifdef CONFIG_ARCH_ARM
-	arm_matrix_instance_f32 arm_col;
-	#else
 	eigen_matrix_instance arm_col;
-	#endif
 
 
 	/**
@@ -353,7 +346,7 @@ public:
 		printf("[ ");
 
 		for (unsigned int i = 0; i < N; i++)
-			printf("%.3f\t", data[i]);
+			printf("%.3f\t", (double)data[i]);
 
 		printf("]\n");
 	}

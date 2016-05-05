@@ -107,6 +107,15 @@ const bl_timer_cb_t null_cb = { 0, 0 };
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/* We use the linker --wrap ability to wrap the NuttX stm32 call out to
+ * the sceduler's sched_process_timer and service it here. Thus replacing
+ * the NuttX scheduler with are timer driven scheduling.
+ */
+void __wrap_sched_process_timer(void);
 
 /****************************************************************************
  * Public Functions
@@ -151,7 +160,7 @@ time_ms_t timer_tic(void)
  ****************************************************************************/
 
 __EXPORT
-void sched_process_timer(void)
+void __wrap_sched_process_timer(void)
 {
 	PROBE(1, true);
 	PROBE(1, false);
@@ -275,7 +284,7 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
 			   bl_timer_cb_t *fc)
 {
 	bl_timer_id t;
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 
 	for (t = arraySize(timers) - 1; (int8_t)t >= 0; t--) {
 
@@ -289,7 +298,7 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
 		}
 	}
 
-	irqrestore(s);
+	leave_critical_section(s);
 	return t;
 }
 
@@ -313,9 +322,9 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
 void timer_free(bl_timer_id id)
 {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers));
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 	memset(&timers[id], 0, sizeof(timers[id]));
-	irqrestore(s);
+	leave_critical_section(s);
 }
 
 /****************************************************************************
@@ -336,10 +345,10 @@ void timer_free(bl_timer_id id)
 void timer_start(bl_timer_id id)
 {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload;
 	timers[id].ctl |= running;
-	irqrestore(s);
+	leave_critical_section(s);
 
 }
 
@@ -360,9 +369,9 @@ void timer_start(bl_timer_id id)
 void timer_stop(bl_timer_id id)
 {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 	timers[id].ctl &= ~running;
-	irqrestore(s);
+	leave_critical_section(s);
 
 }
 
@@ -384,9 +393,9 @@ void timer_stop(bl_timer_id id)
 int timer_expired(bl_timer_id id)
 {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 	int rv = ((timers[id].ctl & running) && timers[id].count == 0);
-	irqrestore(s);
+	leave_critical_section(s);
 	return rv;
 }
 
@@ -410,10 +419,10 @@ int timer_expired(bl_timer_id id)
 void timer_restart(bl_timer_id id, time_ms_t ms)
 {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
-	irqstate_t s = irqsave();
+	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload = ms;
 	timers[id].ctl |= running;
-	irqrestore(s);
+	leave_critical_section(s);
 }
 
 /****************************************************************************

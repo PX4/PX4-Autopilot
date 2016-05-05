@@ -64,9 +64,9 @@ extern void led_toggle(int led);
 __END_DECLS
 
 static uint32_t g_ledmap[] = {
-    GPIO_LED_RED,    // Indexed by BOARD_LED_RED
-    GPIO_LED_GREEN,  // Indexed by BOARD_LED_GREEN
-    GPIO_LED_BLUE,    // Indexed by BOARD_LED_BLUE
+	GPIO_LED_RED,    // Indexed by BOARD_LED_RED
+	GPIO_LED_GREEN,  // Indexed by BOARD_LED_GREEN
+	GPIO_LED_BLUE,    // Indexed by BOARD_LED_BLUE
 };
 
 __EXPORT void led_init(void)
@@ -121,34 +121,36 @@ void board_autoled_on(int led)
 	default:
 	case LED_STARTED:
 	case LED_HEAPALLOCATE:
-          phy_set_led(BOARD_LED_BLUE, true);
-                break;
+		phy_set_led(BOARD_LED_BLUE, true);
+		break;
+
 	case LED_IRQSENABLED:
-          phy_set_led(BOARD_LED_GREEN, true);
+		phy_set_led(BOARD_LED_GREEN, true);
 		break;
 
 	case LED_STACKCREATED:
-	        phy_set_led(BOARD_LED_GREEN, true);
+		phy_set_led(BOARD_LED_GREEN, true);
 		phy_set_led(BOARD_LED_BLUE, true);
 		g_initialized = true;
 		break;
 
 	case LED_INIRQ:
 	case LED_SIGNAL:
-          phy_set_led(BOARD_LED_GREEN, true);
-          break;
+		phy_set_led(BOARD_LED_GREEN, true);
+		break;
+
 	case LED_ASSERTION:
-          phy_set_led(BOARD_LED_RED, true);
-          phy_set_led(BOARD_LED_GREEN, true);
-          break;
+		phy_set_led(BOARD_LED_RED, true);
+		phy_set_led(BOARD_LED_GREEN, true);
+		break;
 
 	case LED_PANIC:
-	        phy_set_led(BOARD_LED_RED, true);
+		phy_set_led(BOARD_LED_RED, true);
 		break;
 
 	case LED_IDLE : /* IDLE */
-          phy_set_led(BOARD_LED_RED, true);
-          phy_set_led(BOARD_LED_BLUE, true);
+		phy_set_led(BOARD_LED_RED, true);
+		phy_set_led(BOARD_LED_BLUE, true);
 		break;
 	}
 }
@@ -165,17 +167,19 @@ __EXPORT void board_autoled_off(int led)
 	case LED_STARTED:
 	case LED_HEAPALLOCATE:
 	case LED_IRQSENABLED:
-          phy_set_led(BOARD_LED_BLUE, false);
+		phy_set_led(BOARD_LED_BLUE, false);
+
 	case LED_STACKCREATED:
-          break;
+		break;
 
 	case LED_INIRQ:
 	case LED_SIGNAL:
 	case LED_ASSERTION:
-          phy_set_led(BOARD_LED_RED, false);
-          phy_set_led(BOARD_LED_GREEN, false);
+		phy_set_led(BOARD_LED_RED, false);
+		phy_set_led(BOARD_LED_GREEN, false);
 
-          break;
+		break;
+
 	case LED_PANIC:
 		phy_set_led(BOARD_LED_RED, false);
 		phy_set_led(BOARD_LED_GREEN, false);

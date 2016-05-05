@@ -39,24 +39,25 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * Geofence parameters, accessible via MAVLink
  */
 
 /**
- * Geofence mode.
+ * Geofence violation action.
  *
- * 0 = disabled, 1 = geofence file only, 2 = max horizontal (GF_MAX_HOR_DIST) and vertical (GF_MAX_VER_DIST) distances, 3 = both
+ * 0 = none, 1 = warning (default), 2 = loiter, 3 = return to launch, 4 = fight termination
  *
  * @min 0
- * @max 3
+ * @max 4
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Loiter
+ * @value 3 Return
+ * @value 4 Terminate
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_MODE, 0);
+PARAM_DEFINE_INT32(GF_ACTION, 1);
 
 /**
  * Geofence altitude mode
@@ -66,6 +67,8 @@ PARAM_DEFINE_INT32(GF_MODE, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 WGS84
+ * @value 1 AMSL
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ALTMODE, 0);
@@ -79,6 +82,8 @@ PARAM_DEFINE_INT32(GF_ALTMODE, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 GPOS
+ * @value 1 GPS
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_SOURCE, 0);
@@ -97,8 +102,10 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
 /**
  * Max horizontal distance in meters.
  *
- * Set to > 0 to activate RTL if horizontal distance to home exceeds this value.
+ * Set to > 0 to activate a geofence action if horizontal distance to home exceeds this value.
  *
+ * @unit m
+ * @min -1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
@@ -106,8 +113,10 @@ PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
 /**
  * Max vertical distance in meters.
  *
- * Set to > 0 to activate RTL if vertical distance to home exceeds this value.
+ * Set to > 0 to activate a geofence action if vertical distance to home exceeds this value.
  *
+ * @unit m
+ * @min -1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_VER_DIST, -1);

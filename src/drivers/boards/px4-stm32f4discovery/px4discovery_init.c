@@ -55,7 +55,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
@@ -117,7 +117,7 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-       board_autoled_initialize();
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -128,28 +128,14 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-#include <math.h>
-
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
 __EXPORT int board_app_initialize(void)
 {
 
-  #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
-        /* run C++ ctors before we go any further */
+	/* run C++ ctors before we go any further */
 
-        up_cxxinitialize();
+	up_cxxinitialize();
 
 #       if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
 #               error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
@@ -187,6 +173,6 @@ __EXPORT int board_app_initialize(void)
 	return OK;
 }
 
-__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
 }

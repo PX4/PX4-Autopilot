@@ -200,25 +200,25 @@ typedef struct packed_struct led_t {
 
 static const led_t i2l[] = {
 
-        led(off,                            0, 0, 0,   0),
-        led(reset,                          1, 1, 1, 255),
-        led(autobaud_start,                 0, 1, 0, 255),
-        led(autobaud_end,                   0, 1, 1, 255),
-        led(allocation_start,               1, 0, 0, 255),
-        led(allocation_end,                 1, 0, 1, 255),
-        led(fw_update_start,                1, 1, 0, 255),
-        led(fw_update_erase_fail,           0, 0, 1,   5),
-        led(fw_update_invalid_response,     0, 1, 0,   5),
-        led(fw_update_timeout,              0, 1, 1,   5),
-        led(fw_update_invalid_crc,          1, 0, 0,   5),
-        led(jump_to_app,                    1, 1, 1,   1),
+	led(off,                            0, 0, 0,   0),
+	led(reset,                          1, 1, 1, 255),
+	led(autobaud_start,                 0, 1, 0, 255),
+	led(autobaud_end,                   0, 1, 1, 255),
+	led(allocation_start,               1, 0, 0, 255),
+	led(allocation_end,                 1, 0, 1, 255),
+	led(fw_update_start,                1, 1, 0, 255),
+	led(fw_update_erase_fail,           0, 0, 1,   5),
+	led(fw_update_invalid_response,     0, 1, 0,   5),
+	led(fw_update_timeout,              0, 1, 1,   5),
+	led(fw_update_invalid_crc,          1, 0, 0,   5),
+	led(jump_to_app,                    1, 1, 1,   1),
 
 };
 
 void board_indicate(uiindication_t indication)
 {
 	set_leds(i2l[indication].led_a,
-		i2l[indication].led_b,
-		i2l[indication].led_c,
-		i2l[indication].hz);
+		 i2l[indication].led_b,
+		 i2l[indication].led_c,
+		 i2l[indication].hz);
 }

@@ -36,7 +36,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <nuttx/arch.h>
-#include <algorithm>
 #include "uORBDevices_nuttx.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -183,7 +182,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
@@ -202,7 +201,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	 */
 	sd->update_reported = false;
 
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	return _meta->o_size;
 }
@@ -244,9 +243,9 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	}
 
 	/* Perform an atomic copy. */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 	memcpy(_data, buffer, _meta->o_size);
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
@@ -372,7 +371,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	bool ret = false;
 
 	/* avoid racing between interrupt and non-interrupt context calls */
-	irqstate_t state = irqsave();
+	irqstate_t state = enter_critical_section();
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
@@ -438,7 +437,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	}
 
 out:
-	irqrestore(state);
+	leave_critical_section(state);
 
 	/* consider it updated */
 	return ret;
@@ -572,11 +571,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -593,6 +587,18 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
 
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					unlock();
+					return -ENOMEM;
+				}
+			}
+
 			do {
 				/* if path is modifyable change try index */
 				if (adv->instance != nullptr) {
@@ -605,6 +611,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
+					unlock();
 					return -ENOMEM;
 				}
 
@@ -612,6 +619,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
+					unlock();
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -621,6 +630,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
 					unlock();
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -639,10 +650,12 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
 							ret = OK;
+
 						} else {
 							/* otherwise: data has already been published, keep looking */
 						}
 					}
+
 					/* also discard the name now */
 					free((void *)objname);
 					free((void *)devpath);
@@ -656,7 +669,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			} while (ret != OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
 
@@ -682,4 +695,3 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 
 	return rc;
 }
-

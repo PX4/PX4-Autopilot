@@ -42,10 +42,15 @@ Pixhawk ESC- v1.3 -     STM32F105RCT6
 Pixhawk ESC- v1.4 -     STM32F105RCT6
 Pixhawk ESC- v1.5 -     STM32F205RCT6
 Pixhawk ESC- v1.5-prto -STM32F205RET6
-Olimexino-STM32         STM32F103RBT6 
+Pixhawk ESC- v1.6-prto -STM32F446RET6
+Px4Flow                 STM32F407VGT6
+Px4FlowFuture           STM32F427VIT7 Rev_C silicon (no PB12 silicon bug, full 2M Flash available)
+Olimexino-STM32         STM32F103RBT6
 Olimex LPC-P11C24       LPC11C24FBD48
-freedom-kl25z           MKL25Z128VLK4 MCU – 48 MHz, 128 KB flash, 16 KB SRAM, USB OTG (FS), 80LQFP 
+freedom-kl25z           MKL25Z128VLK4 MCU – 48 MHz, 128 KB flash, 16 KB SRAM, USB OTG (FS), 80LQFP
 freedom-kl26z           MKL26Z128VLH4 MCU – 48 MHz, 128 KB flash, 16 KB SRAM, USB OTG (FS), 64 LQFP
+S2740VC - v1.2          STM32F302K8U6
+esc35 - v1.0            STM32F303CC
 
 Using:
 Part Number Package Marketing Status  Core  Operating Frequency(F) (Processor speed)  FLASH Size (Prog) Data E2PROM nom (B) Internal RAM Size 16-bit timers (IC/OC/PWM) 32-bit timer (IC/OC/PWM)  Other timer functions A/D Converter I/Os (High Current) Display controller  D/A Converter Integrated op-amps    Serial Interface                        Supply Current(Icc) (Lowest power mode) typ (µA)  Supply Current(Icc) (Run mode (per Mhz)) typ (µA) Operating Temperature min (°C)  Operating Temperature max (°C)

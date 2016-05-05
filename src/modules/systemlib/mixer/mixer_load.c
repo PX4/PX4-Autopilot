@@ -52,6 +52,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
+
 	if (fp == NULL) {
 		warnx("file not found");
 		return -1;
@@ -59,29 +60,38 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 	/* read valid lines from the file into a buffer */
 	buf[0] = '\0';
+
 	for (;;) {
 
 		/* get a line, bail on error/EOF */
 		line[0] = '\0';
-		if (fgets(line, sizeof(line), fp) == NULL)
+
+		if (fgets(line, sizeof(line), fp) == NULL) {
 			break;
+		}
 
 		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
+		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':')) {
 			continue;
+		}
 
 		/* compact whitespace in the buffer */
 		char *t, *f;
+
 		for (f = line; *f != '\0'; f++) {
 			/* scan for space characters */
 			if (*f == ' ') {
 				/* look for additional spaces */
 				t = f + 1;
-				while (*t == ' ')
+
+				while (*t == ' ') {
 					t++;
+				}
+
 				if (*t == '\0') {
 					/* strip trailing whitespace */
 					*f = '\0';
+
 				} else if (t > (f + 1)) {
 					memmove(f + 1, t, strlen(t) + 1);
 				}

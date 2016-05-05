@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 
@@ -46,7 +47,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include <termios.h>
 #include <string.h>
 
@@ -109,12 +109,15 @@ int test_uart_baudchange(int argc, char *argv[])
 
 	int termios_state = 0;
 
+	int ret;
+
 #define UART_BAUDRATE_RUNTIME_CONF
 #ifdef UART_BAUDRATE_RUNTIME_CONF
 
 	if ((termios_state = tcgetattr(uart2, &uart2_config)) < 0) {
 		printf("ERROR getting termios config for UART2: %d\n", termios_state);
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
 
 	memcpy(&uart2_config_original, &uart2_config, sizeof(struct termios));
@@ -122,18 +125,21 @@ int test_uart_baudchange(int argc, char *argv[])
 	/* Set baud rate */
 	if (cfsetispeed(&uart2_config, B9600) < 0 || cfsetospeed(&uart2_config, B9600) < 0) {
 		printf("ERROR setting termios config for UART2: %d\n", termios_state);
-		exit(ERROR);
+		ret = ERROR;
+		goto cleanup;
 	}
 
 	if ((termios_state = tcsetattr(uart2, TCSANOW, &uart2_config)) < 0) {
 		printf("ERROR setting termios config for UART2\n");
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
 
 	/* Set back to original settings */
 	if ((termios_state = tcsetattr(uart2, TCSANOW, &uart2_config_original)) < 0) {
 		printf("ERROR setting termios config for UART2\n");
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
 
 #endif
@@ -156,4 +162,8 @@ int test_uart_baudchange(int argc, char *argv[])
 	printf("uart2_nwrite %d\n", uart2_nwrite);
 
 	return OK;
+cleanup:
+	close(uart2);
+	return ret;
+
 }

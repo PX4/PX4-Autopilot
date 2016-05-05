@@ -79,8 +79,9 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: md25 {start|stop|read|status|search|test|change_address}\n\n");
 	exit(1);
@@ -111,11 +112,11 @@ int md25_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = px4_task_spawn_cmd("md25",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 2048,
-					 md25_thread_main,
-					 (const char **)argv);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 10,
+						 2048,
+						 md25_thread_main,
+						 (const char **)argv);
 		exit(0);
 	}
 
@@ -206,7 +207,7 @@ int md25_main(int argc, char *argv[])
 
 		exit(0);
 	}
-	
+
 
 	if (!strcmp(argv[1], "search")) {
 		if (argc < 3) {

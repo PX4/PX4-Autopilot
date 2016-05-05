@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,8 +67,9 @@ SimpleMixer::SimpleMixer(ControlCallback control_cb,
 
 SimpleMixer::~SimpleMixer()
 {
-	if (_info != nullptr)
+	if (_info != nullptr) {
 		free(_info);
+	}
 }
 
 int
@@ -77,8 +78,9 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 	int ret;
 	int s[5];
 	int n = -1;
-	
+
 	buf = findtag(buf, buflen, 'O');
+
 	if ((buf == nullptr) || (buflen < 12)) {
 		debug("output parser failed finding tag, ret: '%s'", buf);
 		return -1;
@@ -91,6 +93,7 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 	}
 
 	buf = skipline(buf, buflen);
+
 	if (buf == nullptr) {
 		debug("no line ending, line is incomplete");
 		return -1;
@@ -106,12 +109,14 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 }
 
 int
-SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group, uint8_t &control_index)
+SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group,
+				  uint8_t &control_index)
 {
 	unsigned u[2];
 	int s[5];
 
 	buf = findtag(buf, buflen, 'S');
+
 	if ((buf == nullptr) || (buflen < 16)) {
 		debug("control parser failed finding tag, ret: '%s'", buf);
 		return -1;
@@ -124,6 +129,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 	}
 
 	buf = skipline(buf, buflen);
+
 	if (buf == nullptr) {
 		debug("no line ending, line is incomplete");
 		return -1;
@@ -156,6 +162,7 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	}
 
 	buf = skipline(buf, buflen);
+
 	if (buf == nullptr) {
 		debug("no line ending, line is incomplete");
 		goto out;
@@ -198,14 +205,16 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 out:
 
-	if (mixinfo != nullptr)
+	if (mixinfo != nullptr) {
 		free(mixinfo);
+	}
 
 	return sm;
 }
 
 SimpleMixer *
-SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min, uint16_t mid, uint16_t max)
+SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
+		       uint16_t mid, uint16_t max)
 {
 	SimpleMixer *sm = nullptr;
 	mixer_simple_s *mixinfo = nullptr;
@@ -258,8 +267,9 @@ SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, u
 
 out:
 
-	if (mixinfo != nullptr)
+	if (mixinfo != nullptr) {
 		free(mixinfo);
+	}
 
 	return sm;
 }
@@ -269,11 +279,13 @@ SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	float		sum = 0.0f;
 
-	if (_info == nullptr)
+	if (_info == nullptr) {
 		return 0;
+	}
 
-	if (space < 1)
+	if (space < 1) {
 		return 0;
+	}
 
 	for (unsigned i = 0; i < _info->control_count; i++) {
 		float input;
@@ -293,8 +305,9 @@ SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 void
 SimpleMixer::groups_required(uint32_t &groups)
 {
-	for (unsigned i = 0; i < _info->control_count; i++)
+	for (unsigned i = 0; i < _info->control_count; i++) {
 		groups |= 1 << _info->controls[i].control_group;
+	}
 }
 
 int
@@ -305,14 +318,16 @@ SimpleMixer::check()
 
 	/* sanity that presumes that a mixer includes a control no more than once */
 	/* max of 32 groups due to groups_required API */
-	if (_info->control_count > 32)
+	if (_info->control_count > 32) {
 		return -2;
+	}
 
 	/* validate the output scaler */
 	ret = scale_check(_info->output_scaler);
 
-	if (ret != 0)
+	if (ret != 0) {
 		return ret;
+	}
 
 	/* validate input scalers */
 	for (unsigned i = 0; i < _info->control_count; i++) {
@@ -328,8 +343,9 @@ SimpleMixer::check()
 		/* validate the scaler */
 		ret = scale_check(_info->controls[i].scaler);
 
-		if (ret != 0)
+		if (ret != 0) {
 			return (10 * i + ret);
+		}
 	}
 
 	return 0;

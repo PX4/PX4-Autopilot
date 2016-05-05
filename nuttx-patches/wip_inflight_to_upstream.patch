@@ -1,0 +1,103 @@
+diff --git NuttX/nuttx/fs/procfs/fs_procfsproc.c NuttX/nuttx/fs/procfs/fs_procfsproc.c
+index 84484a5..f5f6c03 100644
+--- NuttX/nuttx/fs/procfs/fs_procfsproc.c
++++ NuttX/nuttx/fs/procfs/fs_procfsproc.c
+@@ -920,6 +920,7 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
+ 
+ #if CONFIG_NFILE_DESCRIPTORS > 0 /* Guaranteed to be true */
+   linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%-3s %-8s %s\n",
++                        "FD", "POS", "OFLAGS");
+   copysize   = procfs_memcpy(procfile->line, linesize, buffer, remaining, &offset);
+ 
+   totalsize += copysize;
+diff --git  NuttX/nuttx/Makefile.unix  NuttX/nuttx/Makefile.unix
+index 96179c4..022c796 100644
+--- NuttX/nuttx/Makefile.unix
++++ NuttX/nuttx/Makefile.unix
+@@ -507,7 +507,7 @@ gconfig: apps_preconfig
+ # that the archiver is 'ar'
+ 
+ export: pass2deps
+-	$(Q) $(MKEXPORT) $(MKEXPORT_ARGS) -l "$(EXPORTLIBS)"
++	$(Q) MAKE=${MAKE} $(MKEXPORT) $(MKEXPORT_ARGS) -l "$(EXPORTLIBS)"
+ 
+ # General housekeeping targets:  dependencies, cleaning, etc.
+ #
+diff --git  NuttX/nuttx/tools/mkexport.sh  NuttX/nuttx/tools/mkexport.sh
+index 37a7839..ebaff91 100755
+--- NuttX/nuttx/tools/mkexport.sh
++++ NuttX/nuttx/tools/mkexport.sh
+@@ -162,7 +162,7 @@ grep -v "WINTOOL[ \t]*=[ \t]y" "${TOPDIR}/Make.defs"  > "${EXPORTDIR}/Make.defs"
+ 
+ # Extract information from the Make.defs file.  A Makefile can do this best
+ 
+-make -C "${TOPDIR}/tools" -f Makefile.export TOPDIR="${TOPDIR}" EXPORTDIR="${EXPORTDIR}"
++${MAKE} -C "${TOPDIR}/tools" -f Makefile.export TOPDIR="${TOPDIR}" EXPORTDIR="${EXPORTDIR}"
+ source "${EXPORTDIR}/makeinfo.sh"
+ rm -f "${EXPORTDIR}/makeinfo.sh"
+ rm -f "${EXPORTDIR}/Make.defs"
+@@ -236,7 +236,7 @@ cp -LR -p "${TOPDIR}/include" "${EXPORTDIR}/." || \
+ 
+ # Copy the startup object file(s)
+ 
+-make -C ${ARCHDIR} export_startup TOPDIR=${TOPDIR} EXPORT_DIR="${EXPORTDIR}"
++${MAKE} -C ${ARCHDIR} export_startup TOPDIR=${TOPDIR} EXPORT_DIR="${EXPORTDIR}"
+ 
+ # Copy architecture-specific header files into the arch export sub-directory.
+ # This is tricky because each architecture does things in a little different 
+diff --git  NuttX/nuttx/tools/mkconfigvars.sh  NuttX/nuttx/tools/mkconfigvars.sh
+index 1424bb7..d0b06c4 100755
+--- NuttX/nuttx/tools/mkconfigvars.sh
++++ NuttX/nuttx/tools/mkconfigvars.sh
+@@ -115,7 +115,7 @@ else
+   if [ -x ${KCONFIG2HTML2} ]; then
+     KCONFIG2HTML=${KCONFIG2HTML2}
+   else
+-    make -C ${KCONFIG2MAKEDIR} -f ${KCONFIG2MAKEFILE} ${KCONFIG2HTML_TARGET} || \
++    ${MAKE} -C ${KCONFIG2MAKEDIR} -f ${KCONFIG2MAKEFILE} ${KCONFIG2HTML_TARGET} || \
+       { echo "ERROR: make ${KCONFIG2HTML1} failed" ; exit 1 ; }
+   fi
+ fi
+diff --git  NuttX/nuttx/tools/refresh.sh  NuttX/nuttx/tools/refresh.sh
+index a38eada..8ec922a 100755
+--- NuttX/nuttx/tools/refresh.sh
++++ NuttX/nuttx/tools/refresh.sh
+@@ -136,7 +136,7 @@ else
+   if [ -x ${CMPCONFIG2} ]; then
+     CMPCONFIG=${CMPCONFIG2}
+   else
+-    make -C ${CMPCONFIGMAKEDIR} -f ${CMPCONFIGMAKEFILE} ${CMPCONFIG_TARGET} || \
++    ${MAKE} -C ${CMPCONFIGMAKEDIR} -f ${CMPCONFIGMAKEFILE} ${CMPCONFIG_TARGET} || \
+       { echo "ERROR: make ${CMPCONFIG1} failed" ; exit 1 ; }
+   fi
+ fi
+diff --git  NuttX/nuttx/tools/zipme.sh  NuttX/nuttx/tools/zipme.sh
+index 7f3a849..e8026ce 100755
+--- NuttX/nuttx/tools/zipme.sh
++++ NuttX/nuttx/tools/zipme.sh
+@@ -211,7 +211,7 @@ chmod 755 ${NUTTX}/.version || \
+ cd ${TRUNKDIR} || \
+    { echo "Failed to cd to ${TRUNKDIR}" ; exit 1 ; }
+ 
+-make -C ${NUTTX} distclean
++${MAKE} -C ${NUTTX} distclean
+ 
+ # Remove any previous tarballs
+
+diff --git NuttX/apps/Makefile NuttX/apps/Makefile
+index 76b23ed..6d5462a 100644
+--- NuttX/apps/Makefile
++++ NuttX/apps/Makefile
+@@ -87,7 +87,7 @@ all: $(BIN)
+ 
+ define SDIR_template
+ $(1)_$(2):
+-	$(Q) $(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" BIN_DIR="$(BIN_DIR)"
++	+$(Q) $(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" BIN_DIR="$(BIN_DIR)"
+ endef
+ 
+ $(foreach SDIR, $(CONFIGURED_APPS), $(eval $(call SDIR_template,$(SDIR),all)))
+
+-- 
+1.8.3.1
+

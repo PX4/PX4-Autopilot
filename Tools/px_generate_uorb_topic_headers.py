@@ -43,6 +43,11 @@ import shutil
 import filecmp
 import argparse
 
+import sys
+px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(px4_tools_dir + "/genmsg/src")
+sys.path.append(px4_tools_dir + "/gencpp/src")
+
 try:
         import genmsg.template_tools
 except ImportError as e:
@@ -79,7 +84,7 @@ def convert_file(filename, outputdir, templatedir, includepath):
         """
         Converts a single .msg file to a uorb header
         """
-        print("Generating headers from {0}".format(filename))
+        #print("Generating headers from {0}".format(filename))
         genmsg.template_tools.generate_from_file(filename,
                                                  package,
                                                  outputdir,
@@ -93,6 +98,30 @@ def convert_dir(inputdir, outputdir, templatedir):
         """
         Converts all .msg files in inputdir to uORB header files
         """
+
+        # Find the most recent modification time in input dir
+        maxinputtime = 0
+        for f in os.listdir(inputdir):
+                fni = os.path.join(inputdir, f)
+                if os.path.isfile(fni):
+                    it = os.path.getmtime(fni)
+                    if it > maxinputtime:
+                        maxinputtime = it;
+
+        # Find the most recent modification time in output dir
+        maxouttime = 0
+        if os.path.isdir(outputdir):
+            for f in os.listdir(outputdir):
+                    fni = os.path.join(outputdir, f)
+                    if os.path.isfile(fni):
+                        it = os.path.getmtime(fni)
+                        if it > maxouttime:
+                            maxouttime = it;
+
+        # Do not generate if nothing changed on the input
+        if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
+            return False
+
         includepath = incl_default + [':'.join([package, inputdir])]
         for f in os.listdir(inputdir):
                 # Ignore hidden files
@@ -109,8 +138,10 @@ def convert_dir(inputdir, outputdir, templatedir):
                              templatedir,
                              includepath)
 
+        return True
 
-def copy_changed(inputdir, outputdir, prefix=''):
+
+def copy_changed(inputdir, outputdir, prefix='', quiet=False):
         """
         Copies files from inputdir to outputdir if they don't exist in
         ouputdir or if their content changed
@@ -127,28 +158,32 @@ def copy_changed(inputdir, outputdir, prefix=''):
                         fno = os.path.join(outputdir, prefix + f)
                         if not os.path.isfile(fno):
                                 shutil.copy(fni, fno)
-                                print("{0}: new header file".format(f))
-                                continue
-                        # The file exists in inputdir and outputdir
-                        # only copy if contents do not match
-                        if not filecmp.cmp(fni, fno):
-                                shutil.copy(fni, fno)
-                                print("{0}: updated".format(f))
+                                if not quiet:
+                                    print("{0}: new header file".format(f))
                                 continue
 
-                        print("{0}: unchanged".format(f))
+                        if os.path.getmtime(fni) > os.path.getmtime(fno):
+                                # The file exists in inputdir and outputdir
+                                # only copy if contents do not match
+                                if not filecmp.cmp(fni, fno):
+                                        shutil.copy(fni, fno)
+                                        if not quiet:
+                                            print("{0}: updated".format(f))
+                                        continue
+
+                        if not quiet:
+                            print("{0}: unchanged".format(f))
 
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
         convert_dir(inputdir, temporarydir, templatedir)
-
         # Copy changed headers from temporary dir to output dir
-        copy_changed(temporarydir, outputdir, prefix)
+        copy_changed(temporarydir, outputdir, prefix, quiet)
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
@@ -166,6 +201,9 @@ if __name__ == "__main__":
         parser.add_argument('-p', dest='prefix', default='',
                             help='string added as prefix to the output file '
                             ' name when converting directories')
+        parser.add_argument('-q', dest='quiet', default=False, action='store_true',
+                            help='string added as prefix to the output file '
+                            ' name when converting directories')
         args = parser.parse_args()
 
         if args.file is not None:
@@ -181,4 +219,5 @@ if __name__ == "__main__":
                     args.outputdir,
                     args.templatedir,
                     args.temporarydir,
-                    args.prefix)
+                    args.prefix,
+                    args.quiet)

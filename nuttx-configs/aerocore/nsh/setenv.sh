@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/aerocore/nsh/setenv.sh
+# nuttx-configs/aerocore/nsh/setenv.sh
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
