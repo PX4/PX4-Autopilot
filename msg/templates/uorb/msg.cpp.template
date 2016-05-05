@@ -139,6 +139,9 @@ serialize_array_expr = "	serialize_{type}(&topic->{field}[{index}], buffer);"
 buffer_memcpy_expr = "	memcpy(((char *)buffer->data) + buffer->next, &topic->{field}, sizeof(topic->{field}));"
 buffer_next_expr = "	buffer->next += sizeof(topic->{field});"
 
+print(buffer_memcpy_expr.format(field="timestamp"))
+print(buffer_next_expr.format(field="timestamp"))
+
 for each_field in sorted_fields:
     if not each_field.is_header:
   
