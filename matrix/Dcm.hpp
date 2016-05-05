@@ -23,7 +23,8 @@ class Euler;
 /**
  * Direction cosine matrix class
  *
- * More elaborate class description
+ * The rotation between two coordinate frames is
+ * described by this class.
  */
 template<typename Type>
 class Dcm : public Matrix<Type, 3, 3>
@@ -46,8 +47,6 @@ public:
     /**
      * Constructor from array
      *
-     * More elaborate function description
-     *
      * @param other array
      */
     Dcm(const Type *data_) : Matrix<Type, 3, 3>(data_)
@@ -56,8 +55,6 @@ public:
 
     /**
      * Copy constructor
-     *
-     * More elaborate function description
      *
      * @param other Matrix33 to set dcm to
      */
@@ -68,7 +65,8 @@ public:
     /**
      * Constructor from quaternion
      *
-     * More elaborate function description
+     * Instance is initialized from quaternion representing
+     * transformation from inertial frame to body frame.
      *
      * @param q quaternion to set dcm to
      */
@@ -79,7 +77,8 @@ public:
     /**
      * Constructor from euler angles
      *
-     * More elaborate function description
+     * Instance is initialized from angle tripplet (3,2,1) representing
+     * transformation from body frame to inertial frame. 
      *
      * @param euler euler angles to set dcm to
      */
@@ -91,7 +90,8 @@ public:
     /**
      * Set from quaternion
      *
-     * More elaborate function description
+     * Instance is set from quaternion representing
+     * transformation from inertial frame to body frame.
      *
      * @param q quaternion to set dcm to
      */
@@ -119,7 +119,8 @@ public:
     /**
      * Set from euler angles
      *
-     * More elaborate function description
+     * Instance is set from angle tripplet (3,2,1) representing
+     * transformation from body frame to inertial frame. 
      *
      * @param euler euler angles to set dcm to
      */

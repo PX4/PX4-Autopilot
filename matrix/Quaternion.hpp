@@ -23,7 +23,8 @@ class Euler;
 /**
  * Quaternion class
  *
- * More elaborate class description
+ * The rotation between two coordinate frames is
+ * described by this class.
  */
 template<typename Type>
 class Quaternion : public Vector<Type, 4>
@@ -37,8 +38,6 @@ public:
     /**
      * Constructor from array
      *
-     * More elaborate function description
-     *
      * @param data_ array
      */
     Quaternion(const Type *data_) :
@@ -48,8 +47,6 @@ public:
 
     /**
      * Standard constructor
-     *
-     * More elaborate function description
      */
     Quaternion() :
         Vector<Type, 4>()
@@ -64,8 +61,6 @@ public:
     /**
      * Constructor from Matrix41
      *
-     * More elaborate function description
-     *
      * @param other Matrix41 to copy
      */
     Quaternion(const Matrix41 & other) :
@@ -76,7 +71,8 @@ public:
     /**
      * Constructor from dcm
      *
-     * More elaborate function description
+     * Instance is initialized from a dcm representing transformation
+     * from inertial frame to body frame.
      *
      * @param dcm dcm to set quaternion to
      */
@@ -89,7 +85,8 @@ public:
     /**
      * Constructor from euler angles
      *
-     * More elaborate function description
+     * Instance is initialized from angle tripplet (3,2,1) representing
+     * transformation from body frame to inertial frame. 
      *
      * @param euler euler angles to set quaternion to
      */
@@ -102,7 +99,8 @@ public:
     /**
      * Constructor from quaternion values
      *
-     * More elaborate function description
+     * Instance is initialized from quaternion values representing
+     * transformation from inertial frame to body frame.
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
@@ -118,7 +116,8 @@ public:
     /**
      * Set from dcm
      *
-     * More elaborate function description
+     * Instance is set from a dcm representing transformation
+     * from inertial frame to body frame.
      *
      * @param dcm dcm to set quaternion to
      */
@@ -138,7 +137,8 @@ public:
     /**
      * Set from euler angles
      *
-     * More elaborate function description
+     * Instance is set from angle tripplet (3,2,1) representing
+     * transformation from body frame to inertial frame. 
      *
      * @param euler euler angles to set quaternion to
      */
@@ -164,7 +164,8 @@ public:
     /**
      * Set from quaternion values
      *
-     * More elaborate function description
+     * Instance is set from quaternion values representing
+     * transformation from inertial frame to body frame.
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
@@ -183,8 +184,6 @@ public:
     /**
      * Quaternion multiplication operator
      *
-     * More elaborate function description
-     *
      * @param q quaternion to multiply with
      * @return product
      */
@@ -202,8 +201,6 @@ public:
     /**
      * Self-multiplication operator
      *
-     * More elaborate function description
-     *
      * @param other quaternion to multiply with
      */
     void operator*=(const Quaternion & other)
@@ -214,8 +211,6 @@ public:
 
     /**
      * Scalar multiplication operator
-     *
-     * More elaborate function description
      *
      * @param scalar scalar to multiply with
      * @return product
@@ -229,8 +224,6 @@ public:
     /**
      * Scalar self-multiplication operator
      *
-     * More elaborate function description
-     *
      * @param scalar scalar to multiply with
      */
     void operator*=(Type scalar)
@@ -241,8 +234,6 @@ public:
 
     /**
      * Computes the derivative
-     *
-     * More elaborate function description
      *
      * @param w direction
      */
@@ -265,8 +256,6 @@ public:
 
     /**
      * Invert quaternion
-     *
-     * More elaborate function description
      */
     void invert() {
         Quaternion &q = *this;
@@ -277,8 +266,6 @@ public:
 
     /**
      * Invert quaternion
-     *
-     * More elaborate function description
      *
      * @return inverted quaternion
      */
@@ -295,8 +282,6 @@ public:
     /**
      * Rotate quaternion from rotation vector
      *
-     * More elaborate function description
-     *
      * @param vec rotation vector
      */
     void rotate(const Vector<Type, 3> &vec) {
@@ -308,7 +293,8 @@ public:
     /**
      * Rotation quaternion from vector
      *
-     * More elaborate function description
+     * The axis of rotation is given by vector direction and
+     * the angle is given by the norm.
      *
      * @param vec rotation vector
      * @return quaternion representing the rotation
@@ -326,9 +312,7 @@ public:
     }
 
     /**
-     * Rotation quaternion from axis and scalar
-     *
-     * More elaborate function description
+     * Rotation quaternion from axis and angle
      *
      * @param axis axis of rotation
      * @param theta scalar describing angle of rotation
@@ -352,7 +336,8 @@ public:
     /**
      * Rotation vector from quaternion
      *
-     * More elaborate function description
+     * The axis of rotation is given by vector direction and
+     * the angle is given by the norm.
      *
      * @return vector, direction representing rotation axis and norm representing angle
      */
