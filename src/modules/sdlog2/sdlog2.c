@@ -1023,8 +1023,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 	}
 
+	if (log_on_start && log_when_armed) {
+		sdlog2_usage("conflicting arguments -e and -a supplied");
+		return 1;
+	}
+
 	if (err_flag) {
 		sdlog2_usage(NULL);
+		return 1;
 	}
 
 	gps_time_sec = 0;
