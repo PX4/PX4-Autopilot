@@ -18,7 +18,7 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
-	#drivers/mpu9250
+	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
@@ -37,16 +37,16 @@ set(config_module_list
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
-	#drivers/frsky_telemetry
+	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
 	#drivers/oreoled
-	#drivers/gimbal
+	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	#drivers/snapdragon_rc_pwm
+	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 
 	#
@@ -91,11 +91,10 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	# Too high RAM usage due to static allocations
-	# modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
+	modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -136,6 +135,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
