@@ -265,8 +265,15 @@ function(px4_nuttx_add_export)
 		COMMAND ${MKDIR} -p ${nuttx_src}
 		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
+						  ${nuttx_src}/apps/.git
+						  ${nuttx_src}/nuttx/.git
+						  ${nuttx_src}/NxWidgets/.git
+						  ${nuttx_src}/misc/tools/.git
+						  ${nuttx_src}/apps/examples/elf
+						  ${nuttx_src}/apps/examples/module
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${nuttx_patches})
+		DEPENDS ${DEPENDS} ${nuttx_patches}
+		COMMENT "Copying NuttX for ${CONFIG}")
 #todo: Add the nuttx source (md5 of git recursive staus) to the dependencies
 	
 	# patch
@@ -275,38 +282,35 @@ function(px4_nuttx_add_export)
 
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
-    message(STATUS "nuttx-patch: Applying nuttx-patches/${patch_file_name}")
+		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
 		set(stamp ${nuttx_src}/${patch_name}.stamp)
 		add_custom_command(OUTPUT ${stamp}
-		  COMMAND ${CMAKE_COMMAND} ARGS -E chdir ${nuttx_src} 
-				${PATCH} -p1 -N  < ${patch}
-			COMMAND ${TOUCH} ${stamp}
-			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
-			)
+							COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N  < ${patch}
+							COMMAND ${TOUCH} ${stamp}
+							DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
+							COMMENT "Applying ${patch}")
 	    add_custom_target(${patch_name}
-				DEPENDS ${stamp}
-				__nuttx_copy_${CONFIG}
-			)
-			add_dependencies(__nuttx_patch_${CONFIG}
-				${patch_name}
-			)
+							DEPENDS ${stamp}
+							__nuttx_copy_${CONFIG})
+		add_dependencies(__nuttx_patch_${CONFIG} ${patch_name})
 	endforeach()
 
 
 	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
+		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Config.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
-		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
-		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
+		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
+		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches})
+		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches}
+		COMMENT "Building NuttX for ${CONFIG}")
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
@@ -628,9 +632,9 @@ function(px4_nuttx_configure)
 	if ("${ROMFS}" STREQUAL "y")
 		set(romfs_used ${ROMFS} PARENT_SCOPE)
 		if (NOT DEFINED ROMFSROOT)
-	    set(config_romfs_root px4fmu_common)
-	  else()
-	    set(config_romfs_root ${ROMFSROOT})
+			set(config_romfs_root px4fmu_common)
+		else()
+			set(config_romfs_root ${ROMFSROOT})
 		endif()
 		set(HASROMFS "with ROMFS on ${config_romfs_root}")
 		set(config_romfs_root ${config_romfs_root} PARENT_SCOPE)
