@@ -199,12 +199,14 @@ qurt_eagle_legacy_driver_default:
 posix_eagle_legacy_driver_default:
 	$(call cmake-build,$@) 
 
-
 qurt_excelsior_default:
 	$(call cmake-build,$@)
+
 posix_excelsior_default:
 	$(call cmake-build,$@)
+
 excelsior_default: posix_excelsior_default qurt_excelsior_default
+
 posix_rpi2_default:
 	$(call cmake-build,$@)
 
