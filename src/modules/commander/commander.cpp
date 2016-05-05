@@ -504,17 +504,23 @@ int commander_main(int argc, char *argv[])
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_TAKEOFF;
 			} else if (!strcmp(argv[2], "auto:land")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+			} else if (!strcmp(argv[2], "auto:follow")) {
+				new_main_state = commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET;
+			} else if (!strcmp(argv[2], "airspeed")) {
+				new_main_state = commander_state_s::MAIN_STATE_AIRSPD;
 			} else {
-				warnx("argument %s unsupported.", argv[2]);
+				warnx("mode \"%s\" invalid", argv[2]);
+				warnx("usage: commander mode {manual|altctl|posctl|auto:mission|auto:loiter|acro|offboard|stabilized|rattitude|auto:takeoff|auto:land|auto:follow|airspeed}");
 			}
 
-			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,  &status_flags, &internal_state)) {
+			if ((new_main_state != commander_state_s::MAIN_STATE_MAX)
+			&& TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev, &status_flags, &internal_state)) {
 				warnx("mode change failed");
 			}
 			return 0;
 
 		} else {
-			warnx("missing argument");
+			warnx("missing mode argument");
 		}
 	}
 
