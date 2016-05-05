@@ -67,6 +67,12 @@ set(config_module_list
 	drivers/qshell/qurt
 
 	#
+	# FC_ADDON drivers
+	#
+	#platforms/qurt/fc_addon/rc_receiver
+	#platforms/qurt/fc_addon/mpu_spi
+
+	#
 	# Libraries
 	#
 	lib/controllib
