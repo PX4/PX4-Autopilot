@@ -1127,12 +1127,28 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct commander_state_s buf_commander_state;
 	memset(&buf_commander_state, 0, sizeof(buf_commander_state));
 
-	// check if we are gathering data for a replay log for ekf2
-	// is yes then disable logging of some topics to avoid dropouts
+	/* There are different log types possible on different platforms. */
+	enum {
+		LOG_TYPE_NORMAL,
+		LOG_TYPE_REPLAY_ONLY,
+		LOG_TYPE_ALL
+	} log_type;
+
+	/* Check if we are gathering data for a replay log for ekf2. */
 	param_t replay_handle = param_find("EKF2_REC_RPL");
 	int32_t tmp = 0;
 	param_get(replay_handle, &tmp);
 	bool record_replay_log = (bool)tmp;
+
+	if (record_replay_log) {
+#if defined(__PX4_QURT) || defined(__PX4_POSIX)
+		log_type = LOG_TYPE_ALL;
+#else
+		log_type = LOG_TYPE_REPLAY_ONLY;
+#endif
+	} else {
+		log_type = LOG_TYPE_NORMAL;
+	}
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
@@ -1369,17 +1385,36 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	int poll_to_logging_factor = 1;
 
-	if (record_replay_log) {
-		subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
-		fds[0].fd = subs.replay_sub;
-		fds[0].events = POLLIN;
-		poll_to_logging_factor = 1;
-	} else {
-		subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-		fds[0].fd = subs.sensor_sub;
-		fds[0].events = POLLIN;
-		// TODO Remove hardcoded rate!
-		poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
+	switch (log_type) {
+		case LOG_TYPE_ALL:
+			subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+			fds[0].fd = subs.sensor_sub;
+			fds[0].events = POLLIN;
+
+			poll_to_logging_factor = 1;
+
+			break;
+
+		case LOG_TYPE_NORMAL:
+
+			subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+			fds[0].fd = subs.sensor_sub;
+			fds[0].events = POLLIN;
+
+			// TODO Remove hardcoded rate!
+			poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
+
+			break;
+
+		case LOG_TYPE_REPLAY_ONLY:
+
+			subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
+			fds[0].fd = subs.replay_sub;
+			fds[0].events = POLLIN;
+
+			poll_to_logging_factor = 1;
+
+			break;
 	}
 
 	if (poll_to_logging_factor < 1) {
@@ -1409,12 +1444,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			continue;
 		}
 
-		// copy topic always to mark them as read
-		// so poll doesn't return immediately
-		if (record_replay_log) {
-			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
-		} else {
-			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+		switch (log_type) {
+			case LOG_TYPE_ALL:
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+				break;
+
+			case LOG_TYPE_NORMAL:
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+				break;
+
+			case LOG_TYPE_REPLAY_ONLY:
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+				break;
 		}
 
 		if ((poll_counter + 1) % poll_to_logging_factor == 0) {
@@ -1472,9 +1513,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- EKF2 REPLAY --- */
-		if(record_replay_log) {
-			// we poll on the replay topic so we know that it was updated
-			// but we need to copy it again since we are re-using the buffer.
+		if (log_type == LOG_TYPE_ALL || LOG_TYPE_REPLAY_ONLY) {
+
+			if (log_type == LOG_TYPE_ALL) {
+				// When logging everything we are polling for sensor_combined, so
+				// we need to use the usual copy_if_updated which includes orb_subscribe.
+				copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay);
+
+			} else {
+				// We poll on the replay topic so we know that it was updated
+				// but we need to copy it again since we are re-using the buffer.
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+			}
+
 			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 			log_msg.msg_type = LOG_RPL1_MSG;
 			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
@@ -1534,7 +1585,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(RPL4);
 			}
 
-
 			if (buf.replay.asp_timestamp > 0) {
 				log_msg.msg_type = LOG_RPL6_MSG;
 				log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
@@ -1545,12 +1595,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_RPL6.confidence = buf.replay.confidence;
 				LOGBUFFER_WRITE_AND_COUNT(RPL6);
 			}
+		}
 
+		if (log_type == LOG_TYPE_ALL || LOG_TYPE_NORMAL) {
 
-		} else { /* !record_replay_log */
-
-			// we poll on sensor combined, so we know it has updated just now
-			// but we need to copy it again because we are re-using the buffer
+			// We poll on sensor combined, so we know it has updated just now
+			// but we need to copy it again because we are re-using the buffer.
 			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 
 			for (unsigned i = 0; i < 3; i++) {
@@ -1834,7 +1884,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_BATT_MSG;
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
-				log_msg.body.log_BATT.current = buf.battery.current_a;				
+				log_msg.body.log_BATT.current = buf.battery.current_a;
 				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				log_msg.body.log_BATT.remaining = buf.battery.remaining;
