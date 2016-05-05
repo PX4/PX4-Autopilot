@@ -58,7 +58,7 @@ uint16_t IEEE754Converter::nativeIeeeToHalf(float value)
         out = uint16_t(in.u >> 13); /* Take the bits! */
     }
 
-    out |= uint16_t(sign >> 16);
+    out = uint16_t(out | (sign >> 16));
 
     return out;
 }

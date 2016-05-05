@@ -314,7 +314,7 @@ uint8_t CanIOManager::makePendingTxMask() const
     {
         if (!tx_queues_[i]->isEmpty())
         {
-            write_mask |= uint8_t(1 << i);
+            write_mask = uint8_t(write_mask | (1 << i));
         }
     }
     return write_mask;
