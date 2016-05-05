@@ -2267,7 +2267,7 @@ int commander_thread_main(int argc, char *argv[])
 			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
 
 			// transition to previous state if sticks are increased
-			const float min_stick_change = 0.2;
+			const float min_stick_change = 0.2f;
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
 				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
 				 (fabsf(sp_man.y) - fabsf(_last_sp_man.y) > min_stick_change) ||
@@ -2982,11 +2982,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		 (_last_sp_man.mode_slot == sp_man->mode_slot))) {
 
 		// update these fields for the geofence system
-		_last_sp_man.timestamp = sp_man->timestamp;
-		_last_sp_man.x = sp_man->x;
-		_last_sp_man.y = sp_man->y;
-		_last_sp_man.z = sp_man->z;
-		_last_sp_man.r = sp_man->r;
+
+		if (!rtl_on) {
+			_last_sp_man.timestamp = sp_man->timestamp;
+			_last_sp_man.x = sp_man->x;
+			_last_sp_man.y = sp_man->y;
+			_last_sp_man.z = sp_man->z;
+			_last_sp_man.r = sp_man->r;
+		}
 
 		/* no timestamp change or no switch change -> nothing changed */
 		return TRANSITION_NOT_CHANGED;
