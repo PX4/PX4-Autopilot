@@ -341,7 +341,7 @@ public:
     {
         Matrix<Type, M, N> &self = *this;
         for (size_t i = 0; i < M; i++) {
-            self(i, j) = col(i, 1);
+            self(i, j) = col(i, 0);
         }
     }
 
