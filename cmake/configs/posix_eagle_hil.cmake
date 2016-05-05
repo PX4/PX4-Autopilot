@@ -9,6 +9,8 @@ endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
+set(config_generate_parameters_scope ALL)
+
 set(config_module_list
 	drivers/device
 	drivers/boards/sitl
