@@ -41,6 +41,9 @@ px4_add_module(
 	STACK_MAIN 2200
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
+		-Wcast-align
+		-Wcast-qual
+		-Wpacked
 		-Os
 	SRCS
 		logger.cpp
