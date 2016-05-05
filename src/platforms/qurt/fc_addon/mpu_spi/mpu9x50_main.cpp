@@ -372,21 +372,24 @@ bool create_pubs()
 	memset(&_mag, 0, sizeof(struct mag_report));
 
 	_gyro_pub = orb_advertise_multi(ORB_ID(sensor_gyro), &_gyro,
-					  &_gyro_orb_class_instance, ORB_PRIO_HIGH - 1);
+					&_gyro_orb_class_instance, ORB_PRIO_HIGH - 1);
+
 	if (_gyro_pub == nullptr) {
 		PX4_ERR("sensor_gyro advert fail");
 		return false;
 	}
 
 	_accel_pub = orb_advertise_multi(ORB_ID(sensor_accel), &_accel,
-					  &_accel_orb_class_instance, ORB_PRIO_HIGH - 1);
+					 &_accel_orb_class_instance, ORB_PRIO_HIGH - 1);
+
 	if (_accel_pub == nullptr) {
 		PX4_ERR("sensor_accel advert fail");
 		return false;
 	}
 
 	_mag_pub = orb_advertise_multi(ORB_ID(sensor_mag), &_mag,
-					  &_mag_orb_class_instance, ORB_PRIO_HIGH - 1);
+				       &_mag_orb_class_instance, ORB_PRIO_HIGH - 1);
+
 	if (_mag_pub == nullptr) {
 		PX4_ERR("sensor_mag advert fail");
 		return false;
