@@ -1526,7 +1526,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 			}
 
-			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 			log_msg.msg_type = LOG_RPL1_MSG;
 			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
 			log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
