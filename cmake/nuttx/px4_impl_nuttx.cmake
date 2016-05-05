@@ -275,22 +275,18 @@ function(px4_nuttx_add_export)
 
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
-    message(STATUS "nuttx-patch: Applying nuttx-patches/${patch_file_name}")
+		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
 		set(stamp ${nuttx_src}/${patch_name}.stamp)
 		add_custom_command(OUTPUT ${stamp}
-		  COMMAND ${CMAKE_COMMAND} ARGS -E chdir ${nuttx_src} 
-				${PATCH} -p1 -N  < ${patch}
-			COMMAND ${TOUCH} ${stamp}
-			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
-			)
+							COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N  < ${patch}
+							COMMAND ${TOUCH} ${stamp}
+							DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
+							COMMENT "Applying ${patch}")
 	    add_custom_target(${patch_name}
-				DEPENDS ${stamp}
-				__nuttx_copy_${CONFIG}
-			)
-			add_dependencies(__nuttx_patch_${CONFIG}
-				${patch_name}
-			)
+							DEPENDS ${stamp}
+							__nuttx_copy_${CONFIG})
+		add_dependencies(__nuttx_patch_${CONFIG} ${patch_name})
 	endforeach()
 
 
@@ -623,9 +619,9 @@ function(px4_nuttx_configure)
 	if ("${ROMFS}" STREQUAL "y")
 		set(romfs_used ${ROMFS} PARENT_SCOPE)
 		if (NOT DEFINED ROMFSROOT)
-	    set(config_romfs_root px4fmu_common)
-	  else()
-	    set(config_romfs_root ${ROMFSROOT})
+			set(config_romfs_root px4fmu_common)
+		else()
+			set(config_romfs_root ${ROMFSROOT})
 		endif()
 		set(HASROMFS "with ROMFS on ${config_romfs_root}")
 		set(config_romfs_root ${config_romfs_root} PARENT_SCOPE)
