@@ -262,8 +262,8 @@ clean:
 	@(cd NuttX/nuttx && make clean)
 
 submodulesclean:
-	@git submodule deinit -f .
 	@git submodule sync
+	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean
