@@ -44,14 +44,14 @@ public:
 
 	UnitTest();
 	virtual ~UnitTest();
-	
+
 	/// @brief Override to run your unit tests. Unit tests should be called using ut_run_test macro.
 	/// @return true: all unit tests succeeded, false: one or more unit tests failed
 	virtual bool run_tests(void) = 0;
-	
+
 	/// @brief Prints results from running of unit tests.
 	void print_results(void);
-	
+
 /// @brief Macro to create a function which will run a unit test class and print results.
 #define ut_declare_test(test_function, test_class)	\
 	bool test_function(void)			\
@@ -61,9 +61,9 @@ public:
 		test->print_results();			\
 		return success;				\
 	}
-	
+
 protected:
-	
+
 /// @brief Runs a single unit test. Unit tests must have the function signature of bool test(void). The unit
 /// test should return true if it succeeded, false for fail.
 #define ut_run_test(test)					\
@@ -80,7 +80,7 @@ protected:
 		}						\
 		_cleanup();					\
 	} while (0)
-	
+
 /// @brief Used to assert a value within a unit test.
 #define ut_assert(message, test)						\
 	do {									\
@@ -91,7 +91,7 @@ protected:
 			_assertions++;						\
 		}								\
 	} while (0)
-	
+
 /// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
 /// since it will give you better error reporting of the actual values being compared.
 #define ut_compare(message, v1, v2)								\
@@ -105,12 +105,13 @@ protected:
 			_assertions++;								\
 		}										\
 	} while (0)
-	
+
 	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
 	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
-	
-	void _print_assert(const char* msg, const char* test, const char* file, int line);
-	void _print_compare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line);
+
+	void _print_assert(const char *msg, const char *test, const char *file, int line);
+	void _print_compare(const char *msg, const char *v1_text, int v1, const char *v2_text, int v2, const char *file,
+			    int line);
 
 	int _tests_run;		///< The number of individual unit tests run
 	int _tests_failed;	///< The number of unit tests which failed

@@ -18,9 +18,12 @@ float32 airspeed_filtered
 float32 airspeedDerivativeSp
 float32 airspeedDerivative
 
-float32 totalEnergyRateSp
-float32 totalEnergyRate
-float32 energyDistributionRateSp
-float32 energyDistributionRate
+float32 totalEnergyError
+float32 energyDistributionError
+float32 totalEnergyRateError
+float32 energyDistributionRateError
+
+float32 throttle_integ
+float32 pitch_integ
 
 uint8 mode

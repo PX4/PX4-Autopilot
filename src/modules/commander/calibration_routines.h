@@ -74,7 +74,7 @@ static const unsigned detect_orientation_side_count = 6;
 /// Wait for vehicle to become still and detect it's orientation
 ///	@return Returns detect_orientation_return according to orientation when vehicle
 ///		and ready for measurements
-enum detect_orientation_return detect_orientation(int	mavlink_fd,			///< Mavlink fd to write output to
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 						  int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
 						  int	accel_sub,			///< Orb subcription to accel sensor
 						  bool	lenient_still_detection);	///< true: Use more lenient still position detection
@@ -95,7 +95,7 @@ typedef calibrate_return (*calibration_from_orientation_worker_t)(detect_orienta
 
 /// Perform calibration sequence which require a rest orientation detection prior to calibration.
 ///	@return OK: Calibration succeeded, ERROR: Calibration failed
-calibrate_return calibrate_from_orientation(int		mavlink_fd,						///< Mavlink fd to write output to
+calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,		///< uORB handle to write output to
 					    int		cancel_sub,						///< Cancel subscription from calibration_cancel_subscribe
 					    bool	side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
 					    calibration_from_orientation_worker_t calibration_worker,		///< Worker routine which performs the actual calibration
@@ -111,5 +111,29 @@ int calibrate_cancel_subscribe(void);
 void calibrate_cancel_unsubscribe(int cancel_sub);
 
 /// Used to periodically check for a cancel command
-bool calibrate_cancel_check(int mavlink_fd,	///< Mavlink fd for output
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 			    int cancel_sub);	///< Cancel subcription fromcalibration_cancel_subscribe
+
+
+// TODO FIXME: below are workarounds for QGC. The issue is that sometimes
+// a mavlink log message is overwritten by the following one. A workaround
+// is to wait for some time after publishing each message and hope that it
+// gets sent out in the meantime.
+
+#define calibration_log_info(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_info(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);
+
+#define calibration_log_critical(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_critical(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);
+
+#define calibration_log_emergency(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_emergency(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);

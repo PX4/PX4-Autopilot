@@ -38,6 +38,7 @@
  */
 
 #include "device.h"
+#include "px4_log.h"
 
 #include <nuttx/arch.h>
 #include <stdio.h>
@@ -94,7 +95,7 @@ Device::Device(const char *name,
 	_irq_attached(false)
 {
 	sem_init(&_lock, 0, 1);
-        
+
 	/* setup a default device ID. When bus_type is UNKNOWN the
 	   other fields are invalid */
 	_device_id.devid = 0;
@@ -108,8 +109,9 @@ Device::~Device()
 {
 	sem_destroy(&_lock);
 
-	if (_irq_attached)
+	if (_irq_attached) {
 		unregister_interrupt(_irq);
+	}
 }
 
 int
@@ -125,8 +127,9 @@ Device::init()
 		/* register */
 		ret = register_interrupt(_irq, this);
 
-		if (ret != OK)
+		if (ret != OK) {
 			goto out;
+		}
 
 		_irq_attached = true;
 	}
@@ -138,15 +141,17 @@ out:
 void
 Device::interrupt_enable()
 {
-	if (_irq_attached)
+	if (_irq_attached) {
 		up_enable_irq(_irq);
+	}
 }
 
 void
 Device::interrupt_disable()
 {
-	if (_irq_attached)
+	if (_irq_attached) {
 		up_disable_irq(_irq);
+	}
 }
 
 void
@@ -154,34 +159,6 @@ Device::interrupt(void *context)
 {
 	// default action is to disable the interrupt so we don't get called again
 	interrupt_disable();
-}
-
-void
-Device::log(const char *fmt, ...)
-{
-	va_list	ap;
-
-	printf("[%s] ", _name);
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-	fflush(stdout);
-}
-
-void
-Device::debug(const char *fmt, ...)
-{
-	va_list	ap;
-
-	if (_debug_enabled) {
-		printf("<%s> ", _name);
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
-		printf("\n");
-		fflush(stdout);
-	}
 }
 
 static int
@@ -251,6 +228,7 @@ Device::ioctl(unsigned operation, unsigned &arg)
 	case DEVIOCGDEVICEID:
 		return (int)_device_id.devid;
 	}
+
 	return -ENODEV;
 }
 

@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file ms5611_i2c.cpp
-  *
-  * SIM interface for MS5611
-  */
+/**
+ * @file ms5611_i2c.cpp
+ *
+ * SIM interface for MS5611
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -127,6 +127,7 @@ MS5611_SIM::dev_read(unsigned offset, void *data, unsigned count)
 	/* read the most recent measurement */
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, &buf[0], 3);
+
 	if (ret == PX4_OK) {
 		/* fetch the raw value */
 		cvt->b[0] = buf[2];
@@ -178,7 +179,7 @@ int
 MS5611_SIM::_measure(unsigned addr)
 {
 	/*
-	 * Disable retries on this command; we can't know whether failure 
+	 * Disable retries on this command; we can't know whether failure
 	 * means the device did or did not see the command.
 	 */
 	_retries = 0;
@@ -197,7 +198,7 @@ MS5611_SIM::_read_prom()
 
 int
 MS5611_SIM::transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len)
+		     uint8_t *recv, unsigned recv_len)
 {
 	// TODO add Simulation data connection so calls retrieve
 	// data from the simulator

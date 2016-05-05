@@ -80,15 +80,15 @@ int muorb_test_main(int argc, char *argv[])
 			/* this is not an error */
 			return 0;
 		}
-                
-                PX4_INFO( "before starting the muorb_test_entry task" );
+
+		PX4_INFO("before starting the muorb_test_entry task");
 
 		daemon_task = px4_task_spawn_cmd("muorb_test",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       8192,
-				       muorb_test_entry,
-				       (char* const*)argv);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 8192,
+						 muorb_test_entry,
+						 (char *const *)argv);
 
 		return 0;
 	}

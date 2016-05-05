@@ -41,6 +41,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
+#include <px4_sem.hpp>
 #include <stdlib.h>
 
 std::map<std::string, uORB::DeviceNode *> uORB::DeviceMaster::_node_map;
@@ -253,19 +254,19 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 		return -EIO;
 	}
 
-	/* Perform an atomic copy. */
 	lock();
 	memcpy(_data, buffer, _meta->o_size);
-	unlock();
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 	_generation++;
 
+	_published = true;
+
+	unlock();
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
-
-	_published = true;
 
 	return _meta->o_size;
 }
@@ -278,15 +279,22 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE:
+		lock();
 		*(hrt_abstime *)arg = _last_update;
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCUPDATED:
+		lock();
 		*(bool *)arg = appears_updated(sd);
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCSETINTERVAL:
+		lock();
 		sd->update_interval = arg;
+		sd->last_update = hrt_absolute_time();
+		unlock();
 		return PX4_OK;
 
 	case ORBIOCGADVERTISER:
@@ -351,6 +359,30 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	return PX4_OK;
 }
 
+int uORB::DeviceNode::unadvertise(orb_advert_t handle)
+{
+	if (handle == nullptr) {
+		return -EINVAL;
+	}
+
+	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
+
+	/*
+	 * We are cheating a bit here. First, with the current implementation, we can only
+	 * have multiple publishers for instance 0. In this case the caller will have
+	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
+	 * necessary.
+	 * In case of multiple instances, we have at most 1 publisher per instance and
+	 * we can signal an instance as 'free' by setting _published to false.
+	 * We never really free the DeviceNode, for this we would need reference counting
+	 * of subscribers and publishers. But we also do not have a leak since future
+	 * publishers reuse the same DeviceNode object.
+	 */
+	devnode->_published = false;
+
+	return PX4_OK;
+}
+
 pollevent_t
 uORB::DeviceNode::poll_state(device::file_t *filp)
 {
@@ -384,14 +416,19 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
+
+	/* block if in simulation mode */
+	while (px4_sim_delay_enabled()) {
+		usleep(100);
+	}
+
 	//warnx("uORB::DeviceNode::appears_updated sd = %p", sd);
 	/* assume it doesn't look updated */
 	bool ret = false;
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
-		ret = false;
-		goto out;
+		return false;
 	}
 
 	/*
@@ -421,38 +458,22 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 			break;
 		}
 
-		/*
-		 * If the interval timer is still running, the topic should not
-		 * appear updated, even though at this point we know that it has.
-		 * We have previously been through here, so the subscriber
-		 * must have collected the update we reported, otherwise
-		 * update_reported would still be true.
-		 */
-		if (!hrt_called(&sd->update_call)) {
+		// If we have not yet reached the deadline, then assume that we can ignore any
+		// newly received data.
+		if (sd->last_update + sd->update_interval > hrt_absolute_time()) {
 			break;
 		}
-
-		/*
-		 * Make sure that we don't consider the topic to be updated again
-		 * until the interval has passed once more by restarting the interval
-		 * timer and thereby re-scheduling a poll notification at that time.
-		 */
-		hrt_call_after(&sd->update_call,
-			       sd->update_interval,
-			       &uORB::DeviceNode::update_deferred_trampoline,
-			       (void *)this);
 
 		/*
 		 * Remember that we have told the subscriber that there is data.
 		 */
 		sd->update_reported = true;
+		sd->last_update = hrt_absolute_time();
 		ret = true;
 
 		break;
 	}
 
-out:
-	/* consider it updated */
 	return ret;
 }
 
@@ -519,14 +540,14 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int16_t uORB::DeviceNode::process_remove_subscription()
 {
-	return 0;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -585,11 +606,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			uORB::DeviceNode *node;
 
-			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
-				*(adv->instance) = 0;
-			}
-
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
@@ -597,14 +613,24 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* ensure that only one advertiser runs through this critical section */
-			lock();
-
 			ret = ERROR;
 
 			/* try for topic groups */
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
+
+			if (adv->instance) {
+				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+				 * we do not want to start with 0, but with the instance the subscriber actually requests.
+				 */
+				group_tries = *adv->instance;
+
+				if (group_tries >= max_group_tries) {
+					return -ENOMEM;
+				}
+			}
+
+			SmartLock smart_lock(_lock);
 
 			do {
 				/* if path is modifyable change try index */
@@ -625,7 +651,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					// FIXME - looks like we leaked memory here for objname
+					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -634,9 +660,8 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					unlock();
-
-					// FIXME - looks like we leaked memory here for devpath and objname
+					free((void *)objname);
+					free((void *)devpath);
 					return -ENOMEM;
 				}
 
@@ -675,12 +700,9 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			} while (ret != PX4_OK && (group_tries < max_group_tries));
 
-			if (group_tries > max_group_tries) {
+			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
-
-			/* the file handle for the driver has been created, unlock */
-			unlock();
 
 			return ret;
 		}
@@ -696,8 +718,10 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 	uORB::DeviceNode *rc = nullptr;
 	std::string np(nodepath);
 
-	if (_node_map.find(np) != _node_map.end()) {
-		rc = _node_map[np];
+	auto iter = _node_map.find(np);
+
+	if (iter != _node_map.end()) {
+		rc = iter->second;
 	}
 
 	return rc;

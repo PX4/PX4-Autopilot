@@ -37,21 +37,23 @@
 #include "uORB/topics/esc_status.h"
 #include "uORB/topics/vehicle_command.h"
 
-class MuorbTestExample {
+class MuorbTestExample
+{
 public:
 	MuorbTestExample() {};
-
 	~MuorbTestExample() {};
 
 	int main();
 
 	static px4::AppState appState; /* track requests to terminate app */
-private:
-    int DefaultTest();
-    int PingPongTest();
-    int FileReadTest();
 
-   struct esc_status_s m_esc_status;
-   struct vehicle_command_s m_vc;
+private:
+	int DefaultTest();
+	int PingPongTest();
+	int FileReadTest();
+	int uSleepTest();
+
+	struct esc_status_s m_esc_status;
+	struct vehicle_command_s m_vc;
 
 };

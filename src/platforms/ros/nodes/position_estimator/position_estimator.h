@@ -57,6 +57,6 @@ protected:
 	ros::Publisher _vehicle_position_pub;
 
 	uint64_t _startup_time;
-
+	std::string _model_name;
 
 };

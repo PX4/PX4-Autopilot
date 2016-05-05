@@ -63,11 +63,11 @@ int hrttest_main(int argc, char *argv[])
 		}
 
 		daemon_task = px4_task_spawn_cmd("hrttest",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		return 0;
 	}

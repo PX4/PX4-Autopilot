@@ -52,6 +52,7 @@ int reboot_main(int argc, char *argv[])
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+
 	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
 		switch (ch) {
 		case 'b':
@@ -60,7 +61,7 @@ int reboot_main(int argc, char *argv[])
 
 		default:
 			PX4_ERR("usage: reboot [-b]\n"
-			     "   -b   reboot into the bootloader");
+				"   -b   reboot into the bootloader");
 
 		}
 	}

@@ -44,7 +44,7 @@ NOTE: This is only necessary if you are not using the instructions above.
 
 There is a sample startup script at `posix_configs/SITL/init/rcS`. 
 ```
-> ./mainapp ../../posix_configs/SITL/init/rcS
+> ./mainapp ../../posix-configs/SITL/init/rcS
 ```
 
 Without the `<startup_file>`, the commands can be entered at the shell prompt one at a time.  An example startup file is given below.  This example shows that the "mavlink" module has selected port 14556 for its socket server (as shown in the SITL diagram) and will listen for connections on this port.

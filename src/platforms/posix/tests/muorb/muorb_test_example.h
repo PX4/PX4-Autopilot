@@ -43,7 +43,8 @@
 #include "uORB/topics/esc_status.h"
 #include "uORB/topics/vehicle_command.h"
 
-class MuorbTestExample {
+class MuorbTestExample
+{
 public:
 	MuorbTestExample() {};
 
@@ -53,9 +54,9 @@ public:
 
 	static px4::AppState appState; /* track requests to terminate app */
 private:
-   int DefaultTest();
-   int PingPongTest();
-   struct esc_status_s m_esc_status;
-   struct vehicle_command_s m_vc;
-   
+	int DefaultTest();
+	int PingPongTest();
+	struct esc_status_s m_esc_status;
+	struct vehicle_command_s m_vc;
+
 };

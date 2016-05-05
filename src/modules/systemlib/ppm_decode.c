@@ -127,14 +127,16 @@ ppm_input_decode(bool reset, unsigned count)
 	unsigned i;
 
 	/* if we missed an edge, we have to give up */
-	if (reset)
+	if (reset) {
 		goto error;
+	}
 
 	/* how long since the last edge? */
 	width = count - ppm.last_edge;
 
-	if (count < ppm.last_edge)
-		width += ppm.count_max;	/* handle wrapped count */
+	if (count < ppm.last_edge) {
+		width += ppm.count_max;        /* handle wrapped count */
+	}
 
 	ppm.last_edge = count;
 
@@ -175,8 +177,9 @@ ppm_input_decode(bool reset, unsigned count)
 		} else {
 			/* frame channel count matches expected, let's use it */
 			if (ppm.next_channel > PPM_MIN_CHANNELS) {
-				for (i = 0; i < ppm.next_channel; i++)
+				for (i = 0; i < ppm.next_channel; i++) {
 					ppm_buffer[i] = ppm_temp_buffer[i];
+				}
 
 				ppm_last_valid_decode = hrt_absolute_time();
 			}
@@ -199,8 +202,9 @@ ppm_input_decode(bool reset, unsigned count)
 	case ARM:
 
 		/* we expect a pulse giving us the first mark */
-		if (width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too long */
+		if (width > PPM_MAX_PULSE_WIDTH) {
+			goto error;        /* pulse was too long */
+		}
 
 		/* record the mark timing, expect an inactive edge */
 		ppm.last_mark = count;
@@ -218,20 +222,23 @@ ppm_input_decode(bool reset, unsigned count)
 	case ACTIVE:
 
 		/* we expect a well-formed pulse */
-		if (width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too long */
+		if (width > PPM_MAX_PULSE_WIDTH) {
+			goto error;        /* pulse was too long */
+		}
 
 		/* determine the interval from the last mark */
 		interval = count - ppm.last_mark;
 		ppm.last_mark = count;
 
 		/* if the mark-mark timing is out of bounds, abandon the frame */
-		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE))
+		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE)) {
 			goto error;
+		}
 
 		/* if we have room to store the value, do so */
-		if (ppm.next_channel < PPM_MAX_CHANNELS)
+		if (ppm.next_channel < PPM_MAX_CHANNELS) {
 			ppm_temp_buffer[ppm.next_channel++] = interval;
+		}
 
 		ppm.phase = INACTIVE;
 		return;

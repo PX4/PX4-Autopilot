@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_log.h>
+#include <px4_posix.h>
 #include <semaphore.h>
 #include <px4_workqueue.h>
 
@@ -39,7 +40,7 @@
 
 __BEGIN_DECLS
 
-extern sem_t _hrt_work_lock;
+extern px4_sem_t _hrt_work_lock;
 extern struct wqueue_s g_hrt_work;
 
 void hrt_work_queue_init(void);
@@ -49,15 +50,13 @@ void hrt_work_cancel(struct work_s *work);
 static inline void hrt_work_lock(void);
 static inline void hrt_work_lock()
 {
-	//PX4_INFO("hrt_work_lock");
-	sem_wait(&_hrt_work_lock);
+	px4_sem_wait(&_hrt_work_lock);
 }
 
 static inline void hrt_work_unlock(void);
 static inline void hrt_work_unlock()
 {
-	//PX4_INFO("hrt_work_unlock");
-	sem_post(&_hrt_work_lock);
+	px4_sem_post(&_hrt_work_lock);
 }
 
 __END_DECLS

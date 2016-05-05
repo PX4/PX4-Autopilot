@@ -53,6 +53,10 @@
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
+#include "VtolLandDetector.h"
+
+namespace landdetection
+{
 
 //Function prototypes
 static int land_detector_start(const char *mode);
@@ -67,48 +71,33 @@ extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 //Private variables
 static LandDetector *land_detector_task = nullptr;
-static int _landDetectorTaskID = -1;
 static char _currentMode[12];
-
-/**
-* Deamon thread function
-**/
-static void land_detector_deamon_thread(int argc, char *argv[])
-{
-	land_detector_task->start();
-}
 
 /**
 * Stop the task, force killing it if it doesn't stop by itself
 **/
 static void land_detector_stop()
 {
-	if (land_detector_task == nullptr || _landDetectorTaskID == -1) {
-		warnx("not running");
+	if (land_detector_task == nullptr) {
+		PX4_WARN("not running");
 		return;
 	}
 
 	land_detector_task->shutdown();
 
-	//Wait for task to die
+	// Wait for task to die
 	int i = 0;
 
 	do {
 		/* wait 20ms */
 		usleep(20000);
 
-		/* if we have given up, kill it */
-		if (++i > 50) {
-			px4_task_delete(_landDetectorTaskID);
-			break;
-		}
-	} while (land_detector_task->isRunning());
+	} while (land_detector_task->isRunning() && ++i < 50);
 
 
 	delete land_detector_task;
 	land_detector_task = nullptr;
-	_landDetectorTaskID = -1;
-	warnx("land_detector has been stopped");
+	PX4_WARN("land_detector has been stopped");
 }
 
 /**
@@ -116,8 +105,8 @@ static void land_detector_stop()
 **/
 static int land_detector_start(const char *mode)
 {
-	if (land_detector_task != nullptr || _landDetectorTaskID != -1) {
-		warnx("already running");
+	if (land_detector_task != nullptr) {
+		PX4_WARN("already running");
 		return -1;
 	}
 
@@ -128,27 +117,25 @@ static int land_detector_start(const char *mode)
 	} else if (!strcmp(mode, "multicopter")) {
 		land_detector_task = new MulticopterLandDetector();
 
+	} else if (!strcmp(mode, "vtol")) {
+		land_detector_task = new VtolLandDetector();
+
 	} else {
-		warnx("[mode] must be either 'fixedwing' or 'multicopter'");
+		PX4_WARN("[mode] must be either 'fixedwing' or 'multicopter'");
 		return -1;
 	}
 
 	//Check if alloc worked
 	if (land_detector_task == nullptr) {
-		warnx("alloc failed");
+		PX4_WARN("alloc failed");
 		return -1;
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT,
-					     1000,
-					     (px4_main_t)&land_detector_deamon_thread,
-					     nullptr);
+	int ret = land_detector_task->start();
 
-	if (_landDetectorTaskID < 0) {
-		warnx("task start failed: %d", -errno);
+	if (ret) {
+		PX4_WARN("task start failed: %d", -errno);
 		return -1;
 	}
 
@@ -161,18 +148,14 @@ static int land_detector_start(const char *mode)
 	/* check if the waiting involving dots and a newline are still needed */
 	if (!land_detector_task->isRunning()) {
 		while (!land_detector_task->isRunning()) {
-
-			printf(".");
-			fflush(stdout);
 			usleep(50000);
 
 			if (hrt_absolute_time() > timeout) {
-				warnx("start failed - timeout");
+				PX4_WARN("start failed - timeout");
 				land_detector_stop();
 				return 1;
 			}
 		}
-		printf("\n");
 	}
 
 	//Remember current active mode
@@ -193,9 +176,10 @@ int land_detector_main(int argc, char *argv[])
 
 	if (argc >= 2 && !strcmp(argv[1], "start")) {
 		if (land_detector_start(argv[2]) != 0) {
-			warnx("land_detector start failed");
+			PX4_WARN("land_detector start failed");
 			return 1;
 		}
+
 		return 0;
 	}
 
@@ -208,22 +192,24 @@ int land_detector_main(int argc, char *argv[])
 		if (land_detector_task) {
 
 			if (land_detector_task->isRunning()) {
-				warnx("running (%s): %s", _currentMode, (land_detector_task->isLanded()) ? "LANDED" : "IN AIR");
+				PX4_WARN("running (%s): %s", _currentMode, (land_detector_task->isLanded()) ? "LANDED" : "IN AIR");
 
 			} else {
-				warnx("exists, but not running (%s)", _currentMode);
+				PX4_WARN("exists, but not running (%s)", _currentMode);
 			}
 
 			return 0;
 
 		} else {
-			warnx("not running");
+			PX4_WARN("not running");
 			return 1;
 		}
 	}
 
 exiterr:
-	warnx("usage: land_detector {start|stop|status} [mode]");
-	warnx("mode can either be 'fixedwing' or 'multicopter'");
+	PX4_WARN("usage: land_detector {start|stop|status} [mode]");
+	PX4_WARN("mode can either be 'fixedwing' or 'multicopter'");
 	return 1;
+}
+
 }

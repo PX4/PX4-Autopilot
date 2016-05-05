@@ -165,5 +165,5 @@ int test_uart_baudchange(int argc, char *argv[])
 cleanup:
 	close(uart2);
 	return ret;
-	
+
 }

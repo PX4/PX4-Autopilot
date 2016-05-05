@@ -11,6 +11,13 @@ CMAKE_FORCE_CXX_COMPILER( clang++ Clang )
 #set( CMAKE_FIND_ROOT_PATH_MODE_LIBARARY_ONLY )
 #set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE_ONLY )
 
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+
 project(unittests)
 enable_testing()
 
@@ -19,9 +26,9 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -g -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall -Werror")
 elseif(COMPILER_SUPPORTS_CXX0X)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -g -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -D__PX4_UNIT_TESTS -g -Wall -Werror")
 else()
   message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
@@ -30,7 +37,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g")
 #set(CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem" )
 #set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem" )
 
-set(GTEST_DIR gtest)
+set(GTEST_DIR googletest)
 add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
@@ -41,10 +48,15 @@ include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/modules/uORB)
 include_directories(${PX_SRC}/lib)
 include_directories(${PX_SRC}/drivers)
+include_directories(${PX_SRC}/lib/DriverFramework/framework/include)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules/uORB)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules/param)
 include_directories(${PX_SRC}/platforms)
 include_directories(${PX_SRC}/platforms/posix/include)
 include_directories(${PX_SRC}/platforms/posix/px4_layer)
-include_directories(${PX_SRC}/drivers/device )
+include_directories(${PX_SRC}/drivers/device)
 
 
 add_definitions(-D__EXPORT=)
@@ -74,33 +86,35 @@ function(add_gtest)
 endfunction()
 
 add_library( px4_platform 
-#                           ${PX_SRC}/platforms/common/px4_getopt.c
-                           ${PX_SRC}/platforms/common/px4_log.c
+#                          ${PX_SRC}/platforms/common/px4_getopt.c
+                           ${PX_SRC}/platforms/posix/px4_layer/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
-                           ${PX_SRC}/platforms/posix/px4_layer/work_lock.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_rem.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_addlast.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_lock.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_cancel.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_work_cancel.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_thread.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_thread.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_rem.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_addlast.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_addafter.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_remfirst.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_remfirst.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_addlast.c
                            ${PX_SRC}/platforms/posix/px4_layer/lib_crc32.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_addafter.c
-                           ${PX_SRC}/platforms/posix/px4_layer/queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_cancel.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_work_cancel.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_remfirst.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_thread.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_thread.c
                            ${PX_SRC}/platforms/posix/px4_layer/drv_hrt.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_remfirst.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_addlast.c
+                           ${PX_SRC}/platforms/posix/px4_layer/px4_sem.cpp
                            ${PX_SRC}/drivers/device/device_posix.cpp 
                            ${PX_SRC}/drivers/device/vdev.cpp 
                            ${PX_SRC}/drivers/device/vfile.cpp
                            ${PX_SRC}/drivers/device/vdev_posix.cpp
                            ${PX_SRC}/drivers/device/i2c_posix.cpp 
                            ${PX_SRC}/drivers/device/sim.cpp 
-                           ${PX_SRC}/drivers/device/ringbuffer.cpp                           
+                           ${PX_SRC}/drivers/device/ringbuffer.cpp
+                           ${PX_SRC}/../build_posix_sitl_default/src/modules/param/px4_parameters.c                         
  )
                            
 #target_include_directories( px4_platform PUBLIC ${PX_SRC}/platforms )                           
@@ -123,8 +137,7 @@ add_executable(mixer_test mixer_test.cpp hrt.cpp
                           ${PX_SRC}/modules/systemlib/mixer/mixer_simple.cpp
                           ${PX_SRC}/modules/systemlib/pwm_limit/pwm_limit.c
                           ${PX_SRC}/systemcmds/tests/test_mixer.cpp)
-
-target_link_libraries( mixer_test LINK_PUBLIC px4_platform )
+target_link_libraries( mixer_test px4_platform )
 
                           
 add_gtest(mixer_test)
@@ -135,19 +148,21 @@ target_link_libraries( conversion_test px4_platform )
 add_gtest(conversion_test)
 
 # sbus2_test
-add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
+add_executable(sbus2_test sbus2_test.cpp hrt.cpp
+                          ${PX_SRC}/lib/rc/sbus.c)
 target_link_libraries( sbus2_test px4_platform )
 add_gtest(sbus2_test)
 
-# st24_test
-add_executable(st24_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c)
-target_link_libraries( st24_test px4_platform )
-add_gtest(st24_test)
+# DSM test
+add_executable(dsm_test dsm_test.cpp hrt.cpp
+                          ${PX_SRC}/lib/rc/dsm.c)
+target_link_libraries( dsm_test px4_platform )
+add_gtest(dsm_test)
 
-# sumd_test
-add_executable(sumd_test sumd_test.cpp hrt.cpp ${PX_SRC}/lib/rc/sumd.c)
-target_link_libraries( sumd_test px4_platform )
-add_gtest(sumd_test)
+# st24_test
+add_executable(rc_input_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c sumd_test.cpp ${PX_SRC}/lib/rc/sumd.c)
+target_link_libraries(rc_input_test px4_platform)
+add_gtest(rc_input_test)
 
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
@@ -155,26 +170,26 @@ target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
-add_executable(param_test param_test.cpp
-                          hrt.cpp
-                          uorb_stub.cpp
-                          ${PX_SRC}/modules/systemlib/param/param.c
-                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
-                          )
-target_link_libraries( param_test px4_platform )                          
+#add_executable(param_test param_test.cpp
+#                          hrt.cpp
+#                          uorb_stub.cpp
+#                          ${PX_SRC}/modules/systemlib/param/param.c
+#                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
+#                          )
+#target_link_libraries( param_test px4_platform )                          
                           
-add_gtest(param_test)
+#add_gtest(param_test)
 
 # uorb test
-add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
-                          uorb_unittests/uORBCommunicatorMock.cpp
-                          uorb_unittests/uORBCommunicatorMockLoopback.cpp
-                          ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
-                          ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
-                          ${PX_SRC}/modules/uORB/objects_common.cpp
-                          ${PX_SRC}/modules/uORB/uORBUtils.cpp
-                          ${PX_SRC}/modules/uORB/uORB.cpp
-                          )
-target_link_libraries( uorb_tests px4_platform )
+#add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
+#                          uorb_unittests/uORBCommunicatorMock.cpp
+#                          uorb_unittests/uORBCommunicatorMockLoopback.cpp
+#                          ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
+#                          ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
+#                          ${PX_SRC}/modules/uORB/objects_common.cpp
+#                          ${PX_SRC}/modules/uORB/uORBUtils.cpp
+#                          ${PX_SRC}/modules/uORB/uORB.cpp
+#                          )
+#target_link_libraries( uorb_tests px4_platform )
                           
-add_gtest(uorb_tests)
+#add_gtest(uorb_tests)

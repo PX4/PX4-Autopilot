@@ -1,5 +1,7 @@
 import sys
 import re
+global default_var
+default_var = {}
 
 class ParameterGroup(object):
     """
@@ -43,11 +45,13 @@ class Parameter(object):
         "min": 5,
         "max": 4,
         "unit": 3,
+        "decimal": 2,
         # all others == 0 (sorted alphabetically)
     }
 
     def __init__(self, name, type, default = ""):
         self.fields = {}
+        self.values = {}
         self.name = name
         self.type = type
         self.default = default
@@ -67,6 +71,12 @@ class Parameter(object):
         """
         self.fields[code] = value
 
+    def SetEnumValue(self, code, value):
+        """
+        Set named enum value
+        """
+        self.values[code] = value
+
     def GetFieldCodes(self):
         """
         Return list of existing field codes in convenient order
@@ -84,7 +94,26 @@ class Parameter(object):
         if not fv:
                 # required because python 3 sorted does not accept None
                 return ""
-        return self.fields.get(code)
+        return fv
+
+    def GetEnumCodes(self):
+        """
+        Return list of existing value codes in convenient order
+        """
+        keys = self.values.keys()
+        #keys = sorted(keys)
+        #keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
+        return keys
+
+    def GetEnumValue(self, code):
+        """
+        Return value of the given enum code or None if not found.
+        """
+        fv =  self.values.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
+        return fv
 
 class SourceParser(object):
     """
@@ -98,11 +127,13 @@ class SourceParser(object):
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
     re_px4_parameter_definition = re.compile(r'PX4_PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*\)\s*;')
+    re_px4_param_default_definition = re.compile(r'#define\s*PARAM_([A-Z_][A-Z0-9_]*)\s*([^ ,\)]+)\s*')
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
+    re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean"])
 
     # Order of parameter groups
     priority = {
@@ -113,14 +144,7 @@ class SourceParser(object):
     def __init__(self):
         self.param_groups = {}
 
-    def GetSupportedExtensions(self):
-        """
-        Returns list of supported file extensions that can be parsed by this
-        parser.
-        """
-        return [".cpp", ".c"]
-
-    def Parse(self, contents):
+    def Parse(self, scope, contents):
         """
         Incrementally parse program contents and append all found parameters
         to the list.
@@ -139,6 +163,7 @@ class SourceParser(object):
                 short_desc = None
                 long_desc = None
                 tags = {}
+                def_values = {}
             elif state is not None and state != "comment-processed":
                 m = self.re_comment_end.search(line)
                 if m:
@@ -158,7 +183,12 @@ class SourceParser(object):
                         m = self.re_comment_tag.match(comment_content)
                         if m:
                             tag, desc = m.group(1, 2)
-                            tags[tag] = desc
+                            if (tag == "value"):
+                                # Take the meta info string and split the code and description
+                                metainfo = desc.split(" ",  1)
+                                def_values[metainfo[0]] = metainfo[1]
+                            else:
+                                tags[tag] = desc
                             current_tag = tag
                             state = "wait-tag-end"
                         elif state == "wait-short":
@@ -188,66 +218,110 @@ class SourceParser(object):
                 if last_comment_line:
                     state = "comment-processed"
             else:
+                tp = None
+                name = None
+                defval = ""
                 # Non-empty line outside the comment
+                m = self.re_px4_param_default_definition.match(line)
+                # Default value handling
+                if m:
+                    name_m, defval_m = m.group(1,2)
+                    default_var[name_m] = defval_m
                 m = self.re_parameter_definition.match(line)
                 if m:
                     tp, name, defval = m.group(1, 2, 3)
+                else:
+                    m = self.re_px4_parameter_definition.match(line)
+                    if m:
+                        tp, name = m.group(1, 2)
+                        if (name+'_DEFAULT') in default_var:
+                            defval = default_var[name+'_DEFAULT']
+                if tp is not None:
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
-                    if self.re_is_a_number.match(defval):
+                    if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
+                    param.SetField("scope", scope)
                     param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
                     group = "Miscellaneous"
                     if state == "comment-processed":
                         if short_desc is not None:
-                            param.SetField("short_desc",
-                                    self.re_remove_dots.sub('', short_desc))
+                            param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
+                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
                             param.SetField("long_desc", long_desc)
                         for tag in tags:
                             if tag == "group":
                                 group = tags[tag]
                             elif tag not in self.valid_tags:
-                                sys.stderr.write("Skipping invalid "
-                                        "documentation tag: '%s'\n" % tag)
+                                sys.stderr.write("Skipping invalid documentation tag: '%s'\n" % tag)
+                                return False
                             else:
                                 param.SetField(tag, tags[tag])
+                        for def_value in def_values:
+                            param.SetEnumValue(def_value, def_values[def_value])
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
                     self.param_groups[group].AddParameter(param)
-                else:
-                    # Nasty code dup, but this will all go away soon, so quick and dirty (DonLakeFlyer)
-                    m = self.re_px4_parameter_definition.match(line)
-                    if m:
-                        tp, name = m.group(1, 2)
-                        param = Parameter(name, tp)
-                        param.SetField("short_desc", name)
-                        # If comment was found before the parameter declaration,
-                        # inject its data into the newly created parameter.
-                        group = "Miscellaneous"
-                        if state == "comment-processed":
-                            if short_desc is not None:
-                                param.SetField("short_desc",
-                                   self.re_remove_dots.sub('', short_desc))
-                            if long_desc is not None:
-                                param.SetField("long_desc", long_desc)
-                            for tag in tags:
-                                if tag == "group":
-                                    group = tags[tag]
-                                elif tag not in self.valid_tags:
-                                    sys.stderr.write("Skipping invalid "
-                                             "documentation tag: '%s'\n" % tag)
-                                else:
-                                    param.SetField(tag, tags[tag])
-                        # Store the parameter
-                        if group not in self.param_groups:
-                            self.param_groups[group] = ParameterGroup(group)
-                        self.param_groups[group].AddParameter(param)
-                    # Reset parsed comment.
-                    state = None
+                state = None
+        return True
+    
+    def IsNumber(self, numberString):
+        try:
+            float(numberString)
+            return True
+        except ValueError:
+            return False
+
+    def Validate(self):
+        """
+        Validates the parameter meta data.
+        """
+        seenParamNames = []
+        for group in self.GetParamGroups():
+            for param in group.GetParams():
+                name  = param.GetName()
+                board = param.GetFieldValue("board")
+                # Check for duplicates
+                name_plus_board = name + "+" + board
+                for seenParamName in seenParamNames:
+                    if seenParamName == name_plus_board:
+                        sys.stderr.write("Duplicate parameter definition: {0}\n".format(name_plus_board))
+                        return False
+                seenParamNames.append(name_plus_board)
+                # Validate values
+                default = param.GetDefault()
+                min = param.GetFieldValue("min")
+                max = param.GetFieldValue("max")
+                #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
+                if default != "" and not self.IsNumber(default):
+                    sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
+                    return False
+                if min != "":
+                    if not self.IsNumber(min):
+                        sys.stderr.write("Min value not number: {0} {1}\n".format(name, min))
+                        return False
+                    if default != "" and float(default) < float(min):
+                        sys.stderr.write("Default value is smaller than min: {0} default:{1} min:{2}\n".format(name, default, min))
+                        return False
+                if max != "":
+                    if not self.IsNumber(max):
+                        sys.stderr.write("Max value not number: {0} {1}\n".format(name, max))
+                        return False
+                    if default != "" and float(default) > float(max):
+                        sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
+                        return False
+                for code in param.GetEnumCodes():
+                        if not self.IsNumber(code):
+                            sys.stderr.write("Min value not number: {0} {1}\n".format(name, code))
+                            return False
+                        if param.GetEnumValue(code) == "":
+                            sys.stderr.write("Description for enum value is empty: {0} {1}\n".format(name, code))
+                            return False
+        return True
 
     def GetParamGroups(self):
         """

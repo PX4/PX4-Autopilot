@@ -51,8 +51,16 @@
 #define	HW_ARCH "PX4FMU_V2"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
+#define	HW_ARCH "PX4FMU_V4"
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 #define	HW_ARCH "AEROCORE"
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
+#define HW_ARCH "MINDPX_V2"
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
@@ -62,7 +70,17 @@
 #ifdef CONFIG_ARCH_BOARD_SITL
 #define	HW_ARCH "LINUXTEST"
 #endif
+
 #ifdef CONFIG_ARCH_BOARD_EAGLE
+#define	HW_ARCH "LINUXTEST"
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_EXCELSIOR
+#define HW_ARCH "LINUXTEST"
+#endif
+
+
+#ifdef CONFIG_ARCH_BOARD_RPI2
 #define	HW_ARCH "LINUXTEST"
 #endif
 #endif /* VERSION_H_ */

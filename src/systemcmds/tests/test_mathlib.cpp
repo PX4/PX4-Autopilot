@@ -49,7 +49,7 @@
 
 #include "tests.h"
 
-#define TEST_OP(_title, _op) { unsigned int n = 60000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
+#define TEST_OP(_title, _op) { unsigned int n = 30000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
 
 using namespace math;
 
@@ -100,7 +100,7 @@ int test_mathlib(int argc, char *argv[])
 		TEST_OP("Vector<3> length squared", v1.length_squared());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
-		// Need pragma here intead of moving variable out of TEST_OP and just reference because
+		// Need pragma here instead of moving variable out of TEST_OP and just reference because
 		// TEST_OP measures performance of vector operations.
 		TEST_OP("Vector<3> element read", volatile float a = v1(0));
 		TEST_OP("Vector<3> element read direct", volatile float a = v1.data[0]);

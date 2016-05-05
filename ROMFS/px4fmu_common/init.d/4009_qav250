@@ -1,0 +1,34 @@
+#!nsh
+#
+# @name Lumenier QAV250
+#
+# @type Quadrotor x
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Mark Whitehorn <kd0aij@gmail.com>
+#
+
+sh /etc/init.d/4001_quad_x
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.05
+	param set MC_ROLLRATE_I 0.05
+	param set MC_ROLLRATE_D 0.002
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.08
+	param set MC_PITCHRATE_I 0.1
+	param set MC_PITCHRATE_D 0.003
+	param set MC_YAW_P 2.8
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.1
+	param set MC_YAWRATE_D 0.0
+	param set PWM_MIN 1075
+	param set MPC_THR_MIN 0.06
+	param set MPC_MANTHR_MIN 0.06
+	param set CBRK_IO_SAFETY 22027
+fi

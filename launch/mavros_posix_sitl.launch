@@ -1,0 +1,22 @@
+<launch>
+    <!-- MAVROS posix SITL environment launch script -->
+
+    <arg name="headless" default="false"/>
+    <arg name="gui" default="true"/>
+    <arg name="ns" default="/"/>
+    <arg name="world" default="iris"/>
+    <arg name="build" default="posix_sitl_default"/>
+
+    <include file="$(find px4)/launch/posix_sitl.launch">
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="ns" value="$(arg ns)"/>
+        <arg name="world" value="$(arg world)"/>
+        <arg name="build" value="$(arg build)"/>
+    </include>
+
+    <include file="$(find px4)/launch/mavros.launch">
+        <arg name="ns" value="$(arg ns)"/>
+        <arg name="fcu_url" value="udp://:14567@localhost:14557"/>
+    </include>
+</launch>

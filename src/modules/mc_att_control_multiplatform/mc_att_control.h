@@ -64,19 +64,19 @@
 
 #include "mc_att_control_base.h"
 
-class MulticopterAttitudeControl :
+class MulticopterAttitudeControlMultiplatform :
 	public MulticopterAttitudeControlBase
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterAttitudeControl();
+	MulticopterAttitudeControlMultiplatform();
 
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
-	~MulticopterAttitudeControl();
+	~MulticopterAttitudeControlMultiplatform();
 
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);
@@ -85,10 +85,8 @@ public:
 	void spin() { _n.spin(); }
 
 private:
-	bool		_task_should_exit;			/**< if true, sensor task should exit */
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-	px4::Publisher<px4_vehicle_attitude_setpoint> 	*_att_sp_pub;			/**< attitude setpoint publication */
 	px4::Publisher<px4_vehicle_rates_setpoint> 	*_v_rates_sp_pub;		/**< rate setpoint publication */
 	px4::Publisher<px4_actuator_controls_0> 	*_actuators_0_pub;		/**< attitude actuator controls publication */
 

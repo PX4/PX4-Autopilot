@@ -108,6 +108,46 @@ usage(const char *reason)
 	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
 }
 
+int parameters_init(struct attitude_estimator_ekf_param_handles *h)
+{
+	/* PID parameters */
+	h->q0 	=	param_find("EKF_ATT_V3_Q0");
+	h->q1 	=	param_find("EKF_ATT_V3_Q1");
+	h->q2 	=	param_find("EKF_ATT_V3_Q2");
+	h->q3 	=	param_find("EKF_ATT_V3_Q3");
+
+	h->r0 	=	param_find("EKF_ATT_V4_R0");
+	h->r1 	=	param_find("EKF_ATT_V4_R1");
+	h->r2 	=	param_find("EKF_ATT_V4_R2");
+
+	h->moment_inertia_J[0]  =   param_find("ATT_J11");
+	h->moment_inertia_J[1]  =   param_find("ATT_J22");
+	h->moment_inertia_J[2]  =   param_find("ATT_J33");
+	h->use_moment_inertia	=   param_find("ATT_J_EN");
+
+	return OK;
+}
+
+int parameters_update(const struct attitude_estimator_ekf_param_handles *h, struct attitude_estimator_ekf_params *p)
+{
+	param_get(h->q0, &(p->q[0]));
+	param_get(h->q1, &(p->q[1]));
+	param_get(h->q2, &(p->q[2]));
+	param_get(h->q3, &(p->q[3]));
+
+	param_get(h->r0, &(p->r[0]));
+	param_get(h->r1, &(p->r[1]));
+	param_get(h->r2, &(p->r[2]));
+
+	for (int i = 0; i < 3; i++) {
+		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
+	}
+
+	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+
+	return OK;
+}
+
 /**
  * The attitude_estimator_ekf app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -244,8 +284,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
-	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to GPS */
 	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -383,10 +421,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_timestamp[0] != raw.timestamp) {
+					if (sensor_last_timestamp[0] != raw.gyro_timestamp[0]) {
 						update_vect[0] = 1;
 						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-						sensor_last_timestamp[0] = raw.timestamp;
+						sensor_last_timestamp[0] = raw.gyro_timestamp[0];
 					}
 
 					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
@@ -394,10 +432,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp[0];
 					}
 
 					hrt_abstime vel_t = 0;
@@ -437,14 +475,14 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp[0] &&
 						/* check that the mag vector is > 0 */
 						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp[0];
 					}
 
 					bool vision_updated = false;

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +35,7 @@
  * @file mavlink_log.c
  * MAVLink text logging.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_posix.h>
@@ -45,85 +44,40 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <mavlink/mavlink_log.h>
+#include <uORB/topics/mavlink_log.h>
+#include "mavlink_log.h"
 
-__EXPORT void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
+
+
+__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
 {
-	lb->size  = size;
-	lb->start = 0;
-	lb->count = 0;
-	lb->elems = calloc(lb->size, sizeof(struct mavlink_logmessage));
-}
+	// TODO: add compile check for maxlen
 
-__EXPORT void mavlink_logbuffer_destroy(struct mavlink_logbuffer *lb)
-{
-	lb->size  = 0;
-	lb->start = 0;
-	lb->count = 0;
-	free(lb->elems);
-}
-
-__EXPORT int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb)
-{
-	return lb->count == (int)lb->size;
-}
-
-__EXPORT int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb)
-{
-	return lb->count == 0;
-}
-
-__EXPORT void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem)
-{
-	int end = (lb->start + lb->count) % lb->size;
-	memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
-
-	if (mavlink_logbuffer_is_full(lb)) {
-		lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
-
-	} else {
-		++lb->count;
+	if (!fmt) {
+		return;
 	}
-}
 
-__EXPORT int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem)
-{
-	if (!mavlink_logbuffer_is_empty(lb)) {
-		memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
-		lb->start = (lb->start + 1) % lb->size;
-		--lb->count;
-
-		return 0;
-
-	} else {
-		return 1;
+	if (mavlink_log_pub == NULL) {
+		return;
 	}
-}
 
-__EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
-{
+	struct mavlink_log_s log_msg;
+
+	log_msg.severity = severity;
+
 	va_list ap;
+
 	va_start(ap, fmt);
-	int end = (lb->start + lb->count) % lb->size;
-	lb->elems[end].severity = severity;
-	vsnprintf(lb->elems[end].text, sizeof(lb->elems[0].text), fmt, ap);
+
+	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
+
 	va_end(ap);
 
-	/* increase count */
-	if (mavlink_logbuffer_is_full(lb)) {
-		lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
+	if (*mavlink_log_pub != NULL) {
+		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
 
 	} else {
-		++lb->count;
+		*mavlink_log_pub = orb_advertise(ORB_ID(mavlink_log), &log_msg);
 	}
 }
 
-__EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	char text[MAVLINK_LOG_MAXLEN + 1];
-	vsnprintf(text, sizeof(text), fmt, ap);
-	va_end(ap);
-	px4_ioctl(_fd, severity, (unsigned long)&text[0]);
-}

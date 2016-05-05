@@ -50,6 +50,7 @@ struct orb_test_medium {
 	char junk[64];
 };
 ORB_DEFINE(orb_test_medium, struct orb_test_medium);
+ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium);
 
 struct orb_test_large {
 	int val;
@@ -82,13 +83,22 @@ private:
 	UnitTest(const uORBTest::UnitTest &) {};
 	static int pubsubtest_threadEntry(char *const argv[]);
 	int pubsublatency_main(void);
-	//
+
+	static int pub_test_multi2_entry(char *const argv[]);
+	int pub_test_multi2_main();
+
+	volatile bool _thread_should_exit;
+
 	bool pubsubtest_passed;
 	bool pubsubtest_print;
 	int pubsubtest_res = OK;
 
+	int test_unadvertise();
+	orb_advert_t _pfd[4]; ///< used for test_multi and test_multi_reversed
+
 	int test_single();
 	int test_multi();
+	int test_multi2();
 	int test_multi_reversed();
 
 	int test_fail(const char *fmt, ...);
@@ -138,6 +148,8 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	if (pubsub_task < 0) {
 		return test_fail("failed launching task");
 	}
+
+	orb_unadvertise(pfd0);
 
 	return pubsubtest_res;
 }

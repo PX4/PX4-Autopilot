@@ -39,8 +39,10 @@
 ifeq ($(PX4_TARGET_OS),qurt)
 
 SRCS		= \
-		  muorb_fastrpc.cpp \
+		  px4muorb.cpp \
 		  uORBFastRpcChannel.cpp
+endif
+
 
 INCLUDE_DIRS	+= \
 		  ${PX4_BASE}/src/modules/uORB

@@ -61,6 +61,12 @@ public:
 	virtual void on_active();
 
 private:
+	/**
+	 * Use the stored reposition location of the navigator
+	 * to move to a new location.
+	 */
+	void reposition();
+
 	control::BlockParamFloat _param_min_alt;
 };
 

@@ -1,8 +1,10 @@
 #!nsh
 #
-# Steadidrone QU4D
+# @name Steadidrone QU4D
 #
-# Thomas Gubler <thomas@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
@@ -27,8 +29,5 @@ then
 fi
 
 set MIXER quad_w
-
-set PWM_MIN 1210
-set PWM_MAX 2100
 
 set PWM_OUT 1234

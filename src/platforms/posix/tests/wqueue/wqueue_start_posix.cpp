@@ -52,7 +52,7 @@ static int daemon_task;             /* Handle of deamon task / thread */
 extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
 int wqueue_test_main(int argc, char *argv[])
 {
-	
+
 	if (argc < 2) {
 		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
 		return 1;
@@ -67,11 +67,11 @@ int wqueue_test_main(int argc, char *argv[])
 		}
 
 		daemon_task = px4_task_spawn_cmd("wqueue",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		return 0;
 	}

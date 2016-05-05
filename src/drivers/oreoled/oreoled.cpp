@@ -202,10 +202,10 @@ OREOLED::info()
 	/* print health info on each LED */
 	for (uint8_t i = 0; i < OREOLED_NUM_LEDS; i++) {
 		if (!_healthy[i]) {
-			log("oreo %u: BAD", (int)i);
+			DEVICE_LOG("oreo %u: BAD", (int)i);
 
 		} else {
-			log("oreo %u: OK", (int)i);
+			DEVICE_LOG("oreo %u: OK", (int)i);
 		}
 	}
 

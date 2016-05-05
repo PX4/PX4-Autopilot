@@ -1,8 +1,10 @@
 <launch>
 <arg name="ns"/>
+<arg name="mavlink_fcu_url" default="udp://localhost:14565@localhost:14560"/>
 
 <include file="$(find px4)/launch/multicopter_w.launch">
 	<arg name="ns" value="$(arg ns)"/>
+	<arg name="mavlink_fcu_url" value="$(arg mavlink_fcu_url)" />
 </include>
 
 <group ns="$(arg ns)">

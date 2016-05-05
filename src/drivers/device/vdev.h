@@ -37,7 +37,7 @@
  * Definitions for the generic base classes in the virtual device framework.
  */
 
-#pragma once 
+#pragma once
 
 /*
  * Includes here should only cover the needs of the framework definitions.
@@ -50,6 +50,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <semaphore.h>
+
+#define DEVICE_LOG(FMT, ...) PX4_LOG_NAMED(_name, FMT, ##__VA_ARGS__)
+#define DEVICE_DEBUG(FMT, ...) PX4_LOG_NAMED_COND(_name, _debug_enabled, FMT, ##__VA_ARGS__)
 
 /**
  * Namespace encapsulating all device framework classes, functions and data.
@@ -115,17 +118,17 @@ public:
 	 * @param data		The buffer from which values should be read.
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
-	 */	 
+	 */
 	virtual int	dev_write(unsigned address, void *data, unsigned count);
 
-        /**
-         * Perform a device-specific operation.
-         *
-         * @param operation     The operation to perform.
-         * @param arg           An argument to the operation.
-         * @return              Negative errno on error, OK or positive value on success.
-         */
-        virtual int     dev_ioctl(unsigned operation, unsigned &arg);
+	/**
+	 * Perform a device-specific operation.
+	 *
+	 * @param operation     The operation to perform.
+	 * @param arg           An argument to the operation.
+	 * @return              Negative errno on error, OK or positive value on success.
+	 */
+	virtual int     dev_ioctl(unsigned operation, unsigned arg);
 
 	/*
 	  device bus types for DEVID
@@ -145,19 +148,20 @@ public:
 	  parameter protocol without loss of information.
 	 */
 	struct DeviceStructure {
-		enum DeviceBusType bus_type:3;
-		uint8_t bus:5;     // which instance of the bus type
-		uint8_t address;   // address on the bus (eg. I2C address)
-		uint8_t devtype;   // device class specific device type
-	};
+		enum DeviceBusType bus_type : 3;
+			uint8_t bus: 5;    // which instance of the bus type
+			uint8_t address;   // address on the bus (eg. I2C address)
+			uint8_t devtype;   // device class specific device type
+		};
 
-	union DeviceId {
+		union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
 
 protected:
 	const char	*_name;			/**< driver name */
+	char		*_lock_name;		/**< name of the semaphore */
 	bool		_debug_enabled;		/**< if true, debug messages are printed */
 	union DeviceId	_device_id;             /**< device identifier information */
 
@@ -174,39 +178,27 @@ protected:
 	 * Each driver instance has its own lock/semaphore.
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
+	 *
+	 * Careful: lock() calls cannot be nested!
 	 */
-	void		lock() {
-		debug("lock");
-		do {} while (sem_wait(&_lock) != 0);
+	void		lock()
+	{
+		//DEVICE_DEBUG("lock");
+		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
 	/**
 	 * Release the driver lock.
 	 */
-	void		unlock() {
-		debug("unlock");
-		sem_post(&_lock);
+	void		unlock()
+	{
+		//DEVICE_DEBUG("unlock");
+		px4_sem_post(&_lock);
 	}
 
-	/**
-	 * Log a message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		log(const char *fmt, ...);
-
-	/**
-	 * Print a debug message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		debug(const char *fmt, ...);
+	px4_sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	sem_t		_lock;
-
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
 
@@ -337,6 +329,13 @@ public:
 	static const char *devList(unsigned int *next);
 	static const char *topicList(unsigned int *next);
 
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char	*get_devname() { return _devname; }
+
 protected:
 
 	int register_driver(const char *name, void *data);
@@ -350,6 +349,8 @@ protected:
 	 * a poll is set up to determine whether the poll should return immediately.
 	 *
 	 * The default implementation returns no events.
+	 *
+	 * Lock must already be held when calling this.
 	 *
 	 * @param filep		The file that's interested.
 	 * @return		The current set of poll events.
@@ -368,6 +369,8 @@ protected:
 
 	/**
 	 * Internal implementation of poll_notify.
+	 *
+	 * Lock must already be held when calling this.
 	 *
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
@@ -400,7 +403,7 @@ protected:
 	 */
 	virtual int	close_last(file_t *filep);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -409,7 +412,7 @@ protected:
 	 */
 	virtual int register_class_devname(const char *class_devname);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -418,13 +421,6 @@ protected:
 	 * @return		  OK on success, -errno otherwise
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
-
-	/**
-	 * Get the device name.
-	 *
-	 * @return the file system string of the device handle
-	 */
-	const char*	get_devname() { return _devname; }
 
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
@@ -454,7 +450,7 @@ private:
 	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/* do not allow copying this class */
-	VDev(const VDev&);
+	VDev(const VDev &);
 	//VDev operator=(const VDev&);
 };
 
@@ -476,7 +472,7 @@ public:
 	PIO(const char *name,
 	    const char *devname,
 	    unsigned long base
-	    );
+	   );
 	virtual ~PIO();
 
 	virtual int	init();
@@ -488,7 +484,8 @@ protected:
 	 *
 	 * @param offset	Register offset in bytes from the base address.
 	 */
-	uint32_t	reg(uint32_t offset) {
+	uint32_t	reg(uint32_t offset)
+	{
 		return *(volatile uint32_t *)(_base + offset);
 	}
 
@@ -498,7 +495,8 @@ protected:
 	 * @param offset	Register offset in bytes from the base address.
 	 * @param value	Value to write.
 	 */
-	void		reg(uint32_t offset, uint32_t value) {
+	void		reg(uint32_t offset, uint32_t value)
+	{
 		*(volatile uint32_t *)(_base + offset) = value;
 	}
 
@@ -512,7 +510,8 @@ protected:
 	 * @param clearbits	Bits to clear in the register
 	 * @param setbits	Bits to set in the register
 	 */
-	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits) {
+	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits)
+	{
 		uint32_t val = reg(offset);
 		val &= ~clearbits;
 		val |= setbits;
@@ -528,8 +527,8 @@ private:
 
 // class instance for primary driver of each class
 enum CLASS_DEVICE {
-	CLASS_DEVICE_PRIMARY=0,
-	CLASS_DEVICE_SECONDARY=1,
-	CLASS_DEVICE_TERTIARY=2
+	CLASS_DEVICE_PRIMARY = 0,
+	CLASS_DEVICE_SECONDARY = 1,
+	CLASS_DEVICE_TERTIARY = 2
 };
 

@@ -58,8 +58,53 @@ static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
 static const char mcu_uid_str[]		= "uid";
 
-const char* px4_git_version = PX4_GIT_VERSION_STR;
+const char *px4_git_version = PX4_GIT_VERSION_STR;
 const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
+const char *px4_git_tag = PX4_GIT_TAG_STR;
+
+#if defined(__PX4_NUTTX)
+__EXPORT const char *os_git_tag = "6.27";
+__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
+#else
+__EXPORT const char *os_git_tag = "";
+__EXPORT const uint32_t px4_board_version = 1;
+#endif
+
+/**
+ * Convert a version tag string to a number
+ */
+uint32_t version_tag_to_number(const char *tag)
+{
+	uint32_t ver = 0;
+	unsigned len = strlen(tag);
+	unsigned mag = 1;
+	bool dotparsed = false;
+
+	for (int i = len - 1; i >= 0; i--) {
+		if (tag[i] >= '0' && tag[i] <= '9') {
+			unsigned number = tag[i] - '0';
+
+			ver += number * mag;
+			mag *= 10;
+
+		} else if (tag[i] == '.') {
+			continue;
+
+		} else if (ver > 100 && dotparsed) {
+			/* this is a full version and we have enough digits */
+			return ver;
+
+		} else if (tag[i] != 'v') {
+			/* reset, because we don't have a full tag but
+			 * are seeing non-numeric characters again
+			 */
+			ver = 0;
+			mag = 1;
+		}
+	}
+
+	return ver;
+}
 
 static void usage(const char *reason)
 {
@@ -89,6 +134,7 @@ int ver_main(int argc, char *argv[])
 					if (ret == 0) {
 						printf("ver hwcmp match: %s\n", HW_ARCH);
 					}
+
 					return ret;
 
 				} else {
@@ -108,6 +154,9 @@ int ver_main(int argc, char *argv[])
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
 				printf("FW git-hash: %s\n", px4_git_version);
+				printf("FW version: %s (%u)\n", px4_git_tag, version_tag_to_number(px4_git_tag));
+				/* middleware is currently the same thing as firmware, so not printing yet */
+				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
 				ret = 0;
 
 			}
@@ -127,7 +176,7 @@ int ver_main(int argc, char *argv[])
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
 				char rev;
-				char* revstr;
+				char *revstr;
 
 				int chip_version = mcu_version(&rev, &revstr);
 
@@ -139,9 +188,9 @@ int ver_main(int argc, char *argv[])
 
 					if (chip_version < MCU_REV_STM32F4_REV_3) {
 						printf("\nWARNING   WARNING   WARNING!\n"
-							"Revision %c has a silicon errata\n"
-							"This device can only utilize a maximum of 1MB flash safely!\n"
-							"http://px4.io/help/errata\n\n", rev);
+						       "Revision %c has a silicon errata\n"
+						       "This device can only utilize a maximum of 1MB flash safely!\n"
+						       "http://px4.io/help/errata\n\n", rev);
 					}
 				}
 
@@ -153,7 +202,7 @@ int ver_main(int argc, char *argv[])
 
 				mcu_unique_id(uid);
 
-				printf("UID: %X:%X:%X \n",uid[0],uid[1],uid[2]);
+				printf("UID: %X:%X:%X \n", uid[0], uid[1], uid[2]);
 
 				ret = 0;
 			}

@@ -46,7 +46,7 @@
 #include <unistd.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
@@ -56,7 +56,7 @@
 #endif
 static const int ERROR = -1;
 
-int do_trim_calibration(int mavlink_fd)
+int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
 	usleep(400000);
@@ -65,7 +65,7 @@ int do_trim_calibration(int mavlink_fd)
 	orb_check(sub_man, &changed);
 
 	if (!changed) {
-		mavlink_log_critical(mavlink_fd, "no inputs, aborting");
+		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
 		return ERROR;
 	}
 
@@ -98,12 +98,12 @@ int do_trim_calibration(int mavlink_fd)
 	int save_ret = param_save_default();
 
 	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
-		mavlink_log_critical(mavlink_fd, "TRIM: PARAM SET FAIL");
+		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
 		return ERROR;
 	}
 
-	mavlink_log_info(mavlink_fd, "trim cal done");
+	mavlink_log_info(mavlink_log_pub, "trim cal done");
 	px4_close(sub_man);
 	return OK;
 }

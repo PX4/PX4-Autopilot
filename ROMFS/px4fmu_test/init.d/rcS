@@ -55,11 +55,11 @@ else
 	echo "[param] FAILED loading $PARAM_FILE"
 fi
 
-if [ -f /etc/extras/px4io-v2_default.bin ]
+if [ -f /etc/extras/px4io-v2.bin ]
 then
-	set io_file /etc/extras/px4io-v2_default.bin
+	set io_file /etc/extras/px4io-v2.bin
 else
-	set io_file /etc/extras/px4io-v1_default.bin
+	set io_file /etc/extras/px4io-v1.bin
 fi
 
 if px4io start

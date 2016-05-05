@@ -82,6 +82,9 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_GYRO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_SPI_CS_BARO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
 
+/* SPI4--Ramtron */
+#define PX4_SPI_BUS_RAMTRON	4
+
 /* Nominal chip selects for devices on SPI bus #3 */
 #define PX4_SPIDEV_ACCEL_MAG	0
 #define PX4_SPIDEV_GYRO		1
@@ -112,6 +115,18 @@ __BEGIN_DECLS
 #define GPIO_GPIO10_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_GPIO11_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN8)
 
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13)
+
+// ADC defines to be used in sensors.cpp to read from a particular channel
+#define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
+
 /* PWM
  *
  * Eight PWM outputs are configured.
@@ -135,6 +150,17 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH2OUT	GPIO_TIM3_CH2OUT_3
 #define GPIO_TIM3_CH3OUT	GPIO_TIM3_CH3OUT_2
 #define GPIO_TIM3_CH4OUT	GPIO_TIM3_CH4OUT_2
+#define DIRECT_PWM_OUTPUT_CHANNELS	8
+
+#define GPIO_TIM1_CH1IN		GPIO_TIM1_CH1IN_2
+#define GPIO_TIM1_CH2IN		GPIO_TIM1_CH2IN_2
+#define GPIO_TIM1_CH3IN		GPIO_TIM1_CH3IN_2
+#define GPIO_TIM1_CH4IN		GPIO_TIM1_CH4IN_2
+#define GPIO_TIM3_CH1IN		GPIO_TIM3_CH1IN_3
+#define GPIO_TIM3_CH2IN		GPIO_TIM3_CH2IN_3
+#define GPIO_TIM3_CH3IN		GPIO_TIM3_CH3IN_2
+#define GPIO_TIM3_CH4IN		GPIO_TIM3_CH4IN_2
+#define DIRECT_INPUT_TIMER_CHANNELS	8
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer 8 for the HRT */

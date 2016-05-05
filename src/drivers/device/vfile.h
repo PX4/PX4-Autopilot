@@ -44,7 +44,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-class VFile : public device::VDev {
+class VFile : public device::VDev
+{
 public:
 
 	static VFile *createFile(const char *fname, mode_t mode);
