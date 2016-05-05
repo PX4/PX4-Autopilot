@@ -824,7 +824,7 @@ param_load_default(void)
 
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 //struct spi_dev_s *dev = nullptr;
-irqstate_t state;
+irqstate_t irq_state;
 #endif
 
 static void
