@@ -4,6 +4,7 @@
  *       Author: Ben Dyer <ben_dyer@mac.com>
  *               Pavel Kirienko <pavel.kirienko@zubax.com>
  *               David Sidrane <david_s5@nscdg.com>
+ *               Robert Dickenson <robert.dickenson@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
