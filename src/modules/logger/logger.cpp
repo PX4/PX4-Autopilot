@@ -581,7 +581,7 @@ void Logger::run()
 			if (deltat > 4.0) {
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
-				PX4_INFO("%8.1lf KB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+				PX4_INFO("%8.1lf kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
 					 throughput / 1.e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
 
 				total_bytes = 0;
