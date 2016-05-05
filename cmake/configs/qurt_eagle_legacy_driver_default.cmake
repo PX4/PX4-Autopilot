@@ -71,6 +71,7 @@ set(config_module_list
 	# FC_ADDON drivers
 	#
 	platforms/qurt/fc_addon/rc_receiver
+	platforms/qurt/fc_addon/uart_esc
 	#platforms/qurt/fc_addon/mpu_spi
 
 	#
