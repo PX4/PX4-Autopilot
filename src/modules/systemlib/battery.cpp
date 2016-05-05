@@ -146,7 +146,7 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 	// remaining battery capacity based on voltage
 	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
 			       / (_param_n_cells.get() * voltage_range);
-	const float rvoltage_filt = rvoltage * 0.997f + _remaining_voltage * 0.003f;
+	const float rvoltage_filt = _remaining_voltage * 0.99f + rvoltage * 0.01f;
 
 	if (PX4_ISFINITE(rvoltage_filt)) {
 		_remaining_voltage = rvoltage_filt;
@@ -154,7 +154,7 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 
 	// remaining battery capacity based on used current integrated time
 	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
-	const float rcap_filt = rcap * 0.99f + _remaining_capacity * 0.01f;
+	const float rcap_filt = _remaining_capacity * 0.99f + rcap * 0.01f;
 
 	if (PX4_ISFINITE(rcap_filt)) {
 		_remaining_capacity = rcap_filt;
