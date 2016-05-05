@@ -97,7 +97,7 @@ actuator_outputs_s      _outputs;
 static void usage();
 
 /** uart_esc start */
-static void start(const char *device) __attribute__ ((unused));
+static void start(const char *device) __attribute__((unused));
 
 /** uart_esc stop */
 static void stop();
@@ -118,8 +118,8 @@ static void parameters_update();
 
 struct {
 	int model;
-  int baudrate;
-  int px4_motor_mapping[UART_ESC_MAX_MOTORS];
+	int baudrate;
+	int px4_motor_mapping[UART_ESC_MAX_MOTORS];
 } _parameters;
 
 struct {
@@ -163,7 +163,7 @@ void parameters_update()
 	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {
 		if (param_get(_parameter_handles.px4_motor_mapping[i], &v_int) == 0) {
 			_parameters.px4_motor_mapping[i] = v_int;
-			PX4_WARN("UART_ESC_PX4MOTOR%d %d", i+1, _parameters.px4_motor_mapping[i]);
+			PX4_WARN("UART_ESC_PX4MOTOR%d %d", i + 1, _parameters.px4_motor_mapping[i]);
 		}
 	}
 }
@@ -194,34 +194,38 @@ int mixer_control_callback(uintptr_t handle,
 
 int initialize_mixer(const char *mixer_filename)
 {
-   mixer = nullptr;
+	mixer = nullptr;
 
-   int mixer_initialized = -1;
+	int mixer_initialized = -1;
 
 	char buf[2048];
-   unsigned int buflen = sizeof(buf);
+	unsigned int buflen = sizeof(buf);
 
-   PX4_INFO("Initializing mixer from config file in %s", mixer_filename);
+	PX4_INFO("Initializing mixer from config file in %s", mixer_filename);
 
-   int fd_load = open(mixer_filename, O_RDONLY);
+	int fd_load = open(mixer_filename, O_RDONLY);
 
 	if (fd_load != -1) {
 		int nRead = read(fd_load, buf, buflen);
 		close(fd_load);
 
 		if (nRead > 0) {
-		   mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+			mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+
 			if (mixer != nullptr) {
 				PX4_INFO("Successfully initialized mixer from config file");
 				mixer_initialized = 0;
+
 			} else {
-			   PX4_WARN("Unable to parse from mixer config file");
+				PX4_WARN("Unable to parse from mixer config file");
 			}
+
 		} else {
-		   PX4_WARN("Unable to read from mixer config file");
+			PX4_WARN("Unable to read from mixer config file");
 		}
+
 	} else {
-	   PX4_WARN("Unable to open mixer config file");
+		PX4_WARN("Unable to open mixer config file");
 	}
 
 	// mixer file loading failed, fall back to default mixer configuration for
@@ -233,8 +237,8 @@ int initialize_mixer(const char *mixer_filename)
 		float deadband = 0;
 
 		mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-		                            MultirotorGeometry::QUAD_X,
-		                            roll_scale, pitch_scale, yaw_scale, deadband);
+					    MultirotorGeometry::QUAD_X,
+					    roll_scale, pitch_scale, yaw_scale, deadband);
 
 		if (mixer == nullptr) {
 			PX4_ERR("mixer initialization failed");
@@ -282,7 +286,7 @@ void task_main(int argc, char *argv[])
 		PX4_ERR("failed to new UartEsc instance");
 
 	} else if (esc->initialize((enum esc_model_t)_parameters.model,
-	           _device, _parameters.baudrate) < 0) {
+				   _device, _parameters.baudrate) < 0) {
 		PX4_ERR("failed to initialize UartEsc");
 
 	} else {
@@ -334,13 +338,13 @@ void task_main(int argc, char *argv[])
 
 				if (_armed.armed) {
 					_outputs.noutputs = mixer->mix(&_outputs.output[0],
-					                               actuator_controls_0_s::NUM_ACTUATOR_CONTROLS,
-					                               NULL);
+								       actuator_controls_0_s::NUM_ACTUATOR_CONTROLS,
+								       NULL);
 
 					// Make sure we support only up to UART_ESC_MAX_MOTORS motors
 					if (_outputs.noutputs > UART_ESC_MAX_MOTORS) {
 						PX4_ERR("Unsupported motors %d, up to %d motors supported",
-						        _outputs.noutputs, UART_ESC_MAX_MOTORS);
+							_outputs.noutputs, UART_ESC_MAX_MOTORS);
 						continue;
 					}
 
@@ -348,13 +352,14 @@ void task_main(int argc, char *argv[])
 					for (unsigned outIdx = 0; outIdx < _outputs.noutputs; outIdx++) {
 						// map -1.0 - 1.0 outputs to RPMs
 						motor_rpms[outIdx] = (int16_t)(((_outputs.output[outIdx] + 1.0) / 2.0) *
-								     (esc->max_rpm() - esc->min_rpm()) + esc->min_rpm());
+									       (esc->max_rpm() - esc->min_rpm()) + esc->min_rpm());
 					}
 
 					uart_esc_rotate_motors(motor_rpms, _outputs.noutputs);
 
 				} else {
 					_outputs.noutputs = UART_ESC_MAX_MOTORS;
+
 					for (unsigned outIdx = 0; outIdx < _outputs.noutputs; outIdx++) {
 						motor_rpms[outIdx]      = 0;
 						_outputs.output[outIdx] = -1.0;
