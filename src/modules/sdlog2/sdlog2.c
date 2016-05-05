@@ -1515,84 +1515,89 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- EKF2 REPLAY --- */
 		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_REPLAY_ONLY) {
 
+			bool replay_updated = false;
+
 			if (log_type == LOG_TYPE_ALL) {
 				// When logging everything we are polling for sensor_combined, so
 				// we need to use the usual copy_if_updated which includes orb_subscribe.
-				copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay);
+				replay_updated = copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay);
 
 			} else {
 				// We poll on the replay topic so we know that it was updated
 				// but we need to copy it again since we are re-using the buffer.
 				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+				replay_updated = true;
 			}
 
-			log_msg.msg_type = LOG_RPL1_MSG;
-			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
-			log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
-			log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
-			log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
-			log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
-			log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
-			log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
-			log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
-			log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
-			log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
-			log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
-			log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
-			log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
-			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
-			log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
-			LOGBUFFER_WRITE_AND_COUNT(RPL1);
+			if (replay_updated) {
+				log_msg.msg_type = LOG_RPL1_MSG;
+				log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
+				log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
+				log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
+				log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
+				log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
+				log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
+				log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
+				log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
+				log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
+				log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
+				log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
+				log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
+				log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
+				log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
+				log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
+				LOGBUFFER_WRITE_AND_COUNT(RPL1);
 
-			// only log the gps replay data if it actually updated
-			if (buf.replay.time_usec > 0) {
-				log_msg.msg_type = LOG_RPL2_MSG;
-				log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-				log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
-				log_msg.body.log_RPL2.lat = buf.replay.lat;
-				log_msg.body.log_RPL2.lon = buf.replay.lon;
-				log_msg.body.log_RPL2.alt = buf.replay.alt;
-				log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
-				log_msg.body.log_RPL2.nsats = buf.replay.nsats;
-				log_msg.body.log_RPL2.eph = buf.replay.eph;
-				log_msg.body.log_RPL2.epv = buf.replay.epv;
-				log_msg.body.log_RPL2.sacc = buf.replay.sacc;
-				log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
-				log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
-				log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
-				log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
-				log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
-				LOGBUFFER_WRITE_AND_COUNT(RPL2);
-			}
+				// only log the gps replay data if it actually updated
+				if (buf.replay.time_usec > 0) {
+					log_msg.msg_type = LOG_RPL2_MSG;
+					log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
+					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+					log_msg.body.log_RPL2.lat = buf.replay.lat;
+					log_msg.body.log_RPL2.lon = buf.replay.lon;
+					log_msg.body.log_RPL2.alt = buf.replay.alt;
+					log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+					log_msg.body.log_RPL2.nsats = buf.replay.nsats;
+					log_msg.body.log_RPL2.eph = buf.replay.eph;
+					log_msg.body.log_RPL2.epv = buf.replay.epv;
+					log_msg.body.log_RPL2.sacc = buf.replay.sacc;
+					log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
+					log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
+					log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
+					log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
+					log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
+					LOGBUFFER_WRITE_AND_COUNT(RPL2);
+				}
 
-			if (buf.replay.flow_timestamp > 0) {
-				log_msg.msg_type = LOG_RPL3_MSG;
-				log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
-				log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
-				log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
-				log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
-				log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
-				log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
-				log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
-				LOGBUFFER_WRITE_AND_COUNT(RPL3);
-			}
+				if (buf.replay.flow_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL3_MSG;
+					log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
+					log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
+					log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
+					log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
+					log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
+					log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
+					log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
+					LOGBUFFER_WRITE_AND_COUNT(RPL3);
+				}
 
-			if (buf.replay.rng_timestamp > 0) {
-				log_msg.msg_type = LOG_RPL4_MSG;
-				log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
-				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
-				LOGBUFFER_WRITE_AND_COUNT(RPL4);
-			}
+				if (buf.replay.rng_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL4_MSG;
+					log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
+					log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
+					LOGBUFFER_WRITE_AND_COUNT(RPL4);
+				}
 
-			if (buf.replay.asp_timestamp > 0) {
-				log_msg.msg_type = LOG_RPL6_MSG;
-				log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
-				log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
-				log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
-				log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
-				log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
-				log_msg.body.log_RPL6.confidence = buf.replay.confidence;
-				LOGBUFFER_WRITE_AND_COUNT(RPL6);
+				if (buf.replay.asp_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL6_MSG;
+					log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
+					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
+					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
+					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
+					log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
+					log_msg.body.log_RPL6.confidence = buf.replay.confidence;
+					LOGBUFFER_WRITE_AND_COUNT(RPL6);
+				}
 			}
 		}
 
