@@ -1513,7 +1513,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- EKF2 REPLAY --- */
-		if (log_type == LOG_TYPE_ALL || LOG_TYPE_REPLAY_ONLY) {
+		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_REPLAY_ONLY) {
 
 			if (log_type == LOG_TYPE_ALL) {
 				// When logging everything we are polling for sensor_combined, so
@@ -1596,7 +1596,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (log_type == LOG_TYPE_ALL || LOG_TYPE_NORMAL) {
+		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_NORMAL) {
 
 			// We poll on sensor combined, so we know it has updated just now
 			// but we need to copy it again because we are re-using the buffer.
