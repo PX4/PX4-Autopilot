@@ -73,6 +73,7 @@ Ekf::Ekf():
 	_time_last_of_fuse(0),
 	_time_last_arsp_fuse(0),
 	_last_disarmed_posD(0.0f),
+	_last_dt_overrun(0.0f),
 	_airspeed_innov(0.0f),
 	_airspeed_innov_var(0.0f),
 	_heading_innov(0.0f),
@@ -584,8 +585,12 @@ bool Ekf::collect_imu(imuSample &imu)
 	_imu_down_sampled.delta_vel += (_imu_sample_new.delta_vel + delta_R * _imu_sample_new.delta_vel) * 0.5f;
 
 	// if the target time delta between filter prediction steps has been exceeded
-	// write the accumulated IMu data to the ring buffer
-	if (_imu_down_sampled.delta_ang_dt >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) {
+	// write the accumulated IMU data to the ring buffer
+	float target_dt = (float)(FILTER_UPDATE_PERRIOD_MS) / 1000;
+	if (_imu_down_sampled.delta_ang_dt >= target_dt - _last_dt_overrun) {
+
+		// store the amount we have over-run the target update rate by
+		_last_dt_overrun = _imu_down_sampled.delta_ang_dt - target_dt;
 
 		imu.delta_ang     = _q_down_sampled.to_axis_angle();
 		imu.delta_vel     = _imu_down_sampled.delta_vel;
