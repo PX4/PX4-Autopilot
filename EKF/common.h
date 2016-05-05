@@ -246,8 +246,8 @@ struct parameters {
 		range_delay_ms = 5.0f;
 
 		// input noise
-		gyro_noise = 2.0e-2f;
-		accel_noise = 2.5e-1f;
+		gyro_noise = 2.5e-2f;
+		accel_noise = 3.5e-1f;
 
 		// process noise
 		gyro_bias_p_noise = 1.0e-3f;
