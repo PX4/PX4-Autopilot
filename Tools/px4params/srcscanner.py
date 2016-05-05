@@ -34,7 +34,8 @@ class SourceScanner(object):
         parser.Parse method.
         """
         prefix = ".." + os.path.sep + "src" + os.path.sep
-        scope = re.sub(prefix, '', os.path.dirname(os.path.relpath(path)))
+        scope = re.sub(prefix.replace("\\", "/"), "", os.path.dirname(os.path.relpath(path)).replace("\\", "/"))
+
         with codecs.open(path, 'r', 'utf-8') as f:
             try:
                 contents = f.read()
