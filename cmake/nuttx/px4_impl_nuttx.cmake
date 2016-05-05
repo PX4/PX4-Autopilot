@@ -265,8 +265,13 @@ function(px4_nuttx_add_export)
 		COMMAND ${MKDIR} -p ${nuttx_src}
 		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
+						  ${nuttx_src}/apps/.git
+						  ${nuttx_src}/nuttx/.git
+						  ${nuttx_src}/NxWidgets/.git
+						  ${nuttx_src}/misc/tools/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${nuttx_patches})
+		DEPENDS ${DEPENDS} ${nuttx_patches}
+		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}")
 #todo: Add the nuttx source (md5 of git recursive staus) to the dependencies
 	
 	# patch
@@ -293,25 +298,23 @@ function(px4_nuttx_add_export)
 	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
+		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
-		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
-		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Config.mk ${nuttx_src}/nuttx/
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
-		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config} && cd ..
+		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches}
-		USES_TERMINAL)
+		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}")
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
 		COMMAND ${UNZIP} -q ${CMAKE_BINARY_DIR}/${CONFIG}.export -d ${nuttx_src}
 		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		USES_TERMINAL)
+		DEPENDS ${DEPENDS} ${CMAKE_BINARY_DIR}/${CONFIG}.export)
 
 	add_custom_target(${OUT}
 		DEPENDS nuttx_export_${CONFIG}.stamp)
