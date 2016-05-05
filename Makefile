@@ -146,9 +146,6 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
-px4fmu-v2_lpe:
-	$(call cmake-build,nuttx_px4fmu-v2_lpe)
-
 mavstation_default:
 	$(call cmake-build,nuttx_mavstation_default)
 
