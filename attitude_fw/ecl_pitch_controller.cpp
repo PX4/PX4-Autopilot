@@ -66,7 +66,6 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	      PX4_ISFINITE(ctl_data.roll) &&
 	      PX4_ISFINITE(ctl_data.pitch) &&
 	      PX4_ISFINITE(ctl_data.airspeed))) {
-		perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
 	}
@@ -102,7 +101,6 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	      PX4_ISFINITE(ctl_data.airspeed_min) &&
 	      PX4_ISFINITE(ctl_data.airspeed_max) &&
 	      PX4_ISFINITE(ctl_data.scaler))) {
-		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 

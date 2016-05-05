@@ -63,17 +63,12 @@ ECL_Controller::ECL_Controller(const char *name) :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f),
-	_perf_name()
+	_bodyrate_setpoint(0.0f)
 {
-	/* Init performance counter */
-	snprintf(_perf_name, sizeof(_perf_name), "fw att control %s nonfinite input", name);
-	_nonfinite_input_perf = perf_alloc(PC_COUNT, _perf_name);
 }
 
 ECL_Controller::~ECL_Controller()
 {
-	perf_free(_nonfinite_input_perf);
 }
 
 void ECL_Controller::reset_integrator()

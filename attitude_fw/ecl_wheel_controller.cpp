@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013-2016 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +62,6 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
     if (!(PX4_ISFINITE(ctl_data.yaw_rate) &&
           PX4_ISFINITE(ctl_data.groundspeed) &&
           PX4_ISFINITE(ctl_data.groundspeed_scaler))) {
-        perf_count(_nonfinite_input_perf);
         return math::constrain(_last_output, -1.0f, 1.0f);
     }
 
@@ -124,7 +123,6 @@ float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_da
     /* Do not calculate control signal with bad inputs */
     if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
           PX4_ISFINITE(ctl_data.yaw))) {
-        perf_count(_nonfinite_input_perf);
         return _rate_setpoint;
     }
 

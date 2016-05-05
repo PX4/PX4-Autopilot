@@ -118,8 +118,5 @@ protected:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
-	perf_counter_t _nonfinite_input_perf;
-	static const uint8_t _perf_name_max = 40;
-	char _perf_name[_perf_name_max];
 	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);
 };
