@@ -77,6 +77,7 @@ __email__ = "againagainst@gmail.com, thomasgubler@gmail.com"
 TOPIC_TEMPLATE_FILE = 'msg.cpp.template'
 TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
 OUTPUT_FILE_EXT = '.cpp'
+INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
 
@@ -104,7 +105,7 @@ def get_msgs_list(msgdir):
     return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
 
 
-def generate_source_from_file(filename, outputdir, template_file, quiet=False):
+def generate_source_from_file(filename, outputdir, template_file, includepath, quiet=False):
         """
         Converts a single .msg file to a uorb source file
         """
@@ -113,10 +114,15 @@ def generate_source_from_file(filename, outputdir, template_file, quiet=False):
         full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
         topics = get_multi_topics(filename)
+        if includepath:
+                search_path = genmsg.command_line.includepath_to_dict(includepath)
+        else:
+                search_path = {}
         if len(topics) == 0:
             topics.append(spec.short_name)
         em_globals = {
             "file_name_in": filename,
+            "search_path": search_path,
             "spec": spec,
             "topics": topics
         }
@@ -156,6 +162,7 @@ def convert_dir(msgdir, outputdir, templatedir, quiet=False):
                 os.makedirs(outputdir)
         template_file = os.path.join(templatedir, TOPIC_TEMPLATE_FILE)
 
+        includepath = INCL_DEFAULT + [':'.join([PACKAGE, msgdir])]
         for f in os.listdir(msgdir):
                 # Ignore hidden files
                 if f.startswith("."):
@@ -164,7 +171,7 @@ def convert_dir(msgdir, outputdir, templatedir, quiet=False):
                 # Only look at actual files
                 if not os.path.isfile(fn):
                         continue
-                generate_source_from_file(fn, outputdir, template_file, quiet)
+                generate_source_from_file(fn, outputdir, template_file, includepath, quiet)
 
         # generate cpp file with topics list
         tl_globals = {"msgs" : get_msgs_list(msgdir)}
