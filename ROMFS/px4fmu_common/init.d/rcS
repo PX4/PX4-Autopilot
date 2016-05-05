@@ -24,7 +24,6 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # REBOOTWORK this needs to start after the flight control loop
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
@@ -77,9 +76,7 @@ then
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "[param] FAILED loading $PARAM_FILE"
 		if param reset
 		then
 		fi
@@ -195,7 +192,7 @@ then
 	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
-		echo "[i] Custom config: $FCONFIG"
+		echo "[i] Custom: $FCONFIG"
 		sh $FCONFIG
 	fi
 	unset FCONFIG
@@ -230,8 +227,6 @@ then
 
 			set IO_PRESENT yes
 		else
-			echo "PX4IO Trying to update" >> $LOG_FILE
-
 			tone_alarm MLL32CP8MB
 
 			if px4io start
@@ -256,11 +251,11 @@ then
 
 					set IO_PRESENT yes
 				else
-					echo "ERROR: PX4IO update failed" >> $LOG_FILE
+					echo "PX4IO update failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			else
-				echo "ERROR: PX4IO update failed" >> $LOG_FILE
+				echo "PX4IO update failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -268,7 +263,6 @@ then
 
 		if [ $IO_PRESENT == no ]
 		then
-			echo "[i] ERROR: PX4IO not found"
 			echo "ERROR: PX4IO not found" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
 		fi
@@ -291,7 +285,6 @@ then
 	then
 		# Need IO for output but it not present, disable output
 		set OUTPUT_MODE none
-		echo "[i] ERROR: PX4IO not found, disabling output"
 
 		# Avoid using ttyS0 for MAVLink on FMUv1
 		if ver hwcmp PX4FMU_V1
@@ -368,7 +361,7 @@ then
 			then
 				sh /etc/init.d/rc.io
 			else
-				echo "ERROR: PX4IO start failed" >> $LOG_FILE
+				echo "PX4IO start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -377,10 +370,8 @@ then
 		then
 			if fmu mode_$FMU_MODE
 			then
-				echo "[i] FMU mode_$FMU_MODE started"
 			else
-				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
-				echo "ERROR: FMU start failed" >> $LOG_FILE
+				echo "FMU start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 
@@ -411,9 +402,7 @@ then
 
 			if mkblctrl $MKBLCTRL_ARG
 			then
-				echo "[i] MK started"
 			else
-				echo "[i] ERROR: MK start failed"
 				echo "ERROR: MK start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
@@ -425,10 +414,8 @@ then
 		then
 			if pwm_out_sim mode_port2_pwm8
 			then
-				echo "[i] PWM SIM output started"
 			else
-				echo "[i] ERROR: PWM SIM output start failed"
-				echo "ERROR: PWM SIM output start failed" >> $LOG_FILE
+				echo "PWM SIM start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -442,11 +429,9 @@ then
 			then
 				if px4io start
 				then
-					echo "[i] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
-					echo "[i] ERROR: PX4IO start failed"
-					echo "ERROR: PX4IO start failed" >> $LOG_FILE
+					echo "PX4IO start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			fi
@@ -455,10 +440,8 @@ then
 			then
 				if fmu mode_$FMU_MODE
 				then
-					echo "[i] FMU mode_$FMU_MODE started"
 				else
-					echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
-					echo "ERROR: FMU mode_$FMU_MODE start failed" >> $LOG_FILE
+					echo "FMU mode_$FMU_MODE start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 
@@ -633,7 +616,27 @@ then
 	#
 	# Logging
 	#
-	sh /etc/init.d/rc.logging
+	if [ -d /fs/microsd ]
+	then
+		if ver hwcmp PX4FMU_V1
+		then
+			if sdlog2 start -r 40 -a -b 3 -t
+			then
+			fi
+		else
+			# check if we should increase logging rate for ekf2 replay message logging
+			if param greater EKF2_REC_RPL 0
+			then
+				if sdlog2 start -r 500 -e -b 20 -t
+				then
+				fi
+			else
+				if sdlog2 start -r 100 -a -b 12 -t
+				then
+				fi
+			fi
+		fi
+	fi
 
 	#
 	# Start up ARDrone Motor interface
@@ -648,7 +651,7 @@ then
 	#
 	if [ $VEHICLE_TYPE == fw ]
 	then
-		echo "[i] FIXED WING"
+		echo "FIXED WING"
 
 		if [ $MIXER == none ]
 		then
@@ -676,7 +679,7 @@ then
 	#
 	if [ $VEHICLE_TYPE == mc ]
 	then
-		echo "[i] MULTICOPTER"
+		echo "MULTICOPTER"
 
 		if [ $MIXER == none ]
 		then
@@ -741,11 +744,11 @@ then
 	#
 	if [ $VEHICLE_TYPE == vtol ]
 	then
-		echo "[init] Vehicle type: VTOL"
+		echo "VTOL"
 
 		if [ $MIXER == none ]
 		then
-			echo "Default mixer for vtol not defined"
+			echo "VTOL mixer undefined"
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -853,7 +856,6 @@ then
 	if [ $VEHICLE_TYPE == none ]
 	then
 		echo "[i] No autostart ID found"
-
 	fi
 
 	# Start any custom addons
@@ -868,7 +870,6 @@ then
 	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
-		echo "[i] No microSD card found"
 		# Play SOS
 		tone_alarm error
 	fi
@@ -885,7 +886,7 @@ mavlink boot_complete
 
 if [ $EXIT_ON_END == yes ]
 then
-	echo "Exit from nsh"
+	echo "NSH EXIT"
 	exit
 fi
 unset EXIT_ON_END
