@@ -302,14 +302,16 @@ function(px4_nuttx_add_export)
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches})
+		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches}
+		USES_TERMINAL)
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
 		COMMAND ${UNZIP} -q ${CMAKE_BINARY_DIR}/${CONFIG}.export -d ${nuttx_src}
 		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${CMAKE_BINARY_DIR}/${CONFIG}.export)
+		DEPENDS ${DEPENDS} ${CMAKE_BINARY_DIR}/${CONFIG}.export
+		USES_TERMINAL)
 
 	add_custom_target(${OUT}
 		DEPENDS nuttx_export_${CONFIG}.stamp)
