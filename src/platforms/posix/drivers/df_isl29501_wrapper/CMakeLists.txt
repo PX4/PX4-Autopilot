@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,26 +31,16 @@
 #
 ############################################################################
 
-add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/generate_listener.py ${CMAKE_SOURCE_DIR} > topic_listener.cpp
-                )
-
-add_custom_target(generate_topic_listener
-	DEPENDS
-		topic_listener.cpp
-		${CMAKE_SOURCE_DIR}/Tools/generate_listener.py)
+include_directories(../../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE systemcmds__topic_listener
-	MAIN listener
-	STACK_MAIN 1800
-	COMPILE_FLAGS
-		-Os
+	MODULE platforms__posix__drivers__df_isl29501_wrapper
+	MAIN df_isl29501_wrapper
 	SRCS
-		topic_listener.cpp
+		df_isl29501_wrapper.cpp
 	DEPENDS
 		platforms__common
-		generate_topic_listener
-		msg_gen
+		df_driver_framework
+		df_isl29501
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

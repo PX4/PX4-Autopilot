@@ -2029,63 +2029,62 @@ void AttPosEKF::FuseOptFlow()
             varInnovOptFlow[1] = 1.0f/SK_LOS[1];
             innovOptFlow[1] = losPred[1] - flowRadXYcomp[1];
 
-        }
-
-        // loop through the X and Y observations and fuse them sequentially
-        for (uint8_t obsIndex = 0; obsIndex < 2; obsIndex++) {
-            // Check the innovation for consistency and don't fuse if > 5Sigma
-            if ((innovOptFlow[obsIndex]*innovOptFlow[obsIndex]/varInnovOptFlow[obsIndex]) < 25.0f) {
-                // correct the state vector
-                for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
-                {
-                    states[j] = states[j] - K_LOS[obsIndex][j] * innovOptFlow[obsIndex];
-                }
-                // normalise the quaternion states
-                float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
-                if (quatMag > 1e-12f)
-                {
-                    for (uint8_t j= 0; j<=3; j++)
-                    {
-                        float quatMagInv = 1.0f/quatMag;
-                        states[j] = states[j] * quatMagInv;
-                    }
-                }
-                // correct the covariance P = (I - K*H)*P
-                // take advantage of the empty columns in KH to reduce the
-                // number of operations
-                for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
-                {
-                    for (uint8_t j = 0; j <= 6; j++)
-                    {
-                        KH[i][j] = K_LOS[obsIndex][i] * H_LOS[obsIndex][j];
-                    }
-                    for (uint8_t j = 7; j <= 8; j++)
-                    {
-                        KH[i][j] = 0.0f;
-                    }
-                    KH[i][9] = K_LOS[obsIndex][i] * H_LOS[obsIndex][9];
-                    for (uint8_t j = 10; j < EKF_STATE_ESTIMATES; j++)
-                    {
-                        KH[i][j] = 0.0f;
-                    }
-                }
-                for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
-                {
+            // loop through the X and Y observations and fuse them sequentially
+            for (uint8_t obsIndex = 0; obsIndex < 2; obsIndex++) {
+                // Check the innovation for consistency and don't fuse if > 5Sigma
+                if ((innovOptFlow[obsIndex]*innovOptFlow[obsIndex]/varInnovOptFlow[obsIndex]) < 25.0f) {
+                    // correct the state vector
                     for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                     {
-                        KHP[i][j] = 0.0f;
-                        for (uint8_t k = 0; k <= 6; k++)
-                        {
-                            KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
-                        }
-                        KHP[i][j] = KHP[i][j] + KH[i][9] * P[9][j];
+                        states[j] = states[j] - K_LOS[obsIndex][j] * innovOptFlow[obsIndex];
                     }
-                }
-                for (uint8_t i = 0; i <  EKF_STATE_ESTIMATES; i++)
-                {
-                    for (uint8_t j = 0; j <  EKF_STATE_ESTIMATES; j++)
+                    // normalise the quaternion states
+                    float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+                    if (quatMag > 1e-12f)
                     {
-                        P[i][j] = P[i][j] - KHP[i][j];
+                        for (uint8_t j= 0; j<=3; j++)
+                        {
+                            float quatMagInv = 1.0f/quatMag;
+                            states[j] = states[j] * quatMagInv;
+                        }
+                    }
+                    // correct the covariance P = (I - K*H)*P
+                    // take advantage of the empty columns in KH to reduce the
+                    // number of operations
+                    for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
+                    {
+                        for (uint8_t j = 0; j <= 6; j++)
+                        {
+                            KH[i][j] = K_LOS[obsIndex][i] * H_LOS[obsIndex][j];
+                        }
+                        for (uint8_t j = 7; j <= 8; j++)
+                        {
+                            KH[i][j] = 0.0f;
+                        }
+                        KH[i][9] = K_LOS[obsIndex][i] * H_LOS[obsIndex][9];
+                        for (uint8_t j = 10; j < EKF_STATE_ESTIMATES; j++)
+                        {
+                            KH[i][j] = 0.0f;
+                        }
+                    }
+                    for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
+                    {
+                        for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
+                        {
+                            KHP[i][j] = 0.0f;
+                            for (uint8_t k = 0; k <= 6; k++)
+                            {
+                                KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
+                            }
+                            KHP[i][j] = KHP[i][j] + KH[i][9] * P[9][j];
+                        }
+                    }
+                    for (uint8_t i = 0; i <  EKF_STATE_ESTIMATES; i++)
+                    {
+                        for (uint8_t j = 0; j <  EKF_STATE_ESTIMATES; j++)
+                        {
+                            P[i][j] = P[i][j] - KHP[i][j];
+                        }
                     }
                 }
             }

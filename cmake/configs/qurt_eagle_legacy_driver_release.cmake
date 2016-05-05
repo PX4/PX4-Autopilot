@@ -41,6 +41,7 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
+	platforms/posix/drivers/df_bmp280_wrapper
 	${EAGLE_DRIVERS_SRC}/mpu_spi
 	${EAGLE_DRIVERS_SRC}/uart_esc
 	${EAGLE_DRIVERS_SRC}/rc_receiver
@@ -86,6 +87,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port
@@ -98,4 +100,8 @@ set(config_module_list
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
+	)
+
+set(config_df_driver_list
+	bmp280
 	)

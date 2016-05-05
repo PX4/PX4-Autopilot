@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  *
  * Parameters defined by the L1 position control task
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 /*
@@ -223,7 +223,7 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
  * @unit m/s
  * @min 2.0
  * @max 10.0
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
 

@@ -108,7 +108,8 @@ after_success:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
          make package_firmware
       && find . -name \*.px4 -exec cp "{}" . \;
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v2_lpe.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
+      && ./CI-Tools/s3cmd-put `find . -maxdepth 1 -mindepth 1 -type f -name '*_default.px4'` build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html

@@ -59,6 +59,8 @@ public:
 
 	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
+	static int        unadvertise(orb_advert_t handle);
+
 	/**
 	 * processes a request for add subscription from remote
 	 * @param rateInHz
@@ -122,11 +124,12 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	unsigned long     _publisher; /**< if nonzero, current publisher */
+	unsigned long     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+					We allow one publisher to have an open file descriptor at the same time. */
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
 
-	SubscriberData    *filp_to_sd(device::file_t *filp);
+	static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	int32_t _subscriber_count;
 
@@ -144,6 +147,8 @@ private:
 
 	/**
 	 * Check whether a topic appears updated to a subscriber.
+	 *
+	 * Lock must already be held when calling this.
 	 *
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber
@@ -166,13 +171,13 @@ class uORB::DeviceMaster : public device::VDev
 {
 public:
 	DeviceMaster(Flavor f);
-	~DeviceMaster();
+	virtual ~DeviceMaster();
 
 	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
 
 	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
 private:
-	Flavor      _flavor;
+	const Flavor      _flavor;
 	static std::map<std::string, uORB::DeviceNode *> _node_map;
 };
 

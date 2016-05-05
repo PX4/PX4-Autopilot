@@ -304,7 +304,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
-		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
+		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches})
 
@@ -474,6 +474,7 @@ endfunction()
 #			INCLUDES <list>)
 #
 function(px4_os_add_flags)
+
 	set(inout_vars
 		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
@@ -498,7 +499,7 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/include/cxx
 		${nuttx_export_dir}/arch/chip
 		${nuttx_export_dir}/arch/common
-    ${nuttx_export_dir}/arch/armv7-m
+		${nuttx_export_dir}/arch/armv7-m
 		)
 	set(added_link_dirs
 		${nuttx_export_dir}/libs
@@ -506,6 +507,7 @@ function(px4_os_add_flags)
 	set(added_definitions
 		-D__PX4_NUTTX
 		)
+
 	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
 		list(APPEND added_definitions -D__DF_NUTTX)
 	endif()
@@ -546,13 +548,6 @@ function(px4_os_add_flags)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
-
-	if("${config_nuttx_config}" STREQUAL "bootloader")
-		set(DF_TARGET "do_not_use_df_driver_framework" PARENT_SCOPE)
-	else()
-		set(DF_TARGET "nuttx" PARENT_SCOPE)
-	endif()
-
 
 endfunction()
 

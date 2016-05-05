@@ -1423,6 +1423,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* Subscribe to land detector */
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	struct vehicle_land_detected_s land_detector = {};
+	land_detector.landed = true;
 
 	/*
 	 * The home position is set based on GPS only, to prevent a dependency between
@@ -1972,7 +1973,6 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					if (_inair_last_time > 0 && ((hrt_absolute_time() - _inair_last_time) > (hrt_abstime)disarm_when_landed * 1000 * 1000)) {
-						mavlink_log_critical(&mavlink_log_pub, "AUTO DISARMING AFTER LANDING");
 						arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 						_inair_last_time = 0;
 						check_for_disarming = false;
@@ -2001,7 +2001,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
-				    !low_battery_voltage_actions_done) {
+				   !low_battery_voltage_actions_done) {
 					low_battery_voltage_actions_done = true;
 					if (armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
@@ -2027,8 +2027,14 @@ int commander_thread_main(int argc, char *argv[])
 									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 								}
 							}
+						} else if (low_bat_action == 2) {
+							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+							} else {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
+							}
 						} else {
-							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LAND IMMEDIATELY");
+							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
 						}
 					}
 
@@ -2743,7 +2749,8 @@ int commander_thread_main(int argc, char *argv[])
 			set_tune(TONE_ARMING_WARNING_TUNE);
 			arm_tune_played = true;
 
-		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		} else if (!status_flags.usb_connected &&
+			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
@@ -3038,9 +3045,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		} else {
 			res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
+			/* ensure that the mode selection does not get stuck here */
+			int maxcount = 5;
+
 			/* enable the use of break */
 			/* fallback strategies, give the user the closest mode to what he wanted */
-			while (res == TRANSITION_DENIED) {
+			while (res == TRANSITION_DENIED && maxcount > 0) {
+
+				maxcount--;
 
 				if (new_mode == commander_state_s::MAIN_STATE_AUTO_MISSION) {
 
@@ -3054,11 +3066,59 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 					}
 				}
 
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_RTL) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO RTL");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_LAND) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO LAND");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_TAKEOFF) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO TAKEOFF");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
+				if (new_mode == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET) {
+
+					/* fall back to position control */
+					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+					print_reject_mode(status_local, "AUTO FOLLOW");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
 				if (new_mode == commander_state_s::MAIN_STATE_AUTO_LOITER) {
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_POSCTL;
-					print_reject_mode(status_local, "AUTO PAUSE");
+					print_reject_mode(status_local, "AUTO HOLD");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {

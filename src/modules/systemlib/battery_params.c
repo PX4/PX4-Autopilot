@@ -43,75 +43,80 @@
 #include <systemlib/param/param.h>
 
 /**
- * Empty cell voltage.
+ * Empty cell voltage (5C load)
  *
  * Defines the voltage where a single cell of the battery is considered empty.
+ * The voltage should be chosen before the steep dropoff to 2.8V. A typical
+ * lithium battery can only be discharged down to 10% before it drops off
+ * to a voltage level damaging the cells.
  *
  * @group Battery Calibration
  * @unit V
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.35f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
 /**
- * Full cell voltage.
+ * Full cell voltage (5C load)
  *
- * Defines the voltage where a single cell of the battery is considered full.
+ * Defines the voltage where a single cell of the battery is considered full
+ * under a mild load. This will never be the nominal voltage of 4.2V
  *
  * @group Battery Calibration
  * @unit V
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
 /**
  * Low threshold
  *
- * Sets the threshold (between 0 and 1, which is equivalent to between 0 and 100%)
- * when the battery will be reported as low. This has to be higher than the critical
- * threshold.
+ * Sets the threshold when the battery will be reported as low.
+ * This has to be higher than the critical threshold.
  *
  * @group Battery Calibration
  * @unit norm
  * @decimal 2
- * @min 0.15
- * @max 0.5
+ * @min 0.12
+ * @max 0.4
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.18f);
+PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
 
 /**
  * Critical threshold
  *
- * Sets the threshold (between 0 and 1, which is equivalent to between 0 and 100%)
- * when the battery will be reported as critically low. This has to be lower than
- * the low threshold. This threshold commonly will trigger RTL or landing.
+ * Sets the threshold when the battery will be reported as critically low.
+ * This has to be lower than the low threshold. This threshold commonly
+ * will trigger RTL or landing.
  *
  * @group Battery Calibration
  * @unit norm
  * @decimal 2
  * @min 0.05
- * @max 0.14
+ * @max 0.1
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.09f);
+PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
 
 /**
- * Voltage drop per cell on 100% load
+ * Voltage drop per cell on full throttle
  *
  * This implicitely defines the internal resistance
  * to maximum current ratio and assumes linearity.
+ * A good value to use is the difference between the
+ * 5C and 20-25C load.
  *
  * @group Battery Calibration
  * @unit V
- * @min 0.0
- * @max 1.5
+ * @min 0.07
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
  * Number of cells.

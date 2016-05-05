@@ -31,6 +31,7 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/conversion
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port

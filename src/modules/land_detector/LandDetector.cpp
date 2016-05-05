@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,11 +50,12 @@ namespace landdetection
 
 LandDetector::LandDetector() :
 	_landDetectedPub(0),
-	_landDetected( {0, false}),
-	       _arming_time(0),
-	       _taskShouldExit(false),
-	       _taskIsRunning(false),
-_work{} {
+	_landDetected{0, false, false},
+	_arming_time(0),
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_work{}
+{
 	// ctor
 }
 

@@ -13,18 +13,12 @@ add_executable(firmware_nuttx
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
-		apps nuttx m gcc
+	apps nuttx m gcc
 	)
 
 if("${romfs_used}" STREQUAL "y")
 	list(APPEND link_libs romfs)
 endif()
-
-if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
-	list(APPEND link_libs df_driver_framework)
-endif()
-
-
 
 #
 # Bootloaders use a different ld file, a seperate startup file
@@ -71,6 +65,7 @@ target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${startup_libs}
 	${module_libraries}
+	${df_driver_libs}
 	${config_extra_libs}
 	${nuttx_bootloader_wrapers}
 	${link_libs}

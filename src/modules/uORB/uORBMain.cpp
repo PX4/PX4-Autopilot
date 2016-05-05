@@ -33,6 +33,7 @@
 
 #include <string.h>
 #include "uORBDevices.hpp"
+#include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
 
@@ -68,6 +69,11 @@ uorb_main(int argc, char *argv[])
 			PX4_WARN("already loaded");
 			/* user wanted to start uorb, its already running, no error */
 			return 0;
+		}
+
+		if (!uORB::Manager::initialize()) {
+			PX4_ERR("uorb manager alloc failed");
+			return -ENOMEM;
 		}
 
 		/* create the driver */

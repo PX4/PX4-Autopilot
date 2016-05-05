@@ -143,6 +143,11 @@ extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const v
 					int priority) __EXPORT;
 
 /**
+ * @see uORB::Manager::orb_unadvertise()
+ */
+extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
+
+/**
  * Advertise as the publisher of a topic.
  *
  * This performs the initial advertisement of a topic; it creates the topic

@@ -9,6 +9,8 @@ set(config_module_list
 
 	modules/uORB
 
+	lib/DriverFramework/framework
+
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
 

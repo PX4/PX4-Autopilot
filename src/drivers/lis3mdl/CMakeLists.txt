@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE drivers__lis3mdl
 	MAIN lis3mdl
+
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++

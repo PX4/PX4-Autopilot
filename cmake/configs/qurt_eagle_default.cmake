@@ -22,6 +22,7 @@ set(config_module_list
 	platforms/posix/drivers/df_bmp280_wrapper
 	platforms/posix/drivers/df_hmc5883_wrapper
 	platforms/posix/drivers/df_trone_wrapper
+	platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
@@ -73,6 +74,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port
@@ -92,4 +94,5 @@ set(config_df_driver_list
 	bmp280
 	hmc5883
 	trone
+	isl29501
 	)

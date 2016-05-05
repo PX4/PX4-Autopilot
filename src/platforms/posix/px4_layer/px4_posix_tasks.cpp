@@ -170,6 +170,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
+		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -183,6 +184,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_ERR("pthread_attr_setstacksize to %d returned error (%d)", stack_size, rv);
+		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -192,6 +194,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to set inherit sched");
+		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -199,6 +202,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to set sched policy");
+		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -208,6 +212,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to set sched param");
+		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -235,10 +240,14 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 				taskmap[taskid].isused = false;
+				pthread_mutex_unlock(&task_mutex);
+				free(taskdata);
 				return (rv < 0) ? rv : -rv;
 			}
 
 		} else {
+			pthread_mutex_unlock(&task_mutex);
+			free(taskdata);
 			return (rv < 0) ? rv : -rv;
 		}
 	}

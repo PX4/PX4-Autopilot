@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file git_version.h
+ * @file px4_sem.hpp
  *
- * GIT repository version
+ * C++ synchronization helpers
  */
 
 #pragma once
 
-#include <stdint.h>
+#include "px4_sem.h"
 
-#include "build_git_version.h"
 
-__BEGIN_DECLS
-
-__EXPORT extern const char *px4_git_version;
-__EXPORT extern const uint64_t px4_git_version_binary;
-__EXPORT extern const char *px4_git_tag;
-__EXPORT extern const char *os_git_tag;
-__EXPORT extern const uint32_t px4_board_version;
-
-__EXPORT uint32_t version_tag_to_number(const char *tag);
-
-__END_DECLS
+/**
+ * @class Smart locking object that uses a semaphore. It automatically
+ * takes the lock when created and releases the lock when the object goes out of
+ * scope. Use like this:
+ *
+ *   px4_sem_t my_lock;
+ *   int ret = px4_sem_init(&my_lock, 0, 1);
+ *   ...
+ *
+ *   {
+ *       SmartLock smart_lock(my_lock);
+ *       //critical section start
+ *       ...
+ *       //critical section end
+ *   }
+ */
+class SmartLock
+{
+public:
+	SmartLock(px4_sem_t &sem) : _sem(sem) { do {} while (px4_sem_wait(&_sem) != 0); }
+	~SmartLock() { px4_sem_post(&_sem); }
+private:
+	px4_sem_t &_sem;
+};
