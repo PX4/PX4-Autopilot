@@ -494,43 +494,21 @@ void Logger::run()
 
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
-				 * The size of the data object is given by orb_metadata.o_size
 				 */
-				size_t padded_msg_size = sub.metadata->o_size;
-				uint8_t orb_msg_padded[padded_msg_size];
+				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
+				//TODO: use sub.metadata->o_size_no_padding
+				uint8_t buffer[msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
-				//orb_check(sub.fd, &updated);	// check whether a non-multi topic has been updated
-				/* this works for both single and multi-instances */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], &orb_msg_padded, &sub.time_tried_subscribe)) {
+					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s),
+							&sub.time_tried_subscribe)) {
 
-						struct orb_output_buffer output_buffer = {};
-						uint8_t buffer[sizeof(message_data_header_s) + padded_msg_size];
-						output_buffer.data = &buffer;
-						output_buffer.next = sizeof(message_data_header_s);
-
-						sub.metadata->serialize(&orb_msg_padded, &output_buffer);
-						size_t msg_size = output_buffer.next;
-
-						//uint64_t timestamp;
-						//memcpy(&timestamp, buffer + sizeof(message_data_header_s), sizeof(timestamp));
-						//warnx("topic: %s, instance: %d, timestamp: %llu",
-						//		sub.metadata->o_name, instance, timestamp);
-
-						/* copy the current topic data into the buffer after the header */
-						//orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
-
-						/* fill the message header struct in-place at the front of the buffer,
-						 * accessing the unaligned (packed) structure properly
-						 */
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						/* the ORB topic data object has 2 unused trailing bytes? */
-						//header->msg_size = static_cast<uint16_t>(msg_size - 3);
-						header->msg_size = msg_size;
+						header->msg_size = static_cast<uint16_t>(msg_size - 3);
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 

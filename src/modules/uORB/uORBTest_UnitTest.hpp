@@ -41,8 +41,8 @@ struct orb_test {
 	int val;
 	hrt_abstime time;
 };
-ORB_DEFINE(orb_test, struct orb_test, nullptr, "ORB_TEST:int val;hrt_abstime time;");
-ORB_DEFINE(orb_multitest, struct orb_test, nullptr, "ORB_MULTITEST:int val;hrt_abstime time;");
+ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
+ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");
 
 
 struct orb_test_medium {
@@ -50,9 +50,10 @@ struct orb_test_medium {
 	hrt_abstime time;
 	char junk[64];
 };
-ORB_DEFINE(orb_test_medium, struct orb_test_medium, nullptr, "ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
-ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium, nullptr,
-	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium, struct orb_test_medium, sizeof(orb_test_medium),
+		"ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium, sizeof(orb_test_medium),
+		"ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
 
 
 struct orb_test_large {
@@ -60,7 +61,8 @@ struct orb_test_large {
 	hrt_abstime time;
 	char junk[512];
 };
-ORB_DEFINE(orb_test_large, struct orb_test_large, nullptr, "ORB_TEST_LARGE:int val;hrt_abstime time;char[512] junk;");
+ORB_DEFINE(orb_test_large, struct orb_test_large, sizeof(orb_test_large),
+		"ORB_TEST_LARGE:int val;hrt_abstime time;char[512] junk;");
 
 
 namespace uORBTest

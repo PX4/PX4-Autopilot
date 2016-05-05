@@ -13,10 +13,12 @@
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - md5sum (String) MD5Sum of the .msg specification
+@#  - search_path (dict) search paths for genmsg
+@#  - topics (List of String) multi-topic names
 @###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -107,9 +109,6 @@ type_map = {
   'float64': 'double',
   'bool': 'bool',
   'char': 'char',
-  'fence_vertex': 'fence_vertex',
-  'position_setpoint': 'position_setpoint',
-  'esc_report': 'esc_report'
 }
 
 msgtype_size_map = {
@@ -125,9 +124,6 @@ msgtype_size_map = {
   'float64': 8,
   'bool': 1,
   'char': 1,
-  'fence_vertex': 8,
-  'position_setpoint': 104,
-  'esc_report': 36
 }
 
 def bare_name(msg_type):
@@ -139,7 +135,62 @@ def bare_name(msg_type):
     return bare.split('[')[0]
 
 def sizeof_field_type(field):
-    return msgtype_size_map[bare_name(field.type)]
+    bare_name_str = bare_name(field.type)
+    if bare_name_str in msgtype_size_map:
+        return msgtype_size_map[bare_name_str]
+    return 0 # this is for non-builtin types: sort them at the end
+
+def get_children_fields(base_type):
+    (package, name) = genmsg.names.package_resource_name(base_type)
+    tmp_msg_context = genmsg.msg_loader.MsgContext.create_default()
+    spec_temp = genmsg.msg_loader.load_msg_by_type(tmp_msg_context, '%s/%s' %(package, name), search_path)  
+    sorted_fields = sorted(spec_temp.parsed_fields(), key=sizeof_field_type, reverse=True)
+    return sorted_fields
+
+# Add padding fields before the embedded types, at the end and calculate the
+# struct size
+def add_padding_bytes(fields):
+  struct_size = 8 # account for the timestamp
+  align_to = 8 # this is always 8, because of the 64bit timestamp
+  i = 0
+  padding_idx = 0
+  while i < len(fields):
+    field = fields[i]
+    if not field.is_header:
+        a_pos = field.type.find('[')
+        array_size = 1
+        if field.is_array:
+            array_size = field.array_len
+        if field.is_builtin:
+            field.sizeof_field_type = sizeof_field_type(field)
+        else:
+            # embedded type: may need to add padding
+            num_padding_bytes = align_to - (struct_size % align_to)
+            if num_padding_bytes != align_to:
+                padding_field = genmsg.Field('_padding'+str(padding_idx),
+                    'uint8['+str(num_padding_bytes)+']')
+                padding_idx += 1
+                padding_field.sizeof_field_type = 1
+                struct_size += num_padding_bytes
+                fields.insert(i, padding_field)
+                i += 1
+            children_fields = get_children_fields(field.base_type)
+            field.sizeof_field_type, unused = add_padding_bytes(children_fields)
+        struct_size += field.sizeof_field_type * array_size
+    i += 1
+
+  # add padding at the end (necessary for embedded types)
+  num_padding_bytes = align_to - (struct_size % align_to)
+  if num_padding_bytes == align_to:
+      num_padding_bytes = 0
+  else:
+      padding_field = genmsg.Field('_padding'+str(padding_idx),
+          'uint8['+str(num_padding_bytes)+']')
+      padding_idx += 1
+      padding_field.sizeof_field_type = 1
+      struct_size += num_padding_bytes
+      fields.append(padding_field)
+  return (struct_size, num_padding_bytes)
 
 # Function to print a standard ros type
 def print_field_def(field):
@@ -165,18 +216,23 @@ def print_field_def(field):
     # need to add _t: int8 --> int8_t
     type_px4 = type_map[type_name]
   else:
-    raise Exception("Type {0} not supported, add to to template file!".format(type_name))
+    type_px4 = type_name
 
-  print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
+  comment = ''
+  if field.name.startswith('_padding'):
+      comment = ' // required for logger'
+
+  print('\t%s%s%s %s%s;%s'%(type_prefix, type_px4, type_appendix, field.name,
+      array_size, comment))
 
 def print_parsed_fields():
-  # sort fields
+  # sort fields (using a stable sort)
   sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+  struct_size, padding_end_size = add_padding_bytes(sorted_fields)
   # loop over all fields and print the type and name
   for field in sorted_fields:
     if (not field.is_header):
       print_field_def(field)
-
 }@
 
 #ifdef __cplusplus
@@ -204,8 +260,6 @@ for constant in spec.constants:
 }
 #endif
 };
-
-void serialize_@(topic_name)(void *in, struct orb_output_buffer *buffer);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@
