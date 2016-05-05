@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN uart_esc
 	COMPILE_FLAGS
 		-Os
+		-Wno-packed
 	SRCS
 		uart_esc.cpp
 	DEPENDS
