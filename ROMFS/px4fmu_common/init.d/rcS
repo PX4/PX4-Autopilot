@@ -620,7 +620,7 @@ then
 	then
 		if ver hwcmp PX4FMU_V1
 		then
-			if sdlog2 start -r 40 -a -b 3 -t
+			if sdlog2 start -r 30 -a -b 2 -t
 			then
 			fi
 		else
