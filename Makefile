@@ -170,18 +170,6 @@ ros_sitl_default:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
-qurt_eagle_release:
-	$(call cmake-build,$@)
-	
-qurt_eagle_legacy_driver_release:
-	$(call cmake-build,$@)
-
-posix_eagle_release:
-	$(call cmake-build,$@)
-	
-posix_eagle_legacy_driver_release:
-	$(call cmake-build,$@)
-
 qurt_eagle_default:
 	$(call cmake-build,$@)
 
