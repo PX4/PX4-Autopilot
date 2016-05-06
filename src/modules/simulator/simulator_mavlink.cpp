@@ -291,7 +291,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// TODO: don't hard-code throttle.
 			const float throttle = 0.5f;
-			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, &battery_status);
+			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, actuators_on, &battery_status);
 
 			// publish the battery voltage
 			int batt_multi;
