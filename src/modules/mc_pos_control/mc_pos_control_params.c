@@ -47,6 +47,7 @@
  * @min 0.05
  * @max 1.0
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
@@ -65,6 +66,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * @min 0.2
  * @max 0.8
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
@@ -80,6 +82,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
  * @min 0.0
  * @max 0.2
  * @decimal 2
+ * @increment 0.05
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
