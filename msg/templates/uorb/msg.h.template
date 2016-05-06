@@ -54,6 +54,7 @@
 @{
 import genmsg.msgs
 import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%spec.short_name
 topic_name = spec.short_name
@@ -96,139 +97,11 @@ for field in spec.parsed_fields():
 @# Main struct of message
 @##############################
 @{
-type_map = {
-    'int8': 'int8_t',
-    'int16': 'int16_t',
-    'int32': 'int32_t',
-    'int64': 'int64_t',
-    'uint8': 'uint8_t',
-    'uint16': 'uint16_t',
-    'uint32': 'uint32_t',
-    'uint64': 'uint64_t',
-    'float32': 'float',
-    'float64': 'double',
-    'bool': 'bool',
-    'char': 'char',
-}
-
-msgtype_size_map = {
-    'int8': 1,
-    'int16': 2,
-    'int32': 4,
-    'int64': 8,
-    'uint8': 1,
-    'uint16': 2,
-    'uint32': 4,
-    'uint64': 8,
-    'float32': 4,
-    'float64': 8,
-    'bool': 1,
-    'char': 1,
-}
-
-def bare_name(msg_type):
-    bare = msg_type
-    if '/' in msg_type:
-        # removing prefix
-        bare = (msg_type.split('/'))[1]
-    # removing suffix
-    return bare.split('[')[0]
-
-def sizeof_field_type(field):
-    bare_name_str = bare_name(field.type)
-    if bare_name_str in msgtype_size_map:
-        return msgtype_size_map[bare_name_str]
-    return 0 # this is for non-builtin types: sort them at the end
-
-def get_children_fields(base_type):
-    (package, name) = genmsg.names.package_resource_name(base_type)
-    tmp_msg_context = genmsg.msg_loader.MsgContext.create_default()
-    spec_temp = genmsg.msg_loader.load_msg_by_type(tmp_msg_context, '%s/%s' %(package, name), search_path)  
-    sorted_fields = sorted(spec_temp.parsed_fields(), key=sizeof_field_type, reverse=True)
-    return sorted_fields
-
-# Add padding fields before the embedded types, at the end and calculate the
-# struct size
-def add_padding_bytes(fields):
-    struct_size = 8 # account for the timestamp
-    align_to = 8 # this is always 8, because of the 64bit timestamp
-    i = 0
-    padding_idx = 0
-    while i < len(fields):
-        field = fields[i]
-        if not field.is_header:
-            a_pos = field.type.find('[')
-            array_size = 1
-            if field.is_array:
-                array_size = field.array_len
-            if field.is_builtin:
-                field.sizeof_field_type = sizeof_field_type(field)
-            else:
-                # embedded type: may need to add padding
-                num_padding_bytes = align_to - (struct_size % align_to)
-                if num_padding_bytes != align_to:
-                    padding_field = genmsg.Field('_padding'+str(padding_idx),
-                        'uint8['+str(num_padding_bytes)+']')
-                    padding_idx += 1
-                    padding_field.sizeof_field_type = 1
-                    struct_size += num_padding_bytes
-                    fields.insert(i, padding_field)
-                    i += 1
-                children_fields = get_children_fields(field.base_type)
-                field.sizeof_field_type, unused = add_padding_bytes(children_fields)
-            struct_size += field.sizeof_field_type * array_size
-        i += 1
-
-    # add padding at the end (necessary for embedded types)
-    num_padding_bytes = align_to - (struct_size % align_to)
-    if num_padding_bytes == align_to:
-        num_padding_bytes = 0
-    else:
-        padding_field = genmsg.Field('_padding'+str(padding_idx),
-                'uint8['+str(num_padding_bytes)+']')
-        padding_idx += 1
-        padding_field.sizeof_field_type = 1
-        struct_size += num_padding_bytes
-        fields.append(padding_field)
-    return (struct_size, num_padding_bytes)
-
-# Function to print a standard ros type
-def print_field_def(field):
-    type_name = field.type
-    # detect embedded types
-    sl_pos = type_name.find('/')
-    type_appendix = ''
-    type_prefix = ''
-    if (sl_pos >= 0):
-        type_name = type_name[sl_pos + 1:]
-        type_prefix = 'struct '
-        type_appendix = '_s'
-
-    # detect arrays
-    a_pos = type_name.find('[')
-    array_size = ''
-    if (a_pos >= 0):
-        # field is array
-        array_size = type_name[a_pos:]
-        type_name = type_name[:a_pos]
-
-    if type_name in type_map:
-        # need to add _t: int8 --> int8_t
-        type_px4 = type_map[type_name]
-    else:
-        type_px4 = type_name
-
-    comment = ''
-    if field.name.startswith('_padding'):
-        comment = ' // required for logger'
-
-    print('\t%s%s%s %s%s;%s'%(type_prefix, type_px4, type_appendix, field.name,
-                array_size, comment))
 
 def print_parsed_fields():
     # sort fields (using a stable sort)
     sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-    struct_size, padding_end_size = add_padding_bytes(sorted_fields)
+    struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
     # loop over all fields and print the type and name
     for field in sorted_fields:
         if (not field.is_header):
