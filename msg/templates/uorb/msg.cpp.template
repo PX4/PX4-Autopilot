@@ -59,33 +59,33 @@ uorb_struct = '%s_s'%spec.short_name
 topic_name = spec.short_name
 
 type_map = {
-  'int8': 'int8_t',
-  'int16': 'int16_t',
-  'int32': 'int32_t',
-  'int64': 'int64_t',
-  'uint8': 'uint8_t',
-  'uint16': 'uint16_t',
-  'uint32': 'uint32_t',
-  'uint64': 'uint64_t',
-  'float32': 'float',
-  'float64': 'double',
-  'bool': 'bool',
-  'char': 'char',
+    'int8': 'int8_t',
+    'int16': 'int16_t',
+    'int32': 'int32_t',
+    'int64': 'int64_t',
+    'uint8': 'uint8_t',
+    'uint16': 'uint16_t',
+    'uint32': 'uint32_t',
+    'uint64': 'uint64_t',
+    'float32': 'float',
+    'float64': 'double',
+    'bool': 'bool',
+    'char': 'char',
 }
 
 msgtype_size_map = {
-  'int8': 1,
-  'int16': 2,
-  'int32': 4,
-  'int64': 8,
-  'uint8': 1,
-  'uint16': 2,
-  'uint32': 4,
-  'uint64': 8,
-  'float32': 4,
-  'float64': 8,
-  'bool': 1,
-  'char': 1,
+    'int8': 1,
+    'int16': 2,
+    'int32': 4,
+    'int64': 8,
+    'uint8': 1,
+    'uint16': 2,
+    'uint32': 4,
+    'uint64': 8,
+    'float32': 4,
+    'float64': 8,
+    'bool': 1,
+    'char': 1,
 }
 
 def convert_type(spec_type):
@@ -126,47 +126,47 @@ def get_children_fields(base_type):
 # Add padding fields before the embedded types, at the end and calculate the
 # struct size
 def add_padding_bytes(fields):
-  struct_size = 8 # account for the timestamp
-  align_to = 8 # this is always 8, because of the 64bit timestamp
-  i = 0
-  padding_idx = 0
-  while i < len(fields):
-    field = fields[i]
-    if not field.is_header:
-        a_pos = field.type.find('[')
-        array_size = 1
-        if field.is_array:
-            array_size = field.array_len
-        if field.is_builtin:
-            field.sizeof_field_type = sizeof_field_type(field)
-        else:
-            # embedded type: may need to add padding
-            num_padding_bytes = align_to - (struct_size % align_to)
-            if num_padding_bytes != align_to:
-                padding_field = genmsg.Field('_padding'+str(padding_idx),
-                    'uint8['+str(num_padding_bytes)+']')
-                padding_idx += 1
-                padding_field.sizeof_field_type = 1
-                struct_size += num_padding_bytes
-                fields.insert(i, padding_field)
-                i += 1
-            children_fields = get_children_fields(field.base_type)
-            field.sizeof_field_type, unused = add_padding_bytes(children_fields)
-        struct_size += field.sizeof_field_type * array_size
-    i += 1
+    struct_size = 8 # account for the timestamp
+    align_to = 8 # this is always 8, because of the 64bit timestamp
+    i = 0
+    padding_idx = 0
+    while i < len(fields):
+        field = fields[i]
+        if not field.is_header:
+            a_pos = field.type.find('[')
+            array_size = 1
+            if field.is_array:
+                array_size = field.array_len
+            if field.is_builtin:
+                field.sizeof_field_type = sizeof_field_type(field)
+            else:
+                # embedded type: may need to add padding
+                num_padding_bytes = align_to - (struct_size % align_to)
+                if num_padding_bytes != align_to:
+                    padding_field = genmsg.Field('_padding'+str(padding_idx),
+                        'uint8['+str(num_padding_bytes)+']')
+                    padding_idx += 1
+                    padding_field.sizeof_field_type = 1
+                    struct_size += num_padding_bytes
+                    fields.insert(i, padding_field)
+                    i += 1
+                children_fields = get_children_fields(field.base_type)
+                field.sizeof_field_type, unused = add_padding_bytes(children_fields)
+            struct_size += field.sizeof_field_type * array_size
+        i += 1
 
-  # add padding at the end (necessary for embedded types)
-  num_padding_bytes = align_to - (struct_size % align_to)
-  if num_padding_bytes == align_to:
-      num_padding_bytes = 0
-  else:
-      padding_field = genmsg.Field('_padding'+str(padding_idx),
-          'uint8['+str(num_padding_bytes)+']')
-      padding_idx += 1
-      padding_field.sizeof_field_type = 1
-      struct_size += num_padding_bytes
-      fields.append(padding_field)
-  return (struct_size, num_padding_bytes)
+    # add padding at the end (necessary for embedded types)
+    num_padding_bytes = align_to - (struct_size % align_to)
+    if num_padding_bytes == align_to:
+        num_padding_bytes = 0
+    else:
+        padding_field = genmsg.Field('_padding'+str(padding_idx),
+                'uint8['+str(num_padding_bytes)+']')
+        padding_idx += 1
+        padding_field.sizeof_field_type = 1
+        struct_size += num_padding_bytes
+        fields.append(padding_field)
+    return (struct_size, num_padding_bytes)
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields)
