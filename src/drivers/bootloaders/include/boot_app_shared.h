@@ -96,6 +96,8 @@ typedef enum eRole  {
  *
 ****************************************************************************/
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
 typedef struct packed_struct bootloader_app_shared_t {
 	union {
 		uint64_t ull;
@@ -106,6 +108,7 @@ typedef struct packed_struct bootloader_app_shared_t {
 	uint32_t bus_speed;
 	uint32_t node_id;
 } bootloader_app_shared_t ;
+#pragma GCC diagnostic pop
 
 /****************************************************************************
  *
@@ -132,6 +135,9 @@ typedef struct packed_struct bootloader_app_shared_t {
  *
 ****************************************************************************/
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpacked"
 typedef struct packed_struct app_descriptor_t {
 	uint8_t signature[sizeof(uint64_t)];
 	uint64_t image_crc;
@@ -141,6 +147,7 @@ typedef struct packed_struct app_descriptor_t {
 	uint8_t minor_version;
 	uint8_t reserved[6];
 } app_descriptor_t;
+#pragma GCC diagnostic pop
 
 /****************************************************************************
  * Global Variables

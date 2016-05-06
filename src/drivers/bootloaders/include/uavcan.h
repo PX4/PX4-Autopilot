@@ -198,13 +198,15 @@ typedef enum uavcan_general_t {
 
 /* CAN ID definitions for native data manipulation  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpacked"
 typedef struct packed_struct can_id_t {
 	union {
 		uint32_t  u32;
 		uint8_t   b[sizeof(uint32_t)];
 	};
 } can_id_t;
-
 
 /* UAVCAN CAN ID Usage: Message definition */
 
@@ -254,11 +256,14 @@ uint32_t      priority                : LengthUavCanServicePriority;
 
 /* UAVCAN Tail Byte definitions for native data manipulation  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpacked"
 typedef struct packed_struct can_tail_t {
 	union {
 		uint8_t   u8;
 	};
 } can_tail_t;
+#pragma GCC diagnostic pop
 
 /* UAVCAN Tail Byte definitions */
 

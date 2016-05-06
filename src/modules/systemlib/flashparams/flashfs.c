@@ -89,7 +89,8 @@ typedef enum  flash_flags_t {
  * sizeof(h_magic_t)
  *  The
  */
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
 typedef struct packed_struct flash_entry_header_t {
 	h_magic_t            magic;           /* Used to ID files*/
 	h_flag_t             flag;            /* Used to erase this entry */
@@ -99,6 +100,7 @@ typedef struct packed_struct flash_entry_header_t {
                                                * free space. */
 	flash_file_token_t   file_token;      /* file token type - essentially the name/type */
 } flash_entry_header_t;
+#pragma GCC diagnostic pop
 
 /****************************************************************************
  * Private Function Prototypes
