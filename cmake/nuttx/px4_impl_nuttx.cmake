@@ -94,7 +94,7 @@ function(px4_nuttx_add_firmware)
 			)
 	endif()
 
-	add_custom_command(OUTPUT ${OUT}
+	add_custom_command(OUTPUT ${OUT} ${EXE}.bin
 		COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
 			--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
@@ -166,9 +166,8 @@ function(px4_nuttx_make_uavcan_bootloadable)
 	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/make_can_boot_descriptor.py
 			-v --use-git-hash ${BIN} ${uavcan_bl_imange_name}
-		)
+		DEPENDS ${BIN})
 	add_custom_target(build_uavcan_bl_${BOARD} ALL DEPENDS ${uavcan_bl_imange_name})
-	add_dependencies(build_uavcan_bl_${BOARD} firmware_nuttx)
 endfunction()
 
 #=============================================================================
