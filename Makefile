@@ -189,6 +189,7 @@ posix_eagle_default:
 	$(call cmake-build,$@)
 
 eagle_default: posix_eagle_default qurt_eagle_default
+eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
 
 qurt_eagle_legacy_driver_default:
 	$(call cmake-build,$@)	
