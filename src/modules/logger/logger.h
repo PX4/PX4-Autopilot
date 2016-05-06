@@ -98,6 +98,14 @@ private:
 	uORB::Subscription<vehicle_status_s>	_vehicle_status_sub {ORB_ID(vehicle_status)};
 	uORB::Subscription<parameter_update_s>	_parameter_update_sub {ORB_ID(parameter_update)};
 	bool						_enabled = false;
+
+	// statistics
+	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)
+	hrt_abstime					_dropout_start = 0; ///< start of current dropout (0 = no dropout)
+	float						_max_dropout_duration = 0.f; ///< max duration of dropout [s]
+	size_t						_write_dropouts = 0; ///< failed buffer writes due to buffer overflow
+	size_t						_high_water = 0; ///< maximum used write buffer
+
 	bool 						_log_on_start;
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;

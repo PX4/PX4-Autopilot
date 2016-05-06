@@ -10,7 +10,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 
-#define DBGPRINT
+//#define DBGPRINT //write status output every few seconds
 
 #if defined(DBGPRINT)
 // needed for mallinfo
@@ -125,17 +125,20 @@ int Logger::start(char *const *argv)
 void Logger::status()
 {
 	if (!_enabled) {
-		PX4_INFO("running, but not logging");
+		PX4_INFO("Running, but not logging");
 
 	} else {
-		PX4_INFO("running");
+		PX4_INFO("Running");
 
-//		float kibibytes = _writer.get_total_written() / 1024.0f;
-//		float mebibytes = kibibytes / 1024.0f;
-//		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
-//
-//		PX4_WARN("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-//		mavlink_log_info(&mavlink_log_pub, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+		float kibibytes = _writer.get_total_written() / 1024.0f;
+		float mebibytes = kibibytes / 1024.0f;
+		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
+
+		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
+		PX4_INFO("Dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
+			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer._buffer_size);
+		_high_water = 0;
+		_max_dropout_duration = 0.f;
 	}
 }
 
@@ -194,16 +197,11 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-#if defined(DBGPRINT) && defined(__PX4_NUTTX)
-	struct mallinfo alloc_info = mallinfo();
-	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
-	warnx("allocating %d bytes for log_buffer", log_buffer_size);
-#endif /* DBGPRINT */
-
 	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
-	alloc_info = mallinfo();
+	struct mallinfo alloc_info = mallinfo();
+	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
 	warnx("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
 
@@ -436,13 +434,8 @@ void Logger::run()
 	_task_should_exit = false;
 
 #ifdef DBGPRINT
-	hrt_abstime	dropout_start = 0;
 	hrt_abstime	timer_start = 0;
 	uint32_t	total_bytes = 0;
-	uint16_t	dropout_count = 0;
-	size_t 		highWater = 0;
-	size_t		available = 0;
-	double		max_drop_len = 0;
 #endif /* DBGPRINT */
 
 	// we start logging immediately
@@ -515,50 +508,31 @@ void Logger::run()
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-#ifdef DBGPRINT
-						//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
-						hrt_abstime trytime = hrt_absolute_time();
-
-						if (_writer._count > highWater) {
-							highWater = _writer._count;
-						}
-
-#endif /* DBGPRINT */
-
 						if (_writer.write(buffer, msg_size)) {
 
 #ifdef DBGPRINT
-
-							// successful write: note end of dropout if dropout_start != 0
-							if (dropout_start != 0) {
-								double drop_len = (double)(trytime - dropout_start)  * 1e-6;
-
-								if (drop_len > max_drop_len) {
-									max_drop_len = drop_len;
-								}
-
-								PX4_WARN("dropout length: %5.3f seconds", drop_len);
-								dropout_start = 0;
-								highWater = 0;
-							}
-
 							total_bytes += msg_size;
 #endif /* DBGPRINT */
+
+							if (_dropout_start) {
+								float dropout_duration = (float)(hrt_elapsed_time(&_dropout_start) / 1000) / 1.e3f;
+
+								if (dropout_duration > _max_dropout_duration) {
+									_max_dropout_duration = dropout_duration;
+								}
+
+								_dropout_start = 0;
+							}
 
 							data_written = true;
 
 						} else {
 
-#ifdef DBGPRINT
-
-							if (dropout_start == 0)	{
-								available = _writer._count;
-								PX4_WARN("dropout, available: %zu/%zu", available, _writer._buffer_size);
-								dropout_start = trytime;
-								dropout_count++;
+							if (!_dropout_start) {
+								_dropout_start = hrt_absolute_time();
+								++_write_dropouts;
+								_high_water = 0;
 							}
-
-#endif /* DBGPRINT */
 
 							break;	// Write buffer overflow, skip this record
 						}
@@ -566,6 +540,10 @@ void Logger::run()
 				}
 
 				msg_id++;
+			}
+
+			if (!_dropout_start && _writer._count > _high_water) {
+				_high_water = _writer._count;
 			}
 
 			/* release the log buffer */
@@ -582,13 +560,13 @@ void Logger::run()
 			if (deltat > 4.0) {
 				alloc_info = mallinfo();
 				double throughput = total_bytes / deltat;
-				PX4_INFO("%8.1lf kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
-					 throughput / 1.e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
+				PX4_INFO("%8.1f kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+					 throughput / 1.e3, _high_water, _write_dropouts, (double)_max_dropout_duration,
+					 alloc_info.fordblks);
 
+				_high_water = 0;
+				_max_dropout_duration = 0.f;
 				total_bytes = 0;
-				highWater = 0,
-				dropout_count = 0;
-				max_drop_len = 0;
 				timer_start = hrt_absolute_time();
 			}
 
@@ -702,6 +680,7 @@ void Logger::start_log()
 	write_parameters();
 	_writer.notify();
 	_enabled = true;
+	_start_time = hrt_absolute_time();
 }
 
 void Logger::stop_log()
