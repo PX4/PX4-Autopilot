@@ -385,17 +385,30 @@ void Logger::run()
 	struct mallinfo alloc_info = {};
 #endif /* DBGPRINT */
 
-	PX4_WARN("logger started");
+	PX4_INFO("logger started");
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret == 0) {
-		PX4_WARN("log root dir created: %s", LOG_ROOT);
+		PX4_INFO("log root dir created: %s", LOG_ROOT);
 
 	} else if (errno != EEXIST) {
-		PX4_WARN("failed creating log root dir: %s", LOG_ROOT);
+		PX4_ERR("failed creating log root dir: %s", LOG_ROOT);
 		return;
 	}
+
+	if (!(_vehicle_status_sub = new uORB::Subscription<vehicle_status_s>(ORB_ID(vehicle_status)))) {
+		PX4_ERR("Failed to allocate subscription");
+		return;
+	}
+
+	if (!(_parameter_update_sub = new uORB::Subscription<parameter_update_s>(ORB_ID(parameter_update)))) {
+		delete _vehicle_status_sub;
+		_vehicle_status_sub = nullptr;
+		PX4_ERR("Failed to allocate subscription");
+		return;
+	}
+
 
 	add_topic("sensor_gyro", 0);
 	add_topic("sensor_accel", 0);
@@ -448,10 +461,10 @@ void Logger::run()
 	while (!_task_should_exit) {
 
 		// Start/stop logging when system arm/disarm
-		if (_vehicle_status_sub.check_updated()) {
-			_vehicle_status_sub.update();
-			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+		if (_vehicle_status_sub->check_updated()) {
+			_vehicle_status_sub->update();
+			bool armed = (_vehicle_status_sub->get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+				     (_vehicle_status_sub->get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
 			if (_enabled != armed && !_log_on_start) {
 				if (armed) {
@@ -474,9 +487,9 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			// this needs to change to a timestamped record to record a history of parameter changes
-			if (_parameter_update_sub.check_updated()) {
+			if (_parameter_update_sub->check_updated()) {
 				warnx("parameter update");
-				_parameter_update_sub.update();
+				_parameter_update_sub->update();
 				write_changed_parameters();
 			}
 
@@ -576,6 +589,9 @@ void Logger::run()
 
 		usleep(_log_interval);
 	}
+
+	delete _vehicle_status_sub;
+	delete _parameter_update_sub;
 
 	// stop the writer thread
 	_writer.thread_stop();
