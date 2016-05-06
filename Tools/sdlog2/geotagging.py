@@ -157,7 +157,7 @@ def main():
                     help = "PX4 log file containing recorded positions", 
                     metavar = "string")
     parser.add_option("-i", "--input", dest = "InputFolder",
-                    help = "Input folder containing untagged images",
+                    help = "Input folder containing untagged images in alphabetical order",
                     type = "string")
     parser.add_option("-o", "--output", dest = "OutputFolder",
                     help = "Output folder to contain tagged images",
