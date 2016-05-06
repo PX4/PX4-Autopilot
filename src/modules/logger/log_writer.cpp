@@ -12,7 +12,9 @@ constexpr size_t LogWriter::_min_write_chunk;
 
 
 LogWriter::LogWriter(size_t buffer_size) :
-	_buffer_size(math::max(buffer_size, _min_write_chunk))
+	//We always write larger chunks (orb messages) to the buffer, so the buffer
+	//needs to be larger than the minimum write chunk (300 is somewhat arbitrary)
+	_buffer_size(math::max(buffer_size, _min_write_chunk + 300))
 {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
