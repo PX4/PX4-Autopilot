@@ -13,7 +13,6 @@ namespace logger
 
 class LogWriter
 {
-	friend class Logger;
 public:
 	LogWriter(size_t buffer_size);
 	~LogWriter();
@@ -57,6 +56,16 @@ public:
 	size_t get_total_written() const
 	{
 		return _total_written;
+	}
+
+	size_t get_buffer_size() const
+	{
+		return _buffer_size;
+	}
+
+	size_t get_buffer_fill_count() const
+	{
+		return _count;
 	}
 
 private:
