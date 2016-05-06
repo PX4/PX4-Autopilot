@@ -158,6 +158,9 @@ px4cannode-v1_default:
 px4esc-v1_default:
 	$(call cmake-build,nuttx_px4esc-v1_default)
 
+esc35-v1_default:
+	$(call cmake-build,nuttx_esc35-v1_default)
+
 s2740vc-v1_default:
 	$(call cmake-build,nuttx_s2740vc-v1_default)
 
@@ -166,6 +169,9 @@ px4cannode-v1_bootloader:
 
 px4esc-v1_bootloader:
 	$(call cmake-build,nuttx_px4esc-v1_bootloader)
+
+esc35-v1_bootloader:
+	$(call cmake-build,nuttx_esc35-v1_bootloader)
 
 px4flow-v2_bootloader:
 	$(call cmake-build,nuttx_px4flow-v2_bootloader)
