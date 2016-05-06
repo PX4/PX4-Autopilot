@@ -136,7 +136,7 @@ void Logger::status()
 
 		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
 		PX4_INFO("Dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
-			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer._buffer_size);
+			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
 		_high_water = 0;
 		_max_dropout_duration = 0.f;
 	}
@@ -555,8 +555,8 @@ void Logger::run()
 				msg_id++;
 			}
 
-			if (!_dropout_start && _writer._count > _high_water) {
-				_high_water = _writer._count;
+			if (!_dropout_start && _writer.get_buffer_fill_count() > _high_water) {
+				_high_water = _writer.get_buffer_fill_count();
 			}
 
 			/* release the log buffer */
