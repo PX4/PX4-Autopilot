@@ -2872,6 +2872,7 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 	}
 }
 
+void
 control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery, const cpuload_s *cpuload_local)
 {
 	/* driving rgbled */
