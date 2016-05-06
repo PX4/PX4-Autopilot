@@ -95,8 +95,8 @@ private:
 
 	bool						_task_should_exit = true;
 	char 						_log_dir[64];
-	uORB::Subscription<vehicle_status_s>	_vehicle_status_sub {ORB_ID(vehicle_status)};
-	uORB::Subscription<parameter_update_s>	_parameter_update_sub {ORB_ID(parameter_update)};
+	uORB::Subscription<vehicle_status_s>	*_vehicle_status_sub = nullptr;
+	uORB::Subscription<parameter_update_s>	*_parameter_update_sub = nullptr;
 	bool						_enabled = false;
 
 	// statistics
