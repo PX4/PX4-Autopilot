@@ -54,6 +54,11 @@ public:
 		pthread_cond_broadcast(&_cv);
 	}
 
+	size_t get_total_written() const
+	{
+		return _total_written;
+	}
+
 private:
 	static void *run_helper(void *);
 
