@@ -147,8 +147,8 @@ set(MULTIPLATFORM_HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platforms/ros/px4_m
 set(MULTIPLATFORM_TEMPLATE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/msg/templates/px4/ros)
 set(TOPICHEADER_TEMP_DIR ${CMAKE_BINARY_DIR}/topics_temporary)
 set(MULTIPLATFORM_PREFIX px4_)
-add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_headers.py
-	-d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
+add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_files.py
+	--headers -d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
 	-t ${TOPICHEADER_TEMP_DIR} -p ${MULTIPLATFORM_PREFIX})
 
 ## Declare a cpp library
