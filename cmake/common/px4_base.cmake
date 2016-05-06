@@ -380,12 +380,13 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_out_path}
 			-e msg/templates/uorb
-			-t ${CMAKE_BINARY_DIR}/topics_temporary
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_header
 		DEPENDS ${DEPENDS} ${MSG_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		COMMENT "Generating uORB topic headers"
@@ -400,11 +401,13 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_source_files_out}
 		COMMAND ${PYTHON_EXECUTABLE} 
-			Tools/px_generate_uorb_topic_sources.py
+			Tools/px_generate_uorb_topic_files.py
+			--sources
 			${QUIET}
 			-d msg
-			-e msg/templates/uorb
 			-o ${msg_source_out_path}
+			-e msg/templates/uorb
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_sources
 		DEPENDS ${DEPENDS} ${MSG_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		COMMENT "Generating uORB topic sources"
@@ -421,7 +424,8 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_multi_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_multi_out_path}
