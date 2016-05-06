@@ -78,9 +78,9 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  *
  * @group Battery Calibration
  * @unit norm
- * @decimal 2
  * @min 0.12
  * @max 0.4
+ * @decimal 2
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
@@ -94,9 +94,9 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  *
  * @group Battery Calibration
  * @unit norm
- * @decimal 2
  * @min 0.05
  * @max 0.1
+ * @decimal 2
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
