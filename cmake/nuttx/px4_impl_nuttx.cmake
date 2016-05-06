@@ -212,7 +212,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh && cd ..
 		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
