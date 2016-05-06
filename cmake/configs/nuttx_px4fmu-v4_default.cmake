@@ -63,6 +63,7 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/sd_bench
 	systemcmds/tests
 
 	#
