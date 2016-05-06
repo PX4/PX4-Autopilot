@@ -31,7 +31,7 @@ set(config_module_list
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
-#	drivers/pwm_out_sim - RAN OUT OF CODE SPACE
+	drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
@@ -48,8 +48,8 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-##	drivers/snapdragon_rc_pwm
-##	drivers/lis3mdl
+	drivers/snapdragon_rc_pwm
+	drivers/lis3mdl
 
 	#
 	# System commands
@@ -86,7 +86,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/local_position_estimator
+##	modules/local_position_estimator - Fit In FLASH
 
 	#
 	# Vehicle Control
