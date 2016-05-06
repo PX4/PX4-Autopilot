@@ -249,5 +249,11 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			z = -0.932324f * tmpx +  0.361625f * tmpy +  0.000000f * tmpz;
 			return;
 		}
+
+	case ROTATION_PITCH_90_ROLL_270: {
+			tmp = x; x = -y;
+			y = z; z = -tmp;
+			return;
+		}
 	}
 }
