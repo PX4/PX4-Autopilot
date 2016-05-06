@@ -43,6 +43,8 @@
  * CHANGING THIS VALUE REQUIRES A RESTART. Defines the auto-start script used to bootstrap the system.
  *
  * @reboot_required true
+ * @min 0
+ * @max 99999
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
@@ -56,6 +58,8 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 Keep parameters
+ * @value 1 Reset parameters
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
@@ -65,6 +69,7 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
  *
  * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
  *
+ * @boolean
  * @min 0
  * @max 1
  * @group System
@@ -78,6 +83,9 @@ PARAM_DEFINE_INT32(SYS_USE_IO, 1);
  *
  * @min 0
  * @max 2
+ * @value 0 Data survives resets
+ * @value 1 Data survives in-flight resets only
+ * @value 2 Data does not survive reset
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
