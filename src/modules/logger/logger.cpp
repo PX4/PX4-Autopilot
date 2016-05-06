@@ -476,8 +476,6 @@ void Logger::run()
 		}
 
 		if (_enabled) {
-			/* wait for lock on log buffer */
-			_writer.lock();
 
 			bool data_written = false;
 
@@ -491,6 +489,9 @@ void Logger::run()
 
 			// Write data messages for normal subscriptions
 			int msg_id = 0;
+
+			/* wait for lock on log buffer */
+			_writer.lock();
 
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
