@@ -121,6 +121,8 @@ def LoadImageList(input_folder):
         print("Unequal number of jpg and raw images")
     if len(image_list.jpg) == 0 and len(image_list.raw) == 0:
         print("No images found")
+    image_list.jpg = sorted(image_list.jpg)
+    image_list.raw = sorted(image_list.raw)
     return image_list
 
 def FilterTrigger(trigger_list, image_list):
