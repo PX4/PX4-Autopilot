@@ -85,6 +85,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -132,6 +133,7 @@ public:
 	struct battery_status_s 			*get_batt_status() {return &_batt_status;}
 	struct vehicle_status_s 			*get_vehicle_status() {return &_vehicle_status;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
+	struct vehicle_land_detected_s			*get_land_detected() {return &_land_detected;}
 
 	struct Params 					*get_params() {return &_params;}
 
@@ -159,6 +161,7 @@ private:
 	int 	_vehicle_cmd_sub;
 	int 	_vehicle_status_sub;
 	int	_tecs_status_sub;
+	int	_land_detected_sub;
 
 	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
 	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
@@ -191,6 +194,7 @@ private:
 	struct vehicle_command_s			_vehicle_cmd;
 	struct vehicle_status_s				_vehicle_status;
 	struct tecs_status_s				_tecs_status;
+	struct vehicle_land_detected_s			_land_detected;
 
 	Params _params;	// struct holding the parameters
 
@@ -241,6 +245,7 @@ private:
 	void 		vehicle_battery_poll();			// Check for battery updates
 	void		vehicle_cmd_poll();
 	void		tecs_status_poll();
+	void		land_detected_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
 	void 		vehicle_status_poll();
 	int 		parameters_update();			//Update local paraemter cache
