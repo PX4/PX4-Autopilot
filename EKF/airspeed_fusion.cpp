@@ -161,7 +161,7 @@ void Ekf::fuseAirspeed()
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
-		_fault_status.bad_airspeed = false;
+		_fault_status.flags.bad_airspeed = false;
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
@@ -172,7 +172,7 @@ void Ekf::fuseAirspeed()
 				healthy = false;
 
 				// update individual measurement health status
-				_fault_status.bad_airspeed = true;
+				_fault_status.flags.bad_airspeed = true;
 
 			}
 		}

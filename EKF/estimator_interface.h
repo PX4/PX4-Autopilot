@@ -286,7 +286,7 @@ protected:
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
 	uint64_t _time_last_optflow;
 
-	fault_status_t _fault_status;
+	fault_status_u _fault_status;
 
 	// allocate data buffers and intialise interface variables
 	bool initialise_interface(uint64_t timestamp);

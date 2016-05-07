@@ -105,11 +105,11 @@ void Ekf::fuseMag()
 	// check for a badly conditioned covariance matrix
 	if (_mag_innov_var[0] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.bad_mag_x = false;
+		_fault_status.flags.bad_mag_x = false;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.bad_mag_x = true;
+		_fault_status.flags.bad_mag_x = true;
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
@@ -134,11 +134,11 @@ void Ekf::fuseMag()
 	// check for a badly conditioned covariance matrix
 	if (_mag_innov_var[1] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.bad_mag_y = false;
+		_fault_status.flags.bad_mag_y = false;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.bad_mag_y = true;
+		_fault_status.flags.bad_mag_y = true;
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
@@ -163,11 +163,11 @@ void Ekf::fuseMag()
 	// check for a badly conditioned covariance matrix
 	if (_mag_innov_var[2] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.bad_mag_z = false;
+		_fault_status.flags.bad_mag_z = false;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.bad_mag_z = true;
+		_fault_status.flags.bad_mag_z = true;
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
@@ -329,9 +329,9 @@ void Ekf::fuseMag()
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
-		_fault_status.bad_mag_x = false;
-		_fault_status.bad_mag_y = false;
-		_fault_status.bad_mag_z = false;
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
@@ -343,11 +343,11 @@ void Ekf::fuseMag()
 
 				// update individual measurement health status
 				if (index == 0) {
-					_fault_status.bad_mag_x = true;
+					_fault_status.flags.bad_mag_x = true;
 				} else if (index == 1) {
-					_fault_status.bad_mag_y = true;
+					_fault_status.flags.bad_mag_y = true;
 				} else if (index == 2) {
-					_fault_status.bad_mag_z = true;
+					_fault_status.flags.bad_mag_z = true;
 				}
 			}
 		}
@@ -515,12 +515,12 @@ void Ekf::fuseHeading()
 	// check if the innovation variance calculation is badly conditioned
 	if (_heading_innov_var >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
-		_fault_status.bad_mag_hdg = false;
+		_fault_status.flags.bad_mag_hdg = false;
 		heading_innov_var_inv = 1.0f / _heading_innov_var;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.bad_mag_hdg = true;
+		_fault_status.flags.bad_mag_hdg = true;
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
@@ -610,7 +610,7 @@ void Ekf::fuseHeading()
 	// if the covariance correction will result in a negative variance, then
 	// the covariance marix is unhealthy and must be corrected
 	bool healthy = true;
-	_fault_status.bad_mag_hdg = false;
+	_fault_status.flags.bad_mag_hdg = false;
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P[i][i] < KHP[i][i]) {
 			// zero rows and columns
@@ -621,7 +621,7 @@ void Ekf::fuseHeading()
 			healthy = false;
 
 			// update individual measurement health status
-			_fault_status.bad_mag_hdg = true;
+			_fault_status.flags.bad_mag_hdg = true;
 
 		}
 	}
@@ -744,7 +744,7 @@ void Ekf::fuseDeclination()
 	// if the covariance correction will result in a negative variance, then
 	// the covariance marix is unhealthy and must be corrected
 	bool healthy = true;
-	_fault_status.bad_mag_decl = false;
+	_fault_status.flags.bad_mag_decl = false;
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P[i][i] < KHP[i][i]) {
 			// zero rows and columns
@@ -755,7 +755,7 @@ void Ekf::fuseDeclination()
 			healthy = false;
 
 			// update individual measurement health status
-			_fault_status.bad_mag_decl = true;
+			_fault_status.flags.bad_mag_decl = true;
 
 		}
 	}

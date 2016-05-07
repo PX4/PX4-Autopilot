@@ -322,22 +322,25 @@ struct stateSample {
 	Vector2f    wind_vel;	// wind velocity in m/s
 };
 
-struct fault_status_t {
-	bool bad_mag_x: 1; // true if the fusion of the magnetometer X-axis has encountered a numerical error
-	bool bad_mag_y: 1; // true if the fusion of the magnetometer Y-axis has encountered a numerical error
-	bool bad_mag_z: 1; // true if the fusion of the magnetometer Z-axis has encountered a numerical error
-	bool bad_mag_hdg: 1; // true if the fusion of the magnetic heading has encountered a numerical error
-	bool bad_mag_decl: 1; // true if the fusion of the magnetic declination has encountered a numerical error
-	bool bad_airspeed: 1; // true if fusion of the airspeed has encountered a numerical error
-	bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
-	bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
-	bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
-	bool bad_vel_N: 1; // true if fusion of the North velocity has encountered a numerical error
-	bool bad_vel_E: 1; // true if fusion of the East velocity has encountered a numerical error
-	bool bad_vel_D: 1; // true if fusion of the Down velocity has encountered a numerical error
-	bool bad_pos_N: 1; // true if fusion of the North position has encountered a numerical error
-	bool bad_pos_E: 1; // true if fusion of the East position has encountered a numerical error
-	bool bad_pos_D: 1; // true if fusion of the Down position has encountered a numerical error
+union fault_status_u {
+	struct {
+		bool bad_mag_x: 1;	// 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
+		bool bad_mag_y: 1;	// 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
+		bool bad_mag_z: 1;	// 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
+		bool bad_mag_hdg: 1;	// 3 - true if the fusion of the magnetic heading has encountered a numerical error
+		bool bad_mag_decl: 1;	// 4 - true if the fusion of the magnetic declination has encountered a numerical error
+		bool bad_airspeed: 1;	// 5 - true if fusion of the airspeed has encountered a numerical error
+		bool bad_sideslip: 1;	// 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
+		bool bad_optflow_X: 1;	// 7 - true if fusion of the optical flow X axis has encountered a numerical error
+		bool bad_optflow_Y: 1;	// 8 - true if fusion of the optical flow Y axis has encountered a numerical error
+		bool bad_vel_N: 1;	// 9 - true if fusion of the North velocity has encountered a numerical error
+		bool bad_vel_E: 1;	// 10 - true if fusion of the East velocity has encountered a numerical error
+		bool bad_vel_D: 1;	// 11 - true if fusion of the Down velocity has encountered a numerical error
+		bool bad_pos_N: 1;	// 12 - true if fusion of the North position has encountered a numerical error
+		bool bad_pos_E: 1;	// 13 - true if fusion of the East position has encountered a numerical error
+		bool bad_pos_D: 1;	// 14 - true if fusion of the Down position has encountered a numerical error
+	} flags;
+	uint16_t value;
 
 };
 

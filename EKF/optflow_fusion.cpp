@@ -456,8 +456,8 @@ void Ekf::fuseOptFlow()
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
-		_fault_status.bad_optflow_X = false;
-		_fault_status.bad_optflow_Y = false;
+		_fault_status.flags.bad_optflow_X = false;
+		_fault_status.flags.bad_optflow_Y = false;
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
@@ -469,9 +469,9 @@ void Ekf::fuseOptFlow()
 
 				// update individual measurement health status
 				if (obs_index == 0) {
-					_fault_status.bad_optflow_X = true;
+					_fault_status.flags.bad_optflow_X = true;
 				} else if (obs_index == 1) {
-					_fault_status.bad_optflow_Y = true;
+					_fault_status.flags.bad_optflow_Y = true;
 				}
 			}
 		}

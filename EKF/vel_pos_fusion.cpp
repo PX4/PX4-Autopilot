@@ -222,32 +222,32 @@ void Ekf::fuseVelPosHeight()
 
 				// update individual measurement health status
 				if (obs_index == 0) {
-					_fault_status.bad_vel_N = true;
+					_fault_status.flags.bad_vel_N = true;
 				} else if (obs_index == 1) {
-					_fault_status.bad_vel_E = true;
+					_fault_status.flags.bad_vel_E = true;
 				} else if (obs_index == 2) {
-					_fault_status.bad_vel_D = true;
+					_fault_status.flags.bad_vel_D = true;
 				} else if (obs_index == 3) {
-					_fault_status.bad_pos_N = true;
+					_fault_status.flags.bad_pos_N = true;
 				} else if (obs_index == 4) {
-					_fault_status.bad_pos_E = true;
+					_fault_status.flags.bad_pos_E = true;
 				} else if (obs_index == 5) {
-					_fault_status.bad_pos_D = true;
+					_fault_status.flags.bad_pos_D = true;
 				}
 			} else {
 				// update individual measurement health status
 				if (obs_index == 0) {
-					_fault_status.bad_vel_N = false;
+					_fault_status.flags.bad_vel_N = false;
 				} else if (obs_index == 1) {
-					_fault_status.bad_vel_E = false;
+					_fault_status.flags.bad_vel_E = false;
 				} else if (obs_index == 2) {
-					_fault_status.bad_vel_D = false;
+					_fault_status.flags.bad_vel_D = false;
 				} else if (obs_index == 3) {
-					_fault_status.bad_pos_N = false;
+					_fault_status.flags.bad_pos_N = false;
 				} else if (obs_index == 4) {
-					_fault_status.bad_pos_E = false;
+					_fault_status.flags.bad_pos_E = false;
 				} else if (obs_index == 5) {
-					_fault_status.bad_pos_D = false;
+					_fault_status.flags.bad_pos_D = false;
 				}
 			}
 		}
