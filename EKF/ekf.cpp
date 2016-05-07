@@ -263,14 +263,17 @@ bool Ekf::update()
 		}
 
 		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
+		uint64_t last_baro_time_us = _baro_sample_delayed.time_us;
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if (_control_status.flags.baro_hgt) {
 				_fuse_height = true;
 
 			} else {
 				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro  as a height reference
-				float offset_error =  _state.pos(2) + _baro_sample_delayed.hgt - _hgt_sensor_offset - _baro_hgt_offset;
-				_baro_hgt_offset += 0.02f * math::constrain(offset_error, -5.0f, 5.0f);
+				float dt = math::constrain(1e-6f*(float)(_baro_sample_delayed.time_us - last_baro_time_us),0.0f,1.0f);
+				last_baro_time_us = _baro_sample_delayed.time_us;
+				float raw_offset_error =  (_baro_sample_delayed.hgt - _hgt_sensor_offset) + _state.pos(2) - _baro_hgt_offset;
+				_baro_hgt_offset += dt * math::constrain(0.1f * raw_offset_error, -0.1f, 0.1f);
 			}
 		}
 

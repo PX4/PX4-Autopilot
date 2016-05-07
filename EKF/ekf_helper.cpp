@@ -135,7 +135,7 @@ void Ekf::resetHeight()
 			zeroRows(P, 9, 9);
 			zeroCols(P, 9, 9);
 
-			// the state variance is th esame as the observation
+			// the state variance is the same as the observation
 			P[9][9] = sq(_params.baro_noise);
 
 			vert_pos_reset = true;
@@ -185,7 +185,7 @@ void Ekf::resetHeight()
 
 		// Set the variance to a value large enough to allow the state to converge quickly
 		// that does not destabilise the filter
-		P[6][6] = fminf(sq(_state.vel(2)),100.0f);
+		P[6][6] = 10.0f;
 
 	}
 	vert_vel_reset = true;

@@ -291,18 +291,12 @@ void Ekf::controlFusionModes()
 			// check if baro data is available
 			baroSample baro_init = _baro_buffer.get_newest();
 			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
-			// check if baro data is consistent
-			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
-			bool baro_data_consistent = sq(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
 
-			// reset to baro if data is available and we have no range data
+			// reset to baro if we have no range data and baro data is available
 			bool reset_to_baro = !rng_data_available && baro_data_available;
 
-			// reset to baro if data is acceptable
-			reset_to_baro = reset_to_baro || (baro_data_consistent && baro_data_available && !_baro_hgt_faulty);
-
-			// reset to range data if it is available and we cannot switch to baro
-			bool reset_to_rng = !reset_to_baro && rng_data_available;
+			// reset to range data if it is available
+			bool reset_to_rng = rng_data_available;
 
 			if (reset_to_baro) {
 				// set height sensor health

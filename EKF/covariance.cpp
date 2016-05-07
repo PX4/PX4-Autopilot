@@ -732,42 +732,42 @@ void Ekf::limitCov()
 
 	for (int i = 0; i <= 3; i++) {
 
-		math::constrain(P[i][i], 0.0f, P_lim[0]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[0]);
 	}
 
 	for (int i = 4; i <= 6; i++) {
 
-		math::constrain(P[i][i], 0.0f, P_lim[1]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[1]);
 	}
 
 	for (int i = 7; i <= 9; i++) {
 
 
-		math::constrain(P[i][i], 0.0f, P_lim[2]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[2]);
 	}
 
 	for (int i = 10; i <= 12; i++) {
 
 
-		math::constrain(P[i][i], 0.0f, P_lim[3]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[3]);
 	}
 
 	for (int i = 13; i <= 15; i++) {
 
 
-		math::constrain(P[i][i], 0.0f, P_lim[4]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
 	}
 
 
 	for (int i = 16; i <= 18; i++) {
-		math::constrain(P[i][i], 0.0f, P_lim[5]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[5]);
 	}
 
 	for (int i = 19; i <= 21; i++) {
-		math::constrain(P[i][i], 0.0f, P_lim[6]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[6]);
 	}
 
 	for (int i = 22; i <= 23; i++) {
-		math::constrain(P[i][i], 0.0f, P_lim[7]);
+		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[7]);
 	}
 }

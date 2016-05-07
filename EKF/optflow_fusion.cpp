@@ -438,7 +438,7 @@ void Ekf::fuseOptFlow()
 		// first calculate expression for KHP
 		// then calculate P - KHP
 		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column <= 5; column++) {
+			for (unsigned column = 0; column <= 6; column++) {
 				KH[row][column] = gain[row] * H_LOS[obs_index][column];
 			}
 		}
