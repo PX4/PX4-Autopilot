@@ -158,6 +158,9 @@ px4esc-v1_default:
 s2740vc-v1_default:
 	$(call cmake-build,nuttx_s2740vc-v1_default)
 
+esc35-v1_default:
+	$(call cmake-build,nuttx_esc35-v1_default)
+
 px4cannode-v1_bootloader:
 	$(call cmake-build,nuttx_px4cannode-v1_bootloader)
 
@@ -172,6 +175,9 @@ s2740vc-v1_bootloader:
 
 zubaxgnss-v1_bootloader:
 	$(call cmake-build,nuttx_zubaxgnss-v1_bootloader)
+
+esc35-v1_bootloader:
+	$(call cmake-build,nuttx_esc35-v1_bootloader)
 
 nuttx_sim_simple:
 	$(call cmake-build,$@)
@@ -259,7 +265,7 @@ endif
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size
 
-check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_mavstation_default check_px4cannode-v1_default check_px4esc-v1_default check_s2740vc-v1_default check_px4cannode-v1_bootloader check_px4esc-v1_bootloader check_px4flow-v2_bootloader check_s2740vc-v1_bootloader check_zubaxgnss-v1_bootloader check_posix_sitl_default check_unittest check_format
+check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_mavstation_default check_px4cannode-v1_default check_px4esc-v1_default check_s2740vc-v1_default check_px4cannode-v1_bootloader check_esc35-v1_bootloader check_px4esc-v1_bootloader check_px4flow-v2_bootloader check_s2740vc-v1_bootloader check_zubaxgnss-v1_bootloader check_posix_sitl_default check_unittest check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
