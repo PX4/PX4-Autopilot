@@ -262,8 +262,7 @@ void Ekf::fuseVelPosHeight()
 			}
 
 			// correct the covariance marix for gross errors
-			makeSymmetrical();
-			limitCov();
+			fixCovarianceErrors();
 
 			// apply the state corrections
 			fuse(Kfusion, _vel_pos_innov[obs_index]);

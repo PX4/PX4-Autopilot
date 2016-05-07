@@ -307,13 +307,11 @@ private:
 	// reset height state of the ekf
 	void resetHeight();
 
-	void makeCovSymetrical();
-
 	// limit the diagonal of the covariance matrix
-	void limitCov();
+	void fixCovarianceErrors();
 
-	// make ekf covariance matrix symmetric
-	void makeSymmetrical();
+	// make ekf covariance matrix symmetric between a nominated state indexe range
+	void makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// constrain the ekf states
 	void constrainStates();

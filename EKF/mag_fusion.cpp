@@ -362,8 +362,7 @@ void Ekf::fuseMag()
 			}
 
 			// correct the covariance marix for gross errors
-			makeSymmetrical();
-			limitCov();
+			fixCovarianceErrors();
 
 			// apply the state corrections
 			fuse(Kfusion, _mag_innov[index]);
@@ -637,8 +636,7 @@ void Ekf::fuseHeading()
 		}
 
 		// correct the covariance marix for gross errors
-		makeSymmetrical();
-		limitCov();
+		fixCovarianceErrors();
 
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
@@ -772,8 +770,7 @@ void Ekf::fuseDeclination()
 		}
 
 		// correct the covariance marix for gross errors
-		makeSymmetrical();
-		limitCov();
+		fixCovarianceErrors();
 
 		// apply the state corrections
 		fuse(Kfusion, innovation);

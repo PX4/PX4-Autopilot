@@ -292,13 +292,13 @@ void Ekf::calcMagDeclination()
 }
 
 // This function forces the covariance matrix to be symmetric
-void Ekf::makeSymmetrical()
+void Ekf::makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
-	for (unsigned row = 0; row < _k_num_states; row++) {
+	for (unsigned row = first; row <= last; row++) {
 		for (unsigned column = 0; column < row; column++) {
-			float tmp = (P[row][column] + P[column][row]) / 2;
-			P[row][column] = tmp;
-			P[column][row] = tmp;
+			float tmp = (cov_mat[row][column] + cov_mat[column][row]) / 2;
+			cov_mat[row][column] = tmp;
+			cov_mat[column][row] = tmp;
 		}
 	}
 }

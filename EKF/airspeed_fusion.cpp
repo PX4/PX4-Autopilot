@@ -187,8 +187,7 @@ void Ekf::fuseAirspeed()
 			}
 
 			// correct the covariance marix for gross errors
-			makeSymmetrical();
-			limitCov();
+			fixCovarianceErrors();
 
 			// apply the state corrections
 			fuse(Kfusion, _airspeed_innov);

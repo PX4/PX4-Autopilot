@@ -691,29 +691,13 @@ void Ekf::predictCovariance()
 		P[i][i] = nextP[i][i];
 	}
 
-	// prevent variances from becoming too large or negative
-	limitCov();
-
-	// ensure coresponding rows and zeros for unwanted states are zero
-	if ((_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)) {
-		// deactivate XYZ accel bias states
-		zeroRows(P,13,15);
-		zeroCols(P,13,15);
-	}
-	if (!_control_status.flags.mag_3D) {
-		// deactivate magnetic field states
-		zeroRows(P,16,21);
-		zeroCols(P,16,21);
-	}
-	if (!_control_status.flags.wind) {
-		// deactivate wind states
-		zeroRows(P,22,23);
-		zeroCols(P,22,23);
-	}
+	// fix gross errors in the covariance matrix and ensure rows and
+	// columns for un-used states are zero
+	fixCovarianceErrors();
 
 }
 
-void Ekf::limitCov()
+void Ekf::fixCovarianceErrors()
 {
 	// NOTE: This limiting is a last resort and should not be relied on
 	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
@@ -731,43 +715,70 @@ void Ekf::limitCov()
 	P_lim[7] = 1e6f;		// wind max var
 
 	for (int i = 0; i <= 3; i++) {
-
+		// quaternion states
 		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[0]);
 	}
 
 	for (int i = 4; i <= 6; i++) {
-
+		// NED velocity states
 		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[1]);
 	}
 
 	for (int i = 7; i <= 9; i++) {
-
-
+		// NED position states
 		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[2]);
 	}
 
 	for (int i = 10; i <= 12; i++) {
-
-
+		// gyro bias states
 		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[3]);
 	}
 
-	for (int i = 13; i <= 15; i++) {
+	// force symmetry on the quaternion, velocity and positon state covariances
+	makeSymmetrical(P,0,12);
 
+	// the following states are optional and are deactivaed when not required
+	// by ensuring the corresponding covariance matrix values are kept at zero
 
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
+	// accelerometer bias states
+	if ((_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)) {
+		zeroRows(P,13,15);
+		zeroCols(P,13,15);
+	} else {
+		// constrain variances
+		for (int i = 13; i <= 15; i++) {
+			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
+		}
+		// force symmetry
+		makeSymmetrical(P,13,15);
 	}
 
-
-	for (int i = 16; i <= 18; i++) {
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[5]);
+	// magnetic field states
+	if (!_control_status.flags.mag_3D) {
+		zeroRows(P,16,21);
+		zeroCols(P,16,21);
+	} else {
+		// constrain variances
+		for (int i = 16; i <= 18; i++) {
+			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[5]);
+		}
+		for (int i = 19; i <= 21; i++) {
+			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[6]);
+		}
+		// force symmetry
+		makeSymmetrical(P,16,21);
 	}
 
-	for (int i = 19; i <= 21; i++) {
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[6]);
-	}
-
-	for (int i = 22; i <= 23; i++) {
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[7]);
+	// wind velocity states
+	if (!_control_status.flags.wind) {
+		zeroRows(P,22,23);
+		zeroCols(P,22,23);
+	} else {
+		// constrain variances
+		for (int i = 22; i <= 23; i++) {
+			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[7]);
+		}
+		// force symmetry
+		makeSymmetrical(P,22,23);
 	}
 }

@@ -486,8 +486,7 @@ void Ekf::fuseOptFlow()
 			}
 
 			// correct the covariance marix for gross errors
-			makeSymmetrical();
-			limitCov();
+			fixCovarianceErrors();
 
 			// apply the state corrections
 			fuse(gain, _flow_innov[obs_index]);
