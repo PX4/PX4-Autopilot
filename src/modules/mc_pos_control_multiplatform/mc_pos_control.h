@@ -172,6 +172,8 @@ protected:
 	math::Vector<3> _thrust_int;
 	math::Matrix<3, 3> _R;
 
+	float _yaw_sp;	/**< yaw setpoint */
+
 	/**
 	 * Update our local parameter cache.
 	 */
