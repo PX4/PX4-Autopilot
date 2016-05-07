@@ -332,6 +332,13 @@ struct fault_status_t {
 	bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
 	bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
 	bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
+	bool bad_vel_N: 1; // true if fusion of the North velocity has encountered a numerical error
+	bool bad_vel_E: 1; // true if fusion of the East velocity has encountered a numerical error
+	bool bad_vel_D: 1; // true if fusion of the Down velocity has encountered a numerical error
+	bool bad_pos_N: 1; // true if fusion of the North position has encountered a numerical error
+	bool bad_pos_E: 1; // true if fusion of the East position has encountered a numerical error
+	bool bad_pos_D: 1; // true if fusion of the Down position has encountered a numerical error
+
 };
 
 // publish the status of various GPS quality checks

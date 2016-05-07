@@ -201,9 +201,6 @@ void Ekf::fuseVelPosHeight()
 			Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
 
-		// update the states
-		fuse(Kfusion, _vel_pos_innov[obs_index]);
-
 		// update covarinace matrix via Pnew = (I - KH)P
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
@@ -211,13 +208,65 @@ void Ekf::fuseVelPosHeight()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				if (obs_index == 0) {
+					_fault_status.bad_vel_N = true;
+				} else if (obs_index == 1) {
+					_fault_status.bad_vel_E = true;
+				} else if (obs_index == 2) {
+					_fault_status.bad_vel_D = true;
+				} else if (obs_index == 3) {
+					_fault_status.bad_pos_N = true;
+				} else if (obs_index == 4) {
+					_fault_status.bad_pos_E = true;
+				} else if (obs_index == 5) {
+					_fault_status.bad_pos_D = true;
+				}
+			} else {
+				// update individual measurement health status
+				if (obs_index == 0) {
+					_fault_status.bad_vel_N = false;
+				} else if (obs_index == 1) {
+					_fault_status.bad_vel_E = false;
+				} else if (obs_index == 2) {
+					_fault_status.bad_vel_D = false;
+				} else if (obs_index == 3) {
+					_fault_status.bad_pos_N = false;
+				} else if (obs_index == 4) {
+					_fault_status.bad_pos_E = false;
+				} else if (obs_index == 5) {
+					_fault_status.bad_pos_D = false;
+				}
 			}
 		}
 
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			makeSymmetrical();
+			limitCov();
+
+			// apply the state corrections
+			fuse(Kfusion, _vel_pos_innov[obs_index]);
+		}
 	}
 }
