@@ -140,10 +140,10 @@ dma_alloc_init(void)
 					6); /* 64B alignment */
 
 	if (dma_allocator == NULL) {
-		message("[boot] DMA allocator setup FAILED");
+		message("DMA alloc FAILED");
 
 	} else {
-		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
+		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
 	}
 }
 

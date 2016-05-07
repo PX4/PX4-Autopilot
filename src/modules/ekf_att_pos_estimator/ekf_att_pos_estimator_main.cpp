@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -176,14 +176,23 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_baro_gps_offset(0.0f),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_att_pos_estimator")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_dt")),
+#if 0
 	_loop_intvl(perf_alloc(PC_INTERVAL, "ekf_att_pos_est_interval")),
 	_perf_gyro(perf_alloc(PC_INTERVAL, "ekf_att_pos_gyro_upd")),
 	_perf_mag(perf_alloc(PC_INTERVAL, "ekf_att_pos_mag_upd")),
 	_perf_gps(perf_alloc(PC_INTERVAL, "ekf_att_pos_gps_upd")),
 	_perf_baro(perf_alloc(PC_INTERVAL, "ekf_att_pos_baro_upd")),
 	_perf_airspeed(perf_alloc(PC_INTERVAL, "ekf_att_pos_aspd_upd")),
-	_perf_reset(perf_alloc(PC_COUNT, "ekf_att_pos_reset")),
+#else
+	_loop_intvl(nullptr),
+	_perf_gyro(nullptr),
+	_perf_mag(nullptr),
+	_perf_gps(nullptr),
+	_perf_baro(nullptr),
+	_perf_airspeed(nullptr),
+#endif
+	_perf_reset(perf_alloc(PC_COUNT, "ekf_rst")),
 
 	/* states */
 	_gps_alt_filt(0.0f),

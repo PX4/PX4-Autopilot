@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -419,6 +419,10 @@ perf_reset(perf_counter_t handle)
 void
 perf_print_counter(perf_counter_t handle)
 {
+	if (handle == NULL) {
+		return;
+	}
+
 	perf_print_counter_fd(1, handle);
 }
 

@@ -146,9 +146,6 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
-px4fmu-v2_lpe:
-	$(call cmake-build,nuttx_px4fmu-v2_lpe)
-
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
@@ -171,18 +168,6 @@ ros_sitl_default:
 	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
 qurt_eagle_travis:
-	$(call cmake-build,$@)
-
-qurt_eagle_release:
-	$(call cmake-build,$@)
-	
-qurt_eagle_legacy_driver_release:
-	$(call cmake-build,$@)
-
-posix_eagle_release:
-	$(call cmake-build,$@)
-	
-posix_eagle_legacy_driver_release:
 	$(call cmake-build,$@)
 
 qurt_eagle_default:

@@ -18,6 +18,4 @@ fi
 
 if px4io limit $PX4IO_LIMIT
 then
-else
-	echo "[i] Set PX4IO update rate to $PX4IO_LIMIT Hz failed!"
 fi
