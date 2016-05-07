@@ -1,3 +1,11 @@
+#!nsh
+#
+# @name CruiseAder Claire
+#
+# @type VTOL Tiltrotor
+#
+# @maintainer Samay Siga <samay_s@icloud.com>
+#
 
 sh /etc/init.d/rc.vtol_defaults
 
