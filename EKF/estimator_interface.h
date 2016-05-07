@@ -217,6 +217,12 @@ public:
 		*val = _control_status.value;
 	}
 
+	// get EKF internal fault status
+	void get_filter_fault_status(uint16_t *val)
+	{
+		*val = _fault_status.value;
+	}
+
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
 
