@@ -105,4 +105,8 @@
 #ifdef CONFIG_ARCH_BOARD_RPI2
 #define	HW_ARCH "LINUXTEST"
 #endif
+
+#ifdef CONFIG_ARCH_BOARD_ESC35_V1
+#define	HW_ARCH "ESC35"
+#endif
 #endif /* VERSION_H_ */

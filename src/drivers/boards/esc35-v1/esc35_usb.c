@@ -77,17 +77,12 @@
 
 __EXPORT void stm32_usbinitialize(void)
 {
-	/* The OTG FS has an internal soft pull-up */
+}
 
-	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
-
-#ifdef CONFIG_STM32_OTGFS
-	/* XXX We only support device mode
-	stm32_configgpio(GPIO_OTGFS_VBUS);
-	stm32_configgpio(GPIO_OTGFS_PWRON);
-	stm32_configgpio(GPIO_OTGFS_OVER);
-	*/
-#endif
+int stm32_usbpullup(FAR struct usbdev_s *dev, bool enable)
+{
+	usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
+	return OK;
 }
 
 /************************************************************************************

@@ -126,6 +126,11 @@ __EXPORT void board_initialize(void)
 {
 }
 
+static void hrt_calls_this(void)
+{
+
+}
+
 /****************************************************************************
  * Name: board_app_initialize
  *
@@ -169,13 +174,13 @@ __EXPORT int board_app_initialize(void)
 	hrt_call_every(&serial_dma_call,
 		       ts_to_abstime(&ts),
 		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
+		       (hrt_callout)hrt_calls_this,
 		       NULL);
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t  sector_map[] = {
-		{1, 16 * 1024, 0x08004000},
-		{2, 16 * 1024, 0x08008000},
+		{1, 2 * 1024, 0x08004000},
+		{2, 2 * 1024, 0x08004800},
 		{0, 0, 0},
 	};
 	static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];

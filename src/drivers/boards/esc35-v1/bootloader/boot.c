@@ -100,8 +100,8 @@ __EXPORT void stm32_boardinitialize(void)
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
 		 STM32_RCC_APB1RSTR);
 
-	stm32_configgpio(GPIO_CAN_RX);
-	stm32_configgpio(GPIO_CAN_TX);
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
 	stm32_configgpio(GPIO_CAN_SILENT);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)

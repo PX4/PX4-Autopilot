@@ -35,9 +35,9 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
-    px4esc_init.c
-    px4esc_led.c
-    px4esc_usb.c
+    esc35_init.c
+    esc35_led.c
+    esc35_usb.c
    ../../../drivers/bootloaders/src/common/boot_app_shared.c
    ../../../drivers/bootloaders/src/util/crc.c
 )

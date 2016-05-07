@@ -1,0 +1,12 @@
+{
+    "board_id": 27,
+    "magic": "ESC35v1",
+    "description": "Firmware for the ESC35V1 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "ESC35v1",
+    "version": "0.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}

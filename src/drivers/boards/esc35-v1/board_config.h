@@ -66,7 +66,7 @@ __BEGIN_DECLS
 
 /* High-resolution timer
  */
-#define HRT_TIMER               1       /* use timer1 for the HRT */
+#define HRT_TIMER               3       /* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL       1       /* use capture/compare channel */
 
 /* GPIO ***********************************************************************
@@ -101,9 +101,8 @@ __BEGIN_DECLS
  *  PB[9] PB9/CAN_TX                                          46       CAN_TX
  *
  */
-#define GPIO_CAN_RX		GPIO_CAN_RX_3
-#define GPIO_CAN_TX		GPIO_CAN_TX_3
-
+#define GPIO_CAN1_RX		GPIO_CAN_RX_3
+#define GPIO_CAN1_TX		GPIO_CAN_TX_3
 
 /* Analog ***********************************************************************
  *
