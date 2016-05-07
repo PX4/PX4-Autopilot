@@ -168,9 +168,10 @@ void Logger::status()
 		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
 
 		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
-		PX4_INFO("Dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
+		PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
 			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
 		_high_water = 0;
+		_write_dropouts = 0;
 		_max_dropout_duration = 0.f;
 	}
 }
