@@ -431,9 +431,6 @@ void Ekf::fuseOptFlow()
 			gain[row] = Kfusion[row][obs_index];
 		}
 
-		// Update the state vector
-		fuse(gain, _flow_innov[obs_index]);
-
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
@@ -456,16 +453,48 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] -= KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		_fault_status.bad_optflow_X = false;
+		_fault_status.bad_optflow_Y = false;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				if (obs_index == 0) {
+					_fault_status.bad_optflow_X = true;
+				} else if (obs_index == 1) {
+					_fault_status.bad_optflow_Y = true;
+				}
 			}
 		}
 
-		_time_last_of_fuse = _time_last_imu;
-		_gps_check_fail_status.value = 0;
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			makeSymmetrical();
+			limitCov();
+
+			// apply the state corrections
+			fuse(gain, _flow_innov[obs_index]);
+
+			_time_last_of_fuse = _time_last_imu;
+			_gps_check_fail_status.value = 0;
+		}
 	}
 }
 
