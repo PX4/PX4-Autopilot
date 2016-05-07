@@ -143,9 +143,6 @@ void Ekf::fuseAirspeed()
 		// airspeed measurement sample has passed check so record it
 		_time_last_arsp_fuse = _time_last_imu;
 
-		// Fuse airspeed measurement
-		fuse(Kfusion, _airspeed_innov); //Why calculate angle error when it is always zero?
-
 		// update covariance matrix via Pnew = (I - KH)P = P - KHP
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) { // Here it will be a lot of zeros, should optimize that...
@@ -161,13 +158,41 @@ void Ekf::fuseAirspeed()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		_fault_status.bad_airspeed = false;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				_fault_status.bad_airspeed = true;
+
 			}
 		}
 
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			makeSymmetrical();
+			limitCov();
+
+			// apply the state corrections
+			fuse(Kfusion, _airspeed_innov);
+
+		}
 	}
 }
