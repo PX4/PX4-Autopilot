@@ -273,8 +273,8 @@ bool Ekf::update()
 				float local_time_step = 1e-6f*(float)(_baro_sample_delayed.time_us - last_baro_time_us);
 				local_time_step = math::constrain(local_time_step,0.0f,1.0f);
 				last_baro_time_us = _baro_sample_delayed.time_us;
-				float raw_offset_error =  (_baro_sample_delayed.hgt - _hgt_sensor_offset) + _state.pos(2) - _baro_hgt_offset;
-				_baro_hgt_offset += local_time_step * math::constrain((0.1f * raw_offset_error), -0.1f, 0.1f);
+				float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt - _hgt_sensor_offset) + _state.pos(2) - _baro_hgt_offset;
+				_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 			}
 		}
 
