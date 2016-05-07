@@ -54,7 +54,7 @@ def to_degree(value, loc):
     sec = round((t1 - min)* 60, 5)
     return (deg, min, sec, loc_value)
 
-def SetGpsLocation(file_name, lat, lng):
+def SetGpsLocation(file_name, lat, lng, alt):
     """
         Adding GPS tag
 
@@ -72,6 +72,8 @@ def SetGpsLocation(file_name, lat, lng):
     exiv_image["Exif.GPSInfo.GPSLatitudeRef"] = lat_deg[3]
     exiv_image["Exif.GPSInfo.GPSLongitude"] = exiv_lng
     exiv_image["Exif.GPSInfo.GPSLongitudeRef"] = lng_deg[3]
+    exiv_image["Exif.GPSInfo.GPSAltitude"] = pyexiv2.Rational(alt, 1)
+    exiv_image["Exif.GPSInfo.GPSAltitudeRef"] = '0'
     exiv_image["Exif.Image.GPSTag"] = 654
     exiv_image["Exif.GPSInfo.GPSMapDatum"] = "WGS-84"
     exiv_image["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
@@ -119,6 +121,8 @@ def LoadImageList(input_folder):
         print("Unequal number of jpg and raw images")
     if len(image_list.jpg) == 0 and len(image_list.raw) == 0:
         print("No images found")
+    image_list.jpg = sorted(image_list.jpg)
+    image_list.raw = sorted(image_list.raw)
     return image_list
 
 def FilterTrigger(trigger_list, image_list):
@@ -135,17 +139,14 @@ def TagImages(trigger_list, image_list, output_folder):
     """
        load px4 log file and extract trigger locations
     """
-    print len(image_list.jpg)
-    print len(trigger_list.GPOS_Lat)
-    print len(trigger_list.GPOS_Lon)
     for image in range(len(image_list.jpg)):
         base_path, filename = os.path.split(image_list.jpg[image])
         copyfile(image_list.jpg[image], output_folder + "/" + filename)
-        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]))
+        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
     for image in range(len(image_list.raw)):
         base_path, filename = os.path.split(image_list.raw[image])
         copyfile(image_list.raw[image], output_folder + "/" + filename)
-        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]))
+        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
 
 def main():
     """
@@ -156,7 +157,7 @@ def main():
                     help = "PX4 log file containing recorded positions", 
                     metavar = "string")
     parser.add_option("-i", "--input", dest = "InputFolder",
-                    help = "Input folder containing untagged images",
+                    help = "Input folder containing untagged images in alphabetical order",
                     type = "string")
     parser.add_option("-o", "--output", dest = "OutputFolder",
                     help = "Output folder to contain tagged images",
