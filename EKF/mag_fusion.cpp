@@ -296,9 +296,6 @@ void Ekf::fuseMag()
 			return;
 		}
 
-		// correct states
-		fuse(Kfusion, _mag_innov[index]);
-
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
@@ -329,14 +326,49 @@ void Ekf::fuseMag()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] -= KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		_fault_status.bad_mag_x = false;
+		_fault_status.bad_mag_y = false;
+		_fault_status.bad_mag_z = false;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				if (index == 0) {
+					_fault_status.bad_mag_x = true;
+				} else if (index == 1) {
+					_fault_status.bad_mag_y = true;
+				} else if (index == 2) {
+					_fault_status.bad_mag_z = true;
+				}
 			}
 		}
 
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			makeSymmetrical();
+			limitCov();
+
+			// apply the state corrections
+			fuse(Kfusion, _mag_innov[index]);
+
+		}
 	}
 }
 
@@ -557,9 +589,6 @@ void Ekf::fuseHeading()
 		_mag_healthy = true;
 	}
 
-	// update the states
-	fuse(Kfusion, _heading_innov);
-
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
@@ -579,14 +608,42 @@ void Ekf::fuseHeading()
 		}
 	}
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
-		for (unsigned column = 0; column < _k_num_states; column++) {
-			P[row][column] -= KHP[row][column];
+	// if the covariance correction will result in a negative variance, then
+	// the covariance marix is unhealthy and must be corrected
+	bool healthy = true;
+	_fault_status.bad_mag_hdg = false;
+	for (int i = 0; i < _k_num_states; i++) {
+		if (P[i][i] < KHP[i][i]) {
+			// zero rows and columns
+			zeroRows(P,i,i);
+			zeroCols(P,i,i);
+
+			//flag as unhealthy
+			healthy = false;
+
+			// update individual measurement health status
+			_fault_status.bad_mag_hdg = true;
+
 		}
 	}
 
-	makeSymmetrical();
-	limitCov();
+	// only apply covariance and state corrrections if healthy
+	if (healthy) {
+		// apply the covariance corrections
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned column = 0; column < _k_num_states; column++) {
+				P[row][column] = P[row][column] - KHP[row][column];
+			}
+		}
+
+		// correct the covariance marix for gross errors
+		makeSymmetrical();
+		limitCov();
+
+		// apply the state corrections
+		fuse(Kfusion, _heading_innov);
+
+	}
 }
 
 void Ekf::fuseDeclination()
@@ -668,9 +725,6 @@ void Ekf::fuseDeclination()
 	float innovation = atan2f(magE , magN) - _mag_declination;
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 
-	// perform the state correction
-	fuse(Kfusion, innovation);
-
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
@@ -689,13 +743,40 @@ void Ekf::fuseDeclination()
 		}
 	}
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
-		for (unsigned column = 0; column < _k_num_states; column++) {
-			P[row][column] -= KHP[row][column];
+	// if the covariance correction will result in a negative variance, then
+	// the covariance marix is unhealthy and must be corrected
+	bool healthy = true;
+	_fault_status.bad_mag_decl = false;
+	for (int i = 0; i < _k_num_states; i++) {
+		if (P[i][i] < KHP[i][i]) {
+			// zero rows and columns
+			zeroRows(P,i,i);
+			zeroCols(P,i,i);
+
+			//flag as unhealthy
+			healthy = false;
+
+			// update individual measurement health status
+			_fault_status.bad_mag_decl = true;
+
 		}
 	}
 
-	// force the covariance matrix to be symmetrical and don't allow the variances to be negative.
-	makeSymmetrical();
-	limitCov();
+	// only apply covariance and state corrrections if healthy
+	if (healthy) {
+		// apply the covariance corrections
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned column = 0; column < _k_num_states; column++) {
+				P[row][column] = P[row][column] - KHP[row][column];
+			}
+		}
+
+		// correct the covariance marix for gross errors
+		makeSymmetrical();
+		limitCov();
+
+		// apply the state corrections
+		fuse(Kfusion, innovation);
+
+	}
 }
