@@ -139,8 +139,7 @@ struct flowSample {
 // Bit locations for fusion_mode
 #define MASK_USE_GPS    (1<<0)  // set to true to use GPS data
 #define MASK_USE_OF     (1<<1)  // set to true to use optical flow data
-
-#define MASK_INHIBIT_ACC_BIAS (1<<3)  // set to true to inhibit estimation of accelerometer delta velocity bias
+#define MASK_INHIBIT_ACC_BIAS (1<<2)  // set to true to inhibit estimation of accelerometer delta velocity bias
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
