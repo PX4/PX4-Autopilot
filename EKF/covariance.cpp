@@ -85,7 +85,7 @@ void Ekf::initialiseCovariance()
 	P[12][12] = P[10][10];
 
 	// accel bias
-	P[13][13] = sq(0.1f * dt);
+	P[13][13] = sq(0.2f * dt);
 	P[14][14] = P[13][13];
 	P[15][15] = P[13][13];
 
