@@ -73,18 +73,16 @@ void Ekf::controlFusionModes()
 			_control_status.flags.opt_flow = true;
 			_time_last_of_fuse = _time_last_imu;
 
-			// if we are not using GPS and are in air, then we need to reset the velocity to be consistent with the optical flow reading
+			// if we are not using GPS then the velocity and position states and covariances need to be set
 			if (!_control_status.flags.gps) {
-				// calculate the rotation matrix from body to earth frame
-				matrix::Dcm<float> body_to_earth(_state.quat_nominal);
-
 				// constrain height above ground to be above minimum possible
 				float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
 
 				// calculate absolute distance from focal point to centre of frame assuming a flat earth
-				float range = heightAboveGndEst / body_to_earth(2, 2);
+				float range = heightAboveGndEst / _R_to_earth(2, 2);
 
-				if (_in_air && (range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+				if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+					// we should ahve reliable OF measurements so
 					// calculate X and Y body relative velocities from OF measurements
 					Vector3f vel_optflow_body;
 					vel_optflow_body(0) = - range * _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt;
@@ -93,14 +91,30 @@ void Ekf::controlFusionModes()
 
 					// rotate from body to earth frame
 					Vector3f vel_optflow_earth;
-					vel_optflow_earth = body_to_earth * vel_optflow_body;
+					vel_optflow_earth = _R_to_earth * vel_optflow_body;
 
 					// take x and Y components
 					_state.vel(0) = vel_optflow_earth(0);
 					_state.vel(1) = vel_optflow_earth(1);
 
 				} else {
-					_state.vel.setZero();
+					_state.vel(0) = 0.0f;
+					_state.vel(1) = 0.0f;
+				}
+
+				// reset the velocity covariance terms
+				zeroRows(P,4,5);
+				zeroCols(P,4,5);
+
+				// reset the horizontal velocity variance using the optical flow noise
+				P[5][5] = P[4][4] = sq(range * _params.flow_noise_qual_min);
+
+				if (!_in_air) {
+					// we are likely starting OF for the first time so reset the position and states
+					_state.pos(0) = 0.0f;
+					_state.pos(1) = 0.0f;
+					// align the output observer to the EKF states
+					alignOutputFilter();
 				}
 			}
 		}

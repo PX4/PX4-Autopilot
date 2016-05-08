@@ -307,6 +307,9 @@ private:
 	// reset height state of the ekf
 	void resetHeight();
 
+	// modify output filter to match the the EKF state at the fusion time horizon
+	void alignOutputFilter();
+
 	// limit the diagonal of the covariance matrix
 	void fixCovarianceErrors();
 

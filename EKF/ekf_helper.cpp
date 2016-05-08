@@ -225,6 +225,31 @@ void Ekf::resetHeight()
 
 }
 
+// align output filter states to match EKF states at the fusion time horizon
+void Ekf::alignOutputFilter()
+{
+	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
+	Quaternion quat_inv = _state.quat_nominal.inversed();
+	Quaternion q_delta =  _output_sample_delayed.quat_nominal * quat_inv;
+	q_delta.normalize();
+
+	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
+	Vector3f vel_delta = _state.vel - _output_sample_delayed.vel;
+	Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
+
+	// loop through the output filter state history and add the deltas
+	outputSample output_states;
+	unsigned output_length = _output_buffer.get_length();
+	for (unsigned i=0; i < output_length; i++) {
+		output_states = _output_buffer.get_from_index(i);
+		output_states.quat_nominal *= q_delta;
+		output_states.quat_nominal.normalize();
+		output_states.vel += vel_delta;
+		output_states.pos += pos_delta;
+		_output_buffer.push_to_index(i,output_states);
+	}
+}
+
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
