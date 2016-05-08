@@ -163,9 +163,9 @@ void Ekf::fuseAirspeed()
 		}
 
 
-		// calculate measurement innovation
+		// Calculate measurement innovation
 		_airspeed_innov = v_tas_pred -
-				  _airspeed_sample_delayed.true_airspeed; // This is TAS, maybe we should indicate that in some way
+				  _airspeed_sample_delayed.true_airspeed;
 
 		// Calculate the innovation variance
 		_airspeed_innov_var = 1.0f / SK_TAS[0];
@@ -173,13 +173,16 @@ void Ekf::fuseAirspeed()
 		// Compute the ratio of innovation to gate size
 		_tas_test_ratio = sq(_airspeed_innov) / (sq(fmaxf(_params.tas_innov_gate, 1.0f)) * _airspeed_innov_var);
 
-		// if the innocation consistency check fails then don't fuse the sample and indicate bad airspeed health
+		// If the innovation consistency check fails then don't fuse the sample and indicate bad airspeed health
 		if (_tas_test_ratio > 1.0f) {
 			_airspeed_healthy = false;
 			return;
 		}
+		else {
+			_airspeed_healthy = true;
+		}
 
-		// airspeed measurement sample has passed check so record it
+		// Airspeed measurement sample has passed check so record it
 		_time_last_arsp_fuse = _time_last_imu;
 
 
