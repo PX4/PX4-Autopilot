@@ -153,7 +153,7 @@ void Ekf::fuseVelPosHeight()
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
 		if (fuse_map[obs_index]) {
 			// compute the innovation variance SK = HPH + R
-			unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+			unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
 			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
 			// Compute the ratio of innovation to gate size
 			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) *
@@ -163,26 +163,25 @@ void Ekf::fuseVelPosHeight()
 
 	// check position, velocity and height innovations
 	// treat 3D velocity, 2D position and height as separate sensors
-	// always pass position checks if using synthetic position measurements
+	// always pass position checks if using synthetic position measurements or yet to complete tilt alignment
+	// always pass height checks if yet to complete tilt alignment
 	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
 			      && (_vel_pos_test_ratio[2] <= 1.0f);
 	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
 	bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
 	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f))
-			      || using_synthetic_measurements;
+			      || using_synthetic_measurements || !_control_status.flags.tilt_align;
 	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
-	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
+	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
 
 	// record the successful velocity fusion time
 	if (vel_check_pass && _fuse_hor_vel) {
 		_time_last_vel_fuse = _time_last_imu;
-		_tilt_err_vec.setZero();
 	}
 
 	// record the successful position fusion time
 	if (pos_check_pass && _fuse_pos) {
 		_time_last_pos_fuse = _time_last_imu;
-		_tilt_err_vec.setZero();
 	}
 
 	// record the successful height fusion time
@@ -196,54 +195,12 @@ void Ekf::fuseVelPosHeight()
 			continue;
 		}
 
-		unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+		unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
 
 		// calculate kalman gain K = PHS, where S = 1/innovation variance
-		for (int row = 0; row <= 15; row++) {
+		for (int row = 0; row < _k_num_states; row++) {
 			Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
-
-		// only update magnetic field states if we are fusing 3-axis observations
-		if (_control_status.flags.mag_3D) {
-			for (int row = 16; row <= 21; row++) {
-				Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
-			}
-
-		} else {
-			for (int row = 16; row <= 21; row++) {
-				Kfusion[row] = 0.0f;
-			}
-		}
-
-		// only update wind states if we are doing wind estimation
-		if (_control_status.flags.wind) {
-			for (int row = 22; row <= 23; row++) {
-				Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
-			}
-
-		} else {
-			for (int row = 22; row <= 23; row++) {
-				Kfusion[row] = 0.0f;
-			}
-		}
-
-		// sum the attitude error from velocity and position fusion only
-		// used as a metric for convergence monitoring
-		if (obs_index != 5) {
-			_tilt_err_vec += _state.ang_error;
-		}
-
-		// by definition the angle error state is zero at the fusion time
-		_state.ang_error.setZero();
-
-		// fuse the observation
-		fuse(Kfusion, _vel_pos_innov[obs_index]);
-
-		// correct the nominal quaternion
-		Quaternion dq;
-		dq.from_axis_angle(_state.ang_error);
-		_state.quat_nominal = dq * _state.quat_nominal;
-		_state.quat_nominal.normalize();
 
 		// update covarinace matrix via Pnew = (I - KH)P
 		for (unsigned row = 0; row < _k_num_states; row++) {
@@ -252,13 +209,64 @@ void Ekf::fuseVelPosHeight()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				if (obs_index == 0) {
+					_fault_status.flags.bad_vel_N = true;
+				} else if (obs_index == 1) {
+					_fault_status.flags.bad_vel_E = true;
+				} else if (obs_index == 2) {
+					_fault_status.flags.bad_vel_D = true;
+				} else if (obs_index == 3) {
+					_fault_status.flags.bad_pos_N = true;
+				} else if (obs_index == 4) {
+					_fault_status.flags.bad_pos_E = true;
+				} else if (obs_index == 5) {
+					_fault_status.flags.bad_pos_D = true;
+				}
+			} else {
+				// update individual measurement health status
+				if (obs_index == 0) {
+					_fault_status.flags.bad_vel_N = false;
+				} else if (obs_index == 1) {
+					_fault_status.flags.bad_vel_E = false;
+				} else if (obs_index == 2) {
+					_fault_status.flags.bad_vel_D = false;
+				} else if (obs_index == 3) {
+					_fault_status.flags.bad_pos_N = false;
+				} else if (obs_index == 4) {
+					_fault_status.flags.bad_pos_E = false;
+				} else if (obs_index == 5) {
+					_fault_status.flags.bad_pos_D = false;
+				}
 			}
 		}
 
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			fixCovarianceErrors();
+
+			// apply the state corrections
+			fuse(Kfusion, _vel_pos_innov[obs_index]);
+		}
 	}
 }

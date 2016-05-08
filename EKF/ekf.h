@@ -121,7 +121,8 @@ public:
 	// return the estimated terrain vertical position relative to the NED origin
 	bool get_terrain_vert_pos(float *ret);
 
-	void get_accel_bias(float *bias) {*bias = _state.accel_z_bias;}
+	// get the accerometer bias in m/s/s
+	void get_accel_bias(float bias[3]);
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
@@ -134,6 +135,8 @@ private:
 	static const uint8_t _k_num_states = 24;
 	const float _k_earth_rate = 0.000072921f;
 	const float _gravity_mss = 9.80665f;
+
+	float _dt_ekf_avg;		// average update rate of the ekf
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
@@ -156,6 +159,7 @@ private:
 	uint64_t _time_last_arsp_fuse;	// time the last fusion of airspeed measurements were performed (usec)
 	Vector2f _last_known_posNE;     // last known local NE position vector (m)
 	float _last_disarmed_posD;      // vertical position recorded at arming (m)
+	float _last_dt_overrun;		// the amount of time the last IMU collection over-ran the target set by FILTER_UPDATE_PERRIOD_MS (sec)
 
 	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
@@ -176,9 +180,6 @@ private:
 
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance
-
-	Vector3f _tilt_err_vec;         // Vector of the most recent attitude error correction from velocity and position fusion
-	float _tilt_err_length_filt;    // filtered length of _tilt_err_vec
 
 	// optical flow processing
 	float _flow_innov[2];		// flow measurement innovation
@@ -265,9 +266,6 @@ private:
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
 	void fuseHeading();
 
-	// fuse projecton of magnetometer onto horizontal plane
-	void fuseMag2D();
-
 	// fuse magnetometer declination measurement
 	void fuseDeclination();
 
@@ -309,13 +307,14 @@ private:
 	// reset height state of the ekf
 	void resetHeight();
 
-	void makeCovSymetrical();
+	// modify output filter to match the the EKF state at the fusion time horizon
+	void alignOutputFilter();
 
 	// limit the diagonal of the covariance matrix
-	void limitCov();
+	void fixCovarianceErrors();
 
-	// make ekf covariance matrix symmetric
-	void makeSymmetrical();
+	// make ekf covariance matrix symmetric between a nominated state indexe range
+	void makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// constrain the ekf states
 	void constrainStates();
@@ -347,5 +346,8 @@ private:
 
 	// zero the specified range of columns in the state covariance matrix
 	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
+	// calculate the measurement variance for the optical flow sensor
+	float calcOptFlowMeasVar();
 
 };

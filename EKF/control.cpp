@@ -51,13 +51,9 @@ void Ekf::controlFusionModes()
 	// Get the magnetic declination
 	calcMagDeclination();
 
-	// Check for tilt convergence during initial alignment
-	// filter the tilt error vector using a 1 sec time constant LPF
-	float filt_coef = 1.0f * _imu_sample_delayed.delta_ang_dt;
-	_tilt_err_length_filt = filt_coef * _tilt_err_vec.norm() + (1.0f - filt_coef) * _tilt_err_length_filt;
-
-	// Once the tilt error has reduced sufficiently, initialise the yaw and magnetic field states
-	if (_tilt_err_length_filt < 0.005f && !_control_status.flags.tilt_align) {
+	// Once the angular uncertainty has reduced sufficiently, initialise the yaw and magnetic field states
+	float total_angle_variance = P[0][0] + P[1][1] + P[2][2] + P[3][3];
+	if (total_angle_variance < 0.002f && !_control_status.flags.tilt_align) {
 		_control_status.flags.tilt_align = true;
 		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 	}
@@ -77,18 +73,16 @@ void Ekf::controlFusionModes()
 			_control_status.flags.opt_flow = true;
 			_time_last_of_fuse = _time_last_imu;
 
-			// if we are not using GPS and are in air, then we need to reset the velocity to be consistent with the optical flow reading
+			// if we are not using GPS then the velocity and position states and covariances need to be set
 			if (!_control_status.flags.gps) {
-				// calculate the rotation matrix from body to earth frame
-				matrix::Dcm<float> body_to_earth(_state.quat_nominal);
-
 				// constrain height above ground to be above minimum possible
 				float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
 
 				// calculate absolute distance from focal point to centre of frame assuming a flat earth
-				float range = heightAboveGndEst / body_to_earth(2, 2);
+				float range = heightAboveGndEst / _R_to_earth(2, 2);
 
-				if (_in_air && (range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+				if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+					// we should ahve reliable OF measurements so
 					// calculate X and Y body relative velocities from OF measurements
 					Vector3f vel_optflow_body;
 					vel_optflow_body(0) = - range * _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt;
@@ -97,14 +91,36 @@ void Ekf::controlFusionModes()
 
 					// rotate from body to earth frame
 					Vector3f vel_optflow_earth;
-					vel_optflow_earth = body_to_earth * vel_optflow_body;
+					vel_optflow_earth = _R_to_earth * vel_optflow_body;
 
 					// take x and Y components
 					_state.vel(0) = vel_optflow_earth(0);
 					_state.vel(1) = vel_optflow_earth(1);
 
 				} else {
-					_state.vel.setZero();
+					_state.vel(0) = 0.0f;
+					_state.vel(1) = 0.0f;
+				}
+
+				// reset the velocity covariance terms
+				zeroRows(P,4,5);
+				zeroCols(P,4,5);
+
+				// reset the horizontal velocity variance using the optical flow noise variance
+				P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
+
+				if (!_in_air) {
+					// we are likely starting OF for the first time so reset the horizontal position and vertical velocity states
+					_state.pos(0) = 0.0f;
+					_state.pos(1) = 0.0f;
+
+					// reset the coresponding covariances
+					// we are by definition at the origin at commencement so variances are also zeroed
+					zeroRows(P,7,8);
+					zeroCols(P,7,8);
+
+					// align the output observer to the EKF states
+					alignOutputFilter();
 				}
 			}
 		}
@@ -295,18 +311,12 @@ void Ekf::controlFusionModes()
 			// check if baro data is available
 			baroSample baro_init = _baro_buffer.get_newest();
 			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
-			// check if baro data is consistent
-			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
-			bool baro_data_consistent = sq(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
 
-			// reset to baro if data is available and we have no range data
+			// reset to baro if we have no range data and baro data is available
 			bool reset_to_baro = !rng_data_available && baro_data_available;
 
-			// reset to baro if data is acceptable
-			reset_to_baro = reset_to_baro || (baro_data_consistent && baro_data_available && !_baro_hgt_faulty);
-
-			// reset to range data if it is available and we cannot switch to baro
-			bool reset_to_rng = !reset_to_baro && rng_data_available;
+			// reset to range data if it is available
+			bool reset_to_rng = rng_data_available;
 
 			if (reset_to_baro) {
 				// set height sensor health
@@ -363,7 +373,6 @@ void Ekf::controlFusionModes()
 		if (!_control_status.flags.armed) {
 			// use heading fusion for initial startup
 			_control_status.flags.mag_hdg = true;
-			_control_status.flags.mag_2D = false;
 			_control_status.flags.mag_3D = false;
 
 		} else {
@@ -375,13 +384,11 @@ void Ekf::controlFusionModes()
 
 				// use 3D mag fusion when airborne
 				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_2D = false;
 				_control_status.flags.mag_3D = true;
 
 			} else {
 				// use heading fusion when on the ground
 				_control_status.flags.mag_hdg = true;
-				_control_status.flags.mag_2D = false;
 				_control_status.flags.mag_3D = false;
 			}
 		}
@@ -389,13 +396,6 @@ void Ekf::controlFusionModes()
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 		// always use heading fusion
 		_control_status.flags.mag_hdg = true;
-		_control_status.flags.mag_2D = false;
-		_control_status.flags.mag_3D = false;
-
-	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_2D) {
-		// always use 2D mag fusion
-		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = true;
 		_control_status.flags.mag_3D = false;
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
@@ -406,13 +406,11 @@ void Ekf::controlFusionModes()
 
 		// always use 3-axis mag fusion
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = true;
 
 	} else {
 		// do no magnetometer fusion at all
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = false;
 	}
 

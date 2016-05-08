@@ -139,12 +139,12 @@ struct flowSample {
 // Bit locations for fusion_mode
 #define MASK_USE_GPS    (1<<0)  // set to true to use GPS data
 #define MASK_USE_OF     (1<<1)  // set to true to use optical flow data
+#define MASK_INHIBIT_ACC_BIAS (1<<2)  // set to true to inhibit estimation of accelerometer delta velocity bias
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
 #define MAG_FUSE_TYPE_HEADING   1   // Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 #define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-#define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
 
 // Maximum sensor intervals in usec
 #define GPS_MAX_INTERVAL	5e5
@@ -169,9 +169,8 @@ struct parameters {
 	float accel_noise;		// IMU acceleration noise use for covariance prediction (m/sec/sec)
 
 	// process noise
-	float gyro_bias_p_noise;	// process noise for IMU delta angle bias prediction (rad/sec)
-	float accel_bias_p_noise;	// process noise for IMU delta velocity bias prediction (m/sec/sec)
-	float gyro_scale_p_noise;	// process noise for gyro scale factor prediction (N/A)
+	float gyro_bias_p_noise;	// process noise for IMU rate gyro bias prediction (rad/sec**2)
+	float accel_bias_p_noise;	// process noise for IMU accelerometer bias prediction (m/sec**3)
 	float mage_p_noise;		// process noise for earth magnetic field prediction (Guass/sec)
 	float magb_p_noise;		// process noise for body magnetic field prediction (Guass/sec)
 	float wind_vel_p_noise;		// process noise for wind velocity prediction (m/sec/sec)
@@ -246,15 +245,14 @@ struct parameters {
 		range_delay_ms = 5.0f;
 
 		// input noise
-		gyro_noise = 6.0e-2f;
-		accel_noise = 2.5e-1f;
+		gyro_noise = 1.5e-2f;
+		accel_noise = 3.5e-1f;
 
 		// process noise
-		gyro_bias_p_noise = 2.5e-6f;
-		accel_bias_p_noise = 3.0e-5f;
-		gyro_scale_p_noise = 3.0e-4f;
-		mage_p_noise = 2.5e-3f;
-		magb_p_noise = 5.0e-4f;
+		gyro_bias_p_noise = 1.0e-3f;
+		accel_bias_p_noise = 3.0e-3f;
+		mage_p_noise = 1.0e-3f;
+		magb_p_noise = 1.0e-4f;
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 5.0f;
 		terrain_gradient = 0.5f;
@@ -275,7 +273,7 @@ struct parameters {
 		mag_declination_deg = 0.0f;
 		heading_innov_gate = 2.6f;
 		mag_innov_gate = 3.0f;
-		mag_declination_source = 3;
+		mag_declination_source = 7;
 		mag_fusion_type = 0;
 
 		// airspeed fusion
@@ -313,28 +311,36 @@ struct parameters {
 };
 
 struct stateSample {
-	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
+	Quaternion  quat_nominal; // quaternion defining the rotaton from earth to body frame
 	Vector3f    vel;	// NED velocity in earth frame in m/s
 	Vector3f    pos;	// NED position in earth frame in m
 	Vector3f    gyro_bias;	// gyro bias estimate in rad/s
-	Vector3f    gyro_scale;	// gyro scale estimate
-	float       accel_z_bias;	// accelerometer z axis bias estimate
+	Vector3f    accel_bias;	// accelerometer bias estimate in m/s
 	Vector3f    mag_I;	// NED earth magnetic field in gauss
 	Vector3f    mag_B;	// magnetometer bias estimate in body frame in gauss
 	Vector2f    wind_vel;	// wind velocity in m/s
-	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
 };
 
-struct fault_status_t {
-	bool bad_mag_x: 1; // true if the fusion of the magnetometer X-axis has encountered a numerical error
-	bool bad_mag_y: 1; // true if the fusion of the magnetometer Y-axis has encountered a numerical error
-	bool bad_mag_z: 1; // true if the fusion of the magnetometer Z-axis has encountered a numerical error
-	bool bad_mag_hdg: 1; // true if the fusion of the magnetic heading has encountered a numerical error
-	bool bad_mag_decl: 1; // true if the fusion of the magnetic declination has encountered a numerical error
-	bool bad_airspeed: 1; // true if fusion of the airspeed has encountered a numerical error
-	bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
-	bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
-	bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
+union fault_status_u {
+	struct {
+		bool bad_mag_x: 1;	// 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
+		bool bad_mag_y: 1;	// 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
+		bool bad_mag_z: 1;	// 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
+		bool bad_mag_hdg: 1;	// 3 - true if the fusion of the magnetic heading has encountered a numerical error
+		bool bad_mag_decl: 1;	// 4 - true if the fusion of the magnetic declination has encountered a numerical error
+		bool bad_airspeed: 1;	// 5 - true if fusion of the airspeed has encountered a numerical error
+		bool bad_sideslip: 1;	// 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
+		bool bad_optflow_X: 1;	// 7 - true if fusion of the optical flow X axis has encountered a numerical error
+		bool bad_optflow_Y: 1;	// 8 - true if fusion of the optical flow Y axis has encountered a numerical error
+		bool bad_vel_N: 1;	// 9 - true if fusion of the North velocity has encountered a numerical error
+		bool bad_vel_E: 1;	// 10 - true if fusion of the East velocity has encountered a numerical error
+		bool bad_vel_D: 1;	// 11 - true if fusion of the Down velocity has encountered a numerical error
+		bool bad_pos_N: 1;	// 12 - true if fusion of the North position has encountered a numerical error
+		bool bad_pos_E: 1;	// 13 - true if fusion of the East position has encountered a numerical error
+		bool bad_pos_D: 1;	// 14 - true if fusion of the Down position has encountered a numerical error
+	} flags;
+	uint16_t value;
+
 };
 
 // publish the status of various GPS quality checks
@@ -362,15 +368,14 @@ union filter_control_status_u {
 		uint16_t gps         : 1; // 2 - true if GPS measurements are being fused
 		uint16_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
 		uint16_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
-		uint16_t mag_2D      : 1; // 5 - true if the horizontal projection of magnetometer data is being fused
-		uint16_t mag_3D      : 1; // 6 - true if 3-axis magnetometer measurement are being fused
-		uint16_t mag_dec     : 1; // 7 - true if synthetic magnetic declination measurements are being fused
-		uint16_t in_air      : 1; // 8 - true when the vehicle is airborne
-		uint16_t armed       : 1; // 9 - true when the vehicle motors are armed
-		uint16_t wind        : 1; // 10 - true when wind velocity is being estimated
-		uint16_t baro_hgt    : 1; // 11 - true when baro height is being fused as a primary height reference
-		uint16_t rng_hgt     : 1; // 12 - true when range finder height is being fused as a primary height reference
-		uint16_t gps_hgt     : 1; // 15 - true when range finder height is being fused as a primary height reference
+		uint16_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
+		uint16_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
+		uint16_t in_air      : 1; // 7 - true when the vehicle is airborne
+		uint16_t armed       : 1; // 8 - true when the vehicle motors are armed
+		uint16_t wind        : 1; // 9 - true when wind velocity is being estimated
+		uint16_t baro_hgt    : 1; // 10 - true when baro height is being fused as a primary height reference
+		uint16_t rng_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
+		uint16_t gps_hgt     : 1; // 12 - true when range finder height is being fused as a primary height reference
 	} flags;
 	uint16_t value;
 };

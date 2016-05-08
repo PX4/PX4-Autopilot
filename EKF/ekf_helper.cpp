@@ -108,11 +108,11 @@ void Ekf::resetHeight()
 			_state.pos(2) = new_pos_down;
 
 			// reset the associated covariance values
-			zeroRows(P, 8, 8);
-			zeroCols(P, 8, 8);
+			zeroRows(P, 9, 9);
+			zeroCols(P, 9, 9);
 
 			// the state variance is the same as the observation
-			P[8][8] = sq(_params.range_noise);
+			P[9][9] = sq(_params.range_noise);
 
 			vert_pos_reset = true;
 
@@ -132,11 +132,11 @@ void Ekf::resetHeight()
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 
 			// reset the associated covariance values
-			zeroRows(P, 8, 8);
-			zeroCols(P, 8, 8);
+			zeroRows(P, 9, 9);
+			zeroCols(P, 9, 9);
 
-			// the state variance is th esame as the observation
-			P[8][8] = sq(_params.baro_noise);
+			// the state variance is the same as the observation
+			P[9][9] = sq(_params.baro_noise);
 
 			vert_pos_reset = true;
 
@@ -150,11 +150,11 @@ void Ekf::resetHeight()
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 
 			// reset the associated covarince values
-			zeroRows(P, 8, 8);
-			zeroCols(P, 8, 8);
+			zeroRows(P, 9, 9);
+			zeroCols(P, 9, 9);
 
 			// the state variance is the same as the observation
-			P[8][8] = sq(gps_newest.hacc);
+			P[9][9] = sq(gps_newest.hacc);
 
 			vert_pos_reset = true;
 
@@ -168,8 +168,8 @@ void Ekf::resetHeight()
 	}
 
 	// reset the vertical velocity covariance values
-	zeroRows(P, 5, 5);
-	zeroCols(P, 5, 5);
+	zeroRows(P, 6, 6);
+	zeroCols(P, 6, 6);
 
 	// reset the vertical velocity state
 	if (_control_status.flags.gps && (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL)) {
@@ -177,7 +177,7 @@ void Ekf::resetHeight()
 		_state.vel(2) = gps_newest.vel(2);
 
 		// the state variance is the same as the observation
-		P[5][5] = sq(1.5f * gps_newest.sacc);
+		P[6][6] = sq(1.5f * gps_newest.sacc);
 
 	} else {
 		// we don't know what the vertical velocity is, so set it to zero
@@ -185,7 +185,7 @@ void Ekf::resetHeight()
 
 		// Set the variance to a value large enough to allow the state to converge quickly
 		// that does not destabilise the filter
-		P[5][5] = fminf(sq(_state.vel(2)),100.0f);
+		P[6][6] = 10.0f;
 
 	}
 	vert_vel_reset = true;
@@ -225,6 +225,31 @@ void Ekf::resetHeight()
 
 }
 
+// align output filter states to match EKF states at the fusion time horizon
+void Ekf::alignOutputFilter()
+{
+	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
+	Quaternion quat_inv = _state.quat_nominal.inversed();
+	Quaternion q_delta =  _output_sample_delayed.quat_nominal * quat_inv;
+	q_delta.normalize();
+
+	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
+	Vector3f vel_delta = _state.vel - _output_sample_delayed.vel;
+	Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
+
+	// loop through the output filter state history and add the deltas
+	outputSample output_states;
+	unsigned output_length = _output_buffer.get_length();
+	for (unsigned i=0; i < output_length; i++) {
+		output_states = _output_buffer.get_from_index(i);
+		output_states.quat_nominal *= q_delta;
+		output_states.quat_nominal.normalize();
+		output_states.vel += vel_delta;
+		output_states.pos += pos_delta;
+		_output_buffer.push_to_index(i,output_states);
+	}
+}
+
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
@@ -248,11 +273,11 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	// we don't change the output attitude to avoid jumps
 	_state.quat_nominal = Quaternion(euler_init);
 
-	// reset the angle error variances because the yaw angle could have changed by a significant amount
+	// reset the quaternion variances because the yaw angle could have changed by a significant amount
 	// by setting them to zero we avoid 'kicks' in angle when 3-D fusion starts and the imu process noise
 	// will grow them again.
-	zeroRows(P, 0, 2);
-	zeroCols(P, 0, 2);
+	zeroRows(P, 0, 3);
+	zeroCols(P, 0, 3);
 
 	// calculate initial earth magnetic field states
 	matrix::Dcm<float> R_to_earth(euler_init);
@@ -292,21 +317,21 @@ void Ekf::calcMagDeclination()
 }
 
 // This function forces the covariance matrix to be symmetric
-void Ekf::makeSymmetrical()
+void Ekf::makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
-	for (unsigned row = 0; row < _k_num_states; row++) {
+	for (unsigned row = first; row <= last; row++) {
 		for (unsigned column = 0; column < row; column++) {
-			float tmp = (P[row][column] + P[column][row]) / 2;
-			P[row][column] = tmp;
-			P[column][row] = tmp;
+			float tmp = (cov_mat[row][column] + cov_mat[column][row]) / 2;
+			cov_mat[row][column] = tmp;
+			cov_mat[column][row] = tmp;
 		}
 	}
 }
 
 void Ekf::constrainStates()
 {
-	for (int i = 0; i < 3; i++) {
-		_state.ang_error(i) = math::constrain(_state.ang_error(i), -1.0f, 1.0f);
+	for (int i = 0; i < 4; i++) {
+		_state.quat_nominal(i) = math::constrain(_state.quat_nominal(i), -1.0f, 1.0f);
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -322,10 +347,8 @@ void Ekf::constrainStates()
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.gyro_scale(i) = math::constrain(_state.gyro_scale(i), 0.95f, 1.05f);
+		_state.accel_bias(i) = math::constrain(_state.accel_bias(i), -1.0f * _dt_imu_avg, 1.0f * _dt_imu_avg);
 	}
-
-	_state.accel_z_bias = math::constrain(_state.accel_z_bias, -1.0f * _dt_imu_avg, 1.0f * _dt_imu_avg);
 
 	for (int i = 0; i < 3; i++) {
 		_state.mag_I(i) = math::constrain(_state.mag_I(i), -1.0f, 1.0f);
@@ -407,27 +430,25 @@ void Ekf::get_gps_check_status(uint16_t *val)
 // get the state vector at the delayed time horizon
 void Ekf::get_state_delayed(float *state)
 {
-	for (int i = 0; i < 3; i++) {
-		state[i] = _state.ang_error(i);
+	for (int i = 0; i < 4; i++) {
+		state[i] = _state.quat_nominal(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 3] = _state.vel(i);
+		state[i + 4] = _state.vel(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 6] = _state.pos(i);
+		state[i + 7] = _state.pos(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 9] = _state.gyro_bias(i);
+		state[i + 10] = _state.gyro_bias(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 12] = _state.gyro_scale(i);
+		state[i + 13] = _state.accel_bias(i);
 	}
-
-	state[15] = _state.accel_z_bias;
 
 	for (int i = 0; i < 3; i++) {
 		state[i + 16] = _state.mag_I(i);
@@ -440,6 +461,16 @@ void Ekf::get_state_delayed(float *state)
 	for (int i = 0; i < 2; i++) {
 		state[i + 22] = _state.wind_vel(i);
 	}
+}
+
+// get the accelerometer bias
+void Ekf::get_accel_bias(float bias[3])
+{
+	float temp[3];
+	temp[0] = _state.accel_bias(0) /_dt_ekf_avg;
+	temp[1] = _state.accel_bias(1) /_dt_ekf_avg;
+	temp[2] = _state.accel_bias(2) /_dt_ekf_avg;
+	memcpy(bias, temp, 3 * sizeof(float));
 }
 
 // get the diagonal elements of the covariance matrix
@@ -463,8 +494,8 @@ void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 {
 	// report absolute accuracy taking into account the uncertainty in location of the origin
 	// TODO we a need a way to allow for baro drift error
-	float temp1 = sqrtf(P[6][6] + P[7][7] + sq(_gps_origin_eph));
-	float temp2 = sqrtf(P[8][8] + sq(_gps_origin_epv));
+	float temp1 = sqrtf(P[7][7] + P[8][8] + sq(_gps_origin_eph));
+	float temp2 = sqrtf(P[9][9] + sq(_gps_origin_epv));
 	memcpy(ekf_eph, &temp1, sizeof(float));
 	memcpy(ekf_epv, &temp2, sizeof(float));
 
@@ -476,27 +507,26 @@ void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 // fuse measurement
 void Ekf::fuse(float *K, float innovation)
 {
+	for (unsigned i = 0; i < 4; i++) {
+		_state.quat_nominal(i) = _state.quat_nominal(i) - K[i] * innovation;
+	}
+	_state.quat_nominal.normalize();
+
 	for (unsigned i = 0; i < 3; i++) {
-		_state.ang_error(i) = _state.ang_error(i) - K[i] * innovation;
+		_state.vel(i) = _state.vel(i) - K[i + 4] * innovation;
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
-		_state.vel(i) = _state.vel(i) - K[i + 3] * innovation;
+		_state.pos(i) = _state.pos(i) - K[i + 7] * innovation;
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
-		_state.pos(i) = _state.pos(i) - K[i + 6] * innovation;
+		_state.gyro_bias(i) = _state.gyro_bias(i) - K[i + 10] * innovation;
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = _state.gyro_bias(i) - K[i + 9] * innovation;
+		_state.accel_bias(i) = _state.accel_bias(i) - K[i + 13] * innovation;
 	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.gyro_scale(i) = _state.gyro_scale(i) - K[i + 12] * innovation;
-	}
-
-	_state.accel_z_bias -= K[15] * innovation;
 
 	for (unsigned i = 0; i < 3; i++) {
 		_state.mag_I(i) = _state.mag_I(i) - K[i + 16] * innovation;

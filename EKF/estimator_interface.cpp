@@ -346,7 +346,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_time_last_airspeed = 0;
 	_time_last_optflow = 0;
 
-	memset(&_fault_status, 0, sizeof(_fault_status));
+	memset(&_fault_status.flags, 0, sizeof(_fault_status.flags));
 	return true;
 }
 

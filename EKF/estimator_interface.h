@@ -209,12 +209,18 @@ public:
 		*val = _mag_declination_to_save_deg;
 	}
 
-	virtual void get_accel_bias(float *bias) = 0;
+	virtual void get_accel_bias(float bias[3]) = 0;
 
 	// get EKF mode status
 	void get_control_mode(uint16_t *val)
 	{
 		*val = _control_status.value;
+	}
+
+	// get EKF internal fault status
+	void get_filter_fault_status(uint16_t *val)
+	{
+		*val = _fault_status.value;
 	}
 
 	// get GPS check status
@@ -286,7 +292,7 @@ protected:
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
 	uint64_t _time_last_optflow;
 
-	fault_status_t _fault_status;
+	fault_status_u _fault_status;
 
 	// allocate data buffers and intialise interface variables
 	bool initialise_interface(uint64_t timestamp);

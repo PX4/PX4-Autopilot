@@ -73,26 +73,20 @@ void Ekf::fuseAirspeed()
 	if (v_tas_pred > 1.0f) {
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
-		SH_TAS[0] = 1 / v_tas_pred;
-		SH_TAS[1] = (SH_TAS[0] * (2 * ve - 2 * vwe)) / 2.0f;
-		SH_TAS[2] = (SH_TAS[0] * (2 * vn - 2 * vwn)) / 2.0f;
+		SH_TAS[0] = 1.0f/v_tas_pred;
+		SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2.0f*vwe))*0.5f;
+		SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2.0f*vwn))*0.5f;
 
 		for (uint8_t i = 0; i < _k_num_states; i++) { H_TAS[i] = 0.0f; }
 
-		H_TAS[3] = SH_TAS[2];
-		H_TAS[4] = SH_TAS[1];
-		H_TAS[5] = vd * SH_TAS[0];
+		H_TAS[4] = SH_TAS[2];
+		H_TAS[5] = SH_TAS[1];
+		H_TAS[6] = vd*SH_TAS[0];
 		H_TAS[22] = -SH_TAS[2];
 		H_TAS[23] = -SH_TAS[1];
 
 		// We don't want to update the innovation variance if the calculation is ill conditioned
-		float _airspeed_innov_var_temp = (R_TAS + SH_TAS[2] * (P[3][3] * SH_TAS[2] + P[4][3] * SH_TAS[1] - P[22][3] * SH_TAS[2]
-						  - P[23][3] * SH_TAS[1] + P[5][3] * vd * SH_TAS[0]) + SH_TAS[1] * (P[3][4] * SH_TAS[2] + P[4][4] * SH_TAS[1] - P[22][4] *
-								  SH_TAS[2] - P[23][4] * SH_TAS[1] + P[5][4] * vd * SH_TAS[0]) - SH_TAS[2] * (P[3][22] * SH_TAS[2] + P[4][22] * SH_TAS[1]
-										  - P[22][22] * SH_TAS[2] - P[23][22] * SH_TAS[1] + P[5][22] * vd * SH_TAS[0]) - SH_TAS[1] *
-						  (P[3][23] * SH_TAS[2] + P[4][23] * SH_TAS[1] - P[22][23] * SH_TAS[2] - P[23][23] * SH_TAS[1] + P[5][23] * vd *
-						   SH_TAS[0]) + vd * SH_TAS[0] * (P[3][5] * SH_TAS[2] + P[4][5] * SH_TAS[1] - P[22][5] * SH_TAS[2] - P[23][5] * SH_TAS[1] +
-								   P[5][5] * vd * SH_TAS[0]));
+		float _airspeed_innov_var_temp = (R_TAS + SH_TAS[2]*(P[4][4]*SH_TAS[2] + P[5][4]*SH_TAS[1] - P[22][4]*SH_TAS[2] - P[23][4]*SH_TAS[1] + P[6][4]*vd*SH_TAS[0]) + SH_TAS[1]*(P[4][5]*SH_TAS[2] + P[5][5]*SH_TAS[1] - P[22][5]*SH_TAS[2] - P[23][5]*SH_TAS[1] + P[6][5]*vd*SH_TAS[0]) - SH_TAS[2]*(P[4][22]*SH_TAS[2] + P[5][22]*SH_TAS[1] - P[22][22]*SH_TAS[2] - P[23][22]*SH_TAS[1] + P[6][22]*vd*SH_TAS[0]) - SH_TAS[1]*(P[4][23]*SH_TAS[2] + P[5][23]*SH_TAS[1] - P[22][23]*SH_TAS[2] - P[23][23]*SH_TAS[1] + P[6][23]*vd*SH_TAS[0]) + vd*SH_TAS[0]*(P[4][6]*SH_TAS[2] + P[5][6]*SH_TAS[1] - P[22][6]*SH_TAS[2] - P[23][6]*SH_TAS[1] + P[6][6]*vd*SH_TAS[0]));
 
 		if (_airspeed_innov_var_temp >= R_TAS) { // Check for badly conditioned calculation
 			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
@@ -104,63 +98,30 @@ void Ekf::fuseAirspeed()
 
 		SK_TAS[1] = SH_TAS[1];
 
-		Kfusion[0] = SK_TAS[0] * (P[0][3] * SH_TAS[2] - P[0][22] * SH_TAS[2] + P[0][4] * SK_TAS[1] - P[0][23] * SK_TAS[1] +
-					  P[0][5] * vd * SH_TAS[0]);
-		Kfusion[1] = SK_TAS[0] * (P[1][3] * SH_TAS[2] - P[1][22] * SH_TAS[2] + P[1][4] * SK_TAS[1] - P[1][23] * SK_TAS[1] +
-					  P[1][5] * vd * SH_TAS[0]);
-		Kfusion[2] = SK_TAS[0] * (P[2][3] * SH_TAS[2] - P[2][22] * SH_TAS[2] + P[2][4] * SK_TAS[1] - P[2][23] * SK_TAS[1] +
-					  P[2][5] * vd * SH_TAS[0]);
-		Kfusion[3] = SK_TAS[0] * (P[3][3] * SH_TAS[2] - P[3][22] * SH_TAS[2] + P[3][4] * SK_TAS[1] - P[3][23] * SK_TAS[1] +
-					  P[3][5] * vd * SH_TAS[0]);
-		Kfusion[4] = SK_TAS[0] * (P[4][3] * SH_TAS[2] - P[4][22] * SH_TAS[2] + P[4][4] * SK_TAS[1] - P[4][23] * SK_TAS[1] +
-					  P[4][5] * vd * SH_TAS[0]);
-		Kfusion[5] = SK_TAS[0] * (P[5][3] * SH_TAS[2] - P[5][22] * SH_TAS[2] + P[5][4] * SK_TAS[1] - P[5][23] * SK_TAS[1] +
-					  P[5][5] * vd * SH_TAS[0]);
-		Kfusion[6] = SK_TAS[0] * (P[6][3] * SH_TAS[2] - P[6][22] * SH_TAS[2] + P[6][4] * SK_TAS[1] - P[6][23] * SK_TAS[1] +
-					  P[6][5] * vd * SH_TAS[0]);
-		Kfusion[7] = SK_TAS[0] * (P[7][3] * SH_TAS[2] - P[7][22] * SH_TAS[2] + P[7][4] * SK_TAS[1] - P[7][23] * SK_TAS[1] +
-					  P[7][5] * vd * SH_TAS[0]);
-		Kfusion[8] = SK_TAS[0] * (P[8][3] * SH_TAS[2] - P[8][22] * SH_TAS[2] + P[8][4] * SK_TAS[1] - P[8][23] * SK_TAS[1] +
-					  P[8][5] * vd * SH_TAS[0]);
-		Kfusion[9] = SK_TAS[0] * (P[9][3] * SH_TAS[2] - P[9][22] * SH_TAS[2] + P[9][4] * SK_TAS[1] - P[9][23] * SK_TAS[1] +
-					  P[9][5] * vd * SH_TAS[0]);
-		Kfusion[10] = SK_TAS[0] * (P[10][3] * SH_TAS[2] - P[10][22] * SH_TAS[2] + P[10][4] * SK_TAS[1] - P[10][23] * SK_TAS[1] +
-					   P[10][5] * vd * SH_TAS[0]);
-		Kfusion[11] = SK_TAS[0] * (P[11][3] * SH_TAS[2] - P[11][22] * SH_TAS[2] + P[11][4] * SK_TAS[1] - P[11][23] * SK_TAS[1] +
-					   P[11][5] * vd * SH_TAS[0]);
-		Kfusion[12] = SK_TAS[0] * (P[12][3] * SH_TAS[2] - P[12][22] * SH_TAS[2] + P[12][4] * SK_TAS[1] - P[12][23] * SK_TAS[1] +
-					   P[12][5] * vd * SH_TAS[0]);
-		Kfusion[13] = SK_TAS[0] * (P[13][3] * SH_TAS[2] - P[13][22] * SH_TAS[2] + P[13][4] * SK_TAS[1] - P[13][23] * SK_TAS[1] +
-					   P[13][5] * vd * SH_TAS[0]);
-		Kfusion[14] = SK_TAS[0] * (P[14][3] * SH_TAS[2] - P[14][22] * SH_TAS[2] + P[14][4] * SK_TAS[1] - P[14][23] * SK_TAS[1] +
-					   P[14][5] * vd * SH_TAS[0]);
-		Kfusion[15] = SK_TAS[0] * (P[15][3] * SH_TAS[2] - P[15][22] * SH_TAS[2] + P[15][4] * SK_TAS[1] - P[15][23] * SK_TAS[1] +
-					   P[15][5] * vd * SH_TAS[0]);
-		Kfusion[22] = SK_TAS[0] * (P[22][3] * SH_TAS[2] - P[22][22] * SH_TAS[2] + P[22][4] * SK_TAS[1] - P[22][23] * SK_TAS[1] +
-					   P[22][5] * vd * SH_TAS[0]);
-		Kfusion[23] = SK_TAS[0] * (P[23][3] * SH_TAS[2] - P[23][22] * SH_TAS[2] + P[23][4] * SK_TAS[1] - P[23][23] * SK_TAS[1] +
-					   P[23][5] * vd * SH_TAS[0]);
-
-		// Only update the magnetometer states if we are airborne and using 3D mag fusion
-		if (_control_status.flags.mag_3D && _control_status.flags.in_air) {
-			Kfusion[16] = SK_TAS[0] * (P[16][3] * SH_TAS[2] - P[16][22] * SH_TAS[2] + P[16][4] * SK_TAS[1] - P[16][23] * SK_TAS[1] +
-						   P[16][5] * vd * SH_TAS[0]);
-			Kfusion[17] = SK_TAS[0] * (P[17][3] * SH_TAS[2] - P[17][22] * SH_TAS[2] + P[17][4] * SK_TAS[1] - P[17][23] * SK_TAS[1] +
-						   P[17][5] * vd * SH_TAS[0]);
-			Kfusion[18] = SK_TAS[0] * (P[18][3] * SH_TAS[2] - P[18][22] * SH_TAS[2] + P[18][4] * SK_TAS[1] - P[18][23] * SK_TAS[1] +
-						   P[18][5] * vd * SH_TAS[0]);
-			Kfusion[19] = SK_TAS[0] * (P[19][3] * SH_TAS[2] - P[19][22] * SH_TAS[2] + P[19][4] * SK_TAS[1] - P[19][23] * SK_TAS[1] +
-						   P[19][5] * vd * SH_TAS[0]);
-			Kfusion[20] = SK_TAS[0] * (P[20][3] * SH_TAS[2] - P[20][22] * SH_TAS[2] + P[20][4] * SK_TAS[1] - P[20][23] * SK_TAS[1] +
-						   P[20][5] * vd * SH_TAS[0]);
-			Kfusion[21] = SK_TAS[0] * (P[21][3] * SH_TAS[2] - P[21][22] * SH_TAS[2] + P[21][4] * SK_TAS[1] - P[21][23] * SK_TAS[1] +
-						   P[21][5] * vd * SH_TAS[0]);
-
-		} else {
-			for (int i = 16; i <= 21; i++) {
-				Kfusion[i] = 0.0f;
-			}
-		}
+		Kfusion[0] = SK_TAS[0]*(P[0][4]*SH_TAS[2] - P[0][22]*SH_TAS[2] + P[0][5]*SK_TAS[1] - P[0][23]*SK_TAS[1] + P[0][6]*vd*SH_TAS[0]);
+		Kfusion[1] = SK_TAS[0]*(P[1][4]*SH_TAS[2] - P[1][22]*SH_TAS[2] + P[1][5]*SK_TAS[1] - P[1][23]*SK_TAS[1] + P[1][6]*vd*SH_TAS[0]);
+		Kfusion[2] = SK_TAS[0]*(P[2][4]*SH_TAS[2] - P[2][22]*SH_TAS[2] + P[2][5]*SK_TAS[1] - P[2][23]*SK_TAS[1] + P[2][6]*vd*SH_TAS[0]);
+		Kfusion[3] = SK_TAS[0]*(P[3][4]*SH_TAS[2] - P[3][22]*SH_TAS[2] + P[3][5]*SK_TAS[1] - P[3][23]*SK_TAS[1] + P[3][6]*vd*SH_TAS[0]);
+		Kfusion[4] = SK_TAS[0]*(P[4][4]*SH_TAS[2] - P[4][22]*SH_TAS[2] + P[4][5]*SK_TAS[1] - P[4][23]*SK_TAS[1] + P[4][6]*vd*SH_TAS[0]);
+		Kfusion[5] = SK_TAS[0]*(P[5][4]*SH_TAS[2] - P[5][22]*SH_TAS[2] + P[5][5]*SK_TAS[1] - P[5][23]*SK_TAS[1] + P[5][6]*vd*SH_TAS[0]);
+		Kfusion[6] = SK_TAS[0]*(P[6][4]*SH_TAS[2] - P[6][22]*SH_TAS[2] + P[6][5]*SK_TAS[1] - P[6][23]*SK_TAS[1] + P[6][6]*vd*SH_TAS[0]);
+		Kfusion[7] = SK_TAS[0]*(P[7][4]*SH_TAS[2] - P[7][22]*SH_TAS[2] + P[7][5]*SK_TAS[1] - P[7][23]*SK_TAS[1] + P[7][6]*vd*SH_TAS[0]);
+		Kfusion[8] = SK_TAS[0]*(P[8][4]*SH_TAS[2] - P[8][22]*SH_TAS[2] + P[8][5]*SK_TAS[1] - P[8][23]*SK_TAS[1] + P[8][6]*vd*SH_TAS[0]);
+		Kfusion[9] = SK_TAS[0]*(P[9][4]*SH_TAS[2] - P[9][22]*SH_TAS[2] + P[9][5]*SK_TAS[1] - P[9][23]*SK_TAS[1] + P[9][6]*vd*SH_TAS[0]);
+		Kfusion[10] = SK_TAS[0]*(P[10][4]*SH_TAS[2] - P[10][22]*SH_TAS[2] + P[10][5]*SK_TAS[1] - P[10][23]*SK_TAS[1] + P[10][6]*vd*SH_TAS[0]);
+		Kfusion[11] = SK_TAS[0]*(P[11][4]*SH_TAS[2] - P[11][22]*SH_TAS[2] + P[11][5]*SK_TAS[1] - P[11][23]*SK_TAS[1] + P[11][6]*vd*SH_TAS[0]);
+		Kfusion[12] = SK_TAS[0]*(P[12][4]*SH_TAS[2] - P[12][22]*SH_TAS[2] + P[12][5]*SK_TAS[1] - P[12][23]*SK_TAS[1] + P[12][6]*vd*SH_TAS[0]);
+		Kfusion[13] = SK_TAS[0]*(P[13][4]*SH_TAS[2] - P[13][22]*SH_TAS[2] + P[13][5]*SK_TAS[1] - P[13][23]*SK_TAS[1] + P[13][6]*vd*SH_TAS[0]);
+		Kfusion[14] = SK_TAS[0]*(P[14][4]*SH_TAS[2] - P[14][22]*SH_TAS[2] + P[14][5]*SK_TAS[1] - P[14][23]*SK_TAS[1] + P[14][6]*vd*SH_TAS[0]);
+		Kfusion[15] = SK_TAS[0]*(P[15][4]*SH_TAS[2] - P[15][22]*SH_TAS[2] + P[15][5]*SK_TAS[1] - P[15][23]*SK_TAS[1] + P[15][6]*vd*SH_TAS[0]);
+		Kfusion[16] = SK_TAS[0]*(P[16][4]*SH_TAS[2] - P[16][22]*SH_TAS[2] + P[16][5]*SK_TAS[1] - P[16][23]*SK_TAS[1] + P[16][6]*vd*SH_TAS[0]);
+		Kfusion[17] = SK_TAS[0]*(P[17][4]*SH_TAS[2] - P[17][22]*SH_TAS[2] + P[17][5]*SK_TAS[1] - P[17][23]*SK_TAS[1] + P[17][6]*vd*SH_TAS[0]);
+		Kfusion[18] = SK_TAS[0]*(P[18][4]*SH_TAS[2] - P[18][22]*SH_TAS[2] + P[18][5]*SK_TAS[1] - P[18][23]*SK_TAS[1] + P[18][6]*vd*SH_TAS[0]);
+		Kfusion[19] = SK_TAS[0]*(P[19][4]*SH_TAS[2] - P[19][22]*SH_TAS[2] + P[19][5]*SK_TAS[1] - P[19][23]*SK_TAS[1] + P[19][6]*vd*SH_TAS[0]);
+		Kfusion[20] = SK_TAS[0]*(P[20][4]*SH_TAS[2] - P[20][22]*SH_TAS[2] + P[20][5]*SK_TAS[1] - P[20][23]*SK_TAS[1] + P[20][6]*vd*SH_TAS[0]);
+		Kfusion[21] = SK_TAS[0]*(P[21][4]*SH_TAS[2] - P[21][22]*SH_TAS[2] + P[21][5]*SK_TAS[1] - P[21][23]*SK_TAS[1] + P[21][6]*vd*SH_TAS[0]);
+		Kfusion[22] = SK_TAS[0]*(P[22][4]*SH_TAS[2] - P[22][22]*SH_TAS[2] + P[22][5]*SK_TAS[1] - P[22][23]*SK_TAS[1] + P[22][6]*vd*SH_TAS[0]);
+		Kfusion[23] = SK_TAS[0]*(P[23][4]*SH_TAS[2] - P[23][22]*SH_TAS[2] + P[23][5]*SK_TAS[1] - P[23][23]*SK_TAS[1] + P[23][6]*vd*SH_TAS[0]);
 
 
 		// calculate measurement innovation
@@ -182,19 +143,6 @@ void Ekf::fuseAirspeed()
 		// airspeed measurement sample has passed check so record it
 		_time_last_arsp_fuse = _time_last_imu;
 
-
-		// by definition the angle error state is zero at the fusion time
-		_state.ang_error.setZero();
-
-		// Fuse airspeed measurement
-		fuse(Kfusion, _airspeed_innov); //Why calculate angle error when it is always zero?
-
-		// correct the nominal quaternion
-		Quaternion dq;
-		dq.from_axis_angle(_state.ang_error);
-		_state.quat_nominal = dq * _state.quat_nominal;
-		_state.quat_nominal.normalize();
-
 		// update covariance matrix via Pnew = (I - KH)P = P - KHP
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) { // Here it will be a lot of zeros, should optimize that...
@@ -210,13 +158,40 @@ void Ekf::fuseAirspeed()
 			}
 		}
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+		// if the covariance correction will result in a negative variance, then
+		// the covariance marix is unhealthy and must be corrected
+		bool healthy = true;
+		_fault_status.flags.bad_airspeed = false;
+		for (int i = 0; i < _k_num_states; i++) {
+			if (P[i][i] < KHP[i][i]) {
+				// zero rows and columns
+				zeroRows(P,i,i);
+				zeroCols(P,i,i);
+
+				//flag as unhealthy
+				healthy = false;
+
+				// update individual measurement health status
+				_fault_status.flags.bad_airspeed = true;
+
 			}
 		}
 
-		makeSymmetrical();
-		limitCov();
+		// only apply covariance and state corrrections if healthy
+		if (healthy) {
+			// apply the covariance corrections
+			for (unsigned row = 0; row < _k_num_states; row++) {
+				for (unsigned column = 0; column < _k_num_states; column++) {
+					P[row][column] = P[row][column] - KHP[row][column];
+				}
+			}
+
+			// correct the covariance marix for gross errors
+			fixCovarianceErrors();
+
+			// apply the state corrections
+			fuse(Kfusion, _airspeed_innov);
+
+		}
 	}
 }
