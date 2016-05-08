@@ -59,23 +59,8 @@ void Ekf::fuseOptFlow()
 	float ve = _state.vel(1);
 	float vd = _state.vel(2);
 
-	// calculate the observation noise variance - scaling noise linearly across flow quality range
-	float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
-	float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
-
-	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
-	float weighting = (255.0f - (float)_params.flow_qual_min);
-
-	if (weighting >= 1.0f) {
-		weighting = math::constrain(((float)_flow_sample_delayed.quality - (float)_params.flow_qual_min) / weighting, 0.0f,
-					    1.0f);
-
-	} else {
-		weighting = 0.0f;
-	}
-
-	// take the weighted average of the observation noie for the best and wort flow quality
-	float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
+	// calculate the optical flow observation variance
+	float R_LOS = calcOptFlowMeasVar();
 
 	float H_LOS[2][24] = {}; // Optical flow observation Jacobians
 	float Kfusion[24][2] = {}; // Optical flow Kalman gains
@@ -547,4 +532,28 @@ void Ekf::calcOptFlowBias()
 		_imu_del_ang_of.setZero();
 		_delta_time_of = 0.0f;
 	}
+}
+
+// calculate the measurement variance for the optical flow sensor (rad/sec)^2
+float Ekf::calcOptFlowMeasVar()
+{
+	// calculate the observation noise variance - scaling noise linearly across flow quality range
+	float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
+	float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
+
+	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
+	float weighting = (255.0f - (float)_params.flow_qual_min);
+
+	if (weighting >= 1.0f) {
+		weighting = math::constrain(((float)_flow_sample_delayed.quality - (float)_params.flow_qual_min) / weighting, 0.0f,
+					    1.0f);
+
+	} else {
+		weighting = 0.0f;
+	}
+
+	// take the weighted average of the observation noie for the best and wort flow quality
+	float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
+
+	return R_LOS;
 }

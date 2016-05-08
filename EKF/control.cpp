@@ -106,8 +106,8 @@ void Ekf::controlFusionModes()
 				zeroRows(P,4,5);
 				zeroCols(P,4,5);
 
-				// reset the horizontal velocity variance using the optical flow noise
-				P[5][5] = P[4][4] = sq(range * _params.flow_noise_qual_min);
+				// reset the horizontal velocity variance using the optical flow noise variance
+				P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 
 				if (!_in_air) {
 					// we are likely starting OF for the first time so reset the position and states
