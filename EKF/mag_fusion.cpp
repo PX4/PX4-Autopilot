@@ -435,9 +435,9 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 		} else if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
-			measured_hdg = atan2f(R_to_earth(1, 0) , R_to_earth(0, 0));
+			measured_hdg = atan2f(R_to_earth_ev(1, 0) , R_to_earth_ev(0, 0));
 		} else {
 			// there is no yaw observation
 			return;
@@ -513,9 +513,9 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 		} else if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
-			measured_hdg = atan2f(-R_to_earth(0, 1) , R_to_earth(1, 1));
+			measured_hdg = atan2f(-R_to_earth_ev(0, 1) , R_to_earth_ev(1, 1));
 		} else {
 			// there is no yaw observation
 			return;
