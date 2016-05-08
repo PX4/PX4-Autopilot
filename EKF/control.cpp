@@ -110,9 +110,15 @@ void Ekf::controlFusionModes()
 				P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 
 				if (!_in_air) {
-					// we are likely starting OF for the first time so reset the position and states
+					// we are likely starting OF for the first time so reset the horizontal position and vertical velocity states
 					_state.pos(0) = 0.0f;
 					_state.pos(1) = 0.0f;
+
+					// reset the coresponding covariances
+					// we are by definition at the origin at commencement so variances are also zeroed
+					zeroRows(P,7,8);
+					zeroCols(P,7,8);
+
 					// align the output observer to the EKF states
 					alignOutputFilter();
 				}
