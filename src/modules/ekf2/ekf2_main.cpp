@@ -193,6 +193,7 @@ private:
 	control::BlockParamFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
 	control::BlockParamFloat _eas_noise;			// measurement noise used for airspeed fusion (std m/s)
+	control::BlockParamFloat _beta_noise;			// syntetic sideslip noise (m/s)
 	control::BlockParamFloat _mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat _heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
@@ -289,6 +290,7 @@ Ekf2::Ekf2():
 	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise),
 	_mag_noise(this, "EKF2_MAG_NOISE", false, &_params->mag_noise),
 	_eas_noise(this, "EKF2_EAS_NOISE", false, &_params->eas_noise),
+	_beta_noise(this, "EKF2_BETA_NOISE", false, &_params->beta_noise),
 	_mag_declination_deg(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg),
 	_heading_innov_gate(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate),
 	_mag_innov_gate(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate),
@@ -753,6 +755,7 @@ void Ekf2::task_main()
 		_ekf.get_mag_innov(&innovations.mag_innov[0]);
 		_ekf.get_heading_innov(&innovations.heading_innov);
 		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+		_ekf.get_beta_innov(&innovations.beta_innov);
 		_ekf.get_flow_innov(&innovations.flow_innov[0]);
 		_ekf.get_hagl_innov(&innovations.hagl_innov);
 
@@ -760,6 +763,7 @@ void Ekf2::task_main()
 		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
 		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
 		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+		_ekf.get_beta_innov_var(&innovations.beta_innov_var);
 		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
 		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
