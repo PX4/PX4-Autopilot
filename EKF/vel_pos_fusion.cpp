@@ -163,15 +163,16 @@ void Ekf::fuseVelPosHeight()
 
 	// check position, velocity and height innovations
 	// treat 3D velocity, 2D position and height as separate sensors
-	// always pass position checks if using synthetic position measurements
+	// always pass position checks if using synthetic position measurements or yet to complete tilt alignment
+	// always pass height checks if yet to complete tilt alignment
 	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
 			      && (_vel_pos_test_ratio[2] <= 1.0f);
 	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
 	bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
 	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f))
-			      || using_synthetic_measurements;
+			      || using_synthetic_measurements || !_control_status.flags.tilt_align;
 	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
-	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
+	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
 
 	// record the successful velocity fusion time
 	if (vel_check_pass && _fuse_hor_vel) {
