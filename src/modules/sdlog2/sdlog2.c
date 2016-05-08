@@ -2019,7 +2019,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				memcpy(&(log_msg.body.log_EST0.s), buf.estimator_status.states, maxcopy0);
 				log_msg.body.log_EST0.n_states = buf.estimator_status.n_states;
 				log_msg.body.log_EST0.nan_flags = buf.estimator_status.nan_flags;
-				log_msg.body.log_EST0.health_flags = buf.estimator_status.health_flags;
+				log_msg.body.log_EST0.fault_flags = buf.estimator_status.filter_fault_flags;
 				log_msg.body.log_EST0.timeout_flags = buf.estimator_status.timeout_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST0);
 

@@ -396,7 +396,7 @@ struct log_EST0_s {
 	float s[12];
 	uint8_t n_states;
 	uint8_t nan_flags;
-	uint8_t health_flags;
+	uint16_t fault_flags;
 	uint8_t timeout_flags;
 };
 
@@ -662,7 +662,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
-	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
+	LOG_FORMAT(EST0, "ffffffffffffBBHB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fFault,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(EST2, "ffffffffffffHH",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,GCHK,CTRL"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
