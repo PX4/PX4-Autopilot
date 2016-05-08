@@ -732,6 +732,7 @@ void Ekf2::task_main()
 		_ekf.get_covariances(status.covariances);
 		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
