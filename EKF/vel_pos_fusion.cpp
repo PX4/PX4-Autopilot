@@ -153,7 +153,7 @@ void Ekf::fuseVelPosHeight()
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
 		if (fuse_map[obs_index]) {
 			// compute the innovation variance SK = HPH + R
-			unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+			unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
 			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
 			// Compute the ratio of innovation to gate size
 			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) *
