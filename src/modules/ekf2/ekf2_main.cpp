@@ -199,31 +199,32 @@ private:
 	control::BlockParamExtFloat _gps_pos_noise;
 	control::BlockParamExtFloat _pos_noaid_noise;
 	control::BlockParamExtFloat _baro_noise;
-	control::BlockParamExtFloat _baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
+	control::BlockParamExtFloat _baro_innov_gate;	// innovation gate for barometric height innovation test (std dev)
 	control::BlockParamExtFloat
 	_posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
-	control::BlockParamExtFloat _vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
-	control::BlockParamExtFloat _tas_innov_gate;	   // innovation gate for tas innovation test (std dev)
+	control::BlockParamExtFloat _vel_innov_gate;	// innovation gate for GPS velocity innovation test (std dev)
+	control::BlockParamExtFloat _tas_innov_gate;	// innovation gate for tas innovation test (std dev)
 
 	control::BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
-	control::BlockParamExtFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
-	control::BlockParamExtFloat _eas_noise;			// measurement noise used for airspeed fusion (std m/s)
-	control::BlockParamExtFloat _mag_declination_deg;	// magnetic declination in degrees
-	control::BlockParamExtFloat _heading_innov_gate;	// innovation gate for heading innovation test
+	control::BlockParamExtFloat _mag_noise;		// measurement noise used for 3-axis magnetoemter fusion (Gauss)
+	control::BlockParamExtFloat _eas_noise;		// measurement noise used for airspeed fusion (std m/s)
+	control::BlockParamFloat _beta_noise;		// synthetic sideslip noise (m/s)
+	control::BlockParamExtFloat _mag_declination_deg;// magnetic declination in degrees
+	control::BlockParamExtFloat _heading_innov_gate;// innovation gate for heading innovation test
 	control::BlockParamExtFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
 	control::BlockParamExtInt
 	_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
 	control::BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 
-	control::BlockParamExtInt _gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
-	control::BlockParamExtFloat _requiredEph;         // maximum acceptable horiz position error (m)
-	control::BlockParamExtFloat _requiredEpv;         // maximum acceptable vert position error (m)
-	control::BlockParamExtFloat _requiredSacc;        // maximum acceptable speed error (m/s)
-	control::BlockParamExtInt _requiredNsats;         // minimum acceptable satellite count
-	control::BlockParamExtFloat _requiredGDoP;        // maximum acceptable geometric dilution of precision
-	control::BlockParamExtFloat _requiredHdrift;      // maximum acceptable horizontal drift speed (m/s)
-	control::BlockParamExtFloat _requiredVdrift;      // maximum acceptable vertical drift speed (m/s)
-	control::BlockParamExtInt _param_record_replay_msg; // indicates if we want to record ekf2 replay messages
+	control::BlockParamExtInt _gps_check_mask;	// bitmasked integer used to activate the different GPS quality checks
+	control::BlockParamExtFloat _requiredEph;	// maximum acceptable horiz position error (m)
+	control::BlockParamExtFloat _requiredEpv;	// maximum acceptable vert position error (m)
+	control::BlockParamExtFloat _requiredSacc;	// maximum acceptable speed error (m/s)
+	control::BlockParamExtInt _requiredNsats;	// minimum acceptable satellite count
+	control::BlockParamExtFloat _requiredGDoP;	// maximum acceptable geometric dilution of precision
+	control::BlockParamExtFloat _requiredHdrift;	// maximum acceptable horizontal drift speed (m/s)
+	control::BlockParamExtFloat _requiredVdrift;	// maximum acceptable vertical drift speed (m/s)
+	control::BlockParamExtInt _param_record_replay_msg;// indicates if we want to record ekf2 replay messages
 
 	// measurement source control
 	control::BlockParamExtInt
@@ -331,6 +332,7 @@ Ekf2::Ekf2():
 	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, _params->mag_heading_noise),
 	_mag_noise(this, "EKF2_MAG_NOISE", false, _params->mag_noise),
 	_eas_noise(this, "EKF2_EAS_NOISE", false, _params->eas_noise),
+	_beta_noise(this, "EKF2_BETA_NOISE", false, &_params->beta_noise),
 	_mag_declination_deg(this, "EKF2_MAG_DECL", false, _params->mag_declination_deg),
 	_heading_innov_gate(this, "EKF2_HDG_GATE", false, _params->heading_innov_gate),
 	_mag_innov_gate(this, "EKF2_MAG_GATE", false, _params->mag_innov_gate),
@@ -954,30 +956,33 @@ void Ekf2::task_main()
 
 		// publish estimator innovation data
 		{
-			struct ekf2_innovations_s innovations = {};
-			innovations.timestamp = hrt_absolute_time();
-			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-			_ekf.get_mag_innov(&innovations.mag_innov[0]);
-			_ekf.get_heading_innov(&innovations.heading_innov);
-			_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-			_ekf.get_flow_innov(&innovations.flow_innov[0]);
-			_ekf.get_hagl_innov(&innovations.hagl_innov);
+		struct ekf2_innovations_s innovations = {};
+		innovations.timestamp = hrt_absolute_time();
+		_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+		_ekf.get_mag_innov(&innovations.mag_innov[0]);
+		_ekf.get_heading_innov(&innovations.heading_innov);
+		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+		_ekf.get_beta_innov(&innovations.beta_innov);
+		_ekf.get_flow_innov(&innovations.flow_innov[0]);
+		_ekf.get_hagl_innov(&innovations.hagl_innov);
 
-			_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-			_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-			_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-			_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-			_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-			_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+		_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
+		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
+		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+		_ekf.get_beta_innov_var(&innovations.beta_innov_var);
+		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
+		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
-			_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+		_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
-			if (_estimator_innovations_pub == nullptr) {
-				_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+		if (_estimator_innovations_pub == nullptr) {
+			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 
-			} else {
-				orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+		} else {
+			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 			}
+
 		}
 
 		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
