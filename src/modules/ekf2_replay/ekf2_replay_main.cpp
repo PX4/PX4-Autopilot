@@ -518,7 +518,7 @@ void Ekf2Replay::logIfUpdated()
 		memcpy(&(log_message.body.est0.s), est_status.states, maxcopy0);
 		log_message.body.est0.n_states = est_status.n_states;
 		log_message.body.est0.nan_flags = est_status.nan_flags;
-		log_message.body.est0.health_flags = est_status.health_flags;
+		log_message.body.est0.fault_flags = est_status.filter_fault_flags;
 		log_message.body.est0.timeout_flags = est_status.timeout_flags;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST0_MSG].length);
 
