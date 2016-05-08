@@ -560,11 +560,11 @@ void Ekf2::task_main()
 			// Acceleration data
 			matrix::Vector<float, 3> acceleration = {&sensors.accelerometer_m_s2[0]};
 
-			float accel_bias = 0.0f;
-			_ekf.get_accel_bias(&accel_bias);
-			ctrl_state.x_acc = acceleration(0);
-			ctrl_state.y_acc = acceleration(1);
-			ctrl_state.z_acc = acceleration(2) - accel_bias;
+			float accel_bias[3];
+			_ekf.get_accel_bias(accel_bias);
+			ctrl_state.x_acc = acceleration(0) - accel_bias[0];
+			ctrl_state.y_acc = acceleration(1) - accel_bias[1];
+			ctrl_state.z_acc = acceleration(2) - accel_bias[2];
 
 			// compute lowpass filtered horizontal acceleration
 			acceleration = R_to_body.transpose() * acceleration;
