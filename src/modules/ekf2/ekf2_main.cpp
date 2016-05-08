@@ -176,7 +176,6 @@ private:
 	// process noise
 	control::BlockParamFloat _gyro_bias_p_noise;
 	control::BlockParamFloat _accel_bias_p_noise;
-	control::BlockParamFloat _gyro_scale_p_noise;
 	control::BlockParamFloat _mage_p_noise;
 	control::BlockParamFloat _magb_p_noise;
 	control::BlockParamFloat _wind_vel_p_noise;
@@ -275,7 +274,6 @@ Ekf2::Ekf2():
 	_accel_noise(this, "EKF2_ACC_NOISE", false, &_params->accel_noise),
 	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise),
 	_accel_bias_p_noise(this, "EKF2_ACC_B_NOISE", false, &_params->accel_bias_p_noise),
-	_gyro_scale_p_noise(this, "EKF2_GYR_S_NOISE", false, &_params->gyro_scale_p_noise),
 	_mage_p_noise(this, "EKF2_MAG_E_NOISE", false, &_params->mage_p_noise),
 	_magb_p_noise(this, "EKF2_MAG_B_NOISE", false, &_params->magb_p_noise),
 	_wind_vel_p_noise(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise),
