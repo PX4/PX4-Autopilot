@@ -688,6 +688,25 @@ PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
 
 /**
+ * Bitfield selecting mag sides for calibration
+ *
+ * DETECT_ORIENTATION_TAIL_DOWN = 1
+ * DETECT_ORIENTATION_NOSE_DOWN = 2
+ * DETECT_ORIENTATION_LEFT = 4
+ * DETECT_ORIENTATION_RIGHT = 8
+ * DETECT_ORIENTATION_UPSIDE_DOWN = 16
+ * DETECT_ORIENTATION_RIGHTSIDE_UP = 32
+ *
+ * @min 34
+ * @max 63
+ * @value 34 Two side calibration
+ * @value 38 Three side calibration
+ * @value 63 Six side calibration
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+
+/**
  * Primary baro ID
  *
  * @group Sensor Calibration
