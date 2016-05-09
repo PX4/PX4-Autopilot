@@ -10,14 +10,15 @@ if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
+
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 	STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Profile")
 
 option(SUPPORT_STDIOSTREAM
-	"If enabled provides support for << operator (as used with
-	std::cout)" OFF)
-	option(TESTING "Enable testing" OFF)
+	"If enabled provides support for << operator (as used with std::cout)" OFF)
+option(TESTING "Enable testing" OFF)
 option(FORMAT "Enable formatting" OFF)
+option(COV_HTML "Display html for coverage" OFF)
 
 if(SUPPORT_STDIOSTREAM)
 	add_definitions(-DSUPPORT_STDIOSTREAM)
@@ -55,8 +56,6 @@ set(CMAKE_CXX_FLAGS
 	-Werror
 	)
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-enable_testing()
 
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -96,3 +95,5 @@ set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
 set(CPACK_PACKAGE_CONTACT "james.goppert@gmail.com")
 include(CPack)
+
+# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=0 sw=4 ts=4 :
