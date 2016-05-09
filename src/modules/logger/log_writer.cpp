@@ -182,6 +182,7 @@ void LogWriter::run()
 			}
 
 			pthread_mutex_unlock(&_mtx);
+			written = 0;
 
 			if (available > 0) {
 				perf_begin(perf_write);
@@ -211,20 +212,22 @@ void LogWriter::run()
 				_total_written += written;
 			}
 
-			if (_running && !_should_run && written == static_cast<int>(available) && !is_part) {
+			if (!_should_run && written == static_cast<int>(available) && !is_part) {
 				// Stop only when all data written
 				_running = false;
 				_head = 0;
 				_count = 0;
 
-				int res = ::close(_fd);
-				_fd = -1;
+				if (_fd >= 0) {
+					int res = ::close(_fd);
+					_fd = -1;
 
-				if (res) {
-					PX4_WARN("error closing log file");
+					if (res) {
+						PX4_WARN("error closing log file");
 
-				} else {
-					PX4_WARN("closed logfile: %s, bytes written: %zu", _filename, _total_written);
+					} else {
+						PX4_WARN("closed logfile: %s, bytes written: %zu", _filename, _total_written);
+					}
 				}
 
 				break;
