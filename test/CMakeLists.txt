@@ -30,6 +30,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Profile")
 	add_custom_target(coverage
 		COMMAND ${CMAKE_CTEST_COMMAND}
 		COMMAND lcov --capture --directory . --output-file coverage.info
+		COMMAND lcov --summary coverage.info
 		COMMAND genhtml coverage.info --output-directory out
 		COMMAND x-www-browser out/index.html
 		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
