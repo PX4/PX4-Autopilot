@@ -60,15 +60,20 @@ public:
 
 private:
 
-	static constexpr int TARGET_TIMEOUT_MS = 1500;
+	static constexpr int TARGET_TIMEOUT_MS = 5000;
 	static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 5;
 	static constexpr int INTERPOLATION_PNTS = 20;
-	static constexpr float FF_K = .40F;
+	static constexpr float FF_K = .1F;
 	static constexpr float OFFSET_M = 8;
+
+	// higher numbers slow down the time it takes to decide whether a target is moving
+
+	static constexpr float RESPONSIVENESS = 8.0F;
 
 	enum FollowTargetState {
 		TRACK_POSITION,
 		TRACK_VELOCITY,
+		SET_WAIT_FOR_TARGET_POSITION,
 		WAIT_FOR_TARGET_POSITION
 	};
 
@@ -110,24 +115,40 @@ private:
 	float _follow_offset;
 
 	uint64_t _target_updates;
-
 	uint64_t _last_update_time;
 
 	math::Vector<3> _current_vel;
 	math::Vector<3> _step_vel;
-	math::Vector<3> _target_vel;
+	math::Vector<3> _est_target_vel;
 	math::Vector<3> _target_distance;
 	math::Vector<3> _target_position_offset;
+	math::Vector<3> _target_position_delta;
+	math::Vector<3> _filtered_target_position_delta;
 
 	follow_target_s _current_target_motion;
 	follow_target_s _previous_target_motion;
+	float _confidence;
+	float _confidence_ratio;
+	double _filtered_target_lat;
+	double _filtered_target_lon;
+	float _yaw_rate;
+
+	// Mavlink defined motion reporting capabilities
+
+    enum {
+        POS = 0,
+        VEL = 1,
+        ACCEL = 2,
+        ATT_RATES = 3
+    };
+
 	math::Matrix<3,3> _rot_matrix;
 	void track_target_position();
 	void track_target_velocity();
 	bool target_velocity_valid();
 	bool target_position_valid();
 	void reset_target_validity();
-	void update_position_sp(bool velocity_valid, bool position_valid);
+	void update_position_sp(bool velocity_valid, bool position_valid, float yaw_rate);
 	void update_target_motion();
 	void update_target_velocity();
 };
