@@ -52,8 +52,8 @@ LogWriter::LogWriter(size_t buffer_size) :
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 	/* allocate write performance counters */
-	perf_write = perf_alloc(PC_ELAPSED, "sd write");
-	perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
+	_perf_write = perf_alloc(PC_ELAPSED, "sd write");
+	_perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
 }
 
 bool LogWriter::init()
@@ -69,6 +69,11 @@ bool LogWriter::init()
 
 LogWriter::~LogWriter()
 {
+	pthread_mutex_destroy(&_mtx);
+	pthread_cond_destroy(&_cv);
+	perf_free(_perf_write);
+	perf_free(_perf_fsync);
+
 	if (_buffer) {
 		delete[] _buffer;
 	}
@@ -185,15 +190,15 @@ void LogWriter::run()
 			written = 0;
 
 			if (available > 0) {
-				perf_begin(perf_write);
+				perf_begin(_perf_write);
 				written = ::write(_fd, read_ptr, available);
-				perf_end(perf_write);
+				perf_end(_perf_write);
 
 				/* call fsync periodically to minimize potential loss of data */
 				if (++poll_count >= 100) {
-					perf_begin(perf_fsync);
+					perf_begin(_perf_fsync);
 					::fsync(_fd);
-					perf_end(perf_fsync);
+					perf_end(_perf_fsync);
 					poll_count = 0;
 				}
 
