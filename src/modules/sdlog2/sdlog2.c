@@ -1230,6 +1230,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+			struct log_RPL6_s log_RPL6;
 			struct log_LAND_s log_LAND;
 		} body;
 	} log_msg = {
@@ -1531,6 +1532,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
 				LOGBUFFER_WRITE_AND_COUNT(RPL4);
 			}
+
+
+			if (buf.replay.asp_timestamp > 0) {
+				log_msg.msg_type = LOG_RPL6_MSG;
+				log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
+				log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
+				log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
+				log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
+				log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
+				log_msg.body.log_RPL6.confidence = buf.replay.confidence;
+				LOGBUFFER_WRITE_AND_COUNT(RPL6);
+			}
+
 
 		} else { /* !record_replay_log */
 

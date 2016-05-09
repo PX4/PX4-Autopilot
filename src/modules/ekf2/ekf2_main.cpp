@@ -848,6 +848,19 @@ void Ekf2::task_main()
 				replay.rng_timestamp = 0;
 			}
 
+			if (airspeed_updated) {
+				replay.asp_timestamp = airspeed.timestamp;
+				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
+				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
+				replay.true_airspeed_unfiltered_m_s = airspeed.true_airspeed_unfiltered_m_s;
+				replay.air_temperature_celsius = airspeed.air_temperature_celsius;
+				replay.confidence = airspeed.confidence;
+
+			} else {
+				replay.asp_timestamp = 0;
+			}
+
+
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
 
