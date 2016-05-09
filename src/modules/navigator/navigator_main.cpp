@@ -319,11 +319,13 @@ Navigator::task_main()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[2] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vehicle_command_sub;
+	fds[1].events = POLLIN;
 
 	bool global_pos_available_once = false;
 
