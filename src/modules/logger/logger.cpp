@@ -700,7 +700,7 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 
 void Logger::start_log()
 {
-	PX4_WARN("start log");
+	PX4_INFO("start log");
 
 	if (create_log_dir()) {
 		return;
@@ -709,6 +709,7 @@ void Logger::start_log()
 	char file_name[64] = "";
 
 	if (get_log_file_name(file_name, sizeof(file_name))) {
+		PX4_ERR("logger: failed to get log file name");
 		return;
 	}
 
