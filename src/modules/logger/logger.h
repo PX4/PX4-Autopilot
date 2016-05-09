@@ -143,7 +143,7 @@ private:
 	uint32_t					_log_interval;
 };
 
-Logger *logger_ptr;
+Logger *logger_ptr = nullptr;
 int		logger_task = -1;
 pthread_t _writer_thread;
 
