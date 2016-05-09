@@ -181,6 +181,12 @@ __EXPORT int board_app_initialize(void)
 	static sector_descriptor_t  sector_map[] = {
 		{1, 2 * 1024, 0x08004000},
 		{2, 2 * 1024, 0x08004800},
+		{3, 2 * 1024, 0x08005000},
+		{4, 2 * 1024, 0x08005800},
+		{5, 2 * 1024, 0x08006000},
+		{6, 2 * 1024, 0x08006800},
+		{7, 2 * 1024, 0x08007000},
+		{8, 2 * 1024, 0x08007800},
 		{0, 0, 0},
 	};
 	static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];

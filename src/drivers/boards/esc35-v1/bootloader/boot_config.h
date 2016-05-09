@@ -103,7 +103,7 @@
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
  */
-#define OPT_APPLICATION_RESERVER_IN_K    (4 * 1024) /* Parameters will use the 2 2KiB sectors */
+#define OPT_APPLICATION_RESERVER_IN_K    (8 * 2048) /* Parameters will use the 8 2KiB sectors */
 
 #define OPT_APPLICATION_IMAGE_OFFSET    (OPT_BOOTLOADER_SIZE_IN_K + OPT_APPLICATION_RESERVER_IN_K)
 #define OPT_APPLICATION_IMAGE_LENGTH    (FLASH_SIZE-(OPT_BOOTLOADER_SIZE_IN_K+OPT_APPLICATION_RESERVER_IN_K))

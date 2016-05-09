@@ -31,6 +31,17 @@
 #
 ############################################################################
 
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"DO NOT RUN THIS ON HW")
+message(WARNING-"IT IS NOT PINED OUT TO HW")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+message(WARNING-"Configuraton is incomplete")
+
 include_directories(../../bootloaders/include)
 
 set(SRCS)
