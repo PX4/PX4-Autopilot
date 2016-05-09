@@ -1,13 +1,11 @@
 language: c
-sudo: true
+sudo: false
 install:
-  - sudo apt-get install -y lcov
   - pip install --user cpp-coveralls
 script:
   - cmake -DCMAKE_BUILD_TYPE=Profile -DTESTING=ON -DFORMAT=ON .
   - make
   - make check_format
-  - make coverage
   - ctest -V
 after_success:
   - cpp-coveralls -i matrix

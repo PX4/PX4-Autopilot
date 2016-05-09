@@ -7,7 +7,7 @@ set(VERSION_PATCH "0")
 project(matrix CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+	set(CMAKE_BUILD_TYPE "Profile" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
 
