@@ -117,7 +117,7 @@ private:
 	static constexpr size_t	_min_write_chunk = 4096;
 
 	char		_filename[64];
-	int			_fd;
+	int			_fd = -1;
 	uint8_t 	*_buffer = nullptr;
 	const size_t	_buffer_size;
 	size_t			_head = 0; ///< next position to write to
