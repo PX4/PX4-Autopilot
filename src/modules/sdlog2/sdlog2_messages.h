@@ -576,6 +576,18 @@ struct log_RPL4_s {
 	float range_to_ground;
 };
 
+/* --- EKF2 REPLAY Part 4 --- */
+#define LOG_RPL6_MSG 59
+struct log_RPL6_s {
+	uint64_t timestamp;
+	float indicated_airspeed_m_s;
+	float true_airspeed_m_s;
+	float true_airspeed_unfiltered_m_s;
+	float air_temperature_celsius;
+	float confidence;
+};
+
+
 
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
@@ -673,6 +685,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
+	LOG_FORMAT(RPL6, "Qfffff", "Tasp,inAsp,trAsp,ufAsp,tpAsp,confAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
