@@ -130,7 +130,8 @@ int main()
                 Eulerf eulerf(float(deg2rad)*float(roll),
                               float(deg2rad)*float(pitch),
                               float(deg2rad)*float(yaw));
-                Dcm<float> dcm_from_eulerf(eulerf);
+                Dcm<float> dcm_from_eulerf;
+                dcm_from_eulerf = eulerf;
                 Euler<float> euler_outf(dcm_from_eulerf);
                 TEST(isEqual(float(rad2deg)*eulerf_expected,
                              float(rad2deg)*euler_outf));

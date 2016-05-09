@@ -16,7 +16,7 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 option(SUPPORT_STDIOSTREAM
 	"If enabled provides support for << operator (as used with
 	std::cout)" OFF)
-option(TEST "Enable testing" OFF)
+	option(TESTING "Enable testing" OFF)
 option(FORMAT "Enable formatting" OFF)
 
 if(SUPPORT_STDIOSTREAM)
@@ -62,7 +62,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
 
-if(TEST)
+if(TESTING)
 	enable_testing()
 	add_subdirectory(test)
 endif()
