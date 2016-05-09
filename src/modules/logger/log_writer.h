@@ -128,8 +128,8 @@ private:
 	bool 		_exit_thread = false;
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
-	perf_counter_t perf_write;
-	perf_counter_t perf_fsync;
+	perf_counter_t _perf_write;
+	perf_counter_t _perf_fsync;
 };
 
 }
