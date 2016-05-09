@@ -1,10 +1,7 @@
 language: c
-sudo: false
-addons:
-  apt:
-    packages:
-    - lcov
+sudo: true
 install:
+  - sudo apt-get install -y lcov
   - pip install --user cpp-coveralls
 script:
   - cmake -DCMAKE_BUILD_TYPE=Profile -DTESTING=ON -DFORMAT=ON .
