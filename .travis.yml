@@ -1,5 +1,9 @@
 language: c
 sudo: false
+addons:
+  apt:
+    packages:
+    - lcov
 install:
   - pip install --user cpp-coveralls
 script:
