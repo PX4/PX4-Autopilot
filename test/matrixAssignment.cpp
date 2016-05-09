@@ -33,19 +33,19 @@ int main()
     TEST(!(m == m3));
 
     m2 *= 2;
-    TEST(m2 == m3);
+    TEST(isEqual(m2, m3));
 
     m2 /= 2;
     m2 -= 1;
     float data_minus_1[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-    TEST(Matrix3f(data_minus_1) == m2);
+    TEST(isEqual(Matrix3f(data_minus_1), m2));
 
     m2 += 1;
-    TEST(Matrix3f(data) == m2);
+    TEST(isEqual(Matrix3f(data), m2));
 
     m3 -= m2;
 
-    TEST(m3 == m2);
+    TEST(isEqual(m3, m2));
 
     float data_row_02_swap[9] = {
         7, 8, 9,
@@ -61,14 +61,32 @@ int main()
 
     Matrix3f m4(data);
 
-    TEST(-m4 == m4*(-1));
+    TEST(isEqual(-m4, m4*(-1)));
 
+    // col swap
     m4.swapCols(0, 2);
-    TEST(m4 == Matrix3f(data_col_02_swap));
+    TEST(isEqual(m4, Matrix3f(data_col_02_swap)));
     m4.swapCols(0, 2);
+
+    // row swap
     m4.swapRows(0, 2);
-    TEST(m4 == Matrix3f(data_row_02_swap));
+    TEST(isEqual(m4, Matrix3f(data_row_02_swap)));
+    m4.swapRows(0, 2);
+
+    // swapping with same row should do nothing
+    m4.swapRows(0, 0);
+    m4.swapRows(1, 1);
+    m4.swapRows(2, 2);
+    TEST(isEqual(m4, Matrix3f(data)));
+
+    // swapping with same col should do nothing
+    m4.swapCols(0, 0);
+    m4.swapCols(1, 1);
+    m4.swapCols(2, 2);
+    TEST(isEqual(m4, Matrix3f(data)));
+
     TEST(fabs(m4.min() - 1) < 1e-5);
+    TEST(fabs((-m4).min() + 9) < 1e-5);
 
     Scalar<float> s;
     s = 1;
