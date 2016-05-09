@@ -6,6 +6,7 @@ script:
   - cmake -DCMAKE_BUILD_TYPE=Profile -DTESTING=ON -DFORMAT=ON .
   - make
   - make check_format
+  - make coverage
   - ctest -V
 after_success:
   - cpp-coveralls -i matrix
