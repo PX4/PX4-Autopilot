@@ -229,7 +229,6 @@ __END_DECLS
 
 #if defined(__PX4_QURT)
 
-#define PX4_ROOTFSDIR
 #define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
 
 #define SIOCDEVPRIVATE 999999
