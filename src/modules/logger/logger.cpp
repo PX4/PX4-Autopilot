@@ -143,7 +143,7 @@ int Logger::start(char *const *argv)
 	logger_task = px4_task_spawn_cmd("logger",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 3100,
+					 3200,
 					 (px4_main_t)&Logger::run_trampoline,
 					 (char *const *)argv);
 
@@ -431,17 +431,8 @@ void Logger::run()
 		return;
 	}
 
-	if (!(_vehicle_status_sub = new uORB::Subscription<vehicle_status_s>(ORB_ID(vehicle_status)))) {
-		PX4_ERR("Failed to allocate subscription");
-		return;
-	}
-
-	if (!(_parameter_update_sub = new uORB::Subscription<parameter_update_s>(ORB_ID(parameter_update)))) {
-		delete _vehicle_status_sub;
-		_vehicle_status_sub = nullptr;
-		PX4_ERR("Failed to allocate subscription");
-		return;
-	}
+	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
+	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 
 
 	add_topic("sensor_gyro", 0);
@@ -495,10 +486,10 @@ void Logger::run()
 	while (!_task_should_exit) {
 
 		// Start/stop logging when system arm/disarm
-		if (_vehicle_status_sub->check_updated()) {
-			_vehicle_status_sub->update();
-			bool armed = (_vehicle_status_sub->get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (_vehicle_status_sub->get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+		if (vehicle_status_sub.check_updated()) {
+			vehicle_status_sub.update();
+			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
 			if (_enabled != armed && !_log_on_start) {
 				if (armed) {
@@ -521,9 +512,9 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			// this needs to change to a timestamped record to record a history of parameter changes
-			if (_parameter_update_sub->check_updated()) {
+			if (parameter_update_sub.check_updated()) {
 				warnx("parameter update");
-				_parameter_update_sub->update();
+				parameter_update_sub.update();
 				write_changed_parameters();
 			}
 
@@ -623,9 +614,6 @@ void Logger::run()
 
 		usleep(_log_interval);
 	}
-
-	delete _vehicle_status_sub;
-	delete _parameter_update_sub;
 
 	// stop the writer thread
 	_writer.thread_stop();
