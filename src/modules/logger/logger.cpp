@@ -74,6 +74,12 @@ int logger_main(int argc, char *argv[])
 		return 1;
 	}
 
+	//Check if thread exited, but the object has not been destroyed yet (happens in case of an error)
+	if (logger_task == -1 && logger_ptr) {
+		delete logger_ptr;
+		logger_ptr = nullptr;
+	}
+
 	if (!strcmp(argv[1], "start")) {
 
 		if (logger_ptr != nullptr) {
@@ -148,6 +154,7 @@ int Logger::start(char *const *argv)
 					 (char *const *)argv);
 
 	if (logger_task < 0) {
+		logger_task = -1;
 		PX4_WARN("task start failed");
 		return -errno;
 	}
@@ -245,6 +252,8 @@ void Logger::run_trampoline(int argc, char *argv[])
 	} else {
 		logger_ptr->run();
 	}
+
+	logger_task = -1;
 }
 
 enum class MessageType : uint8_t {
@@ -626,8 +635,6 @@ void Logger::run()
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);
 	}
-
-	logger_task = -1;
 }
 
 int Logger::create_log_dir()
