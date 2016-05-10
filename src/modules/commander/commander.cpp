@@ -2590,15 +2590,12 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* reset main state after takeoff or land has been completed */
-		/* only switch back to at least altitude controlled modes */
-		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL ||
-			main_state_prev == commander_state_s::MAIN_STATE_ALTCTL) {
+		/* reset main state after takeoff has completed */
+		/* only switch back to posctl */
+		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL) {
 
-			if ((internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-					&& mission_result.finished) ||
-				(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND
-					&& land_detector.landed)) {
+			if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+					&& mission_result.finished) {
 
 				main_state_transition(&status, main_state_prev, main_state_prev, &status_flags, &internal_state);
 			}
