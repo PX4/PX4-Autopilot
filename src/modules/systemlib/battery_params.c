@@ -119,6 +119,17 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
+ * Offset for battery current sensor.
+ *
+ * This is the reading of the current sensor at no load in amperes
+ * and will be subtracted from the current reading.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_C_OFFSET, -100.0);
+
+/**
  * Number of cells.
  *
  * Defines the number of cells the attached battery consists of.

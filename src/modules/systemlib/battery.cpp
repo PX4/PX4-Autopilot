@@ -50,6 +50,7 @@ Battery::Battery() :
 	_param_v_load_drop(this, "V_LOAD_DROP"),
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
+	_param_curr_offset(this, "C_OFFSET")
 	_voltage_filtered_v(-1.0f),
 	_discharged_mah(0.0f),
 	_remaining_voltage(1.0f),
@@ -83,16 +84,23 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 {
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
+
+	float curr_in = current_a;
+
+	if (_param_curr_offset.get() > -100.0f) {
+		curr_in += _param_curr_offset.get();
+	}
+
 	filterVoltage(voltage_v);
-	filterCurrent(current_a);
-	sumDischarged(timestamp, current_a);
+	filterCurrent(curr_in);
+	sumDischarged(timestamp, curr_in);
 	estimateRemaining(voltage_v, throttle_normalized, armed);
 	determineWarning();
 
 	if (_voltage_filtered_v > 2.1f) {
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
-		battery_status->current_a = current_a;
+		battery_status->current_a = curr_in;
 		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->warning = _warning;
