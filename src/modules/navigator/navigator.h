@@ -191,6 +191,8 @@ public:
 
 	void 		set_mission_failure(const char *reason);
 
+	bool		is_planned_mission() { return _navigation_mode == &_mission; }
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
