@@ -92,6 +92,7 @@ public:
 
 private:
 	void filterVoltage(float voltage_v);
+	void filterCurrent(float voltage_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void estimateRemaining(float voltage_v, float throttle_normalized, bool armed);
 	void determineWarning();
@@ -105,6 +106,7 @@ private:
 	control::BlockParamFloat _param_crit_thr;
 
 	float _voltage_filtered_v;
+	float _current_filtered_a;
 	float _discharged_mah;
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity
