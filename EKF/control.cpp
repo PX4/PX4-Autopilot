@@ -45,8 +45,6 @@ void Ekf::controlFusionModes()
 {
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
-	// Determine the vehicle status
-	calculateVehicleStatus();
 
 	// Get the magnetic declination
 	calcMagDeclination();
@@ -109,7 +107,7 @@ void Ekf::controlFusionModes()
 				// reset the horizontal velocity variance using the optical flow noise variance
 				P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 
-				if (!_in_air) {
+				if (!_control_status.flags.in_air) {
 					// we are likely starting OF for the first time so reset the horizontal position and vertical velocity states
 					_state.pos(0) = 0.0f;
 					_state.pos(1) = 0.0f;
@@ -370,28 +368,22 @@ void Ekf::controlFusionModes()
 	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 	// or the more accurate 3-axis fusion
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
-		if (!_control_status.flags.armed) {
-			// use heading fusion for initial startup
-			_control_status.flags.mag_hdg = true;
-			_control_status.flags.mag_3D = false;
 
-		} else {
-			if (_control_status.flags.in_air) {
-				// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
-				if (!_control_status.flags.mag_3D) {
-					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-				}
-
-				// use 3D mag fusion when airborne
-				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = true;
-
-			} else {
-				// use heading fusion when on the ground
-				_control_status.flags.mag_hdg = true;
-				_control_status.flags.mag_3D = false;
-			}
+	if (_control_status.flags.in_air) {
+		// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
+		if (!_control_status.flags.mag_3D) {
+			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 		}
+
+		// use 3D mag fusion when airborne
+		_control_status.flags.mag_hdg = false;
+		_control_status.flags.mag_3D = true;
+
+	} else {
+		// use heading fusion when on the ground
+		_control_status.flags.mag_hdg = true;
+		_control_status.flags.mag_3D = false;
+	}
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 		// always use heading fusion
@@ -447,27 +439,4 @@ void Ekf::controlFusionModes()
 		_control_status.flags.wind = true;
 	}
 
-}
-
-void Ekf::calculateVehicleStatus()
-{
-	// determine if the vehicle is armed
-	_control_status.flags.armed = _vehicle_armed;
-
-	// record vertical position whilst disarmed to use as a height change reference
-	if (!_control_status.flags.armed) {
-		_last_disarmed_posD = _state.pos(2);
-	}
-
-	// Transition to in-air occurs when armed and when altitude has increased sufficiently from the altitude at arming
-	bool in_air = _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f;
-
-	if (!_control_status.flags.in_air && in_air) {
-		_control_status.flags.in_air = true;
-	}
-
-	// Transition to on-ground occurs when disarmed or if the land detector indicated landed state
-	if (_control_status.flags.in_air && (!_control_status.flags.armed || !_in_air)) {
-		_control_status.flags.in_air = false;
-	}
 }

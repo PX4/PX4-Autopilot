@@ -371,11 +371,10 @@ union filter_control_status_u {
 		uint16_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
 		uint16_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
 		uint16_t in_air      : 1; // 7 - true when the vehicle is airborne
-		uint16_t armed       : 1; // 8 - true when the vehicle motors are armed
-		uint16_t wind        : 1; // 9 - true when wind velocity is being estimated
-		uint16_t baro_hgt    : 1; // 10 - true when baro height is being fused as a primary height reference
-		uint16_t rng_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
-		uint16_t gps_hgt     : 1; // 12 - true when range finder height is being fused as a primary height reference
+		uint16_t wind        : 1; // 8 - true when wind velocity is being estimated
+		uint16_t baro_hgt    : 1; // 9 - true when baro height is being fused as a primary height reference
+		uint16_t rng_hgt     : 1; // 10 - true when range finder height is being fused as a primary height reference
+		uint16_t gps_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
 	} flags;
 	uint16_t value;
 };

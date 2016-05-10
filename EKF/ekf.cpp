@@ -253,7 +253,7 @@ bool Ekf::update()
 		} else if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt) {
 			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 			// and are on the ground, then synthesise a measurement at the expected on ground value
-			if (!_in_air) {
+			if (!_control_status.flags.in_air) {
 				_range_sample_delayed.rng = _params.rng_gnd_clearance;
 				_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
 

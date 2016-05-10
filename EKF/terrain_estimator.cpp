@@ -55,7 +55,7 @@ bool Ekf::initHagl()
 		// success
 		return true;
 
-	} else if (!_in_air) {
+	} else if (!_control_status.flags.in_air) {
 		// if on ground we assume a ground clearance
 		_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 		// Use the ground clearance value as our uncertainty

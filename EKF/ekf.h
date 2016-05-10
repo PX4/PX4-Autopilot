@@ -332,9 +332,6 @@ private:
 	// Control the filter fusion modes
 	void controlFusionModes();
 
-	// Determine if we are airborne or motors are armed
-	void calculateVehicleStatus();
-
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
 	{
