@@ -162,7 +162,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Calculate the horizontal drift speed and fail if too high
 	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.armed) {
+	if (!_control_status.flags.in_air) {
 		float drift_speed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
 		_gps_check_fail_status.flags.hdrift = (drift_speed > _params.req_hdrift);
 
@@ -186,7 +186,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Fail if the vertical drift speed is too high
 	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.armed) {
+	if (!_control_status.flags.in_air) {
 		_gps_check_fail_status.flags.vdrift = (fabsf(_gps_drift_velD) > _params.req_vdrift);
 
 	} else {
@@ -195,7 +195,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Check the magnitude of the filtered horizontal GPS velocity
 	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.armed) {
+	if (!_control_status.flags.in_air) {
 		vel_limit = 10.0f * _params.req_hdrift;
 		float gps_velN = fminf(fmaxf(gps->vel_ned[0], -vel_limit), vel_limit);
 		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vel_limit), vel_limit);

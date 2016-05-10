@@ -52,8 +52,6 @@ EstimatorInterface::EstimatorInterface():
 	_imu_ticks(0),
 	_imu_updated(false),
 	_initialised(false),
-	_vehicle_armed(false),
-	_in_air(false),
 	_NED_origin_initialised(false),
 	_gps_speed_valid(false),
 	_gps_origin_eph(0.0f),

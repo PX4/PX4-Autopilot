@@ -149,11 +149,8 @@ public:
 	// in order to give access to the application
 	parameters *getParamHandle() {return &_params;}
 
-	// set vehicle arm status data
-	void set_arm_status(bool data) { _vehicle_armed = data; }
-
 	// set vehicle landed status data
-	void set_in_air_status(bool in_air) {_in_air = in_air;}
+	void set_in_air_status(bool in_air) {_control_status.flags.in_air = in_air;}
 
 	// return true if the global position estimate is valid
 	virtual bool global_position_is_valid() = 0;
@@ -258,8 +255,6 @@ protected:
 
 	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
 	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
-	bool _vehicle_armed;    // vehicle arm status used to turn off functionality used on the ground
-	bool _in_air;           // we assume vehicle is in the air, set by the given landing detector
 
 	bool _NED_origin_initialised = false;
 	bool _gps_speed_valid = false;
