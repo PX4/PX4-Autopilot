@@ -311,6 +311,8 @@ private:
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
 	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
+	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
 	float			_last_throttle; ///< last throttle value for battery calculation
 
@@ -545,6 +547,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0),
+	_analog_rc_rssi_stable(false),
+	_analog_rc_rssi_volt(-1.0f),
 	_last_throttle(0.0f)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
@@ -1706,6 +1710,16 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 	_servorail_status.voltage_v = vservo * 0.001f;
 	_servorail_status.rssi_v    = vrssi * 0.001f;
 
+	if (_analog_rc_rssi_volt < 0.0f) {
+		_analog_rc_rssi_volt = _servorail_status.rssi_v;
+	}
+
+	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + _servorail_status.rssi_v * 0.01f;
+
+	if (_analog_rc_rssi_volt > 2.5f) {
+		_analog_rc_rssi_stable = true;
+	}
+
 	/* lazily publish the servorail voltages */
 	if (_to_servorail != nullptr) {
 		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
@@ -1784,7 +1798,24 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	input_rc.timestamp_publication = hrt_absolute_time();
 
 	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
-	input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
+
+	if (!_analog_rc_rssi_stable) {
+		input_rc.rssi = 255;// we do not actually get digital RSSI regs[PX4IO_P_RAW_RC_NRSSI];
+
+	} else {
+		float rssi_analog = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
+
+		if (rssi_analog > 100.0f) {
+			rssi_analog = 100.0f;
+		}
+
+		if (rssi_analog < 0.0f) {
+			rssi_analog = 0.0f;
+		}
+
+		input_rc.rssi = rssi_analog;
+	}
+
 	input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	input_rc.rc_lost = !(regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_RC_OK);
 	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
