@@ -1,7 +1,9 @@
 /**
  * @file Quaternion.hpp
  *
- * A quaternion class.
+ * A quaternion instance of this class describes a rotation from
+ * coordinate frame 1 to corrdinate frame 2. The first element of the quaternion
+ * represents the real part.
  *
  * @author James Goppert <james.goppert@gmail.com>
  */
