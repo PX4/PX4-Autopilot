@@ -1,7 +1,12 @@
 /**
  * @file Euler.hpp
  *
- * Euler angle tait-bryan body 3-2-1
+ * An instance of this class defines a rotation from coordinate frame 1 to coordinate frame 2.
+ * It follows the convention of an intrinsic tait-bryan 3-2-1 sequence.
+ * In order to go from frame 1 to frame 2 we apply the following rotations consecutively.
+ * 1) We rotate about our initial Z axis by an angle of _psi.
+ * 2) We rotate about the newly created Y' axis by an angle of _theta.
+ * 3) We rotate about the newly created X'' axis by an angle of _phi.
  *
  * @author James Goppert <james.goppert@gmail.com>
  */
@@ -68,9 +73,9 @@ public:
      * Instance is initialized from angle tripplet (3,2,1)
      * representing transformation from body frame to inertial frame. 
      *
-     * @param phi_   roll
-     * @param theta_ pitch
-     * @param psi_   yaw
+     * @param phi_ rotation angle about X axis
+     * @param theta_ rotation angle about Y axis
+     * @param psi_ rotation angle about Z axis
      */
     Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
     {
@@ -78,26 +83,30 @@ public:
     }
 
     /**
-     * Constructor from dcm
+     * Constructor from DCM matrix
      *
-     * Instance is initialized from dcm representing transformation
-     * from body frame to inertial frame.
+     * Instance is set from Dcm representing
+     * transformation from frame 2 to frame 1.
+     * This instance will hold the angles defining the rotation
+     * from frame 1 to frame 2.
      *
-     * @param dcm_ dcm to set angles to
-     */
+     * @param dcm Direction cosine matrix
+    */
     Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
     {
         set_from_dcm(dcm);
     }
 
     /**
-     * Constructor from quaternion
+     * Constructor from quaternion instance.
      *
-     * Instance is initialized from quaternion representing
-     * transformation from body frame to inertial frame.
+     * Instance is set from a quaternion representing
+     * transformation from frame 2 to frame 1.
+     * This instance will hold the angles defining the rotation
+     * from frame 1 to frame 2.
      *
-     * @param q quaternion to set angles to
-     */
+     * @param q quaternion
+    */
     Euler(const Quaternion<Type> & q) :
         Vector<Type, 3>()
     {
@@ -108,7 +117,7 @@ public:
      * Set from euler angles
      *
      * Instance is set from angle tripplet (3,2,1) representing
-     * transformation from body frame to inertial frame. 
+     * rotation from frame 1 to frame 2.
      *
      * @param phi_   roll
      * @param theta_ pitch
@@ -125,7 +134,7 @@ public:
      * Set from dcm
      *
      * Instance is set from dcm representing transformation
-     * from body frame to inertial frame.
+     * from frame 2 to frame 1.
      *
      * @param dcm_ dcm to set angles to
      */

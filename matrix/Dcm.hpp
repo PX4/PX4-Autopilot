@@ -3,6 +3,12 @@
  *
  * A direction cosine matrix class.
  *
+ * This library uses the convention that premultiplying a three dimensional
+ * vector represented in coordinate system 1 will apply a rotation from coordinate system
+ * 1 to coordinate system 2 to the vector. The rotation is performed following the right-hand rule.
+ * Likewise, a matrix instance of this class also represents a coordinate transformation
+ * from frame 2 to frame 1.
+ *
  * @author James Goppert <james.goppert@gmail.com>
  */
 
@@ -66,7 +72,7 @@ public:
      * Constructor from quaternion
      *
      * Instance is initialized from quaternion representing
-     * transformation from inertial frame to body frame.
+     * coordinate transformation from frame 2 to frame 1.
      *
      * @param q quaternion to set dcm to
      */
@@ -77,10 +83,11 @@ public:
     /**
      * Constructor from euler angles
      *
-     * Instance is initialized from angle tripplet (3,2,1) representing
-     * transformation from body frame to inertial frame. 
+     * This sets the transformation matrix from frame 2 to frame 1 where the rotation
+     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
      *
-     * @param euler euler angles to set dcm to
+     *
+     * @param euler euler angle instance
      */
     Dcm(const Euler<Type> & euler) {
         set_from_euler(euler);
@@ -91,7 +98,7 @@ public:
      * Set from quaternion
      *
      * Instance is set from quaternion representing
-     * transformation from inertial frame to body frame.
+     * transformation from frame 2 to frame 1.
      *
      * @param q quaternion to set dcm to
      */
@@ -119,10 +126,10 @@ public:
     /**
      * Set from euler angles
      *
-     * Instance is set from angle tripplet (3,2,1) representing
-     * transformation from body frame to inertial frame. 
+     * This provides the transformation matrix from frame 2 to frame 1 where the rotation
+     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence
      *
-     * @param euler euler angles to set dcm to
+     * @param euler euler angle instannce
      */
     void set_from_euler(const Euler<Type> & euler) {
         Dcm &dcm = *this;

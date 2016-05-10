@@ -71,8 +71,8 @@ public:
     /**
      * Constructor from dcm
      *
-     * Instance is initialized from a dcm representing transformation
-     * from inertial frame to body frame.
+     * Instance is initialized from a dcm representing coordinate transformation
+     * from frame 2 to frame 1.
      *
      * @param dcm dcm to set quaternion to
      */
@@ -85,10 +85,11 @@ public:
     /**
      * Constructor from euler angles
      *
-     * Instance is initialized from angle tripplet (3,2,1) representing
-     * transformation from body frame to inertial frame. 
+     * This sets the instance to a quaternion representing coordinate transformation from
+     * frame 2 to frame 1 where the rotation from frame 1 to frame 2 is described
+     * by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
      *
-     * @param euler euler angles to set quaternion to
+     * @param euler euler angle instance
      */
     Quaternion(const Euler<Type> & euler) :
         Vector<Type, 4>()
@@ -99,8 +100,8 @@ public:
     /**
      * Constructor from quaternion values
      *
-     * Instance is initialized from quaternion values representing
-     * transformation from inertial frame to body frame.
+     * Instance is initialized from quaternion values representing coordinate
+     * transformation from frame 2 to frame 1.
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
@@ -116,8 +117,8 @@ public:
     /**
      * Set from dcm
      *
-     * Instance is set from a dcm representing transformation
-     * from inertial frame to body frame.
+     * Instance is set from a dcm representing coordinate transformation
+     * from frame 2 to frame 1.
      *
      * @param dcm dcm to set quaternion to
      */
@@ -137,8 +138,9 @@ public:
     /**
      * Set from euler angles
      *
-     * Instance is set from angle tripplet (3,2,1) representing
-     * transformation from body frame to inertial frame. 
+     * This sets the instance to a quaternion representing coordinate transformation from
+     * frame 2 to frame 1 where the rotation from frame 1 to frame 2 is described
+     * by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
      *
      * @param euler euler angles to set quaternion to
      */
@@ -164,8 +166,8 @@ public:
     /**
      * Set from quaternion values
      *
-     * Instance is set from quaternion values representing
-     * transformation from inertial frame to body frame.
+     * Instance is set from quaternion values representing coordinate
+     * transformation from frame 2 to frame 1.
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
