@@ -319,7 +319,6 @@ private:
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
-		float battery_current_offset;
 
 		float baro_qnh;
 
@@ -379,7 +378,6 @@ private:
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
-		param_t battery_current_offset;
 
 		param_t board_rotation;
 
@@ -649,7 +647,6 @@ Sensors::Sensors() :
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
-	_parameter_handles.battery_current_offset = param_find("BAT_C_OFFSET");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -924,13 +921,6 @@ Sensors::parameters_update()
 		/* ensure a missing default leads to an unrealistic current value */
 		_parameters.battery_current_scaling = 0.00001f;
 #endif
-	}
-
-	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
-		warnx("%s", paramerr);
-
-	} else if (_parameters.battery_current_offset < 0.0f) {
-		_parameters.battery_current_offset = 0.0f;
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));

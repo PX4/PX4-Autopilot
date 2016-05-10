@@ -50,7 +50,7 @@ Battery::Battery() :
 	_param_v_load_drop(this, "V_LOAD_DROP"),
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
-	_param_curr_offset(this, "C_OFFSET")
+	_param_curr_offset(this, "C_OFFSET"),
 	_voltage_filtered_v(-1.0f),
 	_discharged_mah(0.0f),
 	_remaining_voltage(1.0f),
