@@ -141,7 +141,7 @@ private:
 	int		_actuator_armed_sub = -1;
 	int		_vehicle_land_detected_sub = -1;
 
-	bool            _prev_motors_armed = false; // motors armed status from the previous frame
+	bool            _prev_landed = true; // landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
 
@@ -349,7 +349,6 @@ void Ekf2::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
-	_actuator_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	px4_pollfd_struct_t fds[2] = {};
@@ -369,7 +368,7 @@ void Ekf2::task_main()
 	airspeed_s airspeed = {};
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
-	actuator_armed_s actuator_armed = {};
+	vehicle_land_detected_s vehicle_land_detected = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -402,7 +401,6 @@ void Ekf2::task_main()
 		bool airspeed_updated = false;
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
-		bool actuator_armed_updated = false;
 		bool vehicle_land_detected_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -502,17 +500,9 @@ void Ekf2::task_main()
 			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
 		}
 
-		orb_check(_actuator_armed_sub, &actuator_armed_updated);
-
-		if (actuator_armed_updated) {
-			orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
-			_ekf.set_arm_status(actuator_armed.armed);
-		}
-
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
 
 		if (vehicle_land_detected_updated) {
-			struct vehicle_land_detected_s vehicle_land_detected = {};
 			orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
 		}
@@ -780,12 +770,13 @@ void Ekf2::task_main()
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 		}
 
-		// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
-		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !actuator_armed.armed) {
+		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
+		if ((_params->mag_declination_source & (1 << 1)) && !_prev_landed && vehicle_land_detected.landed) {
 			float decl_deg;
 			_ekf.copy_mag_decl_deg(&decl_deg);
 			_mag_declination_deg.set(decl_deg);
 		}
+		_prev_landed = vehicle_land_detected.landed;
 
 		// publish replay message if in replay mode
 		bool publish_replay_message = (bool)_param_record_replay_msg.get();
