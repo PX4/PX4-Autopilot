@@ -57,7 +57,7 @@ Takeoff::Takeoff(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
 {
-	/* load initial params */
+	// load initial params
 	updateParams();
 }
 
@@ -72,6 +72,32 @@ Takeoff::on_inactive()
 
 void
 Takeoff::on_activation()
+{
+	set_takeoff_position();
+}
+
+void
+Takeoff::on_active()
+{
+	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+	if (rep->current.valid) {
+		// reset the position
+		set_takeoff_position();
+
+	} else if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
+		_navigator->get_mission_result()->finished = true;
+		_navigator->set_mission_result_updated();
+
+		// set loiter item so position controllers stop doing takeoff logic
+		set_loiter_item(&_mission_item);
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+
+void
+Takeoff::set_takeoff_position()
 {
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, _param_min_alt.get());
@@ -89,9 +115,22 @@ Takeoff::on_activation()
 	pos_sp_triplet->next.valid = false;
 
 	// check if a specific target altitude has been set
-	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
-		pos_sp_triplet->current.alt = rep->current.alt;
+	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+	if (rep->current.valid) {
+		if (PX4_ISFINITE(rep->current.alt)) {
+			pos_sp_triplet->current.alt = rep->current.alt;
+		}
+
+		// Go on and check which changes had been requested
+		if (PX4_ISFINITE(rep->current.yaw)) {
+			pos_sp_triplet->current.yaw = rep->current.yaw;
+		}
+
+		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
+			pos_sp_triplet->current.lat = rep->current.lat;
+			pos_sp_triplet->current.lon = rep->current.lon;
+		}
+
 		// mark this as done
 		memset(rep, 0, sizeof(*rep));
 	}
@@ -99,19 +138,4 @@ Takeoff::on_activation()
 	_navigator->set_can_loiter_at_sp(true);
 
 	_navigator->set_position_setpoint_triplet_updated();
-}
-
-void
-Takeoff::on_active()
-{
-	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
-		_navigator->get_mission_result()->finished = true;
-		_navigator->set_mission_result_updated();
-
-		/* set loiter item so position controllers stop doing takeoff logic */
-		set_loiter_item(&_mission_item);
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-		_navigator->set_position_setpoint_triplet_updated();
-	}
 }
