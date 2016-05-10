@@ -2,9 +2,9 @@
  * @file Quaternion.hpp
  *
  * A quaternion instance of this class describes a rotation from
- * coordinate frame 1 to corrdinate frame 2. The first element of the quaternion
+ * coordinate frame 1 to coordinate frame 2. The first element of the quaternion
  * represents the real part, thus, a quaternion representing a zero-rotation
- * is define as (1,0,0,0).
+ * is defined as (1,0,0,0).
  *
  * @author James Goppert <james.goppert@gmail.com>
  */
