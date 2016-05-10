@@ -67,7 +67,13 @@ private:
 	 */
 	void reposition();
 
+	/**
+	 * Set the position to hold based on the current local position
+	 */
+	void set_loiter_position();
+
 	control::BlockParamFloat _param_min_alt;
+	bool _loiter_pos_set;
 };
 
 #endif

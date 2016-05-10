@@ -71,7 +71,7 @@ Battery::reset(battery_status_s *battery_status)
 {
 	memset(battery_status, 0, sizeof(*battery_status));
 	battery_status->current_a = -1.0f;
-	battery_status->remaining = 0.0f;
+	battery_status->remaining = 1.0f;
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
@@ -79,13 +79,13 @@ Battery::reset(battery_status_s *battery_status)
 
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
-			     battery_status_s *battery_status)
+			     bool armed, battery_status_s *battery_status)
 {
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(voltage_v, throttle_normalized);
+	estimateRemaining(voltage_v, throttle_normalized, armed);
 	determineWarning();
 
 	if (_voltage_filtered_v > 2.1f) {
@@ -134,10 +134,13 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float throttle_normalized)
+Battery::estimateRemaining(float voltage_v, float throttle_normalized, bool armed)
 {
+	// assume 10% voltage drop of the full drop range with motors idle
+	const float thr = (armed) ? ((fabsf(throttle_normalized) + 0.1f) / 1.1f) : 0.0f;
+
 	// remaining charge estimate based on voltage and internal resistance (drop under load)
-	const float bat_v_empty_dynamic = _param_v_empty.get() - (_param_v_load_drop.get() * fabsf(throttle_normalized));
+	const float bat_v_empty_dynamic = _param_v_empty.get() - (_param_v_load_drop.get() * thr);
 
 	// the range from full to empty is the same for batteries under load and without load,
 	// since the voltage drop applies to both the full and empty state
