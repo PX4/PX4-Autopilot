@@ -470,19 +470,19 @@ void sPort_send_ARMING_STATE(int uart)
 
 void sPort_send_ATTITUDE_ROLL(int uart)
 {
-	uint32_t roll = roundf(vehicle_attitude->roll * 1000.0f);
+	uint32_t roll = roundf(vehicle_attitude->roll * 100000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_ROLL, roll);
 }
 
 void sPort_send_ATTITUDE_PITCH(int uart)
 {
-	uint32_t pitch = roundf(vehicle_attitude->pitch * 1000.0f);
+	uint32_t pitch = roundf(vehicle_attitude->pitch * 100000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_PITCH, pitch);
 }
 
 void sPort_send_ATTITUDE_YAW(int uart)
 {
-	uint32_t yaw = roundf(vehicle_attitude->yaw * 1000.0f);
+	uint32_t yaw = roundf(vehicle_attitude->yaw * 100000.0f);
 	sPort_send_data(uart, SMARTPORT_ID_DIY_ATTITUDE_YAW, yaw);
 }
 

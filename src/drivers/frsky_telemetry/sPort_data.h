@@ -95,7 +95,7 @@
 #define SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE 0x508a //Start bit is 0x02, End bit is 0x03
 
 /* Public functions
-TODO: mavlink messages, home position?
+TODO: home position?
 */
 bool sPort_init(void);
 void sPort_deinit(void);
