@@ -610,8 +610,8 @@ protected:
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = status.load * 1000.0f;
-			msg.voltage_battery = battery_status.voltage_v * 1000.0f;
-			msg.current_battery = battery_status.current_a * 100.0f;
+			msg.voltage_battery = battery_status.voltage_filtered_v * 1000.0f;
+			msg.current_battery = battery_status.current_filtered_a * 100.0f;
 			msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
