@@ -53,7 +53,7 @@ public:
     /**
      * Constructor from array
      *
-     * @param other array
+     * @param _data pointer to array
      */
     Dcm(const Type *data_) : Matrix<Type, 3, 3>(data_)
     {

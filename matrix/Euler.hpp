@@ -136,7 +136,7 @@ public:
      * Instance is set from dcm representing transformation
      * from frame 2 to frame 1.
      *
-     * @param dcm_ dcm to set angles to
+     * @param dcm Direction cosine matrix instance to convert from.
      */
     void set_from_dcm(const Dcm<Type> & dcm)
     {

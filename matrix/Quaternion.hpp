@@ -3,7 +3,8 @@
  *
  * A quaternion instance of this class describes a rotation from
  * coordinate frame 1 to corrdinate frame 2. The first element of the quaternion
- * represents the real part.
+ * represents the real part, thus, a quaternion representing a zero-rotation
+ * is define as (1,0,0,0).
  *
  * @author James Goppert <james.goppert@gmail.com>
  */
@@ -104,6 +105,7 @@ public:
      *
      * Instance is initialized from quaternion values representing coordinate
      * transformation from frame 2 to frame 1.
+     * A zero-rotation quaternion is represented by (1,0,0,0).
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
