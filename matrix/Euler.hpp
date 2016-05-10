@@ -1,6 +1,8 @@
 /**
  * @file Euler.hpp
  *
+ * All rotations and axis systems follow the right-hand rule
+ *
  * An instance of this class defines a rotation from coordinate frame 1 to coordinate frame 2.
  * It follows the convention of an intrinsic tait-bryan 3-2-1 sequence.
  * In order to go from frame 1 to frame 2 we apply the following rotations consecutively.

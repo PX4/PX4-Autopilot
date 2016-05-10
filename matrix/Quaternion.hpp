@@ -1,6 +1,8 @@
 /**
  * @file Quaternion.hpp
  *
+ * All rotations and axis systems follow the right-hand rule.
+ *
  * A quaternion instance of this class describes a rotation from
  * coordinate frame 1 to coordinate frame 2. The first element of the quaternion
  * represents the real part, thus, a quaternion representing a zero-rotation

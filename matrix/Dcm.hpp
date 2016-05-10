@@ -2,10 +2,11 @@
  * @file Dcm.hpp
  *
  * A direction cosine matrix class.
+ * All rotations and axis systems follow the right-hand rule.
  *
  * This library uses the convention that premultiplying a three dimensional
  * vector represented in coordinate system 1 will apply a rotation from coordinate system
- * 1 to coordinate system 2 to the vector. The rotation is performed following the right-hand rule.
+ * 1 to coordinate system 2 to the vector.
  * Likewise, a matrix instance of this class also represents a coordinate transformation
  * from frame 2 to frame 1.
  *
