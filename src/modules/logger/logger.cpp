@@ -135,10 +135,8 @@ void Logger::usage(const char *reason)
 	PX4_INFO("usage: logger {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
-		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
-		 "\t-a\tLog only when armed (can be still overriden by command)\n"
-		 "\t-t\tUse date/time for naming log directories and files\n"
-		 "\t-x\tExtended logging");
+		 "\t-e\tEnable logging right after start (otherwise only when armed)\n"
+		 "\t-t\tUse date/time for naming log directories and files");
 }
 
 int Logger::start(char *const *argv)
@@ -194,7 +192,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:eatx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:et", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, NULL, 10);
@@ -282,7 +280,6 @@ struct message_data_header_s {
 	uint8_t multi_id;
 };
 
-// currently unused
 struct message_info_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
 	uint16_t msg_size;
