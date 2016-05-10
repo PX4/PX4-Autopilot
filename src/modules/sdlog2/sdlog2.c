@@ -1833,7 +1833,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_BATT_MSG;
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
-				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.current = buf.battery.current_a;				
+				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				log_msg.body.log_BATT.remaining = buf.battery.remaining;
 				log_msg.body.log_BATT.warning = buf.battery.warning;
@@ -1959,6 +1960,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
 				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
