@@ -169,7 +169,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	rv = pthread_attr_init(&attr);
 
 	if (rv != 0) {
-		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
+		PX4_ERR("px4_task_spawn_cmd: failed to init thread attrs");
 		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
@@ -184,6 +184,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_ERR("pthread_attr_setstacksize to %d returned error (%d)", stack_size, rv);
+		pthread_attr_destroy(&attr);
 		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
@@ -193,7 +194,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
 	if (rv != 0) {
-		PX4_WARN("px4_task_spawn_cmd: failed to set inherit sched");
+		PX4_ERR("px4_task_spawn_cmd: failed to set inherit sched");
+		pthread_attr_destroy(&attr);
 		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
@@ -201,7 +203,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	rv = pthread_attr_setschedpolicy(&attr, scheduler);
 
 	if (rv != 0) {
-		PX4_WARN("px4_task_spawn_cmd: failed to set sched policy");
+		PX4_ERR("px4_task_spawn_cmd: failed to set sched policy");
+		pthread_attr_destroy(&attr);
 		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
@@ -211,7 +214,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	rv = pthread_attr_setschedparam(&attr, &param);
 
 	if (rv != 0) {
-		PX4_WARN("px4_task_spawn_cmd: failed to set sched param");
+		PX4_ERR("px4_task_spawn_cmd: failed to set sched param");
+		pthread_attr_destroy(&attr);
 		free(taskdata);
 		return (rv < 0) ? rv : -rv;
 	}
@@ -240,18 +244,21 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 				taskmap[taskid].isused = false;
+				pthread_attr_destroy(&attr);
 				pthread_mutex_unlock(&task_mutex);
 				free(taskdata);
 				return (rv < 0) ? rv : -rv;
 			}
 
 		} else {
+			pthread_attr_destroy(&attr);
 			pthread_mutex_unlock(&task_mutex);
 			free(taskdata);
 			return (rv < 0) ? rv : -rv;
 		}
 	}
 
+	pthread_attr_destroy(&attr);
 	pthread_mutex_unlock(&task_mutex);
 
 	if (i >= PX4_MAX_TASKS) {
