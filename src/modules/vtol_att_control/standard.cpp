@@ -243,6 +243,21 @@ void Standard::update_transition_state()
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
 
+			// simple vertical velocity controller based on integration of vertical velocity error
+			_pitch_sp_transition -= 0.5f * (0.0f - _local_pos->vz) * 0.004f;
+			_pitch_sp_transition = math::constrain(_pitch_sp_transition, -0.4f, 0.4f);
+
+	//		printf("%d\n", (double)_attc->get_dt());
+			math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+			math::Vector<3> euler_sp = R_sp.to_euler();
+			euler_sp(1) = _pitch_sp_transition;
+			R_sp.from_euler(euler_sp(0), euler_sp(1), euler_sp(2));
+			memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+			_v_att_sp->pitch_body = _pitch_sp_transition;
+			math::Quaternion q_sp;
+			q_sp.from_dcm(R_sp);
+			memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
@@ -259,19 +274,7 @@ void Standard::update_transition_state()
 			}
 		}
 
-		// simple vertical velocity controller based on integration of vertical velocity error
-		_pitch_sp_transition -= 0.1f * (0.0f - _local_pos->vz) * _attc->get_dt();
-		_pitch_sp_transition = math::constrain(_pitch_sp_transition, -0.4f, 0.4f);
 
-		math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
-		math::Vector<3> euler_sp = R_sp.to_euler();
-		euler_sp(1) = _pitch_sp_transition;
-		R_sp.from_euler(euler_sp(0), euler_sp(1), euler_sp(2));
-		memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
-		_v_att_sp->pitch_body = _pitch_sp_transition;
-		math::Quaternion q_sp;
-		q_sp.from_dcm(R_sp);
-		memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
