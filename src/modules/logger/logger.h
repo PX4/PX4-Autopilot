@@ -107,6 +107,12 @@ private:
 	 */
 	int get_log_file_name(char *file_name, size_t file_name_size);
 
+	/**
+	 * Check if there is enough free space left on the SD Card
+	 * @return 0 on success, 1 if not enough space, <0 on error
+	 */
+	int check_free_space();
+
 	void start_log();
 
 	void stop_log();
@@ -164,6 +170,7 @@ private:
 	LogWriter					_writer;
 	uint32_t					_log_interval;
 	param_t						_log_utc_offset;
+	orb_advert_t					_mavlink_log_pub = nullptr;
 };
 
 Logger *logger_ptr = nullptr;
