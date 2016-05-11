@@ -650,9 +650,10 @@ function(px4_add_common_flags)
 		-D__CUSTOM_FILE_IO__
 		)
 
-	if (NOT "${OS}" STREQUAL "qurt")
-		# -fcheck-new is not supported by clang-3.5 from
-		# HEXAGON_Tools/7.2.10/Tools/bin/hexagon-clang.
+	if (NOT (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*"))
+		# -fcheck-new is a no-op for Clang in general
+		# and has no effect, but can generate a compile
+		# error for some OS
 		list(APPEND cxx_compile_flags
 			-fcheck-new
 		)
