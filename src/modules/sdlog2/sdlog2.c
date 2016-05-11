@@ -989,6 +989,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case 'e':
 			log_on_start = true;
+			log_when_armed = true;
 			break;
 
 		case 'a':
