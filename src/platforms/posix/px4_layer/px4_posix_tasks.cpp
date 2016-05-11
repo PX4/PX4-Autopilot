@@ -233,6 +233,13 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		}
 	}
 
+	if (i >= PX4_MAX_TASKS) {
+		pthread_attr_destroy(&attr);
+		pthread_mutex_unlock(&task_mutex);
+		free(taskdata);
+		return -ENOSPC;
+	}
+
 	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *) taskdata);
 
 	if (rv != 0) {
@@ -260,10 +267,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	pthread_attr_destroy(&attr);
 	pthread_mutex_unlock(&task_mutex);
-
-	if (i >= PX4_MAX_TASKS) {
-		return -ENOSPC;
-	}
 
 	return i;
 }
