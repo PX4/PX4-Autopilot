@@ -81,6 +81,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vehicle_cmd_sub(-1),
 	_vehicle_status_sub(-1),
 	_tecs_status_sub(-1),
+	_land_detected_sub(-1),
 
 	//init publication handlers
 	_actuators_0_pub(nullptr),
@@ -630,6 +631,7 @@ void VtolAttitudeControl::task_main()
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
 	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
