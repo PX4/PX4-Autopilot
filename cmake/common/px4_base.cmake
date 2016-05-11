@@ -643,13 +643,20 @@ function(px4_add_common_flags)
 	set(cxx_compile_flags
 		-g
 		-fno-exceptions
-		-fcheck-new
 		-fno-rtti
 		-std=gnu++0x
 		-fno-threadsafe-statics
 		-DCONFIG_WCHAR_BUILTIN
 		-D__CUSTOM_FILE_IO__
 		)
+
+	if (NOT "${OS}" STREQUAL "qurt")
+		# -fcheck-new is not supported by clang-3.5 from
+		# HEXAGON_Tools/7.2.10/Tools/bin/hexagon-clang.
+		list(APPEND cxx_compile_flags
+			-fcheck-new
+		)
+	endif()
 
 	set(visibility_flags
 		-fvisibility=hidden
@@ -708,7 +715,7 @@ function(px4_add_common_flags)
 		set(added_exe_linker_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections
-			#,--print-gc-sections 
+			#,--print-gc-sections
 			)
 	endif()
 
