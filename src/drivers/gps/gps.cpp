@@ -297,6 +297,7 @@ int GPS::init()
 
 	if (_task < 0) {
 		PX4_WARN("task start failed: %d", errno);
+		_task = -1;
 		return -errno;
 	}
 
@@ -305,7 +306,7 @@ int GPS::init()
 
 void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	g_dev[argv[1][0] - '1']->task_main();
+	g_dev[argv[argc - 1][0] - '1']->task_main();
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
