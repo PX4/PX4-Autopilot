@@ -48,7 +48,8 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
-	_airspeed_trans_blend_margin(0.0f)
+	_airspeed_trans_blend_margin(0.0f),
+	_pitch_sp_transition(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -258,6 +259,20 @@ void Standard::update_transition_state()
 			}
 		}
 
+		// simple vertical velocity controller based on integration of vertical velocity error
+		_pitch_sp_transition -= 0.1f * (0.0f - _local_pos->vz) * _attc->get_dt();
+		_pitch_sp_transition = math::constrain(_pitch_sp_transition, -0.4f, 0.4f);
+
+		math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+		math::Vector<3> euler_sp = R_sp.to_euler();
+		euler_sp(1) = _pitch_sp_transition;
+		R_sp.from_euler(euler_sp(0), euler_sp(1), euler_sp(2));
+		memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+		_v_att_sp->pitch_body = _pitch_sp_transition;
+		math::Quaternion q_sp;
+		q_sp.from_dcm(R_sp);
+		memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > 0.0f) {
@@ -291,6 +306,7 @@ void Standard::update_transition_state()
 
 void Standard::update_mc_state()
 {
+	_pitch_sp_transition = 0.0f;
 	VtolType::update_mc_state();
 
 	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
@@ -327,6 +343,7 @@ void Standard::update_mc_state()
 
 void Standard::update_fw_state()
 {
+	_pitch_sp_transition = 0.0f;
 	VtolType::update_fw_state();
 
 	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again

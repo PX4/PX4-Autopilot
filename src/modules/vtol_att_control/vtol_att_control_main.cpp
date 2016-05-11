@@ -89,7 +89,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_v_rates_sp_pub(nullptr),
 	_v_att_sp_pub(nullptr),
 
-	_abort_front_transition(false)
+	_abort_front_transition(false),
+	_dt(0.0f)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -596,6 +597,8 @@ void VtolAttitudeControl::task_main()
 {
 	fflush(stdout);
 
+	hrt_abstime t_prev = 0;
+
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
@@ -671,6 +674,11 @@ void VtolAttitudeControl::task_main()
 			/* update parameters from storage */
 			parameters_update();
 		}
+
+		// get the dt of the control loop
+		hrt_abstime t = hrt_absolute_time();
+		_dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.01f;
+		t_prev = t;
 
 		_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
 

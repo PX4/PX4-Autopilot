@@ -105,6 +105,7 @@ private:
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;	
 	float _airspeed_trans_blend_margin;
+	float _pitch_sp_transition;		// dynamic pitch setpoint based on vertical velocity integral control
 
 	void set_max_mc(unsigned pwm_value);
 

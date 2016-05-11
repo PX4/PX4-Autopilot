@@ -135,6 +135,8 @@ public:
 
 	struct Params 					*get_params() {return &_params;}
 
+	float get_dt(){return _dt;}
+
 
 private:
 //******************flags & handlers******************************************************
@@ -214,6 +216,7 @@ private:
 	 * to waste energy when gliding. */
 	int _transition_command;
 	bool _abort_front_transition;
+	float _dt;		// delta time at which the control loop runs
 
 	VtolType *_vtol_type;	// base class for different vtol types
 	Tiltrotor *_tiltrotor;	// tailsitter vtol type
