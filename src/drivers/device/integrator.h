@@ -86,6 +86,17 @@ public:
 	 */
 	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
 
+	/**
+	 * Get the current integral and reset the integrator if needed. Additionally give the
+	 * integral over the samples differentiated by the integration time (mean filtered values).
+	 *
+	 * @param reset	    	Reset the integral to zero.
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @param filtered_val	The integral differentiated by the integration time.
+	 * @return		the integral since the last read-reset
+	 */
+	math::Vector<3>		get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val);
+
 private:
 	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
