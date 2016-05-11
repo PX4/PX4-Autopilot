@@ -2890,17 +2890,19 @@ protected:
 
 			msg.time_usec = hrt_absolute_time();
 
-			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : 0.0f / 0.0f;
-			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : 0.0f / 0.0f;
-			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : 0.0f / 0.0f;
-			msg.altitude_relative = (_home_time > 0) ? home.alt : 0.0f / 0.0f;
+			static constexpr float NAN_VAL = 0.0f / 0.0f;
+
+			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : NAN_VAL;
+			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN_VAL;
+			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN_VAL;
+			msg.altitude_relative = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN_VAL;
 
 			if (global_pos.terrain_alt_valid) {
 				msg.altitude_terrain = global_pos.terrain_alt;
 				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
 			} else {
-				msg.altitude_terrain = 0.0f / 0.0f;
-				msg.bottom_clearance = 0.0f / 0.0f;
+				msg.altitude_terrain = NAN_VAL;
+				msg.bottom_clearance = NAN_VAL;
 			}
 
 			_mavlink->send_message(MAVLINK_MSG_ID_ALTITUDE, &msg);
