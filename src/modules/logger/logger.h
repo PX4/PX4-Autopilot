@@ -38,9 +38,9 @@
 #include <px4.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_status.h>
 #include <version/version.h>
 #include <systemlib/git_version.h>
+#include <systemlib/param/param.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -74,7 +74,7 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start);
+	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start, bool log_name_timestamp);
 
 	~Logger();
 
@@ -93,10 +93,18 @@ private:
 
 	void run();
 
-	int create_log_dir();
+	/**
+	 * Create logging directory
+	 * @param tt if not null, use it for the directory name
+	 * @return 0 on success
+	 */
+	int create_log_dir(tm *tt);
 
 	static bool file_exist(const char *filename);
 
+	/**
+	 * Get log file name with directory (create it if necessary)
+	 */
 	int get_log_file_name(char *file_name, size_t file_name_size);
 
 	void start_log();
@@ -121,6 +129,14 @@ private:
 	 */
 	bool write_wait(void *ptr, size_t size);
 
+	/**
+	 * Get the time for log file name
+	 * @param tt returned time
+	 * @param boot_time use time when booted instead of current time
+	 * @return true on success, false otherwise (eg. if no gps)
+	 */
+	bool get_log_time(struct tm *tt, bool boot_time = false);
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -132,6 +148,7 @@ private:
 
 	bool						_task_should_exit = true;
 	char 						_log_dir[64];
+	bool						_has_log_dir = false;
 	bool						_enabled = false;
 
 	// statistics
@@ -141,10 +158,12 @@ private:
 	size_t						_write_dropouts = 0; ///< failed buffer writes due to buffer overflow
 	size_t						_high_water = 0; ///< maximum used write buffer
 
-	bool 						_log_on_start;
+	const bool 					_log_on_start;
+	const bool					_log_name_timestamp;
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;
 	uint32_t					_log_interval;
+	param_t						_log_utc_offset;
 };
 
 Logger *logger_ptr = nullptr;

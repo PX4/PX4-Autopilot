@@ -36,12 +36,19 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 
 #include <uORB/uORB.h>
 #include <uORB/uORBTopics.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
 #include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
+
+#define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
 //#define DBGPRINT //write status output every few seconds
 
@@ -187,6 +194,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
 	bool error_flag = false;
+	bool log_name_timestamp = false;
 
 	int myoptind = 1;
 	int ch;
@@ -220,6 +228,10 @@ void Logger::run_trampoline(int argc, char *argv[])
 			}
 			break;
 
+		case 't':
+			log_name_timestamp = true;
+			break;
+
 		case '?':
 			error_flag = true;
 			break;
@@ -236,7 +248,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start);
+	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start, log_name_timestamp);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -300,11 +312,14 @@ struct message_parameter_header_s {
 
 static constexpr size_t MAX_DATA_SIZE = 740;
 
-Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start) :
+Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
+	       bool log_name_timestamp) :
 	_log_on_start(log_on_start),
+	_log_name_timestamp(log_name_timestamp),
 	_writer(buffer_size),
 	_log_interval(log_interval)
 {
+	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 }
 
 Logger::~Logger()
@@ -634,40 +649,52 @@ void Logger::run()
 	}
 }
 
-int Logger::create_log_dir()
+int Logger::create_log_dir(tm *tt)
 {
 	/* create dir on sdcard if needed */
-	uint16_t dir_number = 1; // start with dir sess001
 	int mkdir_ret;
 
-	/* look for the next dir that does not exist */
-	while (dir_number <= MAX_NO_LOGFOLDER) {
-		/* format log dir: e.g. /fs/microsd/sess001 */
-		sprintf(_log_dir, "%s/sess%03u", LOG_ROOT, dir_number);
+	if (tt) {
+		int n = snprintf(_log_dir, sizeof(_log_dir), "%s/", LOG_ROOT);
+		strftime(_log_dir + n, sizeof(_log_dir) - n, "%Y-%m-%d", tt);
 		mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
-		if (mkdir_ret == 0) {
-			PX4_INFO("log dir created: %s", _log_dir);
-			break;
-
-		} else if (errno != EEXIST) {
-			PX4_WARN("failed creating new dir: %s", _log_dir);
+		if (mkdir_ret != OK && errno != EEXIST) {
+			PX4_ERR("failed creating new dir: %s", _log_dir);
 			return -1;
 		}
 
-		/* dir exists already */
-		dir_number++;
-		continue;
+	} else {
+		uint16_t dir_number = 1; // start with dir sess001
+
+		/* look for the next dir that does not exist */
+		while (!_has_log_dir && dir_number <= MAX_NO_LOGFOLDER) {
+			/* format log dir: e.g. /fs/microsd/sess001 */
+			sprintf(_log_dir, "%s/sess%03u", LOG_ROOT, dir_number);
+			mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+
+			if (mkdir_ret == 0) {
+				PX4_DEBUG("log dir created: %s", _log_dir);
+				_has_log_dir = true;
+
+			} else if (errno != EEXIST) {
+				PX4_ERR("failed creating new dir: %s (%i)", _log_dir, errno);
+				return -1;
+			}
+
+			/* dir exists already */
+			dir_number++;
+		}
+
+		if (dir_number >= MAX_NO_LOGFOLDER) {
+			/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
+			PX4_ERR("All %d possible dirs exist already", MAX_NO_LOGFOLDER);
+			return -1;
+		}
+
+		_has_log_dir = true;
 	}
 
-	if (dir_number >= MAX_NO_LOGFOLDER) {
-		/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-		PX4_WARN("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
-		return -1;
-	}
-
-	/* print logging path, important to find log file later */
-	//mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
 	return 0;
 }
 
@@ -679,36 +706,95 @@ bool Logger::file_exist(const char *filename)
 
 int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 {
-	uint16_t file_number = 1; // start with file log001
+	tm tt;
+	bool time_ok = false;
 
-	/* look for the next file that does not exist */
-	while (file_number <= MAX_NO_LOGFILE) {
-		/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
-		snprintf(file_name, file_name_size, "%s/log%03u.ulg", _log_dir, file_number);
+	if (_log_name_timestamp) {
+		/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.ulg */
+		time_ok = get_log_time(&tt, false);
+	}
 
-		if (!file_exist(file_name)) {
-			break;
+	if (time_ok) {
+		if (create_log_dir(&tt)) {
+			return -1;
 		}
 
-		file_number++;
+		char log_file_name[64] = "";
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.ulg", &tt);
+		snprintf(file_name, file_name_size, "%s/%s", _log_dir, log_file_name);
+
+	} else {
+		if (create_log_dir(nullptr)) {
+			return -1;
+		}
+
+		uint16_t file_number = 1; // start with file log001
+
+		/* look for the next file that does not exist */
+		while (file_number <= MAX_NO_LOGFILE) {
+			/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
+			snprintf(file_name, file_name_size, "%s/log%03u.ulg", _log_dir, file_number);
+
+			if (!file_exist(file_name)) {
+				break;
+			}
+
+			file_number++;
+		}
+
+		if (file_number > MAX_NO_LOGFILE) {
+			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
+			return -1;
+		}
 	}
 
-	if (file_number > MAX_NO_LOGFILE) {
-		/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-		//mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
-		return -1;
-	}
 
 	return 0;
+}
+
+bool Logger::get_log_time(struct tm *tt, bool boot_time)
+{
+	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	if (vehicle_gps_position_sub < 0) {
+		return false;
+	}
+
+	/* Get the latest GPS publication */
+	vehicle_gps_position_s gps_pos;
+
+	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) < 0) {
+		orb_unsubscribe(vehicle_gps_position_sub);
+		return false;
+	}
+
+	orb_unsubscribe(vehicle_gps_position_sub);
+	time_t utc_time_sec = gps_pos.time_utc_usec / 1e6;
+
+	if (gps_pos.fix_type < 2 || utc_time_sec < GPS_EPOCH_SECS) {
+		return false;
+	}
+
+	/* strip the time elapsed since boot */
+	if (boot_time) {
+		utc_time_sec -= hrt_absolute_time() / 1e6;
+	}
+
+	int32_t utc_offset = 0;
+
+	if (_log_utc_offset != PARAM_INVALID) {
+		param_get(_log_utc_offset, &utc_offset);
+	}
+
+	/* apply utc offset */
+	utc_time_sec += utc_offset * 60;
+
+	return gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
 void Logger::start_log()
 {
 	PX4_INFO("start log");
-
-	if (create_log_dir()) {
-		return;
-	}
 
 	char file_name[64] = "";
 
