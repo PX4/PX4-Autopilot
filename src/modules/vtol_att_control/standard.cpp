@@ -244,7 +244,7 @@ void Standard::update_transition_state()
 			_mc_throttle_weight = weight;
 
 			// simple vertical velocity controller based on integration of vertical velocity error
-			_pitch_sp_transition -= 0.5f * (0.0f - _local_pos->vz) * 0.004f;
+			_pitch_sp_transition -= 0.5f * (_local_pos_sp->vz - _local_pos->vz) * 0.004f;
 			_pitch_sp_transition = math::constrain(_pitch_sp_transition, -0.4f, 0.4f);
 
 	//		printf("%d\n", (double)_attc->get_dt());

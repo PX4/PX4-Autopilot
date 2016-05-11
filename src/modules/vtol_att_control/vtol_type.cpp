@@ -68,6 +68,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_batt_status = _attc->get_batt_status();
 	_vehicle_status = _attc->get_vehicle_status();
 	_tecs_status = _attc->get_tecs_status();
+	_local_pos_sp = _attc->get_local_pos_sp();
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
