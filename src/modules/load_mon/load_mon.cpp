@@ -45,6 +45,7 @@
 
 #include <px4_config.h>
 #include <px4_workqueue.h>
+#include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>
 
