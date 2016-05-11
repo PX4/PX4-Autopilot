@@ -371,7 +371,7 @@ public:
         setZero();
         Matrix<Type, M, N> &self = *this;
 
-        for (size_t i = 0; i < M and i < N; i++) {
+        for (size_t i = 0; i < M && i < N; i++) {
             self(i, i) = 1;
         }
     }
