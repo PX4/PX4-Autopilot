@@ -47,6 +47,14 @@
 #include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
+#include <systemlib/mavlink_log.h>
+
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
+#include <sys/statfs.h>
+#endif
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
@@ -452,6 +460,10 @@ void Logger::run()
 		return;
 	}
 
+	if (check_free_space() == 1) {
+		return;
+	}
+
 	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 
@@ -647,6 +659,11 @@ void Logger::run()
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);
 	}
+
+	if (_mavlink_log_pub) {
+		orb_unadvertise(_mavlink_log_pub);
+		_mavlink_log_pub = nullptr;
+	}
 }
 
 int Logger::create_log_dir(tm *tt)
@@ -802,6 +819,9 @@ void Logger::start_log()
 		PX4_ERR("logger: failed to get log file name");
 		return;
 	}
+
+	/* print logging path, important to find log file later */
+	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
 
 	_writer.start_log(file_name);
 	write_version();
@@ -999,6 +1019,26 @@ void Logger::write_changed_parameters()
 
 	_writer.unlock();
 	_writer.notify();
+}
+
+int Logger::check_free_space()
+{
+	/* use statfs to determine the number of blocks left */
+	struct statfs statfs_buf;
+
+	if (statfs(LOG_ROOT, &statfs_buf) != 0) {
+		return PX4_ERROR;
+	}
+
+	/* use a threshold of 50 MiB */
+	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
+		mavlink_and_console_log_critical(&_mavlink_log_pub,
+						 "[logger] Not logging; SD almost full: %u MiB",
+						 (unsigned int)(statfs_buf.f_bavail / 1024U * statfs_buf.f_bsize / 1024U));
+		return 1;
+	}
+
+	return PX4_OK;
 }
 
 }
