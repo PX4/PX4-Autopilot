@@ -74,7 +74,8 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start, bool log_name_timestamp);
+	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
+	       bool log_until_shutdown, bool log_name_timestamp);
 
 	~Logger();
 
@@ -165,6 +166,7 @@ private:
 	size_t						_high_water = 0; ///< maximum used write buffer
 
 	const bool 					_log_on_start;
+	const bool 					_log_until_shutdown;
 	const bool					_log_name_timestamp;
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;

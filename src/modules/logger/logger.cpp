@@ -150,7 +150,8 @@ void Logger::usage(const char *reason)
 	PX4_INFO("usage: logger {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
-		 "\t-e\tEnable logging right after start (otherwise only when armed)\n"
+		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
+		 "\t-f\tLog until shutdown (implies -e)\n"
 		 "\t-t\tUse date/time for naming log directories and files");
 }
 
@@ -201,6 +202,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	unsigned log_interval = 3500;
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
+	bool log_until_shutdown = false;
 	bool error_flag = false;
 	bool log_name_timestamp = false;
 
@@ -208,7 +210,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:et", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:etf", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, NULL, 10);
@@ -240,6 +242,11 @@ void Logger::run_trampoline(int argc, char *argv[])
 			log_name_timestamp = true;
 			break;
 
+		case 'f':
+			log_on_start = true;
+			log_until_shutdown = true;
+			break;
+
 		case '?':
 			error_flag = true;
 			break;
@@ -256,7 +263,8 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start, log_name_timestamp);
+	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start,
+				log_until_shutdown, log_name_timestamp);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -321,8 +329,9 @@ struct message_parameter_header_s {
 static constexpr size_t MAX_DATA_SIZE = 740;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
-	       bool log_name_timestamp) :
+	       bool log_until_shutdown, bool log_name_timestamp) :
 	_log_on_start(log_on_start),
+	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
 	_writer(buffer_size),
 	_log_interval(log_interval)
@@ -524,7 +533,7 @@ void Logger::run()
 			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
-			if (_enabled != armed && !_log_on_start) {
+			if (_enabled != armed && !_log_until_shutdown) {
 				if (armed) {
 					start_log();
 
@@ -811,6 +820,10 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 void Logger::start_log()
 {
+	if (_enabled) {
+		return;
+	}
+
 	PX4_INFO("start log");
 
 	char file_name[64] = "";
@@ -834,6 +847,10 @@ void Logger::start_log()
 
 void Logger::stop_log()
 {
+	if (!_enabled) {
+		return;
+	}
+
 	_enabled = false;
 	_writer.stop_log();
 }
