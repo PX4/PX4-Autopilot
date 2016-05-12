@@ -197,7 +197,7 @@ struct parameters {
 	int mag_fusion_type;		// integer used to specify the type of magnetometer fusion used
 
 	// airspeed fusion
-	float tas_innov_gate;		// True Airspeed Innovation consistency gate size in standard deciation [WHAT SHALL THIS VALUE BE?]
+	float tas_innov_gate;		// True Airspeed Innovation consistency gate size in standard deciation
   	float eas_noise;			// EAS measurement noise standard deviation used for airspeed fusion [m/s]
 
 	// range finder fusion
@@ -277,7 +277,7 @@ struct parameters {
 		mag_fusion_type = 0;
 
 		// airspeed fusion
-		tas_innov_gate = 3.0f; // [CHECK THIS VALUE]		
+		tas_innov_gate = 5.0f;		
   		eas_noise = 1.4f;			
 
 		// range finder fusion
