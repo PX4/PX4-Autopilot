@@ -1590,7 +1590,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (buf.replay.asp_timestamp > 0) {
 					log_msg.msg_type = LOG_RPL6_MSG;
-					log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
+					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
 					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
 					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
 					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;

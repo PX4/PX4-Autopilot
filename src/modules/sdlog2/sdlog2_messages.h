@@ -579,7 +579,7 @@ struct log_RPL4_s {
 /* --- EKF2 REPLAY Part 4 --- */
 #define LOG_RPL6_MSG 59
 struct log_RPL6_s {
-	uint64_t timestamp;
+	uint64_t time_airs_usec;
 	float indicated_airspeed_m_s;
 	float true_airspeed_m_s;
 	float true_airspeed_unfiltered_m_s;
