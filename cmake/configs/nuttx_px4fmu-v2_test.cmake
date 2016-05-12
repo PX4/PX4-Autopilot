@@ -47,7 +47,8 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/bst
 	drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
+	#drivers/lis3mdl
+	#drivers/bmi160
 
 	#
 	# System commands
@@ -82,6 +83,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
