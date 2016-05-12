@@ -262,6 +262,14 @@ void Standard::update_transition_state()
 			}
 		}
 
+		// quadchute
+		if(_params_standard.fw_minimum_altitude > FLT_EPSILON){
+			if(_local_pos->dist_bottom < _params_standard.fw_minimum_altitude){
+				_attc->abort_front_transition();
+			}
+		}
+
+
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > 0.0f) {
@@ -366,8 +374,11 @@ void Standard::update_fw_state()
 		_flag_enable_mc_motors = true;
 	}
 
-	if(_local_pos->dist_bottom < _params_standard.fw_minimum_altitude){
-		_attc->abort_front_transition();
+	// quadchute
+	if(_params_standard.fw_minimum_altitude > FLT_EPSILON){
+		if(_local_pos->dist_bottom < _params_standard.fw_minimum_altitude){
+			_attc->abort_front_transition();
+		}
 	}
 }
 
