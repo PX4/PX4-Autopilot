@@ -72,7 +72,7 @@ set(SRCS
 )
 add_definitions(-std=c++11 -Wall -Werror)
 
-# Eigen throws deprecated warnings
-add_definitions(-Wno-deprecated-declarations)
+# Eigen throws various warnings
+add_definitions(-Wno-deprecated-declarations -Wno-enum-compare -Wno-unused-local-typedefs)
 
 add_library(ecl SHARED ${SRCS})
