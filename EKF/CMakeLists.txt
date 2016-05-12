@@ -71,4 +71,8 @@ set(SRCS
 	mathlib.cpp
 )
 add_definitions(-std=c++11 -Wall -Werror)
+
+# Eigen throws deprecated warnings
+add_definitions(-Wno-deprecated-declarations)
+
 add_library(ecl SHARED ${SRCS})
