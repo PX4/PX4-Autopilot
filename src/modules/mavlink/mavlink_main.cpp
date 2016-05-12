@@ -1155,7 +1155,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
-		Mavlink::forward_message(msg, this);
+		if (msg->msgid != MAVLINK_MSG_ID_HEARTBEAT) {
+			Mavlink::forward_message(msg, this);
+		}
 	}
 }
 
