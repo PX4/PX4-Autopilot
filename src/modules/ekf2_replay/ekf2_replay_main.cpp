@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/airspeed.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -133,6 +134,7 @@ private:
 	orb_advert_t _landed_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
+	orb_advert_t _airspeed_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -148,12 +150,14 @@ private:
 	struct vehicle_land_detected_s _land_detected;
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
+	struct airspeed_s _airspeed;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
 	bool _read_part2;				// indicates if part 2 of replay message has been read
 	bool _read_part3;
 	bool _read_part4;
+	bool _read_part6;
 
 	int _write_fd = -1;
 	px4_pollfd_struct_t _fds[1];
@@ -201,6 +205,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_landed_pub(nullptr),
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
+	_airspeed_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -217,6 +222,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_read_part2(false),
 	_read_part3(false),
 	_read_part4(false),
+	_read_part6(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -270,6 +276,14 @@ void Ekf2Replay::publishEstimatorInput()
 	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
+
+	if (_airspeed_pub == nullptr && _read_part6) {
+		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+	} else if (_airspeed_pub != nullptr) {
+		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
+	}
+
+	_read_part6 = false;
 }
 
 void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t type)
@@ -332,6 +346,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL2_s replay_part2 = {};
 	struct log_RPL3_s replay_part3 = {};
 	struct log_RPL4_s replay_part4 = {};
+	struct log_RPL6_s replay_part6 = {};
 	struct log_LAND_s vehicle_landed = {};
 
 	if (type == LOG_RPL1_MSG) {
@@ -394,7 +409,22 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
 
-	} else if (type == LOG_LAND_MSG) {
+	} 
+
+	else if (type == LOG_RPL6_MSG){
+		uint8_t *dest_ptr = (uint8_t *)&replay_part6.time_airs_usec;
+		parseMessage(data, dest_ptr, type);
+		_airspeed.timestamp = replay_part6.time_airs_usec;
+		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
+		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
+		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
+		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
+		_airspeed.confidence = replay_part6.confidence;
+		_read_part6 = true;
+
+	}
+
+	else if (type == LOG_LAND_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
 		parseMessage(data, dest_ptr, type);
 		_land_detected.landed =  vehicle_landed.landed;
@@ -582,6 +612,9 @@ void Ekf2Replay::logIfUpdated()
 
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
+		log_message.body.innov2.s[8] = innov.airspeed_innov;
+		log_message.body.innov2.s[9] = innov.airspeed_innov_var;
+
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 
 		// optical flow innovations and innovation variances
