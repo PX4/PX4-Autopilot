@@ -76,6 +76,7 @@ private:
 		float front_trans_time_min;
 		float down_pitch_max;
 		float forward_thurst_scale;
+		float fw_minimum_altitude;
 	} _params_standard;
 
 	struct {
@@ -88,6 +89,7 @@ private:
 		param_t front_trans_time_min;
 		param_t down_pitch_max;
 		param_t forward_thurst_scale;
+		param_t fw_minimum_altitude;
 	} _params_handles_standard;
 
 	enum vtol_mode {
