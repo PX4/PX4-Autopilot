@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -129,6 +129,7 @@ Navigator::Navigator() :
 	_nav_caps{},
 	_pos_sp_triplet{},
 	_reposition_triplet{},
+	_takeoff_triplet{},
 	_mission_result{},
 	_att_sp{},
 	_mission_item_valid(false),
@@ -319,11 +320,13 @@ Navigator::task_main()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[2] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vehicle_command_sub;
+	fds[1].events = POLLIN;
 
 	bool global_pos_available_once = false;
 
@@ -413,7 +416,7 @@ Navigator::task_main()
 				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
 
 				// store current position as previous position and goal as next
-				rep->previous.yaw = NAN;
+				rep->previous.yaw = get_global_position()->yaw;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
@@ -446,9 +449,28 @@ Navigator::task_main()
 				rep->previous.valid = true;
 				rep->current.valid = true;
 				rep->next.valid = false;
-			}
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
+				struct position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
+				// store current position as previous position and goal as next
+				rep->previous.yaw = get_global_position()->yaw;
+				rep->previous.lat = get_global_position()->lat;
+				rep->previous.lon = get_global_position()->lon;
+				rep->previous.alt = get_global_position()->alt;
+
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction = 1;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+				rep->current.yaw = cmd.param4;
+				rep->current.lat = cmd.param5 / (double)1e7;
+				rep->current.lon = cmd.param6 / (double)1e7;
+				rep->current.alt = cmd.param7;
+
+				rep->previous.valid = true;
+				rep->current.valid = true;
+				rep->next.valid = false;
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
 				warnx("navigator: got pause/continue command");
 			}
 		}

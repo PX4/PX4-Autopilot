@@ -10,6 +10,8 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolc
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
+set(config_generate_parameters_scope ALL)
+
 set(config_module_list
 	drivers/device
 	drivers/boards/sitl
@@ -46,6 +48,7 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
+	modules/load_mon
 
 	#
 	# Libraries
@@ -59,6 +62,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/controllib
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port

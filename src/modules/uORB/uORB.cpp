@@ -51,6 +51,11 @@ orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *da
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority);
 }
 
+int orb_unadvertise(orb_advert_t handle)
+{
+	return uORB::Manager::get_instance()->orb_unadvertise(handle);
+}
+
 int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
 		     int priority)
 {

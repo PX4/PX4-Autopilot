@@ -140,10 +140,10 @@ dma_alloc_init(void)
 					6); /* 64B alignment */
 
 	if (dma_allocator == NULL) {
-		message("[boot] DMA allocator setup FAILED");
+		message("DMA alloc FAILED");
 
 	} else {
-		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
+		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
 	}
 }
 
@@ -218,6 +218,7 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_PERIPH_3V3_EN);

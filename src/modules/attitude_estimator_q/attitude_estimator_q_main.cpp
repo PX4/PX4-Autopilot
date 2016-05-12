@@ -151,7 +151,7 @@ private:
 	bool		_mag_decl_auto = false;
 	bool		_acc_comp = false;
 	float		_bias_max = 0.0f;
-	float		_vibration_warning_threshold = 1.0f;
+	float		_vibration_warning_threshold = 2.0f;
 	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
 
@@ -460,10 +460,10 @@ void AttitudeEstimatorQ::task_main()
 
 				} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 					_vibration_warning = true;
-					mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-									 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
-									 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
-									 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
+					// mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+					// 				 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
+					// 				 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
+					// 				 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
 				}
 
 			} else {

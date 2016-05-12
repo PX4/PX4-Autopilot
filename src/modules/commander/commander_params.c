@@ -127,10 +127,11 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * Engine failure triggers only above this throttle value
  *
  * @group Commander
+ * @unit norm
  * @min 0.0
  * @max 1.0
- * @decimal 1
- * @increment 0.05
+ * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -142,7 +143,7 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * @group Commander
  * @min 0.0
  * @max 50.0
- * @unit A
+ * @unit A/%
  * @decimal 2
  * @increment 1
  */

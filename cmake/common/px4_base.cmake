@@ -541,8 +541,9 @@ function(px4_add_common_flags)
 		-Wall
 		-Werror
 		-Wextra
+		-Wpacked
 		-Wno-sign-compare
-		#-Wshadow # very verbose due to eigen
+		-Wshadow
 		-Wfloat-equal
 		-Wpointer-arith
 		-Wmissing-declarations
@@ -566,6 +567,7 @@ function(px4_add_common_flags)
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
 			list(APPEND warnings
+				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
 			)
@@ -648,6 +650,15 @@ function(px4_add_common_flags)
 		-D__CUSTOM_FILE_IO__
 		)
 
+	if (NOT (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*"))
+		# -fcheck-new is a no-op for Clang in general
+		# and has no effect, but can generate a compile
+		# error for some OS
+		list(APPEND cxx_compile_flags
+			-fcheck-new
+		)
+	endif()
+
 	set(visibility_flags
 		-fvisibility=hidden
 		-include visibility.h
@@ -701,14 +712,11 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		set(added_exe_link_flags
+	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
+		set(added_exe_linker_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections
-			)
-	else()
-		set(added_exe_link_flags
-			-Wl,--warn-common
+			#,--print-gc-sections
 			)
 	endif()
 
@@ -768,6 +776,13 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
+		COMMAND git describe --tags
+		OUTPUT_VARIABLE git_tag
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		)
+	#message(STATUS "GIT_TAG = ${git_tag}")
+	execute_process(
 		COMMAND git rev-parse HEAD
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -822,22 +837,23 @@ endfunction()
 #	Generates a source file with all parameters.
 #
 #	Usage:
-#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file>)
+#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> [SCOPE <cmake file for scoping>])
 #
 #	Input:
-#		XML : the parameters.xml file
-#		DEPS : target dependencies
+#		XML   : the parameters.xml file
+#		SCOPE : the cmake file used to limit scope of the paramaters
+#		DEPS  : target dependencies
 #
 #	Output:
 #		OUT	: the generated source files
 #
 #	Example:
-#		px4_generate_parameters_source(OUT param_files XML parameters.xml)
+#		px4_generate_parameters_source(OUT param_files XML parameters.xml SCOPE ${OS}_${BOARD}_${LABEL}.cmake )
 #
 function(px4_generate_parameters_source)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_source
-		ONE_VALUE OUT XML DEPS
+		ONE_VALUE OUT XML SCOPE DEPS
 		REQUIRED OUT XML
 		ARGN ${ARGN})
 	set(generated_files
@@ -845,9 +861,12 @@ function(px4_generate_parameters_source)
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
+	if ("${config_generate_parameters_scope}" STREQUAL "ALL")
+		set(SCOPE "")
+	endif()
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
-		DEPENDS ${XML} ${DEPS}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
+		DEPENDS ${XML} ${DEPS} ${SCOPE}
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()

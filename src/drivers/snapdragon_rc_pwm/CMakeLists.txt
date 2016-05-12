@@ -35,6 +35,8 @@ px4_add_module(
 	MAIN snapdragon_rc_pwm
 	COMPILE_FLAGS
 		-Os
+		-Wno-attributes
+		-Wno-packed
 	SRCS
 		snapdragon_rc_pwm.cpp
 	DEPENDS

@@ -301,6 +301,7 @@ private:
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
+	bool			_armed;			///< wether the system is armed
 
 	float			_battery_amp_per_volt;	///< current sensor amps/volt
 	float			_battery_amp_bias;	///< current sensor bias
@@ -537,6 +538,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
+	_armed(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
@@ -900,7 +902,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1500,
+				   1400,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -1348,6 +1350,8 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 		}
 
+		_armed = armed.armed;
+
 		if (armed.lockdown && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
@@ -1683,7 +1687,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
 	current_a += _battery_amp_bias;
 
-	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, &battery_status);
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, _armed, &battery_status);
 
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
