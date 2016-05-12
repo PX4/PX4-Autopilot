@@ -68,6 +68,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_batt_status = _attc->get_batt_status();
 	_vehicle_status = _attc->get_vehicle_status();
 	_tecs_status = _attc->get_tecs_status();
+	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
@@ -167,4 +168,9 @@ void VtolType::update_fw_state()
 	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
 		waiting_on_tecs();
 	}
+}
+
+bool VtolType::can_transition_on_ground()
+{
+	return !_armed->armed || _land_detected->landed;
 }

@@ -6,29 +6,12 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-if ("$ENV{EAGLE_DRIVERS_SRC}" STREQUAL "")
-	message(FATAL_ERROR "Environment variable EAGLE_DRIVERS_SRC must be set")
-else()
-	set(EAGLE_DRIVERS_SRC $ENV{EAGLE_DRIVERS_SRC})
-endif()
-
-STRING(REGEX REPLACE "//" "/" EAGLE_DRIVERS_SRC ${EAGLE_DRIVERS_SRC})
-STRING(REGEX REPLACE "/" "__" EAGLE_DRIVERS_MODULE_PREFIX ${EAGLE_DRIVERS_SRC})
-
-#include_directories(${EAGLE_ADDON_ROOT}/flight_controller/hexagon/inc)
-include_directories(
-	${HEXAGON_SDK_ROOT}/inc
-	${HEXAGON_SDK_ROOT}/inc/stddef
-	${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include
-	)
-
-message("hexagon_sdk_root is ${HEXAGON_SDK_ROOT}")
-
-set(QURT_ENABLE_STUBS "0")
-
 set(CONFIG_SHMEM "1")
 
+set(config_generate_parameters_scope ALL)
+
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 
 set(config_module_list
@@ -37,10 +20,11 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-	${EAGLE_DRIVERS_SRC}/mpu_spi
-	${EAGLE_DRIVERS_SRC}/uart_esc
-	${EAGLE_DRIVERS_SRC}/rc_receiver
-	${EAGLE_DRIVERS_SRC}/csr_gps
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_bmp280_wrapper
+	platforms/posix/drivers/df_hmc5883_wrapper
+	platforms/posix/drivers/df_trone_wrapper
+	platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
@@ -54,6 +38,7 @@ set(config_module_list
 	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -69,6 +54,15 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
+	modules/land_detector
+	modules/load_mon
+
+	#
+	# PX4 drivers
+	#
+	drivers/gps
+	drivers/uart_esc
+	drivers/qshell/qurt
 
 	#
 	# Libraries
@@ -83,6 +77,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 
 	#
 	# QuRT port
@@ -95,4 +90,12 @@ set(config_module_list
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
+	)
+
+set(config_df_driver_list
+	mpu9250
+	bmp280
+	hmc5883
+	trone
+	isl29501
 	)

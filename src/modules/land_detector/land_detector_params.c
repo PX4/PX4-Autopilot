@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,20 +75,6 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.50f);
 PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 
 /**
- * Multicopter max throttle
- *
- * Maximum actuator output on throttle allowed in the landed state
- *
- * @unit norm
- * @min 0.1
- * @max 0.5
- * @decimal 2
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
-
-/**
  * Multicopter specific force threshold
  *
  * Multicopter threshold on the specific force measured by accelerometers in m/s^2 for free-fall detection
@@ -105,7 +91,7 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
 /**
  * Multicopter free-fall trigger time
  *
- * Milliseconds that freefall conditions have to hold before triggering a freefall.
+ * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
  * Minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
  *
  * @unit s

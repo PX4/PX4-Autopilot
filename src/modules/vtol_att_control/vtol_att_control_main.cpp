@@ -81,6 +81,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vehicle_cmd_sub(-1),
 	_vehicle_status_sub(-1),
 	_tecs_status_sub(-1),
+	_land_detected_sub(-1),
 
 	//init publication handlers
 	_actuators_0_pub(nullptr),
@@ -115,6 +116,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_tecs_status, 0, sizeof(_tecs_status));
+	memset(&_land_detected, 0, sizeof(_land_detected));
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
@@ -445,6 +447,21 @@ VtolAttitudeControl::tecs_status_poll()
 }
 
 /**
+* Check for land detector updates.
+*/
+void
+VtolAttitudeControl::land_detected_poll()
+{
+	bool updated;
+
+	orb_check(_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub , &_land_detected);
+	}
+}
+
+/**
 * Check received command
 */
 void
@@ -614,6 +631,7 @@ void VtolAttitudeControl::task_main()
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
 	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
@@ -692,6 +710,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_cmd_poll();
 		vehicle_status_poll();
 		tecs_status_poll();
+		land_detected_poll();
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();

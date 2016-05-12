@@ -297,3 +297,9 @@ ORB_DEFINE(transponder_report, struct transponder_report_s);
 
 #include "topics/gps_inject_data.h"
 ORB_DEFINE(gps_inject_data, struct gps_inject_data_s);
+
+#include "topics/adc_report.h"
+ORB_DEFINE(adc_report, struct adc_report_s);
+
+#include "topics/cpuload.h"
+ORB_DEFINE(cpuload, struct cpuload_s);

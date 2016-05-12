@@ -60,7 +60,22 @@ public:
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool			put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt);
+	bool put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt);
+
+	/**
+	 * Put an item into the integral but provide an interval instead of a timestamp.
+	 *
+	 * @param interval_us	Interval in us since last integration.
+	 * @param val		Item to put.
+	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset). Note that this
+	 *			values might not be accurate vs. hrt_absolute_time because it is just the sum of the
+	 *			supplied intervals.
+	 * @return		true if putting the item triggered an integral reset and the integral should be
+	 *			published.
+	 */
+	bool put_with_interval(unsigned interval_us, math::Vector<3> &val, math::Vector<3> &integral,
+			       uint64_t &integral_dt);
 
 	/**
 	 * Get the current integral and reset the integrator if needed.
@@ -70,6 +85,17 @@ public:
 	 * @return		the integral since the last read-reset
 	 */
 	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
+
+	/**
+	 * Get the current integral and reset the integrator if needed. Additionally give the
+	 * integral over the samples differentiated by the integration time (mean filtered values).
+	 *
+	 * @param reset	    	Reset the integral to zero.
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @param filtered_val	The integral differentiated by the integration time.
+	 * @return		the integral since the last read-reset
+	 */
+	math::Vector<3>		get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val);
 
 private:
 	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published

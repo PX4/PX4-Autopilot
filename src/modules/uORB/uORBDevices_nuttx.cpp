@@ -40,6 +40,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
+#include <px4_sem.hpp>
 #include <stdlib.h>
 
 uORB::ORBMap uORB::DeviceMaster::_node_map;
@@ -245,16 +246,17 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	/* Perform an atomic copy. */
 	irqstate_t flags = irqsave();
 	memcpy(_data, buffer, _meta->o_size);
-	irqrestore(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 	_generation++;
 
+	_published = true;
+
+	irqrestore(flags);
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
-
-	_published = true;
 
 	return _meta->o_size;
 }
@@ -265,9 +267,12 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
-	case ORBIOCLASTUPDATE:
-		*(hrt_abstime *)arg = _last_update;
-		return OK;
+	case ORBIOCLASTUPDATE: {
+			irqstate_t state = irqsave();
+			*(hrt_abstime *)arg = _last_update;
+			irqrestore(state);
+			return OK;
+		}
 
 	case ORBIOCUPDATED:
 		*(bool *)arg = appears_updated(sd);
@@ -334,6 +339,30 @@ uORB::DeviceNode::publish
 	}
 
 	return OK;
+}
+
+int uORB::DeviceNode::unadvertise(orb_advert_t handle)
+{
+	if (handle == nullptr) {
+		return -EINVAL;
+	}
+
+	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
+
+	/*
+	 * We are cheating a bit here. First, with the current implementation, we can only
+	 * have multiple publishers for instance 0. In this case the caller will have
+	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
+	 * necessary.
+	 * In case of multiple instances, we have at most 1 publisher per instance and
+	 * we can signal an instance as 'free' by setting _published to false.
+	 * We never really free the DeviceNode, for this we would need reference counting
+	 * of subscribers and publishers. But we also do not have a leak since future
+	 * publishers reuse the same DeviceNode object.
+	 */
+	devnode->_published = false;
+
+	return PX4_OK;
 }
 
 pollevent_t
@@ -578,9 +607,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* ensure that only one advertiser runs through this critical section */
-			lock();
-
 			ret = ERROR;
 
 			/* try for topic groups */
@@ -594,10 +620,11 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				group_tries = *adv->instance;
 
 				if (group_tries >= max_group_tries) {
-					unlock();
 					return -ENOMEM;
 				}
 			}
+
+			SmartLock smart_lock(_lock);
 
 			do {
 				/* if path is modifyable change try index */
@@ -611,7 +638,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				objname = strdup(meta->o_name);
 
 				if (objname == nullptr) {
-					unlock();
 					return -ENOMEM;
 				}
 
@@ -619,7 +645,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					unlock();
 					free((void *)objname);
 					return -ENOMEM;
 				}
@@ -629,7 +654,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					unlock();
 					free((void *)objname);
 					free((void *)devpath);
 					return -ENOMEM;
@@ -672,9 +696,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
 			}
-
-			/* the file handle for the driver has been created, unlock */
-			unlock();
 
 			return ret;
 		}

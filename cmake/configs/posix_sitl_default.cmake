@@ -24,6 +24,7 @@ set(config_module_list
 	systemcmds/ver
 	systemcmds/esc_calib
 	systemcmds/reboot
+	systemcmds/sd_bench
 	systemcmds/topic_listener
 	systemcmds/perf
 	modules/uORB
@@ -50,6 +51,7 @@ set(config_module_list
 	modules/dataman
 	modules/sdlog2
 	modules/commander
+	modules/load_mon
 	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
@@ -62,6 +64,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/DriverFramework/framework
 	examples/px4_simple_app
 	)
 

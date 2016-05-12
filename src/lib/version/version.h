@@ -75,6 +75,11 @@
 #define	HW_ARCH "LINUXTEST"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_EXCELSIOR
+#define HW_ARCH "LINUXTEST"
+#endif
+
+
 #ifdef CONFIG_ARCH_BOARD_RPI2
 #define	HW_ARCH "LINUXTEST"
 #endif

@@ -51,5 +51,6 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		generate_topic_listener
+		msg_gen
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

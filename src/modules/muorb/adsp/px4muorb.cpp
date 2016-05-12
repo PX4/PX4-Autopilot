@@ -51,12 +51,17 @@ int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);
 
-	// register the fastrpc muorb with uORBManager.
+	// The uORB Manager needs to be initialized first up, otherwise the instance is nullptr.
+	uORB::Manager::initialize();
+	// Register the fastrpc muorb with uORBManager.
 	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
+
+	// Now continue with the usual dspal startup.
 	const char *argv[] = {"dspal", "start"};
 	int argc = 2;
 	int rc;
 	rc = dspal_main(argc, (char **)argv);
+
 	return rc;
 }
 

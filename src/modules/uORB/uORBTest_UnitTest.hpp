@@ -93,6 +93,9 @@ private:
 	bool pubsubtest_print;
 	int pubsubtest_res = OK;
 
+	int test_unadvertise();
+	orb_advert_t _pfd[4]; ///< used for test_multi and test_multi_reversed
+
 	int test_single();
 	int test_multi();
 	int test_multi2();
@@ -145,6 +148,8 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	if (pubsub_task < 0) {
 		return test_fail("failed launching task");
 	}
+
+	orb_unadvertise(pfd0);
 
 	return pubsubtest_res;
 }

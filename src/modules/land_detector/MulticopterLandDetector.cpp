@@ -57,18 +57,22 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_parameterSub(-1),
 	_attitudeSub(-1),
 	_manualSub(-1),
+	_ctrl_state_sub(-1),
+	_vehicle_control_mode_sub(-1),
 	_vehicleLocalPosition{},
 	_actuators{},
 	_arming{},
 	_vehicleAttitude{},
 	_ctrl_state{},
+	_ctrl_mode{},
 	_landTimer(0),
 	_freefallTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
-	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
+	_paramHandle.maxThrottle = param_find("MPC_THR_MIN");
+	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.acc_threshold_m_s2 = param_find("LNDMC_FFALL_THR");
 	_paramHandle.ff_trigger_time = param_find("LNDMC_FFALL_TTRI");
 }
@@ -78,11 +82,12 @@ void MulticopterLandDetector::initialize()
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	// download parameters
 	updateParameterCache(true);
@@ -92,10 +97,11 @@ void MulticopterLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
 	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
-	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
+	orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
 	orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+	orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_ctrl_mode);
 }
 
 LandDetectionResult MulticopterLandDetector::update()
@@ -144,22 +150,42 @@ bool MulticopterLandDetector::get_freefall_state()
 
 bool MulticopterLandDetector::get_landed_state()
 {
+	// Time base for this function
+	const uint64_t now = hrt_absolute_time();
+
+	float sys_min_throttle = (_params.maxThrottle + 0.01f);
+
+	// Determine the system min throttle based on flight mode
+	if (!_ctrl_mode.flag_control_altitude_enabled) {
+		sys_min_throttle = (_params.minManThrottle + 0.01f);
+	}
+
+	// Check if thrust output is less than the minimum auto throttle param.
+	bool minimalThrust = (_actuators.control[3] <= sys_min_throttle);
+
+	if (minimalThrust && _min_trust_start == 0) {
+		_min_trust_start = now;
+
+	} else if (!minimalThrust) {
+		_min_trust_start = 0;
+	}
+
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		_arming_time = 0;
 		return true;
 
 	} else if (_arming_time == 0) {
-		_arming_time = hrt_absolute_time();
+		_arming_time = now;
 	}
 
-	// Check if user commands throttle and if so, report not landed
-	if (_manual.z > 0.3f) {
+	// If in manual flight mode never report landed if the user has more than idle throttle
+	// Check if user commands throttle and if so, report not landed based on
+	// the user intent to take off (even if the system might physically still have
+	// ground contact at this point).
+	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled) {
 		return false;
 	}
-
-	// Check if thrust output is less than max throttle param.
-	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
 
 	// Return status based on armed state and throttle if no position lock is available.
 	if (_vehicleLocalPosition.timestamp == 0 ||
@@ -167,11 +193,18 @@ bool MulticopterLandDetector::get_landed_state()
 	    !_vehicleLocalPosition.xy_valid ||
 	    !_vehicleLocalPosition.z_valid) {
 
-		// Minimal thrust means landed.
-		return minimalThrust;
-	}
+		// The system has minimum trust set (manual or in failsafe)
+		// if this persists for 8 seconds AND the drone is not
+		// falling consider it to be landed. This should even sustain
+		// quite acrobatic flight.
+		if ((_min_trust_start > 0) &&
+		    (hrt_elapsed_time(&_min_trust_start) > 8 * 1000 * 1000)) {
+			return !get_freefall_state();
 
-	const uint64_t now = hrt_absolute_time();
+		} else {
+			return false;
+		}
+	}
 
 	float armThresholdFactor = 1.0f;
 
@@ -224,6 +257,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
+		param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
 		param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
 	}

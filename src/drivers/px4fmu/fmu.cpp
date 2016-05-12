@@ -87,6 +87,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/adc_report.h>
 
 
 #ifdef HRT_PPM_CHANNEL
@@ -180,7 +181,10 @@ private:
 	struct work_s	_work;
 	int		_armed_sub;
 	int		_param_sub;
+	int		_adc_sub;
 	struct rc_input_values	_rc_in;
+	float		_analog_rc_rssi_volt;
+	bool		_analog_rc_rssi_stable;
 	orb_advert_t	_to_input_rc;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
@@ -361,7 +365,10 @@ PX4FMU::PX4FMU() :
 	_work{},
 	_armed_sub(-1),
 	_param_sub(-1),
+	_adc_sub(-1),
 	_rc_in{},
+	_analog_rc_rssi_volt(-1.0f),
+	_analog_rc_rssi_stable(false),
 	_to_input_rc(nullptr),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
@@ -835,8 +842,14 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+	unsigned valid_chans = 0;
+
+	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
 		_rc_in.values[i] = raw_rc_values[i];
+
+		if (raw_rc_values[i] != UINT16_MAX) {
+			valid_chans++;
+		}
 	}
 
 	_rc_in.timestamp_publication = now;
@@ -845,15 +858,35 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
-		_rc_in.rssi =
-			(!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+
+		/* set RSSI if analog RSSI input is present */
+		if (_analog_rc_rssi_stable) {
+			float rssi_analog = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
+
+			if (rssi_analog > 100.0f) {
+				rssi_analog = 100.0f;
+			}
+
+			if (rssi_analog < 0.0f) {
+				rssi_analog = 0.0f;
+			}
+
+			_rc_in.rssi = rssi_analog;
+
+		} else {
+			_rc_in.rssi = 255;
+		}
 
 	} else {
 		_rc_in.rssi = rssi;
 	}
 
+	if (valid_chans == 0) {
+		_rc_in.rssi = 0;
+	}
+
 	_rc_in.rc_failsafe = failsafe;
-	_rc_in.rc_lost = false;
+	_rc_in.rc_lost = (valid_chans == 0);
 	_rc_in.rc_lost_frame_count = frame_drops;
 	_rc_in.rc_total_frame_count = 0;
 }
@@ -909,6 +942,7 @@ PX4FMU::cycle()
 
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+		_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
@@ -1162,6 +1196,35 @@ PX4FMU::cycle()
 		}
 	}
 
+	/* update ADC sampling */
+#ifdef ADC_RC_RSSI_CHANNEL
+	orb_check(_adc_sub, &updated);
+
+	if (updated) {
+
+		struct adc_report_s adc;
+		orb_copy(ORB_ID(adc_report), _adc_sub, &adc);
+		const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
+
+		for (unsigned i = 0; i < adc_chans; i++) {
+			if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+
+				if (_analog_rc_rssi_volt < 0.0f) {
+					_analog_rc_rssi_volt = adc.channel_value[i];
+				}
+
+				_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+
+				/* only allow this to be used if we see a high RSSI once */
+				if (_analog_rc_rssi_volt > 2.5f) {
+					_analog_rc_rssi_stable = true;
+				}
+			}
+		}
+	}
+
+#endif
+
 	bool rc_updated = false;
 
 #ifdef RC_SERIAL_PORT
@@ -1178,7 +1241,7 @@ PX4FMU::cycle()
 
 	if (_report_lock && _rc_scan_locked) {
 		_report_lock = false;
-		warnx("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+		//warnx("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 	}
 
 	// read all available data from the serial RC input UART
@@ -1347,6 +1410,8 @@ PX4FMU::cycle()
 				fill_rc_in(ppm_decoded_channels, ppm_buffer, _cycle_timestamp,
 					   false, false, 0);
 				_rc_scan_locked = true;
+				_rc_in.rc_ppm_frame_length = ppm_frame_length;
+				_rc_in.timestamp_last_signal = ppm_last_valid_decode;
 			}
 
 		} else {

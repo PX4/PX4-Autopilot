@@ -158,7 +158,45 @@ int uORBTest::UnitTest::test()
 		return ret;
 	}
 
+	ret = test_unadvertise();
+
+	if (ret != OK) {
+		return ret;
+	}
+
 	return test_multi2();
+}
+
+int uORBTest::UnitTest::test_unadvertise()
+{
+	test_note("Testing unadvertise");
+
+	//we still have the advertisements from the previous test_multi calls.
+	for (int i = 0; i < 4; ++i) {
+		int ret = orb_unadvertise(_pfd[i]);
+
+		if (ret != PX4_OK) {
+			return test_fail("orb_unadvertise failed (%i)", ret);
+		}
+	}
+
+	//try to advertise and see whether we get the right instance
+	int instance_test[4];
+	struct orb_test t;
+
+	for (int i = 0; i < 4; ++i) {
+		_pfd[i] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance_test[i], ORB_PRIO_MAX);
+
+		if (instance_test[i] != i) {
+			return test_fail("got wrong instance (should be %i, is %i)", i, instance_test[i]);
+		}
+	}
+
+	for (int i = 0; i < 4; ++i) {
+		orb_unadvertise(_pfd[i]);
+	}
+
+	return test_note("PASS unadvertise");
 }
 
 
@@ -234,6 +272,12 @@ int uORBTest::UnitTest::test_single()
 
 	orb_unsubscribe(sfd);
 
+	int ret = orb_unadvertise(ptopic);
+
+	if (ret != PX4_OK) {
+		return test_fail("orb_unadvertise failed: %i", ret);
+	}
+
 	return test_note("PASS single-topic test");
 }
 
@@ -245,12 +289,12 @@ int uORBTest::UnitTest::test_multi()
 	struct orb_test t, u;
 	t.val = 0;
 	int instance0;
-	orb_advert_t pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
+	_pfd[0] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
 
 	test_note("advertised");
 
 	int instance1;
-	orb_advert_t pfd1 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
+	_pfd[1] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
 
 	if (instance0 != 0) {
 		return test_fail("mult. id0: %d", instance0);
@@ -262,7 +306,7 @@ int uORBTest::UnitTest::test_multi()
 
 	t.val = 103;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[0], &t)) {
 		return test_fail("mult. pub0 fail");
 	}
 
@@ -270,7 +314,7 @@ int uORBTest::UnitTest::test_multi()
 
 	t.val = 203;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd1, &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[1], &t)) {
 		return test_fail("mult. pub1 fail");
 	}
 
@@ -376,12 +420,17 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 	usleep(100 * 1000);
 	_thread_should_exit = true;
 
+	for (int i = 0; i < num_instances; ++i) {
+		orb_unadvertise(orb_pub[i]);
+	}
+
 	return 0;
 }
 
 int uORBTest::UnitTest::test_multi2()
 {
 
+	test_note("Testing multi-topic 2 test (queue simulation)");
 	//test: first subscribe, then advertise
 
 	_thread_should_exit = false;
@@ -456,11 +505,11 @@ int uORBTest::UnitTest::test_multi_reversed()
 
 	int instance2;
 
-	orb_advert_t pfd2 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance2, ORB_PRIO_MAX);
+	_pfd[2] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance2, ORB_PRIO_MAX);
 
 	int instance3;
 
-	orb_advert_t pfd3 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance3, ORB_PRIO_MIN);
+	_pfd[3] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance3, ORB_PRIO_MIN);
 
 	test_note("advertised");
 
@@ -474,14 +523,14 @@ int uORBTest::UnitTest::test_multi_reversed()
 
 	t.val = 204;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd2, &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[2], &t)) {
 		return test_fail("mult. pub0 fail");
 	}
 
 
 	t.val = 304;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd3, &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[3], &t)) {
 		return test_fail("mult. pub1 fail");
 	}
 

@@ -547,6 +547,7 @@ info()
 {
 	if (g_dev == nullptr) {
 		PX4_WARN("driver not running");
+		return -1;
 	}
 
 	printf("state @ %p\n", g_dev);

@@ -51,6 +51,8 @@
  * @unit m
  * @min 0
  * @max 80
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
@@ -63,6 +65,8 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
  * @unit m
  * @min 0
  * @max 80
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
@@ -88,6 +92,8 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * @unit m
  * @min 0
  * @max 1000
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
@@ -133,17 +139,19 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * @unit s
  * @min -1
  * @max 20
+ * @decimal 1
  * @increment 1
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 
 /**
- * Max yaw error in degree needed for waypoint heading acceptance.
+ * Max yaw error in degrees needed for waypoint heading acceptance.
  *
  * @unit deg
  * @min 0
  * @max 90
+ * @decimal 1
  * @increment 1
  * @group Mission
  */

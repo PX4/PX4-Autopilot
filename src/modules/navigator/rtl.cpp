@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -102,7 +102,7 @@ RTL::on_activation()
 		/* for safety reasons don't go into RTL if landed */
 		if (_navigator->get_land_detected()->landed) {
 			_rtl_state = RTL_STATE_LANDED;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no RTL when landed");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 
 		/* if lower than return altitude, climb up first */
 		} else if (home_dist > _param_rtl_min_dist.get() && _navigator->get_global_position()->alt < _navigator->get_home_position()->alt
@@ -163,7 +163,7 @@ RTL::set_rtl_item()
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
 			(int)(climb_alt),
 			(int)(climb_alt - _navigator->get_home_position()->alt));
 		break;
@@ -205,7 +205,7 @@ RTL::set_rtl_item()
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
 			(int)(_mission_item.altitude),
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 
@@ -255,7 +255,7 @@ RTL::set_rtl_item()
 		/* disable previous setpoint to prevent drift */
 		pos_sp_triplet->previous.valid = false;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above home)",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above home)",
 			(int)(_mission_item.altitude),
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 		break;
@@ -280,10 +280,10 @@ RTL::set_rtl_item()
 		_navigator->set_can_loiter_at_sp(true);
 
 		if (autoland && (_mission_item.time_inside > FLT_EPSILON)) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs", (double)_mission_item.time_inside);
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs", (double)_mission_item.time_inside);
 
 		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: completed, loiter");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loiter");
 		}
 		break;
 	}
@@ -292,14 +292,14 @@ RTL::set_rtl_item()
 		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		set_land_item(&_mission_item, false);
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
 		break;
 	}
 
 	case RTL_STATE_LANDED: {
 		set_idle_item(&_mission_item);
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: completed, landed");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, landed");
 		break;
 	}
 

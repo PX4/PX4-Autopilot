@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,15 +46,18 @@
 /**
  * Geofence violation action.
  *
- * 0 = none, 1 = warning (default), 2 = loiter, 3 = return to launch, 4 = fight termination
+ * Note: Setting this value to 4 enables flight termination,
+ * which will kill the vehicle on violation of the fence.
+ * Due to the inherent danger of this, this function is
+ * disabled using a software circuit breaker, which needs
+ * to be reset to 0 to really shut down the system.
  *
  * @min 0
  * @max 4
  * @value 0 None
  * @value 1 Warning
  * @value 2 Loiter
- * @value 3 Return
- * @value 4 Terminate
+ * @value 3 Return to Land
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 1);
@@ -95,6 +98,7 @@ PARAM_DEFINE_INT32(GF_SOURCE, 0);
  *
  * @min -1
  * @max 10
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_COUNT, -1);
@@ -106,6 +110,8 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
  *
  * @unit m
  * @min -1
+ * @max 5000
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
@@ -117,6 +123,7 @@ PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
  *
  * @unit m
  * @min -1
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_VER_DIST, -1);

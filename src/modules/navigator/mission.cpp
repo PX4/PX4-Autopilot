@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -146,6 +146,11 @@ Mission::on_inactive()
 	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_land_detected()->landed) {
 		_need_takeoff = true;
+		/* Reset work item type to default if auto take-off has been paused or aborted,
+		   and we landed in manual mode. */
+		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;		
+		}
 	}
 }
 
@@ -859,11 +864,12 @@ Mission::altitude_sp_foh_update()
 		return;
 	}
 
-	/* Don't do FOH for landing and takeoff waypoints, the ground may be near
+	/* Don't do FOH for non-missions, landing and takeoff waypoints, the ground may be near
 	 * and the FW controller has a custom landing logic */
 	if (_mission_item.nav_cmd == NAV_CMD_LAND
 			|| _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-			|| _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+			|| _mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			|| !_navigator->is_planned_mission()) {
 		return;
 	}
 

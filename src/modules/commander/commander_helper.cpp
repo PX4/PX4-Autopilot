@@ -88,13 +88,17 @@ bool is_multirotor(const struct vehicle_status_s *current_status)
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
 	return is_multirotor(current_status) || (current_status->system_type == MAV_TYPE_HELICOPTER)
-	       || (current_status->system_type == MAV_TYPE_COAXIAL);
+		   || (current_status->system_type == MAV_TYPE_COAXIAL);
 }
 
 bool is_vtol(const struct vehicle_status_s * current_status) {
 	return (current_status->system_type == MAV_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == MAV_TYPE_VTOL_QUADROTOR ||
-		current_status->system_type == MAV_TYPE_VTOL_TILTROTOR);
+		current_status->system_type == MAV_TYPE_VTOL_TILTROTOR ||
+		current_status->system_type == MAV_TYPE_VTOL_RESERVED2 ||
+		current_status->system_type == MAV_TYPE_VTOL_RESERVED3 ||
+		current_status->system_type == MAV_TYPE_VTOL_RESERVED4 ||
+		current_status->system_type == MAV_TYPE_VTOL_RESERVED5);
 }
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message

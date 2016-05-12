@@ -181,7 +181,6 @@ struct log_STAT_s {
 	uint8_t nav_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
-	float load;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -292,6 +291,7 @@ struct log_BATT_s {
 	float voltage;
 	float voltage_filtered;
 	float current;
+	float current_filtered;
 	float discharged;
 	float remaining;
 	uint8_t warning;
@@ -395,7 +395,7 @@ struct log_EST0_s {
 	float s[12];
 	uint8_t n_states;
 	uint8_t nan_flags;
-	uint8_t health_flags;
+	uint16_t fault_flags;
 	uint8_t timeout_flags;
 };
 
@@ -576,6 +576,18 @@ struct log_RPL4_s {
 	float range_to_ground;
 };
 
+/* --- EKF2 REPLAY Part 4 --- */
+#define LOG_RPL6_MSG 59
+struct log_RPL6_s {
+	uint64_t timestamp;
+	float indicated_airspeed_m_s;
+	float true_airspeed_m_s;
+	float true_airspeed_unfiltered_m_s;
+	float air_temperature_celsius;
+	float confidence;
+};
+
+
 
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
@@ -584,9 +596,16 @@ struct log_CAMT_s {
 	uint32_t seq;
 };
 
+/* --- LAND DETECTOR --- */
 #define LOG_LAND_MSG 57
 struct log_LAND_s {
 	uint8_t landed;
+};
+
+/* --- SYSTEM LOAD --- */
+#define LOG_LOAD_MSG 58
+struct log_LOAD_s {
+	float cpu_load;
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -630,7 +649,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBBf",		"MainState,NavState,ArmS,Failsafe,Load"),
+	LOG_FORMAT(STAT, "BBBB",		"MainState,NavState,ArmS,Failsafe"),
 	LOG_FORMAT(VTOL, "fBBB",		"Arsp,RwMode,TransMode,Failsafe"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
@@ -643,13 +662,13 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
-	LOG_FORMAT(BATT, "fffffB",		"V,VFilt,C,Discharged,Remaining,Warning"),
+	LOG_FORMAT(BATT, "ffffffB",		"V,VFilt,C,CFilt,Discharged,Remaining,Warning"),
 	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
-	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
+	LOG_FORMAT(EST0, "ffffffffffffBBHB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fFault,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(EST2, "ffffffffffffHH",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,GCHK,CTRL"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
@@ -673,7 +692,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
+	LOG_FORMAT(RPL6, "Qfffff", "Tasp,inAsp,trAsp,ufAsp,tpAsp,confAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
+	LOG_FORMAT(LOAD, "f", "CPU"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),

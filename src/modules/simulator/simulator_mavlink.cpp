@@ -69,6 +69,8 @@ static int _fd;
 static unsigned char _buf[1024];
 sockaddr_in _srcaddr;
 static socklen_t _addrlen = sizeof(_srcaddr);
+static bool actuators_on = false;
+static hrt_abstime batt_sim_start = 0;
 
 using namespace simulator;
 
@@ -111,6 +113,8 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	if (_vehicle_status.timestamp == 0) {
 		memset(out, 0, sizeof(out));
 	}
+
+	actuators_on = (out[3] > 0.1f);
 
 	actuator_msg.time_usec = hrt_absolute_time();
 	actuator_msg.roll_ailerons = out[0];
@@ -264,9 +268,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			const float discharge_interval_us = 60 * 1000 * 1000;
 
-			static hrt_abstime batt_sim_start = 0;
-
-			if (batt_sim_start == 0 || batt_sim_start > now) {
+			if (!actuators_on || batt_sim_start == 0 || batt_sim_start > now) {
 				batt_sim_start = now;
 			}
 
@@ -279,15 +281,17 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
 
-			if (vbatt < (cellcount * _battery.empty_cell_voltage())) {
-				vbatt = cellcount * _battery.empty_cell_voltage();
+			float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
+
+			if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
+				vbatt = cellcount * batt_voltage_loaded;
 			}
 
 			battery_status_s battery_status = {};
 
 			// TODO: don't hard-code throttle.
 			const float throttle = 0.5f;
-			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, &battery_status);
+			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, actuators_on, &battery_status);
 
 			// publish the battery voltage
 			int batt_multi;

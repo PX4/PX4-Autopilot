@@ -383,8 +383,7 @@ PWMSim::task_main()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	/* advertise the mixed control outputs */
-	actuator_outputs_s outputs;
-	memset(&outputs, 0, sizeof(outputs));
+	actuator_outputs_s outputs = {};
 
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
@@ -483,7 +482,6 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			actuator_outputs_s outputs = {};
 			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();

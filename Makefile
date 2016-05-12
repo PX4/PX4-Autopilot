@@ -146,9 +146,6 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
-px4fmu-v2_lpe:
-	$(call cmake-build,nuttx_px4fmu-v2_lpe)
-
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
@@ -173,18 +170,6 @@ ros_sitl_default:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
-qurt_eagle_release:
-	$(call cmake-build,$@)
-	
-qurt_eagle_legacy_driver_release:
-	$(call cmake-build,$@)
-
-posix_eagle_release:
-	$(call cmake-build,$@)
-	
-posix_eagle_legacy_driver_release:
-	$(call cmake-build,$@)
-
 qurt_eagle_default:
 	$(call cmake-build,$@)
 
@@ -198,6 +183,14 @@ qurt_eagle_legacy_driver_default:
 	
 posix_eagle_legacy_driver_default:
 	$(call cmake-build,$@) 
+
+qurt_excelsior_default:
+	$(call cmake-build,$@)
+
+posix_excelsior_default:
+	$(call cmake-build,$@)
+
+excelsior_default: posix_excelsior_default qurt_excelsior_default
 
 posix_rpi2_default:
 	$(call cmake-build,$@)
@@ -262,8 +255,8 @@ clean:
 	@(cd NuttX/nuttx && make clean)
 
 submodulesclean:
-	@git submodule deinit -f .
 	@git submodule sync
+	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean
