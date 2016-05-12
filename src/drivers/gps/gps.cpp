@@ -52,6 +52,7 @@
 
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -71,9 +72,11 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -138,6 +141,17 @@ private:
 	static const int _orb_inject_data_fd_count = 4;
 	int _orb_inject_data_fd[_orb_inject_data_fd_count];
 	int _orb_inject_data_next = 0;
+
+	// dump communication to file
+#ifdef __PX4_POSIX_EAGLE
+	static constexpr const char	*DUMP_ROOT = PX4_ROOTFSDIR;
+#else
+	static constexpr const char 	*DUMP_ROOT = PX4_ROOTFSDIR"/fs/microsd";
+#endif
+	int _dump_to_gps_device_fd = -1;              ///< file descriptors, to safe all device communication to a file
+	int _dump_from_gps_device_fd = -1;
+	int _vehicle_status_sub = -1;
+	bool _is_armed = false;                       ///< current arming state (only updated if communication dump is enabled)
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -209,6 +223,15 @@ private:
 	 * callback from the driver for the platform specific stuff
 	 */
 	static int callback(GPSCallbackType type, void *data1, int data2, void *user);
+
+	/**
+	 * Setup dumping of the GPS device input and output stream to a file.
+	 */
+	void initializeCommunicationDump();
+
+	int getDumpFileName(char *file_name, size_t file_name_size, const char *suffix);
+
+	static bool fileExist(const char *filename);
 };
 
 
@@ -314,10 +337,25 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	GPS *gps = (GPS *)user;
 
 	switch (type) {
-	case GPSCallbackType::readDeviceData:
-		return gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+	case GPSCallbackType::readDeviceData: {
+			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+
+			if (num_read > 0 && gps->_dump_from_gps_device_fd >= 0) {
+				if (write(gps->_dump_from_gps_device_fd, data1, (size_t)num_read) != (size_t)num_read) {
+					PX4_WARN("gps dump failed");
+				}
+			}
+
+			return num_read;
+		}
 
 	case GPSCallbackType::writeDeviceData:
+		if (gps->_dump_to_gps_device_fd >= 0) {
+			if (write(gps->_dump_to_gps_device_fd, data1, (size_t)data2) != (size_t)data2) {
+				PX4_WARN("gps dump failed");
+			}
+		}
+
 		return write(gps->_serial_fd, data1, (size_t)data2);
 
 	case GPSCallbackType::setBaudrate:
@@ -529,6 +567,73 @@ int GPS::setBaudrate(unsigned baud)
 	return 0;
 }
 
+bool GPS::fileExist(const char *filename)
+{
+	struct stat buffer;
+	return stat(filename, &buffer) == 0;
+}
+
+void GPS::initializeCommunicationDump()
+{
+	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
+	int32_t param_dump_comm;
+
+	if (gps_dump_comm_ph == PARAM_INVALID || param_get(gps_dump_comm_ph, &param_dump_comm) != 0) {
+		return;
+	}
+
+	if (param_dump_comm != 1) {
+		return; //dumping disabled
+	}
+
+	char to_device_file_name[128] = "";
+	char from_device_file_name[128] = "";
+
+	if (getDumpFileName(to_device_file_name, sizeof(to_device_file_name), "to")
+	    || getDumpFileName(from_device_file_name, sizeof(from_device_file_name), "from")) {
+		PX4_ERR("Failed to get GPS dump file name");
+		return;
+	}
+
+	//open files
+	if ((_dump_to_gps_device_fd = open(to_device_file_name, O_CREAT | O_WRONLY, PX4_O_MODE_666)) < 0) {
+		return;
+	}
+
+	if ((_dump_from_gps_device_fd = open(from_device_file_name, O_CREAT | O_WRONLY, PX4_O_MODE_666)) < 0) {
+		close(_dump_to_gps_device_fd);
+		_dump_to_gps_device_fd = -1;
+		return;
+	}
+
+	PX4_INFO("Dumping GPS comm to files %s, %s", to_device_file_name, from_device_file_name);
+
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+}
+
+int GPS::getDumpFileName(char *file_name, size_t file_name_size, const char *suffix)
+{
+	uint16_t file_number = 1; // start with file gps_dump_<num>_<suffix>_dev_001.dat
+
+	const uint16_t max_num_files = 999;
+
+	while (file_number <= max_num_files) {
+		snprintf(file_name, file_name_size, "%s/gps_dump_%u_%s_dev_%03u.dat",
+			 DUMP_ROOT, _gps_num, suffix, file_number);
+
+		if (!fileExist(file_name)) {
+			break;
+		}
+
+		file_number++;
+	}
+
+	if (file_number > max_num_files) {
+		return -1;
+	}
+
+	return 0;
+}
 
 void
 GPS::task_main()
@@ -554,6 +659,8 @@ GPS::task_main()
 	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
 		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
 	}
+
+	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
@@ -697,6 +804,32 @@ GPS::task_main()
 //						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
 					}
+
+					//check for disarming
+					if (_vehicle_status_sub != -1 && _dump_from_gps_device_fd != -1) {
+						bool updated;
+						orb_check(_vehicle_status_sub, &updated);
+
+						if (updated) {
+							vehicle_status_s vehicle_status;
+							orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status);
+							bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+								     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+
+							if (armed) {
+								_is_armed = true;
+
+							} else if (_is_armed) {
+								//disable communication dump when disarming
+								close(_dump_from_gps_device_fd);
+								_dump_from_gps_device_fd = -1;
+								close(_dump_to_gps_device_fd);
+								_dump_to_gps_device_fd = -1;
+								_is_armed = false;
+							}
+
+						}
+					}
 				}
 
 				if (_healthy) {
@@ -733,6 +866,21 @@ GPS::task_main()
 	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
 		orb_unsubscribe(_orb_inject_data_fd[i]);
 		_orb_inject_data_fd[i] = -1;
+	}
+
+	if (_dump_to_gps_device_fd != -1) {
+		close(_dump_to_gps_device_fd);
+		_dump_to_gps_device_fd = -1;
+	}
+
+	if (_dump_from_gps_device_fd != -1) {
+		close(_dump_from_gps_device_fd);
+		_dump_from_gps_device_fd = -1;
+	}
+
+	if (_vehicle_status_sub != -1) {
+		orb_unsubscribe(_vehicle_status_sub);
+		_vehicle_status_sub = -1;
 	}
 
 	::close(_serial_fd);
