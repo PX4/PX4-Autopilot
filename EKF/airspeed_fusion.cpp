@@ -90,8 +90,10 @@ void Ekf::fuseAirspeed()
 
 		if (_airspeed_innov_var_temp >= R_TAS) { // Check for badly conditioned calculation
 			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
+			_fault_status.flags.bad_airspeed = false;
 
 		} else { // Reset the estimator
+			_fault_status.flags.bad_airspeed = true;
 			initialiseCovariance();
 			return;
 		}
