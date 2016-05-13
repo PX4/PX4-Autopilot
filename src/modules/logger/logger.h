@@ -157,6 +157,7 @@ private:
 	char 						_log_dir[64];
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
+	bool						_was_armed = false;
 
 	// statistics
 	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)
