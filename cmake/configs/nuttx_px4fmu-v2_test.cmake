@@ -111,7 +111,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
+	#modules/sdlog2
 
 	#
 	# Library modules
