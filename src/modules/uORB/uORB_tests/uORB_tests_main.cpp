@@ -31,80 +31,67 @@
  *
  ****************************************************************************/
 
-/**
- * @file test_param.c
- *
- * Tests related to the parameter system.
- */
+#include <string.h>
+#include "../uORBDevices.hpp"
+#include "../uORB.h"
+#include "../uORBCommon.hpp"
 
-#include <px4_defines.h>
-#include <stdio.h>
-#include "systemlib/err.h"
-#include "systemlib/param/param.h"
-#include "tests.h"
+#ifndef __PX4_QURT
+#include "uORBTest_UnitTest.hpp"
+#endif
 
-#define PARAM_MAGIC1 12345678
-#define PARAM_MAGIC2 0xa5a5a5a5
+extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
 
-/**
- * @group Testing
- */
-PARAM_DEFINE_INT32(TEST_PARAMS, 12345678);
+static void usage()
+{
+	PX4_INFO("Usage: uorb_test 'latency_test'");
+}
 
 int
-test_param(int argc, char *argv[])
+uorb_tests_main(int argc, char *argv[])
 {
-	param_t		p;
 
-	p = param_find("TEST_PARAMS");
+#ifndef __PX4_QURT
 
-	if (p == PARAM_INVALID) {
-		warnx("test parameter not found");
-		return 1;
+	/*
+	 * Test the driver/device.
+	 */
+	if (argc == 1) {
+		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+		int rc = t.test();
+
+		if (rc == OK) {
+			fprintf(stdout, "  [uORBTest] \t\tPASS\n");
+			fflush(stdout);
+			return 0;
+
+		} else {
+			fprintf(stderr, "  [uORBTest] \t\tFAIL\n");
+			fflush(stderr);
+			return -1;
+		}
 	}
 
-	if (param_reset(p) != OK) {
-		warnx("failed param reset");
-		return 1;
+	/*
+	 * Test the latency.
+	 */
+	if (argc > 1 && !strcmp(argv[1], "latency_test")) {
+
+		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+
+		if (argc > 2 && !strcmp(argv[2], "medium")) {
+			return t.latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
+
+		} else if (argc > 2 && !strcmp(argv[2], "large")) {
+			return t.latency_test<struct orb_test_large>(ORB_ID(orb_test_large), true);
+
+		} else {
+			return t.latency_test<struct orb_test>(ORB_ID(orb_test), true);
+		}
 	}
 
-	param_type_t t = param_type(p);
+#endif
 
-	if (t != PARAM_TYPE_INT32) {
-		warnx("test parameter type mismatch (got %u)", (unsigned)t);
-		return 1;
-	}
-
-	int32_t	val = -1;
-
-	if (param_get(p, &val) != OK) {
-		warnx("failed to read test parameter");
-		return 1;
-	}
-
-	if (val != PARAM_MAGIC1) {
-		warnx("parameter value mismatch");
-		return 1;
-	}
-
-	val = PARAM_MAGIC2;
-
-	if (param_set(p, &val) != OK) {
-		warnx("failed to write test parameter");
-		return 1;
-	}
-
-	if (param_get(p, &val) != OK) {
-		warnx("failed to re-read test parameter");
-		return 1;
-	}
-
-	if ((uint32_t)val != PARAM_MAGIC2) {
-		warnx("parameter value mismatch after write");
-		return 1;
-	}
-
-	warnx("parameter test PASS");
-
-	return 0;
+	usage();
+	return -EINVAL;
 }

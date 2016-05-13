@@ -90,12 +90,11 @@
 extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
+#define param_info_count	(param_info_limit - param_info_base)
 #else
-// FIXME - start and end are reversed
 static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
-#endif
-
 #define	param_info_count		px4_parameters.param_count
+#endif /* _UNIT_TEST */
 
 /**
  * Storage for modified parameters.

@@ -229,8 +229,8 @@ ORB_DEFINE(test_motor, struct test_motor_s);
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);
 
-#include "topics/navigation_capabilities.h"
-ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);
+#include "topics/fw_pos_ctrl_status.h"
+ORB_DEFINE(fw_pos_ctrl_status, struct fw_pos_ctrl_status_s);
 
 #include "topics/esc_status.h"
 ORB_DEFINE(esc_status, struct esc_status_s);

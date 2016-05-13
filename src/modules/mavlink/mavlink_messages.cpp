@@ -46,38 +46,39 @@
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vision_position_estimate.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/estimator_status.h>
-#include <uORB/topics/transponder_report.h>
-#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -2576,6 +2577,72 @@ protected:
 	}
 };
 
+class MavlinkStreamNavControllerOutput : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamNavControllerOutput::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "NAV_CONTROLLER_OUTPUT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamNavControllerOutput(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_fw_pos_ctrl_status_sub;
+	MavlinkOrbSubscription *_tecs_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamNavControllerOutput(MavlinkStreamNavControllerOutput &);
+	MavlinkStreamNavControllerOutput& operator = (const MavlinkStreamNavControllerOutput &);
+
+protected:
+	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_tecs_status_sub(_mavlink->add_orb_subscription(ORB_ID(tecs_status)))
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fw_pos_ctrl_status_s _fw_pos_ctrl_status = {};
+		struct tecs_status_s _tecs_status = {};
+
+		const bool updated_fw_pos_ctrl_status = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status);
+		const bool updated_tecs = _tecs_status_sub->update(&_tecs_status);
+
+		if (updated_fw_pos_ctrl_status || updated_tecs) {
+			mavlink_nav_controller_output_t msg = {};
+
+			msg.nav_roll = math::degrees(_fw_pos_ctrl_status.nav_roll);
+			msg.nav_pitch = math::degrees(_fw_pos_ctrl_status.nav_pitch);
+			msg.nav_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.nav_bearing);
+			msg.target_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.target_bearing);
+			msg.wp_dist = (uint16_t)_fw_pos_ctrl_status.wp_dist;
+			msg.xtrack_error = _fw_pos_ctrl_status.xtrack_error;
+			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitudeSp;
+			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeedSp;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT, &msg);
+		}
+	}
+};
 
 class MavlinkStreamCameraCapture : public MavlinkStream
 {

@@ -1840,6 +1840,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		configure_stream("ADSB_VEHICLE", 2.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 2.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1868,9 +1869,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1899,7 +1900,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
-		//configure_stream("PARAM_VALUE", 300.0f);
 		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -1914,14 +1914,14 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
-		configure_stream("GPS_RAW_INT", 20.0f);
+		configure_stream("GPS_RAW_INT", 10.0f);
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);
 		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 	default:
 		break;
 	}
@@ -2006,7 +2006,7 @@ Mavlink::task_main(int argc, char *argv[])
 				// allocated.
 				//fclose(fs);
 			} else {
-				warnx("open fd %d failed", _uart_fd);
+				PX4_WARN("open fd %d failed", _uart_fd);
 			}
 
 			/* reset param and save */
@@ -2040,26 +2040,26 @@ Mavlink::task_main(int argc, char *argv[])
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
 					if ( get_protocol() == SERIAL ) {
-						warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
+						PX4_INFO("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
 							(double)_subscribe_to_stream_rate);
 					} else if ( get_protocol() == UDP ) {
-						warnx("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
+						PX4_INFO("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
 							(double)_subscribe_to_stream_rate);
 					}
 
 				} else {
 					if ( get_protocol() == SERIAL ) {
-						warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+						PX4_WARN("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 					} else if ( get_protocol() == UDP ) {
-						warnx("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
+						PX4_WARN("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
 					}
 				}
 
 			} else {
 				if ( get_protocol() == SERIAL ) {
-					warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+					PX4_WARN("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 				} else if ( get_protocol() == UDP ) {
-					warnx("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
+					PX4_WARN("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
 				}
 			}
 

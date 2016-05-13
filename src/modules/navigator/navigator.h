@@ -207,7 +207,7 @@ private:
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_land_detected_sub;		/**< vehicle land detected subscription */
-	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
+	int		_fw_pos_ctrl_status_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
@@ -229,7 +229,7 @@ private:
 	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
-	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
+	fw_pos_ctrl_status_s			_fw_pos_ctrl_status;		/**< fixed wing navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 	position_setpoint_triplet_s			_reposition_triplet;	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet;	/**< triplet for non-mission direct takeoff command */
@@ -301,9 +301,9 @@ private:
 	void		home_position_update(bool force=false);
 
 	/**
-	 * Retreive navigation capabilities
+	 * Retrieve fixed wing navigation capabilities
 	 */
-	void		navigation_capabilities_update();
+	void		fw_pos_ctrl_status_update();
 
 	/**
 	 * Retrieve vehicle status

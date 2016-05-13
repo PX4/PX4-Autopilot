@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,22 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE modules__mavlink__mavlink_tests
-	MAIN mavlink_tests
-	STACK_MAIN 5000
+	MODULE drivers__bmp280
+	MAIN bmp280
 	COMPILE_FLAGS
-		-DMAVLINK_FTP_UNIT_TEST
-		-Wno-attributes
-		-Wno-packed
-		-Wno-packed
 		-Os
 	SRCS
-		mavlink_tests.cpp
-		mavlink_ftp_test.cpp
-		../mavlink_stream.cpp
-		../mavlink_ftp.cpp
-		../mavlink.c
+		bmp280_spi.cpp
+		bmp280.cpp
 	DEPENDS
 		platforms__common
 	)

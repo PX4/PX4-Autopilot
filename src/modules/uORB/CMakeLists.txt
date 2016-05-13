@@ -49,17 +49,14 @@ set(SRCS
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		uORBDevices_nuttx.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "posix")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "posix-arm")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "qurt")
 	list(APPEND SRCS

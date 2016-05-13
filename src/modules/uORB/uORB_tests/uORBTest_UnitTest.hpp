@@ -33,8 +33,8 @@
 
 #ifndef _uORBTest_UnitTest_hpp_
 #define _uORBTest_UnitTest_hpp_
-#include "uORBCommon.hpp"
-#include "uORB.h"
+#include "../uORBCommon.hpp"
+#include "../uORB.h"
 #include <px4_time.h>
 
 struct orb_test {
