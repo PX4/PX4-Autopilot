@@ -106,8 +106,7 @@ static const int ERROR = -1;
 
 static Mavlink *_mavlink_instances = nullptr;
 
-static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+static const mavlink_crc_entry_t mavlink_message_meta[] = MAVLINK_MESSAGE_CRCS;
 
 /**
  * mavlink app start / stop handling function
@@ -117,6 +116,17 @@ static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
 extern mavlink_system_t mavlink_system;
+
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
+{
+	Mavlink* m = Mavlink::get_instance((unsigned)chan);
+
+	if (m->get_free_tx_buf() < length) {
+		return;
+	}
+
+	m->send_bytes(ch, length);
+}
 
 static void usage(void);
 
@@ -816,15 +826,7 @@ Mavlink::get_free_tx_buf()
 void
 Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
 {
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (!should_transmit()) {
-		return;
-	}
-
-	pthread_mutex_lock(&_send_mutex);
-
-	uint8_t payload_len = mavlink_message_lengths[msgid];
+	uint8_t payload_len = mavlink_message_meta[msgid].msg_len;
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	_last_write_try_time = hrt_absolute_time();
@@ -845,6 +847,8 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		}
 	}
 
+	mavlink_get_channel_status(_channel)->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
 	/* header */
@@ -863,10 +867,24 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	uint16_t checksum;
 	crc_init(&checksum);
 	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+	crc_accumulate(mavlink_message_meta[msgid].crc_extra, &checksum);
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	send_bytes(&buf[0], packet_len);
+}
+
+void
+Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
+{
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (!should_transmit()) {
+		return;
+	}
+
+	pthread_mutex_lock(&_send_mutex);
 
 	size_t ret = -1;
 
@@ -881,11 +899,10 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
-		/* resend heartbeat via broadcast */
+		/* resend message via broadcast if no valid connection exists */
 		if ((_mode != MAVLINK_MODE_ONBOARD) &&
 			(!get_client_source_initialized()
-			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
-			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();

@@ -226,6 +226,8 @@ public:
 
 	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
 
+	void			send_bytes(const uint8_t *buf, unsigned packet_len);
+
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
 	 */

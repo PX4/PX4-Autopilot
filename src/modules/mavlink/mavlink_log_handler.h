@@ -40,7 +40,7 @@
 #include <queue.h>
 #include <time.h>
 #include <stdio.h>
-#include <v1.0/mavlink_types.h>
+#include <v2.0/mavlink_types.h>
 #include "mavlink_stream.h"
 
 class Mavlink;

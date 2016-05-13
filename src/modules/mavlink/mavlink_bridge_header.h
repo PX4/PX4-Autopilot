@@ -44,12 +44,7 @@
 
 __BEGIN_DECLS
 
-/*
- * We are NOT using convenience functions,
- * but instead send messages with a custom function.
- * So we do NOT do this:
- * #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
- */
+#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
@@ -57,7 +52,7 @@ __BEGIN_DECLS
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
-#include <v1.0/mavlink_types.h>
+#include <v2.0/mavlink_types.h>
 #include <unistd.h>
 
 
@@ -84,7 +79,7 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int leng
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
-#include <v1.0/common/mavlink.h>
+#include <v2.0/common/mavlink.h>
 
 __END_DECLS
 

@@ -333,16 +333,13 @@ protected:
 			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 		}
 
-		mavlink_heartbeat_t msg;
+		uint8_t base_mode = 0;
+		uint32_t custom_mode = 0;
+		uint8_t system_status = 0;
+		get_mavlink_mode_state(&status, &pos_sp_triplet, &system_status, &base_mode, &custom_mode);
 
-		msg.base_mode = 0;
-		msg.custom_mode = 0;
-		get_mavlink_mode_state(&status, &pos_sp_triplet, &msg.system_status, &msg.base_mode, &msg.custom_mode);
-		msg.type = _mavlink->get_system_type();
-		msg.autopilot = MAV_AUTOPILOT_PX4;
-		msg.mavlink_version = 3;
-
-		_mavlink->send_message(MAVLINK_MSG_ID_HEARTBEAT, &msg);
+		mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
+			base_mode, custom_mode, system_status);
 	}
 };
 
