@@ -160,6 +160,8 @@ __END_DECLS
 
 #if defined(__PX4_QURT)
 #define PX4_ROOTFSDIR
+#elif defined(__PX4_POSIX_EAGLE)
+#define PX4_ROOTFSDIR "/home/linaro"
 #else
 #define PX4_ROOTFSDIR "rootfs"
 #endif
