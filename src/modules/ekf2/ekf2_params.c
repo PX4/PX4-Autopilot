@@ -444,6 +444,16 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
+ * Gate size for TAS fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
+
+/**
  * Replay mode
  *
  * A value of 1 indicates that the ekf2 module will publish
