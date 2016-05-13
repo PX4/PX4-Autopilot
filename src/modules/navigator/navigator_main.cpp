@@ -684,6 +684,11 @@ Navigator::publish_position_setpoint_triplet()
 	/* update navigation state */
 	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
+	/* do not publish an empty triplet */
+	if (!_pos_sp_triplet.current.valid) {
+		return;
+	}
+
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub != nullptr) {
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
