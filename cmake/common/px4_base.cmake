@@ -776,21 +776,21 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git describe --tags
+		COMMAND git describe --always --tags
 		OUTPUT_VARIABLE git_tag
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_TAG = ${git_tag}")
+	message(STATUS "GIT_TAG = ${git_tag}")
 	execute_process(
-		COMMAND git rev-parse HEAD
-		OUTPUT_VARIABLE git_desc
+		COMMAND git rev-parse --verify HEAD
+		OUTPUT_VARIABLE git_version
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_DESC = ${git_desc}")
-	set(git_desc_short)
-	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
+	#message(STATUS "GIT_VERSION = ${git_version}")
+	set(git_version_short)
+	string(SUBSTRING ${git_version} 1 16 git_version_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 
