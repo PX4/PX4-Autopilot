@@ -629,11 +629,11 @@ struct log_PARM_s {
 	char name[16];
 	float value;
 };
+#pragma pack(pop)
 
 // the lower type of initialisation is not supported in C++
 #ifndef __cplusplus
 
-#pragma pack(pop)
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
