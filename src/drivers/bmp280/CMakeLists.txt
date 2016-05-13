@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,23 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(srcs
-    bmp280_spi.cpp
-   )
 
-if ($ {OS} STREQUAL "nuttx")
-	list(APPEND srcs
-	     bmp280.cpp
-	    )
-	endif()
-
-	px4_add_module(
-		MODULE drivers__bmp280
-		MAIN bmp280
-		COMPILE_FLAGS
-		- Os
-		SRCS $ {srcs}
-		DEPENDS
+px4_add_module(
+	MODULE drivers__bmp280
+	MAIN bmp280
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		bmp280_spi.cpp
+		bmp280.cpp
+	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
