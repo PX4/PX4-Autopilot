@@ -982,9 +982,6 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		_reset_pos_sp = true;
 		_reset_alt_sp = true;
-
-		reset_pos_sp();
-		reset_alt_sp();
 	}
 
 	//Poll position setpoint
@@ -1175,6 +1172,11 @@ void MulticopterPositionControl::control_auto(float dt)
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
 	}
+
+	// these functions only have an effect if the corresponding reset flags
+	// '_reset_pos_sp' and '_reset_alt_sp' have been set
+	reset_pos_sp();
+	reset_alt_sp();
 }
 
 void
@@ -1382,9 +1384,9 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
-			} else if (_control_mode.flag_control_manual_enabled
-					&& _vehicle_land_detected.landed) {
-				/* don't run controller when landed */
+			} else if (_vehicle_land_detected.landed
+					&& _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+				/* don't run controller when landed and we are not doing a takeoff */
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
 				_mode_auto = false;
