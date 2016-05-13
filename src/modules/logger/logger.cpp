@@ -533,7 +533,8 @@ void Logger::run()
 			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
-			if (_enabled != armed && !_log_until_shutdown) {
+			if (_was_armed != armed && !_log_until_shutdown) {
+				_was_armed = armed;
 				if (armed) {
 					start_log();
 
