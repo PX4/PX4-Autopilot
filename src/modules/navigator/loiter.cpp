@@ -58,8 +58,7 @@
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_LTRMIN_ALT", false),
-	_loiter_pos_set(false)
+	_param_min_alt(this, "MIS_LTRMIN_ALT", false)
 {
 	// load initial params
 	updateParams();
@@ -72,7 +71,6 @@ Loiter::~Loiter()
 void
 Loiter::on_inactive()
 {
-	_loiter_pos_set = false;
 }
 
 void
@@ -81,7 +79,19 @@ Loiter::on_activation()
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
 	} else {
-		set_loiter_position();
+		// set current mission item to loiter
+		set_loiter_item(&_mission_item, _param_min_alt.get());
+
+		// convert mission item to current setpoint
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		pos_sp_triplet->current.velocity_valid = false;
+		pos_sp_triplet->previous.valid = false;
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		pos_sp_triplet->next.valid = false;
+
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
 
@@ -91,46 +101,11 @@ Loiter::on_active()
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
 	}
-
-	// reset the loiter position if we get disarmed
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		_loiter_pos_set = false;
-	}
-}
-
-void
-Loiter::set_loiter_position()
-{
-	// not setting loiter position until armed
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED ||
-		_loiter_pos_set) {
-		return;
-	} else {
-		_loiter_pos_set = true;
-	}
-
-	// set current mission item to loiter
-	set_loiter_item(&_mission_item, _param_min_alt.get());
-
-	// convert mission item to current setpoint
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.velocity_valid = false;
-	pos_sp_triplet->previous.valid = false;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
-
-	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
-	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
 Loiter::reposition()
 {
-	// we can't reposition if we are not armed yet
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		return;
-	}
 
 	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
 
@@ -140,10 +115,7 @@ Loiter::reposition()
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.velocity_valid = false;
-		pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
-		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+		memcpy(&pos_sp_triplet->previous, &rep->previous, sizeof(rep->previous));
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 
