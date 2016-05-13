@@ -437,15 +437,17 @@ int commander_main(int argc, char *argv[])
 				cmd.target_component = status.component_id;
 
 				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
-				// cmd.param1 = 0.25f; /* minimum pitch */
-				// /* param 2-3 unused */
-				// cmd.param4 = home_position.yaw;
-				// cmd.param5 = home_position.lat;
-				// cmd.param6 = home_position.lon;
-				// cmd.param7 = home_position.alt;
+				cmd.param1 = NAN; /* minimum pitch */
+				/* param 2-3 unused */
+				cmd.param2 = NAN;
+				cmd.param3 = NAN;
+				cmd.param4 = NAN;
+				cmd.param5 = NAN;
+				cmd.param6 = NAN;
+				cmd.param7 = NAN;
 
-				// XXX inspect use of publication handle
-				(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				(void)orb_unadvertise(h);
 
 			} else {
 				warnx("arming failed");
@@ -465,15 +467,16 @@ int commander_main(int argc, char *argv[])
 		cmd.target_component = status.component_id;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-		// cmd.param1 = 0.25f; /* minimum pitch */
-		// /* param 2-3 unused */
-		// cmd.param4 = home_position.yaw;
-		// cmd.param5 = home_position.lat;
-		// cmd.param6 = home_position.lon;
-		// cmd.param7 = home_position.alt;
+		/* param 2-3 unused */
+		cmd.param2 = NAN;
+		cmd.param3 = NAN;
+		cmd.param4 = NAN;
+		cmd.param5 = NAN;
+		cmd.param6 = NAN;
+		cmd.param7 = NAN;
 
-		// XXX inspect use of publication handle
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		(void)orb_unadvertise(h);
 
 		return 0;
 	}
