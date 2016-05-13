@@ -69,9 +69,9 @@ endif()
 px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
-	STACK_MAIN 8000
+	STACK_MAIN 9000
 	COMPILE_FLAGS
-		-Wframe-larger-than=6000
+		-Wframe-larger-than=8000
 		-Wno-float-equal
 		-O0
 	SRCS ${srcs}
