@@ -1040,9 +1040,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state)) {
-				warnx("taking off!");
+				mavlink_and_console_log_info(&mavlink_log_pub, "Taking off");
 			} else {
-				warnx("takeoff denied");
+				mavlink_and_console_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
 			}
 
 		}
@@ -1051,9 +1051,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
-				warnx("landing!");
+				mavlink_and_console_log_info(&mavlink_log_pub, "Landing at current position");
 			} else {
-				warnx("landing denied");
+				mavlink_and_console_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
 			}
 
 		}
