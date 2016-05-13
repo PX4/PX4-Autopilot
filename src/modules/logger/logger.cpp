@@ -535,6 +535,7 @@ void Logger::run()
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;
+
 				if (armed) {
 					start_log();
 
