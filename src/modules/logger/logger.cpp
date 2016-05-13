@@ -670,6 +670,16 @@ void Logger::run()
 		PX4_WARN("join failed: %d", ret);
 	}
 
+	//unsubscribe
+	for (LoggerSubscription &sub : _subscriptions) {
+		for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+			if (sub.fd[instance] != -1) {
+				orb_unsubscribe(sub.fd[instance]);
+				sub.fd[instance] = -1;
+			}
+		}
+	}
+
 	if (_mavlink_log_pub) {
 		orb_unadvertise(_mavlink_log_pub);
 		_mavlink_log_pub = nullptr;
