@@ -65,7 +65,7 @@ then
 	cd out/production
 	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-	cd ../..
+	cd ../../../..
 elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
@@ -86,6 +86,7 @@ then
 		SIM_PID=`echo $!`
 		gzclient --verbose &
 		GUI_PID=`echo $!`
+		cd ../../..
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
@@ -112,7 +113,7 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-# Start Java simulator
+# Start the mainapp
 if [ "$debugger" == "lldb" ]
 then
 	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
