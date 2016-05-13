@@ -40,6 +40,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/simulator
 	modules/commander
+	modules/navigator
 	modules/load_mon
 
 	lib/controllib
