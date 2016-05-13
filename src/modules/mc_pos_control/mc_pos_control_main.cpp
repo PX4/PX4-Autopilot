@@ -374,6 +374,17 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
 	_attitude_setpoint_id(0),
+	_vehicle_status{},
+	_vehicle_land_detected{},
+	_ctrl_state{},
+	_att_sp{},
+	_manual{},
+	_control_mode{},
+	_arming{},
+	_local_pos{},
+	_pos_sp_triplet{},
+	_local_pos_sp{},
+	_global_vel_sp{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_vel_x_deriv(this, "VELD"),
@@ -398,17 +409,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false)
 {
-	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
-	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
+	// Make the quaternion valid for control state
 	_ctrl_state.q[0] = 1.0f;
-	memset(&_att_sp, 0, sizeof(_att_sp));
-	memset(&_manual, 0, sizeof(_manual));
-	memset(&_control_mode, 0, sizeof(_control_mode));
-	memset(&_arming, 0, sizeof(_arming));
-	memset(&_local_pos, 0, sizeof(_local_pos));
-	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
-	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
-	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
 
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
