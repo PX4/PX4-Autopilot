@@ -329,13 +329,13 @@ int main(int argc, char **argv)
 				}
 
 				if (buf_ptr_write > 0) {
-					if (mystr != string_buffer[buf_ptr_write - 1]) {
+					if (!mystr.empty() && mystr != string_buffer[buf_ptr_write - 1]) {
 						string_buffer[buf_ptr_write] = mystr;
 						buf_ptr_write++;
 					}
 
 				} else {
-					if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
+					if (!mystr.empty() && mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
 						string_buffer[buf_ptr_write] = mystr;
 						buf_ptr_write++;
 					}
