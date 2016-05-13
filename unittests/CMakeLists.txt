@@ -170,6 +170,7 @@ add_gtest(sf0x_test)
 add_executable(param_test param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/bson/tinybson.c
 						${PX4_SRC}/modules/systemlib/param/param.c)
+target_link_libraries(param_test ${PX4_SITL_BUILD}/libmsg_gen.a)
 add_gtest(param_test)
 
 # param_shmem_test
