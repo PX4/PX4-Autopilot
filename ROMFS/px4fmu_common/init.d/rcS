@@ -840,7 +840,38 @@ then
 	#
 	# Logging
 	#
-	sh /etc/init.d/rc.logging
+	if ver hwcmp PX4FMU_V1
+	then
+		if sdlog2 start -r 30 -a -b 2 -t
+		then
+		fi
+	else
+		# check if we should increase logging rate for ekf2 replay message logging
+		if param greater EKF2_REC_RPL 0
+		then
+			if param compare SYS_LOGGER 0
+			then
+				if sdlog2 start -r 500 -e -b 20 -t
+				then
+				fi
+			else
+				if logger start -r 500
+				then
+				fi
+			fi
+		else
+			if param compare SYS_LOGGER 0
+			then
+				if sdlog2 start -r 100 -a -b 12 -t
+				then
+				fi
+			else
+				if logger start -b 24
+				then
+				fi
+			fi
+		fi
+	fi
 
 	# Start any custom addons
 	set FEXTRAS /fs/microsd/etc/extras.txt
