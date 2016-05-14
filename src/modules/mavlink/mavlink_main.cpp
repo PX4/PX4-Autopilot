@@ -106,8 +106,6 @@ static const int ERROR = -1;
 
 static Mavlink *_mavlink_instances = nullptr;
 
-static const mavlink_crc_entry_t mavlink_message_meta[] = MAVLINK_MESSAGE_CRCS;
-
 /**
  * mavlink app start / stop handling function
  *
@@ -133,10 +131,28 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 	}
 }
 
+/*
+ * Internal function to give access to the channel status for each channel
+ */
+mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
+{
+	return Mavlink::get_status_for_instance(channel);
+}
+
+/*
+ * Internal function to give access to the channel buffer for each channel
+ */
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
+{
+	return Mavlink::get_buffer_for_instance(channel);
+}
+
 static void usage(void);
 
 bool Mavlink::_boot_complete = false;
 bool Mavlink::_config_link_on = false;
+mavlink_message_t Mavlink::_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS] = {};
+mavlink_status_t Mavlink::_mavlink_status[MAVLINK_COMM_NUM_BUFFERS] = {};
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -183,6 +199,7 @@ Mavlink::Mavlink() :
 	_last_write_success_time(0),
 	_last_write_try_time(0),
 	_mavlink_start_time(0),
+	_protocol_version(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
 	_bytes_rx(0),
@@ -294,6 +311,18 @@ Mavlink::~Mavlink()
 
 	if (_mavlink_instances) {
 		LL_DELETE(_mavlink_instances, this);
+	}
+}
+
+void
+Mavlink::set_proto_version(unsigned version)
+{
+	_protocol_version = version;
+
+	if (version == 1 || ((version == 0) && !_received_messages)) {
+		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+	} else if (version == 2) {
+		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
 	}
 }
 
@@ -493,6 +522,7 @@ void Mavlink::mavlink_update_system(void)
 	if (!_param_initialized) {
 		_param_system_id = param_find("MAV_SYS_ID");
 		_param_component_id = param_find("MAV_COMP_ID");
+		_param_proto_ver = param_find("MAV_PROTO_VER");
 		_param_radio_id = param_find("MAV_RADIO_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
@@ -508,6 +538,10 @@ void Mavlink::mavlink_update_system(void)
 
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
+
+	int32_t proto;
+	param_get(_param_proto_ver, &proto);
+	set_proto_version(proto);
 
 	param_get(_param_radio_id, &_radio_id);
 
@@ -841,7 +875,6 @@ Mavlink::send_packet()
 		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
 		struct telemetry_status_s &tstatus = get_rx_status();
-		warnx("UDP count: %d", ret);
 
 		/* resend message via broadcast if no valid connection exists */
 		if ((_mode != MAVLINK_MODE_ONBOARD) &&
@@ -858,8 +891,6 @@ Mavlink::send_packet()
 
 				if (bret <= 0) {
 					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
-				} else {
-					warnx("BROADCAST count: %d", bret);
 				}
 			}
 		}
@@ -877,7 +908,6 @@ Mavlink::send_packet()
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	warnx("send bytes");
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (!should_transmit()) {

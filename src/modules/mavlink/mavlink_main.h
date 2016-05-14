@@ -114,6 +114,23 @@ public:
 
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
+	static mavlink_message_t *get_buffer_for_instance(unsigned instance) { return &_mavlink_buffer[instance]; }
+
+	mavlink_message_t 	*get_buffer() { return Mavlink::get_buffer_for_instance(_instance_id); }
+
+	static mavlink_status_t *get_status_for_instance(unsigned instance) { return &_mavlink_status[instance]; }
+
+	mavlink_status_t 	*get_status() { return Mavlink::get_status_for_instance(_instance_id); }
+
+	/**
+	 * Set the MAVLink version
+	 *
+	 * Currently supporting v1 and v2
+	 *
+	 * @param version MAVLink version
+	 */
+	void			set_proto_version(unsigned version);
+
 	static int		destroy_all_instances();
 
 	static int		get_status_all_instances();
@@ -385,6 +402,8 @@ private:
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
+	static mavlink_message_t _mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
+	static mavlink_status_t _mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
@@ -444,6 +463,7 @@ private:
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
 	uint64_t		_mavlink_start_time;
+	int32_t			_protocol_version;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;
@@ -486,6 +506,7 @@ private:
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
+	param_t			_param_proto_ver;
 	param_t			_param_radio_id;
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
