@@ -250,8 +250,10 @@ public:
 
 	/**
 	 * Flush the transmit buffer and send one MAVLink packet
+	 *
+	 * @return the number of bytes sent or -1 in case of error
 	 */
-	void			send_packet();
+	int			send_packet();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
