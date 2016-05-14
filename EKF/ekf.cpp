@@ -120,8 +120,6 @@ Ekf::Ekf():
 	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
 	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
 	_delta_angle_corr.setZero();
-	_delta_vel_corr.setZero();
-	_vel_corr.setZero();
 	_last_known_posNE.setZero();
 	_imu_down_sampled = {};
 	_q_down_sampled.setZero();
@@ -154,9 +152,6 @@ bool Ekf::init(uint64_t timestamp)
 	_output_new.quat_nominal = matrix::Quaternion<float>();
 
 	_delta_angle_corr.setZero();
-	_delta_vel_corr.setZero();
-	_vel_corr.setZero();
-
 	_imu_down_sampled.delta_ang.setZero();
 	_imu_down_sampled.delta_vel.setZero();
 	_imu_down_sampled.delta_ang_dt = 0.0f;
@@ -657,8 +652,7 @@ void Ekf::calculateOutputStates()
 	_R_to_earth_now = quat_to_invrotmat(_output_new.quat_nominal);
 
 	// rotate the delta velocity to earth frame
-	// apply a delta velocity correction required to track the velocity states at the EKF fusion time horizon
-	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel + _delta_vel_corr;
+	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel;
 
 	// corrrect for measured accceleration due to gravity
 	delta_vel_NED(2) += _gravity_mss * imu_new.delta_vel_dt;
@@ -670,50 +664,68 @@ void Ekf::calculateOutputStates()
 	_output_new.vel += delta_vel_NED;
 
 	// use trapezoidal integration to calculate the INS position states
-	// apply a velocity correction required to track the position states at the EKF fusion time horizon
-	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f) + _vel_corr * imu_new.delta_vel_dt;
+	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f);
 
 	// store INS states in a ring buffer that with the same length and time coordinates as the IMU data buffer
 	if (_imu_updated) {
 		_output_buffer.push(_output_new);
 		_imu_updated = false;
+
+		// get the oldest INS state data from the ring buffer
+		// this data will be at the EKF fusion time horizon
+		_output_sample_delayed = _output_buffer.get_oldest();
+
+		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
+		Quaternion quat_inv = _state.quat_nominal.inversed();
+		Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
+		q_error.normalize();
+
+		// convert the quaternion delta to a delta angle
+		Vector3f delta_ang_error;
+		float scalar;
+		if (q_error(0) >= 0.0f) {
+			scalar = -2.0f;
+
+		} else {
+			scalar = 2.0f;
+		}
+		delta_ang_error(0) = scalar * q_error(1);
+		delta_ang_error(1) = scalar * q_error(2);
+		delta_ang_error(2) = scalar * q_error(3);
+
+		// calculate a gain that provides tight tracking of the estimator attitude states and
+		// adjust for changes in time delay to mantain consistent damping ratio of ~0.7
+		float time_delay = 1e-6f * (float)(_imu_sample_new.time_us - _imu_sample_delayed.time_us);
+		time_delay = fmaxf(time_delay, _dt_imu_avg);
+		float att_gain = 0.5f * _dt_imu_avg / time_delay;
+
+		// calculate a corrrection to the delta angle
+		// that will cause the INS to track the EKF quaternions
+		_delta_angle_corr = delta_ang_error * att_gain;
+
+		// calculate gains that will be used to make the INS states converge on the EKF states
+		float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
+		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
+
+		// calculate  velocity and position corrections at the EKF fusion time horizon
+		Vector3f vel_delta = (_state.vel - _output_sample_delayed.vel) * vel_gain;
+		Vector3f pos_delta = (_state.pos - _output_sample_delayed.pos) * pos_gain;
+
+		// loop through the output filter state history and apply the corrections to the translational states
+		// this method is too expensive to use for the attitude states due to the quaternion operations required
+		// but does not introudce a time dela in the 'correction loop' and allows smaller trackin gtime constants
+		// to be used
+		outputSample output_states;
+		unsigned output_length = _output_buffer.get_length();
+		for (unsigned i=0; i < output_length; i++) {
+			output_states = _output_buffer.get_from_index(i);
+			output_states.vel += vel_delta;
+			output_states.pos += pos_delta;
+			_output_buffer.push_to_index(i,output_states);
+		}
+
+		// update output state to corrected values
+		_output_new = _output_buffer.get_newest();
+
 	}
-
-	// get the oldest INS state data from the ring buffer
-	// this data will be at the EKF fusion time horizon
-	_output_sample_delayed = _output_buffer.get_oldest();
-
-	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-	Quaternion quat_inv = _state.quat_nominal.inversed();
-	Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
-	q_error.normalize();
-
-	// convert the quaternion delta to a delta angle
-	Vector3f delta_ang_error;
-	float scalar;
-	if (q_error(0) >= 0.0f) {
-		scalar = -2.0f;
-
-	} else {
-		scalar = 2.0f;
-	}
-	delta_ang_error(0) = scalar * q_error(1);
-	delta_ang_error(1) = scalar * q_error(2);
-	delta_ang_error(2) = scalar * q_error(3);
-
-	// calculate gains that provides tight tracking of the estimator states and
-	// adjust for changes in time delay to mantain consistent overshoot
-	float omega = 1e6f / (_imu_sample_new.time_us - _imu_sample_delayed.time_us);
-
-	// calculate a corrrection to the delta angle
-	// that will cause the INS to track the EKF quaternions
-	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt * omega * 0.5f;
-
-	// calculate a correction to the delta velocity
-	// that will cause the INS to track the EKF velocity
-	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt * omega * 0.5f;
-
-	// calculate a correction to the INS velocity
-	// that will cause the INS to track the EKF position
-	_vel_corr = (_state.pos - _output_sample_delayed.pos) * omega * 0.6f;
 }

@@ -192,8 +192,6 @@ private:
 
 	// complementary filter states
 	Vector3f _delta_angle_corr;	// delta angle correction vector
-	Vector3f _delta_vel_corr;	// delta velocity correction vector
-	Vector3f _vel_corr;		// velocity correction vector
 	imuSample _imu_down_sampled;	// down sampled imu data (sensor rate -> filter update rate)
 	Quaternion _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
 
