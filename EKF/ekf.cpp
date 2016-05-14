@@ -674,7 +674,10 @@ void Ekf::calculateOutputStates()
 	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f) + _vel_corr * imu_new.delta_vel_dt;
 
 	// store INS states in a ring buffer that with the same length and time coordinates as the IMU data buffer
-	_output_buffer.push(_output_new);
+	if (_imu_updated) {
+		_output_buffer.push(_output_new);
+		_imu_updated = false;
+	}
 
 	// get the oldest INS state data from the ring buffer
 	// this data will be at the EKF fusion time horizon
