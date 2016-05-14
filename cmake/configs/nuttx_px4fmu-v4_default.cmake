@@ -45,6 +45,9 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
+	drivers/bmp280
+	drivers/bma180
+	drivers/bmi160
 
 	#
 	# System commands
@@ -101,6 +104,7 @@ set(config_module_list
 	# Logging
 	#
 	modules/sdlog2
+	modules/logger
 
 	#
 	# Library modules

@@ -69,6 +69,7 @@ check_git_submodule Tools/jMAVSim
 check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
+check_git_submodule mavlink/include/mavlink/v2.0
 check_git_submodule src/lib/DriverFramework
 check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
 check_git_submodule src/lib/DriverFramework/dspal

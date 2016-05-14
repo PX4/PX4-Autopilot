@@ -40,7 +40,7 @@
  */
 
 /**
- * Enable or disable runway takeoff with landing gear
+ * Runway takeoff with landing gear
  *
  * @boolean
  * @group Runway Takeoff

@@ -59,30 +59,29 @@ find_package(Eigen REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  rc_channels.msg
-  vehicle_attitude.msg
-  vehicle_attitude_setpoint.msg
-  manual_control_setpoint.msg
-  actuator_controls.msg
-  actuator_controls_0.msg
-  actuator_controls_virtual_mc.msg
-  vehicle_rates_setpoint.msg
-  mc_virtual_rates_setpoint.msg
-  vehicle_attitude.msg
-  vehicle_control_mode.msg
   actuator_armed.msg
-  parameter_update.msg
-  vehicle_status.msg
+  actuator_controls.msg
   commander_state.msg
-  vehicle_local_position.msg
+  control_state.msg
+  distance_sensor.msg
+  manual_control_setpoint.msg
+  mc_virtual_rates_setpoint.msg
+  offboard_control_mode.msg
+  parameter_update.msg
   position_setpoint.msg
   position_setpoint_triplet.msg
-  vehicle_local_position_setpoint.msg
-  vehicle_global_velocity_setpoint.msg
-  offboard_control_mode.msg
+  rc_channels.msg
+  ros/actuator_controls_0.msg
+  ros/actuator_controls_virtual_mc.msg
+  vehicle_attitude.msg
+  vehicle_attitude_setpoint.msg
+  vehicle_control_mode.msg
   vehicle_force_setpoint.msg
-  distance_sensor.msg
-  control_state.msg
+  vehicle_global_velocity_setpoint.msg
+  vehicle_local_position.msg
+  vehicle_local_position_setpoint.msg
+  vehicle_rates_setpoint.msg
+  vehicle_status.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -148,8 +147,8 @@ set(MULTIPLATFORM_HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platforms/ros/px4_m
 set(MULTIPLATFORM_TEMPLATE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/msg/templates/px4/ros)
 set(TOPICHEADER_TEMP_DIR ${CMAKE_BINARY_DIR}/topics_temporary)
 set(MULTIPLATFORM_PREFIX px4_)
-add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_headers.py
-	-d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
+add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_files.py
+	--headers -d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
 	-t ${TOPICHEADER_TEMP_DIR} -p ${MULTIPLATFORM_PREFIX})
 
 ## Declare a cpp library

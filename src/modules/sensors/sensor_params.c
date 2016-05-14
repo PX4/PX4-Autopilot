@@ -1932,7 +1932,7 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
- * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
+ * Relay control of relay 1 mapped to the Spektrum receiver power supply
  *
  * @min 0
  * @max 1
@@ -2937,7 +2937,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 
 /**
- * Enable Lidar-Lite (LL40LS) pwm driver
+ * Lidar-Lite (LL40LS) PWM
  *
  * @reboot_required true
  *
@@ -2947,7 +2947,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 
 /**
- * Enable sf0x driver
+ * Lightware SF0x laser rangefinder
  *
  * @reboot_required true
  *

@@ -290,7 +290,7 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
- * Enable or disable usage of terrain estimate during landing
+ * Use terrain estimate during landing
  *
  * @boolean
  * @group FW L1 Control

@@ -455,6 +455,16 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
+ * Gate size for TAS fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
+
+/**
  * Replay mode
  *
  * A value of 1 indicates that the ekf2 module will publish
@@ -731,6 +741,28 @@ PARAM_DEFINE_FLOAT(EKF2_OF_POS_Y, 0.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);
+
+/**
+ * Time constant of the velocity output prediction and smoothing filter
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
+
+/**
+ * Time constant of the position output prediction and smoothing filter
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
 
 /**
  * X position of VI sensor focal point in body frame

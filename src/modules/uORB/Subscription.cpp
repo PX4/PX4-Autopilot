@@ -145,6 +145,12 @@ void Subscription<T>::update()
 }
 
 template <class T>
+bool Subscription<T>::check_updated()
+{
+	return SubscriptionBase::updated();
+}
+
+template <class T>
 const T &Subscription<T>::get() { return _data; }
 
 template class __EXPORT Subscription<parameter_update_s>;

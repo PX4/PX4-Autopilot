@@ -85,7 +85,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/local_position_estimator
+	#modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -100,6 +100,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	modules/logger
 	modules/sdlog2
 
 	#

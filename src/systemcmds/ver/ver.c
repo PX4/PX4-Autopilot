@@ -190,7 +190,7 @@ int ver_main(int argc, char *argv[])
 						printf("\nWARNING   WARNING   WARNING!\n"
 						       "Revision %c has a silicon errata\n"
 						       "This device can only utilize a maximum of 1MB flash safely!\n"
-						       "http://px4.io/help/errata\n\n", rev);
+						       "https://pixhawk.org/help/errata\n\n", rev);
 					}
 				}
 

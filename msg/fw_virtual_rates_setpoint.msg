@@ -8,7 +8,6 @@
 #
 ###############################################################################################
 
-uint64 timestamp    # in microseconds since system start
 
 float32 roll	    # body angular rates in NED frame
 float32 pitch	    # body angular rates in NED frame

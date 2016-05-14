@@ -126,11 +126,13 @@ __BEGIN_DECLS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
-#define PX4_SPIDEV_ACCEL_MAG	2
+#define PX4_SPIDEV_ACCEL_MAG		2
 #define PX4_SPIDEV_MPU			4
 #define PX4_SPIDEV_HMC			5
 #define PX4_SPIDEV_ICM			6
 #define PX4_SPIDEV_LIS			7
+#define PX4_SPIDEV_BMI			8
+#define PX4_SPIDEV_BMA			9
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver

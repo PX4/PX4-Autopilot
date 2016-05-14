@@ -590,7 +590,7 @@ struct log_RPL5_s {
 /* --- EKF2 REPLAY Part 6 --- */
 #define LOG_RPL6_MSG 59
 struct log_RPL6_s {
-	uint64_t timestamp;
+	uint64_t time_airs_usec;
 	float indicated_airspeed_m_s;
 	float true_airspeed_m_s;
 	float true_airspeed_unfiltered_m_s;
@@ -639,11 +639,11 @@ struct log_PARM_s {
 	char name[16];
 	float value;
 };
+#pragma pack(pop)
 
 // the lower type of initialisation is not supported in C++
 #ifndef __cplusplus
 
-#pragma pack(pop)
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */

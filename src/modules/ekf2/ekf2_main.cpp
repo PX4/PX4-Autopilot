@@ -192,6 +192,7 @@ private:
 	control::BlockParamFloat _baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
 	control::BlockParamFloat _posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
 	control::BlockParamFloat _vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
+	control::BlockParamFloat _tas_innov_gate;	   // innovation gate for tas innovation test (std dev)
 
 	control::BlockParamFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
@@ -254,6 +255,10 @@ private:
 	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
 	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
 
+	// output predictor filter time constants
+	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
+	control::BlockParamFloat _tau_pos;	// time constant used by the output position complementary filter (s)
+
 	int update_subscriptions();
 
 };
@@ -298,6 +303,7 @@ Ekf2::Ekf2():
 	_baro_innov_gate(this, "EKF2_BARO_GATE", false, &_params->baro_innov_gate),
 	_posNE_innov_gate(this, "EKF2_GPS_P_GATE", false, &_params->posNE_innov_gate),
 	_vel_innov_gate(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate),
+	_tas_innov_gate(this, "EKF2_TAS_GATE", false, &_params->tas_innov_gate),
 	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise),
 	_mag_noise(this, "EKF2_MAG_NOISE", false, &_params->mag_noise),
 	_eas_noise(this, "EKF2_EAS_NOISE", false, &_params->eas_noise),
@@ -342,7 +348,9 @@ Ekf2::Ekf2():
 	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
 	_ev_pos_x(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0)),
 	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
-	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2))
+	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
+	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
+	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau)
 {
 
 }

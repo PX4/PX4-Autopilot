@@ -4,7 +4,7 @@
 
 
 /**
- * Enable accelerometer integration for prediction.
+ * Accelerometer integration for prediction.
  *
  * @boolean
  * @group Local Position Estimator
@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.0f);
 
 /**
- * Enable GPS
+ * GPS
  *
  * @group Local Position Estimator
  * @boolean
@@ -226,7 +226,7 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.5f);
 PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
 
 /**
- * Enabled vision correction
+ * Vision correction
  *
  * @group Local Position Estimator
  * @boolean

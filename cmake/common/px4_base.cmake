@@ -359,13 +359,15 @@ function(px4_generate_messages)
 		NAME px4_generate_messages
 		OPTIONS VERBOSE
 		ONE_VALUE OS TARGET
-		MULTI_VALUE MSG_FILES DEPENDS
+		MULTI_VALUE MSG_FILES DEPENDS INCLUDES
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
 	set(QUIET)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
 	endif()
+
+	# headers
 	set(msg_out_path ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
 	set(msg_list)
 	foreach(msg_file ${MSG_FILES})
@@ -378,17 +380,40 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_out_path}
 			-e msg/templates/uorb
-			-t ${CMAKE_BINARY_DIR}/topics_temporary
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_header
 		DEPENDS ${DEPENDS} ${MSG_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		COMMENT "Generating uORB topic headers"
 		VERBATIM
 		)
+
+	# !sources
+	set(msg_source_out_path	${CMAKE_BINARY_DIR}/topics_sources)
+	set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
+	foreach(msg ${msg_list})
+		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_source_files_out}
+		COMMAND ${PYTHON_EXECUTABLE} 
+			Tools/px_generate_uorb_topic_files.py
+			--sources
+			${QUIET}
+			-d msg
+			-o ${msg_source_out_path}
+			-e msg/templates/uorb
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_sources
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		COMMENT "Generating uORB topic sources"
+		VERBATIM
+		)
+	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
 	# multi messages for target OS
 	set(msg_multi_out_path
@@ -399,7 +424,8 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_multi_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_multi_out_path}
@@ -411,8 +437,13 @@ function(px4_generate_messages)
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
-	add_custom_target(${TARGET}
-		DEPENDS ${msg_multi_files_out} ${msg_files_out})
+
+	add_library(${TARGET}
+		${msg_source_files_out}
+		${msg_multi_files_out}
+		${msg_files_out}
+		)
+
 endfunction()
 
 #=============================================================================
@@ -776,21 +807,21 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git describe --tags
+		COMMAND git describe --always --tags
 		OUTPUT_VARIABLE git_tag
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_TAG = ${git_tag}")
+	message(STATUS "GIT_TAG = ${git_tag}")
 	execute_process(
-		COMMAND git rev-parse HEAD
-		OUTPUT_VARIABLE git_desc
+		COMMAND git rev-parse --verify HEAD
+		OUTPUT_VARIABLE git_version
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_DESC = ${git_desc}")
-	set(git_desc_short)
-	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
+	#message(STATUS "GIT_VERSION = ${git_version}")
+	set(git_version_short)
+	string(SUBSTRING ${git_version} 1 16 git_version_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 

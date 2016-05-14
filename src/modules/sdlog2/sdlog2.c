@@ -78,10 +78,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -412,7 +408,7 @@ bool get_log_time_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
-	time_t utc_time_sec;
+	time_t utc_time_sec = 0;
 
 	if (_gpstime_only && has_gps_3d_fix) {
 		utc_time_sec = gps_time_sec;
@@ -1605,7 +1601,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (buf.replay.asp_timestamp > 0) {
 					log_msg.msg_type = LOG_RPL6_MSG;
-					log_msg.body.log_RPL6.timestamp = buf.replay.asp_timestamp;
+					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
 					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
 					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
 					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;

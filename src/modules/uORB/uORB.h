@@ -52,6 +52,8 @@
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const size_t o_size;		/**< object size */
+	const size_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
+	const char *o_fields;		/**< semicolon separated list of fields (with type) */
 };
 
 typedef const struct orb_metadata *orb_id_t;
@@ -110,11 +112,15 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
+ * @param _size_no_padding	Struct size w/o padding at the end
+ * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
  */
-#define ORB_DEFINE(_name, _struct)			\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct)				\
+		sizeof(_struct),		\
+		_size_no_padding,			\
+		_fields					\
 	}; struct hack
 
 __BEGIN_DECLS

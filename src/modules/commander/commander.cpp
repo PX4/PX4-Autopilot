@@ -81,10 +81,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
@@ -437,15 +433,17 @@ int commander_main(int argc, char *argv[])
 				cmd.target_component = status.component_id;
 
 				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
-				// cmd.param1 = 0.25f; /* minimum pitch */
-				// /* param 2-3 unused */
-				// cmd.param4 = home_position.yaw;
-				// cmd.param5 = home_position.lat;
-				// cmd.param6 = home_position.lon;
-				// cmd.param7 = home_position.alt;
+				cmd.param1 = NAN; /* minimum pitch */
+				/* param 2-3 unused */
+				cmd.param2 = NAN;
+				cmd.param3 = NAN;
+				cmd.param4 = NAN;
+				cmd.param5 = NAN;
+				cmd.param6 = NAN;
+				cmd.param7 = NAN;
 
-				// XXX inspect use of publication handle
-				(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				(void)orb_unadvertise(h);
 
 			} else {
 				warnx("arming failed");
@@ -465,15 +463,16 @@ int commander_main(int argc, char *argv[])
 		cmd.target_component = status.component_id;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-		// cmd.param1 = 0.25f; /* minimum pitch */
-		// /* param 2-3 unused */
-		// cmd.param4 = home_position.yaw;
-		// cmd.param5 = home_position.lat;
-		// cmd.param6 = home_position.lon;
-		// cmd.param7 = home_position.alt;
+		/* param 2-3 unused */
+		cmd.param2 = NAN;
+		cmd.param3 = NAN;
+		cmd.param4 = NAN;
+		cmd.param5 = NAN;
+		cmd.param6 = NAN;
+		cmd.param7 = NAN;
 
-		// XXX inspect use of publication handle
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		(void)orb_unadvertise(h);
 
 		return 0;
 	}
@@ -509,9 +508,7 @@ int commander_main(int argc, char *argv[])
 				warnx("argument %s unsupported.", argv[2]);
 			}
 
-			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,
-								       &status_flags, &internal_state)) {
-					;
+			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,  &status_flags, &internal_state)) {
 				warnx("mode change failed");
 			}
 			return 0;
@@ -811,10 +808,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				if (arming_ret == TRANSITION_DENIED) {
 					mavlink_log_critical(&mavlink_log_pub, "Rejecting arming cmd");
 				}
-
-				if (main_ret == TRANSITION_DENIED) {
-					mavlink_log_critical(&mavlink_log_pub, "Rejecting mode switch cmd");
-				}
 			}
 		}
 		break;
@@ -1040,9 +1033,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state)) {
-				warnx("taking off!");
+				mavlink_and_console_log_info(&mavlink_log_pub, "Taking off");
 			} else {
-				warnx("takeoff denied");
+				mavlink_and_console_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
 			}
 
 		}
@@ -1051,9 +1044,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
-				warnx("landing!");
+				mavlink_and_console_log_info(&mavlink_log_pub, "Landing at current position");
 			} else {
-				warnx("landing denied");
+				mavlink_and_console_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
 			}
 
 		}
@@ -1264,7 +1257,7 @@ int commander_thread_main(int argc, char *argv[])
 	// We want to accept RC inputs as default
 	status_flags.rc_input_blocked = false;
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
-	internal_state.main_state =commander_state_s::MAIN_STATE_MANUAL;
+	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
 	main_state_prev = commander_state_s::MAIN_STATE_MAX;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
@@ -1959,7 +1952,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if ((updated && status_flags.condition_local_altitude_valid) || check_for_disarming) {
 			if (was_landed != land_detector.landed) {
-				if (land_detector.landed) {
+				if (land_detector.landed && armed.armed) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "LANDING DETECTED");
 				} else {
 					mavlink_and_console_log_info(&mavlink_log_pub, "TAKEOFF DETECTED");
@@ -2391,7 +2384,9 @@ int commander_thread_main(int argc, char *argv[])
 					if ((internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ACRO)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_STAB)
-						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL)) {
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL)
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
+						) {
 						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
 					} else if (!status_flags.condition_home_position_valid &&
@@ -2413,7 +2408,7 @@ int commander_thread_main(int argc, char *argv[])
 							arming_state_changed = true;
 						} else {
 							usleep(100000);
-							print_reject_arm("NOT ARMING: Configuration error");
+							print_reject_arm("NOT ARMING: Preflight checks failed");
 						}
 					}
 					stick_on_counter = 0;

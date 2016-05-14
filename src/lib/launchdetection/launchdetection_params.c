@@ -45,11 +45,9 @@
  */
 
 /**
- * Enable launch detection.
+ * Launch detection
  *
  * @boolean
- * @min 0
- * @max 1
  * @group Launch detection
  */
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);

@@ -107,7 +107,7 @@ def main():
                         metavar="SUMMARY",
                         default="Automagically updated parameter documentation from code.",
                         help="DokuWiki page edit summary")
-    parser.add_argument("-v", "--verbose", help="verbose output")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
     args = parser.parse_args()
 
     # Check for valid command

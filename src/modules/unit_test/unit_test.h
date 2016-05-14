@@ -68,14 +68,14 @@ protected:
 /// test should return true if it succeeded, false for fail.
 #define ut_run_test(test)					\
 	do {							\
-		warnx("RUNNING TEST: %s", #test);		\
+		PX4_INFO("RUNNING TEST: %s", #test);		\
 		_tests_run++;					\
 		_init();						\
 		if (!test()) {					\
-			warnx("TEST FAILED: %s", #test);	\
+			PX4_ERR("TEST FAILED: %s", #test);	\
 			_tests_failed++;			\
 		} else {					\
-			warnx("TEST PASSED: %s", #test);	\
+			PX4_INFO("TEST PASSED: %s", #test);	\
 			_tests_passed++;			\
 		}						\
 		_cleanup();					\

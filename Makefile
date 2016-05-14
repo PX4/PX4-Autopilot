@@ -114,6 +114,12 @@ define cmake-build
 +@(echo "PX4 CONFIG: $@" && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
+define cmake-build-other
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake $(2) -G$(PX4_CMAKE_GENERATOR) || (cd .. && rm -rf $(PWD)/build_$@); fi
++@(cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
+endef
+
 # create empty targets to avoid msgs for targets passed to cmake
 define cmake-targ
 $(1):
@@ -136,6 +142,9 @@ px4fmu-v1_default:
 
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
+	
+px4fmu-v2_test:
+	$(call cmake-build,nuttx_px4fmu-v2_test)
 
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
@@ -146,13 +155,16 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
+px4fmu-v2_lpe:
+	$(call cmake-build,nuttx_px4fmu-v2_lpe)
+
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
 posix_sitl_default:
 	$(call cmake-build,$@)
 
-posix_sitl_lpe:
+posix_sitl_test:
 	$(call cmake-build,$@)
 
 posix_sitl_ekf2:
@@ -213,8 +225,14 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
-.NOTPARALLEL: uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.PHONY: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+
+gazebo_build:
+	@mkdir -p build_gazebo
+	@if [ ! -e $(PWD)/build_gazebo/CMakeCache.txt ];then cd build_gazebo && cmake -Wno-dev -G$(PX4_CMAKE_GENERATOR) $(PWD)/Tools/sitl_gazebo; fi
+	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS)
+	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS) sdf
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -222,12 +240,12 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
-check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_unittest check_format
+check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v2_test check_px4fmu-v2_lpe check_px4fmu-v2_ekf2 check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_posix_sitl_test check_unittest check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
-	@./Tools/check_code_style.sh
+	@./Tools/check_code_style_all.sh
 
 check_%:
 	@echo
@@ -244,8 +262,15 @@ ifeq ($(VECTORCONTROL),1)
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-unittest: posix_sitl_default
-	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest -j2 --output-on-failure)
+unittest: posix_sitl_test
+	@export CC=clang
+	@export CXX=clang++
+	@export ASAN_OPTIONS=symbolize=1
+	$(call cmake-build-other,unittest, ../unittests)
+	@(cd build_unittest && ctest -j2 --output-on-failure)
+	
+test_onboard_sitl:
+	@HEADLESS=1 make posix_sitl_test gazebo_iris
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
