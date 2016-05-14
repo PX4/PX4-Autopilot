@@ -41,6 +41,16 @@
 
 #define PWMIN0_DEVICE_PATH		"/dev/pwmin0"
 
+#define _PWMINIOCBASE		(0x2f00)
+#define _PWMINIOC(_n)		(_PX4_IOC(_PWMINIOCBASE, _n))
+
+// set required timer resolution in microseconds. Lower resolution
+// means lower frequency periods can be measured. Period in RPM is
+#define PWMINIOSRESOLUTION	_PWMINIOC(1)
+
+// convenient macro to convert a minimum RPM to a resolution in microseconds
+#define PWMIN_MINRPM_TO_RESOLUTION(rpm) (((60U*1000000U+(0x8000U*rpm)))/(0xFFFFUL*rpm))
+
 __BEGIN_DECLS
 
 /*

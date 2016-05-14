@@ -244,6 +244,7 @@ private:
 	uint32_t _pulses_captured;
 	uint32_t _last_period;
 	uint32_t _last_width;
+	uint32_t _resolution_usec;
 	hrt_abstime _last_poll_time;
 	hrt_abstime _last_read_time;
 	ringbuffer::RingBuffer *_reports;
@@ -270,6 +271,7 @@ PWMIN::PWMIN() :
 	_pulses_captured(0),
 	_last_period(0),
 	_last_width(0),
+	_resolution_usec(1),
 	_reports(nullptr),
 	_timer_started(false),
 	_perf_reset(perf_alloc(PC_COUNT, "pwm_input_reset")),
@@ -341,9 +343,9 @@ void PWMIN::_timer_init(void)
 	rDCR = 0;
 
 	/* for simplicity scale by the clock in MHz. This gives us
-	 * readings in microseconds which is typically what is needed
-	 * for a PWM input driver */
-	uint32_t prescaler = PWMIN_TIMER_CLOCK / 1000000UL;
+	 * readings in _resolution_usec microseconds
+	 */
+	uint32_t prescaler = _resolution_usec * (PWMIN_TIMER_CLOCK / 1000000UL);
 
 	/*
 	 * define the clock speed. We want the highest possible clock
@@ -427,6 +429,16 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_timer_init();
 		return OK;
 
+	case PWMINIOSRESOLUTION:
+
+		// change timer resolution
+		if (_resolution_usec != arg) {
+			_resolution_usec = arg;
+			_timer_init();
+		}
+
+		return OK;
+
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -485,8 +497,8 @@ void PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 	struct pwm_input_s pwmin_report;
 	pwmin_report.timestamp = _last_poll_time;
 	pwmin_report.error_count = _error_count;
-	pwmin_report.period = period;
-	pwmin_report.pulse_width = pulse_width;
+	pwmin_report.period = period * _resolution_usec;
+	pwmin_report.pulse_width = pulse_width * _resolution_usec;
 
 	_reports->force(&pwmin_report);
 }
