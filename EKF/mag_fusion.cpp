@@ -379,9 +379,7 @@ void Ekf::fuseHeading()
 	float q2 = _state.quat_nominal(2);
 	float q3 = _state.quat_nominal(3);
 
-	float R_YAW = fmaxf(_params.mag_heading_noise, 1.0e-2f);
-	R_YAW = R_YAW * R_YAW;
-
+	float R_YAW = 1.0f;
 	float predicted_hdg;
 	float H_YAW[4];
 	matrix::Vector3f mag_earth_pred;
@@ -522,11 +520,22 @@ void Ekf::fuseHeading()
 		}
 	}
 
+	// Calculate the observation variance
+	if (_control_status.flags.mag_hdg) {
+		// using magnetic heading tuning parameter
+		R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+	} else if (_control_status.flags.ev_yaw) {
+		// using error estimate from external vision data
+		R_YAW = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+	} else {
+		// there is no yaw observation
+		return;
+	}
+
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
 	// calculate the innovaton variance
 	float PH[4];
 	_heading_innov_var = R_YAW;
-
 	for (unsigned row = 0; row <= 3; row++) {
 		PH[row] = 0.0f;
 

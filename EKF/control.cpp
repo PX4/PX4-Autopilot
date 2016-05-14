@@ -86,7 +86,7 @@ void Ekf::controlExternalVisionAiding()
 	}
 
 	// external vision yaw aiding selection logic
-	if ((_params.mag_fusion_type == USE_EV_YAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+	if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 		// check for a exernal vision measurement that has fallen behind the fusion time horizon
 		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 			// reset the yaw angle to the value from the observaton quaternion
@@ -107,8 +107,12 @@ void Ekf::controlExternalVisionAiding()
 			// flag the yaw as aligned
 			_control_status.flags.yaw_align = true;
 
-			// turn on fusion of external vision yaw measurements
+			// turn on fusion of external vision yaw measurements and disable all magnetoemter fusion
 			_control_status.flags.ev_yaw = true;
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_3D = false;
+			_control_status.flags.mag_dec = false;
+
 			printf("EKF switching to external vision yaw fusion\n");
 		}
 	}
@@ -462,6 +466,11 @@ void Ekf::controlHeightAiding()
 
 void Ekf::controlMagAiding()
 {
+	// If we are using external vision data for heading then no magnetometer fusion is used
+	if (_control_status.flags.ev_yaw) {
+		return;
+	}
+
 	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 	// or the more accurate 3-axis fusion
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
