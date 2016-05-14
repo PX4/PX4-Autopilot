@@ -683,7 +683,7 @@ PX4IO::init()
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 
-	if ((_max_actuators < 1) || (_max_actuators > 255) ||
+	if ((_max_actuators < 1) || (_max_actuators > 16) ||
 	    (_max_relays > 32)   ||
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
@@ -2471,15 +2471,18 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_FAILSAFE_PWM:
+	case PWM_SERVO_GET_FAILSAFE_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
 
-		ret = io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, 0, (uint16_t *)arg, _max_actuators);
+			ret = io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm->values, _max_actuators);
 
-		if (ret != OK) {
-			ret = -EIO;
+			if (ret != OK) {
+				ret = -EIO;
+			}
+
+			break;
 		}
-
-		break;
 
 	case PWM_SERVO_SET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
@@ -2495,15 +2498,18 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_DISARMED_PWM:
+	case PWM_SERVO_GET_DISARMED_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
 
-		ret = io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, (uint16_t *)arg, _max_actuators);
+			ret = io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm->values, _max_actuators);
 
-		if (ret != OK) {
-			ret = -EIO;
+			if (ret != OK) {
+				ret = -EIO;
+			}
+
+			break;
 		}
-
-		break;
 
 	case PWM_SERVO_SET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
@@ -2519,15 +2525,18 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MIN_PWM:
+	case PWM_SERVO_GET_MIN_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
 
-		ret = io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, (uint16_t *)arg, _max_actuators);
+			ret = io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm->values, _max_actuators);
 
-		if (ret != OK) {
-			ret = -EIO;
+			if (ret != OK) {
+				ret = -EIO;
+			}
+
+			break;
 		}
-
-		break;
 
 	case PWM_SERVO_SET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
@@ -2543,12 +2552,15 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MAX_PWM:
+	case PWM_SERVO_GET_MAX_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
 
-		ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, (uint16_t *)arg, _max_actuators);
+			ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm->values, _max_actuators);
 
-		if (ret != OK) {
-			ret = -EIO;
+			if (ret != OK) {
+				ret = -EIO;
+			}
 		}
 
 		break;
