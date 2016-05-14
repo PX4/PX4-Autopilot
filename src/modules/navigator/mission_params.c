@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
 PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
 
 /**
- * Enable persistent onboard mission storage
+ * Persistent onboard mission storage
  *
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
