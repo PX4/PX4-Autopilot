@@ -872,6 +872,7 @@ void
 PX4FMU::update_pwm_out_state(void)
 {
 	bool on = _pwm_on && _servos_armed;
+
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
@@ -2089,6 +2090,7 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 
 	if (_oneshot_mode) {
 		hrt_abstime now = hrt_absolute_time();
+
 		/*
 		  when doing oneshot we need to guarantee that one
 		  pulse won't interrupt the previous pulse, while
@@ -2101,8 +2103,8 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 		if (now < _oneshot_delay_till) {
 			up_udelay(_oneshot_delay_till - now);
 		}
-        }
-        
+	}
+
 	uint16_t widest_pulse = 0;
 
 	for (uint8_t i = 0; i < count; i++) {
