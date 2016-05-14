@@ -73,7 +73,7 @@ void Ekf::controlExternalVisionAiding()
 		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 			// turn on use of external vision measurements for position and height
 			_control_status.flags.ev_pos = true;
-			printf("EKF switching to external vision position fusion");
+			printf("EKF switching to external vision position fusion\n");
 			// turn off other forms of height aiding
 			_control_status.flags.baro_hgt = false;
 			_control_status.flags.gps_hgt = false;
@@ -109,7 +109,7 @@ void Ekf::controlExternalVisionAiding()
 
 			// turn on fusion of external vision yaw measurements
 			_control_status.flags.ev_yaw = true;
-			printf("EKF switching to external vision yaw fusion");
+			printf("EKF switching to external vision yaw fusion\n");
 		}
 	}
 
