@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -292,7 +292,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 	// Unit test hook is set, call that instead
 	_utRcvMsgFunc(ftp_req, _worker_data);
 #else
-	_mavlink->send_message(MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL, ftp_req);
+	mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), ftp_req);
 #endif
 
 }

@@ -49,6 +49,8 @@ __BEGIN_DECLS
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
 
+#define MAVLINK_END_UART_SEND mavlink_end_uart_send
+
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
@@ -75,6 +77,8 @@ extern mavlink_system_t mavlink_system;
  * @param ch Character to send
  */
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
+
+void mavlink_end_uart_send(mavlink_channel_t chan, int length);
 
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);

@@ -224,9 +224,17 @@ public:
 	 */
 	bool			get_manual_input_mode_generation() { return _generate_rc; }
 
-	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
-
+	/**
+	 * Send bytes out on the link.
+	 *
+	 * On a network port these might actually get buffered to form a packet.
+	 */
 	void			send_bytes(const uint8_t *buf, unsigned packet_len);
+
+	/**
+	 * Flush the transmit buffer and send one MAVLink packet
+	 */
+	void			send_packet();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -451,7 +459,8 @@ private:
 	struct sockaddr_in _bcast_addr;
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
-
+	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
+	unsigned _network_buf_len;
 #endif
 	int _socket_fd;
 	Protocol	_protocol;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -409,7 +409,7 @@ protected:
 				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
 				msg.text[sizeof(msg.text) - 1] = '\0';
 
-				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
+				mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
 
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
 #ifndef __PX4_POSIX_EAGLE
@@ -537,7 +537,7 @@ protected:
 				msg.param6 = cmd.param6;
 				msg.param7 = cmd.param7;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &msg);
+				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg);
 			}
 		}
 	}
@@ -623,7 +623,7 @@ protected:
 			msg.errors_count3 = 0;
 			msg.errors_count4 = 0;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
+			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
 
 			/* battery status message with higher resolution */
 			mavlink_battery_status_t bat_msg = {};
@@ -643,7 +643,7 @@ protected:
 				}
 			}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);
+			mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
 		}
 	}
 };
@@ -749,7 +749,7 @@ protected:
 			msg.temperature = sensor.baro_temp_celcius[0];
 			msg.fields_updated = fields_updated;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_HIGHRES_IMU, &msg);
+			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -813,7 +813,7 @@ protected:
 			msg.pitchspeed = att.pitchspeed;
 			msg.yawspeed = att.yawspeed;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ATTITUDE, &msg);
+			mavlink_msg_attitude_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -877,7 +877,7 @@ protected:
 			msg.pitchspeed = att.pitchspeed;
 			msg.yawspeed = att.yawspeed;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ATTITUDE_QUATERNION, &msg);
+			mavlink_msg_attitude_quaternion_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -983,7 +983,7 @@ protected:
 			}
 			msg.climb = -pos.vel_d;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_VFR_HUD, &msg);
+			mavlink_msg_vfr_hud_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1049,7 +1049,7 @@ protected:
 			msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
 			msg.satellites_visible = gps.satellites_used;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_GPS_RAW_INT, &msg);
+			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1095,7 +1095,7 @@ protected:
 		msg.time_boot_ms = hrt_absolute_time() / 1000;
 		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
-		_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &msg);
+		mavlink_msg_system_time_send_struct(_mavlink->get_channel(), &msg);
 	}
 };
 
@@ -1137,7 +1137,7 @@ protected:
 		msg.tc1 = 0;
 		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
 
-		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &msg);
+		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &msg);
 	}
 };
 
@@ -1204,7 +1204,7 @@ protected:
 			msg.flags = pos.flags;
 			msg.squawk = pos.squawk;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ADSB_VEHICLE, &msg);
+			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1263,7 +1263,7 @@ protected:
 
 			/* ensure that only active trigger events are sent */
 			if (trigger.timestamp > 0) {
-				_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
 			}
 		}
 	}
@@ -1337,7 +1337,7 @@ protected:
 			msg.vz = pos.vel_d * 100.0f;
 			msg.hdg = _wrap_2pi(pos.yaw) * M_RAD_TO_DEG_F * 100.0f;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_GLOBAL_POSITION_INT, &msg);
+			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1401,7 +1401,7 @@ protected:
             vmsg.pitch = rpy(1);
             vmsg.yaw = rpy(2);
 
-            _mavlink->send_message(MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE, &vmsg);
+            mavlink_msg_vision_position_estimate_send_struct(_mavlink->get_channel(), &vmsg);
         }
     }
 };
@@ -1463,7 +1463,7 @@ protected:
 			msg.vy = pos.vy;
 			msg.vz = pos.vz;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED, &msg);
+			mavlink_msg_local_position_ned_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1536,7 +1536,7 @@ protected:
 			msg.covariance[11] = est.timeout_flags;
 			memcpy(msg.covariance, est.covariances, sizeof(est.covariances));
 
-			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV, &msg);
+			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1591,7 +1591,7 @@ protected:
 
 			// To be added and filled
 			// mavlink_estimator_status_t msg = {};
-			//_mavlink->send_message(MAVLINK_MSG_ID_ESTIMATOR_STATUS, &msg);
+			//mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
 
 			mavlink_vibration_t msg = {};
 
@@ -1599,7 +1599,7 @@ protected:
 			msg.vibration_y = est.vibe[1];
 			msg.vibration_z = est.vibe[2];
 
-			_mavlink->send_message(MAVLINK_MSG_ID_VIBRATION, &msg);
+			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1662,7 +1662,7 @@ protected:
 			msg.y = mocap.y;
 			msg.z = mocap.z;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ATT_POS_MOCAP, &msg);
+			mavlink_msg_att_pos_mocap_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1735,7 +1735,7 @@ protected:
 				msg.approach_y = 0.0f;
 				msg.approach_z = 0.0f;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_HOME_POSITION, &msg);
+				mavlink_msg_home_position_send_struct(_mavlink->get_channel(), &msg);
 			}
 		}
 	}
@@ -1817,7 +1817,7 @@ protected:
 			msg.servo7_raw = act.output[6];
 			msg.servo8_raw = act.output[7];
 
-			_mavlink->send_message(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, &msg);
+			mavlink_msg_servo_output_raw_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -1910,7 +1910,7 @@ protected:
 				msg.controls[i] = att_ctrl.control[i];
 			}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET, &msg);
+			mavlink_msg_actuator_control_target_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2076,7 +2076,7 @@ protected:
 			msg.mode = mavlink_base_mode;
 			msg.nav_mode = 0;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg);
+			mavlink_msg_hil_controls_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2135,7 +2135,7 @@ protected:
 			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
 			msg.alt = pos_sp_triplet.current.alt;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT, &msg);
+			mavlink_msg_position_target_global_int_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2203,7 +2203,7 @@ protected:
 			msg.afy = pos_sp.acc_y;
 			msg.afz = pos_sp.acc_z;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED, &msg);
+			mavlink_msg_position_target_local_ned_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2275,7 +2275,7 @@ protected:
 
 			msg.thrust = att_sp.thrust;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ATTITUDE_TARGET, &msg);
+			mavlink_msg_attitude_target_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2355,7 +2355,7 @@ protected:
 
 			msg.rssi = (rc.channel_count > 0) ? rc.rssi : 0;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
+			mavlink_msg_rc_channels_send_struct(_mavlink->get_channel(), &msg);
 
 			/* send override message - harmless if connected to GCS, allows to connect a board to a Linux system */
 			/* http://mavlink.org/messages/common#RC_CHANNELS_OVERRIDE */
@@ -2371,7 +2371,7 @@ protected:
 			over.chan7_raw = msg.chan7_raw;
 			over.chan8_raw = msg.chan8_raw;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, &over);
+			mavlink_msg_rc_channels_override_send_struct(_mavlink->get_channel(), &over);
 		}
 	}
 };
@@ -2440,7 +2440,7 @@ protected:
 			msg.buttons |= (manual.acro_switch << (shift * 4));
 			msg.buttons |= (manual.offboard_switch << (shift * 5));
 
-			_mavlink->send_message(MAVLINK_MSG_ID_MANUAL_CONTROL, &msg);
+			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2508,7 +2508,7 @@ protected:
 			msg.time_delta_distance_us = flow.time_since_last_sonar_update;
 			msg.temperature = flow.gyro_temperature;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_OPTICAL_FLOW_RAD, &msg);
+			mavlink_msg_optical_flow_rad_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2568,7 +2568,7 @@ protected:
 			msg.name[sizeof(msg.name) - 1] = '\0';
 			msg.value = debug.value;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+			mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2635,7 +2635,7 @@ protected:
 			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitudeSp;
 			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeedSp;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT, &msg);
+			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2700,7 +2700,7 @@ protected:
 		msg.param6 = 0;
 		msg.param7 = 0;
 
-		_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &msg);
+		mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg);
 	}
 };
 
@@ -2783,7 +2783,7 @@ protected:
 			msg.current_distance = dist_sensor.current_distance * 100.0f; /* m to cm */
 			msg.covariance = dist_sensor.covariance;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_DISTANCE_SENSOR, &msg);
+			mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -2877,7 +2877,7 @@ protected:
 		}
 
 		if (updated) {
-			_mavlink->send_message(MAVLINK_MSG_ID_EXTENDED_SYS_STATE, &_msg);
+			mavlink_msg_extended_sys_state_send_struct(_mavlink->get_channel(), &_msg);
 		}
 	}
 };
@@ -2971,7 +2971,7 @@ protected:
 				msg.bottom_clearance = NAN;
 			}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ALTITUDE, &msg);
+			mavlink_msg_altitude_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };

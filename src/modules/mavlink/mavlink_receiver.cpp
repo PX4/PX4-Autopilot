@@ -1353,9 +1353,7 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 	if ((mavlink_system.sysid == ping.target_system) &&
 	    (mavlink_system.compid == ping.target_component)) {
-		mavlink_message_t msg_out;
-		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
-		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
 }
 
@@ -1423,7 +1421,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 		rsync.tc1 = now_ns;
 		rsync.ts1 = tsync.ts1;
 
-		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
+		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
 
 		return;
 

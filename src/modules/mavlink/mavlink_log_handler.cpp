@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -257,7 +257,7 @@ MavlinkLogHandler::_log_send_listing()
 	response.id 		= _pLogHandlerHelper->next_entry;
 	response.num_logs	= _pLogHandlerHelper->log_count;
 	response.last_log_num	= _pLogHandlerHelper->last_entry;
-	_mavlink->send_message(MAVLINK_MSG_ID_LOG_ENTRY, &response);
+	mavlink_msg_log_entry_send_struct(_mavlink->get_channel(), &response);
         //-- If we're done listing, flag it.
         if (_pLogHandlerHelper->next_entry == _pLogHandlerHelper->last_entry) {
 		_pLogHandlerHelper->current_status = LogListHelper::LOG_HANDLER_IDLE;
@@ -289,7 +289,7 @@ MavlinkLogHandler::_log_send_data()
 	response.ofs   = _pLogHandlerHelper->current_log_data_offset;
 	response.id    = _pLogHandlerHelper->current_log_index;
 	response.count = read_size;
-	_mavlink->send_message(MAVLINK_MSG_ID_LOG_DATA, &response);
+	mavlink_msg_log_data_send_struct(_mavlink->get_channel(), &response);
 	_pLogHandlerHelper->current_log_data_offset    += read_size;
 	_pLogHandlerHelper->current_log_data_remaining -= read_size;
 	if (read_size < sizeof(response.data) || _pLogHandlerHelper->current_log_data_remaining == 0) {
