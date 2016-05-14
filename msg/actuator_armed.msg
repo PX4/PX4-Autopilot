@@ -1,5 +1,4 @@
 
-uint64 timestamp	# Microseconds since system boot
 bool armed		# Set to true if system is armed
 bool prearmed		# Set to true if the actuator safety is disabled but motors are not armed
 bool ready_to_arm	# Set to true if system is ready to be armed

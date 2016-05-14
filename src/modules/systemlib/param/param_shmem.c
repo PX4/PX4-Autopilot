@@ -158,9 +158,6 @@ UT_array	*param_values;
 /** array info for the modified parameters array */
 const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
-/** parameter update topic */
-ORB_DEFINE(parameter_update, struct parameter_update_s);
-
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
 

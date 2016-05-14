@@ -36,8 +36,9 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
 
+link_libraries(msg_gen)
+
 set(SRCS
-	objects_common.cpp
 	uORBUtils.cpp
 	uORB.cpp
 	uORBMain.cpp

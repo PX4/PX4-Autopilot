@@ -78,10 +78,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -412,7 +408,7 @@ bool get_log_time_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
-	time_t utc_time_sec;
+	time_t utc_time_sec = 0;
 
 	if (_gpstime_only && has_gps_3d_fix) {
 		utc_time_sec = gps_time_sec;

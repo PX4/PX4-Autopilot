@@ -107,11 +107,10 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 0);
 
 /**
- * Enable TELEM2 as companion computer link
+ * TELEM2 as companion computer link
  *
  * CHANGING THIS VALUE REQUIRES A RESTART. Configures the baud rate of the TELEM2 connector as
  * companion computer interface.
- * Set to zero to disable, set to these values to enable (NO OTHER VALUES SUPPORTED!).
  *
  * @value 0 Disabled
  * @value 10 FrSky Telemetry
@@ -140,3 +139,15 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
+
+/**
+ * SD logger
+ *
+ * @value 0 sdlog2 (default)
+ * @value 1 new logger (experimental)
+ * @min 0
+ * @max 1
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_LOGGER, 0);

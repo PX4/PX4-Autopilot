@@ -244,6 +244,10 @@ private:
 	control::BlockParamFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
 
+	// output predictor filter time constants
+	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
+	control::BlockParamFloat _tau_pos;	// time constant used by the output position complementary filter (s)
+
 	int update_subscriptions();
 
 };
@@ -326,7 +330,9 @@ Ekf2::Ekf2():
 	_rng_pos_z(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2)),
 	_flow_pos_x(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0)),
 	_flow_pos_y(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1)),
-	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2))
+	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
+	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
+	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau)
 {
 
 }
