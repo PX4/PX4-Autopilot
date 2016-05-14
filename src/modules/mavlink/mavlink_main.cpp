@@ -127,7 +127,7 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 {
 	Mavlink* m = Mavlink::get_instance((unsigned)chan);
 	if (m != nullptr) {
-		m->send_packet();
+		(void)m->send_packet();
 	}
 }
 
@@ -864,12 +864,12 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
-void
+int
 Mavlink::send_packet()
 {
-#ifdef __PX4_POSIX
-
 	int ret = -1;
+
+#ifdef __PX4_POSIX
 
 	if (get_protocol() == UDP) {
 		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
@@ -901,8 +901,9 @@ Mavlink::send_packet()
 	}
 
 	_network_buf_len = 0;
-
 #endif
+
+	return ret;
 }
 
 void
