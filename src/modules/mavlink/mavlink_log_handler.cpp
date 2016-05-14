@@ -253,7 +253,10 @@ void
 MavlinkLogHandler::_log_send_listing()
 {
 	mavlink_log_entry_t response;
-	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->next_entry, response.size, response.time_utc);
+	uint32_t size, date;
+	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->next_entry, size, date);
+	response.size 		= size;
+	response.time_utc 	= date;
 	response.id 		= _pLogHandlerHelper->next_entry;
 	response.num_logs	= _pLogHandlerHelper->log_count;
 	response.last_log_num	= _pLogHandlerHelper->last_entry;
