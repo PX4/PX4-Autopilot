@@ -229,6 +229,10 @@ struct parameters {
 	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
 	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
 
+	// output complementary filter tuning
+	float vel_Tau;	// velocity state correction time constant (1/sec)
+	float pos_Tau;	// postion state correction time constant (1/sec)
+
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
@@ -307,6 +311,10 @@ struct parameters {
 		gps_pos_body = {};
 		rng_pos_body = {};
 		flow_pos_body = {};
+
+		// output complementary filter tuning time constants
+		vel_Tau = 0.5f;
+		pos_Tau = 0.25f;
 	}
 };
 
