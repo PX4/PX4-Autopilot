@@ -186,7 +186,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 						param_value.param_type = MAV_PARAM_TYPE_UINT32;
 						memcpy(&param_value.param_value, &hash, sizeof(hash));
-						_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &param_value);
+						mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &param_value);
 					} else {
 						/* local name buffer to enforce null-terminated string */
 						char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
@@ -302,7 +302,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 			memcpy(&msg.param_value, &val, sizeof(int32_t));
 			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
-		_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg, value.node_id);
+		mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 	} else if (_send_all_index >= 0 && _mavlink->boot_complete()) {
 		/* send all parameters if requested, but only after the system has booted */
 
@@ -325,7 +325,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 			strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 			msg.param_type = MAV_PARAM_TYPE_UINT32;
 			memcpy(&msg.param_value, &hash, sizeof(hash));
-			_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg);
+			mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 
 			/* after this we should start sending all params */
 			_send_all_index = 0;
@@ -396,7 +396,7 @@ MavlinkParametersManager::send_param(param_t param)
 		msg.param_type = MAVLINK_TYPE_FLOAT;
 	}
 
-	_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg);
+	mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 
 	return 0;
 }
