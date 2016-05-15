@@ -60,15 +60,11 @@ public:
 
 private:
 
-	static constexpr int TARGET_TIMEOUT_MS = 5000;
+	static constexpr int TARGET_TIMEOUT_MS = 2500;
 	static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 5;
 	static constexpr int INTERPOLATION_PNTS = 20;
-	static constexpr float FF_K = .1F;
+	static constexpr float FF_K = .25F;
 	static constexpr float OFFSET_M = 8;
-
-	// higher numbers slow down the time it takes to decide whether a target is moving
-
-	static constexpr float RESPONSIVENESS = 8.0F;
 
 	enum FollowTargetState {
 		TRACK_POSITION,
@@ -103,9 +99,12 @@ private:
 
 
 	Navigator *_navigator;
-	control::BlockParamFloat _param_min_alt;
-	control::BlockParamFloat _param_tracking_dist;
-	control::BlockParamInt _param_tracking_side;
+	control::BlockParamFloat	_param_min_alt;
+	control::BlockParamFloat 	_param_tracking_dist;
+	control::BlockParamInt 		_param_tracking_side;
+	control::BlockParamFloat 	_param_tracking_resp;
+	control::BlockParamFloat 	_param_yaw_auto_max;
+
 
 	FollowTargetState _follow_target_state;
 	int _follow_target_position;
@@ -127,11 +126,12 @@ private:
 
 	follow_target_s _current_target_motion;
 	follow_target_s _previous_target_motion;
-	float _confidence;
-	float _confidence_ratio;
+	float _avg_cos_ratio;
 	double _filtered_target_lat;
 	double _filtered_target_lon;
 	float _yaw_rate;
+	float _responsiveness;
+	float _yaw_auto_max;
 
 	// Mavlink defined motion reporting capabilities
 

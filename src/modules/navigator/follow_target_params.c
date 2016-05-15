@@ -77,3 +77,16 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
  */
 PARAM_DEFINE_INT32(NAV_FT_FS, 1);
 
+/**
+ * Dynamic filtering algorithm responsiveness to target movement
+ * lower numbers increase the responsiveness to changing long lat
+ * but also ignore less noise
+ *
+ * @unit n/a
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group Follow target
+ */
+PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.8f);
+
