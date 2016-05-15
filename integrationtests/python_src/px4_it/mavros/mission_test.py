@@ -73,6 +73,7 @@ class MavrosMissionTest(unittest.TestCase):
         self.home_alt = 0
         self.mc_rad = 5
         self.fw_rad = 50
+        self.fw_alt_rad = 10
         self.last_alt_d = 9999
         self.last_pos_d = 9999
 
@@ -111,7 +112,7 @@ class MavrosMissionTest(unittest.TestCase):
     #
     # Helper methods
     #
-    def is_at_position(self, lat, lon, alt, offset):
+    def is_at_position(self, lat, lon, alt, xy_offset, z_offset):
         R = 6371000 # metres
         rlat1 = math.radians(lat)
         rlat2 = math.radians(self.global_position.latitude)
@@ -135,7 +136,7 @@ class MavrosMissionTest(unittest.TestCase):
         if self.last_alt_d > alt_d:
             self.last_alt_d = alt_d
 
-        return d < offset and alt_d < offset
+        return d < xy_offset and alt_d < z_offset
 
     def reach_position(self, lat, lon, alt, timeout, index):
         # reset best distances
@@ -146,11 +147,13 @@ class MavrosMissionTest(unittest.TestCase):
         count = 0
         while count < timeout:
             # use different radius matching vehicle state
-            radius = self.mc_rad
+            xy_radius = self.mc_rad
+            z_radius = self.mc_rad
             if self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW:
-                radius = self.fw_rad
+                xy_radius = self.fw_rad
+                z_radius = self.fw_alt_rad
 
-            if self.is_at_position(lat, lon, alt, radius):
+            if self.is_at_position(lat, lon, alt, xy_radius, z_radius):
                 rospy.loginfo("position reached, index: %d, count: %d, pos_d: %f, alt_d: %f" %
                     (index, count, self.last_pos_d, self.last_alt_d))
                 break
@@ -158,8 +161,8 @@ class MavrosMissionTest(unittest.TestCase):
             self.rate.sleep()
 
         self.assertTrue(count < timeout, ("took too long to get to position " +
-            "lat: %f, lon: %f, alt: %f, radius: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f" %
-            (lat, lon, alt, radius, timeout, index, self.last_pos_d, self.last_alt_d)))
+            "lat: %f, lon: %f, alt: %f, xy off: %f, z off: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f" %
+            (lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d)))
 
     def run_mission(self):
         """switch mode: armed | auto"""
