@@ -65,13 +65,6 @@ class MavrosMissionTest(unittest.TestCase):
         #self.helper = PX4TestHelper("mavros_offboard_posctl_test")
         #self.helper.setUp()
 
-        rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
-        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
-        rospy.Subscriber("mavros/extended_state", ExtendedState, self.extended_state_callback)
-        self.pub_mavlink = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
-        rospy.wait_for_service('mavros/cmd/command', 30)
-        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
-        self._srv_wp_push = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
         self.rate = rospy.Rate(10) # 10hz
         self.has_global_pos = False
         self.local_position = PoseStamped()
@@ -79,10 +72,21 @@ class MavrosMissionTest(unittest.TestCase):
         self.extended_state = ExtendedState()
         self.home_alt = 0
         self.mc_rad = 5
-        self.fw_rad = 40
+        self.fw_rad = 50
+        self.last_alt_d = 9999
+        self.last_pos_d = 9999
 
         # need to simulate heartbeat for datalink loss detection
         rospy.Timer(rospy.Duration(0.5), self.send_heartbeat)
+
+        rospy.wait_for_service('mavros/cmd/command', 30)
+        self.pub_mavlink = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
+        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
+        self._srv_wp_push = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
+
+        rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
+        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
+        rospy.Subscriber("mavros/extended_state", ExtendedState, self.extended_state_callback)
 
     def tearDown(self):
         #self.helper.tearDown()
@@ -124,9 +128,20 @@ class MavrosMissionTest(unittest.TestCase):
         alt_d = abs(alt - self.global_position.altitude)
 
         #rospy.loginfo("d: %f, alt_d: %f", d, alt_d)
+
+        # remember best distances
+        if self.last_pos_d > d:
+            self.last_pos_d = d
+        if self.last_alt_d > alt_d:
+            self.last_alt_d = alt_d
+
         return d < offset and alt_d < offset
 
-    def reach_position(self, lat, lon, alt, timeout):
+    def reach_position(self, lat, lon, alt, timeout, index):
+        # reset best distances
+        self.last_alt_d = 9999
+        self.last_pos_d = 9999
+
         # does it reach the position in X seconds?
         count = 0
         while count < timeout:
@@ -136,12 +151,15 @@ class MavrosMissionTest(unittest.TestCase):
                 radius = self.fw_rad
 
             if self.is_at_position(lat, lon, alt, radius):
+                rospy.loginfo("position reached, index: %d, count: %d, pos_d: %f, alt_d: %f" %
+                    (index, count, self.last_pos_d, self.last_alt_d))
                 break
             count = count + 1
             self.rate.sleep()
 
-        self.assertTrue(count < timeout, ("took too long to get to position %f, %f, %f, %f, %d" %
-            (lat, lon, alt, radius, timeout)))
+        self.assertTrue(count < timeout, ("took too long to get to position " +
+            "lat: %f, lon: %f, alt: %f, radius: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f" %
+            (lat, lon, alt, radius, timeout, index, self.last_pos_d, self.last_alt_d)))
 
     def run_mission(self):
         """switch mode: armed | auto"""
@@ -196,13 +214,16 @@ class MavrosMissionTest(unittest.TestCase):
             (-2, -2, 2),
             (2, 2, 2))
 
+        index = 0
         for wp in wps:
             # only check position waypoints
             if wp.frame == Waypoint.FRAME_GLOBAL_REL_ALT or wp.frame == Waypoint.FRAME_GLOBAL:
                 alt = wp.z_alt
                 if wp.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.home_alt
-                self.reach_position(wp.x_lat, wp.y_long, alt, 600)
+                self.reach_position(wp.x_lat, wp.y_long, alt, 600, index)
+
+            index += 1
 
 
 if __name__ == '__main__':
