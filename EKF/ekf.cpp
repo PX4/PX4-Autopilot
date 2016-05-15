@@ -572,7 +572,7 @@ void Ekf::predictState()
 
 	// filter and limit input between -50% and +100% of nominal value
 	input = math::constrain(input,0.0005f * (float)(FILTER_UPDATE_PERRIOD_MS),0.002f * (float)(FILTER_UPDATE_PERRIOD_MS));
-	_dt_ekf_avg = 0.99f*_dt_ekf_avg + 0.005f*(_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
+	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 }
 
 bool Ekf::collect_imu(imuSample &imu)
