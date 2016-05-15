@@ -86,7 +86,7 @@ MavlinkOrbSubscription::update(uint64_t *time, void* data)
 	}
 
 	if (orb_copy(_topic, _fd, data)) {
-		if (data) {
+		if (data != nullptr) {
 			/* error copying topic data */
 			memset(data, 0, _topic->o_size);
 		}

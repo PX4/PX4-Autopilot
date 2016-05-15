@@ -592,9 +592,9 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status;
-		struct cpuload_s cpuload;
-		struct battery_status_s battery_status;
+		struct vehicle_status_s status = {};
+		struct cpuload_s cpuload = {};
+		struct battery_status_s battery_status = {};
 
 		const bool updated_status = _status_sub->update(&status);
 		const bool updated_cpuload = _cpuload_sub->update(&cpuload);
@@ -611,14 +611,13 @@ protected:
 		if (updated_status || updated_battery || updated_cpuload) {
 			mavlink_sys_status_t msg;
 
-
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = cpuload.load * 1000.0f;
-			msg.voltage_battery = battery_status.voltage_filtered_v * 1000.0f;
-			msg.current_battery = battery_status.current_filtered_a * 100.0f;
-			msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
+			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
+			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
+			msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
@@ -634,13 +633,13 @@ protected:
 			bat_msg.id = 0;
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
-			bat_msg.current_consumed = battery_status.discharged_mah;
+			bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
 			bat_msg.energy_consumed = -1;
-			bat_msg.current_battery = battery_status.current_a * 100;
-			bat_msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
+			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
+			bat_msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			bat_msg.temperature = INT16_MAX;
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
-				if ((int)i < battery_status.cell_count) {
+				if ((int)i < battery_status.cell_count && battery_status.connected) {
 					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
 				} else {
 					bat_msg.voltages[i] = UINT16_MAX;
@@ -2686,7 +2685,7 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status;
+		struct vehicle_status_s status = {};
 		(void)_status_sub->update(&status);
 
 		mavlink_command_long_t msg;
