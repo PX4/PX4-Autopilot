@@ -51,15 +51,22 @@
 // gps measurement then use for velocity initialisation
 bool Ekf::resetVelocity()
 {
-	// if we have a valid GPS measurement use it to initialise velocity states
-	gpsSample gps_newest = _gps_buffer.get_newest();
+	if (_control_status.flags.gps) {
+		// if we have a valid GPS measurement use it to initialise velocity states
+		gpsSample gps_newest = _gps_buffer.get_newest();
 
-	if (_time_last_imu - gps_newest.time_us < 400000) {
-		_state.vel = gps_newest.vel;
+		if (_time_last_imu - gps_newest.time_us < 2*GPS_MAX_INTERVAL) {
+			_state.vel = gps_newest.vel;
+			return true;
+
+		} else {
+			// XXX use the value of the last known velocity
+			return false;
+		}
+	} else if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
+		_state.vel.setZero();
 		return true;
-
 	} else {
-		// XXX use the value of the last known velocity
 		return false;
 	}
 }
@@ -68,18 +75,48 @@ bool Ekf::resetVelocity()
 // gps measurement then use for position initialisation
 bool Ekf::resetPosition()
 {
-	// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
-	gpsSample gps_newest = _gps_buffer.get_newest();
+	if (_control_status.flags.gps) {
+		// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
+		gpsSample gps_newest = _gps_buffer.get_newest();
 
-	float time_delay = 1e-6f * (float)(_time_last_imu - gps_newest.time_us);
+		float time_delay = 1e-6f * (float)(_imu_sample_delayed.time_us - gps_newest.time_us);
+		float max_time_delay = 1e-6f * (float)GPS_MAX_INTERVAL;
 
-	if (time_delay < 0.4f) {
-		_state.pos(0) = gps_newest.pos(0) + gps_newest.vel(0) * time_delay;
-		_state.pos(1) = gps_newest.pos(1) + gps_newest.vel(1) * time_delay;
+		if (time_delay < max_time_delay) {
+			_state.pos(0) = gps_newest.pos(0) + gps_newest.vel(0) * time_delay;
+			_state.pos(1) = gps_newest.pos(1) + gps_newest.vel(1) * time_delay;
+			return true;
+
+		} else {
+			// XXX use the value of the last known position
+			return false;
+		}
+	} else if (_control_status.flags.opt_flow) {
+		_state.pos(0) = 0.0f;
+		_state.pos(1) = 0.0f;
 		return true;
+	} else if (_control_status.flags.ev_pos) {
+		// if we have fresh data, reset the position to the measurement
+		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
+		if (_time_last_imu - ev_newest.time_us < 2*EV_MAX_INTERVAL) {
+			// use the most recent data if it's time offset from the fusion time horizon is smaller
+			int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
+			int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
+			if (abs(dt_newest) < abs(dt_delayed)) {
+				_state.pos(0) = ev_newest.posNED(0);
+				_state.pos(1) = ev_newest.posNED(1);
+			} else {
+				_state.pos(0) = _ev_sample_delayed.posNED(0);
+				_state.pos(1) = _ev_sample_delayed.posNED(1);
+			}
+			return true;
+
+		} else {
+			// XXX use the value of the last known position
+			return false;
+		}
 
 	} else {
-		// XXX use the value of the last known position
 		return false;
 	}
 }
@@ -116,13 +153,14 @@ void Ekf::resetHeight()
 
 			vert_pos_reset = true;
 
+			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
+			baroSample baro_newest = _baro_buffer.get_newest();
+			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
+
 		} else {
 			// TODO: reset to last known range based estimate
 		}
 
-		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
-		baroSample baro_newest = _baro_buffer.get_newest();
-		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 
 	} else if (_control_status.flags.baro_hgt) {
 		// initialize vertical position with newest baro measurement
@@ -158,13 +196,24 @@ void Ekf::resetHeight()
 
 			vert_pos_reset = true;
 
+			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
+			baroSample baro_newest = _baro_buffer.get_newest();
+			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
+
 		} else {
 			// TODO: reset to last known gps based estimate
 		}
 
-		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
-		baroSample baro_newest = _baro_buffer.get_newest();
-		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
+	} else if (_control_status.flags.ev_pos) {
+		// initialize vertical position with newest measurement
+		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
+
+		if (_time_last_imu - ev_newest.time_us < 2 * EV_MAX_INTERVAL) {
+			_state.pos(2) = ev_newest.posNED(2);
+
+		} else {
+			// TODO: reset to last known baro based estimate
+		}
 	}
 
 	// reset the vertical velocity covariance values

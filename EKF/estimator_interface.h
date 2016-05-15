@@ -145,6 +145,9 @@ public:
 	// set optical flow data
 	void setOpticalFlowData(uint64_t time_usec, flow_message *flow);
 
+	// set external vision position and attitude data
+	void setExtVisionData(uint64_t time_usec, ext_vision_message *evdata);
+
 	// return a address to the parameters struct
 	// in order to give access to the application
 	parameters *getParamHandle() {return &_params;}
@@ -245,6 +248,7 @@ protected:
 	rangeSample _range_sample_delayed;
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
+	extVisionSample _ev_sample_delayed;
 
 	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
 	outputSample _output_new;	// filter output on the non-delayed time horizon
@@ -277,6 +281,7 @@ protected:
 	RingBuffer<rangeSample> _range_buffer;
 	RingBuffer<airspeedSample> _airspeed_buffer;
 	RingBuffer<flowSample> 	_flow_buffer;
+	RingBuffer<extVisionSample> _ext_vision_buffer;
 	RingBuffer<outputSample> _output_buffer;
 
 	uint64_t _time_last_imu;	// timestamp of last imu sample in microseconds
@@ -285,6 +290,7 @@ protected:
 	uint64_t _time_last_baro;	// timestamp of last barometer measurement in microseconds
 	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
+	uint64_t _time_last_ext_vision; // timestamp of last external vision measurement in microseconds
 	uint64_t _time_last_optflow;
 
 	fault_status_u _fault_status;

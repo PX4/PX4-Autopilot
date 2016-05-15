@@ -71,6 +71,13 @@ struct flow_message {
 	uint32_t dt;				// integration time of flow samples
 };
 
+struct ext_vision_message {
+	Vector3f posNED;  // measured NED position relative to the local origin (m)
+	Quaternion quat;  // measured quaternion orientation defining rotation from NED to body frame
+	float posErr;     // 1-Sigma spherical position accuracy (m)
+	float angErr;     // 1-Sigma angular error (rad)
+};
+
 struct outputSample {
 	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
 	Vector3f    vel;	// NED velocity estimate in earth frame in m/s
@@ -126,10 +133,19 @@ struct flowSample {
 	uint64_t time_us; // timestamp in microseconds of the integration period mid-point
 };
 
+struct extVisionSample {
+	Vector3f posNED;  // measured NED position relative to the local origin (m)
+	Quaternion quat;  // measured quaternion orientation defining rotation from NED to body frame
+	float posErr;     // 1-Sigma spherical position accuracy (m)
+	float angErr;     // 1-Sigma angular error (rad)
+	uint64_t time_us; // timestamp of the measurement in microseconds
+};
+
 // Integer definitions for vdist_sensor_type
 #define VDIST_SENSOR_BARO  0	// Use baro height
 #define VDIST_SENSOR_GPS   1	// Use GPS height
 #define VDIST_SENSOR_RANGE 2	// Use range finder height
+#define VDIST_SENSOR_EV    3    // USe external vision
 
 // Bit locations for mag_declination_source
 #define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
@@ -140,6 +156,8 @@ struct flowSample {
 #define MASK_USE_GPS    (1<<0)  // set to true to use GPS data
 #define MASK_USE_OF     (1<<1)  // set to true to use optical flow data
 #define MASK_INHIBIT_ACC_BIAS (1<<2)  // set to true to inhibit estimation of accelerometer delta velocity bias
+#define MASK_USE_EVPOS	(1<<3)  // set to true to use external vision NED position data
+#define MASK_USE_EVYAW  (1<<4)	// set to true to use exernal vision quaternion data for yaw
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
@@ -150,6 +168,7 @@ struct flowSample {
 #define GPS_MAX_INTERVAL	5e5
 #define BARO_MAX_INTERVAL	2e5
 #define RNG_MAX_INTERVAL	2e5
+#define EV_MAX_INTERVAL		2e5
 
 struct parameters {
 	// measurement source control
@@ -163,6 +182,7 @@ struct parameters {
 	float airspeed_delay_ms;	// airspeed measurement delay relative to the IMU (msec)
 	float flow_delay_ms;		// optical flow measurement delay relative to the IMU (msec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms;		// range finder measurement delay relative to the IMU (msec)
+	float ev_delay_ms;		// off-board vision measurement delay relative to the IMU (msec)
 
 	// input noise
 	float gyro_noise;		// IMU angular rate noise used for covariance prediction (rad/sec)
@@ -205,6 +225,11 @@ struct parameters {
 	float range_innov_gate;		// range finder fusion innovation consistency gate size (STD)
 	float rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
+	// vision position fusion
+	float ev_noise;		// observation noise for vision sensor estimates (m)
+	float ev_innov_gate;		// vision estimator fusion innovation consistency gate size (STD)
+	float ev_gnd_clearance;	// minimum valid value for vision based height estimate when on ground (m)
+
 	// optical flow fusion
 	float flow_noise;		// observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min;	// observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
@@ -228,6 +253,7 @@ struct parameters {
 	Vector3f gps_pos_body;	// xyz position of the GPS antenna in body frame (m)
 	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
 	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
+	Vector3f ev_pos_body;	// xyz position of VI-sensor focal point in body frame (m)
 
 	// output complementary filter tuning
 	float vel_Tau;	// velocity state correction time constant (1/sec)
@@ -247,6 +273,7 @@ struct parameters {
 		airspeed_delay_ms = 200.0f;
 		flow_delay_ms = 5.0f;
 		range_delay_ms = 5.0f;
+		ev_delay_ms = 100.0f;
 
 		// input noise
 		gyro_noise = 1.5e-2f;
@@ -311,10 +338,12 @@ struct parameters {
 		gps_pos_body = {};
 		rng_pos_body = {};
 		flow_pos_body = {};
+		ev_pos_body = {};
 
 		// output complementary filter tuning time constants
 		vel_Tau = 0.5f;
 		pos_Tau = 0.25f;
+
 	}
 };
 
@@ -383,6 +412,8 @@ union filter_control_status_u {
 		uint16_t baro_hgt    : 1; // 9 - true when baro height is being fused as a primary height reference
 		uint16_t rng_hgt     : 1; // 10 - true when range finder height is being fused as a primary height reference
 		uint16_t gps_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
+		uint16_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
+		uint16_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
 	} flags;
 	uint16_t value;
 };

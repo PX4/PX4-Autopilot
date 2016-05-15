@@ -56,6 +56,71 @@ void Ekf::controlFusionModes()
 		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 	}
 
+	// control use of various external souces for positon and velocity aiding
+	controlExternalVisionAiding();
+	controlOpticalFlowAiding();
+	controlGpsAiding();
+	controlHeightAiding();
+	controlMagAiding();
+
+}
+
+void Ekf::controlExternalVisionAiding()
+{
+	// external vision position aiding selection logic
+	if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align && _control_status.flags.yaw_align) {
+		// check for a exernal vision measurement that has fallen behind the fusion time horizon
+		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
+			// turn on use of external vision measurements for position and height
+			_control_status.flags.ev_pos = true;
+			printf("EKF switching to external vision position fusion\n");
+			// turn off other forms of height aiding
+			_control_status.flags.baro_hgt = false;
+			_control_status.flags.gps_hgt = false;
+			_control_status.flags.rng_hgt = false;
+			// reset the position, height and velocity
+			resetPosition();
+			resetVelocity();
+			resetHeight();
+		}
+	}
+
+	// external vision yaw aiding selection logic
+	if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		// check for a exernal vision measurement that has fallen behind the fusion time horizon
+		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
+			// reset the yaw angle to the value from the observaton quaternion
+			// get the roll, pitch, yaw estimates from the quaternion states
+			matrix::Quaternion<float> q_init(_state.quat_nominal(0), _state.quat_nominal(1), _state.quat_nominal(2),
+						    _state.quat_nominal(3));
+			matrix::Euler<float> euler_init(q_init);
+
+			// get initial yaw from the observation quaternion
+			extVisionSample ev_newest = _ext_vision_buffer.get_newest();
+			matrix::Quaternion<float> q_obs(ev_newest.quat(0), ev_newest.quat(1), ev_newest.quat(2), ev_newest.quat(3));
+			matrix::Euler<float> euler_obs(q_obs);
+			euler_init(2) = euler_obs(2);
+
+			// calculate initial quaternion states for the ekf
+			_state.quat_nominal = Quaternion(euler_init);
+
+			// flag the yaw as aligned
+			_control_status.flags.yaw_align = true;
+
+			// turn on fusion of external vision yaw measurements and disable all magnetoemter fusion
+			_control_status.flags.ev_yaw = true;
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_3D = false;
+			_control_status.flags.mag_dec = false;
+
+			printf("EKF switching to external vision yaw fusion\n");
+		}
+	}
+
+}
+
+void Ekf::controlOpticalFlowAiding()
+{
 	// optical flow fusion mode selection logic
 	// to start using optical flow data we need angular alignment complete, and fresh optical flow and height above terrain data
 	if ((_params.fusion_mode & MASK_USE_OF) && !_control_status.flags.opt_flow && _control_status.flags.tilt_align
@@ -127,6 +192,22 @@ void Ekf::controlFusionModes()
 		_control_status.flags.opt_flow = false;
 	}
 
+	// handle the case when we are relying on optical flow fusion and lose it
+	if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
+		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
+		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
+			// Switch to the non-aiding mode, zero the velocity states
+			// and set the synthetic position to the current estimate
+			_control_status.flags.opt_flow = false;
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+		}
+	}
+}
+
+void Ekf::controlGpsAiding()
+{
 	// GPS fusion mode selection logic
 	// To start use GPS we need angular alignment completed, the local NED origin set and fresh GPS data
 	if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
@@ -177,7 +258,10 @@ void Ekf::controlFusionModes()
 			}
 		}
 	}
+}
 
+void Ekf::controlHeightSensorTimeouts()
+{
 	/*
 	 * Handle the case where we have not fused height measurements recently and
 	 * uncertainty exceeds the max allowable. Reset using the best available height
@@ -351,18 +435,40 @@ void Ekf::controlFusionModes()
 		}
 
 	}
+}
 
-	// handle the case when we are relying on optical flow fusion and lose it
-	if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
-		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
-		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
-			// Switch to the non-aiding mode, zero the veloity states
-			// and set the synthetic position to the current estimate
-			_control_status.flags.opt_flow = false;
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
-		}
+void Ekf::controlHeightAiding()
+{
+	// check for height sensor timeouts and reset and change sensor if necessary
+	controlHeightSensorTimeouts();
+
+	// Control the soure of height measurements for the main filter
+	if (_control_status.flags.ev_pos) {
+	       _control_status.flags.baro_hgt = false;
+	       _control_status.flags.gps_hgt = false;
+	       _control_status.flags.rng_hgt = false;
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
+		_control_status.flags.baro_hgt = true;
+		_control_status.flags.gps_hgt = false;
+		_control_status.flags.rng_hgt = false;
+
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS && !_gps_hgt_faulty) || _control_status.flags.gps_hgt) {
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.gps_hgt = true;
+		_control_status.flags.rng_hgt = false;
+
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE && !_rng_hgt_faulty) {
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.gps_hgt = false;
+		_control_status.flags.rng_hgt = true;
+	}
+}
+
+void Ekf::controlMagAiding()
+{
+	// If we are using external vision data for heading then no magnetometer fusion is used
+	if (_control_status.flags.ev_yaw) {
+		return;
 	}
 
 	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
@@ -415,28 +521,10 @@ void Ekf::controlFusionModes()
 		_control_status.flags.mag_dec = false;
 	}
 
-	// Control the soure of height measurements for the main filter
-	if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
-		_control_status.flags.baro_hgt = true;
-		_control_status.flags.gps_hgt = false;
-		_control_status.flags.rng_hgt = false;
-
-	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS && !_gps_hgt_faulty) || _control_status.flags.gps_hgt) {
-		_control_status.flags.baro_hgt = false;
-		_control_status.flags.gps_hgt = true;
-		_control_status.flags.rng_hgt = false;
-
-	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE && !_rng_hgt_faulty) {
-		_control_status.flags.baro_hgt = false;
-		_control_status.flags.gps_hgt = false;
-		_control_status.flags.rng_hgt = true;
-	}
-
 	// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
 	if (_time_last_imu - _time_last_arsp_fuse > 10e6 || _time_last_arsp_fuse == 0) {
 		_control_status.flags.wind = false;
 	} else {
 		_control_status.flags.wind = true;
 	}
-
 }
