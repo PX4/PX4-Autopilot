@@ -452,6 +452,12 @@ void GPS::handleInjectDataTopic()
 
 bool GPS::injectData(uint8_t *data, size_t len)
 {
+	if (_dump_to_gps_device_fd >= 0) {
+		if (write(_dump_to_gps_device_fd, data, len) != len) {
+			PX4_WARN("gps dump failed");
+		}
+	}
+
 	return ::write(_serial_fd, data, len) == len;
 }
 
