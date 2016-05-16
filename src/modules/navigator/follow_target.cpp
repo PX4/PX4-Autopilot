@@ -74,11 +74,13 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_current_target_motion({}),
 	_previous_target_motion({}),
 	_avg_cos_ratio(0.0F),
+	_filtered_target_lat(0.0F),
+	_filtered_target_lon(0.0F),
 	_yaw_rate(0.0F),
-	_responsiveness(0.0F)
+	_responsiveness(0.0F),
+	_yaw_auto_max(0.0F),
+	_yaw_angle(0.0F)
 {
-	_avg_cos_ratio = 0.0F;
-	_filtered_target_lat = _filtered_target_lon = 0.0F;
 	updateParams();
 	_current_vel.zero();
 	_step_vel.zero();
@@ -105,7 +107,7 @@ void FollowTarget::on_activation()
 
 	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
 
-	_yaw_auto_max = _param_yaw_auto_max.get();
+	_yaw_auto_max = math::radians(_param_yaw_auto_max.get());
 
 	_follow_target_position = _param_tracking_side.get();
 
@@ -130,7 +132,6 @@ void FollowTarget::on_active()
 	bool _radius_exited = false;
 	bool updated = false;
 	float dt_ms = 0;
-	float yaw_angle = NAN;
 
 	orb_check(_follow_target_sub, &updated);
 
@@ -164,7 +165,7 @@ void FollowTarget::on_active()
 
 		// use target offset
 
-		map_projection_init(&target_ref, _current_target_motion.lat, _current_target_motion.lon);
+		map_projection_init(&target_ref,  _filtered_target_lat, _filtered_target_lon);
 		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1), &target_motion.lat, &target_motion.lon);
 
 	}
@@ -203,11 +204,11 @@ void FollowTarget::on_active()
 
 				if (_avg_cos_ratio > 0.0F) {
 					_filtered_target_position_delta = _target_position_delta*_avg_cos_ratio + _filtered_target_position_delta*(1.0F - _avg_cos_ratio);
-				} else {
-					_filtered_target_position_delta.zero();
 				}
 
-				if(_avg_cos_ratio  >= .50F) {
+				// if ratio is high enough, track target from a side
+
+				if(_avg_cos_ratio  > .70F) {
 					_target_position_offset = _rot_matrix * (_filtered_target_position_delta.normalized() * _follow_offset);
 				}
 
@@ -243,42 +244,54 @@ void FollowTarget::on_active()
 			_step_time_in_ms = (dt_ms / (float) INTERPOLATION_PNTS);
 
 			// if we are less than 3 meters from the target don't worry about trying to yaw
-			// just lock the yaw until we are a distance that makes sense
+			// lock the yaw until we are a distance that makes sense
 
-			if(_target_distance.length() > 3.0F) {
+			if((_target_distance).length() > 3.0F) {
 
-				// smooth yaw
+				// yaw smoothing
+
 				// this really needs to control the yaw rate directly in the attitude pid controller
 				// but seems to work ok for now since that cannot be controlled directly in auto mode
 				// right now
 
-				yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+				_yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 						_navigator->get_global_position()->lon,
 						_current_target_motion.lat,
 						_current_target_motion.lon);
 
-				_yaw_rate = (yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
+				_yaw_rate = (_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
 
 				_yaw_rate = _wrap_pi(_yaw_rate);
 
-				_yaw_rate = math::constrain(_yaw_rate, -1.0F*_yaw_auto_max, _yaw_auto_max)*.50F;
+				_yaw_rate = math::constrain(_yaw_rate, -1.0F*_yaw_auto_max, _yaw_auto_max);//*.80F;
 
 			} else {
-				yaw_angle = _yaw_rate = NAN;
+				_yaw_angle = _yaw_rate = NAN;
 			}
 		}
 
+//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
+//				(double) _step_vel(0),
+//				(double) _step_vel(1),
+//				(double) _current_vel(0),
+//				(double) _current_vel(1),
+//				(double) _est_target_vel(0),
+//				(double) _est_target_vel(1),
+//				(double) (_target_distance).length(),
+//				(double) (_target_position_offset + _target_distance).length(),
+//				_follow_target_state,
+//				(double)_avg_cos_ratio, (double) _yaw_rate);
+	}
 
-		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f mode = %d con ratio = %3.6f yaw rate = %3.6f",
-				(double) _step_vel(0),
-				(double) _step_vel(1),
-				(double) _current_vel(0),
-				(double) _current_vel(1),
-				(double) _est_target_vel(0),
-				(double) _est_target_vel(1),
-				(double) _target_distance.length(),
-				_follow_target_state,
-				(double)_avg_cos_ratio, (double) _yaw_rate);
+	// prevent yaw rate smoothing from over shooting target
+	// uses modulus of two pi to get diff
+	// by converting float to int
+
+	int angle_diff = (int) ((fabsf(_yaw_angle) - fabsf(_navigator->get_global_position()->yaw)) * 1e4F);
+	float mod_diff = ((float)(angle_diff % ((int) (M_PI_F * 2.0F * 1e4F))))/1e4F;
+
+	if (fabsf(mod_diff) < math::radians(5.0F)) {
+		_yaw_angle = _yaw_rate = NAN;
 	}
 
 	// update state machine
@@ -290,7 +303,7 @@ void FollowTarget::on_active()
 			if (_radius_entered == true) {
 				_follow_target_state = TRACK_VELOCITY;
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, yaw_angle);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _est_target_vel;
 				_filtered_target_lat = _current_target_motion.lat;
@@ -314,7 +327,7 @@ void FollowTarget::on_active()
 					_last_update_time = current_time;
 				}
 
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, yaw_angle);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
 
 				update_position_sp(true, false, _yaw_rate);
 			} else {
@@ -328,7 +341,7 @@ void FollowTarget::on_active()
 		// Climb to the minimum altitude
 		// and wait until a position is received
 
-		follow_target_s target = { };
+		follow_target_s target = {};
 
 		// for now set the target at the minimum height above the uav
 
@@ -336,7 +349,7 @@ void FollowTarget::on_active()
 		target.lon = _navigator->get_global_position()->lon;
 		target.alt = 0.0F;
 
-		set_follow_target_item(&_mission_item, _param_min_alt.get(), target, yaw_angle);
+		set_follow_target_item(&_mission_item, _param_min_alt.get(), target, _yaw_angle);
 
 		update_position_sp(false, false, _yaw_rate);
 

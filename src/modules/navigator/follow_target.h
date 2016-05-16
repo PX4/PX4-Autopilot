@@ -132,6 +132,7 @@ private:
 	float _yaw_rate;
 	float _responsiveness;
 	float _yaw_auto_max;
+	float _yaw_angle;
 
 	// Mavlink defined motion reporting capabilities
 
