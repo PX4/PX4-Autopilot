@@ -295,7 +295,7 @@ add_definitions(${definitions})
 #=============================================================================
 # source code generation
 #
-file(GLOB msg_files msg/*.msg)
+add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}

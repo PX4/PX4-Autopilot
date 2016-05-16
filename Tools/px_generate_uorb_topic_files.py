@@ -198,6 +198,9 @@ def convert_dir(format_idx, inputdir, outputdir, templatedir):
                 if not os.path.isfile(fn):
                         continue
 
+                if fn[-4:].lower() != '.msg':
+                        continue
+
                 generate_output_from_file(format_idx, fn, outputdir, templatedir, includepath)
         return True
 
