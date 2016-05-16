@@ -658,6 +658,8 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
 		log_message.body.innov2.s[8] = innov.airspeed_innov;
 		log_message.body.innov2.s[9] = innov.airspeed_innov_var;
+		log_message.body.innov2.s[10] = innov.beta_innov;
+		log_message.body.innov2.s[11] = innov.beta_innov_var;
 
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 
