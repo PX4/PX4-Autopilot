@@ -88,5 +88,5 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
  * @decimal 2
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.8f);
+PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.5f);
 
