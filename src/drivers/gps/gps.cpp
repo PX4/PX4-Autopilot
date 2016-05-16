@@ -569,8 +569,13 @@ int GPS::setBaudrate(unsigned baud)
 
 bool GPS::fileExist(const char *filename)
 {
+#ifdef __PX4_QURT
+	//FIXME: QuRT neither has stat() nor access(). Just pretend file does not exist.
+	return false;
+#else
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
+#endif
 }
 
 void GPS::initializeCommunicationDump()
@@ -596,11 +601,11 @@ void GPS::initializeCommunicationDump()
 	}
 
 	//open files
-	if ((_dump_to_gps_device_fd = open(to_device_file_name, O_CREAT | O_WRONLY, PX4_O_MODE_666)) < 0) {
+	if ((_dump_to_gps_device_fd = open(to_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
 		return;
 	}
 
-	if ((_dump_from_gps_device_fd = open(from_device_file_name, O_CREAT | O_WRONLY, PX4_O_MODE_666)) < 0) {
+	if ((_dump_from_gps_device_fd = open(from_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
 		close(_dump_to_gps_device_fd);
 		_dump_to_gps_device_fd = -1;
 		return;
