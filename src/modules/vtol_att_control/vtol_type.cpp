@@ -72,6 +72,9 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
+
+	memset(&_euler_sp._data[0], 0, sizeof(_euler_sp._data));
+
 }
 
 VtolType::~VtolType()
@@ -135,6 +138,12 @@ void VtolType::set_idle_fw()
 	if (ret != OK) {PX4_WARN("failed setting min values");}
 
 	px4_close(fd);
+}
+
+void VtolType::update_vtol_state()
+{
+	matrix::Quaternion<float> q_sp(&_v_att_sp->q_d[0]);
+	_euler_sp = matrix::Euler<float>(q_sp);
 }
 
 void VtolType::update_mc_state()

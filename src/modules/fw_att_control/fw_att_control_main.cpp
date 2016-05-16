@@ -968,12 +968,15 @@ FixedwingAttitudeControl::task_main()
 				 * - manual control is disabled (another app may send the setpoint, but it should
 				 *   for sure not be set from the remote control values)
 				 */
+				matrix::Quaternion<float> q_sp(&_att_sp.q_d[0]);
+				matrix::Euler<float> euler_sp(q_sp);
+
 				if (_vcontrol_mode.flag_control_auto_enabled ||
 				    !_vcontrol_mode.flag_control_manual_enabled) {
 					/* read in attitude setpoint from attitude setpoint uorb topic */
-					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
-					yaw_sp = _att_sp.yaw_body;
+					roll_sp = euler_sp(0) + _parameters.rollsp_offset_rad;
+					pitch_sp = euler_sp(1) + _parameters.pitchsp_offset_rad;
+					yaw_sp = euler_sp(2);
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -996,14 +999,14 @@ FixedwingAttitudeControl::task_main()
 					 * take straight attitude setpoint from position controller
 					 */
 					if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
-						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+						roll_sp = euler_sp(0) + _parameters.rollsp_offset_rad;
 
 					} else {
 						roll_sp = (_manual.y * _parameters.man_roll_max)
 							  + _parameters.rollsp_offset_rad;
 					}
 
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					pitch_sp = euler_sp(1) + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -1025,7 +1028,7 @@ FixedwingAttitudeControl::task_main()
 					 * Velocity should be controlled and manual is enabled.
 					*/
 					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					pitch_sp = euler_sp(1) + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -1068,10 +1071,12 @@ FixedwingAttitudeControl::task_main()
 					 */
 					struct vehicle_attitude_setpoint_s att_sp = {};
 					att_sp.timestamp = hrt_absolute_time();
-					att_sp.roll_body = roll_sp;
-					att_sp.pitch_body = pitch_sp;
-					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
+					euler_sp(0) = roll_sp;
+					euler_sp(1) = pitch_sp;
+					euler_sp(2) = 0.0f - _parameters.trim_yaw;
 					att_sp.thrust = throttle_sp;
+					matrix::Quaternion<float> q(euler_sp);
+					memcpy(&att_sp.q_d[0], q._data[0], sizeof(att_sp.q_d));
 
 					att_sp.roll_reset_integral = false;
 					att_sp.pitch_reset_integral = false;
@@ -1159,21 +1164,6 @@ FixedwingAttitudeControl::task_main()
 					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-
-						if (_debug && loop_counter % 10 == 0) {
-							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
-							      " airspeed %.4f, airspeed_scaling %.4f,"
-							      " roll_sp %.4f, pitch_sp %.4f,"
-							      " _roll_ctrl.get_desired_rate() %.4f,"
-							      " _pitch_ctrl.get_desired_rate() %.4f"
-							      " att_sp.roll_body %.4f",
-							      (double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
-							      (double)airspeed, (double)airspeed_scaling,
-							      (double)roll_sp, (double)pitch_sp,
-							      (double)_roll_ctrl.get_desired_rate(),
-							      (double)_pitch_ctrl.get_desired_rate(),
-							      (double)_att_sp.roll_body);
-						}
 					}
 
 					float yaw_u = 0.0f;

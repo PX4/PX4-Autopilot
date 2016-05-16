@@ -102,8 +102,10 @@ GpsFailure::on_active()
 	case GPSF_STATE_LOITER: {
 		/* Position controller does not run in this mode:
 		 * navigator has to publish an attitude setpoint */
-		_navigator->get_att_sp()->roll_body = M_DEG_TO_RAD_F * _param_openlooploiter_roll.get();
-		_navigator->get_att_sp()->pitch_body = M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get();
+		matrix::Quaternion<float> q_sp(&_navigator->get_att_sp()->q_d[0]);
+		matrix::Euler<float> euler_sp(q_sp);
+		euler_sp(0) = M_DEG_TO_RAD_F * _param_openlooploiter_roll.get();
+		euler_sp(1) = M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get();
 		_navigator->get_att_sp()->thrust = _param_openlooploiter_thrust.get();
 		_navigator->publish_att_sp();
 

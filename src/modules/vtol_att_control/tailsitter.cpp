@@ -233,8 +233,8 @@ void Tailsitter::update_transition_state()
 {
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
-		_yaw_transition = _v_att_sp->yaw_body;
-		_pitch_transition_start = _v_att_sp->pitch_body;
+		_yaw_transition = _euler_sp(2);
+		_pitch_transition_start = _euler_sp(1);
 		_thrust_transition_start = _v_att_sp->thrust;
 		_flag_was_in_trans_mode = true;
 	}
@@ -242,9 +242,9 @@ void Tailsitter::update_transition_state()
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 
 		/** create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
-		_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
+		_euler_sp(1) = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
 					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body , PITCH_TRANSITION_FRONT_P1 - 0.2f ,
+		_euler_sp(1) = math::constrain(_euler_sp(1) , PITCH_TRANSITION_FRONT_P1 - 0.2f ,
 							_pitch_transition_start);
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
@@ -278,13 +278,13 @@ void Tailsitter::update_transition_state()
 		}
 
 		/** create time dependant pitch angle set point  + 0.2 rad overlap over the switch value*/
-		if (_v_att_sp->pitch_body >= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
-			_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P1 -
+		if (_euler_sp(1) >= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
+			_euler_sp(1) = PITCH_TRANSITION_FRONT_P1 -
 						(fabsf(PITCH_TRANSITION_FRONT_P2 - PITCH_TRANSITION_FRONT_P1) * (float)hrt_elapsed_time(
 							 &_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
 
-			if (_v_att_sp->pitch_body <= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
-				_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P2 - 0.2f;
+			if (_euler_sp(1) <= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
+				_euler_sp(1) = PITCH_TRANSITION_FRONT_P2 - 0.2f;
 			}
 
 		}
@@ -312,9 +312,9 @@ void Tailsitter::update_transition_state()
 		}
 
 		/** create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value*/
-		_v_att_sp->pitch_body = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
+		_euler_sp(1) = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
 					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.back_trans_dur * 1000000.0f);
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body , -2.0f , PITCH_TRANSITION_BACK + 0.2f);
+		_euler_sp(1) = math::constrain(_euler_sp(1) , -2.0f , PITCH_TRANSITION_BACK + 0.2f);
 
 		//  throttle value is decreesed
 		_v_att_sp->thrust = _thrust_transition_start * 0.9f;
@@ -340,17 +340,11 @@ void Tailsitter::update_transition_state()
 	// compute desired attitude and thrust setpoint for the transition
 
 	_v_att_sp->timestamp = hrt_absolute_time();
-	_v_att_sp->roll_body = 0.0f;
-	_v_att_sp->yaw_body = _yaw_transition;
-	_v_att_sp->R_valid = true;
+	_euler_sp(0) = 0.0f;
+	_euler_sp(2) = _yaw_transition;
 
-	math::Matrix<3, 3> R_sp;
-	R_sp.from_euler(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
-	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
-
-	math::Quaternion q_sp;
-	q_sp.from_dcm(R_sp);
-	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+	matrix::Quaternion<float> q_sp(_euler_sp);
+	memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
 }
 
 void Tailsitter::waiting_on_tecs()

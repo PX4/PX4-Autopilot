@@ -1056,13 +1056,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					_att_sp.timestamp = hrt_absolute_time();
 
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
-						mavlink_quaternion_to_euler(set_attitude_target.q,
-									    &_att_sp.roll_body, &_att_sp.pitch_body, &_att_sp.yaw_body);
-						mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])_att_sp.R_body);
-						_att_sp.R_valid = true;
-						_att_sp.yaw_sp_move_rate = 0.0;
-						memcpy(_att_sp.q_d, set_attitude_target.q, sizeof(_att_sp.q_d));
+
+						memcpy(&_att_sp.q_d[0], &set_attitude_target.q[0], sizeof(_att_sp.q_d));
 						_att_sp.q_d_valid = true;
+						_att_sp.yaw_sp_move_rate = 0.0;
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid

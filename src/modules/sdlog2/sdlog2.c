@@ -1769,9 +1769,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- ATTITUDE SETPOINT --- */
 			if (copy_if_updated(ORB_ID(vehicle_attitude_setpoint), &subs.att_sp_sub, &buf.att_sp)) {
 				log_msg.msg_type = LOG_ATSP_MSG;
-				log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
-				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
-				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
+				// log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
+				// log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
+				// log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
+				log_msg.body.log_ATSP.roll_sp = 0;
+				log_msg.body.log_ATSP.pitch_sp = 0;
+				log_msg.body.log_ATSP.yaw_sp = 0;
 				log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
 				log_msg.body.log_ATSP.q_w = buf.att_sp.q_d[0];
 				log_msg.body.log_ATSP.q_x = buf.att_sp.q_d[1];

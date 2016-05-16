@@ -87,7 +87,7 @@ public:
 	/**
 	 * Update vtol state.
 	 */
-	virtual void update_vtol_state() = 0;
+	virtual void update_vtol_state();
 
 	/**
 	 * Update transition state.
@@ -172,6 +172,8 @@ protected:
 	hrt_abstime _trans_finished_ts = 0;
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
+
+	matrix::Euler<float> _euler_sp;
 
 };
 
