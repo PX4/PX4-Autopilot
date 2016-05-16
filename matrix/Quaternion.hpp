@@ -3,8 +3,13 @@
  *
  * All rotations and axis systems follow the right-hand rule.
  *
- * A quaternion instance of this class describes a rotation from
- * coordinate frame 1 to coordinate frame 2. The first element of the quaternion
+ * In order to rotate a vector v by a righthand rotation defined by the quaternion q
+ * one can use the following operation:
+ * v_rotated = q^(-1) * [0;v] * q
+ * where q^(-1) represents the inverse of the quaternion q.
+ * The product z of two quaternions z = q1 * q2 represents an intrinsic rotation
+ * in the order of first q1 followed by q2.
+ * The first element of the quaternion
  * represents the real part, thus, a quaternion representing a zero-rotation
  * is defined as (1,0,0,0).
  *
@@ -84,7 +89,15 @@ public:
     Quaternion(const Dcm<Type> & dcm) :
         Vector<Type, 4>()
     {
-        set_from_dcm(dcm);
+        Quaternion &q = *this;
+        q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
+                               dcm(1, 1) + dcm(2, 2)));
+        q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
+                    (4 * q(0)));
+        q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
+                    (4 * q(0)));
+        q(3) = Type((dcm(1, 0) - dcm(0, 1)) /
+                    (4 * q(0)));
     }
 
     /**
@@ -98,59 +111,6 @@ public:
      */
     Quaternion(const Euler<Type> & euler) :
         Vector<Type, 4>()
-    {
-        set_from_euler(euler);
-    }
-
-    /**
-     * Constructor from quaternion values
-     *
-     * Instance is initialized from quaternion values representing coordinate
-     * transformation from frame 2 to frame 1.
-     * A zero-rotation quaternion is represented by (1,0,0,0).
-     *
-     * @param a set quaternion value 0
-     * @param b set quaternion value 1
-     * @param c set quaternion value 2
-     * @param d set quaternion value 3
-     */
-    Quaternion(Type a, Type b, Type c, Type d) :
-        Vector<Type, 4>()
-    {
-        set_from_quaternion(a, b, c, d);
-    }
-
-    /**
-     * Set from dcm
-     *
-     * Instance is set from a dcm representing coordinate transformation
-     * from frame 2 to frame 1.
-     *
-     * @param dcm dcm to set quaternion to
-     */
-    void set_from_dcm(const Dcm<Type> & dcm)
-    {
-        Quaternion &q = *this;
-        q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
-                               dcm(1, 1) + dcm(2, 2)));
-        q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
-                    (4 * q(0)));
-        q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
-                    (4 * q(0)));
-        q(3) = Type((dcm(1, 0) - dcm(0, 1)) /
-                    (4 * q(0)));
-    }
-
-    /**
-     * Set from euler angles
-     *
-     * This sets the instance to a quaternion representing coordinate transformation from
-     * frame 2 to frame 1 where the rotation from frame 1 to frame 2 is described
-     * by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
-     *
-     * @param euler euler angles to set quaternion to
-     */
-    void set_from_euler(const Euler<Type> & euler)
     {
         Quaternion &q = *this;
         Type cosPhi_2 = Type(cos(euler.phi() / (Type)2.0));
@@ -170,17 +130,19 @@ public:
     }
 
     /**
-     * Set from quaternion values
+     * Constructor from quaternion values
      *
-     * Instance is set from quaternion values representing coordinate
+     * Instance is initialized from quaternion values representing coordinate
      * transformation from frame 2 to frame 1.
+     * A zero-rotation quaternion is represented by (1,0,0,0).
      *
      * @param a set quaternion value 0
      * @param b set quaternion value 1
      * @param c set quaternion value 2
      * @param d set quaternion value 3
      */
-    void set_from_quaternion(Type a, Type b, Type c, Type d)
+    Quaternion(Type a, Type b, Type c, Type d) :
+        Vector<Type, 4>()
     {
         Quaternion &q = *this;
         q(0) = a;

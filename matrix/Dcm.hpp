@@ -78,32 +78,6 @@ public:
      * @param q quaternion to set dcm to
      */
     Dcm(const Quaternion<Type> & q) {
-        set_from_quaternion(q);
-    }
-
-    /**
-     * Constructor from euler angles
-     *
-     * This sets the transformation matrix from frame 2 to frame 1 where the rotation
-     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
-     *
-     *
-     * @param euler euler angle instance
-     */
-    Dcm(const Euler<Type> & euler) {
-        set_from_euler(euler);
-    }
-
-
-    /**
-     * Set from quaternion
-     *
-     * Instance is set from quaternion representing
-     * transformation from frame 2 to frame 1.
-     *
-     * @param q quaternion to set dcm to
-     */
-    void set_from_quaternion(const Quaternion<Type> & q) {
         Dcm &dcm = *this;
         Type a = q(0);
         Type b = q(1);
@@ -125,14 +99,15 @@ public:
     }
 
     /**
-     * Set from euler angles
+     * Constructor from euler angles
      *
-     * This provides the transformation matrix from frame 2 to frame 1 where the rotation
-     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence
+     * This sets the transformation matrix from frame 2 to frame 1 where the rotation
+     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
      *
-     * @param euler euler angle instannce
+     *
+     * @param euler euler angle instance
      */
-    void set_from_euler(const Euler<Type> & euler) {
+    Dcm(const Euler<Type> & euler) {
         Dcm &dcm = *this;
         Type cosPhi = Type(cos(euler.phi()));
         Type sinPhi = Type(sin(euler.phi()));

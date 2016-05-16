@@ -82,7 +82,9 @@ public:
      */
     Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
     {
-        set_from_euler(phi_, theta_, psi_);
+        phi() = phi_;
+        theta() = theta_;
+        psi() = psi_;
     }
 
     /**
@@ -96,54 +98,6 @@ public:
      * @param dcm Direction cosine matrix
     */
     Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
-    {
-        set_from_dcm(dcm);
-    }
-
-    /**
-     * Constructor from quaternion instance.
-     *
-     * Instance is set from a quaternion representing transformation
-     * from frame 2 to frame 1.
-     * This instance will hold the angles defining the 3-2-1 intrinsic
-     * Tait-Bryan rotation sequence from frame 1 to frame 2.
-     *
-     * @param q quaternion
-    */
-    Euler(const Quaternion<Type> & q) :
-        Vector<Type, 3>()
-    {
-        set_from_quaternion(q);
-    }
-
-    /**
-     * Set from euler angles
-     *
-     * Instance is set from an 3-2-1 intrinsic Tait-Bryan rotation
-     * sequence representing transformation from frame 1 to frame 2.  
-     *
-     * @param phi_ rotation angle about X axis
-     * @param theta_ rotation angle about Y axis
-     * @param psi_ rotation angle about Z axis
-     */
-    void set_from_euler(Type phi_, Type theta_, Type psi_)
-    {
-        phi() = phi_;
-        theta() = theta_;
-        psi() = psi_;
-    }
-
-    /**
-     * Set from DCM matrix
-     *
-     * Instance is set from Dcm representing transformation from
-     * frame 2 to frame 1.
-     * This instance will hold the angles defining the 3-2-1 intrinsic
-     * Tait-Bryan rotation sequence from frame 1 to frame 2.
-     *
-     * @param dcm Direction cosine matrix
-     */
-    void set_from_dcm(const Dcm<Type> & dcm)
     {
         Type phi_val = Type(atan2(dcm(2,1), dcm(2,2)));
         Type theta_val = Type(asin(-dcm(2,0)));
@@ -164,7 +118,7 @@ public:
     }
 
     /**
-     * Set from quaternion instance.
+     * Constructor from quaternion instance.
      *
      * Instance is set from a quaternion representing transformation
      * from frame 2 to frame 1.
@@ -172,8 +126,9 @@ public:
      * Tait-Bryan rotation sequence from frame 1 to frame 2.
      *
      * @param q quaternion
-     */
-    void set_from_quaternion(const Quaternion<Type> & q)
+    */
+    Euler(const Quaternion<Type> & q) :
+        Vector<Type, 3>()
     {
         *this = Euler(Dcm<Type>(q));
     }
