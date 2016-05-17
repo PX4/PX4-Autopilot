@@ -1,4 +1,4 @@
-% calculate the variances for an equivalent rotation vector
+%% calculate the rotation vector variances from an equivalent quaternion
 % inputs are the quaternion orientation and the 4x4 covariance matrix for the quaternions
 % output is a vector of variances for the rotation vector that is equivalent to the quaternion
 clear all;
@@ -10,10 +10,7 @@ quat = [q0;q1;q2;q3];
 
 % convert to a rotation vector
 delta = 2*acos(q0);
-rotX = delta*(q1/sin(delta/2));
-rotY = delta*(q2/sin(delta/2));
-rotZ = delta*(q3/sin(delta/2));
-rotVec = [rotX;rotY;rotZ];
+rotVec = (delta/sin(delta/2))*[q1;q2;q3];
 
 % calculate transfer matrix from quaternion to rotation vector
 G = jacobian(rotVec, quat);
@@ -38,3 +35,28 @@ rotVarVec = [rotCovMat(1,1);rotCovMat(2,2);rotCovMat(3,3)];
 
 % convert to c-code
 ccode(rotVarVec,'file','rotVarVec.c');
+
+%% calculate the quaternion variances from an equivalent rotation vector
+
+% define a rotation vector
+syms rotX rotY rotZ real;
+rotVec = [rotX;rotY;rotZ];
+
+% convert to a  quaternion
+vecLength = sqrt(rotVec(1)^2 + rotVec(2)^2 + rotVec(3)^2);
+quat = [cos(0.5*vecLength); rotVec/vecLength*sin(0.5*vecLength)];
+
+% calculate transfer matrix from rotation vector to quaternion
+G = jacobian(quat, rotVec);
+
+% define the rotation vector variances
+syms rotVarX rotVarY rotVarZ real;
+
+% define the rotation vector covariance matrix
+rotCovMat = diag([rotVarX;rotVarY;rotVarZ]);
+
+% rotate the covariance matrix into quaternion coordinates
+quatCovMat = G*rotCovMat*transpose(G);
+
+% convert to c-code
+ccode(quatCovMat,'file','quatCovMat.c');
