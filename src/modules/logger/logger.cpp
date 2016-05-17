@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "logger.h"
+#include "messages.h"
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -281,74 +282,6 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 	logger_task = -1;
 }
-
-enum class MessageType : uint8_t {
-	FORMAT = 'F',
-	DATA = 'D',
-	INFO = 'I',
-	PARAMETER = 'P',
-	ADD_LOGGED_MSG = 'A',
-	REMOVE_LOGGED_MSG = 'R',
-	SYNC = 'S',
-	DROPOUT = 'O',
-};
-
-/* declare message data structs with byte alignment (no padding) */
-#pragma pack(push, 1)
-
-#define MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
-
-/** first bytes of the file */
-struct message_file_header_s {
-	uint8_t magic[8];
-	uint64_t timestamp;
-};
-
-struct message_format_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-
-	char format[2096];
-};
-
-struct message_add_logged_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::ADD_LOGGED_MSG);
-
-	uint8_t multi_id;
-	uint16_t msg_id;
-	char message_name[255];
-};
-
-struct message_remove_logged_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::REMOVE_LOGGED_MSG);
-
-	uint16_t msg_id;
-};
-struct message_data_header_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-
-	uint16_t msg_id;
-};
-
-struct message_info_header_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-
-	uint8_t key_len;
-	char key[255];
-};
-
-struct message_parameter_header_s {
-	uint16_t msg_size;
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
-
-	uint8_t key_len;
-	char key[255];
-};
-#pragma pack(pop)
 
 
 static constexpr size_t MAX_DATA_SIZE = 740;
@@ -611,7 +544,7 @@ void Logger::run()
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-						if (_writer.write(buffer, msg_size)) {
+						if (_writer.write(buffer, msg_size, _dropout_start)) {
 
 #ifdef DBGPRINT
 							total_bytes += msg_size;
