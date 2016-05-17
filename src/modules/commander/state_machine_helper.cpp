@@ -665,7 +665,8 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		} else if (status_flags->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 		} else if (status_flags->gps_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			status->failsafe = true;
 		} else if (status_flags->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 		} else if (status_flags->vtol_transition_failure_cmd) {
@@ -673,7 +674,8 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		/* finished handling commands which have priority, now handle failures */
 		} else if (status_flags->gps_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			status->failsafe = true;
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if (status_flags->vtol_transition_failure) {
