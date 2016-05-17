@@ -432,13 +432,12 @@ bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *hand
 	// only try to subscribe to topic if this is the first time
 	// after that just check after a certain interval to avoid high cpu usage
 	if (*handle < 0 && (*time_last_checked == 0 || hrt_elapsed_time(time_last_checked) > TRY_SUBSCRIBE_INTERVAL)) {
-		//if (multi_instance == 1) warnx("checking instance 1 of topic %s", topic->o_name);
 		*time_last_checked = hrt_absolute_time();
 
 		if (OK == orb_exists(topic, multi_instance)) {
 			*handle = orb_subscribe_multi(topic, multi_instance);
 
-			//warnx("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
+			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
 			if (*handle >= 0) {
@@ -564,7 +563,6 @@ void Logger::run()
 			/* Check if parameters have changed */
 			// this needs to change to a timestamped record to record a history of parameter changes
 			if (parameter_update_sub.check_updated()) {
-				warnx("parameter update");
 				parameter_update_sub.update();
 				write_changed_parameters();
 			}
