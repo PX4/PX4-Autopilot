@@ -299,8 +299,8 @@ struct message_file_header_s {
 };
 
 struct message_format_s {
+	uint16_t msg_size; //size of message - header size (=3)
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-	uint16_t msg_size;
 
 	uint8_t msg_id;
 	uint16_t format_len;
@@ -308,24 +308,24 @@ struct message_format_s {
 };
 
 struct message_data_header_s {
+	uint16_t msg_size; //size of message - header size (=3)
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-	uint16_t msg_size;
 
 	uint8_t msg_id;
 	uint8_t multi_id;
 };
 
 struct message_info_header_s {
+	uint16_t msg_size; //size of message - header size (=3)
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-	uint16_t msg_size;
 
 	uint8_t key_len;
 	char key[255];
 };
 
 struct message_parameter_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
 	uint16_t msg_size;
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
 
 	uint8_t key_len;
 	char key[255];
