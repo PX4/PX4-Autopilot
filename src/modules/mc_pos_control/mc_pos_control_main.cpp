@@ -2002,8 +2002,32 @@ MulticopterPositionControl::task_main()
 
 			math::Matrix<3, 3> R_sp;
 
-			/* construct attitude setpoint rotation matrix */
-			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+			// construct attitude setpoint rotation matrix
+
+			// calculate our current yaw error
+			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+
+			math::Vector<3> zB = {0, 0, 1};
+			math::Matrix<3,3> R_sp_roll_pitch;
+			R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
+			math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
+
+			math::Matrix<3,3> R_yaw_correction;
+			R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
+			float angle = acosf(zB * z_roll_pitch_sp);
+			math::Vector<3> tilt_axis = {0,0,1.0f};
+
+			if (fabsf(angle) > FLT_EPSILON) {
+				tilt_axis = zB % z_roll_pitch_sp;
+			}
+
+			tilt_axis = tilt_axis.normalized() * sinf(angle/2.0f);
+			math::Quaternion q_roll_pitch_corrected = {cosf(angle/2.0f), tilt_axis(0), tilt_axis(1), tilt_axis(2)};
+			q_roll_pitch_corrected.normalize();
+			math::Vector<3> euler_corrected = q_roll_pitch_corrected.to_euler();
+			R_sp.from_euler(euler_corrected(0), euler_corrected(1), _att_sp.yaw_body);
+
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
 			/* reset the acceleration set point for all non-attitude flight modes */
