@@ -292,6 +292,8 @@ enum class MessageType : uint8_t {
 /* declare message data structs with byte alignment (no padding) */
 #pragma pack(push, 1)
 
+#define MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
+
 /** first bytes of the file */
 struct message_file_header_s {
 	uint8_t magic[8];
@@ -299,7 +301,7 @@ struct message_file_header_s {
 };
 
 struct message_format_s {
-	uint16_t msg_size; //size of message - header size (=3)
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
 
 	uint8_t msg_id;
@@ -307,7 +309,7 @@ struct message_format_s {
 };
 
 struct message_data_header_s {
-	uint16_t msg_size; //size of message - header size (=3)
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
 
 	uint8_t msg_id;
@@ -315,7 +317,7 @@ struct message_data_header_s {
 };
 
 struct message_info_header_s {
-	uint16_t msg_size; //size of message - header size (=3)
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
 
 	uint8_t key_len;
@@ -588,7 +590,7 @@ void Logger::run()
 
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						header->msg_size = static_cast<uint16_t>(msg_size - 3);
+						header->msg_size = static_cast<uint16_t>(msg_size - MSG_HEADER_LEN);
 						header->msg_id = msg_id;
 						header->multi_id = 0x80 + instance;	// Non multi, active
 
@@ -895,7 +897,7 @@ void Logger::write_formats()
 		msg.msg_id = msg_id;
 		int format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
-		msg.msg_size = msg_size - 3;
+		msg.msg_size = msg_size - MSG_HEADER_LEN;
 
 		write_wait(&msg, msg_size);
 
@@ -923,7 +925,7 @@ void Logger::write_info(const char *name, const char *value)
 		memcpy(&buffer[msg_size], value, vlen);
 		msg_size += vlen;
 
-		msg->msg_size = msg_size - 3;
+		msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 		write_wait(buffer, msg_size);
 	}
@@ -945,7 +947,7 @@ void Logger::write_info(const char *name, uint32_t value)
 	memcpy(&buffer[msg_size], &value, sizeof(uint32_t));
 	msg_size += sizeof(uint32_t);
 
-	msg->msg_size = msg_size - 3;
+	msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 	write_wait(buffer, msg_size);
 
@@ -1030,7 +1032,7 @@ void Logger::write_parameters()
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - 3;
+			msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
@@ -1090,7 +1092,7 @@ void Logger::write_changed_parameters()
 			msg_size += value_size;
 
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
-			msg->msg_size = msg_size - 3;
+			msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
