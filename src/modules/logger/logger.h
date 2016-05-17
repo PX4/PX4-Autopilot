@@ -118,6 +118,11 @@ private:
 
 	void stop_log();
 
+	/**
+	 * write the file header with file magic and timestamp.
+	 */
+	void write_header();
+
 	void write_formats();
 
 	void write_version();
