@@ -74,7 +74,7 @@ public:
      *
      * Instance is initialized from an 3-2-1 intrinsic Tait-Bryan
      * rotation sequence representing transformation from frame 1
-     * to frame 2. 
+     * to frame 2.
      *
      * @param phi_ rotation angle about X axis
      * @param theta_ rotation angle about Y axis
