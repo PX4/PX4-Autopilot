@@ -46,37 +46,39 @@
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vision_position_estimate.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/cpuload.h>
+#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -574,6 +576,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_cpuload_sub;
 	MavlinkOrbSubscription *_battery_status_sub;
 
 	/* do not allow top copying this class */
@@ -583,15 +586,18 @@ private:
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload))),
 		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status;
-		struct battery_status_s battery_status;
+		struct vehicle_status_s status = {};
+		struct cpuload_s cpuload = {};
+		struct battery_status_s battery_status = {};
 
 		const bool updated_status = _status_sub->update(&status);
+		const bool updated_cpuload = _cpuload_sub->update(&cpuload);
 		const bool updated_battery = _battery_status_sub->update(&battery_status);
 
 		if (updated_status) {
@@ -602,17 +608,16 @@ protected:
 			}
 		}
 
-		if (updated_status || updated_battery) {
+		if (updated_status || updated_battery || updated_cpuload) {
 			mavlink_sys_status_t msg;
-
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
-			msg.load = status.load * 1000.0f;
-			msg.voltage_battery = battery_status.voltage_v * 1000.0f;
-			msg.current_battery = battery_status.current_a * 100.0f;
-			msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
+			msg.load = cpuload.load * 1000.0f;
+			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
+			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
+			msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
@@ -628,13 +633,13 @@ protected:
 			bat_msg.id = 0;
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
-			bat_msg.current_consumed = battery_status.discharged_mah;
+			bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
 			bat_msg.energy_consumed = -1;
-			bat_msg.current_battery = battery_status.current_a * 100;
-			bat_msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
+			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
+			bat_msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			bat_msg.temperature = INT16_MAX;
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
-				if ((int)i < battery_status.cell_count) {
+				if ((int)i < battery_status.cell_count && battery_status.connected) {
 					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
 				} else {
 					bat_msg.voltages[i] = UINT16_MAX;
@@ -2571,6 +2576,72 @@ protected:
 	}
 };
 
+class MavlinkStreamNavControllerOutput : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamNavControllerOutput::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "NAV_CONTROLLER_OUTPUT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamNavControllerOutput(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_fw_pos_ctrl_status_sub;
+	MavlinkOrbSubscription *_tecs_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamNavControllerOutput(MavlinkStreamNavControllerOutput &);
+	MavlinkStreamNavControllerOutput& operator = (const MavlinkStreamNavControllerOutput &);
+
+protected:
+	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_tecs_status_sub(_mavlink->add_orb_subscription(ORB_ID(tecs_status)))
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fw_pos_ctrl_status_s _fw_pos_ctrl_status = {};
+		struct tecs_status_s _tecs_status = {};
+
+		const bool updated_fw_pos_ctrl_status = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status);
+		const bool updated_tecs = _tecs_status_sub->update(&_tecs_status);
+
+		if (updated_fw_pos_ctrl_status || updated_tecs) {
+			mavlink_nav_controller_output_t msg = {};
+
+			msg.nav_roll = math::degrees(_fw_pos_ctrl_status.nav_roll);
+			msg.nav_pitch = math::degrees(_fw_pos_ctrl_status.nav_pitch);
+			msg.nav_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.nav_bearing);
+			msg.target_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.target_bearing);
+			msg.wp_dist = (uint16_t)_fw_pos_ctrl_status.wp_dist;
+			msg.xtrack_error = _fw_pos_ctrl_status.xtrack_error;
+			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitudeSp;
+			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeedSp;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT, &msg);
+		}
+	}
+};
 
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
@@ -2614,7 +2685,7 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status;
+		struct vehicle_status_s status = {};
 		(void)_status_sub->update(&status);
 
 		mavlink_command_long_t msg;
@@ -2890,17 +2961,17 @@ protected:
 
 			msg.time_usec = hrt_absolute_time();
 
-			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : 0.0f / 0.0f;
-			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : 0.0f / 0.0f;
-			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : 0.0f / 0.0f;
-			msg.altitude_relative = (_home_time > 0) ? home.alt : 0.0f / 0.0f;
+			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : NAN;
+			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
+			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
+			msg.altitude_relative = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
 
 			if (global_pos.terrain_alt_valid) {
 				msg.altitude_terrain = global_pos.terrain_alt;
 				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
 			} else {
-				msg.altitude_terrain = 0.0f / 0.0f;
-				msg.bottom_clearance = 0.0f / 0.0f;
+				msg.altitude_terrain = NAN;
+				msg.bottom_clearance = NAN;
 			}
 
 			_mavlink->send_message(MAVLINK_MSG_ID_ALTITUDE, &msg);
@@ -2943,6 +3014,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static),
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
+	new StreamListItem(&MavlinkStreamNavControllerOutput::new_instance, &MavlinkStreamNavControllerOutput::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),

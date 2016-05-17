@@ -48,7 +48,7 @@
 PARAM_DEFINE_INT32(SDLOG_RATE, -1);
 
 /**
- * Enable extended logging mode.
+ * Extended logging mode
  *
  * A value of -1 indicates the command line argument
  * should be obeyed. A value of 0 disables extended
@@ -68,7 +68,7 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
 /**
  * Use timestamps only if GPS 3D fix is available
  *
- * A value of 1 constrains the log folder creation
+ * Constrain the log folder creation
  * to only use the time stamp if a 3D GPS lock is
  * present.
  *

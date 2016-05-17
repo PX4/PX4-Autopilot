@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -192,12 +192,12 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		goto error_return;
 	}
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
+	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
 
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Create airflow now");
+	calibration_log_critical(mavlink_log_pub, "[cal] Blow across front of pitot without touching");
 
 	calibration_counter = 0;
 

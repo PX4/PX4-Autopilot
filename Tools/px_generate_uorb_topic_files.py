@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #############################################################################
 #
-#   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013-2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
 #############################################################################
 
 """
-px_generate_uorb_topic_headers.py
-Generates c/cpp header files for uorb topics from .msg (ROS syntax)
+px_generate_uorb_topics.py
+Generates c/cpp header/source files for uorb topics from .msg (ROS syntax)
 message files
 """
 from __future__ import print_function
@@ -49,6 +49,7 @@ sys.path.append(px4_tools_dir + "/genmsg/src")
 sys.path.append(px4_tools_dir + "/gencpp/src")
 
 try:
+        import em
         import genmsg.template_tools
 except ImportError as e:
         print("python import error: ", e)
@@ -68,35 +69,99 @@ On Windows please run:
 ''')
         exit(1)
 
-__author__ = "Thomas Gubler"
-__copyright__ = "Copyright (C) 2013-2014 PX4 Development Team."
+__author__ = "Sergey Belash, Thomas Gubler, Beat Kueng"
+__copyright__ = "Copyright (C) 2013-2016 PX4 Development Team."
 __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 
-msg_template_map = {'msg.h.template': '@NAME@.h'}
-srv_template_map = {}
-incl_default = ['std_msgs:./msg/std_msgs']
-package = 'px4'
+TEMPLATE_FILE = ['msg.h.template', 'msg.cpp.template']
+TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
+OUTPUT_FILE_EXT = ['.h', '.cpp']
+INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
+PACKAGE = 'px4'
+TOPICS_TOKEN = '# TOPICS '
 
 
-def convert_file(filename, outputdir, templatedir, includepath):
+def get_multi_topics(filename):
         """
-        Converts a single .msg file to a uorb header
+        Get TOPICS names from a "# TOPICS" line
         """
-        #print("Generating headers from {0}".format(filename))
-        genmsg.template_tools.generate_from_file(filename,
-                                                 package,
-                                                 outputdir,
-                                                 templatedir,
-                                                 includepath,
-                                                 msg_template_map,
-                                                 srv_template_map)
+        ofile = open(filename, 'r')
+        text = ofile.read()
+        result = []
+        for each_line in text.split('\n'):
+                if each_line.startswith (TOPICS_TOKEN):
+                        topic_names_str = each_line.strip()
+                        topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
+                        result.extend(topic_names_str.split(" "))
+        ofile.close()
+        return result
+
+def get_msgs_list(msgdir):
+    """
+    Makes list of msg files in the given directory
+    """
+    return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
 
 
-def convert_dir(inputdir, outputdir, templatedir):
+def generate_output_from_file(format_idx, filename, outputdir, templatedir, includepath):
         """
-        Converts all .msg files in inputdir to uORB header files
+        Converts a single .msg file to an uorb header/source file
+        """
+        msg_context = genmsg.msg_loader.MsgContext.create_default()
+        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
+        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
+        topics = get_multi_topics(filename)
+        if includepath:
+                search_path = genmsg.command_line.includepath_to_dict(includepath)
+        else:
+                search_path = {}
+        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
+        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
+        if len(topics) == 0:
+                topics.append(spec.short_name)
+        em_globals = {
+            "file_name_in": filename,
+            "md5sum": md5sum,
+            "search_path": search_path,
+            "msg_context": msg_context,
+            "spec": spec,
+            "topics": topics
+        }
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, TEMPLATE_FILE[format_idx])
+        output_file = os.path.join(outputdir, spec.short_name +
+                OUTPUT_FILE_EXT[format_idx])
+
+        return generate_by_template(output_file, template_file, em_globals)
+
+
+def generate_by_template(output_file, template_file, em_globals):
+        """
+        Invokes empy intepreter to geneate output_file by the
+        given template_file and predefined em_globals dict
+        """
+        ofile = open(output_file, 'w')
+        # todo, reuse interpreter
+        interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
+        if not os.path.isfile(template_file):
+                ofile.close()
+                os.remove(output_file)
+                raise RuntimeError("Template file %s not found" % (template_file))
+        interpreter.file(open(template_file)) #todo try
+        interpreter.shutdown()
+        ofile.close()
+        return True
+
+
+def convert_dir(format_idx, inputdir, outputdir, templatedir):
+        """
+        Converts all .msg files in inputdir to uORB header/source files
         """
 
         # Find the most recent modification time in input dir
@@ -122,7 +187,7 @@ def convert_dir(inputdir, outputdir, templatedir):
         if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
             return False
 
-        includepath = incl_default + [':'.join([package, inputdir])]
+        includepath = INCL_DEFAULT + [':'.join([PACKAGE, inputdir])]
         for f in os.listdir(inputdir):
                 # Ignore hidden files
                 if f.startswith("."):
@@ -133,11 +198,10 @@ def convert_dir(inputdir, outputdir, templatedir):
                 if not os.path.isfile(fn):
                         continue
 
-                convert_file(fn,
-                             outputdir,
-                             templatedir,
-                             includepath)
+                if fn[-4:].lower() != '.msg':
+                        continue
 
+                generate_output_from_file(format_idx, fn, outputdir, templatedir, includepath)
         return True
 
 
@@ -151,15 +215,15 @@ def copy_changed(inputdir, outputdir, prefix='', quiet=False):
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
-        for f in os.listdir(inputdir):
-                fni = os.path.join(inputdir, f)
+        for input_file in os.listdir(inputdir):
+                fni = os.path.join(inputdir, input_file)
                 if os.path.isfile(fni):
-                        # Check if f exists in outpoutdir, copy the file if not
-                        fno = os.path.join(outputdir, prefix + f)
+                        # Check if input_file exists in outpoutdir, copy the file if not
+                        fno = os.path.join(outputdir, prefix + input_file)
                         if not os.path.isfile(fno):
                                 shutil.copy(fni, fno)
                                 if not quiet:
-                                    print("{0}: new header file".format(f))
+                                    print("{0}: new header file".format(fno))
                                 continue
 
                         if os.path.getmtime(fni) > os.path.getmtime(fno):
@@ -168,26 +232,39 @@ def copy_changed(inputdir, outputdir, prefix='', quiet=False):
                                 if not filecmp.cmp(fni, fno):
                                         shutil.copy(fni, fno)
                                         if not quiet:
-                                            print("{0}: updated".format(f))
+                                            print("{0}: updated".format(input_file))
                                         continue
 
                         if not quiet:
-                            print("{0}: unchanged".format(f))
+                            print("{0}: unchanged".format(input_file))
 
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
+def convert_dir_save(format_idx, inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
-        convert_dir(inputdir, temporarydir, templatedir)
+        convert_dir(format_idx, inputdir, temporarydir, templatedir)
+        if generate_idx == 1:
+            generate_topics_list_file(inputdir, temporarydir, templatedir)
         # Copy changed headers from temporary dir to output dir
         copy_changed(temporarydir, outputdir, prefix, quiet)
 
+def generate_topics_list_file(msgdir, outputdir, templatedir):
+        # generate cpp file with topics list
+        tl_globals = {"msgs" : get_msgs_list(msgdir)}
+        tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
+        tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
+        generate_by_template(tl_out_file, tl_template_file, tl_globals)
+
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
-            description='Convert msg files to uorb headers')
+            description='Convert msg files to uorb headers/sources')
+        parser.add_argument('--headers', help='Generate header files',
+            action='store_true')
+        parser.add_argument('--sources', help='Generate source files',
+            action='store_true')
         parser.add_argument('-d', dest='dir', help='directory with msg files')
         parser.add_argument('-f', dest='file',
                             help="files to convert (use only without -d)",
@@ -206,15 +283,22 @@ if __name__ == "__main__":
                             ' name when converting directories')
         args = parser.parse_args()
 
+        if args.headers:
+            generate_idx = 0
+        elif args.sources:
+            generate_idx = 1
+        else:
+            print('Error: either --headers or --sources must be specified')
+            exit(-1)
+
         if args.file is not None:
-                for f in args.file:
-                        convert_file(
-                            f,
-                            args.outputdir,
-                            args.templatedir,
-                            incl_default)
+            for f in args.file:
+                generate_output_from_file(generate_idx, f, args.outputdir, args.templatedir, INCL_DEFAULT)
+            if generate_idx == 1:
+                generate_topics_list_file(args.dir, args.outputdir, args.templatedir)
         elif args.dir is not None:
-                convert_dir_save(
+            convert_dir_save(
+                    generate_idx,
                     args.dir,
                     args.outputdir,
                     args.templatedir,

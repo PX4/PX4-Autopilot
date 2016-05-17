@@ -75,6 +75,7 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
+	battery_status->connected = false;
 }
 
 void
@@ -84,6 +85,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
+	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
 	estimateRemaining(voltage_v, throttle_normalized, armed);
 	determineWarning();
@@ -92,10 +94,11 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
 		battery_status->current_a = current_a;
+		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
-
+		battery_status->connected = true;
 	}
 }
 
@@ -113,6 +116,22 @@ Battery::filterVoltage(float voltage_v)
 		_voltage_filtered_v = filtered_next;
 	}
 }
+
+void
+Battery::filterCurrent(float current_a)
+{
+	if (_current_filtered_a < 0.0f) {
+		_current_filtered_a = current_a;
+	}
+
+	// ADC poll is at 100Hz, this will perform a low pass over approx 500ms
+	const float filtered_next = _current_filtered_a * 0.98f + current_a * 0.02f;
+
+	if (PX4_ISFINITE(filtered_next)) {
+		_current_filtered_a = filtered_next;
+	}
+}
+
 
 void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)

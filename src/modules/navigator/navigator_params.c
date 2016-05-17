@@ -48,6 +48,8 @@
  * @unit m
  * @min 25
  * @max 1000
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
@@ -60,6 +62,8 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  * @unit m
  * @min 0.05
  * @max 200.0
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
@@ -131,6 +135,8 @@ PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
  *
  * @unit m
  * @min -50
+ * @decimal 1
+ * @increment 0.5
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);

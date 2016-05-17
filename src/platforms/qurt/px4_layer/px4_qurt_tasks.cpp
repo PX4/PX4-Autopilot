@@ -64,6 +64,7 @@
 #include <string>
 
 #include <px4_tasks.h>
+#include <systemlib/err.h>
 
 #define MAX_CMD_LEN 100
 
@@ -325,8 +326,6 @@ void px4_show_tasks()
 
 }
 
-__BEGIN_DECLS
-
 unsigned long px4_getpid()
 {
 	pthread_t pid = pthread_self();
@@ -346,7 +345,6 @@ unsigned long px4_getpid()
 }
 
 
-const char *getprogname();
 const char *getprogname()
 {
 	pthread_t pid = pthread_self();
@@ -404,4 +402,3 @@ int px4_prctl(int option, const char *arg2, unsigned pid)
 
 	return rv;
 }
-__END_DECLS

@@ -51,7 +51,6 @@
 #include <termios.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 

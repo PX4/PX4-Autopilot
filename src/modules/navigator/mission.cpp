@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -864,11 +864,12 @@ Mission::altitude_sp_foh_update()
 		return;
 	}
 
-	/* Don't do FOH for landing and takeoff waypoints, the ground may be near
+	/* Don't do FOH for non-missions, landing and takeoff waypoints, the ground may be near
 	 * and the FW controller has a custom landing logic */
 	if (_mission_item.nav_cmd == NAV_CMD_LAND
 			|| _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-			|| _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+			|| _mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			|| !_navigator->is_planned_mission()) {
 		return;
 	}
 

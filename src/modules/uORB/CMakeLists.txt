@@ -36,8 +36,9 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
 
+link_libraries(msg_gen)
+
 set(SRCS
-	objects_common.cpp
 	uORBUtils.cpp
 	uORB.cpp
 	uORBMain.cpp
@@ -49,17 +50,14 @@ set(SRCS
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		uORBDevices_nuttx.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "posix")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "posix-arm")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
-		uORBTest_UnitTest.cpp
 		)
 elseif(${OS} STREQUAL "qurt")
 	list(APPEND SRCS

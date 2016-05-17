@@ -444,36 +444,29 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		_update_gyro_calibration();
 	}
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
+	math::Vector<3> vec_integrated_unused;
+	uint64_t integral_dt_unused;
 
-	accel_report.x = (data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale;
-	accel_report.y = (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale;
-	accel_report.z = (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale;
+	math::Vector<3> accel_val((data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale,
+				  (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale,
+				  (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale);
 
-	math::Vector<3> accel_val(accel_report.x,
-				  accel_report.y,
-				  accel_report.z);
-	math::Vector<3> accel_val_integrated_unused;
 
 	_accel_int.put_with_interval(data.fifo_sample_interval_us,
 				     accel_val,
-				     accel_val_integrated_unused,
-				     accel_report.integral_dt);
+				     vec_integrated_unused,
+				     integral_dt_unused);
 
-	gyro_report.x = (data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
-	gyro_report.y = (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
-	gyro_report.z = (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+	math::Vector<3> gyro_val((data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale,
+				 (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale,
+				 (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale);
 
-	math::Vector<3> gyro_val(gyro_report.x,
-				 gyro_report.y,
-				 gyro_report.z);
 	math::Vector<3> gyro_val_integrated_unused;
 
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
-				    gyro_val_integrated_unused,
-				    gyro_report.integral_dt);
+				    vec_integrated_unused,
+				    integral_dt_unused);
 
 	// If we are not receiving the last sample from the FIFO buffer yet, let's stop here
 	// and wait for more packets.
@@ -501,6 +494,9 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
+	accel_report accel_report = {};
+	gyro_report gyro_report = {};
+
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
 	// TODO: get these right
@@ -521,17 +517,29 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y_raw = NAN;
 	accel_report.z_raw = NAN;
 
+	math::Vector<3> gyro_val_filt;
+	math::Vector<3> accel_val_filt;
+
 	// Read and reset.
-	math::Vector<3> gyro_val_integrated = _gyro_int.get(true, gyro_report.integral_dt);
-	math::Vector<3> accel_val_integrated = _accel_int.get(true, accel_report.integral_dt);
+	math::Vector<3> gyro_val_integ = _gyro_int.get_and_filtered(true, gyro_report.integral_dt, gyro_val_filt);
+	math::Vector<3> accel_val_integ = _accel_int.get_and_filtered(true, accel_report.integral_dt, accel_val_filt);
 
-	gyro_report.x_integral = gyro_val_integrated(0);
-	gyro_report.y_integral = gyro_val_integrated(1);
-	gyro_report.z_integral = gyro_val_integrated(2);
+	// Use the filtered (by integration) values to get smoother / less noisy data.
+	gyro_report.x = gyro_val_filt(0);
+	gyro_report.y = gyro_val_filt(1);
+	gyro_report.z = gyro_val_filt(2);
 
-	accel_report.x_integral = accel_val_integrated(0);
-	accel_report.y_integral = accel_val_integrated(1);
-	accel_report.z_integral = accel_val_integrated(2);
+	accel_report.x = accel_val_filt(0);
+	accel_report.y = accel_val_filt(1);
+	accel_report.z = accel_val_filt(2);
+
+	gyro_report.x_integral = gyro_val_integ(0);
+	gyro_report.y_integral = gyro_val_integ(1);
+	gyro_report.z_integral = gyro_val_integ(2);
+
+	accel_report.x_integral = accel_val_integ(0);
+	accel_report.y_integral = accel_val_integ(1);
+	accel_report.z_integral = accel_val_integ(2);
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {

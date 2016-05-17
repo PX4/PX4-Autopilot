@@ -448,7 +448,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 				(unsigned long long)pce->event_count,
 				(unsigned long long)pce->event_overruns,
 				(unsigned long long)pce->time_total,
-				pce->event_count == 0 ? 0 : (unsigned long long)pce->time_total / pce->event_count,
+				(pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
 				(unsigned long long)pce->time_least,
 				(unsigned long long)pce->time_most,
 				(double)(1e6f * rms));
@@ -462,7 +462,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 			dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pci->event_count,
-				(unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
+				(pci->event_count == 0) ? 0 : (unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
 				(unsigned long long)pci->time_least,
 				(unsigned long long)pci->time_most,
 				(double)(1e6f * rms));

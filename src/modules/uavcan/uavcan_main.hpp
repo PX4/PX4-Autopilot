@@ -73,10 +73,6 @@
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
 
-// IOCTL control codes
-static constexpr unsigned UAVCANIOCBASE = 0x7800;
-static constexpr unsigned UAVCANIOC_HARDPOINT_SET = _PX4_IOC(UAVCANIOCBASE, 0x10);
-
 /**
  * A UAVCAN node.
  */

@@ -490,8 +490,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	enum Rotation flow_rot;
 	param_get(param_find("SENS_FLOW_ROT"), &flow_rot);
 
-	struct optical_flow_s f;
-	memset(&f, 0, sizeof(f));
+	struct optical_flow_s f = {};
 
 	f.timestamp = flow.time_usec;
 	f.integration_timespan = flow.integration_time_us;

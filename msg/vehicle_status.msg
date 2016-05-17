@@ -41,7 +41,6 @@ uint8 RC_IN_MODE_GENERATED = 2
 
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
-uint64 timestamp # in microseconds since system start, is set whenever the writing thread stores new data
 
 uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
@@ -70,6 +69,3 @@ bool mission_failure				# Set to true if mission could not continue/finish
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
-
-float32 load					# processor load from 0 to 1
-
