@@ -197,6 +197,10 @@ struct parameters {
 	float terrain_p_noise;		// process noise for terrain offset (m/sec)
 	float terrain_gradient;		// gradient of terrain used to estimate process noise due to changing position (m/m)
 
+	// initial switch on bias uncertainty
+	float switch_on_gyro_bias;	// 1-sigma gyro bias uncertainty at switch on (rad/sec)
+	float switch_on_accel_bias;	// 1-sigma accelerometer bias uncertainty at switch on (m/s**2)
+
 	// position and velocity fusion
 	float gps_vel_noise;		// observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise;		// observation noise for gps position fusion (m)
@@ -287,6 +291,10 @@ struct parameters {
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 5.0f;
 		terrain_gradient = 0.5f;
+
+		// initial switch on bias uncertainty
+		switch_on_gyro_bias = 0.1f;
+		switch_on_accel_bias = 0.2f;
 
 		// position and velocity fusion
 		gps_vel_noise = 5.0e-1f;

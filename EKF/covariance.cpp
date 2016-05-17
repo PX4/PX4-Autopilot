@@ -80,12 +80,12 @@ void Ekf::initialiseCovariance()
 	}
 
 	// gyro bias
-	P[10][10] = sq(0.1f * dt);
+	P[10][10] = sq(_params.switch_on_gyro_bias * dt);
 	P[11][11] = P[10][10];
 	P[12][12] = P[10][10];
 
 	// accel bias
-	P[13][13] = sq(0.2f * dt);
+	P[13][13] = sq(_params.switch_on_accel_bias * dt);
 	P[14][14] = P[13][13];
 	P[15][15] = P[13][13];
 
