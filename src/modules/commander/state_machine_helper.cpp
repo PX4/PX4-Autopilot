@@ -725,6 +725,11 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		/* go into failsafe on a engine failure */
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (status_flags->gps_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			status->failsafe = true;
+
 		/* also go into failsafe if just datalink is lost */
 		} else if (status->data_link_lost && data_link_loss_enabled) {
 			status->failsafe = true;
@@ -769,6 +774,11 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (status_flags->gps_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			status->failsafe = true;
+
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
 			status->failsafe = true;
@@ -810,7 +820,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if ((!status_flags->condition_global_position_valid ||
+		} else if (status_flags->gps_failure || (!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
 			status->failsafe = true;
 
@@ -831,7 +841,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if ((!status_flags->condition_global_position_valid ||
+		} else if (status_flags->gps_failure || (!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
 			status->failsafe = true;
 
