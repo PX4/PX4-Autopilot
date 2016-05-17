@@ -303,7 +303,6 @@ struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
 
 	uint8_t msg_id;
-	uint16_t format_len;
 	char format[2096];
 };
 
@@ -894,8 +893,8 @@ void Logger::write_formats()
 
 	for (LoggerSubscription &sub : _subscriptions) {
 		msg.msg_id = msg_id;
-		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
-		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
+		int format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
+		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 		msg.msg_size = msg_size - 3;
 
 		write_wait(&msg, msg_size);
