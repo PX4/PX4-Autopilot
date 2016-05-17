@@ -743,3 +743,14 @@ PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
+
+/**
+ * 1-sigma tilt angle uncertainty after gravity vector alignment
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit rad
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
