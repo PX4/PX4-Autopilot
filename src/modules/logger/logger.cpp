@@ -931,6 +931,27 @@ void Logger::write_info(const char *name, const char *value)
 
 	_writer.unlock();
 }
+void Logger::write_info(const char *name, uint32_t value)
+{
+	_writer.lock();
+	uint8_t buffer[sizeof(message_info_header_s)];
+	message_info_header_s *msg = reinterpret_cast<message_info_header_s *>(buffer);
+	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
+
+	/* construct format key (type and name) */
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "uint32_t %s", name);
+	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+
+	/* copy string value directly to buffer */
+	memcpy(&buffer[msg_size], &value, sizeof(uint32_t));
+	msg_size += sizeof(uint32_t);
+
+	msg->msg_size = msg_size - 3;
+
+	write_wait(buffer, msg_size);
+
+	_writer.unlock();
+}
 
 void Logger::write_header()
 {
@@ -954,6 +975,13 @@ void Logger::write_version()
 {
 	write_info("ver_sw", PX4_GIT_VERSION_STR);
 	write_info("ver_hw", HW_ARCH);
+	write_info("sys_name", "PX4");
+	int32_t utc_offset = 0;
+
+	if (_log_utc_offset != PARAM_INVALID) {
+		param_get(_log_utc_offset, &utc_offset);
+		write_info("time_ref_utc", utc_offset * 60);
+	}
 }
 
 void Logger::write_parameters()
