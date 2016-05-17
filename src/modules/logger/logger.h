@@ -54,6 +54,7 @@ namespace logger
 
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
+	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
 	uint64_t time_tried_subscribe;	// captures the time at which we checked last time if this instance existed
 	const orb_metadata *metadata = nullptr;
 
@@ -79,9 +80,19 @@ public:
 
 	~Logger();
 
-	int add_topic(const orb_metadata *topic);
-
+	/**
+	 * Add a topic to be logged. This must be called before start_log()
+	 * (because it does not write an ADD_LOGGED_MSG message).
+	 * @param name topic name
+	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
+	 * @return 0 on success
+	 */
 	int add_topic(const char *name, unsigned interval);
+
+	/**
+	 * add a logged topic (called by add_topic() above)
+	 */
+	int add_topic(const orb_metadata *topic);
 
 	static int start(char *const *argv);
 
@@ -93,6 +104,17 @@ private:
 	static void run_trampoline(int argc, char *argv[]);
 
 	void run();
+
+	/**
+	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
+	 */
+	void write_all_add_logged_msg();
+
+	/**
+	 * Write an ADD_LOGGED_MSG to the log for a given subscription and instance.
+	 * _writer.lock() must be held when calling this.
+	 */
+	void write_add_logged_msg(LoggerSubscription &subscription, int instance);
 
 	/**
 	 * Create logging directory
@@ -134,7 +156,7 @@ private:
 
 	void write_changed_parameters();
 
-	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked);
+	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer);
 
 	/**
 	 * Write data to the logger. Waits if buffer is full until all data is written.
@@ -180,6 +202,7 @@ private:
 	uint32_t					_log_interval;
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
+	uint16_t					_next_topic_id; ///< id of next subscribed topic
 };
 
 Logger *logger_ptr = nullptr;

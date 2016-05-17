@@ -287,6 +287,10 @@ enum class MessageType : uint8_t {
 	DATA = 'D',
 	INFO = 'I',
 	PARAMETER = 'P',
+	ADD_LOGGED_MSG = 'A',
+	REMOVE_LOGGED_MSG = 'R',
+	SYNC = 'S',
+	DROPOUT = 'O',
 };
 
 /* declare message data structs with byte alignment (no padding) */
@@ -304,16 +308,29 @@ struct message_format_s {
 	uint16_t msg_size; //size of message - MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
 
-	uint8_t msg_id;
 	char format[2096];
 };
 
+struct message_add_logged_s {
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::ADD_LOGGED_MSG);
+
+	uint8_t multi_id;
+	uint16_t msg_id;
+	char message_name[255];
+};
+
+struct message_remove_logged_s {
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::REMOVE_LOGGED_MSG);
+
+	uint16_t msg_id;
+};
 struct message_data_header_s {
 	uint16_t msg_size; //size of message - MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
 
-	uint8_t msg_id;
-	uint8_t multi_id;
+	uint16_t msg_id;
 };
 
 struct message_info_header_s {
@@ -425,33 +442,36 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	return fd;
 }
 
-bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer,
-				   uint64_t *time_last_checked)
+bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer)
 {
 	bool updated = false;
+	int &handle = sub.fd[multi_instance];
 
 	// only try to subscribe to topic if this is the first time
 	// after that just check after a certain interval to avoid high cpu usage
-	if (*handle < 0 && (*time_last_checked == 0 || hrt_elapsed_time(time_last_checked) > TRY_SUBSCRIBE_INTERVAL)) {
-		*time_last_checked = hrt_absolute_time();
+	if (handle < 0 && (sub.time_tried_subscribe == 0 ||
+			   hrt_elapsed_time(&sub.time_tried_subscribe) > TRY_SUBSCRIBE_INTERVAL)) {
+		sub.time_tried_subscribe = hrt_absolute_time();
 
-		if (OK == orb_exists(topic, multi_instance)) {
-			*handle = orb_subscribe_multi(topic, multi_instance);
+		if (OK == orb_exists(sub.metadata, multi_instance)) {
+			handle = orb_subscribe_multi(sub.metadata, multi_instance);
+
+			write_add_logged_msg(sub, multi_instance);
 
 			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
-			if (*handle >= 0) {
-				orb_copy(topic, *handle, buffer);
+			if (handle >= 0) {
+				orb_copy(sub.metadata, handle, buffer);
 				updated = true;
 			}
 		}
 
-	} else if (*handle >= 0) {
-		orb_check(*handle, &updated);
+	} else if (handle >= 0) {
+		orb_check(handle, &updated);
 
 		if (updated) {
-			orb_copy(topic, *handle, buffer);
+			orb_copy(sub.metadata, handle, buffer);
 		}
 	}
 
@@ -568,9 +588,6 @@ void Logger::run()
 				write_changed_parameters();
 			}
 
-			// Write data messages for normal subscriptions
-			int msg_id = 0;
-
 			/* wait for lock on log buffer */
 			_writer.lock();
 
@@ -585,14 +602,12 @@ void Logger::run()
 				 * and write a message to the log
 				 */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s),
-								  &sub.time_tried_subscribe)) {
+					if (copy_if_updated_multi(sub, instance, buffer + sizeof(message_data_header_s))) {
 
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
 						header->msg_size = static_cast<uint16_t>(msg_size - MSG_HEADER_LEN);
-						header->msg_id = msg_id;
-						header->multi_id = 0x80 + instance;	// Non multi, active
+						header->msg_id = sub.msg_ids[instance];
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
@@ -626,8 +641,6 @@ void Logger::run()
 						}
 					}
 				}
-
-				msg_id++;
 			}
 
 			if (!_dropout_start && _writer.get_buffer_fill_count() > _high_water) {
@@ -853,12 +866,14 @@ void Logger::start_log()
 
 	/* print logging path, important to find log file later */
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
+	_next_topic_id = 0;
 
 	_writer.start_log(file_name);
 	write_header();
 	write_version();
 	write_formats();
 	write_parameters();
+	write_all_add_logged_msg();
 	_writer.notify();
 	_enabled = true;
 	_start_time = hrt_absolute_time();
@@ -890,21 +905,56 @@ void Logger::write_formats()
 {
 	_writer.lock();
 	message_format_s msg;
+	const orb_metadata **topics = orb_get_topics();
 
-	int msg_id = 0;
-
-	for (LoggerSubscription &sub : _subscriptions) {
-		msg.msg_id = msg_id;
-		int format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
+	//write all known formats
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		int format_len = snprintf(msg.format, sizeof(msg.format), "%s", topics[i]->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 		msg.msg_size = msg_size - MSG_HEADER_LEN;
 
 		write_wait(&msg, msg_size);
-
-		msg_id++;
 	}
 
 	_writer.unlock();
+}
+
+void Logger::write_all_add_logged_msg()
+{
+	_writer.lock();
+
+	for (LoggerSubscription &sub : _subscriptions) {
+		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
+			if (sub.fd[instance] >= 0) {
+				write_add_logged_msg(sub, instance);
+			}
+		}
+	}
+
+	_writer.unlock();
+}
+
+void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance)
+{
+	message_add_logged_s msg;
+
+	msg.multi_id = instance;
+	subscription.msg_ids[instance] = _next_topic_id;
+	msg.msg_id = _next_topic_id;
+
+	int message_name_len = 0;
+
+	//we get the name from o_fields, it ends with ':'
+	while (subscription.metadata->o_fields[++message_name_len] != ':');
+
+	memcpy(msg.message_name, subscription.metadata->o_fields, message_name_len);
+
+	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
+	msg.msg_size = msg_size - MSG_HEADER_LEN;
+
+	write_wait(&msg, msg_size);
+
+	++_next_topic_id;
 }
 
 /* write info message */
