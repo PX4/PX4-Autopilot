@@ -291,6 +291,13 @@ enum class MessageType : uint8_t {
 
 /* declare message data structs with byte alignment (no padding) */
 #pragma pack(push, 1)
+
+/** first bytes of the file */
+struct message_file_header_s {
+	uint8_t magic[8];
+	uint64_t timestamp;
+};
+
 struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
 	uint16_t msg_size;
@@ -849,6 +856,7 @@ void Logger::start_log()
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
 
 	_writer.start_log(file_name);
+	write_header();
 	write_version();
 	write_formats();
 	write_parameters();
@@ -923,6 +931,23 @@ void Logger::write_info(const char *name, const char *value)
 		write_wait(buffer, msg_size);
 	}
 
+	_writer.unlock();
+}
+
+void Logger::write_header()
+{
+	message_file_header_s header;
+	header.magic[0] = 'U';
+	header.magic[1] = 'L';
+	header.magic[2] = 'o';
+	header.magic[3] = 'g';
+	header.magic[4] = 0x01;
+	header.magic[5] = 0x12;
+	header.magic[6] = 0x35;
+	header.magic[7] = 0x00; //file version 0
+	header.timestamp = hrt_absolute_time();
+	_writer.lock();
+	write_wait(&header, sizeof(header));
 	_writer.unlock();
 }
 
