@@ -107,6 +107,6 @@
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_ESC35_V1
-#define	HW_ARCH "ESC35"
+#define	HW_ARCH "ESC35_V1"
 #endif
 #endif /* VERSION_H_ */
