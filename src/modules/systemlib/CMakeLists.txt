@@ -75,6 +75,10 @@ if(NOT ${OS} STREQUAL "qurt")
 		)
 endif()
 
+if("${ARDUPILOT_BUILD}")
+	list(REMOVE_ITEM SRCS param/param.c)
+endif()
+
 px4_add_module(
 	MODULE modules__systemlib
 	COMPILE_FLAGS
