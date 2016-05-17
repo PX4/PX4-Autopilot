@@ -721,3 +721,25 @@ PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
+
+/**
+ * 1-sigma IMU gyro switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.2
+ * @unit rad/sec
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
+
+/**
+ * 1-sigma IMU accelerometer switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit m/s/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
