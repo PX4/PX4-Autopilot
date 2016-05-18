@@ -912,7 +912,7 @@ void Logger::write_info(const char *name, const char *value)
 
 	_writer.unlock();
 }
-void Logger::write_info(const char *name, uint32_t value)
+void Logger::write_info(const char *name, int32_t value)
 {
 	_writer.lock();
 	uint8_t buffer[sizeof(message_info_header_s)];
@@ -920,12 +920,12 @@ void Logger::write_info(const char *name, uint32_t value)
 	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
 
 	/* construct format key (type and name) */
-	msg->key_len = snprintf(msg->key, sizeof(msg->key), "uint32_t %s", name);
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "int32_t %s", name);
 	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 	/* copy string value directly to buffer */
-	memcpy(&buffer[msg_size], &value, sizeof(uint32_t));
-	msg_size += sizeof(uint32_t);
+	memcpy(&buffer[msg_size], &value, sizeof(int32_t));
+	msg_size += sizeof(int32_t);
 
 	msg->msg_size = msg_size - MSG_HEADER_LEN;
 
