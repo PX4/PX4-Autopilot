@@ -7,6 +7,7 @@ set(tests
 	autodeclination
 	bson
 	commander
+	navigator
 	controllib
 	conv
 	dataman

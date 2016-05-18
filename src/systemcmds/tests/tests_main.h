@@ -89,6 +89,7 @@ extern int	test_uart_send(int argc, char *argv[]);
 
 /* external */
 extern int commander_tests_main(int argc, char *argv[]);
+extern int navigator_tests_main(int argc, char *argv[]);
 extern int mavlink_tests_main(int argc, char *argv[]);
 extern int controllib_test_main(int argc, char *argv[]);
 extern int uorb_tests_main(int argc, char *argv[]);

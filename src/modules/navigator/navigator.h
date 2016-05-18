@@ -51,8 +51,11 @@
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rcloss.h"
+#include "rcrecover.h"
 #include "rtl.h"
+#include "smart_rtl.h"
 #include "takeoff.h"
+#include "tracker.h"
 
 #include <controllib/block/BlockParam.hpp>
 #include <controllib/blocks.hpp>
@@ -66,6 +69,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/uORB.h>
@@ -73,7 +77,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 10
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
 
 class Navigator : public control::SuperBlock
 {
@@ -148,6 +152,10 @@ public:
 	Geofence	&get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+	Tracker		*get_tracker() { return &_tracker; }
+
+	// Quick and dirty, to do it cleanly, we may want to introduce a new navigator mode
+	void		set_rtl_variant(bool advanced) { _use_advanced_rtl = advanced; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -223,6 +231,10 @@ public:
 
 	bool		abort_landing();
 
+	void		tracker_reset() { _tracker.reset_graph(); }
+	void		tracker_consolidate() { _tracker.consolidate_graph(); }
+	void		tracker_rewrite() { _tracker.rewrite_graph(); }
+
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
@@ -269,19 +281,23 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
+	Tracker		_tracker;			/**< class that tracks the vehicle path for smart RTL **/
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+	bool		_use_advanced_rtl{true};		/**< use graph-based RTL instead of direct RTL **/
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	Land		_land;			/**< class for handling land commands */
-	RTL 		_rtl;				/**< class that handles RTL */
+	RTL			_rtl;					/**< class that handles simple return-to-land */
+	SmartRTL	_smartRtl;				/**< class that handles return-to-land along recorded flight graph */
+	RCRecover	_rcRecover;				/**< class that handles RC recovery */
 	RCLoss 		_rcLoss;				/**< class that handles RTL according to OBC rules (rc loss mode) */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */

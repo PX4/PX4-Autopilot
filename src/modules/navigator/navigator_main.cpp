@@ -86,11 +86,14 @@ Navigator::Navigator() :
 	SuperBlock(nullptr, "NAV"),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
+	_tracker(),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_takeoff(this, "TKF"),
 	_land(this, "LND"),
 	_rtl(this, "RTL"),
+	_smartRtl(this, "SMART_RTL"),
+	_rcRecover(this, "RCRECOVER"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
@@ -105,13 +108,16 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_dataLinkLoss;
-	_navigation_mode_array[4] = &_engineFailure;
-	_navigation_mode_array[5] = &_gpsFailure;
-	_navigation_mode_array[6] = &_rcLoss;
-	_navigation_mode_array[7] = &_takeoff;
-	_navigation_mode_array[8] = &_land;
-	_navigation_mode_array[9] = &_follow_target;
+	_navigation_mode_array[3] = &_smartRtl;
+	_navigation_mode_array[4] = &_rcRecover;
+	_navigation_mode_array[5] = &_rcLoss;
+	_navigation_mode_array[6] = &_dataLinkLoss;
+	_navigation_mode_array[7] = &_engineFailure;
+	_navigation_mode_array[8] = &_gpsFailure;
+	_navigation_mode_array[9] = &_takeoff;
+	_navigation_mode_array[10] = &_land;
+	_navigation_mode_array[11] = &_follow_target;
+	// When adding a new mode, make sure to increase NAVIGATOR_MODE_ARRAY_SIZE in header file
 
 	updateParams();
 }
@@ -151,6 +157,17 @@ void
 Navigator::local_position_update()
 {
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+
+	if (!_land_detected.landed) {
+		if (_tracker.get_graph_fault()) {
+			_tracker.reset_graph();
+		}
+
+		_tracker.update(&_local_pos);
+
+	} else {
+		_use_advanced_rtl = true; // Try advanced RTL again for the next flight
+	}
 }
 
 void
@@ -173,6 +190,7 @@ Navigator::home_position_update(bool force)
 
 	if (updated || force) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+		_tracker.set_home(&_home_pos);
 	}
 }
 
@@ -200,6 +218,14 @@ void
 Navigator::vehicle_land_detected_update()
 {
 	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
+
+	if (!_land_detected.landed) {
+		if (_tracker.get_graph_fault()) {
+			_tracker.reset_graph();
+		}
+
+		_tracker.update(&_local_pos);
+	}
 }
 
 void
@@ -314,6 +340,13 @@ Navigator::task_main()
 		perf_begin(_loop_perf);
 
 		bool updated;
+
+		/* local position updated */
+		orb_check(_local_pos_sub, &updated);
+
+		if (updated) {
+			local_position_update();
+		}
 
 		/* gps updated */
 		orb_check(_gps_pos_sub, &updated);
@@ -561,12 +594,12 @@ Navigator::task_main()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_rcLoss;
+			_navigation_mode = &_rcRecover;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_rtl;
+			_navigation_mode = _use_advanced_rtl ? (NavigatorMode *)&_smartRtl : (NavigatorMode *)&_rtl;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
@@ -693,6 +726,10 @@ Navigator::status()
 	} else {
 		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
 	}
+
+	_tracker.dump_recent_path();
+	_tracker.dump_graph();
+	//_tracker.dump_path_to_home();
 }
 
 void
@@ -838,7 +875,7 @@ Navigator::abort_landing()
 
 static void usage()
 {
-	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile}");
+	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile|tracker {reset|consolidate|rewrite}}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -883,6 +920,27 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
+
+	} else if (!strcmp(argv[1], "tracker") && argc >= 3) {
+		if (!strcmp(argv[2], "reset")) {
+			// Deletes the entire flight graph (but not the most recent path!).
+			// This may be neccessary if the environment changed heavily since system start.
+			navigator::g_navigator->tracker_reset();
+
+		} else if (!strcmp(argv[2], "consolidate")) {
+			// Consolidates the flight graph.
+			// This is not required for normal operation, as it happens automatically.
+			navigator::g_navigator->tracker_consolidate();
+
+		} else if (!strcmp(argv[2], "rewrite")) {
+			// Deletes everything from the flight graph, which does not lead home.
+			// This is not required for normal operation, as it happens automatically.
+			navigator::g_navigator->tracker_rewrite();
+
+		} else {
+			usage();
+			return 1;
+		}
 
 	} else if (!strcmp(argv[1], "fence")) {
 		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);

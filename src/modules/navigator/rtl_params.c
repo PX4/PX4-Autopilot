@@ -74,21 +74,6 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
 /**
- * RTL delay
- *
- * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
- *
- * @unit s
- * @min -1
- * @max 300
- * @decimal 1
- * @increment 0.5
- * @group Return To Land
- */
-PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
-
-/**
  * Minimum distance to trigger rising to a safe altitude
  *
  * If the system is horizontally closer than this distance to home
@@ -103,3 +88,34 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
+
+/**
+ * RTL Advanced to RTL classic fallback delay
+ *
+ * If the vehicle makes no progress in advanced RTL for this timespan for whatever reason, the system falls back to basic RTL mode.
+ * Note that there may be long straight lines in the return path. This delay should be large enough to allow flying along such lines.
+ * If set to -1 the system will not switch to basic RTL but loiter.
+ *
+ * @unit s
+ * @min -1
+ * @max 300
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_FALLBCK_DLY, 120f);
+
+/**
+ * RTL delay
+ *
+ * Delay after return/descend before landing in RTL mode (this is the same for both advanced and basic RTL).
+ * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT or RTL_MIN_ALT.
+ *
+ * @unit s
+ * @min -1
+ * @max 300
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, 0f);
