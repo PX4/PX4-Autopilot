@@ -407,8 +407,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	// reset the quaternion variances because the yaw angle could have changed by a significant amount
 	// by setting them to zero we avoid 'kicks' in angle when 3-D fusion starts and the imu process noise
 	// will grow them again.
-	zeroRows(P, 0, 3);
-	zeroCols(P, 0, 3);
+	if (_control_status.flags.tilt_align) {
+		zeroRows(P, 0, 3);
+		zeroCols(P, 0, 3);
+	}
 
 	// update transformation matrix from body to world frame using the current estimate
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
