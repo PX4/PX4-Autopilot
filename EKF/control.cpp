@@ -481,7 +481,7 @@ void Ekf::controlMagAiding()
 	// or the more accurate 3-axis fusion
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
 
-	if (_control_status.flags.in_air) {
+	if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
 		// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
 		if (!_control_status.flags.mag_3D) {
 			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
