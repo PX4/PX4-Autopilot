@@ -49,11 +49,16 @@ void Ekf::controlFusionModes()
 	// Get the magnetic declination
 	calcMagDeclination();
 
-	// Once the angular uncertainty has reduced sufficiently, initialise the yaw and magnetic field states
-	float total_angle_variance = P[0][0] + P[1][1] + P[2][2] + P[3][3];
-	if (total_angle_variance < 0.002f && !_control_status.flags.tilt_align) {
-		_control_status.flags.tilt_align = true;
-		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+	// monitor the tilt alignment
+	if (!_control_status.flags.tilt_align) {
+		// whilst we are aligning the tilt, monitor the variances
+		Vector3f angle_err_var_vec = calcRotVecVariances();
+
+		// Once the tilt variances have reduced sufficiently, initialise the yaw and magnetic field states
+		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < 0.002f) {
+			_control_status.flags.tilt_align = true;
+			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+		}
 	}
 
 	// control use of various external souces for positon and velocity aiding

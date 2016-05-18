@@ -363,4 +363,10 @@ private:
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();
 
+	// rotate quaternion covariances into variances for an equivalent rotation vector
+	Vector3f calcRotVecVariances();
+
+	// initialise the quaternion covariances using rotation vector variances
+	void initialiseQuatCovariances(Vector3f &rot_vec_var);
+
 };
