@@ -62,7 +62,7 @@
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 
-#include <v2.0/common/mavlink.h>
+#include <v1.0/common/mavlink.h>
 
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
