@@ -330,7 +330,7 @@ int Logger::add_topic(const orb_metadata *topic)
 
 	}
 
-	size_t fields_len = strlen(topic->o_fields);
+	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
 
 	if (fields_len > sizeof(message_format_s::format)) {
 		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
@@ -842,7 +842,7 @@ void Logger::write_formats()
 
 	//write all known formats
 	for (size_t i = 0; i < orb_topics_count(); i++) {
-		int format_len = snprintf(msg.format, sizeof(msg.format), "%s", topics[i]->o_fields);
+		int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", topics[i]->o_name, topics[i]->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 		msg.msg_size = msg_size - MSG_HEADER_LEN;
 
@@ -875,12 +875,9 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 	subscription.msg_ids[instance] = _next_topic_id;
 	msg.msg_id = _next_topic_id;
 
-	int message_name_len = 0;
+	int message_name_len = strlen(subscription.metadata->o_name);
 
-	//we get the name from o_fields, it ends with ':'
-	while (subscription.metadata->o_fields[++message_name_len] != ':');
-
-	memcpy(msg.message_name, subscription.metadata->o_fields, message_name_len);
+	memcpy(msg.message_name, subscription.metadata->o_name, message_name_len);
 
 	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
 	msg.msg_size = msg_size - MSG_HEADER_LEN;
