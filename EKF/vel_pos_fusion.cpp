@@ -88,11 +88,10 @@ void Ekf::fuseVelPosHeight()
 		// being used
 		if (!_control_status.flags.gps && !_control_status.flags.ev_pos) {
 			// No observations - use a static position to constrain drift
-			if (_control_status.flags.in_air) {
+			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
 				R[3] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
-
 			} else {
-				R[3] = _params.gps_pos_noise;
+				R[3] = 0.5f;
 			}
 			_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
 			_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
