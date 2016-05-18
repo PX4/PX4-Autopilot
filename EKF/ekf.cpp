@@ -92,6 +92,7 @@ Ekf::Ekf():
 	_hgt_counter(0),
 	_rng_filt_state(0.0f),
 	_mag_counter(0),
+	_ev_counter(0),
 	_time_last_mag(0),
 	_hgt_sensor_offset(0.0f),
 	_terrain_vpos(0.0f),
@@ -387,7 +388,7 @@ bool Ekf::update()
 
 bool Ekf::initialiseFilter(void)
 {
-	// Keep accumulating measurements until we have a minimum of 10 samples for the baro and magnetoemter
+	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 
 	// Sum the IMU delta angle measurements
 	imuSample imu_init = _imu_buffer.get_newest();
@@ -403,6 +404,17 @@ bool Ekf::initialiseFilter(void)
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
 			_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
+		}
+	}
+
+	// Count the number of external vision measurements received
+	if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
+		if (_ev_counter == 0 && _ev_sample_delayed.time_us !=0) {
+			// initialise the counter
+			_ev_counter = 1;
+		} else if (_ev_counter != 0) {
+			// increment the sample count
+			_ev_counter ++;
 		}
 	}
 
@@ -454,7 +466,10 @@ bool Ekf::initialiseFilter(void)
 	}
 
 	// check to see if we have enough measurements and return false if not
-	if (_hgt_counter <= 10 || _mag_counter <= 10) {
+	bool hgt_count_fail = _hgt_counter <= 10;
+	bool mag_count_fail = _mag_counter <= 10;
+	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 10);
+	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
 		return false;
 
 	} else {
@@ -496,7 +511,7 @@ bool Ekf::initialiseFilter(void)
 		Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
-		resetMagHeading(mag_init);
+		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
 		// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
 		// so it can be used as a backup ad set the initial height using the range finder

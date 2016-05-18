@@ -209,9 +209,10 @@ private:
 	float _gps_alt_ref;		// WGS-84 height (m)
 
 	// Variables used to initialise the filter states
-	uint32_t _hgt_counter;		// number of height samples taken
+	uint32_t _hgt_counter;		// number of height samples read during initialisation
 	float _rng_filt_state;		// filtered height measurement
-	uint32_t _mag_counter;		// number of magnetometer samples taken
+	uint32_t _mag_counter;		// number of magnetometer samples read during initialisation
+	uint32_t _ev_counter;		// number of exgernal vision samples read during initialisation
 	uint64_t _time_last_mag;	// measurement time of last magnetomter sample
 	Vector3f _mag_filt_state;	// filtered magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
