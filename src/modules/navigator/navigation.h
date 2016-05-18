@@ -50,7 +50,7 @@
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
 
 /* compatible to mavlink MAV_CMD */
-enum NAV_CMD {
+typedef enum {
 	NAV_CMD_IDLE = 0,
 	NAV_CMD_WAYPOINT = 16,
 	NAV_CMD_LOITER_UNLIMITED = 17,
@@ -72,12 +72,12 @@ enum NAV_CMD {
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
 	NAV_CMD_DO_VTOL_TRANSITION=3000,
 	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
-};
+} NAV_CMD;
 
-enum ORIGIN {
+typedef enum {
 	ORIGIN_MAVLINK = 0,
 	ORIGIN_ONBOARD
-};
+} ORIGIN;
 
 /**
  * @addtogroup topics
@@ -99,12 +99,12 @@ struct mission_item_s {
 	float yaw;			/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
 	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	unsigned nav_cmd;		/**< navigation command					*/
+	NAV_CMD nav_cmd;		/**< navigation command					*/
 	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	unsigned origin;		/**< where the waypoint has been generated		*/
+	ORIGIN origin;		/**< where the waypoint has been generated		*/
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
