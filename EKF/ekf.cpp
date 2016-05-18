@@ -511,7 +511,7 @@ bool Ekf::initialiseFilter(void)
 		Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
-		resetMagHeading(mag_init);
+		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
 		// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
 		// so it can be used as a backup ad set the initial height using the range finder
