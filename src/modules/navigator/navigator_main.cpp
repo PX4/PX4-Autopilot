@@ -104,6 +104,7 @@ Navigator::Navigator() :
 	_navigator_task(-1),
 	_mavlink_log_pub(nullptr),
 	_global_pos_sub(-1),
+	_local_pos_sub(-1),
 	_gps_pos_sub(-1),
 	_sensor_combined_sub(-1),
 	_home_pos_sub(-1),
@@ -123,6 +124,7 @@ Navigator::Navigator() :
 	_land_detected{},
 	_control_mode{},
 	_global_pos{},
+	_local_pos{},
 	_gps_pos{},
 	_sensor_combined{},
 	_home_pos{},
@@ -139,6 +141,7 @@ Navigator::Navigator() :
 	_geofence(this),
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
+	_tracker(),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_pos_sp_triplet_published_invalid_once(false),
@@ -149,6 +152,7 @@ Navigator::Navigator() :
 	_takeoff(this, "TKF"),
 	_land(this, "LND"),
 	_rtl(this, "RTL"),
+	_rcRecover(this, "RCRECOVER"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
@@ -170,13 +174,14 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_dataLinkLoss;
-	_navigation_mode_array[4] = &_engineFailure;
-	_navigation_mode_array[5] = &_gpsFailure;
-	_navigation_mode_array[6] = &_rcLoss;
-	_navigation_mode_array[7] = &_takeoff;
-	_navigation_mode_array[8] = &_land;
-	_navigation_mode_array[9] = &_follow_target;
+	_navigation_mode_array[3] = &_rcRecover;
+	_navigation_mode_array[4] = &_rcLoss;
+	_navigation_mode_array[5] = &_dataLinkLoss;
+	_navigation_mode_array[6] = &_engineFailure;
+	_navigation_mode_array[7] = &_gpsFailure;
+	_navigation_mode_array[8] = &_takeoff;
+	_navigation_mode_array[9] = &_land;
+	_navigation_mode_array[10] = &_follow_target;
 
 	updateParams();
 }
@@ -213,6 +218,13 @@ Navigator::global_position_update()
 }
 
 void
+Navigator::local_position_update()
+{
+	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	_tracker.update(&_local_pos);
+}
+
+void
 Navigator::gps_position_update()
 {
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
@@ -232,6 +244,7 @@ Navigator::home_position_update(bool force)
 
 	if (updated || force) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+		_tracker.reset(&_home_pos);
 	}
 }
 
@@ -301,6 +314,7 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
@@ -318,6 +332,7 @@ Navigator::task_main()
 	vehicle_land_detected_update();
 	vehicle_control_mode_update();
 	global_position_update();
+	local_position_update();
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
@@ -366,6 +381,12 @@ Navigator::task_main()
 		perf_begin(_loop_perf);
 
 		bool updated;
+
+		/* local position updated */
+		orb_check(_local_pos_sub, &updated);
+		if (updated) {
+			local_position_update();
+		}
 
 		/* gps updated */
 		orb_check(_gps_pos_sub, &updated);
@@ -543,6 +564,8 @@ Navigator::task_main()
 				} else if (_param_rcloss_act.get() == 3) {
 					_navigation_mode = &_land;
 				} else if (_param_rcloss_act.get() == 4) {
+					_navigation_mode = &_rcRecover;
+				} else if (_param_rcloss_act.get() == 5) {
 					_navigation_mode = &_rcLoss;
 				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
@@ -551,6 +574,7 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_rtl;
+				//_navigation_mode = &_rcRecover; // for development only
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 				_pos_sp_triplet_published_invalid_once = false;
@@ -565,14 +589,14 @@ Navigator::task_main()
 				_navigation_mode = &_land;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-				/* Use complex data link loss mode only when enabled via param
-				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_datalinkloss_act.get() == 1) {
 					_navigation_mode = &_loiter;
 				} else if (_param_datalinkloss_act.get() == 3) {
 					_navigation_mode = &_land;
 				} else if (_param_datalinkloss_act.get() == 4) {
+					_navigation_mode = &_rcRecover;
+				} else if (_param_datalinkloss_act.get() == 5) {
 					_navigation_mode = &_dataLinkLoss;
 				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
@@ -683,6 +707,8 @@ Navigator::status()
 	} else {
 		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
 	}
+	
+	_tracker.dump_recent_path();
 }
 
 void
