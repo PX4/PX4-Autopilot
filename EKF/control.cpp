@@ -54,14 +54,15 @@ void Ekf::controlFusionModes()
 		// whilst we are aligning the tilt, monitor the variances
 		Vector3f angle_err_var_vec = calcRotVecVariances();
 
-		// Once the tilt variances have reduced sufficiently, initialise the yaw and magnetic field states
-		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < 0.002f) {
+		// Once the tilt variances have reduced to equivalent of 3deg uncertainty, re-set the yaw and magnetic field states
+		// and declare the tilt alignment complete
+		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(0.05235f)) {
 			_control_status.flags.tilt_align = true;
 			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 		}
 	}
 
-	// control use of various external souces for positon and velocity aiding
+	// control use of various external souces for position and velocity aiding
 	controlExternalVisionAiding();
 	controlOpticalFlowAiding();
 	controlGpsAiding();
