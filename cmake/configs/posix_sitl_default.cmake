@@ -57,6 +57,7 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/vtol_att_control
+
 	lib/controllib
 	lib/conversion
 	lib/DriverFramework/framework
@@ -72,6 +73,17 @@ set(config_module_list
 	lib/terrain_estimation
 
 	examples/px4_simple_app
+
+	#
+	# Testing
+	#
+	modules/commander/commander_tests
+	modules/controllib_test
+	#modules/mavlink/mavlink_tests
+	modules/unit_test
+	modules/uORB/uORB_tests
+	systemcmds/tests
+
 	)
 
 set(config_extra_builtin_cmds

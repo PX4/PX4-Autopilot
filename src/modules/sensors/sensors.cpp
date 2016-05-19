@@ -1945,7 +1945,7 @@ Sensors::rc_poll()
 			if (_parameters.rc_map_flightmode > 0) {
 
 				/* the number of valid slots equals the index of the max marker minus one */
-				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+				const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two
@@ -2276,7 +2276,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2000,
+					   2200,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

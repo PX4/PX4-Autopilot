@@ -67,6 +67,8 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/sd_bench
+	systemcmds/tests
 
 	#
 	# Testing
@@ -77,7 +79,6 @@ set(config_module_list
 	modules/mavlink/mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
-	systemcmds/tests
 
 	#
 	# General system control
@@ -111,6 +112,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	#modules/logger
 	#modules/sdlog2
 
 	#

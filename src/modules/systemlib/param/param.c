@@ -173,7 +173,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 	return (count && param < count);
 }
 

@@ -48,7 +48,7 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/bmi160
+	#drivers/bmi160
 
 	#
 	# System commands
@@ -67,6 +67,8 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	#systemcmds/sd_bench
+	#systemcmds/tests
 
 	#
 	# General system control

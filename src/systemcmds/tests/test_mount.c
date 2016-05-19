@@ -39,12 +39,13 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_config.h>
+#include <px4_posix.h>
+
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
@@ -200,7 +201,7 @@ test_mount(int argc, char *argv[])
 
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
-			int fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			int fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			for (unsigned i = 0; i < iterations; i++) {
 
@@ -236,8 +237,8 @@ test_mount(int argc, char *argv[])
 			fsync(fileno(stderr));
 			usleep(200000);
 
-			close(fd);
-			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
+			px4_close(fd);
+			fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			/* read back data for validation */
 			for (unsigned i = 0; i < iterations; i++) {
@@ -267,7 +268,7 @@ test_mount(int argc, char *argv[])
 			}
 
 			int ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
-			close(fd);
+			px4_close(fd);
 
 			if (ret) {
 				PX4_ERR("UNLINKING FILE FAILED");
