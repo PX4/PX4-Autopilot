@@ -48,7 +48,6 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/bmi160
 
 	#
 	# System commands
