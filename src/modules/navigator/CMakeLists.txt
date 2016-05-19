@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN navigator
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Wno-sign-compare
 		-Os
 	SRCS
 		navigator_main.cpp
