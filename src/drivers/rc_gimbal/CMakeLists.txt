@@ -31,15 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__gimbal
-	MAIN gimbal
+	MODULE drivers__rc_gimbal
+	MAIN rc_gimbal
 	STACK_MAIN 1024
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		gimbal.cpp
-		gimbal_params.c
+		rc_gimbal.cpp
+		rc_gimbal_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
