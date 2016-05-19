@@ -278,6 +278,8 @@ package_firmware:
 clean:
 	@rm -rf build_*/
 	@(cd NuttX/nuttx && make clean)
+	@(cd Tools && git clean -f -x -d)
+	@(cd Tools/sitl_gazebo && git clean -f -x -d)
 
 submodulesclean:
 	@git submodule sync
