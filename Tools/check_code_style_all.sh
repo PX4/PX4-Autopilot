@@ -37,6 +37,7 @@ find \
     src/modules/systemlib \
     src/modules/unit_test \
     src/modules/uORB \
+    src/modules/vtol_att_control \
     src/platforms \
     src/systemcmds \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) \

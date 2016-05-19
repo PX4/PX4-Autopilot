@@ -128,6 +128,7 @@ void VtolType::set_idle_fw()
 	}
 
 	struct pwm_output_values pwm_values;
+
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {

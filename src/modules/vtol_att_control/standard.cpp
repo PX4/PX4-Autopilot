@@ -155,7 +155,7 @@ void Standard::update_vtol_state()
 			// transition to MC mode if transition time has passed
 			// XXX: base this on XY hold velocity of MC
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-				(_params_standard.back_trans_dur * 1000000.0f)) {
+			    (_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 		}
@@ -236,7 +236,7 @@ void Standard::update_transition_state()
 		    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
 		   ) {
 			float weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
-					   _airspeed_trans_blend_margin;
+				       _airspeed_trans_blend_margin;
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
@@ -300,18 +300,19 @@ void Standard::update_mc_state()
 
 	// get projection of thrust vector on body x axis. This is used to
 	// determine the desired forward acceleration which we want to achieve with the pusher
-	math::Matrix<3,3> R(&_v_att->R[0]);
-	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
-	math::Vector<3> thrust_sp_axis(-R_sp(0,2), -R_sp(1,2), -R_sp(2,2));
+	math::Matrix<3, 3> R(&_v_att->R[0]);
+	math::Matrix<3, 3> R_sp(&_v_att_sp->R_body[0]);
+	math::Vector<3> thrust_sp_axis(-R_sp(0, 2), -R_sp(1, 2), -R_sp(2, 2));
 	math::Vector<3> euler = R.to_euler();
 	R.from_euler(0, 0, euler(2));
-	math::Vector<3> body_x_zero_tilt(R(0,0), R(1,0), R(2,0));
+	math::Vector<3> body_x_zero_tilt(R(0, 0), R(1, 0), R(2, 0));
 
 	// we are using a parameter to scale the thrust value in order to compensate for highly over/under-powered motors
 	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust * _params_standard.forward_thurst_scale;
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
-	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max : _v_att_sp->pitch_body;
+	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max :
+				   _v_att_sp->pitch_body;
 
 	// compute new desired rotation matrix with corrected pitch angle
 	// and copy data to attitude setpoint topic

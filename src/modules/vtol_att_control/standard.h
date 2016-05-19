@@ -103,7 +103,7 @@ private:
 	} _vtol_schedule;
 
 	bool _flag_enable_mc_motors;
-	float _pusher_throttle;	
+	float _pusher_throttle;
 	float _airspeed_trans_blend_margin;
 
 	void set_max_mc(unsigned pwm_value);
