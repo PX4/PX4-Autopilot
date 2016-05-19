@@ -281,6 +281,11 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 	sPort_send_byte(uart, 0xFF - crc);
 }
 
+/*
+TODO: Verify correct data processing by checking the byte format here:
+https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
+*/
+
 
 // scaling correct with OpenTX 2.1.7
 void sPort_send_VFAS(int uart)
@@ -290,9 +295,11 @@ void sPort_send_VFAS(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
+
+
 void sPort_send_CELLS(int uart)
 {
-	/* send battery voltage as VFAS */
+	/* TODO: Correct format, see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp#L22 */
 	uint32_t voltage_cells = (int)((100 * battery_status->voltage_v) / battery_status->cell_count);
 	sPort_send_data(uart, SMARTPORT_ID_CELLS, voltage_cells);
 }
