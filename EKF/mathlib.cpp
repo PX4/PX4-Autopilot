@@ -56,7 +56,7 @@ float max(float val1, float val2)
 	return (val1 > val2) ? val1 : val2;
 }
 
-float constrain(float &val, float min, float max)
+float constrain(float val, float min, float max)
 {
 	return (val < min) ? min : ((val > max) ? max : val);
 }

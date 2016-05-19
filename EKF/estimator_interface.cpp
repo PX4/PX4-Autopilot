@@ -226,7 +226,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 	}
 
 	if (time_usec - _time_last_range > 45000) {
-		rangeSample range_sample_new;
+		rangeSample range_sample_new = {};
 		range_sample_new.rng = *data;
 		rng = *data;
 		range_sample_new.time_us -= _params.range_delay_ms * 1000;
