@@ -709,7 +709,7 @@ float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
 float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!math::isfinite(bearing)) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
@@ -739,7 +739,7 @@ float _wrap_pi(float bearing)
 float _wrap_2pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!math::isfinite(bearing)) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
@@ -769,7 +769,7 @@ float _wrap_2pi(float bearing)
 float _wrap_180(float bearing)
 {
 	/* value is inf or NaN */
-	if (!math::isfinite(bearing)) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
@@ -799,7 +799,7 @@ float _wrap_180(float bearing)
 float _wrap_360(float bearing)
 {
 	/* value is inf or NaN */
-	if (!math::isfinite(bearing)) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
