@@ -1157,7 +1157,9 @@ int commander_thread_main(int argc, char *argv[])
 #endif
 
 	if (argc > 2) {
+#ifdef __PX4_QURT
 		if (!strcmp(argv[2],"-hil")) {
+#endif
 			startup_in_hil = true;
 		} else {
 			PX4_ERR("Argument %s not supported.", argv[3]);
