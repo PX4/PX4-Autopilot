@@ -2019,6 +2019,7 @@ MulticopterPositionControl::task_main()
 			R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
 			math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
+
 			// transform the vector into a new frame which is rotated around the z axis
 			// by the current yaw error. this vector defines the desired tilt when we look
 			// into the direction of the desired heading
@@ -2026,20 +2027,14 @@ MulticopterPositionControl::task_main()
 			R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
 			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
-			// compute the quaternion which captures the tilt of the vector z_roll_pitch_sp
-			// the desired corrected roll and pitch angles can then be computed from the quaternion
-			float angle = acosf(zB * z_roll_pitch_sp);
-			math::Vector<3> tilt_axis = {0,0,1.0f};
+			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
+			// to calculate the new desired roll and pitch angles
+			// R_tilt can be written as a function of the new desired roll and pitch
+			// angles. we get three equations and have to solve for 2 unknowns
+			float pitch_new = asinf(z_roll_pitch_sp(0));
+			float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
-			if (fabsf(angle) > FLT_EPSILON) {
-				tilt_axis = zB % z_roll_pitch_sp;
-			}
-
-			tilt_axis = tilt_axis.normalized() * sinf(angle/2.0f);
-			math::Quaternion q_roll_pitch_corrected = {cosf(angle/2.0f), tilt_axis(0), tilt_axis(1), tilt_axis(2)};
-			q_roll_pitch_corrected.normalize();
-			math::Vector<3> euler_corrected = q_roll_pitch_corrected.to_euler();
-			R_sp.from_euler(euler_corrected(0), euler_corrected(1), _att_sp.yaw_body);
+			R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
 
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
