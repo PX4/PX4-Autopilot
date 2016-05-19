@@ -133,8 +133,8 @@ public:
 private:
 
 	static const uint8_t _k_num_states = 24;
-	const float _k_earth_rate = 0.000072921f;
-	const float _gravity_mss = 9.80665f;
+	static const float _k_earth_rate;
+	static const float _gravity_mss;
 
 	float _dt_ekf_avg;		// average update rate of the ekf
 

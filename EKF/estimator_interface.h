@@ -260,11 +260,11 @@ protected:
 	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
 	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
 
-	bool _NED_origin_initialised = false;
-	bool _gps_speed_valid = false;
-	float _gps_origin_eph = 0.0f; // horizontal position uncertainty of the GPS origin
-	float _gps_origin_epv = 0.0f; // vertical position uncertainty of the GPS origin
-	struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
+	bool _NED_origin_initialised;
+	bool _gps_speed_valid;
+	float _gps_origin_eph; // horizontal position uncertainty of the GPS origin
+	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
+	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians)
 
 	bool _mag_healthy;              // computed by mag innovation test
 	bool _airspeed_healthy;			// computed by airspeed innovation test

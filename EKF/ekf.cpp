@@ -57,6 +57,9 @@
 #endif
 
 
+const float Ekf::_k_earth_rate = 0.000072921f;
+const float Ekf::_gravity_mss = 9.80665f;
+
 Ekf::Ekf():
 	_filter_initialised(false),
 	_earth_rate_initialised(false),
