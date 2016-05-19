@@ -49,6 +49,7 @@ set(config_module_list
 	modules/navigator
 	modules/param
 	modules/position_estimator_inav
+	modules/local_position_estimator
 	modules/sdlog2
 	modules/sensors
 	modules/simulator
@@ -72,7 +73,7 @@ set(config_module_list
 	lib/terrain_estimation
 
 	examples/px4_simple_app
-	
+
 	#
 	# Testing
 	#
