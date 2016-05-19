@@ -1945,7 +1945,7 @@ Sensors::rc_poll()
 			if (_parameters.rc_map_flightmode > 0) {
 
 				/* the number of valid slots equals the index of the max marker minus one */
-				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+				const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two

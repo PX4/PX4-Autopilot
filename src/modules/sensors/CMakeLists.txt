@@ -35,9 +35,8 @@ px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
 	PRIORITY "SCHED_PRIORITY_MAX-5"
-	STACK_MAIN 1200
+	STACK_MAIN 1300
 	COMPILE_FLAGS
-		-Wno-type-limits
 		-O3
 	SRCS
 		sensors.cpp

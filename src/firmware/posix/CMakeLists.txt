@@ -11,7 +11,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 	LINUX_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb

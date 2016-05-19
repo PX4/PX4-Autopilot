@@ -70,10 +70,10 @@ px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
 	STACK_MAIN 9000
+	STACK_MAX 9000
 	COMPILE_FLAGS
-		-Wframe-larger-than=8000
 		-Wno-float-equal
-		-O0
+		-Os
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

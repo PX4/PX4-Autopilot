@@ -59,9 +59,6 @@ px4_add_module(
 	STACK_MAIN 3200
 	STACK_MAX 1500
 	COMPILE_FLAGS
-		-Wno-attributes
-		-Wno-packed
-		-Wno-deprecated-declarations
 		-Os
 	SRCS
 		# Main
