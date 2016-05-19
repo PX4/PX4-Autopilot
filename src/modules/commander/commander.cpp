@@ -1050,6 +1050,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_NAV_ROI: {
+		break;
+	}
+
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
+		break;
+	}
+
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
