@@ -205,7 +205,7 @@ void frsky_send_frame1(int uart)
 {
 	/* send formatted frame */
 	frsky_send_data(uart, FRSKY_ID_ACCEL_X,
-			roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1/9.81f)) );
+			roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1 / 9.81f)));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Y,
 			roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * (1 / 9.81f)));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Z,

@@ -414,24 +414,26 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				/* report vehicle attitude at roughly 3*10Hz */
-				else if (now - lastATTITUDE > 33 * 1000){
+				else if (now - lastATTITUDE > 33 * 1000) {
 					lastATTITUDE = now;
 
 					static int elementCountATTITUDE = 0;
-					switch(elementCountATTITUDE)
-					{
-						case 0:
-							elementCountATTITUDE++;
-							sPort_send_ATTITUDE_ROLL(uart);
-							break;
-						case 1:
-							elementCountATTITUDE++;
-							sPort_send_ATTITUDE_PITCH(uart);
-							break;
-						case 2:
-							elementCountATTITUDE = 0;
-							sPort_send_ATTITUDE_YAW(uart);
-							break;
+
+					switch (elementCountATTITUDE) {
+					case 0:
+						elementCountATTITUDE++;
+						sPort_send_ATTITUDE_ROLL(uart);
+						break;
+
+					case 1:
+						elementCountATTITUDE++;
+						sPort_send_ATTITUDE_PITCH(uart);
+						break;
+
+					case 2:
+						elementCountATTITUDE = 0;
+						sPort_send_ATTITUDE_YAW(uart);
+						break;
 					}
 				}
 
@@ -457,22 +459,25 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastACC = now;
 
 					static int elementCountACC = 0;
-					switch(elementCountACC)
-					{
-						case 0:
-							elementCountACC++;
-							sPort_send_ACCX(uart);
-							break;
-						case 1:
-							elementCountACC++;
-							sPort_send_ACCY(uart);
-							break;
-						case 2:
-							elementCountACC = 0;
-							sPort_send_ACCZ(uart);
-							break;
+
+					switch (elementCountACC) {
+					case 0:
+						elementCountACC++;
+						sPort_send_ACCX(uart);
+						break;
+
+					case 1:
+						elementCountACC++;
+						sPort_send_ACCY(uart);
+						break;
+
+					case 2:
+						elementCountACC = 0;
+						sPort_send_ACCZ(uart);
+						break;
 					}
 				}
+
 				break;
 
 			case SMARTPORT_POLL_7:
@@ -520,6 +525,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 						break;
 					}
 				}
+
 				break;
 
 			case SMARTPORT_POLL_8:
@@ -543,23 +549,25 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				/* report mission item (sequence) data at roughly 3*1 Hz */
-				else if (now - lastMISSION_SEQUENCE > 333 * 1000){
+				else if (now - lastMISSION_SEQUENCE > 333 * 1000) {
 					lastMISSION_SEQUENCE = now;
 					static int elementCountMISSION = 0;
-					switch(elementCountMISSION)
-					{
-						case 0:
-							elementCountMISSION++;
-							sPort_send_MISSION_SEQUENCE_CURRENT(uart);
-							break;
-						case 1:
-							elementCountMISSION++;
-							sPort_send_MISSION_SEQUENCE_REACHED(uart);
-							break;
-						case 2:
-							elementCountMISSION = 0;
-							sPort_send_MISSION_SEQUENCE_STATUS(uart);
-							break;
+
+					switch (elementCountMISSION) {
+					case 0:
+						elementCountMISSION++;
+						sPort_send_MISSION_SEQUENCE_CURRENT(uart);
+						break;
+
+					case 1:
+						elementCountMISSION++;
+						sPort_send_MISSION_SEQUENCE_REACHED(uart);
+						break;
+
+					case 2:
+						elementCountMISSION = 0;
+						sPort_send_MISSION_SEQUENCE_STATUS(uart);
+						break;
 					}
 				}
 

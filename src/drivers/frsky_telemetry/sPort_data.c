@@ -342,19 +342,19 @@ void sPort_send_FUEL(int uart)
 void sPort_send_ACCX(int uart)
 {
 	/* send data. opentx expects acc values in g. */
-	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1/9.81f)));
+	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1 / 9.81f)));
 }
 
 void sPort_send_ACCY(int uart)
 {
 	/* send data. opentx expects acc values in g. */
-	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * (1/9.81f)));
+	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * (1 / 9.81f)));
 }
 
 void sPort_send_ACCZ(int uart)
 {
 	/* send data. opentx expects acc values in g. */
-	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * (1/9.81f)));
+	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * (1 / 9.81f)));
 }
 
 void sPort_send_GPS_LON(int uart)
@@ -509,13 +509,13 @@ void sPort_send_MISSION_SEQUENCE_STATUS(int uart)
 {
 	uint32_t seq_status =
 		(mission_result->valid << 7)
-			 | mission_result->warning << 6
-			 | mission_result->reached << 5
-			 | mission_result->finished << 4
-			 | mission_result->stay_in_failsafe << 3
-			 | mission_result->flight_termination << 2
-			 | mission_result->item_do_jump_changed << 1
-			 | mission_result->mission_failure;
+		| mission_result->warning << 6
+		| mission_result->reached << 5
+		| mission_result->finished << 4
+		| mission_result->stay_in_failsafe << 3
+		| mission_result->flight_termination << 2
+		| mission_result->item_do_jump_changed << 1
+		| mission_result->mission_failure;
 	sPort_send_data(uart, SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS, seq_status);
 }
 
