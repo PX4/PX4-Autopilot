@@ -119,8 +119,5 @@ struct mission_item_s {
  * @}
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(offboard_mission);
-ORB_DECLARE(onboard_mission);
 
 #endif
