@@ -333,7 +333,7 @@ bool Ekf::update()
 
 		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-		if (!_control_status.flags.gps && !_control_status.flags.opt_flow
+		if (!_control_status.flags.gps && !_control_status.flags.opt_flow && !_control_status.flags.ev_pos
 		    && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
 			_fuse_pos = true;
 			_time_last_fake_gps = _time_last_imu;
