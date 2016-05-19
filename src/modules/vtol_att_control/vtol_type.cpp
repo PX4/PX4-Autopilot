@@ -86,10 +86,12 @@ void VtolType::set_idle_mc()
 {
 	int ret;
 	unsigned servo_count;
-	char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {PX4_WARN("can't open %s", dev);}
+	if (fd < 0) {
+		PX4_WARN("can't open %s", dev);
+	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = _params->idle_pwm_mc;
@@ -103,7 +105,9 @@ void VtolType::set_idle_mc()
 
 	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {PX4_WARN("failed setting min values");}
+	if (ret != OK) {
+		PX4_WARN("failed setting min values");
+	}
 
 	px4_close(fd);
 
@@ -116,10 +120,12 @@ void VtolType::set_idle_mc()
 void VtolType::set_idle_fw()
 {
 	int ret;
-	char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {PX4_WARN("can't open %s", dev);}
+	if (fd < 0) {
+		PX4_WARN("can't open %s", dev);
+	}
 
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
@@ -132,7 +138,9 @@ void VtolType::set_idle_fw()
 
 	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {PX4_WARN("failed setting min values");}
+	if (ret != OK) {
+		PX4_WARN("failed setting min values");
+	}
 
 	px4_close(fd);
 }
