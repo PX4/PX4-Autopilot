@@ -36,6 +36,7 @@ set(config_module_list
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
+	drivers/vmount
 	drivers/camera_trigger
 	drivers/mkblctrl
 	drivers/px4flow
@@ -119,7 +120,7 @@ set(config_module_list
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
-	platforms/common 
+	platforms/common
 	platforms/nuttx/px4_layer
 
 	#

@@ -1,0 +1,26 @@
+#!nsh
+#
+# @name H4 680mm with Z1 Tiny2 Gimbal
+#
+# @type Quadrotor x
+#
+# @maintainer Leon Mueller <thedevleon>
+#
+
+sh /etc/init.d/4002_quad_x_mount
+
+# The Z1 Tiny2 can handle up to 400Hz
+# and works with min 1020us, middle 1520us, max 2020us
+# see http://www.zhiyun-tech.com/uploadfile/datedown/instruction/Tiny2_English_instructionV1.03.pdf
+# under Gimbal Connection Instruction
+
+set PWM_AUX_RATE 400
+set PWM_AUX_DISARMED 1520
+set PWM_AUX_MIN 1020
+set PWM_AUX_MAX 2020
+
+# Start FrSky telemetry on SERIAL4 (ttyS6, designated "SERIAL4/5" on the case)
+frsky_telemetry start -d /dev/ttyS6
+
+# GPIO LED
+gpio_led start -p 6

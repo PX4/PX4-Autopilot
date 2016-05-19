@@ -22,6 +22,7 @@ set(config_module_list
 	drivers/airspeed
 	drivers/meas_airspeed
 	modules/sensors
+	drivers/vmount
 	drivers/camera_trigger
 
 	#
