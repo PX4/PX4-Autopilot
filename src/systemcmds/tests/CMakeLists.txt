@@ -72,6 +72,7 @@ px4_add_module(
 	STACK_MAIN 9000
 	STACK_MAX 9000
 	COMPILE_FLAGS
+		-Wno-unused-result
 		-Wno-float-equal
 		-Os
 	SRCS ${srcs}
