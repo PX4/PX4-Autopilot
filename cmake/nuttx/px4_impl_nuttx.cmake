@@ -202,21 +202,30 @@ function(px4_nuttx_add_export)
 	    add_dependencies(nuttx_patch nuttx_patch_${patch_name})
 	endforeach()
 
-	# copy and export
+	# copy
+	file(RELATIVE_PATH nuttx_cp_src ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/NuttX)
+	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
+		COMMAND ${MKDIR} -p ${nuttx_src}
+		COMMAND rsync -a --delete --exclude=.git ${nuttx_cp_src}/ ${CONFIG}/NuttX/
+		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "Copying NuttX for ${CONFIG}")
+	add_custom_target(__nuttx_copy_${CONFIG}
+		DEPENDS nuttx_copy_${CONFIG}.stamp __nuttx_patch_${CONFIG})
+
+	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
-		COMMAND ${RM} -rf ${nuttx_src}/.git
 		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
-		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
+		#COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh && cd ..
 		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} ${DEPENDS}
+		DEPENDS ${config_files} ${DEPENDS} nuttx_copy_${CONFIG}.stamp
 		COMMENT "Building NuttX for ${CONFIG}")
 
 	# extract
