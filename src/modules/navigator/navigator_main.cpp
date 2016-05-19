@@ -339,6 +339,7 @@ Navigator::task_main()
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
 				PX4_WARN("navigator timed out");
+				global_pos_available_once = false;
 			}
 			continue;
 
