@@ -1159,10 +1159,16 @@ int commander_thread_main(int argc, char *argv[])
 	if (argc > 2) {
 #ifdef __PX4_QURT
 		if (!strcmp(argv[2],"-hil")) {
+#else
+		if (!strcmp(argv[3],"-hil")) {
 #endif
 			startup_in_hil = true;
 		} else {
+#ifdef __PX4_QURT		
+			PX4_ERR("Argument %s not supported.", argv[2]);
+#else
 			PX4_ERR("Argument %s not supported.", argv[3]);
+#endif			
 			PX4_ERR("COMMANDER NOT STARTED");
 			thread_should_exit = true;
 		}
