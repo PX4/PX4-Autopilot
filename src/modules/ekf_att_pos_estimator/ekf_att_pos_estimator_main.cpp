@@ -699,8 +699,6 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					_filter_ref_offset = -_baro.altitude;
 
-					PX4_INFO("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
-
 				} else {
 
 					if (!_gps_initialized && _gpsIsGood) {
@@ -785,7 +783,6 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 		_local_pos.ref_timestamp = timestamp;
 
 		map_projection_init(&_pos_ref, lat, lon);
-		mavlink_and_console_log_info(&_mavlink_log_pub, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 	}
 }
 

@@ -357,7 +357,7 @@ public:
 
 	bool			is_usb_uart() { return _is_usb_uart; }
 
-	bool			accepting_commands() { return ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG)); }
+	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
 	/**
 	 * Wether or not the system should be logging

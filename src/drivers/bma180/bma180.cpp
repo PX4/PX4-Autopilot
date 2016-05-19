@@ -65,6 +65,8 @@
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
 
+#define ACCEL_DEVICE_PATH	"/dev/bma180"
+
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -147,7 +149,7 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer		*_reports;
 
 	struct accel_calibration_s	_accel_scale;
 	float			_accel_range_scale;
@@ -281,7 +283,7 @@ BMA180::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(accel_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -788,7 +790,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_ACCEL);
+	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_BMA);
 
 	if (g_dev == nullptr) {
 		goto fail;

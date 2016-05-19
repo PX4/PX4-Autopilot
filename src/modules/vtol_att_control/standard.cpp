@@ -183,7 +183,7 @@ void Standard::update_vtol_state()
 			if ((_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans &&
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
-			    !_armed->armed) {
+			    can_transition_on_ground()) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;

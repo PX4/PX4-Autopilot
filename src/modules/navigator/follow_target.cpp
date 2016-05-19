@@ -52,26 +52,42 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/follow_target.h>
 #include <lib/geo/geo.h>
+#include <lib/mathlib/math/Limits.hpp>
 
 #include "navigator.h"
 
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_navigator(navigator),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false),
-	_follow_target_state(WAIT_FOR_TARGET_POSITION),
+	_param_min_alt(this, "NAV_MIN_FT_HT", false),
+	_param_tracking_dist(this,"NAV_FT_DST", false),
+	_param_tracking_side(this,"NAV_FT_FS", false),
+	_param_tracking_resp(this,"NAV_FT_RS", false),
+	_param_yaw_auto_max(this,"MC_YAWRAUTO_MAX", false),
+	_follow_target_state(SET_WAIT_FOR_TARGET_POSITION),
+	_follow_target_position(FOLLOW_FROM_BEHIND),
 	_follow_target_sub(-1),
 	_step_time_in_ms(0.0f),
+	_follow_offset(OFFSET_M),
 	_target_updates(0),
 	_last_update_time(0),
-	_current_target_motion( {}),
-			_previous_target_motion({})
+	_current_target_motion({}),
+	_previous_target_motion({}),
+	_avg_cos_ratio(0.0F),
+	_filtered_target_lat(0.0F),
+	_filtered_target_lon(0.0F),
+	_yaw_rate(0.0F),
+	_responsiveness(0.0F),
+	_yaw_auto_max(0.0F),
+	_yaw_angle(0.0F)
 {
 	updateParams();
 	_current_vel.zero();
 	_step_vel.zero();
-	_target_vel.zero();
+	_est_target_vel.zero();
 	_target_distance.zero();
+	_target_position_offset.zero();
+	_target_position_delta.zero();
 }
 
 FollowTarget::~FollowTarget()
@@ -85,6 +101,22 @@ void FollowTarget::on_inactive()
 
 void FollowTarget::on_activation()
 {
+	updateParams();
+
+	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
+
+	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
+
+	_yaw_auto_max = math::radians(_param_yaw_auto_max.get());
+
+	_follow_target_position = _param_tracking_side.get();
+
+	if((_follow_target_position > FOLLOW_FROM_LEFT) || (_follow_target_position < FOLLOW_FROM_RIGHT)) {
+		_follow_target_position = FOLLOW_FROM_BEHIND;
+	}
+
+	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
+
 	if (_follow_target_sub < 0) {
 		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
 	}
@@ -93,7 +125,8 @@ void FollowTarget::on_activation()
 void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
-	math::Vector<3> target_position(0, 0, 0);
+	math::Vector<3> target_reported_velocity(0, 0, 0);
+	follow_target_s target_motion = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
 	bool _radius_exited = false;
@@ -112,41 +145,11 @@ void FollowTarget::on_active()
 
 		orb_copy(ORB_ID(follow_target), _follow_target_sub, &_current_target_motion);
 
-	} else if (((current_time - _previous_target_motion.timestamp) / 1000 / 1000) > TARGET_TIMEOUT_S
-		   && target_velocity_valid()) {
+		target_reported_velocity(0) = _current_target_motion.vx;
+		target_reported_velocity(1) = _current_target_motion.vy;
+
+	} else if (((current_time - _current_target_motion.timestamp) / 1000 ) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();
-	}
-
-	// update target velocity
-
-	if (target_velocity_valid() && updated) {
-
-		dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000);
-
-		// get last gps known reference for target
-
-		map_projection_init(&target_ref, _previous_target_motion.lat, _previous_target_motion.lon);
-
-		// calculate distance the target has moved
-
-		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)),
-				       &(target_position(1)));
-
-		// update the average velocity of the target based on the position
-
-		_target_vel = target_position / (dt_ms / 1000.0f);
-
-		// to keep the velocity increase/decrease smooth
-		// calculate how many velocity increments/decrements
-		// it will take to reach the targets velocity
-		// with the given amount of steps also add a feed forward input that adjusts the
-		// velocity as the position gap increases since
-		// just traveling at the exact velocity of the target will not
-		// get any closer to the target
-
-		_step_vel = (_target_vel - _current_vel) + _target_distance * FF_K;
-		_step_vel /= (dt_ms / 1000.0f * (float) INTERPOLATION_PNTS);
-		_step_time_in_ms = dt_ms / (float) INTERPOLATION_PNTS;
 	}
 
 	// update distance to target
@@ -156,15 +159,139 @@ void FollowTarget::on_active()
 		// get distance to target
 
 		map_projection_init(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0),
-				       &_target_distance(1));
+		map_projection_project(&target_ref, _filtered_target_lat, _filtered_target_lon, &_target_distance(0), &_target_distance(1));
 
-		// are we within the target acceptance radius?
-		// give a buffer to exit/enter the radius to give the velocity controller
-		// a chance to catch up
+		target_motion = _current_target_motion;
 
-		_radius_exited = (_target_distance.length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
-		_radius_entered = (_target_distance.length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+		// use target offset
+
+		map_projection_init(&target_ref,  _filtered_target_lat, _filtered_target_lon);
+		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1), &target_motion.lat, &target_motion.lon);
+
+	}
+
+	// update target velocity
+
+	if (target_velocity_valid() && updated) {
+
+		dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000);
+
+		// ignore a small dt
+
+		if (dt_ms > 10.0F) {
+
+			math::Vector<3> prev_position_delta = _target_position_delta;
+
+			// get last gps known reference for target
+
+			map_projection_init(&target_ref, _previous_target_motion.lat, _previous_target_motion.lon);
+
+			// calculate distance the target has moved
+
+			map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(_target_position_delta(0)), &(_target_position_delta(1)));
+
+			// filter out gps noise to figure out if we are actually moving
+
+			if (_target_position_delta.length() > 0.1F && prev_position_delta.length() > 0.1F) {
+
+				float cos_ratio = (_target_position_delta * prev_position_delta)/(_target_position_delta.length() * prev_position_delta.length());
+
+				_avg_cos_ratio = _responsiveness*_avg_cos_ratio + (1 - _responsiveness) * cos_ratio;
+
+				if(_avg_cos_ratio < 0) {
+					_avg_cos_ratio = 0.0F;
+				}
+
+				if (_avg_cos_ratio > 0.0F) {
+					_filtered_target_position_delta = _target_position_delta*_avg_cos_ratio + _filtered_target_position_delta*(1.0F - _avg_cos_ratio);
+				}
+
+				// if ratio is high enough, track target from a side
+
+				if(_avg_cos_ratio  > .70F) {
+					_target_position_offset = _rot_matrix * (_filtered_target_position_delta.normalized() * _follow_offset);
+				}
+
+			} else  {
+				_filtered_target_position_delta.zero();
+				_avg_cos_ratio = 0.0F;
+			}
+
+			// update the average velocity of the target based on the position
+
+			_est_target_vel = _filtered_target_position_delta / (dt_ms / 1000.0f);
+
+			_filtered_target_lat = (_current_target_motion.lat*(double)_avg_cos_ratio) + _filtered_target_lat*(double)(1 - _avg_cos_ratio);
+			_filtered_target_lon = (_current_target_motion.lon*(double)_avg_cos_ratio) + _filtered_target_lon*(double)(1 - _avg_cos_ratio);
+
+			// are we within the target acceptance radius?
+			// give a buffer to exit/enter the radius to give the velocity controller
+			// a chance to catch up
+
+			_radius_exited =  ((_target_position_offset + _target_distance).length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
+			_radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+
+			// to keep the velocity increase/decrease smooth
+			// calculate how many velocity increments/decrements
+			// it will take to reach the targets velocity
+			// with the given amount of steps also add a feed forward input that adjusts the
+			// velocity as the position gap increases since
+			// just traveling at the exact velocity of the target will not
+			// get any closer or farther from the target
+
+			_step_vel = (_est_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K;
+			_step_vel /= (dt_ms / 1000.0F * (float) INTERPOLATION_PNTS);
+			_step_time_in_ms = (dt_ms / (float) INTERPOLATION_PNTS);
+
+			// if we are less than 3 meters from the target don't worry about trying to yaw
+			// lock the yaw until we are a distance that makes sense
+
+			if((_target_distance).length() > 3.0F) {
+
+				// yaw smoothing
+
+				// this really needs to control the yaw rate directly in the attitude pid controller
+				// but seems to work ok for now since that cannot be controlled directly in auto mode
+				// right now
+
+				_yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						_current_target_motion.lat,
+						_current_target_motion.lon);
+
+				_yaw_rate = (_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
+
+				_yaw_rate = _wrap_pi(_yaw_rate);
+
+				_yaw_rate = math::constrain(_yaw_rate, -1.0F*_yaw_auto_max, _yaw_auto_max);//*.80F;
+
+			} else {
+				_yaw_angle = _yaw_rate = NAN;
+			}
+		}
+
+//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
+//				(double) _step_vel(0),
+//				(double) _step_vel(1),
+//				(double) _current_vel(0),
+//				(double) _current_vel(1),
+//				(double) _est_target_vel(0),
+//				(double) _est_target_vel(1),
+//				(double) (_target_distance).length(),
+//				(double) (_target_position_offset + _target_distance).length(),
+//				_follow_target_state,
+//				(double)_avg_cos_ratio, (double) _yaw_rate);
+	}
+
+	// prevent yaw rate smoothing from over shooting target
+	// uses modulus of two pi to get diff
+	// by converting float to int
+
+	int angle_diff = (int) ((fabsf(_yaw_angle) - fabsf(_navigator->get_global_position()->yaw)) * 1e4F);
+	float mod_diff = ((float)(angle_diff % ((int) (M_PI_F * 2.0F * 1e4F))))/1e4F;
+
+	if (fabsf(mod_diff) < math::radians(5.0F)) {
+		_yaw_angle = _yaw_rate = NAN;
 	}
 
 	// update state machine
@@ -175,12 +302,15 @@ void FollowTarget::on_active()
 
 			if (_radius_entered == true) {
 				_follow_target_state = TRACK_VELOCITY;
-
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
-				_current_vel = _target_vel;
-				update_position_sp(true, true);
+				_current_vel = _est_target_vel;
+				_filtered_target_lat = _current_target_motion.lat;
+				_filtered_target_lon = _current_target_motion.lon;
+				update_position_sp(true, true, NAN);
+			} else {
+				_follow_target_state = SET_WAIT_FOR_TARGET_POSITION;
 			}
 
 			break;
@@ -190,48 +320,59 @@ void FollowTarget::on_active()
 
 			if (_radius_exited == true) {
 				_follow_target_state = TRACK_POSITION;
-
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
 
 				if ((current_time - _last_update_time) / 1000 >= _step_time_in_ms) {
 					_current_vel += _step_vel;
 					_last_update_time = current_time;
 				}
 
-				update_position_sp(true, false);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
+
+				update_position_sp(true, false, _yaw_rate);
+			} else {
+				_follow_target_state = SET_WAIT_FOR_TARGET_POSITION;
 			}
 
 			break;
 		}
+	case SET_WAIT_FOR_TARGET_POSITION: {
 
+		// Climb to the minimum altitude
+		// and wait until a position is received
+
+		follow_target_s target = {};
+
+		// for now set the target at the minimum height above the uav
+
+		target.lat = _navigator->get_global_position()->lat;
+		target.lon = _navigator->get_global_position()->lon;
+		target.alt = 0.0F;
+
+		set_follow_target_item(&_mission_item, _param_min_alt.get(), target, _yaw_angle);
+
+		update_position_sp(false, false, _yaw_rate);
+
+		_follow_target_state = WAIT_FOR_TARGET_POSITION;
+	}
 	case WAIT_FOR_TARGET_POSITION: {
 
-			// Climb to the minimum altitude
-			// and wait until a position is received
+		if(target_position_valid()) {
+			_filtered_target_lat = _current_target_motion.lat;
+			_filtered_target_lon = _current_target_motion.lon;
+		}
 
-			follow_target_s target = { };
-
-			// for now set the target at the minimum height above the uav
-
-			target.lat = _navigator->get_global_position()->lat;
-			target.lon = _navigator->get_global_position()->lon;
-			target.alt = 0.0F;
-
-			set_follow_target_item(&_mission_item, _param_min_alt.get(), target, NAN);
-
-			update_position_sp(false, false);
-
-			if (is_mission_item_reached() && target_velocity_valid()) {
-				_follow_target_state = TRACK_POSITION;
-			}
+		if (is_mission_item_reached() && target_velocity_valid()) {
+			_target_position_offset(0) = _follow_offset;
+			_follow_target_state = TRACK_POSITION;
+		}
 
 			break;
 		}
 	}
 }
 
-void FollowTarget::update_position_sp(bool use_velocity, bool use_position)
+void FollowTarget::update_position_sp(bool use_velocity, bool use_position, float yaw_rate)
 {
 	// convert mission item to current setpoint
 
@@ -248,31 +389,35 @@ void FollowTarget::update_position_sp(bool use_velocity, bool use_position)
 	pos_sp_triplet->current.vx = _current_vel(0);
 	pos_sp_triplet->current.vy = _current_vel(1);
 	pos_sp_triplet->next.valid = false;
-
+	pos_sp_triplet->current.yawspeed_valid = PX4_ISFINITE(yaw_rate);
+	pos_sp_triplet->current.yawspeed = yaw_rate;
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void FollowTarget::reset_target_validity()
 {
+	_yaw_rate = NAN;
+	_avg_cos_ratio = 0.0F;
 	_previous_target_motion = {};
 	_current_target_motion = {};
 	_target_updates = 0;
 	_current_vel.zero();
 	_step_vel.zero();
-	_target_vel.zero();
+	_est_target_vel.zero();
 	_target_distance.zero();
+	_target_position_offset.zero();
 	reset_mission_item_reached();
-	_follow_target_state = WAIT_FOR_TARGET_POSITION;
+	_follow_target_state = SET_WAIT_FOR_TARGET_POSITION;
 }
 
 bool FollowTarget::target_velocity_valid()
 {
-	// need at least 2 data points for velocity estimate
+	// need at least 2 continuous data points for velocity estimate
 	return (_target_updates >= 2);
 }
 
 bool FollowTarget::target_position_valid()
 {
-	// need at least 1 data point for position estimate
+	// need at least 1 continuous data points for position estimate
 	return (_target_updates >= 1);
 }

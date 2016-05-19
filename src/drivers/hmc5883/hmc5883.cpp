@@ -356,7 +356,7 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_reports(nullptr),
 	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
-	_range_ga(1.3f),
+	_range_ga(1.9f),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -792,8 +792,8 @@ HMC5883::stop()
 int
 HMC5883::reset()
 {
-	/* set range */
-	return set_range(_range_ga);
+	/* set range, ceil floating point number */
+	return set_range(_range_ga + 0.5f);
 }
 
 void
@@ -1110,7 +1110,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
 	 * the chained if statement above. */
 	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
-		warnx("FAILED: MAGIOCSRANGE 3.3 Ga");
+		warnx("FAILED: MAGIOCSRANGE 2.5 Ga");
 		ret = 1;
 		goto out;
 	}
@@ -1157,8 +1157,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 100x, stopping when we have 30 good values */
-	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
+	/* read the sensor up to 150x, stopping when we have 50 good values */
+	for (uint8_t i = 0; i < 150 && good_count < 50; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1185,9 +1185,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 				fabsf(expected_cal[2] / report.z)
 			       };
 
-		if (cal[0] > 0.7f && cal[0] < 1.35f &&
-		    cal[1] > 0.7f && cal[1] < 1.35f &&
-		    cal[2] > 0.7f && cal[2] < 1.35f) {
+		if (cal[0] > 0.3f && cal[0] < 1.7f &&
+		    cal[1] > 0.3f && cal[1] < 1.7f &&
+		    cal[2] > 0.3f && cal[2] < 1.7f) {
 			good_count++;
 			sum_excited[0] += cal[0];
 			sum_excited[1] += cal[1];
@@ -1220,9 +1220,9 @@ out:
 	}
 
 	/* set back to normal mode */
-	/* Set to 1.1 Gauss */
-	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("FAILED: MAGIOCSRANGE 1.1 Ga");
+	/* Set to 1.9 Gauss */
+	if (OK != ::ioctl(fd, MAGIOCSRANGE, 2)) {
+		warnx("FAILED: MAGIOCSRANGE 1.9 Ga");
 	}
 
 	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {

@@ -314,7 +314,7 @@ private:
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
-	void pollForMAVLinkMessages(bool publish);
+	void pollForMAVLinkMessages(bool publish, int udp_port);
 
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN mavlink_tests
 	STACK_MAIN 5000
 	COMPILE_FLAGS
-		-Weffc++
 		-DMAVLINK_FTP_UNIT_TEST
 		-Wno-attributes
 		-Wno-packed
