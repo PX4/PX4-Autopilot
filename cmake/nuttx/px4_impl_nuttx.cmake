@@ -204,7 +204,7 @@ function(px4_nuttx_add_export)
 
 	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes 
 	# note: CONFIG will be BOARD in the future evaluation of ${hw_stack_check_${CONFIG}
-	file(STRINGS "${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig"
+	file(STRINGS "${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/nsh/defconfig"
 		hw_stack_check_${CONFIG}
 		REGEX "CONFIG_ARMV7M_STACKCHECK=y"
 		)
