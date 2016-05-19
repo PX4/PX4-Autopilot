@@ -32,15 +32,16 @@
  ****************************************************************************/
 
 /**
-* @file geo_mag_declination.c
+* @file geo_mag_declination.c   地磁偏移
 *
 * Calculation / lookup table for earth magnetic field declination.
-*
+* 地球磁场偏移的计算/查询表
 * Lookup table from Scott Ferguson <scottfromscott@gmail.com>
-*
+* 
 * XXX Lookup table currently too coarse in resolution (only full degrees)
 * and lat/lon res - needs extension medium term.
-*
+* XXX查询表的分辨率目前还不够精确
+* 经纬度分辨率--需要扩展
 */
 
 #include <geo/geo.h>
@@ -52,6 +53,7 @@
 #define SAMPLING_MIN_LON	-180.0f
 #define SAMPLING_MAX_LON	180.0f
 
+// 地磁偏移表
 static const int8_t declination_table[13][37] = \
 {
 	{ 46, 45, 44, 42, 41, 40, 38, 36, 33, 28, 23, 16, 10, 4, -1, -5, -9, -14, -19, -26, -33, -40, -48, -55, -61, -66, -71, -74, -75, -72, -61, -25, 22, 40, 45, 47, 46 },
@@ -70,13 +72,14 @@ static const int8_t declination_table[13][37] = \
 };
 
 static float get_lookup_table_val(unsigned lat, unsigned lon);
-
+//从经纬度自动获取磁偏移
 __EXPORT float get_mag_declination(float lat, float lon)
 {
 	/*
 	 * If the values exceed valid ranges, return zero as default
 	 * as we have no way of knowing what the closest real value
 	 * would be.
+	 * 如果值超过了有效范围，则返回0作为默认值
 	 */
 	if (lat < -90.0f || lat > 90.0f ||
 	    lon < -180.0f || lon > 180.0f) {
@@ -84,14 +87,16 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	/* round down to nearest sampling resolution */
+	// 向下取整最近的采样分辨率
 	int min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
 	int min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
 
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
 	 */
-
+	// 对于极少数情况四舍五入的逻辑不适用时，强制实行
 	/* limit to table bounds - required for maxima even when table spans full globe range */
+	// 限制表界限-
 	if (lat <= SAMPLING_MIN_LAT) {
 		min_lat = SAMPLING_MIN_LAT;
 	}
@@ -109,16 +114,17 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	/* find index of nearest low sampling point */
+	// 找到最接近的低频采样点的索引
 	unsigned min_lat_index = (-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES;
 	unsigned min_lon_index = (-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES;
 
-	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index);
-	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);
-	float declination_ne = get_lookup_table_val(min_lat_index + 1, min_lon_index + 1);
-	float declination_nw = get_lookup_table_val(min_lat_index + 1, min_lon_index);
+	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index); // 西南
+	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);// 东南
+	float declination_ne = get_lookup_table_val(min_lat_index + 1, min_lon_index + 1); // 东北
+	float declination_nw = get_lookup_table_val(min_lat_index + 1, min_lon_index); // 西北
 
 	/* perform bilinear interpolation on the four grid corners */
-
+	// 在四个角执行双线性插值
 	float declination_min = ((lon - min_lon) / SAMPLING_RES) * (declination_se - declination_sw) + declination_sw;
 	float declination_max = ((lon - min_lon) / SAMPLING_RES) * (declination_ne - declination_nw) + declination_nw;
 
