@@ -560,7 +560,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().v_z_valid = _canEstimateZ;
 		_pub_lpos.get().x = _x(X_x); 	// north
 		_pub_lpos.get().y = _x(X_y);  	// east
-		_pub_lpos.get().z = _x(X_z); 	// down
+		_pub_lpos.get().z = -agl(); // - use agl for local z, so vehicle maintains distance above ground level (follows terrain)
 		_pub_lpos.get().vx = _x(X_vx);  // north
 		_pub_lpos.get().vy = _x(X_vy);  // east
 		_pub_lpos.get().vz = _x(X_vz); 	// down
