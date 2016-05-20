@@ -138,8 +138,6 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define MAVLINK_OPEN_INTERVAL 50000
 
 #define STICK_ON_OFF_LIMIT 0.9f
-#define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
-#define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 #define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
@@ -1183,6 +1181,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
+	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
 	param_t _param_geofence_action = param_find("GF_ACTION");
@@ -1515,12 +1514,17 @@ int commander_thread_main(int argc, char *argv[])
 		status_flags.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
-			// sensor diagnostics done continiously, not just at boot so don't warn about any issues just yet
+			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
 				!status_flags.circuit_breaker_engaged_gpsfailure_check, false);
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
+
+	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
+	int32_t rc_arm_hyst = 100;
+	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
+	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
 	commander_boot_timestamp = hrt_absolute_time();
 
@@ -1616,6 +1620,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
 			status.rc_input_mode = rc_in_off;
+			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
+			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
@@ -2344,7 +2350,7 @@ int commander_thread_main(int argc, char *argv[])
 			    	land_detector.landed) &&
 			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
-				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+				if (stick_off_counter > rc_arm_hyst) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
@@ -2374,7 +2380,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF ) {
-				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+				if (stick_on_counter > rc_arm_hyst) {
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
