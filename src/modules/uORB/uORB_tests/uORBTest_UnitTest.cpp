@@ -782,9 +782,10 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 			++next_expected_val;
 		}
 	}
+
 	if (_num_messages_sent != next_expected_val) {
 		return test_fail("number of sent and received messages mismatch (sent: %i, received: %i)",
-				_num_messages_sent, next_expected_val);
+				 _num_messages_sent, next_expected_val);
 	}
 
 	return test_note("PASS orb queuing (poll & notify), got %i messages", next_expected_val);
