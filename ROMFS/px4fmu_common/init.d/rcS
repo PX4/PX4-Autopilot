@@ -736,6 +736,10 @@ then
 			then
 				set MAV_TYPE 14
 			fi
+			if [ $MIXER == coax ]
+			then
+				set MAV_TYPE 3
+			fi
 		fi
 
 		# Still no MAV_TYPE found
