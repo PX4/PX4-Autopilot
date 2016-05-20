@@ -250,7 +250,7 @@ function(px4_nuttx_add_export)
 
 	set(nuttx_src ${CMAKE_BINARY_DIR}/${CONFIG}/NuttX)
 	#
-	# Use full path to patshes so that nested builds
+	# Use full path to patches so that nested builds
 	# (px4pio) can find the dependencies.
 	#
 	file(GLOB nuttx_patches ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
@@ -260,14 +260,8 @@ function(px4_nuttx_add_export)
 		DEPENDS nuttx_copy_${CONFIG}.stamp
 	)
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
-		COMMAND ${RM} -fr ${nuttx_src}
 		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
-		COMMAND ${RM} -rf ${nuttx_src}/.git
-						  ${nuttx_src}/apps/.git
-						  ${nuttx_src}/nuttx/.git
-						  ${nuttx_src}/NxWidgets/.git
-						  ${nuttx_src}/misc/tools/.git
+		COMMAND rsync -a --delete --exclude=.git ${CMAKE_SOURCE_DIR}/NuttX/  ${nuttx_src}/
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches}
 		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}")
