@@ -38,7 +38,7 @@ then
 fi
 
 set MIXER siafly4
-set PWM_OUT 12345678
+set PWM_OUT 1234
 set PWM_RATE 400
 
 set MIXER_AUX siafly4
