@@ -761,7 +761,10 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 	time_t utc_time_sec = gps_pos.time_utc_usec / 1e6;
 
 	if (gps_pos.fix_type < 2 || utc_time_sec < GPS_EPOCH_SECS) {
-		return false;
+		//take clock time if there's no fix (yet)
+		struct timespec ts;
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	}
 
 	/* strip the time elapsed since boot */
