@@ -527,8 +527,7 @@ void Logger::run()
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
 				 */
-				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
-				//TODO: use sub.metadata->o_size_no_padding
+				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size_no_padding;
 				uint8_t buffer[msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
