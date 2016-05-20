@@ -49,7 +49,7 @@
  * If set to 1, mount mode will be enforced.
  *
  * @boolean
- * @group Gimbal
+ * @group RC Gimbal
  */
 PARAM_DEFINE_INT32(RCGB_USE_MNT, 0);
 
@@ -69,6 +69,6 @@ PARAM_DEFINE_INT32(RCGB_USE_MNT, 0);
  * @value 3 AUX3
  * @min 0
  * @max 3
- * @group Gimbal
+ * @group RC Gimbal
  */
 PARAM_DEFINE_INT32(RCGB_AUX_MNT_CHN, 0);
