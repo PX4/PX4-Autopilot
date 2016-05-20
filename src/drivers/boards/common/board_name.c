@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,36 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file board_name.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Provide the board_name interface.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+/************************************************************************************
+ * Included Files
+ ************************************************************************************/
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
+#include <px4_config.h>
+#include "board_config.h"
+#include <lib/version/version.h>
+
+/************************************************************************************
+ * Definitions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Private Functions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Name: board_name
  *
- */
-__BEGIN_DECLS
+ * Description:
+ *   All boards must provide this API to return the board name.
+ *
+ ************************************************************************************/
 
-__EXPORT const char *board_name(void);
-
-__END_DECLS
-
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "LINUXTEST"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "LINUXTEST"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "LINUXTEST"
-#elif defined(CONFIG_ARCH_BOARD_RPI2)
-#  define	HW_ARCH "LINUXTEST"
-#else
-#define HW_ARCH (board_name())
-#endif
-
-#endif /* VERSION_H_ */
+__EXPORT const char *board_name()
+{
+	return BOARD_NAME;
+}

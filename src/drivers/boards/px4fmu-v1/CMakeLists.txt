@@ -35,6 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
+		../common/board_name.c
 		px4fmu_can.c
 		px4fmu_init.c
 		px4fmu_timer_config.c
