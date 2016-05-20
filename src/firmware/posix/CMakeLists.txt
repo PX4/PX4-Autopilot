@@ -11,7 +11,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb
@@ -36,14 +36,14 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
 			 DEPENDS mainapp
 			 DEST /home/linaro)
-			 
+
 elseif ("${BOARD}" STREQUAL "rpi2")
 
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
-		
+
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
