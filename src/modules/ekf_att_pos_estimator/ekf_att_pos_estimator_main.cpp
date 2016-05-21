@@ -221,6 +221,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newAdsData(false),
 	_newDataMag(false),
 	_newRangeData(false),
+	_mavlink_log_pub(nullptr),
 
 	_mag_offset_x(this, "MAGB_X"),
 	_mag_offset_y(this, "MAGB_Y"),
