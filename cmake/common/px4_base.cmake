@@ -638,7 +638,7 @@ function(px4_add_common_flags)
 	endif()
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
-		set(max_optimization -O0)
+		set(max_optimization -Os)
 
 		set(optimization_flags
 			-fno-strict-aliasing
@@ -646,7 +646,7 @@ function(px4_add_common_flags)
 			-funsafe-math-optimizations
 			-ffunction-sections
 			-fdata-sections
-			-g -fsanitize=address
+			-g3 -fsanitize=address
 			)
 	else()
 		set(max_optimization -Os)
