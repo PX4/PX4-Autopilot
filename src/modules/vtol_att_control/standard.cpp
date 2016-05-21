@@ -263,8 +263,8 @@ void Standard::update_transition_state()
 		}
 
 		// quadchute
-		if(_params_standard.fw_minimum_altitude > FLT_EPSILON){
-			if(_local_pos->dist_bottom < _params_standard.fw_minimum_altitude){
+		if(_params_standard.fw_minimum_altitude > FLT_EPSILON && _armed->armed){
+			if(-(_local_pos->z) < _params_standard.fw_minimum_altitude){
 				_attc->abort_front_transition();
 			}
 		}
@@ -375,8 +375,9 @@ void Standard::update_fw_state()
 	}
 
 	// quadchute
-	if(_params_standard.fw_minimum_altitude > FLT_EPSILON){
-		if(_local_pos->dist_bottom < _params_standard.fw_minimum_altitude){
+	if(_params_standard.fw_minimum_altitude > FLT_EPSILON && _armed->armed){
+		printf("z: %f min %f\n", (double)_local_pos->z, (double)_params_standard.fw_minimum_altitude);
+		if(-(_local_pos->z) < _params_standard.fw_minimum_altitude){
 			_attc->abort_front_transition();
 		}
 	}
