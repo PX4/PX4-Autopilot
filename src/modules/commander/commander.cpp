@@ -2386,6 +2386,7 @@ int commander_thread_main(int argc, char *argv[])
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_STAB)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
 						) {
 						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
