@@ -439,6 +439,16 @@ function(px4_os_add_flags)
 
 	set(added_exe_linker_flags) # none currently
 
+	set(instrument_flags)
+	if ("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
+		set(instrument_flags
+			-finstrument-functions
+			-ffixed-r10
+			)
+		list(APPEND c_flags ${instrument_flags})
+		list(APPEND cxx_flags ${instrument_flags})
+	endif()
+
 	set(cpu_flags)
 	if (${BOARD} STREQUAL "px4fmu-v1")
 		set(cpu_flags
