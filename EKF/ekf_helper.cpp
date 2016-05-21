@@ -303,6 +303,10 @@ void Ekf::alignOutputFilter()
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
 
+	// calculate the variance for the rotation estimate expressed as a rotation vector
+	// this will be used later to reset the quaternion state covariances
+	Vector3f angle_err_var_vec = calcRotVecVariances();
+
 	// update transformation matrix from body to world frame using the current estimate
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
@@ -404,16 +408,20 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		_state.quat_nominal = Quaternion(R_to_earth);
 	}
 
-	// reset the quaternion variances because the yaw angle could have changed by a significant amount
-	// by setting them to zero we avoid 'kicks' in angle when 3-D fusion starts and the imu process noise
-	// will grow them again.
-	if (_control_status.flags.tilt_align) {
-		zeroRows(P, 0, 3);
-		zeroCols(P, 0, 3);
-	}
-
 	// update transformation matrix from body to world frame using the current estimate
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+	// update the yaw angle variance using the variance of the measurement
+	if (_params.fusion_mode & MASK_USE_EVYAW) {
+		// using error estimate from external vision data
+		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		// using magnetic heading tuning parameter
+		angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+	}
+
+	// reset the quaternion covariances using the rotation vector variances
+	initialiseQuatCovariances(angle_err_var_vec);
 
 	// calculate initial earth magnetic field states
 	_state.mag_I = _R_to_earth * mag_init;
