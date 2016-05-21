@@ -422,8 +422,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 		// Do not warn about accel offset if we have no position updates
 		if (!(warn_index == 5 && _ekf->staticMode)) {
-			PX4_WARN("reset: %s", feedback[warn_index]);
-			mavlink_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
 		}
 	}
 
