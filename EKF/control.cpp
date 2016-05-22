@@ -62,7 +62,7 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	// control use of various external souces for position and velocity aiding
+	// control use of various external sources for position and velocity aiding
 	controlExternalVisionAiding();
 	controlOpticalFlowAiding();
 	controlGpsAiding();
@@ -151,7 +151,7 @@ void Ekf::controlOpticalFlowAiding()
 				float range = heightAboveGndEst / _R_to_earth(2, 2);
 
 				if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
-					// we should ahve reliable OF measurements so
+					// we should have reliable OF measurements so
 					// calculate X and Y body relative velocities from OF measurements
 					Vector3f vel_optflow_body;
 					vel_optflow_body(0) = - range * _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt;
@@ -183,7 +183,7 @@ void Ekf::controlOpticalFlowAiding()
 					_state.pos(0) = 0.0f;
 					_state.pos(1) = 0.0f;
 
-					// reset the coresponding covariances
+					// reset the corresponding covariances
 					// we are by definition at the origin at commencement so variances are also zeroed
 					zeroRows(P,7,8);
 					zeroCols(P,7,8);
@@ -246,7 +246,7 @@ void Ekf::controlGpsAiding()
 		// We are relying on GPS aiding to constrain attitude drift so after 10 seconds without aiding we need to do something
 		if ((_time_last_imu - _time_last_pos_fuse > 10e6) && (_time_last_imu - _time_last_vel_fuse > 10e6)) {
 			if (_time_last_imu - _time_last_gps > 5e5) {
-				// if we don't have gps then we need to switch to the non-aiding mode, zero the veloity states
+				// if we don't have gps then we need to switch to the non-aiding mode, zero the velocity states
 				// and set the synthetic GPS position to the current estimate
 				_control_status.flags.gps = false;
 				_last_known_posNE(0) = _state.pos(0);
@@ -361,7 +361,7 @@ void Ekf::controlHeightSensorTimeouts()
 			// if GPS height is unavailable and baro data is available, reset height to baro
 			reset_to_baro = reset_to_baro || (!gps_hgt_available && baro_data_fresh);
 
-			// if we cannot switch to baro and GPs data is available, reset height to GPS
+			// if we cannot switch to baro and GPS data is available, reset height to GPS
 			bool reset_to_gps = !reset_to_baro && gps_hgt_available;
 
 			if (reset_to_baro) {

@@ -178,7 +178,7 @@ bool Ekf::init(uint64_t timestamp)
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
-	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERRIOD_MS);
+	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
 
 	return ret;
 }
@@ -214,7 +214,7 @@ bool Ekf::update()
 
 		// measurement updates
 
-		// Fuse magnetometer data using the selected fuson method and only if angular alignment is complete
+		// Fuse magnetometer data using the selected fusion method and only if angular alignment is complete
 		if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 			if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
 				fuseMag();
@@ -224,7 +224,7 @@ bool Ekf::update()
 				}
 
 			} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
-				// fusion of a Euler yaw angle from either a 321 or 312 rotation sequence
+				// fusion of an Euler yaw angle from either a 321 or 312 rotation sequence
 				fuseHeading();
 
 			} else {
@@ -232,7 +232,7 @@ bool Ekf::update()
 			}
 		}
 
-		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
+		// determine if range finder data has fallen behind the fusion time horizon fuse it if we are
 		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
 		    && (_R_to_earth(2, 2) > 0.7071f)) {
@@ -261,14 +261,14 @@ bool Ekf::update()
 			_fuse_height = true;
 		}
 
-		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
+		// determine if baro data has fallen behind the fusion time horizon and fuse it in the main filter if enabled
 		uint64_t last_baro_time_us = _baro_sample_delayed.time_us;
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if (_control_status.flags.baro_hgt) {
 				_fuse_height = true;
 
 			} else {
-				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro  as a height reference
+				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro as a height reference
 				float local_time_step = 1e-6f*(float)(_baro_sample_delayed.time_us - last_baro_time_us);
 				local_time_step = math::constrain(local_time_step,0.0f,1.0f);
 				last_baro_time_us = _baro_sample_delayed.time_us;
@@ -589,13 +589,13 @@ void Ekf::predictState()
 	float input = 0.5f*(_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 
 	// filter and limit input between -50% and +100% of nominal value
-	input = math::constrain(input,0.0005f * (float)(FILTER_UPDATE_PERRIOD_MS),0.002f * (float)(FILTER_UPDATE_PERRIOD_MS));
+	input = math::constrain(input,0.0005f * (float)(FILTER_UPDATE_PERIOD_MS),0.002f * (float)(FILTER_UPDATE_PERIOD_MS));
 	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 }
 
 bool Ekf::collect_imu(imuSample &imu)
 {
-	// accumulate and downsample IMU data across a period FILTER_UPDATE_PERRIOD_MS long
+	// accumulate and downsample IMU data across a period FILTER_UPDATE_PERIOD_MS long
 
 	// copy imu data to local variables
 	_imu_sample_new.delta_ang	= imu.delta_ang;
@@ -625,7 +625,7 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	// if the target time delta between filter prediction steps has been exceeded
 	// write the accumulated IMU data to the ring buffer
-	float target_dt = (float)(FILTER_UPDATE_PERRIOD_MS) / 1000;
+	float target_dt = (float)(FILTER_UPDATE_PERIOD_MS) / 1000;
 	if (_imu_down_sampled.delta_ang_dt >= target_dt - _last_dt_overrun) {
 
 		// store the amount we have over-run the target update rate by
@@ -734,7 +734,7 @@ void Ekf::calculateOutputStates()
 		delta_ang_error(2) = scalar * q_error(3);
 
 		// calculate a gain that provides tight tracking of the estimator attitude states and
-		// adjust for changes in time delay to mantain consistent damping ratio of ~0.7
+		// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
 		float time_delay = 1e-6f * (float)(_imu_sample_new.time_us - _imu_sample_delayed.time_us);
 		time_delay = fmaxf(time_delay, _dt_imu_avg);
 		float att_gain = 0.5f * _dt_imu_avg / time_delay;
@@ -747,13 +747,13 @@ void Ekf::calculateOutputStates()
 		float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
 		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
 
-		// calculate  velocity and position corrections at the EKF fusion time horizon
+		// calculate velocity and position corrections at the EKF fusion time horizon
 		Vector3f vel_delta = (_state.vel - _output_sample_delayed.vel) * vel_gain;
 		Vector3f pos_delta = (_state.pos - _output_sample_delayed.pos) * pos_gain;
 
 		// loop through the output filter state history and apply the corrections to the translational states
 		// this method is too expensive to use for the attitude states due to the quaternion operations required
-		// but does not introudce a time dela in the 'correction loop' and allows smaller trackin gtime constants
+		// but does not introudce a time dela in the 'correction loop' and allows smaller tracking time constants
 		// to be used
 		outputSample output_states;
 		unsigned output_length = _output_buffer.get_length();

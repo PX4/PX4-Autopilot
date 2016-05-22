@@ -53,7 +53,7 @@ void Ekf::initialiseCovariance()
 	}
 
 	// calculate average prediction time step in sec
-	float dt = 0.001f * (float)FILTER_UPDATE_PERRIOD_MS;
+	float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
 
 	// define the initial angle uncertainty as variances for a rotation vector
 	Vector3f rot_vec_var;

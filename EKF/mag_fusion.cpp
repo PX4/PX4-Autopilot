@@ -86,7 +86,7 @@ void Ekf::fuseMag()
 	float H_MAG[3][24] = {};
 	float Kfusion[24] = {};
 
-	// Calculate observation Jacobians and kalman gains for each magentoemter axis
+	// Calculate observation Jacobians and kalman gains for each magnetometer axis
 	// X Axis
 	H_MAG[0][0] = SH_MAG[7] + SH_MAG[8] - 2*magD*q2;
 	H_MAG[0][1] = SH_MAG[0];
@@ -108,7 +108,7 @@ void Ekf::fuseMag()
 		_fault_status.flags.bad_mag_x = false;
 
 	} else {
-		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 		_fault_status.flags.bad_mag_x = true;
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
@@ -190,7 +190,7 @@ void Ekf::fuseMag()
 		return;
 	}
 
-	// update the states and covariance usinng sequential fusion of the magnetometer components
+	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains
 		if (index == 0) {

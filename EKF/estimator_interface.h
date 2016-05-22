@@ -235,7 +235,7 @@ protected:
 
 	static const uint8_t OBS_BUFFER_LENGTH = 10;	// defines how many measurement samples we can buffer
 	static const uint8_t IMU_BUFFER_LENGTH = 30;	// defines how many imu samples we can buffer
-	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;	// ekf prediction period in milliseconds
+	static const unsigned FILTER_UPDATE_PERIOD_MS = 10;	// ekf prediction period in milliseconds
 
 	float _dt_imu_avg;	// average imu update period in s
 

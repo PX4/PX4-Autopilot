@@ -46,7 +46,7 @@
 
 void Ekf::fuseVelPosHeight()
 {
-	bool fuse_map[6] = {}; // map of booelans true when [VN,VE,VD,PN,PE,PD] observations are available
+	bool fuse_map[6] = {}; // map of booleans true when [VN,VE,VD,PN,PE,PD] observations are available
 	bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
 	float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
 	float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
