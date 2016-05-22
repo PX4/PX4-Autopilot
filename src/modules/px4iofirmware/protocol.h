@@ -192,6 +192,7 @@
 #define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
 #define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 9) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
 #define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 10) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
+#define PX4IO_P_SETUP_ARMING_DISABLE_FMU_IN_OVERRIDE (1 << 11) /* Don't mix the FMU outputs while in OVERRIDE mode, ie. always use the MIX_OVERRIDE mode instead of MIX_OVERRIDE_FMU_OK */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
