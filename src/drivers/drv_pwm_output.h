@@ -244,6 +244,10 @@ struct pwm_output_rc_config {
 /** set SBUS output frame rate in Hz */
 #define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 31)
 
+/** surfaces to move regardless of the safety state */
+#define PWM_SERVO_IGNORE_SAFETY			_PX4_IOC(_PWM_SERVO_BASE, 32)
+
+/** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE			0
 #define PWM_SERVO_MODE_2PWM			1

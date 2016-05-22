@@ -2623,6 +2623,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, arg);
 		break;
 
+	case PWM_SERVO_IGNORE_SAFETY:
+		/* bitmask of surfaces to move regardless of the safety state */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IGNORE_SAFETY, arg);
+		break;
+
 	case PWM_SERVO_SET_ONESHOT:
 
 		/* enable/disable oneshot output */
