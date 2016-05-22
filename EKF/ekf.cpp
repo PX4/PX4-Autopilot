@@ -570,8 +570,10 @@ void Ekf::predictState()
 	// save the previous value of velocity so we can use trapzoidal integration
 	Vector3f vel_last = _state.vel;
 
-	// update the rotation matrix and calculate the increment in velocity using the current orientation
+	// update transformation matrix from body to world frame
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+	// calculate the increment in velocity using the current orientation
 	_state.vel += _R_to_earth * corrected_delta_vel;
 
 	// compensate for acceleration due to gravity
@@ -579,9 +581,6 @@ void Ekf::predictState()
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
-
-	// update transformation matrix from body to world frame
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 	constrainStates();
 
