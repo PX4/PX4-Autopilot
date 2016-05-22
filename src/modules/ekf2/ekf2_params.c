@@ -701,10 +701,9 @@ PARAM_DEFINE_FLOAT(EKF2_OF_POS_Y, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);
 
 /**
- * Time constant of the velocity output prediction and smoothing filter
+ * Time constant of the velocity output prediction and smoothing filter. Controls how tightly the velocity output tracks the EKF states. Set to a negative number to disable the EKF velocity state tracking. This will cause the output velocity to track the output position time derivative.
  *
  * @group EKF2
- * @min 0.1
  * @max 1.0
  * @unit s
  * @decimal 2
@@ -712,7 +711,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
 
 /**
- * Time constant of the position output prediction and smoothing filter
+ * Time constant of the position output prediction and smoothing filter. Controls how tightly the output track the EKF states.
  *
  * @group EKF2
  * @min 0.1
