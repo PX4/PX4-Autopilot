@@ -160,7 +160,7 @@ void Ekf::predictCovariance()
 
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	float mag_I_sig;
-	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][8]) < 0.1f) {
+	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][18]) < 0.1f) {
 		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1.0f);
 
 	} else {
