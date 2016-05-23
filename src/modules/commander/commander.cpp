@@ -230,7 +230,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
-			orb_advert_t *roi_pub, struct mission_s *mission);
+			orb_advert_t *roi_pub);
 
 /**
  * Mainloop of commander.
@@ -659,7 +659,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-			struct vehicle_roi_s *roi, orb_advert_t *roi_pub, struct mission_s *mission)
+			struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1079,7 +1079,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPNEXT) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPNEXT;
-			roi->mission_seq = mission->current_seq; //TODO verify this is correct
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPINDEX) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPINDEX;
@@ -2699,7 +2698,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub, &mission)) {
+					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub)) {
 				status_changed = true;
 			}
 		}
