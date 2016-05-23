@@ -579,11 +579,17 @@ uORB::DeviceNode::print_statistics(bool reset)
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::add_internal_subscriber()
 {
-	_subscriber_count++;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count++;
+
 	if (ch != nullptr && _subscriber_count > 0) {
+		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(_meta->o_name, 1);
+
+	} else {
+		unlock();
 	}
 }
 
@@ -591,11 +597,17 @@ void uORB::DeviceNode::add_internal_subscriber()
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::remove_internal_subscriber()
 {
-	_subscriber_count--;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count--;
+
 	if (ch != nullptr && _subscriber_count == 0) {
+		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
 		ch->remove_subscription(_meta->o_name);
+
+	} else {
+		unlock();
 	}
 }
 
