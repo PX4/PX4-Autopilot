@@ -84,6 +84,13 @@ bool Ekf::resetVelocity()
 		_output_buffer.push_to_index(index,output_states);
 	}
 
+	// capture the reset event
+	_state_reset_status.velNE_change(0) = velocity_change(0);
+	_state_reset_status.velNE_change(1) = velocity_change(1);
+	_state_reset_status.velD_change = velocity_change(2);
+	_state_reset_status.velNE_time_us = _imu_sample_delayed.time_us;
+	_state_reset_status.velD_time_us = _imu_sample_delayed.time_us;
+
 }
 
 // Reset position states. If we have a recent and valid
