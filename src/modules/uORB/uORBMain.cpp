@@ -86,7 +86,7 @@ uorb_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "status")) {
 		if (g_dev != nullptr) {
-			PX4_INFO("uorb is running");
+			g_dev->printStatistics(true);
 
 		} else {
 			PX4_INFO("uorb is not running");
