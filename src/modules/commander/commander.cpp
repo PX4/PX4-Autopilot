@@ -192,7 +192,7 @@ static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status = {};
-static struct vehicle_roi_s roi = {};
+static struct vehicle_roi_s _roi = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
@@ -244,7 +244,8 @@ void usage(const char *reason);
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd,
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi, orb_advert_t *roi_pub);
+		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
+			orb_advert_t *roi_pub, struct mission_s *mission);
 
 /**
  * Mainloop of commander.
@@ -653,7 +654,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi_local, orb_advert_t *roi_pub_local)
+		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
+			struct vehicle_roi_s *roi, orb_advert_t *roi_pub, struct mission_s *mission)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1055,8 +1057,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
 
-		//cmd->param1
-		//roi->mode = ...
 		uint32_t mode = (uint32_t) cmd->param1;
 
 		if (mode == vehicle_command_s::VEHICLE_ROI_NONE) {
@@ -1064,15 +1064,22 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPNEXT) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPNEXT;
+			//TODO
+			//roi->mission_seq = mission->current_seq;
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPINDEX) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPINDEX;
+			roi->mission_seq = (uint32_t) cmd->param2;
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_LOCATION) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_LOCATION;
+			roi->x = (int32_t) cmd->param5;
+			roi->y = (int32_t) cmd->param6;
+			roi->z = (int32_t) cmd->param7;
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_TARGET) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_TARGET;
+			roi->target_seq = (uint32_t) cmd->param2;
 		}
 		else {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_NONE;
@@ -1357,7 +1364,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* home position */
 	orb_advert_t roi_pub = nullptr;
-	memset(&roi, 0, sizeof(roi));
+	memset(&_roi, 0, sizeof(_roi));
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
@@ -2650,7 +2657,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &command_ack, &roi, &roi_pub)) {
+					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub, &mission)) {
 				status_changed = true;
 			}
 		}
