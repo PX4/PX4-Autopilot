@@ -81,7 +81,7 @@ static struct mission_result_s *mission_result;
 static struct mavlink_log_s *mavlink_log;
 
 //FIFO for mavlink messages
-#define FIFO_ELEMENTS 208 //4*52, so up to 12 messages, worst case.
+#define FIFO_ELEMENTS 208 //4*52, so up to 4 messages, worst case.
 #define FIFO_SIZE (FIFO_ELEMENTS + 1)
 
 uint8_t *fifo;
