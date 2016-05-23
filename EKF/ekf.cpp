@@ -170,7 +170,6 @@ bool Ekf::init(uint64_t timestamp)
 	_imu_updated = false;
 	_NED_origin_initialised = false;
 	_gps_speed_valid = false;
-	_mag_healthy = false;
 
 	_filter_initialised = false;
 	_terrain_initialised = false;

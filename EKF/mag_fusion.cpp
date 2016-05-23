@@ -176,20 +176,19 @@ void Ekf::fuseMag()
 
 	// Perform an innovation consistency check on each measurement and if one axis fails
 	// do not fuse any data from the sensor because the most common errors affect multiple axes.
-	_mag_healthy = true;
-
+	bool mag_fail = false;
 	for (uint8_t index = 0; index <= 2; index++) {
 		_mag_test_ratio[index] = sq(_mag_innov[index]) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var[index]);
 
 		if (_mag_test_ratio[index] > 1.0f) {
-			_mag_healthy = false;
+			mag_fail = false;
 			_sensor_fault_status.value |= (1 << (index + 3));
 		} else {
 			_sensor_fault_status.value &= !(1 << (index + 3));
 		}
 	}
 
-	if (!_mag_healthy) {
+	if (mag_fail) {
 		return;
 	}
 
@@ -606,7 +605,6 @@ void Ekf::fuseHeading()
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
-		_mag_healthy = false;
 		_sensor_fault_status.flags.reject_yaw = true;
 
 		// if we are in air we don't want to fuse the measurement
@@ -622,7 +620,6 @@ void Ekf::fuseHeading()
 		}
 
 	} else {
-		_mag_healthy = true;
 		_sensor_fault_status.flags.reject_yaw = false;
 	}
 
