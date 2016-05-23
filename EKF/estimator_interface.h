@@ -259,7 +259,6 @@ protected:
 	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
 	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians)
 
-	bool _airspeed_healthy;		// computed by airspeed innovation test
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio
 	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
