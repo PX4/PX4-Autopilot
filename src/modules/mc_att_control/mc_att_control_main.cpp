@@ -103,6 +103,19 @@
  * ¶àĞıÒí×ËÌ¬¿ØÖÆÓ¦ÓÃ ¿ªÊ¼/½áÊø ´¦Àíº¯Êı
  * @ingroup apps
  */
+ 
+/* PX4µÄ×ËÌ¬¿ØÖÆ²¿·ÖÊ¹ÓÃµÄÊÇroll-pitchºÍyaw·Ö¿ª¿ØÖÆµÄ£¨ÊÇÎªÁË½âñî¿ØÖÆĞĞÎª) 
+ * ¼´ tilt(ÇãĞ±)ºÍtorsion(×ªÍä)Á½¸ö»·½Ú
+ */
+ 
+/*
+ * ¿ØÖÆÁ÷³Ì£º 
+ * 1£©Ô¤´¦Àí£º¸÷²ÎÊıµÄ³õÊ¼»¯¡£ 
+ * 2£©ÎÈ¶¨roll-pitchµÄ½ÇËÙ¶È¡£
+ * 3£©ÎÈ¶¨roll-pitchµÄ½Ç¶È¡£ 
+ * 4£©ÎÈ¶¨yawµÄ½ÇËÙ¶È¡£ 
+ * 5£©ÎÈ¶¨yawµÄ½Ç¶È¡£ ÆäÖĞÓĞÒ»¸öyawµÄÇ°À¡¿ØÖÆ£¨MC_YAW_FF£©
+ */
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define YAW_DEADZONE	0.05f
@@ -635,16 +648,19 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
  *ÊäÈë: '·ÉĞĞÆ÷µÄ×ËÌ¬Éè¶¨Öµ vehicle_attitude_setpoint'»°Ìâ(È¡¾öÓÚÄ£Ê½)
  *Êä³ö:'½ÇËÙ¶ÈÉè¶¨Öµrate_sp'ÏòÁ¿£¬ 'ÓÍÃÅÉè¶¨Öµthrust_sp'
  */
- 
+
+// x,yÖáÓëzÖá·Ö¿ª¿ØÖÆ£¬Ä¿µÄÊÇÎªÁË½âñî¿ØÖÆĞĞÎª
+// ·Ö±ğÖ´ĞĞ½Ï¿ìÏàÓ¦µÄ¶¯×÷ºÍ½ÏÂıÏìÓ¦µÄ¶¯×÷
 void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
-	vehicle_attitude_setpoint_poll();
+	vehicle_attitude_setpoint_poll(); // Ê×ÏÈ¾ÍÊÇÍ¨¹ıuORBÄ£ĞÍ¼ì²â×ËÌ¬Êı¾İÊÇ·ñÒÑ¾­¸üĞÂ¡£
+	                                  // ¼ì²âµ½¸üĞÂÊı¾İÒÔºó£¬°ÑÊı¾İ¿½±´µ½µ±
 
-	_thrust_sp = _v_att_sp.thrust;
+	_thrust_sp = _v_att_sp.thrust; //°ÑÓÍÃÅ¿ØÖÆÁ¿¸³Öµ¸ø¿ØÖÆ±äÁ¿¡£
 
 	/* construct attitude setpoint rotation matrix */
-	// ¹¹Ôì×ËÌ¬Éè¶¨ÖµĞı×ª¾ØÕó
+	// ¹¹Ôì×ËÌ¬Éè¶¨ÖµĞı×ª¾ØÕó £¨Ä¿±ê×´Ì¬£¬ËùÎ½µÄTargetRotation£©¡£
 	math::Matrix<3, 3> R_sp;
 	R_sp.set(_v_att_sp.R_body);  //body-»úÌå  ¸Ã¾ØÕóµÄ¸÷¸öÔªËØÊÇ»úÌåµÄÅ·À­½Ç
 
@@ -663,12 +679,19 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
 	/* axis and sin(angle) of desired rotation */
-	// ÖáÒÔ¼°ÓëÆÚÍûĞı×ªµÄ½Ç¶ÈÕıÏÒsin(angle)
-	// ¸ù¾İÕâÁ½¸öZÖá¼ÆËã³öÎó²îÏòÁ¿(²Î¿¼×ø±êÏµ)£¬²¢×ª»»µ½»úÌå×ø±êÏµ
+	/* ÖáÒÔ¼°ÓëÆÚÍûĞı×ªµÄ½Ç¶ÈÕıÏÒsin(angle)
+	 * ¸ù¾İÕâÁ½¸öZÖá¼ÆËã³öÎó²îÏòÁ¿(²Î¿¼×ø±êÏµ)£¬²¢×ª»»µ½»úÌå×ø±êÏµ
+	 *
+	 * µ±Ç°×ËÌ¬µÄzÖáºÍÄ¿±ê×ËÌ¬µÄzÖáµÄÎó²î´óĞ¡£¨¼´ĞèÒªĞı×ªµÄ½Ç¶È£©²¢Ğı×ªµ½
+	 * bÏµ£¨¼´ÏÈ¶ÔÆëZÖá£©¡£
+	 */
 	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
+    // ¾ÍÊÇÇóÈ¡Îó²îµÄ£¬±¾À´Ó¦¸ÃzÖáÏà»¥ÖØºÏµÄ£¬Èç¹û²»ÊÇ0¾Í×÷ÎªÎó²îÏî¡£
+    // È»ºóÔÙ×ó³ËĞı×ª¾ØÕóĞı×ªµ½bÏµ¡£
+
 
 	/* calculate angle error */
-	// ¼ÆËã½Ç¶ÈÎó²î
+	// ¼ÆËã×ËÌ¬½Ç¶ÈÎó²î
 	/*
 	*ÓÉ¹«Ê½a¡Áb=|a||b|sin(theta)£¬a¡¤b=|a||b|cos(theta)¡£
 	*ÕâÀïR_zºÍR_sp_z¶¼ÊÇµ¥Î»ÏòÁ¿£¬Ä£Îª1
@@ -707,7 +730,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		/* rotation matrix for roll/pitch only rotation */
 		// ½öÓÃÓÚºá¹ö/¸©ÑöĞı×ªµÄĞı×ª¾ØÕó
-		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+		
+		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos)); // ÂŞµÂÀï¸ñĞı×ª¹«Ê½£ºRodrigues rotation formula
 		// _I´ú±íµ¥Î»Õó
 
 	} else {
@@ -748,6 +772,11 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		// ¸üĞÂe_R,°üº¬Á½ÖÖĞı×ª·½·¨£¬»¥²¹£»
 		e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;  
 	}
+    /*
+     * ÓÉDCM»ñÈ¡ËÄÔªÊı£»È»ºó°ÑËÄÔªÊıµÄĞé²¿È¡³ö¸³Öµ¸øe_R_d(e_R_d = q.imag());
+     * È»ºó¶ÔÆä½øĞĞ¹éÒ»»¯´¦Àí£»×îºó2ĞĞÊÇÏÈÇó³ö»¥²¹ÏµÊı£¬ÔÙÍ¨¹ı»¥²¹·½Ê½ÇóÈ¡e_R¡£
+	 */
+
 
 	/* calculate angular rates setpoint */
 	// ¼ÆËã½ÇËÙ¶ÈÉè¶¨Öµ
@@ -829,6 +858,11 @@ MulticopterAttitudeControl::task_main()
 	/*
 	 * do subscriptions
 	 * ¶©ÔÄ
+	 * 
+	 * ×¢Òâ¸ÃËã·¨´¦Àí¹ı³ÌÖĞµÄÓĞĞ§Êı¾İµÄÓÃÍ¾ÎÊÌâ£¬×îºó´¦Àí¹ıµÄÊı¾İ×îºóÓÖ±»¸Ä½ø³Ì×Ô¼º¶©ÔÄÁË£¬ 
+	 * È»ºóÔÙ´¦Àí£¬ÔÙ¶©ÔÄ£¬Ò»Ö±´¦ÓÚÑ­»·×´Ì¬£¬Õâ¾ÍÊÇËùÎ½µÄPID·´À¡¿ØÖÆÆ÷°É£¡£
+	 * ×îÖÕ´ïµ½ËùĞèÇóµÄ¿ØÖÆĞ§¹û£¬´ïµ½¿ØÖÆĞ§¹ûÒÔºó¾Í°ÑÒ»ÏµÁĞµÄ¿ØÖÆÁ¿ÖÃ0£¨ÀàËÆÓÚidle£©£¬
+	 * ¸ÃÈÎÎñÒ»Ö±ÔÚÔËĞĞ£¬ËæÆô¶¯½Å±¾Æô¶¯µÄ¡£
 	 */
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -841,13 +875,26 @@ MulticopterAttitudeControl::task_main()
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
 
 	/* initialize parameters cache ³õÊ¼»¯²ÎÊı»º´æ */
-	parameters_update();
+	parameters_update(); // parametersÖ÷Òª¾ÍÊÇÎÒÃÇÇ°ÆÚ¶¨ÒåµÄ¸ĞĞËÈ¤µÄÊı¾İ
+						 //ÔÚ×ËÌ¬¿ØÖÆÖĞµÄÕâĞ©Êı¾İ¶¼ÊÇË½ÓĞÊı¾İ£¨private£©
 
+    /* 
+     * ¾­¹ıÉÏÊö·ÖÎö£¬¸Ãparameters_update()º¯ÊıÖ÷Òª¾ÍÊÇ»ñÈ¡roll¡¢pitch¡¢yawµÄPID²ÎÊıµÄ¡£ 
+     * ²¢¶ÔÈıÖÖ·ÉĞĞÄ£Ê½£¨stablize¡¢auto¡¢acro£©ÏÂµÄ×î´ó×ËÌ¬ËÙ¶È×öÁËÏŞÖÆ¡£
+     */
+
+    // NuttXÈÎÎñÊ¹ÄÜ						 
 	/* wakeup source: vehicle attitude »½ĞÑÔ´:·ÉĞĞÆ÷×ËÌ¬*/
 	px4_pollfd_struct_t fds[1];
 
 	fds[0].fd = _ctrl_state_sub;
 	fds[0].events = POLLIN;
+	/*
+	 * ×¢ÒâÉÏÃæµÄfdµÄ¸³Öµ¡£
+	 * * * *Ëæºó½øÈëÈÎÎñµÄÑ­»·º¯Êı£º while (!_task_should_exit){ }¡£ * * * *
+	 * ¶¼ÊÇÒ»ÑùµÄÄ£Ê½£¬ÔÚ×ËÌ¬½âËãÊ±Ò²ÊÇÊ¹ÓÃµÄ¸ÃÖÖ·½Ê½¡£
+	 */
+
 
 	while (!_task_should_exit) {
 
@@ -869,8 +916,9 @@ MulticopterAttitudeControl::task_main()
 			continue;
 		}
 
-		perf_begin(_loop_perf);
-
+		perf_begin(_loop_perf); // ´ø perf¿ªÍ·µÄ¶¼ÊÇ¿Õº¯Êı
+								 // ËüµÄ×÷ÓÃÖ÷ÒªÊÇ ¡°Empty function calls for ros compatibility ¡±
+		
 		/* run controller on attitude changes  ÔÚ×ËÌ¬¸Ä±äÉÏÔËĞĞ¿ØÖÆÆ÷*/
 		if (fds[0].revents & POLLIN) {
 			static uint64_t last_run = 0;
@@ -885,30 +933,32 @@ MulticopterAttitudeControl::task_main()
 				dt = 0.02f;
 			}
 
-			/* copy attitude and control state topics 
-			   ¸´ÖÆ×ËÌ¬ÒÔ¼°¿ØÖÆ×´Ì¬»°Ìâ*/
+			/* copy attitude and control state topics */
+			// »ñÈ¡µ±Ç°×ËÌ¬Êı¾İ
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 			/* check for updates in other topics 
-				¼ì²éÆäËû»°ÌâµÄ¸üĞÂ*/
+				¼ì²âÊı¾İÊÇ·ñÒÑ¾­¸üĞÂ*/
 			parameter_update_poll();
-			vehicle_control_mode_poll();
+			vehicle_control_mode_poll(); //×¢ÒâÕâ¸ö£¬ºóÃæ»áÓÃµ½ÄÚ²¿µÄÊı¾İ´¦Àí½á¹û£¬¼´·¢²¼ºÍ¶©ÔÄµÄIDÎÊÌâ¡£
 			arming_status_poll();
 			vehicle_manual_poll();
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 
+			/*¹ÙÍøRATTITUDE×ËÌ¬½éÉÜ*/
+
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
 			 * even bother running the attitude controllers 
-			 ¼ì²éÎÒÃÇÊÇ·ñ´¦ÓÚrAttitudeÄ£Ê½ÒÔ¼°·ÉĞĞÔ±(¸©Ñö»òÕßÆ«º½(Æ«º½ÔÚÒ»°ã×ËÌ¬¿ØÖÆÏÂ¿ÉÒÔ360¶È
-			 Ğı×ª))ÊÇ·ñÔÚÓÍÃÅãĞÖµÖ®ÉÏ¡£
-			 Èç¹ûÁ½Õß¶¼ÎªÕæ£¬ÄÇÃ´²»ÓÃÔËĞĞ×ËÌ¬¿ØÖÆÆ÷*/
+			 * ¼ì²éÎÒÃÇÊÇ·ñ´¦ÓÚrAttitudeÄ£Ê½ÒÔ¼°·ÉĞĞÔ±(¸©Ñö»òÕßÆ«º½(Æ«º½ÔÚÒ»°ã×ËÌ¬¿ØÖÆÏÂ¿ÉÒÔ360¶È
+			 * Ğı×ª))ÊÇ·ñÔÚÓÍÃÅãĞÖµÖ®ÉÏ¡£
+			 * Èç¹ûÁ½Õß¶¼ÎªÕæ£¬ÄÇÃ´²»ÓÃÔËĞĞ×ËÌ¬¿ØÖÆÆ÷*/
 			if (_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE) {
 				if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
 				    fabsf(_manual_control_sp.x) > _params.rattitude_thres) {
 					_v_control_mode.flag_control_attitude_enabled = false;
-				}
+				}  //x¡¢yãĞÖµµÄ¼ì²â ¼ì²â¹ö×ª ¸©Ñö
 			}
 
 			if (_v_control_mode.flag_control_attitude_enabled) {

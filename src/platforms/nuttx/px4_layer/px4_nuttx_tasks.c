@@ -78,8 +78,8 @@ px4_systemreset(bool to_bootloader)
 }
 
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
-{
-	int pid;
+{                                    //*第一个参数是namespace，第二个参数是选择调度策略，
+	int pid;                        //  第三个是任务优先级，第四个是任务的栈空间大小，第五个是任务的入口函数，最后一个一般是null
 
 	sched_lock();
 
