@@ -1080,7 +1080,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPNEXT) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPNEXT;
 			//TODO
-			//roi->mission_seq = mission->current_seq;
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_WPINDEX) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPINDEX;
