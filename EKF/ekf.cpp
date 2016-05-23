@@ -567,6 +567,9 @@ bool Ekf::initialiseFilter(void)
 		_time_last_hagl_fuse = _time_last_imu;
 		_time_last_of_fuse = _time_last_imu;
 
+		// reset the output predictor state history to match the EKF initial values
+		alignOutputFilter();
+
 		return true;
 	}
 }
