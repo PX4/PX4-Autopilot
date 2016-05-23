@@ -742,25 +742,40 @@ void Ekf::calculateOutputStates()
 		// that will cause the INS to track the EKF quaternions
 		_delta_angle_corr = delta_ang_error * att_gain;
 
-		// calculate gains that will be used to make the INS states converge on the EKF states
-		float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
+		// calculate a position correction that will be applied to the output state history
 		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
-
-		// calculate velocity and position corrections at the EKF fusion time horizon
-		Vector3f vel_delta = (_state.vel - _output_sample_delayed.vel) * vel_gain;
 		Vector3f pos_delta = (_state.pos - _output_sample_delayed.pos) * pos_gain;
 
-		// loop through the output filter state history and apply the corrections to the translational states
+		// calculate a velocity correction that will be applied to the output state history
+		Vector3f vel_delta;
+		if (_params.pos_Tau <= 0.0f) {
+			// this method will cause the velocity to be kinematically consistent with
+			// the position corretions rather than tracking the EKF states
+			vel_delta = pos_delta * (1.0f / time_delay);
+		} else {
+			// this method makes the velocity track the EKF states with the specified time constant
+			float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
+			vel_delta = (_state.vel - _output_sample_delayed.vel) * vel_gain;
+		}
+
+		// loop through the output filter state history and apply the corrections to the velocity and position states
 		// this method is too expensive to use for the attitude states due to the quaternion operations required
-		// but does not introudce a time dela in the 'correction loop' and allows smaller tracking time constants
+		// but does not introduce a time delay in the 'correction loop' and allows smaller tracking time constants
 		// to be used
 		outputSample output_states;
-		unsigned output_length = _output_buffer.get_length();
-		for (unsigned i=0; i < output_length; i++) {
-			output_states = _output_buffer.get_from_index(i);
+		unsigned max_index = _output_buffer.get_length() - 1;
+		for (unsigned index=0; index <= max_index; index++) {
+			output_states = _output_buffer.get_from_index(index);
+
+			// a constant  velocity correction is applied
 			output_states.vel += vel_delta;
+
+			// a constant position correction is applied
 			output_states.pos += pos_delta;
-			_output_buffer.push_to_index(i,output_states);
+
+			// push the updated data to the buffer
+			_output_buffer.push_to_index(index,output_states);
+
 		}
 
 		// update output state to corrected values

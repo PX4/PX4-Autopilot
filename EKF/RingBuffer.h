@@ -161,7 +161,7 @@ public:
 	}
 
 	// return data at the specified index
-	data_type get_from_index(unsigned index)
+	inline data_type get_from_index(unsigned index)
 	{
 		if (index >= _size) {
 			index = _size-1;
@@ -170,7 +170,7 @@ public:
 	}
 
 	// push data to the specified index
-	void push_to_index(unsigned index, data_type sample)
+	inline void push_to_index(unsigned index, data_type sample)
 	{
 		if (index >= _size) {
 			index = _size-1;
