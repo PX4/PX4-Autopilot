@@ -144,7 +144,8 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
 	// Limit the GPS data rate to a maximum of 14Hz
-	if (time_usec - _time_last_gps > 65000) {
+	bool need_gps = (_params.fusion_mode & MASK_USE_GPS) || (_params.vdist_sensor_type == VDIST_SENSOR_GPS);
+	if (time_usec - _time_last_gps > 65000 && need_gps) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
