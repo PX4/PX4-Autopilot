@@ -117,10 +117,10 @@ void Ekf::fuseHagl()
 			_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
 			// record last successful fusion event
 			_time_last_hagl_fuse = _time_last_imu;
-			_sensor_fault_status.flags.reject_hagl = false;
+			_innov_check_fail_status.flags.reject_hagl = false;
 
 		} else {
-			_sensor_fault_status.flags.reject_hagl = true;
+			_innov_check_fail_status.flags.reject_hagl = true;
 
 		}
 

@@ -388,8 +388,8 @@ union fault_status_u {
 
 };
 
-// define structure used to communicate innovation test failures and state resets
-union sensor_fault_status_u {
+// define structure used to communicate innovation test failures
+union innovation_fault_status_u {
 	struct {
 		bool reject_vel_NED: 1;		// 0 - true if velocity observations have been rejected
 		bool reject_pos_NE: 1;		// 1 - true if horizontal position observations have been rejected
@@ -402,13 +402,8 @@ union sensor_fault_status_u {
 		bool reject_hagl: 1;		// 8 - true if the height above ground observation has been rejected
 		bool reject_optflow_X: 1;	// 9 - true if the X optical flow observation has been rejected
 		bool reject_optflow_Y: 1;	// 10 - true if the Y optical flow observation has been rejected
-		bool reset_pos_NE: 1;		// 11 - true if the horizontal positoin has been reset
-		bool reset_pos_D: 1;		// 12 - true if the vertical position  has been reset
-		bool reset_vel_NE: 1;		// 13 - true if the horizontal velocity has been reset
-		bool reset_vel_D: 1;		// 14 - true if the vertical velocity has been reset
-		bool reset_yaw: 1;		// 15 - true if teh yaw angle has been reset
 	} flags;
-	uint32_t value;
+	uint16_t value;
 
 };
 

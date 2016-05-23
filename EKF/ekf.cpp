@@ -180,7 +180,7 @@ bool Ekf::init(uint64_t timestamp)
 	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
 
 	_fault_status.value = 0;
-	_sensor_fault_status.value = 0;
+	_innov_check_fail_status.value = 0;
 
 	return ret;
 }

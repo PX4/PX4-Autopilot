@@ -204,25 +204,25 @@ void Ekf::fuseVelPosHeight()
 	// record the successful velocity fusion event
 	if (vel_check_pass && _fuse_hor_vel) {
 		_time_last_vel_fuse = _time_last_imu;
-		_sensor_fault_status.flags.reject_vel_NED = false;
+		_innov_check_fail_status.flags.reject_vel_NED = false;
 	} else if (!vel_check_pass) {
-		_sensor_fault_status.flags.reject_vel_NED = true;
+		_innov_check_fail_status.flags.reject_vel_NED = true;
 	}
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
 		_time_last_pos_fuse = _time_last_imu;
-		_sensor_fault_status.flags.reject_pos_NE = false;
+		_innov_check_fail_status.flags.reject_pos_NE = false;
 	} else if (!pos_check_pass) {
-		_sensor_fault_status.flags.reject_pos_NE = true;
+		_innov_check_fail_status.flags.reject_pos_NE = true;
 	}
 
 	// record the successful height fusion event
 	if (innov_check_pass_map[5] && _fuse_height) {
 		_time_last_hgt_fuse = _time_last_imu;
-		_sensor_fault_status.flags.reject_pos_D = false;
+		_innov_check_fail_status.flags.reject_pos_D = false;
 	} else if (!innov_check_pass_map[5]) {
-		_sensor_fault_status.flags.reject_pos_D = true;
+		_innov_check_fail_status.flags.reject_pos_D = true;
 	}
 
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {

@@ -182,9 +182,9 @@ void Ekf::fuseMag()
 
 		if (_mag_test_ratio[index] > 1.0f) {
 			mag_fail = false;
-			_sensor_fault_status.value |= (1 << (index + 3));
+			_innov_check_fail_status.value |= (1 << (index + 3));
 		} else {
-			_sensor_fault_status.value &= !(1 << (index + 3));
+			_innov_check_fail_status.value &= !(1 << (index + 3));
 		}
 	}
 
@@ -605,7 +605,7 @@ void Ekf::fuseHeading()
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
-		_sensor_fault_status.flags.reject_yaw = true;
+		_innov_check_fail_status.flags.reject_yaw = true;
 
 		// if we are in air we don't want to fuse the measurement
 		// we allow to use it when on the ground because the large innovation could be caused
@@ -620,7 +620,7 @@ void Ekf::fuseHeading()
 		}
 
 	} else {
-		_sensor_fault_status.flags.reject_yaw = false;
+		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
 	// apply covariance correction via P_new = (I -K*H)*P
