@@ -90,6 +90,11 @@ bool Ekf::resetVelocity()
 // gps measurement then use for position initialisation
 bool Ekf::resetPosition()
 {
+	// used to calculate the position change due to the reset
+	Vector2f posNE_before_reset;
+	posNE_before_reset(0) = _state.pos(0);
+	posNE_before_reset(1) = _state.pos(1);
+
 	if (_control_status.flags.gps) {
 		// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
 		gpsSample gps_newest = _gps_buffer.get_newest();
@@ -134,6 +139,20 @@ bool Ekf::resetPosition()
 	} else {
 		return false;
 	}
+
+	// calculate the change in position and apply to the output predictor state history
+	Vector3f posNE_change;
+	posNE_change(0) = _state.pos(0) - posNE_before_reset(0);
+	posNE_change(1) = _state.pos(1) - posNE_before_reset(1);
+	outputSample output_states;
+	unsigned max_index = _output_buffer.get_length() - 1;
+	for (unsigned index=0; index <= max_index; index++) {
+		output_states = _output_buffer.get_from_index(index);
+		output_states.pos(0) += posNE_change(0);
+		output_states.pos(1) += posNE_change(1);
+		_output_buffer.push_to_index(index,output_states);
+	}
+
 }
 
 // Reset height state using the last height measurement
