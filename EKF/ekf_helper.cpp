@@ -289,18 +289,18 @@ void Ekf::resetHeight()
 
 	// store the reset amount and time to be published
 	if (vert_pos_reset) {
-		_vert_pos_reset_delta = _state.pos(2) - old_vert_pos;
-		_time_vert_pos_reset = _time_last_imu;
+		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
+		_state_reset_status.posD_time_us = _imu_sample_delayed.time_us;
 	}
 
 	if (vert_vel_reset) {
-		_vert_vel_reset_delta = _state.vel(2) - old_vert_vel;
-		_time_vert_vel_reset = _time_last_imu;
+		_state_reset_status.velD_change = _state.vel(2) - old_vert_vel;
+		_state_reset_status.velD_time_us = _imu_sample_delayed.time_us;
 	}
 
 	// add the reset amount to the output observer states
-	_output_new.pos(2) += _vert_pos_reset_delta;
-	_output_new.vel(2) += _vert_vel_reset_delta;
+	_output_new.pos(2) += _state_reset_status.posD_change;
+	_output_new.vel(2) += _state_reset_status.velD_change;
 
 	// add the reset amount to the output observer buffered data
 	outputSample output_states;
@@ -309,11 +309,11 @@ void Ekf::resetHeight()
 		output_states = _output_buffer.get_from_index(i);
 
 		if (vert_pos_reset) {
-			output_states.pos(2) += _vert_pos_reset_delta;
+			output_states.pos(2) += _state_reset_status.posD_change;
 		}
 
 		if (vert_vel_reset) {
-			output_states.vel(2) += _vert_vel_reset_delta;
+			output_states.vel(2) += _state_reset_status.velD_change;
 		}
 
 		_output_buffer.push_to_index(i,output_states);

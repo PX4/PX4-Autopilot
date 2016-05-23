@@ -128,7 +128,7 @@ public:
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
 	// return the amount the local vertical position changed in the last height reset and the time of the reset
-	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _vert_pos_reset_delta; *time_us = _time_vert_pos_reset;}
+	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.posD_change; *time_us = _state_reset_status.posD_time_us;}
 
 private:
 
@@ -235,10 +235,6 @@ private:
 	int _primary_hgt_source;	// priary source of height data set at initialisation
 
 	float _baro_hgt_offset;		// baro height reading at the local NED origin (m)
-	float _vert_pos_reset_delta;	// increase in vertical position state at the last reset(m)
-	uint64_t _time_vert_pos_reset;	// last system time in usec that the vertical position state was reset
-	float _vert_vel_reset_delta;	// increase in vertical position velocity at the last reset(m)
-	uint64_t _time_vert_vel_reset;	// last system time in usec that the vertical velocity state was reset
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)
