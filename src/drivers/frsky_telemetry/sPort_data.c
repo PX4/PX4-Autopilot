@@ -119,7 +119,7 @@ bool sPort_init()
 
 
 	//4*52, so up to 4 messages, worst case.
-	fifo = malloc(sizeof(uint8_t)*208);
+	fifo = malloc(sizeof(uint8_t) * 208);
 
 	fifo_init();
 
