@@ -402,9 +402,23 @@ void Ekf::fuseOptFlow()
 		}
 	}
 
-	// if either axis fails, we fail the sensor
-	if (optflow_test_ratio[0] > 1.0f || optflow_test_ratio[1] > 1.0f) {
+	// record the innovation test pass/fail
+	bool flow_fail = false;
+	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
+		if (optflow_test_ratio[obs_index] > 1.0f) {
+			flow_fail = true;
+			_sensor_fault_status.value |= (1 << (obs_index + 9));
+
+		} else {
+			_sensor_fault_status.value &= ~(1 << (obs_index + 9));
+
+		}
+	}
+
+	// if either axis fails we abort the fusion
+	if (flow_fail) {
 		return;
+
 	}
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
