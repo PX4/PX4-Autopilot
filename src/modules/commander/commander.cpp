@@ -1087,10 +1087,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_LOCATION) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_LOCATION;
-			//TODO verify format and conversion
-			roi->x = (int32_t) cmd->param5;
-			roi->y = (int32_t) cmd->param6;
-			roi->z = (int32_t) cmd->param7;
+			roi->x = cmd->param5;
+			roi->y = cmd->param6;
+			roi->z = cmd->param7;
 		}
 		else if (mode == vehicle_command_s::VEHICLE_ROI_TARGET) {
 			roi->mode = vehicle_roi_s::VEHICLE_ROI_TARGET;
