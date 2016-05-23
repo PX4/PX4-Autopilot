@@ -148,7 +148,7 @@ bool Ekf::resetPosition()
 	}
 
 	// calculate the change in position and apply to the output predictor state history
-	Vector3f posNE_change;
+	Vector2f posNE_change;
 	posNE_change(0) = _state.pos(0) - posNE_before_reset(0);
 	posNE_change(1) = _state.pos(1) - posNE_before_reset(1);
 	outputSample output_states;
@@ -159,6 +159,10 @@ bool Ekf::resetPosition()
 		output_states.pos(1) += posNE_change(1);
 		_output_buffer.push_to_index(index,output_states);
 	}
+
+	// capture the reset event
+	_state_reset_status.posNE_change = posNE_change;
+	_state_reset_status.posNE_time_us = _imu_sample_delayed.time_us;
 
 }
 
