@@ -81,10 +81,11 @@ static struct mission_result_s *mission_result;
 static struct mavlink_log_s *mavlink_log;
 
 //FIFO for mavlink messages
-#define FIFO_ELEMENTS 636 //12*52, so up to 12 messages, worst case.
+#define FIFO_ELEMENTS 208 //4*52, so up to 12 messages, worst case.
 #define FIFO_SIZE (FIFO_ELEMENTS + 1)
-uint8_t fifo[FIFO_SIZE];
-int fifoIn, fifoOut;
+
+uint8_t *fifo;
+uint8_t fifoIn, fifoOut;
 
 /**
  * Initializes the uORB subscriptions.
@@ -116,6 +117,10 @@ bool sPort_init()
 	mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 	mavlink_log_sub = orb_subscribe(ORB_ID(mavlink_log));
 
+
+	//4*52, so up to 4 messages, worst case.
+	fifo = malloc(sizeof(uint8_t)*208);
+
 	fifo_init();
 
 	return true;
@@ -131,6 +136,7 @@ void sPort_deinit()
 	free(vehicle_attitude);
 	free(mission_result);
 	free(mavlink_log);
+	free(fifo);
 }
 
 void sPort_update_topics()
