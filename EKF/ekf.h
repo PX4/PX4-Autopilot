@@ -127,8 +127,17 @@ public:
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
-	// return the amount the local vertical position changed in the last height reset and the time of the reset
-	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.posD_change; *time_us = _state_reset_status.posD_time_us;}
+	// return the amount the local vertical position changed in the last reset and the time of the reset
+	void get_posD_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.posD_change; *time_us = _state_reset_status.posD_time_us;}
+
+	// return the amount the local vertical velocity changed in the last reset and the time of the reset
+	void get_velD_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.velD_change; *time_us = _state_reset_status.velD_time_us;}
+
+	// return the amount the local horizontal position changed in the last reset and the time of the reset
+	void get_posNE_reset(Vector2f *delta, uint64_t *time_us) {*delta = _state_reset_status.posNE_change; *time_us = _state_reset_status.posNE_time_us;}
+
+	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
+	void get_velNE_reset(Vector2f *delta, uint64_t *time_us) {*delta = _state_reset_status.velNE_change; *time_us = _state_reset_status.velNE_time_us;}
 
 private:
 

@@ -217,8 +217,17 @@ public:
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
 
-	// return the amount the local vertical position changed in the last height reset and the time of the reset
-	virtual void get_vert_pos_reset(float *delta, uint64_t *time_us) = 0;
+	// return the amount the local vertical position changed in the last reset and the time of the reset
+	virtual void get_posD_reset(float *delta, uint64_t *time_us) = 0;
+
+	// return the amount the local vertical velocity changed in the last reset and the time of the reset
+	virtual void get_velD_reset(float *delta, uint64_t *time_us) = 0;
+
+	// return the amount the local horizontal position changed in the last reset and the time of the reset
+	virtual void get_posNE_reset(Vector2f *delta, uint64_t *time_us) = 0;
+
+	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
+	virtual void get_velNE_reset(Vector2f *delta, uint64_t *time_us) = 0;
 
 protected:
 
