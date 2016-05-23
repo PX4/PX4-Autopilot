@@ -287,6 +287,7 @@ protected:
 	uint64_t _time_last_optflow;
 
 	fault_status_u _fault_status;
+	sensor_fault_status_u _sensor_fault_status;
 
 	// allocate data buffers and intialise interface variables
 	bool initialise_interface(uint64_t timestamp);
