@@ -350,6 +350,8 @@ void Ekf::alignOutputFilter()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	Quaternion quat_before_reset = _state.quat_nominal;
 
 	// calculate the variance for the rotation estimate expressed as a rotation vector
 	// this will be used later to reset the quaternion state covariances
@@ -481,6 +483,21 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	for (uint8_t index = 16; index <= 21; index ++) {
 		P[index][index] = sq(_params.mag_noise);
 	}
+
+	// calculate the amount that the quaternion has changed by
+	_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+
+	// add the reset amount to the output observer buffered data
+	outputSample output_states;
+	unsigned output_length = _output_buffer.get_length();
+	for (unsigned i=0; i < output_length; i++) {
+		output_states = _output_buffer.get_from_index(i);
+		output_states.quat_nominal *= _state_reset_status.quat_change;
+		_output_buffer.push_to_index(i,output_states);
+	}
+
+	// capture the reset event
+	_state_reset_status.quat_time_us = _imu_sample_delayed.time_us;
 
 	return true;
 }
