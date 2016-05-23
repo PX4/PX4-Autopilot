@@ -152,12 +152,12 @@ private:
 		uint64_t velD_time_us;	// time stamp of the last vertical velocity reset event (us)
 		uint64_t posNE_time_us; // time stamp of the last horizontal position reset event (us)
 		uint64_t posD_time_us;	// time stamp of the last vertical position reset event (us)
-		uint64_t yaw_time_us;   // time stamp of the last yaw angle reset event (us)
+		uint64_t quat_time_us;  // time stamp of the last quaternion reset event (us)
 		Vector2f velNE_change;  // North East velocity change due to last reset (m)
 		float velD_change;	// Down velocity change due to last reset (m/s)
 		Vector2f posNE_change;	// North, East position change due to last reset (m)
 		float posD_change;	// Down position change due to last reset (m)
-		float yaw_change;	// Yaw angle change due to last reset (rad)
+		Quaternion quat_change;	// quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
 	} _state_reset_status;
 
 	float _dt_ekf_avg;		// average update rate of the ekf
