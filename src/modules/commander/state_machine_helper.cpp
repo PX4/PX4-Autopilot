@@ -605,7 +605,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_STAB:
 	case commander_state_s::MAIN_STATE_ALTCTL:
 		/* require RC for all manual modes */
-		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
+		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
