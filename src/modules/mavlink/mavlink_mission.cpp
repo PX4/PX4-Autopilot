@@ -131,7 +131,7 @@ MavlinkMissionManager::init_offboard_mission()
 			_dataman_id = 0;
 			_count = 0;
 			_current_seq = 0;
-			warnx("offboard mission init: ERROR");
+			warnx("offboard mission init failed");
 		}
 	}
 	_my_dataman_id = _dataman_id;
