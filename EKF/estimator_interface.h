@@ -229,6 +229,9 @@ public:
 	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
 	virtual void get_velNE_reset(Vector2f *delta, uint64_t *time_us) = 0;
 
+	// return the amount the quaternion has changed in the last reset and the time of the reset
+	virtual void get_quat_reset(Quaternion *delta, uint64_t *time_us) = 0;
+
 protected:
 
 	parameters _params;		// filter parameters

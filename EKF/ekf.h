@@ -139,6 +139,13 @@ public:
 	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
 	void get_velNE_reset(Vector2f *delta, uint64_t *time_us) {*delta = _state_reset_status.velNE_change; *time_us = _state_reset_status.velNE_time_us;}
 
+	// return the amount the quaternion has changed in the last reset and the time of the reset
+	void get_quat_reset(Quaternion *delta, uint64_t *time_us)
+	{
+		*delta = _state_reset_status.quat_change;
+		*time_us = _state_reset_status.quat_time_us;
+	}
+
 private:
 
 	static const uint8_t _k_num_states = 24;
