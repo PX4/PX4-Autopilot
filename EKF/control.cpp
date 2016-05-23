@@ -107,8 +107,26 @@ void Ekf::controlExternalVisionAiding()
 			matrix::Euler<float> euler_obs(q_obs);
 			euler_init(2) = euler_obs(2);
 
+			// save a copy of the quaternion state for later use in calculating the amount of reset change
+			Quaternion quat_before_reset = _state.quat_nominal;
+
 			// calculate initial quaternion states for the ekf
 			_state.quat_nominal = Quaternion(euler_init);
+
+			// calculate the amount that the quaternion has changed by
+			_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+
+			// add the reset amount to the output observer buffered data
+			outputSample output_states;
+			unsigned output_length = _output_buffer.get_length();
+			for (unsigned i=0; i < output_length; i++) {
+				output_states = _output_buffer.get_from_index(i);
+				output_states.quat_nominal *= _state_reset_status.quat_change;
+				_output_buffer.push_to_index(i,output_states);
+			}
+
+			// capture the reset event
+			_state_reset_status.quat_time_us = _imu_sample_delayed.time_us;
 
 			// flag the yaw as aligned
 			_control_status.flags.yaw_align = true;
