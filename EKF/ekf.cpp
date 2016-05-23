@@ -128,6 +128,7 @@ Ekf::Ekf():
 	_flow_gyro_bias = {};
 	_imu_del_ang_of = {};
 	_gps_check_fail_status.value = 0;
+	_state_reset_status = {};
 }
 
 Ekf::~Ekf()

@@ -71,7 +71,6 @@ EstimatorInterface::EstimatorInterface():
 	_pos_ref = {};
 	memset(_mag_test_ratio, 0, sizeof(_mag_test_ratio));
 	memset(_vel_pos_test_ratio, 0, sizeof(_vel_pos_test_ratio));
-	_state_reset_status = {};
 }
 
 EstimatorInterface::~EstimatorInterface()

@@ -136,6 +136,21 @@ private:
 	static const float _k_earth_rate;
 	static const float _gravity_mss;
 
+	// reset event monitoring
+	// structure containing velocity, position, height and yaw reset information
+	struct {
+		uint64_t velNE_time_us; // time stamp of the last horizontal velocity reset event (us)
+		uint64_t velD_time_us;	// time stamp of the last vertical velocity reset event (us)
+		uint64_t posNE_time_us; // time stamp of the last horizontal position reset event (us)
+		uint64_t posD_time_us;	// time stamp of the last vertical position reset event (us)
+		uint64_t yaw_time_us;   // time stamp of the last yaw angle reset event (us)
+		Vector2f velNE_change;  // North East velocity change due to last reset (m)
+		float velD_change;	// Down velocity change due to last reset (m/s)
+		Vector2f posNE_change;	// North, East position change due to last reset (m)
+		float posD_change;	// Down position change due to last reset (m)
+		float yaw_change;	// Yaw angle change due to last reset (rad)
+	} _state_reset_status;
+
 	float _dt_ekf_avg;		// average update rate of the ekf
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
