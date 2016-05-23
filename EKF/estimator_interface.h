@@ -232,6 +232,12 @@ public:
 	// return the amount the quaternion has changed in the last reset and the time of the reset
 	virtual void get_quat_reset(Quaternion *delta, uint64_t *time_us) = 0;
 
+	// get EKF innovation consistency check status
+	virtual void get_innovation_test_status(uint16_t *val)
+	{
+		*val = _innov_check_fail_status.value;
+	}
+
 protected:
 
 	parameters _params;		// filter parameters
