@@ -116,6 +116,13 @@ public:
 	 */
 	int update_queue_size(unsigned int queue_size);
 
+	/**
+	 * Print statistics (nr of lost messages)
+	 * @param reset if true, reset statistics afterwards
+	 * @return true if printed something, false otherwise (if no lost messages)
+	 */
+	bool print_statistics(bool reset);
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void    poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -153,6 +160,10 @@ private:
 	static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	int32_t _subscriber_count;
+
+	//statistics
+	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
+	///message, it is counted as two.
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
@@ -199,6 +210,12 @@ public:
 	 */
 	uORB::DeviceNode *getDeviceNode(const char *node_name);
 
+	/**
+	 * Print statistics for each existing topic.
+	 * @param reset if true, reset statistics afterwards
+	 */
+	void printStatistics(bool reset);
+
 private:
 	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
@@ -215,6 +232,7 @@ private:
 
 	const Flavor      _flavor;
 	std::map<std::string, uORB::DeviceNode *> _node_map;
+	hrt_abstime       _last_statistics_output;
 };
 
 #endif /* _uORBDeviceNode_posix.hpp */

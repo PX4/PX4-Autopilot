@@ -190,6 +190,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 
 	if (_generation > sd->generation + _queue_size) {
 		/* Reader is too far behind: some messages are lost */
+		_lost_messages += _generation - (sd->generation + _queue_size);
 		sd->generation = _generation - _queue_size;
 	}
 
@@ -549,6 +550,27 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
 	node->update_deferred();
 }
 
+bool
+uORB::DeviceNode::print_statistics(bool reset)
+{
+	if (!_lost_messages) {
+		return false;
+	}
+
+	lock();
+	//This can be wrong: if a reader never reads, _lost_messages will not be increased either
+	uint32_t lost_messages = _lost_messages;
+
+	if (reset) {
+		_lost_messages = 0;
+	}
+
+	unlock();
+
+	PX4_INFO("%s: %i", _meta->o_name, lost_messages);
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::add_internal_subscriber()
@@ -652,7 +674,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-
+	_last_statistics_output = hrt_absolute_time();
 }
 
 uORB::DeviceMaster::~DeviceMaster()
@@ -770,6 +792,35 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return CDev::ioctl(filp, cmd, arg);
 	}
 }
+
+void uORB::DeviceMaster::printStatistics(bool reset)
+{
+	hrt_abstime current_time = hrt_absolute_time();
+	PX4_INFO("Statistics, since last output (%i ms):",
+		 (int)((current_time - _last_statistics_output) / 1000));
+	_last_statistics_output = current_time;
+
+	PX4_INFO("TOPIC, NR LOST MSGS");
+	bool had_print = false;
+
+	lock();
+	ORBMap::Node *node = _node_map.top();
+
+	while (node) {
+		if (node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		node = node->next;
+	}
+
+	unlock();
+
+	if (!had_print) {
+		PX4_INFO("No lost messages");
+	}
+}
+
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 {
