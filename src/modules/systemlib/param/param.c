@@ -499,7 +499,7 @@ param_get(param_t param, void *val)
 {
 	int result = -1;
 
-	param_lock();
+	param_lock(); // lock和unlock主要就是通过sem信号量控制对某一数据的互斥访问
 
 	const void *v = param_get_value_ptr(param);
 
