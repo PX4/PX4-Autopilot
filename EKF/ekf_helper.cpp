@@ -51,6 +51,10 @@
 // gps measurement then use for velocity initialisation
 bool Ekf::resetVelocity()
 {
+	// used to calculate the velocity change due to the reset
+	Vector3f vel_before_reset = _state.vel;
+
+	// reset EKF states
 	if (_control_status.flags.gps) {
 		// if we have a valid GPS measurement use it to initialise velocity states
 		gpsSample gps_newest = _gps_buffer.get_newest();
@@ -69,6 +73,17 @@ bool Ekf::resetVelocity()
 	} else {
 		return false;
 	}
+
+	// calculate the change in velocity and apply to the output predictor state history
+	Vector3f velocity_change = _state.vel - vel_before_reset;
+	outputSample output_states;
+	unsigned max_index = _output_buffer.get_length() - 1;
+	for (unsigned index=0; index <= max_index; index++) {
+		output_states = _output_buffer.get_from_index(index);
+		output_states.vel += velocity_change;
+		_output_buffer.push_to_index(index,output_states);
+	}
+
 }
 
 // Reset position states. If we have a recent and valid
