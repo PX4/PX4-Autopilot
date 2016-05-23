@@ -183,6 +183,9 @@ void Ekf::fuseMag()
 
 		if (_mag_test_ratio[index] > 1.0f) {
 			_mag_healthy = false;
+			_sensor_fault_status.value |= (1 << (index + 3));
+		} else {
+			_sensor_fault_status.value &= !(1 << (index + 3));
 		}
 	}
 
