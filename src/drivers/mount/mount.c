@@ -106,23 +106,11 @@ static int mount_thread_main(int argc, char *argv[])
 	/* Default values for arguments */
 	char *mount_type = "mavlink"; /* MAVLINK by default */
 
+    //TODO check parameters for mount type
+
 	/* Work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
-
-	int ch;
-
-	while ((ch = getopt(argc, argv, "t:")) != EOF) {
-		switch (ch) {
-		case 't':
-			mount_type = optarg;
-			break;
-
-		default:
-			usage();
-			break;
-		}
-	}
 
     if(!strcmp(mount_type, "mavlink")) { mount_state = MAVLINK;}
     else if(!strcmp(mount_type, "rc")) { mount_state = RC;}
@@ -151,11 +139,49 @@ static int mount_thread_main(int argc, char *argv[])
 
 		while (!thread_should_exit) {
             mount_update_topics();
-            //TODO switch by roi type
-            // ROI_NONE will call mount_mavlink_point_manual
-            // with the values from the assigned rc channels for yaw and pitch
-            // so the gimbal can be controlled by the remote if there's no ROI set.
-            // other ones will call mount_mavlink_point_location
+
+            if(vehicle_roi_updated)
+            {
+                vehicle_roi_updated = false;
+
+                mount_mavlink_configure(vehicle_roi->mode);
+
+                switch(vehicle_roi->mode)
+                {
+                    case vehicle_roi_s::VEHICLE_ROI_NONE:
+                        break;
+
+                    case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
+                    {
+
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
+                    {
+                        //TODO how can I get the setpoint by index?
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_LOCATION:
+                    {
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_TARGET:
+                    {
+                        //TODO is this supported?
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            }
+            else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE && rc_channels_updated)
+            {
+                //TODO if enabled, use mount_rc_point_manual to control yaw, pitch and roll with radio controls
+            }
 		}
 
 		mount_mavlink_deinit();
@@ -170,7 +196,46 @@ static int mount_thread_main(int argc, char *argv[])
 
         while (!thread_should_exit) {
             mount_update_topics();
-            //TODO same as above
+
+            if(vehicle_roi_updated)
+            {
+                vehicle_roi_updated = false;
+
+                mount_rc_configure(vehicle_roi->mode);
+
+                switch(vehicle_roi->mode)
+                {
+                    case vehicle_roi_s::VEHICLE_ROI_NONE:
+                        break;
+
+                    case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
+                    {
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
+                    {
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_LOCATION:
+                    {
+                        break;
+                    }
+
+                    case vehicle_roi_s::VEHICLE_ROI_TARGET:
+                    {
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            }
+            else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE && rc_channels_updated)
+            {
+                //TODO if enabled, use mount_rc_point_manual to control yaw, pitch and roll with radio controls
+            }
         }
 
         mount_rc_deinit();
@@ -186,7 +251,7 @@ static int mount_thread_main(int argc, char *argv[])
  */
 int mount_main(int argc, char *argv[])
 {
-	if (argc < 2) {
+	if (argc < 1) {
 		warnx("missing command");
 		usage();
 	}

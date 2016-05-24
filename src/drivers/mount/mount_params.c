@@ -39,3 +39,11 @@
 
  #include <px4_config.h>
  #include <systemlib/param/param.h>
+
+ /* TODO: Parameters needed:
+  * Do we want to allow control via RC channels if there is no ROI set?
+  * If yes, which channels should be used for pitch, roll, yaw?
+  * Type of mount (RC | Mavlink)
+  * Mavlink mount system id
+  * Mavlink mount component id
+  */

@@ -51,8 +51,12 @@
     return false;
  }
 
-
  void mount_rc_deinit()
+ {
+    //TODO
+ }
+
+ void mount_rc_configure(int mode)
  {
     //TODO
  }
@@ -61,7 +65,6 @@
  {
     //TODO
  }
-
 
  void mount_rc_point_manual(float roll, float pitch, float yaw)
  {

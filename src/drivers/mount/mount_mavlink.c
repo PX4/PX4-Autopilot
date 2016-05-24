@@ -56,13 +56,17 @@
  {
     //TODO
  }
+ void mount_mavlink_configure(int mode)
+ {
+    //TODO send MAV_CMD_DO_MOUNT_CONFIGURE
+ }
 
  void mount_mavlink_point_location(float x, float y, float z)
  {
-    //TODO
+    //TODO send MAV_CMD_DO_MOUNT_CONTROL
  }
 
  void mount_mavlink_point_manual(float roll, float pitch, float yaw)
  {
-    //TODO
+    //TODO send MAV_CMD_DO_MOUNT_CONTROL
  }

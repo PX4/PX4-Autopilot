@@ -46,6 +46,7 @@
  // Public functions
  bool mount_mavlink_init(void);
  void mount_mavlink_deinit(void);
+ void mount_mavlink_configure(int mode);
  void mount_mavlink_point_location(float x, float y, float z);
  void mount_mavlink_point_manual(float roll, float pitch, float yaw);
 
