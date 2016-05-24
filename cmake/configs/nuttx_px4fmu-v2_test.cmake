@@ -61,6 +61,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/esc_calib
+	systemcmds/hardfault_log
 	systemcmds/reboot
 	#systemcmds/topic_listener
 	systemcmds/top
