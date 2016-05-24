@@ -144,9 +144,6 @@ UT_array	*param_values;
 const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 #if !defined(PARAM_NO_ORB)
-/** parameter update topic */
-ORB_DEFINE(parameter_update, struct parameter_update_s);
-
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
 #endif
