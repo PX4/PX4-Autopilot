@@ -45,24 +45,25 @@
  #include <arch/math.h>
  #include <geo/geo.h>
 
- bool mount_mavlink_init()
+ bool mount_rc_init()
  {
-
+    //TODO
+    return false;
  }
 
 
- void mount_mavlink_deinit()
+ void mount_rc_deinit()
  {
-
+    //TODO
  }
 
- void mount_mavlink_point_location(float x, float y, float z)
+ void mount_rc_point_location(float x, float y, float z)
  {
-
+    //TODO
  }
 
 
- void mount_mavlink_point_manual(float roll, float pitch, float yaw)
+ void mount_rc_point_manual(float roll, float pitch, float yaw)
  {
-
+    //TODO
  }

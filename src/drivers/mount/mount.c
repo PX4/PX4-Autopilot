@@ -124,9 +124,8 @@ static int mount_thread_main(int argc, char *argv[])
 		}
 	}
 
-    if(mount_type == "mavlink") { mount_state = MAVLINK;}
-    else if(mount_type == "rc") { mount_state = RC;}
-    else                        { mount_state = IDLE;}
+    if(!strcmp(mount_type, "mavlink")) { mount_state = MAVLINK;}
+    else if(!strcmp(mount_type, "rc")) { mount_state = RC;}
 
     vehicle_roi = malloc(sizeof(struct vehicle_roi_s));
     position_setpoint_triplet = malloc(sizeof(struct position_setpoint_triplet_s));
@@ -137,9 +136,9 @@ static int mount_thread_main(int argc, char *argv[])
         err(1, "could not allocate memory for uORB topics");
     }
 
-    vehicle_roi = orb_subscribe(ORB_ID(vehicle_roi));
-    position_setpoint_triplet = orb_subscribe(ORB_ID(position_setpoint_triplet));
-    rc_channels = orb_subscribe(ORB_ID(rc_channels));
+    vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
+    position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+    rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
 
 	thread_running = true;
 
@@ -275,8 +274,8 @@ void mount_update_topics()
         orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
     }
 
-    orb_check(rc_channels_sub, &rc_channel_updated);
-    if (rc_channel_updated) {
+    orb_check(rc_channels_sub, &rc_channels_updated);
+    if (rc_channels_updated) {
         orb_copy(ORB_ID(rc_channels), rc_channels_sub, rc_channels);
     }
 }

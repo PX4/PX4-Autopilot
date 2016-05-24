@@ -47,22 +47,22 @@
 
  bool mount_mavlink_init()
  {
-
+    //TODO
+    return false;
  }
 
 
  void mount_mavlink_deinit()
  {
-
+    //TODO
  }
 
  void mount_mavlink_point_location(float x, float y, float z)
  {
-
+    //TODO
  }
-
 
  void mount_mavlink_point_manual(float roll, float pitch, float yaw)
  {
-
+    //TODO
  }
