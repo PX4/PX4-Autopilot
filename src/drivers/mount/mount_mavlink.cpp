@@ -85,7 +85,7 @@ void mount_mavlink_configure(int roi_mode, bool man_control)
 
         switch (roi_mode) {
         case vehicle_roi_s::VEHICLE_ROI_NONE:
-                if(man_control) vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING;
+                if(man_control) vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
                 else vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
                 break;
         case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
