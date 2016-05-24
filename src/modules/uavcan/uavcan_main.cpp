@@ -1115,7 +1115,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 
-	case UAVCANIOC_HARDPOINT_SET: {
+	case UAVCAN_IOCS_HARDPOINT_SET: {
 			const auto &hp_cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
 			_hardpoint_controller.set_command(hp_cmd.hardpoint_id, hp_cmd.command);
 		}

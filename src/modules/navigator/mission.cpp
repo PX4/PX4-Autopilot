@@ -1149,7 +1149,7 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 			if (mission.count > 0) {
 				dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(mission.dataman_id);
 
-				for (int index = 0; index < mission.count; index++) {
+				for (unsigned index = 0; index < mission.count; index++) {
 					struct mission_item_s item;
 					const ssize_t len = sizeof(struct mission_item_s);
 

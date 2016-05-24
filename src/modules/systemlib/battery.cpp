@@ -75,6 +75,7 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
+	battery_status->connected = false;
 }
 
 void
@@ -97,7 +98,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
-
+		battery_status->connected = true;
 	}
 }
 

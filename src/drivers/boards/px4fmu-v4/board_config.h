@@ -272,6 +272,9 @@ __BEGIN_DECLS
 #define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
 #define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
 
+
+#define	BOARD_NAME "PX4FMU_V4"
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

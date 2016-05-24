@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "log_writer.h"
+#include "messages.h"
 #include <fcntl.h>
 #include <string.h>
 
@@ -241,17 +242,35 @@ void LogWriter::run()
 	}
 }
 
-bool LogWriter::write(void *ptr, size_t size)
+bool LogWriter::write(void *ptr, size_t size, uint64_t dropout_start)
 {
 
 	// Bytes available to write
 	size_t available = _buffer_size - _count;
+	size_t dropout_size = 0;
 
-	if (size > available) {
+	if (dropout_start) {
+		dropout_size = sizeof(message_dropout_s);
+	}
+
+	if (size + dropout_size > available) {
 		// buffer overflow
 		return false;
 	}
 
+	if (dropout_start) {
+		//write dropout msg
+		message_dropout_s dropout_msg;
+		dropout_msg.duration = (uint16_t)(hrt_elapsed_time(&dropout_start) / 1000);
+		write_no_check(&dropout_msg, sizeof(dropout_msg));
+	}
+
+	write_no_check(ptr, size);
+	return true;
+}
+
+void LogWriter::write_no_check(void *ptr, size_t size)
+{
 	size_t n = _buffer_size - _head;	// bytes to end of the buffer
 
 	uint8_t *buffer_c = reinterpret_cast<uint8_t *>(ptr);
@@ -270,7 +289,6 @@ bool LogWriter::write(void *ptr, size_t size)
 	memcpy(&(_buffer[_head]), &(buffer_c[n]), p);
 	_head = (_head + p) % _buffer_size;
 	_count += size;
-	return true;
 }
 
 size_t LogWriter::get_read_ptr(void **ptr, bool *is_part)

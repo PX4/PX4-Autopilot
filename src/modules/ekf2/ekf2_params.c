@@ -790,3 +790,36 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Y, 0.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
+
+/**
+ * 1-sigma IMU gyro switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.2
+ * @unit rad/sec
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
+
+/**
+ * 1-sigma IMU accelerometer switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit m/s/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
+
+/**
+ * 1-sigma tilt angle uncertainty after gravity vector alignment
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit rad
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "logger.h"
+#include "messages.h"
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -282,49 +283,6 @@ void Logger::run_trampoline(int argc, char *argv[])
 	logger_task = -1;
 }
 
-enum class MessageType : uint8_t {
-	FORMAT = 'F',
-	DATA = 'D',
-	INFO = 'I',
-	PARAMETER = 'P',
-};
-
-/* declare message data structs with byte alignment (no padding) */
-#pragma pack(push, 1)
-struct message_format_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-	uint16_t msg_size;
-
-	uint8_t msg_id;
-	uint16_t format_len;
-	char format[2096];
-};
-
-struct message_data_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-	uint16_t msg_size;
-
-	uint8_t msg_id;
-	uint8_t multi_id;
-};
-
-struct message_info_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-	uint16_t msg_size;
-
-	uint8_t key_len;
-	char key[255];
-};
-
-struct message_parameter_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
-	uint16_t msg_size;
-
-	uint8_t key_len;
-	char key[255];
-};
-#pragma pack(pop)
-
 
 static constexpr size_t MAX_DATA_SIZE = 740;
 
@@ -372,7 +330,7 @@ int Logger::add_topic(const orb_metadata *topic)
 
 	}
 
-	size_t fields_len = strlen(topic->o_fields);
+	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
 
 	if (fields_len > sizeof(message_format_s::format)) {
 		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
@@ -417,34 +375,36 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	return fd;
 }
 
-bool Logger::copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer,
-				   uint64_t *time_last_checked)
+bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer)
 {
 	bool updated = false;
+	int &handle = sub.fd[multi_instance];
 
 	// only try to subscribe to topic if this is the first time
 	// after that just check after a certain interval to avoid high cpu usage
-	if (*handle < 0 && (*time_last_checked == 0 || hrt_elapsed_time(time_last_checked) > TRY_SUBSCRIBE_INTERVAL)) {
-		//if (multi_instance == 1) warnx("checking instance 1 of topic %s", topic->o_name);
-		*time_last_checked = hrt_absolute_time();
+	if (handle < 0 && (sub.time_tried_subscribe == 0 ||
+			   hrt_elapsed_time(&sub.time_tried_subscribe) > TRY_SUBSCRIBE_INTERVAL)) {
+		sub.time_tried_subscribe = hrt_absolute_time();
 
-		if (OK == orb_exists(topic, multi_instance)) {
-			*handle = orb_subscribe_multi(topic, multi_instance);
+		if (OK == orb_exists(sub.metadata, multi_instance)) {
+			handle = orb_subscribe_multi(sub.metadata, multi_instance);
 
-			//warnx("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
+			write_add_logged_msg(sub, multi_instance);
+
+			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
-			if (*handle >= 0) {
-				orb_copy(topic, *handle, buffer);
+			if (handle >= 0) {
+				orb_copy(sub.metadata, handle, buffer);
 				updated = true;
 			}
 		}
 
-	} else if (*handle >= 0) {
-		orb_check(*handle, &updated);
+	} else if (handle >= 0) {
+		orb_check(handle, &updated);
 
 		if (updated) {
-			orb_copy(topic, *handle, buffer);
+			orb_copy(sub.metadata, handle, buffer);
 		}
 	}
 
@@ -557,13 +517,9 @@ void Logger::run()
 			/* Check if parameters have changed */
 			// this needs to change to a timestamped record to record a history of parameter changes
 			if (parameter_update_sub.check_updated()) {
-				warnx("parameter update");
 				parameter_update_sub.update();
 				write_changed_parameters();
 			}
-
-			// Write data messages for normal subscriptions
-			int msg_id = 0;
 
 			/* wait for lock on log buffer */
 			_writer.lock();
@@ -571,26 +527,23 @@ void Logger::run()
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
 				 */
-				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
-				//TODO: use sub.metadata->o_size_no_padding
+				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size_no_padding;
 				uint8_t buffer[msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub.metadata, instance, &sub.fd[instance], buffer + sizeof(message_data_header_s),
-								  &sub.time_tried_subscribe)) {
+					if (copy_if_updated_multi(sub, instance, buffer + sizeof(message_data_header_s))) {
 
 						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						header->msg_size = static_cast<uint16_t>(msg_size - 3);
-						header->msg_id = msg_id;
-						header->multi_id = 0x80 + instance;	// Non multi, active
+						header->msg_size = static_cast<uint16_t>(msg_size - MSG_HEADER_LEN);
+						header->msg_id = sub.msg_ids[instance];
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-						if (_writer.write(buffer, msg_size)) {
+						if (_writer.write(buffer, msg_size, _dropout_start)) {
 
 #ifdef DBGPRINT
 							total_bytes += msg_size;
@@ -620,8 +573,6 @@ void Logger::run()
 						}
 					}
 				}
-
-				msg_id++;
 			}
 
 			if (!_dropout_start && _writer.get_buffer_fill_count() > _high_water) {
@@ -810,7 +761,10 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 	time_t utc_time_sec = gps_pos.time_utc_usec / 1e6;
 
 	if (gps_pos.fix_type < 2 || utc_time_sec < GPS_EPOCH_SECS) {
-		return false;
+		//take clock time if there's no fix (yet)
+		struct timespec ts;
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	}
 
 	/* strip the time elapsed since boot */
@@ -847,11 +801,14 @@ void Logger::start_log()
 
 	/* print logging path, important to find log file later */
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
+	_next_topic_id = 0;
 
 	_writer.start_log(file_name);
+	write_header();
 	write_version();
 	write_formats();
 	write_parameters();
+	write_all_add_logged_msg();
 	_writer.notify();
 	_enabled = true;
 	_start_time = hrt_absolute_time();
@@ -883,21 +840,53 @@ void Logger::write_formats()
 {
 	_writer.lock();
 	message_format_s msg;
+	const orb_metadata **topics = orb_get_topics();
 
-	int msg_id = 0;
-
-	for (LoggerSubscription &sub : _subscriptions) {
-		msg.msg_id = msg_id;
-		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
-		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
-		msg.msg_size = msg_size - 3;
+	//write all known formats
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", topics[i]->o_name, topics[i]->o_fields);
+		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
+		msg.msg_size = msg_size - MSG_HEADER_LEN;
 
 		write_wait(&msg, msg_size);
-
-		msg_id++;
 	}
 
 	_writer.unlock();
+}
+
+void Logger::write_all_add_logged_msg()
+{
+	_writer.lock();
+
+	for (LoggerSubscription &sub : _subscriptions) {
+		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
+			if (sub.fd[instance] >= 0) {
+				write_add_logged_msg(sub, instance);
+			}
+		}
+	}
+
+	_writer.unlock();
+}
+
+void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance)
+{
+	message_add_logged_s msg;
+
+	msg.multi_id = instance;
+	subscription.msg_ids[instance] = _next_topic_id;
+	msg.msg_id = _next_topic_id;
+
+	int message_name_len = strlen(subscription.metadata->o_name);
+
+	memcpy(msg.message_name, subscription.metadata->o_name, message_name_len);
+
+	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
+	msg.msg_size = msg_size - MSG_HEADER_LEN;
+
+	write_wait(&msg, msg_size);
+
+	++_next_topic_id;
 }
 
 /* write info message */
@@ -918,11 +907,49 @@ void Logger::write_info(const char *name, const char *value)
 		memcpy(&buffer[msg_size], value, vlen);
 		msg_size += vlen;
 
-		msg->msg_size = msg_size - 3;
+		msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 		write_wait(buffer, msg_size);
 	}
 
+	_writer.unlock();
+}
+void Logger::write_info(const char *name, int32_t value)
+{
+	_writer.lock();
+	uint8_t buffer[sizeof(message_info_header_s)];
+	message_info_header_s *msg = reinterpret_cast<message_info_header_s *>(buffer);
+	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
+
+	/* construct format key (type and name) */
+	msg->key_len = snprintf(msg->key, sizeof(msg->key), "int32_t %s", name);
+	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+
+	/* copy string value directly to buffer */
+	memcpy(&buffer[msg_size], &value, sizeof(int32_t));
+	msg_size += sizeof(int32_t);
+
+	msg->msg_size = msg_size - MSG_HEADER_LEN;
+
+	write_wait(buffer, msg_size);
+
+	_writer.unlock();
+}
+
+void Logger::write_header()
+{
+	message_file_header_s header;
+	header.magic[0] = 'U';
+	header.magic[1] = 'L';
+	header.magic[2] = 'o';
+	header.magic[3] = 'g';
+	header.magic[4] = 0x01;
+	header.magic[5] = 0x12;
+	header.magic[6] = 0x35;
+	header.magic[7] = 0x00; //file version 0
+	header.timestamp = hrt_absolute_time();
+	_writer.lock();
+	write_wait(&header, sizeof(header));
 	_writer.unlock();
 }
 
@@ -931,6 +958,13 @@ void Logger::write_version()
 {
 	write_info("ver_sw", PX4_GIT_VERSION_STR);
 	write_info("ver_hw", HW_ARCH);
+	write_info("sys_name", "PX4");
+	int32_t utc_offset = 0;
+
+	if (_log_utc_offset != PARAM_INVALID) {
+		param_get(_log_utc_offset, &utc_offset);
+		write_info("time_ref_utc", utc_offset * 60);
+	}
 }
 
 void Logger::write_parameters()
@@ -980,7 +1014,7 @@ void Logger::write_parameters()
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - 3;
+			msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
@@ -1040,7 +1074,7 @@ void Logger::write_changed_parameters()
 			msg_size += value_size;
 
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
-			msg->msg_size = msg_size - 3;
+			msg->msg_size = msg_size - MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
