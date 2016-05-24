@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mount.c
+ * @file mount.cpp
  * @author Leon Müller (thedevleon)
  * MAV_MOUNT driver for controlling mavlink gimbals, rc gimbals/servors and
  * future kinds of mounts.
@@ -58,6 +58,8 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 
+#include <px4_config.h>
+
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
@@ -68,6 +70,7 @@ static mount_state_t mount_state = IDLE;
 /* functions */
 static void usage(void);
 static void mount_update_topics(void);
+static bool get_params(void);
 static int mount_thread_main(int argc, char *argv[]);
 __EXPORT int mount_main(int argc, char *argv[]);
 
@@ -85,6 +88,26 @@ static bool   position_setpoint_triplet_updated;
 static struct rc_channels_s rc_channels = {};
 static bool   rc_channels_updated;
 
+static struct {
+	int mnt_mode;
+	int mnt_mav_sysid;
+	int mnt_mav_compid;
+	int mnt_man_control;
+	int mnt_man_roll;
+	int mnt_man_pitch;
+	int mnt_man_yaw;
+} params;
+
+static struct {
+	param_t mnt_mode;
+	param_t mnt_mav_sysid;
+	param_t mnt_mav_compid;
+	param_t mnt_man_control;
+	param_t mnt_man_roll;
+	param_t mnt_man_pitch;
+	param_t mnt_man_yaw;
+} params_handels;
+
 
 /**
  * Print command usage information
@@ -92,7 +115,7 @@ static bool   rc_channels_updated;
 static void usage()
 {
 	fprintf(stderr,
-		"usage: mount start [-t mavlink|rc]\n"
+		"usage: mount start\n"
 		"       mount stop\n"
 		"       mount status\n");
 	exit(1);
@@ -103,17 +126,14 @@ static void usage()
  */
 static int mount_thread_main(int argc, char *argv[])
 {
-	/* Default values for arguments */
-	char const *mount_type = "mavlink"; /* MAVLINK by default */
+	if(!get_params())
+	{
+		err(1, "could not get mount parameters!");
+	}
 
-    //TODO check parameters for mount type
-
-	/* Work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
-
-    if(!strcmp(mount_type, "mavlink")) { mount_state = MAVLINK;}
-    else if(!strcmp(mount_type, "rc")) { mount_state = RC;}
+	if(params.mnt_mode == 0) { mount_state = IDLE;}
+    else if(params.mnt_mode == 1) { mount_state = MAVLINK;}
+    else if(params.mnt_mode == 2) { mount_state = RC;}
 
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
 	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
@@ -143,23 +163,27 @@ static int mount_thread_main(int argc, char *argv[])
 
 			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
 			{
-
+				if(params.mnt_man_control && rc_channels_updated)
+				{
+					//TODO use mount_mavlink_point_manual to control gimbal
+					//with specified aux channels via the parameters
+				}
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
 			{
-
+				//TODO use position_setpoint_triplet->next
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
 			{
-
+				//TODO how to do this?
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
 			{
-
+				//TODO
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
 			{
-
+				//TODO is this even suported?
 			}
 		}
 
@@ -204,8 +228,6 @@ int mount_main(int argc, char *argv[])
 		if (thread_running) {
 			errx(0, "mount driver already running");
 		}
-
-
 
 		thread_should_exit = false;
 		mount_task = px4_task_spawn_cmd("mount",
@@ -285,4 +307,30 @@ void mount_update_topics()
     if (rc_channels_updated) {
         orb_copy(ORB_ID(rc_channels), rc_channels_sub, &rc_channels);
     }
+}
+
+bool get_params()
+{
+	params_handels.mnt_mode = param_find("MNT_MODE");
+	params_handels.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
+	params_handels.mnt_mav_compid = param_find("MNT_MAV_COMPID");
+	params_handels.mnt_man_control = param_find("MNT_MAN_CONTROL");
+	params_handels.mnt_man_roll = param_find("MNT_MAN_ROLL");
+	params_handels.mnt_man_pitch = param_find("MNT_MAN_PITCH");
+	params_handels.mnt_man_yaw = param_find("MNT_MAN_YAW");
+
+
+	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) |
+		!param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) |
+		!param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) |
+		!param_get(params_handels.mnt_man_control, &params.mnt_man_control) |
+		!param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) |
+		!param_get(params_handels.mnt_man_pitch, &params.mnt_mode) |
+		!param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw))
+	{
+		return false;
+	}
+
+	return true;
+
 }
