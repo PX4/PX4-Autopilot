@@ -57,14 +57,14 @@ PARAM_DEFINE_INT32(MNT_MODE, 0);
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_SYSID, 0);
+PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
 
 /**
 * Mavlink Component ID
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_COMPID, 0);
+PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
 
 /**
 * Do we want to allow the mount to be controlled when no ROI is set?
