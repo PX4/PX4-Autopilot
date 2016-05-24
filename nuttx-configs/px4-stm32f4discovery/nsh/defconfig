@@ -943,7 +943,7 @@ CONFIG_FS_WRITABLE=y
 # CONFIG_FS_NAMED_SEMAPHORES is not set
 CONFIG_FS_MQUEUE_MPATH="/var/mqueue"
 # CONFIG_FS_RAMMAP is not set
-# CONFIG_FS_FAT is not set
+CONFIG_FS_FAT=y
 # CONFIG_FAT_LCNAMES is not set
 # CONFIG_FAT_LFN is not set
 # CONFIG_FS_FATTIME is not set
