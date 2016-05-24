@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-include_directories(${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include)
+include_directories(${HEXAGON_SDK_ROOT}/libs/common/qurt/ADSPv5MP/include)
 
 set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
