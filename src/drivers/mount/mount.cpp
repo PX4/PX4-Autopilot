@@ -54,7 +54,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_roi.h>
-#include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 
@@ -76,16 +76,20 @@ __EXPORT int mount_main(int argc, char *argv[]);
 
 /* uORB subscriptions */
 static int vehicle_roi_sub = -1;
+static int vehicle_global_position_sub = -1;
 static int position_setpoint_triplet_sub = -1;
 static int rc_channels_sub = -1;
 
-static struct vehicle_roi_s vehicle_roi = {};
+static struct vehicle_roi_s *vehicle_roi;
 static bool   vehicle_roi_updated;
 
-static struct position_setpoint_triplet_s position_setpoint_triplet = {};
+static struct vehicle_global_position_s *vehicle_global_position;
+static bool   vehicle_global_position_updated;
+
+static struct position_setpoint_triplet_s *position_setpoint_triplet;
 static bool   position_setpoint_triplet_updated;
 
-static struct rc_channels_s rc_channels = {};
+static struct rc_channels_s *rc_channels;
 static bool   rc_channels_updated;
 
 static struct {
@@ -136,14 +140,16 @@ static int mount_thread_main(int argc, char *argv[])
     else if(params.mnt_mode == 2) { mount_state = RC;}
 
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
+	memset(&vehicle_global_position, 0, sizeof(vehicle_global_position));
 	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
 	memset(&rc_channels, 0, sizeof(rc_channels));
 
     vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
+	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
     position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
     rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
 
-	if(!vehicle_roi_sub || !position_setpoint_triplet_sub || !rc_channels_sub)
+	if(!vehicle_roi_sub || !position_setpoint_triplet_sub || !rc_channels_sub || !vehicle_global_position_sub)
 	{
 		err(1, "could not subscribe to uORB topics");
 	}
@@ -162,11 +168,11 @@ static int mount_thread_main(int argc, char *argv[])
 
 			if(vehicle_roi_updated)
 			{
-				mount_mavlink_configure(vehicle_roi.mode, (params.mnt_man_control == 1));
+				mount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 				vehicle_roi_updated = false;
 			}
 
-			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
+			if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE)
 			{
 				if(params.mnt_man_control && rc_channels_updated)
 				{
@@ -174,20 +180,33 @@ static int mount_thread_main(int argc, char *argv[])
 					//with specified aux channels via the parameters
 				}
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
 			{
-				mount_mavlink_point_location(position_setpoint_triplet->next->lat,
-					position_setpoint_triplet->next->lon, position_setpoint_triplet->next->alt);
+				mount_mavlink_point_location(
+					vehicle_global_position->lat,
+					vehicle_global_position->lon,
+					vehicle_global_position->alt,
+					position_setpoint_triplet->next.lat,
+					position_setpoint_triplet->next.lon,
+					position_setpoint_triplet->next.alt
+				);
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
 			{
 				//TODO how to do this?
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
 			{
-				mount_mavlink_point_location(vehicle_roi->lat, vehicle_roi->lon, vehicle_roi->alt);
+				mount_mavlink_point_location(
+					vehicle_global_position->lat,
+					vehicle_global_position->lon,
+					vehicle_global_position->alt,
+					vehicle_roi->lat,
+					vehicle_roi->lon,
+					vehicle_roi->alt
+				);
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
 			{
 				//TODO is this even suported?
 			}
@@ -208,11 +227,11 @@ static int mount_thread_main(int argc, char *argv[])
 
 			if(vehicle_roi_updated)
 			{
-				mount_rc_configure(vehicle_roi.mode, (params.mnt_man_control == 1));
+				mount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 				vehicle_roi_updated = false;
 			}
 
-			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
+			if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE)
 			{
 				if(params.mnt_man_control && rc_channels_updated)
 				{
@@ -220,20 +239,33 @@ static int mount_thread_main(int argc, char *argv[])
 					//with specified aux channels via the parameters
 				}
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
 			{
-				mount_mavlink_point_location(position_setpoint_triplet->next->lat,
-					position_setpoint_triplet->next->lon, position_setpoint_triplet->next->alt);
+				mount_rc_point_location(
+					vehicle_global_position->lat,
+					vehicle_global_position->lon,
+					vehicle_global_position->alt,
+					position_setpoint_triplet->next.lat,
+					position_setpoint_triplet->next.lon,
+					position_setpoint_triplet->next.alt
+				);
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
 			{
 				//TODO how to do this?
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
 			{
-				mount_mavlink_point_location(vehicle_roi->lat, vehicle_roi->lon, vehicle_roi->alt);
+				mount_rc_point_location(
+					vehicle_global_position->lat,
+					vehicle_global_position->lon,
+					vehicle_global_position->alt,
+					vehicle_roi->lat,
+					vehicle_roi->lon,
+					vehicle_roi->alt
+				);
 			}
-			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
+			else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
 			{
 				//TODO is this even suported?
 			}
@@ -330,18 +362,23 @@ void mount_update_topics()
 {
     orb_check(vehicle_roi_sub, &vehicle_roi_updated);
     if (vehicle_roi_updated) {
-        orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, &vehicle_roi);
+        orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, vehicle_roi);
     }
 
     orb_check(position_setpoint_triplet_sub, &position_setpoint_triplet_updated);
     if (position_setpoint_triplet_updated) {
-        orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, &position_setpoint_triplet);
+        orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
     }
 
     orb_check(rc_channels_sub, &rc_channels_updated);
     if (rc_channels_updated) {
-        orb_copy(ORB_ID(rc_channels), rc_channels_sub, &rc_channels);
+        orb_copy(ORB_ID(rc_channels), rc_channels_sub, rc_channels);
     }
+
+	orb_check(vehicle_global_position_sub, &vehicle_global_position_updated);
+	if (vehicle_global_position_updated) {
+		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, vehicle_global_position);
+	}
 }
 
 bool get_params()
