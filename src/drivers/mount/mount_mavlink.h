@@ -48,7 +48,7 @@ bool mount_mavlink_init(int sysid, int compid);
 void mount_mavlink_deinit(void);
 void mount_mavlink_configure(int roi_mode, bool man_control);
 void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
-void mount_mavlink_point_manual(float roll, float pitch, float yaw);
+void mount_mavlink_point_manual(float pitch, float roll, float yaw);
 
 
  #endif /* _MOUNT_MAVLINK_H */

@@ -277,7 +277,7 @@ static int mount_thread_main(int argc, char *argv[])
 	else if (mount_state == ONBOARD)
 	{
 		/** TODO
-		 * add vehicle_mount topic in commander.cpp and
+		 * add vehicle_mount topic in commander.cpp (done) and
 		 * implement parsing of MAV_CMD_DO_MOUNT_CONFIGURE, MAV_CMD_DO_MOUNT_CONTROL and MAV_CMD_DO_MOUNT_CONTROL_QUAT
 		 * implement onboard mount driver (similar to what the old gimbal driver did)
 		 **/

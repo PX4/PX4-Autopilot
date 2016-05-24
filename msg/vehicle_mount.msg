@@ -7,10 +7,11 @@ uint8 VEHICLE_MOUNT_MODE_ENUM_END = 5				#
 
 
 uint8 mode                                          # The current mount mode
-bool stab_roll                                      # stabilize roll? (1 = yes, 0 = no)
-bool stab_pitch                                     # stabilize pitch? (1 = yes, 0 = no)
-bool stab_way                                       # stabilize yaw? (1 = yes, 0 = no)
+bool stab_roll                                      # Stabilize roll? (1 = yes, 0 = no)
+bool stab_pitch                                     # Stabilize pitch? (1 = yes, 0 = no)
+bool stab_yaw                                       # Stabilize yaw? (1 = yes, 0 = no)
+bool config                                         # Is this a config message?
 
-float64 pitch_lat                                   # pitch or lat in degrees, depending on mount mode
-float64 roll_lon                                    # roll or lon in degrees depending on mount mode
-float32 yaw_alt                                     # yaw or alt (in meters) depending on mount mode
+float64 pitch_lat                                   # Pitch or lat in degrees, depending on mount mode
+float64 roll_lon                                    # Roll or lon in degrees depending on mount mode
+float32 yaw_alt                                     # Yaw or alt (in meters) depending on mount mode

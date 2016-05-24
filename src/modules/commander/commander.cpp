@@ -1117,21 +1117,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
 	{
-		//TODO
-
-		if (*mount_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_mount), *mount_pub, mount);
-
-		} else {
-			*mount_pub = orb_advertise(ORB_ID(vehicle_mount), mount);
-		}
-
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-		break;
-	}
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
-	{
-		//TODO
+		mount->pitch_lat = cmd->param1;
+		mount->roll_lon = cmd->param2;
+		mount->yaw_alt = cmd->param3;
+		mount->mode = (uint8_t) cmd->param7;
+		mount->config = false;
 
 		if (*mount_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_mount), *mount_pub, mount);
@@ -1145,7 +1135,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	}
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
 	{
-		//TODO
+		mount->mode = (uint8_t) cmd->param1;
+		mount->stab_roll = ((uint8_t) cmd->param2 == 1);
+		mount->stab_pitch = ((uint8_t) cmd->param3 == 1);
+		mount->stab_yaw = ((uint8_t) cmd->param4 == 1);
+		mount->config = true;
 
 		if (*mount_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_mount), *mount_pub, mount);
@@ -1166,6 +1160,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:

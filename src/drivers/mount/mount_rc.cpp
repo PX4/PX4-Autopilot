@@ -81,10 +81,14 @@ void mount_rc_configure(int roi_mode, bool man_control)
 
 void mount_rc_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
 {
-        //TODO
+    float yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
+    float pitch = 0.0f;
+    float roll = 0.0f;
+
+    mount_rc_point_manual(pitch, roll, yaw);
 }
 
-void mount_rc_point_manual(float roll, float pitch, float yaw)
+void mount_rc_point_manual(float pitch, float roll, float yaw)
 {
         //TODO
 }

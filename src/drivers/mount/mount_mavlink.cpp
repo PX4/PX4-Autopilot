@@ -126,18 +126,22 @@ void mount_mavlink_configure(int roi_mode, bool man_control)
  */
 void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
 {
-        vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
-        vehicle_command->target_system = sys_id;
-        vehicle_command->target_component = comp_id;
+    float yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
+    float pitch = 0.0f; //TODO calculate pitch and roll
+    float roll = 0.0f;
 
-        orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
+    mount_mavlink_point_manual(pitch, roll, yaw);
 }
 
-void mount_mavlink_point_manual(float roll, float pitch, float yaw)
+void mount_mavlink_point_manual(float pitch, float roll, float yaw)
 {
         vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
         vehicle_command->target_system = sys_id;
         vehicle_command->target_component = comp_id;
+
+        vehicle_command->param1 = pitch;
+        vehicle_command->param2 = roll;
+        vehicle_command->param3 = yaw;
 
         orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
 }

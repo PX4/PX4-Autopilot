@@ -48,6 +48,6 @@ bool mount_onboard_init(void);
 void mount_onboard_deinit(void);
 void mount_onboard_configure(int mount_mode, bool stab_roll, bool stab_pitch, bool stab_yaw);
 void mount_onboard_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
-void mount_onboard_point_manual(float roll, float pitch, float yaw);
+void mount_onboard_point_manual(float pitch, float roll, float yaw);
 
  #endif /* _MOUNT_ONBOARD_H */
