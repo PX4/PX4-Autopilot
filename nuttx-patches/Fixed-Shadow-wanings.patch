@@ -44,3 +44,19 @@ index 3f2658b..41c8604 100644
  #if 0 /* Not yet supported */
  int fstat(int fd, FAR struct stat *buf);
  #endif
+diff --git NuttX/nuttx/include/sys/statfs.h NuttX/nuttx/include/sys/statfs.h
+index 1d1786a..12f802b 100644
+--- NuttX/nuttx/include/sys/statfs.h
++++ NuttX/nuttx/include/sys/statfs.h
+@@ -139,8 +139,11 @@ extern "C"
+  * form of the struct statfs.
+  */
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int statfs(FAR const char *path, FAR struct statfs *buf);
+ int fstatfs(int fd, FAR struct statfs *buf);
++#pragma GCC diagnostic pop
+ 
+ #undef EXTERN
+ #if defined(__cplusplus)
