@@ -15,7 +15,7 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-include_directories(${HEXAGON_SDK_ROOT}/libs/common/qurt/ADSPv5MP/include)
+include_directories(${HEXAGON_8074_INCLUDES})
 
 set(config_generate_parameters_scope ALL)
 
