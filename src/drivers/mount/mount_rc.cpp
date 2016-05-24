@@ -63,7 +63,7 @@
  {
      switch (roi_mode) {
          case vehicle_roi_s::VEHICLE_ROI_NONE:
-             if(!man_control) {/* TODO center mount with mount_rc_point_manual */}
+             if(!man_control) {mount_rc_point_manual(0.0f, 0.0f, 0.0f);}
              break;
          case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
              break;
@@ -74,13 +74,14 @@
          case vehicle_roi_s::VEHICLE_ROI_TARGET:
              break;
          default:
-            //TODO center mount with mount_rc_point_manual
+            mount_rc_point_manual(0.0f, 0.0f, 0.0f)
             break;
      }
  }
 
  void mount_rc_point_location(float x, float y, float z)
  {
+     //TODO
  }
 
  void mount_rc_point_manual(float roll, float pitch, float yaw)

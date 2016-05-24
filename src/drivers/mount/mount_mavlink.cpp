@@ -123,7 +123,7 @@
 
  void mount_mavlink_point_location(float x, float y, float z)
  {
-    vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+    vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
     vehicle_command->target_system = sys_id;
     vehicle_command->target_component = comp_id;
 
@@ -132,7 +132,7 @@
 
  void mount_mavlink_point_manual(float roll, float pitch, float yaw)
  {
-    vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+    vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
     vehicle_command->target_system = sys_id;
     vehicle_command->target_component = comp_id;
 
