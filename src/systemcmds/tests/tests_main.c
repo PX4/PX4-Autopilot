@@ -83,6 +83,7 @@ const struct {
 	{"time",		test_time,	OPT_NOJIGTEST},
 	{"sensors",		test_sensors,	0},
 	{"adc",			test_adc,	OPT_NOJIGTEST},
+	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #endif /* __PX4_NUTTX */
 	{"int",			test_int,	0},
 	{"float",		test_float,	0},
@@ -94,7 +95,6 @@ const struct {
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
