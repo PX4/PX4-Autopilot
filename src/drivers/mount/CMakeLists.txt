@@ -37,7 +37,7 @@
  	COMPILE_FLAGS
  		-Os
  	SRCS
- 		mount.c
+ 		mount.cpp
  		mount_rc.c
         mount_mavlink.c
  	DEPENDS

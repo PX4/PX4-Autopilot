@@ -45,28 +45,48 @@
  #include <arch/math.h>
  #include <geo/geo.h>
 
+ #include <uORB/uORB.h>
+ #include <uORB/topics/vehicle_command.h>
+
+ /* uORB advertising */
+ static struct vehicle_command_s *vehicle_command;
+ static orb_advert_t vehicle_command_pub;
+
  bool mount_mavlink_init()
  {
-    //TODO
-    return false;
+    memset(&vehicle_command, 0, sizeof(vehicle_command));
+    if(vehicle_command == NULL) return false;
+
+    vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
+
+    return true;
  }
 
 
  void mount_mavlink_deinit()
  {
-    //TODO
+    free(vehicle_command);
  }
  void mount_mavlink_configure(int mode)
  {
     //TODO send MAV_CMD_DO_MOUNT_CONFIGURE
+
+
+    orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
  }
 
  void mount_mavlink_point_location(float x, float y, float z)
  {
     //TODO send MAV_CMD_DO_MOUNT_CONTROL
+
+
+    orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
  }
 
  void mount_mavlink_point_manual(float roll, float pitch, float yaw)
  {
     //TODO send MAV_CMD_DO_MOUNT_CONTROL
+
+
+    orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
  }

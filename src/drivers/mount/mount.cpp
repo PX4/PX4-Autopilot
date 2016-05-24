@@ -76,13 +76,13 @@ static int vehicle_roi_sub = -1;
 static int position_setpoint_triplet_sub = -1;
 static int rc_channels_sub = -1;
 
-static struct vehicle_roi_s *vehicle_roi;
+static struct vehicle_roi_s vehicle_roi = {};
 static bool   vehicle_roi_updated;
 
-static struct position_setpoint_triplet_s *position_setpoint_triplet;
+static struct position_setpoint_triplet_s position_setpoint_triplet = {};
 static bool   position_setpoint_triplet_updated;
 
-static struct rc_channels_s *rc_channels;
+static struct rc_channels_s rc_channels = {};
 static bool   rc_channels_updated;
 
 
@@ -104,7 +104,7 @@ static void usage()
 static int mount_thread_main(int argc, char *argv[])
 {
 	/* Default values for arguments */
-	char *mount_type = "mavlink"; /* MAVLINK by default */
+	char const *mount_type = "mavlink"; /* MAVLINK by default */
 
     //TODO check parameters for mount type
 
@@ -115,18 +115,18 @@ static int mount_thread_main(int argc, char *argv[])
     if(!strcmp(mount_type, "mavlink")) { mount_state = MAVLINK;}
     else if(!strcmp(mount_type, "rc")) { mount_state = RC;}
 
-    vehicle_roi = malloc(sizeof(struct vehicle_roi_s));
-    position_setpoint_triplet = malloc(sizeof(struct position_setpoint_triplet_s));
-    rc_channels = malloc(sizeof(struct rc_channels_s));
-
-    if(vehicle_roi == NULL || position_setpoint_triplet == NULL || rc_channels == NULL)
-    {
-        err(1, "could not allocate memory for uORB topics");
-    }
+	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
+	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
+	memset(&rc_channels, 0, sizeof(rc_channels));
 
     vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
     position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
     rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
+
+	if(!vehicle_roi_sub || !position_setpoint_triplet_sub || !rc_channels_sub)
+	{
+		err(1, "could not subscribe to uORB topics");
+	}
 
 	thread_running = true;
 
@@ -139,49 +139,28 @@ static int mount_thread_main(int argc, char *argv[])
 
 		while (!thread_should_exit) {
             mount_update_topics();
+            mount_mavlink_configure(vehicle_roi.mode);
 
-            if(vehicle_roi_updated)
-            {
-                vehicle_roi_updated = false;
+			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
+			{
 
-                mount_mavlink_configure(vehicle_roi->mode);
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
+			{
 
-                switch(vehicle_roi->mode)
-                {
-                    case vehicle_roi_s::VEHICLE_ROI_NONE:
-                        break;
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
+			{
 
-                    case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
-                    {
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
+			{
 
-                        break;
-                    }
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
+			{
 
-                    case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
-                    {
-                        //TODO how can I get the setpoint by index?
-                        break;
-                    }
-
-                    case vehicle_roi_s::VEHICLE_ROI_LOCATION:
-                    {
-                        break;
-                    }
-
-                    case vehicle_roi_s::VEHICLE_ROI_TARGET:
-                    {
-                        //TODO is this supported?
-                        break;
-                    }
-
-                    default:
-                        break;
-                }
-            }
-            else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE && rc_channels_updated)
-            {
-                //TODO if enabled, use mount_rc_point_manual to control yaw, pitch and roll with radio controls
-            }
+			}
 		}
 
 		mount_mavlink_deinit();
@@ -196,46 +175,9 @@ static int mount_thread_main(int argc, char *argv[])
 
         while (!thread_should_exit) {
             mount_update_topics();
+            mount_rc_configure(vehicle_roi.mode);
 
-            if(vehicle_roi_updated)
-            {
-                vehicle_roi_updated = false;
-
-                mount_rc_configure(vehicle_roi->mode);
-
-                switch(vehicle_roi->mode)
-                {
-                    case vehicle_roi_s::VEHICLE_ROI_NONE:
-                        break;
-
-                    case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
-                    {
-                        break;
-                    }
-
-                    case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
-                    {
-                        break;
-                    }
-
-                    case vehicle_roi_s::VEHICLE_ROI_LOCATION:
-                    {
-                        break;
-                    }
-
-                    case vehicle_roi_s::VEHICLE_ROI_TARGET:
-                    {
-                        break;
-                    }
-
-                    default:
-                        break;
-                }
-            }
-            else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE && rc_channels_updated)
-            {
-                //TODO if enabled, use mount_rc_point_manual to control yaw, pitch and roll with radio controls
-            }
+			//TODO
         }
 
         mount_rc_deinit();
@@ -331,16 +273,16 @@ void mount_update_topics()
 {
     orb_check(vehicle_roi_sub, &vehicle_roi_updated);
     if (vehicle_roi_updated) {
-        orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, vehicle_roi);
+        orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, &vehicle_roi);
     }
 
     orb_check(position_setpoint_triplet_sub, &position_setpoint_triplet_updated);
     if (position_setpoint_triplet_updated) {
-        orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
+        orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, &position_setpoint_triplet);
     }
 
     orb_check(rc_channels_sub, &rc_channels_updated);
     if (rc_channels_updated) {
-        orb_copy(ORB_ID(rc_channels), rc_channels_sub, rc_channels);
+        orb_copy(ORB_ID(rc_channels), rc_channels_sub, &rc_channels);
     }
 }
