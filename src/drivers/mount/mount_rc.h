@@ -37,11 +37,11 @@
  *
  */
 
- #ifndef _MOUNT_RC_H
- #define _MOUNT_RC_H
+#ifndef _MOUNT_RC_H
+#define _MOUNT_RC_H
 
- #include <sys/types.h>
- #include <stdbool.h>
+#include <sys/types.h>
+#include <stdbool.h>
 
 // Public functions
 bool mount_rc_init(void);
@@ -51,4 +51,4 @@ void mount_rc_set_location(double global_lat, double global_lon, float global_al
 void mount_rc_set_manual(float new_pitch, float new_roll, float new_yaw);
 void mount_rc_point(void);
 
- #endif /* _MOUNT_RC_H */
+#endif /* _MOUNT_RC_H */

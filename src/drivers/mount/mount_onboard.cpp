@@ -37,18 +37,18 @@
  *
  */
 
- #include "mount_onboard.h"
+#include "mount_onboard.h"
 
- #include <stdlib.h>
- #include <stdio.h>
- #include <string.h>
- #include <arch/math.h>
- #include <geo/geo.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <arch/math.h>
+#include <geo/geo.h>
 
- #include <uORB/uORB.h>
- #include <uORB/topics/actuator_controls.h>
- #include <uORB/topics/vehicle_attitude.h>
- #include <uORB/topics/vehicle_mount.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_mount.h>
 
 
 /* uORB topics */
@@ -69,96 +69,99 @@ static int stab_yaw;
 
 bool mount_onboard_init()
 {
-        memset(&actuator_controls, 0, sizeof(actuator_controls));
-        memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
-        actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
-        vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
+	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
-        if(!actuator_controls_pub || !vehicle_attitude_sub) return false;
-        return true;
+	if (!actuator_controls_pub || !vehicle_attitude_sub) { return false; }
+
+	return true;
 }
 
 void mount_onboard_deinit()
 {
-        free(actuator_controls);
+	free(actuator_controls);
 }
 
 void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw)
 {
-    mount_mode = new_mount_mode;
-    stab_roll = new_stab_roll;
-    stab_pitch = new_stab_pitch;
-    stab_yaw = new_stab_yaw;
+	mount_mode = new_mount_mode;
+	stab_roll = new_stab_roll;
+	stab_pitch = new_stab_pitch;
+	stab_yaw = new_stab_yaw;
 
-    switch (mount_mode) {
-        case vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT:
-            retracts = 1.0f;
-            mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
-            break;
-        case vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-            retracts = 0.0f;
-            mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
-            break;
-        case vehicle_mount_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-        case vehicle_mount_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-        case vehicle_mount_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-            retracts = 0.0f;
-        default:
-            break;
-    }
+	switch (mount_mode) {
+	case vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT:
+		retracts = 1.0f;
+		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		break;
+
+	case vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+		retracts = 0.0f;
+		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		break;
+
+	case vehicle_mount_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
+	case vehicle_mount_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+	case vehicle_mount_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+		retracts = 0.0f;
+
+	default:
+		break;
+	}
 }
 
-void mount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
+void mount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
+				double lon, float alt)
 {
-    float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
-    float new_pitch = 0.0f; //TODO calculate pitch
-    float new_roll = 0.0f; //TODO calculate yaw
+	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
+	float new_pitch = 0.0f; //TODO calculate pitch
+	float new_roll = 0.0f; //TODO calculate yaw
 
-    mount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
+	mount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
 }
 
 void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw)
 {
-    mount_mode = new_mount_mode;
-    pitch = new_pitch;
-    roll = new_roll;
-    yaw = new_yaw;
+	mount_mode = new_mount_mode;
+	pitch = new_pitch;
+	roll = new_roll;
+	yaw = new_yaw;
 }
 
 void mount_onboard_point()
 {
-    if(mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT &&
-        mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL)
-    {
-        if(stab_roll){
-            roll += 1.0f / M_PI_F * -vehicle_attitude->roll;
-        }
+	if (mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT &&
+	    mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
+		if (stab_roll) {
+			roll += 1.0f / M_PI_F * -vehicle_attitude->roll;
+		}
 
-        if(stab_pitch){
-            pitch += 1.0f / M_PI_F * -vehicle_attitude->pitch;
-        }
+		if (stab_pitch) {
+			pitch += 1.0f / M_PI_F * -vehicle_attitude->pitch;
+		}
 
-        if(stab_yaw)
-        {
-            yaw += 1.0f / M_PI_F * vehicle_attitude->yaw;
-        }
-    }
+		if (stab_yaw) {
+			yaw += 1.0f / M_PI_F * vehicle_attitude->yaw;
+		}
+	}
 
-    actuator_controls->timestamp = hrt_absolute_time();
-    actuator_controls->control[0] = pitch;
-    actuator_controls->control[1] = roll;
-    actuator_controls->control[2] = yaw;
-    actuator_controls->control[3] = retracts;
+	actuator_controls->timestamp = hrt_absolute_time();
+	actuator_controls->control[0] = pitch;
+	actuator_controls->control[1] = roll;
+	actuator_controls->control[2] = yaw;
+	actuator_controls->control[3] = retracts;
 
-    orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
 
 void mount_onboard_update_topics()
 {
-    bool updated;
-    orb_check(vehicle_attitude_sub, &updated);
+	bool updated;
+	orb_check(vehicle_attitude_sub, &updated);
 
-    if (updated) {
-        orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
-    }
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
+	}
 }

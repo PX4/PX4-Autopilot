@@ -136,15 +136,17 @@ static void usage()
  */
 static int mount_thread_main(int argc, char *argv[])
 {
-	if(!get_params())
-	{
+	if (!get_params()) {
 		err(1, "could not get mount parameters!");
 	}
 
-	if(params.mnt_mode == 0) { mount_state = IDLE;}
-    else if(params.mnt_mode == 1) { mount_state = MAVLINK;}
-    else if(params.mnt_mode == 2) { mount_state = RC;}
-	else if(params.mnt_mode == 3) { mount_state = ONBOARD;}
+	if (params.mnt_mode == 0) { mount_state = IDLE;}
+
+	else if (params.mnt_mode == 1) { mount_state = MAVLINK;}
+
+	else if (params.mnt_mode == 2) { mount_state = RC;}
+
+	else if (params.mnt_mode == 3) { mount_state = ONBOARD;}
 
 	//TODO is this needed?
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
@@ -153,16 +155,15 @@ static int mount_thread_main(int argc, char *argv[])
 	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
 	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
 
-    vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
+	vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	vehicle_mount_sub = orb_subscribe(ORB_ID(vehicle_mount));
-    position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-    manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
-	if(!vehicle_roi_sub || !position_setpoint_triplet_sub ||
-	   !manual_control_setpoint_sub || !vehicle_global_position_sub ||
-   	   !vehicle_mount_sub)
-	{
+	if (!vehicle_roi_sub || !position_setpoint_triplet_sub ||
+	    !manual_control_setpoint_sub || !vehicle_global_position_sub ||
+	    !vehicle_mount_sub) {
 		err(1, "could not subscribe to uORB topics");
 	}
 
@@ -176,23 +177,18 @@ static int mount_thread_main(int argc, char *argv[])
 		warnx("running mount driver in mavlink mode");
 
 		while (!thread_should_exit) {
-            mount_update_topics();
+			mount_update_topics();
 
-			if(vehicle_roi_updated)
-			{
+			if (vehicle_roi_updated) {
 				vehicle_roi_updated = false;
 				mount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 
-				if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE)
-				{
-					if(params.mnt_man_control && manual_control_setpoint_updated)
-					{
+				if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
+					if (params.mnt_man_control && manual_control_setpoint_updated) {
 						//TODO use mount_mavlink_point_manual to control gimbal
 						//with specified aux channels via the parameters
 					}
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
-				{
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 					mount_mavlink_point_location(
 						vehicle_global_position->lat,
 						vehicle_global_position->lon,
@@ -201,13 +197,10 @@ static int mount_thread_main(int argc, char *argv[])
 						position_setpoint_triplet->next.lon,
 						position_setpoint_triplet->next.alt
 					);
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
-				{
+
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
 					//TODO how to do this?
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
-				{
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
 					mount_mavlink_point_location(
 						vehicle_global_position->lat,
 						vehicle_global_position->lon,
@@ -216,42 +209,35 @@ static int mount_thread_main(int argc, char *argv[])
 						vehicle_roi->lon,
 						vehicle_roi->alt
 					);
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
-				{
+
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
 					//TODO is this even suported?
 				}
 			}
 		}
 
 		mount_mavlink_deinit();
-    }
-    else if (mount_state == RC)
-    {
-        if (!mount_rc_init()) {
-            err(1, "could not initiate mount_rc");
-        }
 
-        warnx("running mount driver in rc mode");
+	} else if (mount_state == RC) {
+		if (!mount_rc_init()) {
+			err(1, "could not initiate mount_rc");
+		}
 
-        while (!thread_should_exit) {
-            mount_update_topics();
+		warnx("running mount driver in rc mode");
 
-			if(vehicle_roi_updated)
-			{
+		while (!thread_should_exit) {
+			mount_update_topics();
+
+			if (vehicle_roi_updated) {
 				vehicle_roi_updated = false;
 				mount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 
-				if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE)
-				{
-					if(params.mnt_man_control && manual_control_setpoint_updated)
-					{
+				if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
+					if (params.mnt_man_control && manual_control_setpoint_updated) {
 						//TODO use mount_rc_point_manual to control gimbal
 						//with specified aux channels via the parameters
 					}
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
-				{
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 					mount_rc_set_location(
 						vehicle_global_position->lat,
 						vehicle_global_position->lon,
@@ -260,13 +246,10 @@ static int mount_thread_main(int argc, char *argv[])
 						position_setpoint_triplet->next.lon,
 						position_setpoint_triplet->next.alt
 					);
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
-				{
+
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
 					//TODO how to do this?
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
-				{
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
 					mount_rc_set_location(
 						vehicle_global_position->lat,
 						vehicle_global_position->lon,
@@ -275,19 +258,18 @@ static int mount_thread_main(int argc, char *argv[])
 						vehicle_roi->lon,
 						vehicle_roi->alt
 					);
-				}
-				else if(vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
-				{
+
+				} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
 					//TODO is this even suported?
 				}
 			}
+
 			mount_rc_point();
 		}
 
-        mount_rc_deinit();
-    }
-	else if (mount_state == ONBOARD)
-	{
+		mount_rc_deinit();
+
+	} else if (mount_state == ONBOARD) {
 		if (!mount_onboard_init()) {
 			err(1, "could not initiate mount_onboard");
 		}
@@ -298,40 +280,42 @@ static int mount_thread_main(int argc, char *argv[])
 			mount_update_topics();
 			mount_onboard_update_topics();
 
-			if(vehicle_mount_updated)
-			{
-				if(vehicle_mount->config)
-				{
+			if (vehicle_mount_updated) {
+				if (vehicle_mount->config) {
 					mount_onboard_configure(vehicle_mount->mode,
-						vehicle_mount->stab_roll, vehicle_mount->stab_pitch, vehicle_mount->stab_yaw);
-				}
-				else
-				{
+								vehicle_mount->stab_roll, vehicle_mount->stab_pitch, vehicle_mount->stab_yaw);
+
+				} else {
 					switch (vehicle_mount->mode) {
-						case vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT:
-						case vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-							break;
-						case vehicle_mount_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-							mount_onboard_set_manual(vehicle_mount->mode, vehicle_mount->pitch_lat,
-								vehicle_mount->roll_lon, vehicle_mount->yaw_alt);
-						case vehicle_mount_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-							if(params.mnt_man_control && manual_control_setpoint_updated){
-								//TODO use defined aux channels to control mount
-							}
-						case vehicle_mount_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-							mount_onboard_set_location(
-								vehicle_mount->mode,
-								vehicle_global_position->lat,
-								vehicle_global_position->lon,
-								vehicle_global_position->alt,
-								vehicle_mount->pitch_lat,
-								vehicle_mount->roll_lon,
-								vehicle_mount->yaw_alt);
-						default:
-							break;
+					case vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT:
+					case vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+						break;
+
+					case vehicle_mount_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
+						mount_onboard_set_manual(vehicle_mount->mode, vehicle_mount->pitch_lat,
+									 vehicle_mount->roll_lon, vehicle_mount->yaw_alt);
+
+					case vehicle_mount_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+						if (params.mnt_man_control && manual_control_setpoint_updated) {
+							//TODO use defined aux channels to control mount
+						}
+
+					case vehicle_mount_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+						mount_onboard_set_location(
+							vehicle_mount->mode,
+							vehicle_global_position->lat,
+							vehicle_global_position->lon,
+							vehicle_global_position->alt,
+							vehicle_mount->pitch_lat,
+							vehicle_mount->roll_lon,
+							vehicle_mount->yaw_alt);
+
+					default:
+						break;
 					}
 				}
 			}
+
 			mount_onboard_point();
 		}
 	}
@@ -426,27 +410,32 @@ int mount_main(int argc, char *argv[])
 /* Update oURB topics */
 void mount_update_topics()
 {
-    orb_check(vehicle_roi_sub, &vehicle_roi_updated);
-    if (vehicle_roi_updated) {
-        orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, vehicle_roi);
-    }
+	orb_check(vehicle_roi_sub, &vehicle_roi_updated);
+
+	if (vehicle_roi_updated) {
+		orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, vehicle_roi);
+	}
 
 	orb_check(vehicle_mount_sub, &vehicle_mount_updated);
+
 	if (vehicle_mount_updated) {
 		orb_copy(ORB_ID(vehicle_mount), vehicle_mount_sub, vehicle_mount);
 	}
 
-    orb_check(position_setpoint_triplet_sub, &position_setpoint_triplet_updated);
-    if (position_setpoint_triplet_updated) {
-        orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
-    }
+	orb_check(position_setpoint_triplet_sub, &position_setpoint_triplet_updated);
 
-    orb_check(manual_control_setpoint_sub, &manual_control_setpoint_updated);
-    if (manual_control_setpoint_updated) {
-        orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, manual_control_setpoint);
-    }
+	if (position_setpoint_triplet_updated) {
+		orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
+	}
+
+	orb_check(manual_control_setpoint_sub, &manual_control_setpoint_updated);
+
+	if (manual_control_setpoint_updated) {
+		orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, manual_control_setpoint);
+	}
 
 	orb_check(vehicle_global_position_sub, &vehicle_global_position_updated);
+
 	if (vehicle_global_position_updated) {
 		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, vehicle_global_position);
 	}
@@ -464,13 +453,12 @@ bool get_params()
 
 
 	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) |
-		!param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) |
-		!param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) |
-		!param_get(params_handels.mnt_man_control, &params.mnt_man_control) |
-		!param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) |
-		!param_get(params_handels.mnt_man_pitch, &params.mnt_mode) |
-		!param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw))
-	{
+	    !param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) |
+	    !param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) |
+	    !param_get(params_handels.mnt_man_control, &params.mnt_man_control) |
+	    !param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) |
+	    !param_get(params_handels.mnt_man_pitch, &params.mnt_mode) |
+	    !param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw)) {
 		return false;
 	}
 

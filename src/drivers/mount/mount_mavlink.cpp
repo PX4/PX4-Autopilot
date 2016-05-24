@@ -37,17 +37,17 @@
  *
  */
 
- #include "mount_mavlink.h"
+#include "mount_mavlink.h"
 
- #include <stdlib.h>
- #include <stdio.h>
- #include <string.h>
- #include <arch/math.h>
- #include <geo/geo.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <arch/math.h>
+#include <geo/geo.h>
 
- #include <uORB/uORB.h>
- #include <uORB/topics/vehicle_command.h>
- #include <uORB/topics/vehicle_roi.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_roi.h>
 
 /* uORB advertising */
 static struct vehicle_command_s *vehicle_command;
@@ -58,18 +58,20 @@ static int comp_id;
 
 bool mount_mavlink_init(int sysid, int compid)
 {
-        sys_id = sysid;
-        comp_id = compid;
-        memset(&vehicle_command, 0, sizeof(vehicle_command));
-        vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
-        if(!vehicle_command_pub) return false;
-        return true;
+	sys_id = sysid;
+	comp_id = compid;
+	memset(&vehicle_command, 0, sizeof(vehicle_command));
+	vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
+
+	if (!vehicle_command_pub) { return false; }
+
+	return true;
 }
 
 
 void mount_mavlink_deinit()
 {
-        free(vehicle_command);
+	free(vehicle_command);
 }
 
 /*
@@ -79,33 +81,40 @@ void mount_mavlink_deinit()
 
 void mount_mavlink_configure(int roi_mode, bool man_control)
 {
-        vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-        vehicle_command->target_system = sys_id;
-        vehicle_command->target_component = comp_id;
+	vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+	vehicle_command->target_system = sys_id;
+	vehicle_command->target_component = comp_id;
 
-        switch (roi_mode) {
-        case vehicle_roi_s::VEHICLE_ROI_NONE:
-                if(man_control) vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-                else vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
-                break;
-        case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
-                vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-                break;
-        case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
-                vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-                break;
-        case vehicle_roi_s::VEHICLE_ROI_LOCATION:
-                vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-                break;
-        case vehicle_roi_s::VEHICLE_ROI_TARGET:
-                vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-                break;
-        default:
-                vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
-                break;
-        }
+	switch (roi_mode) {
+	case vehicle_roi_s::VEHICLE_ROI_NONE:
+		if (man_control) { vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING; }
 
-        orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
+		else { vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL; }
+
+		break;
+
+	case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
+		vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+		break;
+
+	case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
+		vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+		break;
+
+	case vehicle_roi_s::VEHICLE_ROI_LOCATION:
+		vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+		break;
+
+	case vehicle_roi_s::VEHICLE_ROI_TARGET:
+		vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+		break;
+
+	default:
+		vehicle_command->param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
+		break;
+	}
+
+	orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
 }
 
 
@@ -124,24 +133,25 @@ void mount_mavlink_configure(int roi_mode, bool man_control)
 /*
  *
  */
-void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
+void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
+				  float alt)
 {
-    float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
-    float new_pitch = 0.0f; //TODO calculate pitch and roll
-    float new_roll = 0.0f;
+	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
+	float new_pitch = 0.0f; //TODO calculate pitch and roll
+	float new_roll = 0.0f;
 
-    mount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
+	mount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
 }
 
 void mount_mavlink_point_manual(float pitch, float roll, float yaw)
 {
-        vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
-        vehicle_command->target_system = sys_id;
-        vehicle_command->target_component = comp_id;
+	vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+	vehicle_command->target_system = sys_id;
+	vehicle_command->target_component = comp_id;
 
-        vehicle_command->param1 = pitch;
-        vehicle_command->param2 = roll;
-        vehicle_command->param3 = yaw;
+	vehicle_command->param1 = pitch;
+	vehicle_command->param2 = roll;
+	vehicle_command->param3 = yaw;
 
-        orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
+	orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
 }

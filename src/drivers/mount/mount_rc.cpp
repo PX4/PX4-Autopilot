@@ -37,78 +37,83 @@
  *
  */
 
- #include "mount_rc.h"
+#include "mount_rc.h"
 
- #include <stdlib.h>
- #include <stdio.h>
- #include <string.h>
- #include <arch/math.h>
- #include <geo/geo.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <arch/math.h>
+#include <geo/geo.h>
 
- #include <uORB/uORB.h>
- #include <uORB/topics/vehicle_roi.h>
- #include <uORB/topics/actuator_controls.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/actuator_controls.h>
 
- /* uORB advertising */
- static struct actuator_controls_s *actuator_controls;
- static orb_advert_t actuator_controls_pub;
+/* uORB advertising */
+static struct actuator_controls_s *actuator_controls;
+static orb_advert_t actuator_controls_pub;
 
- static float roll;
- static float pitch;
- static float yaw;
+static float roll;
+static float pitch;
+static float yaw;
 
 bool mount_rc_init()
 {
-    memset(&actuator_controls, 0, sizeof(actuator_controls));
-    actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
-    if(!actuator_controls_pub) return false;
-    return true;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
+
+	if (!actuator_controls_pub) { return false; }
+
+	return true;
 }
 
 void mount_rc_deinit()
 {
-    free(actuator_controls);
+	free(actuator_controls);
 }
 
 void mount_rc_configure(int roi_mode, bool man_control)
 {
-        switch (roi_mode) {
-        case vehicle_roi_s::VEHICLE_ROI_NONE:
-                if(!man_control) {mount_rc_set_manual(0.0f, 0.0f, 0.0f);}
-                break;
-        case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
-        case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
-        case vehicle_roi_s::VEHICLE_ROI_LOCATION:
-        case vehicle_roi_s::VEHICLE_ROI_TARGET:
-                break;
-        default:
-                mount_rc_set_manual(0.0f, 0.0f, 0.0f);
-                break;
-        }
+	switch (roi_mode) {
+	case vehicle_roi_s::VEHICLE_ROI_NONE:
+		if (!man_control) {mount_rc_set_manual(0.0f, 0.0f, 0.0f);}
+
+		break;
+
+	case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
+	case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
+	case vehicle_roi_s::VEHICLE_ROI_LOCATION:
+	case vehicle_roi_s::VEHICLE_ROI_TARGET:
+		break;
+
+	default:
+		mount_rc_set_manual(0.0f, 0.0f, 0.0f);
+		break;
+	}
 }
 
 void mount_rc_set_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
 {
-    float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
-    float new_pitch = 0.0f; //TODO calculate pitch
-    float new_roll = 0.0f; //TODO calculate yaw
+	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
+	float new_pitch = 0.0f; //TODO calculate pitch
+	float new_roll = 0.0f; //TODO calculate yaw
 
-    mount_rc_set_manual(new_pitch, new_roll, new_yaw);
+	mount_rc_set_manual(new_pitch, new_roll, new_yaw);
 }
 
 void mount_rc_set_manual(float new_pitch, float new_roll, float new_yaw)
 {
-    pitch = new_pitch;
-    roll = new_roll;
-    yaw = new_yaw;
+	pitch = new_pitch;
+	roll = new_roll;
+	yaw = new_yaw;
 }
 
 void mount_rc_point()
 {
-    actuator_controls->timestamp = hrt_absolute_time();
-    actuator_controls->control[0] = pitch;
-    actuator_controls->control[1] = roll;
-    actuator_controls->control[2] = yaw;
+	actuator_controls->timestamp = hrt_absolute_time();
+	actuator_controls->control[0] = pitch;
+	actuator_controls->control[1] = roll;
+	actuator_controls->control[2] = yaw;
 
-    orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
