@@ -120,6 +120,11 @@ public:
 	 */
 	virtual void waiting_on_tecs() {};
 
+	/**
+	 * Returns true if we're allowed to do a mode transition on the ground.
+	 */
+	bool can_transition_on_ground();
+
 	void set_idle_mc();
 	void set_idle_fw();
 
@@ -149,6 +154,7 @@ protected:
 	struct battery_status_s 			*_batt_status; 				// battery status
 	struct vehicle_status_s 			*_vehicle_status;			// vehicle status from commander app
 	struct tecs_status_s				*_tecs_status;
+	struct vehicle_land_detected_s			*_land_detected;
 
 	struct Params 					*_params;
 

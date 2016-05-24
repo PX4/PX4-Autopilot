@@ -249,20 +249,12 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Enable optimal recovery strategy for pitch-weak tailsitters
+ * Optimal recovery strategy for pitch-weak tailsitters
  *
  * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
-
-/**
- * Enable weather-vane mode landings for missions
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
 
 /**
  * Weather-vane yaw rate scale.
@@ -277,14 +269,6 @@ PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
-
-/**
- * Enable weather-vane mode for loiter
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
 
 /**
  * Front transition timeout

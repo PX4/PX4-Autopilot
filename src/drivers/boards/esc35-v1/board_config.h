@@ -140,6 +140,7 @@ __BEGIN_DECLS
 			 GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_BLUE  GPIO_LED3
 
+#define BOARD_NAME "ESC35_V1"
 
 /************************************************************************************
  * Public Types

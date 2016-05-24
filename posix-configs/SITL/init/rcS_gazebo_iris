@@ -33,6 +33,8 @@ param set MC_PITCH_P 5
 param set MC_ROLL_P 5
 param set MPC_Z_VEL_P 0.8
 param set MPC_Z_VEL_I 0.15
+param set EKF2_GBIAS_INIT 0.01
+param set EKF2_ANGERR_INIT 0.01
 simulator start -s
 rgbledsim start
 tone_alarm start

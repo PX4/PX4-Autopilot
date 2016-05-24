@@ -203,6 +203,9 @@ __BEGIN_DECLS
 #define HRT_PPM_CHANNEL		3	/* use capture/compare channel 3 */
 #define GPIO_PPM_IN		(GPIO_ALT|GPIO_AF1|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
 
+
+#define	BOARD_NAME "PX4FMU_V1"
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

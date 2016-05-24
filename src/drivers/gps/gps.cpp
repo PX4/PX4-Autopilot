@@ -52,6 +52,7 @@
 
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -71,9 +72,11 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -100,7 +103,7 @@ public:
 class GPS
 {
 public:
-	GPS(const char *uart_path, bool fake_gps, bool enable_sat_info);
+	GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num);
 	virtual ~GPS();
 
 	virtual int			init();
@@ -125,16 +128,30 @@ private:
 	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
+	int					_gps_orb_instance;				///< uORB multi-topic instance
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
+	int					_gps_sat_orb_instance;				///< uORB multi-topic instance for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	float				_rate_rtcm_injection;				///< RTCM message injection rate
 	unsigned			_last_rate_rtcm_injection_count; 		///< counter for number of RTCM messages
 	bool				_fake_gps;					///< fake gps output
+	int 				_gps_num;					///< number of GPS connected
 
 	static const int _orb_inject_data_fd_count = 4;
 	int _orb_inject_data_fd[_orb_inject_data_fd_count];
 	int _orb_inject_data_next = 0;
+
+	// dump communication to file
+#ifdef __PX4_POSIX_EAGLE
+	static constexpr const char	*DUMP_ROOT = PX4_ROOTFSDIR;
+#else
+	static constexpr const char 	*DUMP_ROOT = PX4_ROOTFSDIR"/fs/microsd";
+#endif
+	int _dump_to_gps_device_fd = -1;              ///< file descriptors, to safe all device communication to a file
+	int _dump_from_gps_device_fd = -1;
+	int _vehicle_status_sub = -1;
+	bool _is_armed = false;                       ///< current arming state (only updated if communication dump is enabled)
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -144,7 +161,7 @@ private:
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void task_main_trampoline(void *arg);
+	static void task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
@@ -160,6 +177,16 @@ private:
 	 * Send a reset command to the GPS
 	 */
 	void cmd_reset();
+
+	/**
+	 * Publish the gps struct
+	 */
+	void 				publish();
+
+	/**
+	 * Publish the satellite info
+	 */
+	void 				publishSatelliteInfo();
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -196,6 +223,15 @@ private:
 	 * callback from the driver for the platform specific stuff
 	 */
 	static int callback(GPSCallbackType type, void *data1, int data2, void *user);
+
+	/**
+	 * Setup dumping of the GPS device input and output stream to a file.
+	 */
+	void initializeCommunicationDump();
+
+	int getDumpFileName(char *file_name, size_t file_name_size, const char *suffix);
+
+	static bool fileExist(const char *filename);
 };
 
 
@@ -207,32 +243,34 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 namespace
 {
 
-GPS	*g_dev = nullptr;
-
+GPS	*g_dev[2] = {nullptr, nullptr};
+volatile bool is_gps1_advertised = false; ///< for the second gps we want to make sure that it gets instance 1
+/// and thus we wait until the first one publishes at least one message.
 }
 
-GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
+
+GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num) :
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
 	_mode(GPS_DRIVER_MODE_UBX),
 	_helper(nullptr),
 	_sat_info(nullptr),
-	_report_gps_pos_pub(nullptr),
+	_report_gps_pos_pub{nullptr},
+	_gps_orb_instance(-1),
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
 	_rate_rtcm_injection(0.0f),
 	_last_rate_rtcm_injection_count(0),
-	_fake_gps(fake_gps)
+	_fake_gps(fake_gps),
+	_gps_num(gps_num)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* we need this potentially before it could be set in task_main */
-	g_dev = this;
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 	/* create satellite info data object if requested */
@@ -267,28 +305,31 @@ GPS::~GPS()
 		delete(_sat_info);
 	}
 
-	g_dev = nullptr;
 
 }
 
 int GPS::init()
 {
 
+	char gps_num[2] = {(char)('0' + _gps_num), 0};
+	char *const args[2] = { gps_num, NULL };
+
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, nullptr);
+				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (px4_main_t)&GPS::task_main_trampoline, args);
 
 	if (_task < 0) {
 		PX4_WARN("task start failed: %d", errno);
+		_task = -1;
 		return -errno;
 	}
 
 	return OK;
 }
 
-void GPS::task_main_trampoline(void *arg)
+void GPS::task_main_trampoline(int argc, char *argv[])
 {
-	g_dev->task_main();
+	g_dev[argv[argc - 1][0] - '1']->task_main();
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
@@ -296,10 +337,25 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	GPS *gps = (GPS *)user;
 
 	switch (type) {
-	case GPSCallbackType::readDeviceData:
-		return gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+	case GPSCallbackType::readDeviceData: {
+			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+
+			if (num_read > 0 && gps->_dump_from_gps_device_fd >= 0) {
+				if (write(gps->_dump_from_gps_device_fd, data1, (size_t)num_read) != (size_t)num_read) {
+					PX4_WARN("gps dump failed");
+				}
+			}
+
+			return num_read;
+		}
 
 	case GPSCallbackType::writeDeviceData:
+		if (gps->_dump_to_gps_device_fd >= 0) {
+			if (write(gps->_dump_to_gps_device_fd, data1, (size_t)data2) != (size_t)data2) {
+				PX4_WARN("gps dump failed");
+			}
+		}
+
 		return write(gps->_serial_fd, data1, (size_t)data2);
 
 	case GPSCallbackType::setBaudrate:
@@ -396,6 +452,12 @@ void GPS::handleInjectDataTopic()
 
 bool GPS::injectData(uint8_t *data, size_t len)
 {
+	if (_dump_to_gps_device_fd >= 0) {
+		if (write(_dump_to_gps_device_fd, data, len) != len) {
+			PX4_WARN("gps dump failed");
+		}
+	}
+
 	return ::write(_serial_fd, data, len) == len;
 }
 
@@ -511,6 +573,78 @@ int GPS::setBaudrate(unsigned baud)
 	return 0;
 }
 
+bool GPS::fileExist(const char *filename)
+{
+#ifdef __PX4_QURT
+	//FIXME: QuRT neither has stat() nor access(). Just pretend file does not exist.
+	return false;
+#else
+	struct stat buffer;
+	return stat(filename, &buffer) == 0;
+#endif
+}
+
+void GPS::initializeCommunicationDump()
+{
+	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
+	int32_t param_dump_comm;
+
+	if (gps_dump_comm_ph == PARAM_INVALID || param_get(gps_dump_comm_ph, &param_dump_comm) != 0) {
+		return;
+	}
+
+	if (param_dump_comm != 1) {
+		return; //dumping disabled
+	}
+
+	char to_device_file_name[128] = "";
+	char from_device_file_name[128] = "";
+
+	if (getDumpFileName(to_device_file_name, sizeof(to_device_file_name), "to")
+	    || getDumpFileName(from_device_file_name, sizeof(from_device_file_name), "from")) {
+		PX4_ERR("Failed to get GPS dump file name");
+		return;
+	}
+
+	//open files
+	if ((_dump_to_gps_device_fd = open(to_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
+		return;
+	}
+
+	if ((_dump_from_gps_device_fd = open(from_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
+		close(_dump_to_gps_device_fd);
+		_dump_to_gps_device_fd = -1;
+		return;
+	}
+
+	PX4_INFO("Dumping GPS comm to files %s, %s", to_device_file_name, from_device_file_name);
+
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+}
+
+int GPS::getDumpFileName(char *file_name, size_t file_name_size, const char *suffix)
+{
+	uint16_t file_number = 1; // start with file gps_dump_<num>_<suffix>_dev_001.dat
+
+	const uint16_t max_num_files = 999;
+
+	while (file_number <= max_num_files) {
+		snprintf(file_name, file_name_size, "%s/gps_dump_%u_%s_dev_%03u.dat",
+			 DUMP_ROOT, _gps_num, suffix, file_number);
+
+		if (!fileExist(file_name)) {
+			break;
+		}
+
+		file_number++;
+	}
+
+	if (file_number > max_num_files) {
+		return -1;
+	}
+
+	return 0;
+}
 
 void
 GPS::task_main()
@@ -536,6 +670,8 @@ GPS::task_main()
 	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
 		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
 	}
+
+	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
@@ -566,12 +702,7 @@ GPS::task_main()
 			/* no time and satellite information simulated */
 
 
-			if (_report_gps_pos_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-			} else {
-				_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-			}
+			publish();
 
 			usleep(2e5);
 
@@ -628,12 +759,7 @@ GPS::task_main()
 					_report_gps_pos.epv = 10000.0f;
 					_report_gps_pos.fix_type = 0;
 
-					if (_report_gps_pos_pub != nullptr) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-					} else {
-						_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-					}
+					publish();
 
 					/* GPS is obviously detected successfully, reset statistics */
 					_helper->resetUpdateRates();
@@ -644,23 +770,13 @@ GPS::task_main()
 				while ((helper_ret = _helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 
 					if (helper_ret & 1) {
-						if (_report_gps_pos_pub != nullptr) {
-							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-						} else {
-							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-						}
+						publish();
 
 						last_rate_count++;
 					}
 
 					if (_p_report_sat_info && (helper_ret & 2)) {
-						if (_report_sat_info_pub != nullptr) {
-							orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
-
-						} else {
-							_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
-						}
+						publishSatelliteInfo();
 					}
 
 					/* measure update rate every 5 seconds */
@@ -698,6 +814,32 @@ GPS::task_main()
 //
 //						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
+					}
+
+					//check for disarming
+					if (_vehicle_status_sub != -1 && _dump_from_gps_device_fd != -1) {
+						bool updated;
+						orb_check(_vehicle_status_sub, &updated);
+
+						if (updated) {
+							vehicle_status_s vehicle_status;
+							orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status);
+							bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+								     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+
+							if (armed) {
+								_is_armed = true;
+
+							} else if (_is_armed) {
+								//disable communication dump when disarming
+								close(_dump_from_gps_device_fd);
+								_dump_from_gps_device_fd = -1;
+								close(_dump_to_gps_device_fd);
+								_dump_to_gps_device_fd = -1;
+								_is_armed = false;
+							}
+
+						}
 					}
 				}
 
@@ -737,7 +879,24 @@ GPS::task_main()
 		_orb_inject_data_fd[i] = -1;
 	}
 
+	if (_dump_to_gps_device_fd != -1) {
+		close(_dump_to_gps_device_fd);
+		_dump_to_gps_device_fd = -1;
+	}
+
+	if (_dump_from_gps_device_fd != -1) {
+		close(_dump_from_gps_device_fd);
+		_dump_from_gps_device_fd = -1;
+	}
+
+	if (_vehicle_status_sub != -1) {
+		orb_unsubscribe(_vehicle_status_sub);
+		_vehicle_status_sub = -1;
+	}
+
 	::close(_serial_fd);
+
+	orb_unadvertise(_report_gps_pos_pub);
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
@@ -762,6 +921,8 @@ GPS::cmd_reset()
 void
 GPS::print_info()
 {
+	PX4_WARN("GPS %i:", _gps_num);
+
 	//GPS Mode
 	if (_fake_gps) {
 		PX4_WARN("protocol: SIMULATED");
@@ -810,15 +971,41 @@ GPS::print_info()
 	usleep(100000);
 }
 
+void
+GPS::publish()
+{
+	if (_gps_num == 1) {
+		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+				 ORB_PRIO_DEFAULT);
+		is_gps1_advertised = true;
+
+	} else if (is_gps1_advertised) {
+		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+				 ORB_PRIO_DEFAULT);
+	}
+
+}
+void
+GPS::publishSatelliteInfo()
+{
+	if (_gps_num == 1) {
+		orb_publish_auto(ORB_ID(satellite_info), &_report_sat_info_pub, _p_report_sat_info, &_gps_sat_orb_instance,
+				 ORB_PRIO_DEFAULT);
+
+	} else {
+		//we don't publish satellite info for the secondary gps
+	}
+
+}
+
 /**
  * Local functions in support of the shell command.
  */
 namespace gps
 {
 
-GPS	*g_dev = nullptr;
 
-void	start(const char *uart_path, bool fake_gps, bool enable_sat_info);
+void	start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num);
 void	stop();
 void	test();
 void	reset();
@@ -828,35 +1015,24 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *uart_path, bool fake_gps, bool enable_sat_info)
+start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 {
-	if (g_dev != nullptr) {
-		PX4_WARN("gps already started");
+	if (g_dev[gps_num - 1] != nullptr) {
+		PX4_WARN("GPS %i already started", gps_num);
 		return;
 	}
 
 	/* create the driver */
-	g_dev = new GPS(uart_path, fake_gps, enable_sat_info);
+	g_dev[gps_num - 1] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
 
-	if (g_dev == nullptr) {
-		goto fail;
+	if (!g_dev[gps_num - 1] || OK != g_dev[gps_num - 1]->init()) {
+		if (g_dev[gps_num - 1] != nullptr) {
+			delete g_dev[gps_num - 1];
+			g_dev[gps_num - 1] = nullptr;
+		}
+
+		PX4_ERR("start of GPS %i failed", gps_num);
 	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	return;
-
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	PX4_ERR("start failed");
-	return;
 }
 
 /**
@@ -865,8 +1041,14 @@ fail:
 void
 stop()
 {
-	delete g_dev;
-	g_dev = nullptr;
+	delete g_dev[0];
+	g_dev[0] = nullptr;
+
+	if (g_dev[1] != nullptr) {
+		delete g_dev[1];
+	}
+
+	g_dev[1] = nullptr;
 }
 
 /**
@@ -897,12 +1079,18 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr) {
+	if (g_dev[0] == nullptr) {
 		PX4_ERR("GPS Not running");
 		return;
 	}
 
-	g_dev->print_info();
+	g_dev[0]->print_info();
+
+	if (g_dev[1] != nullptr) {
+		g_dev[1]->print_info();
+	}
+
+	return;
 }
 
 } // namespace
@@ -913,6 +1101,7 @@ gps_main(int argc, char *argv[])
 {
 	/* set to default */
 	const char *device_name = GPS_DEFAULT_UART_PORT;
+	const char *device_name2 = nullptr;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 
@@ -949,7 +1138,24 @@ gps_main(int argc, char *argv[])
 			}
 		}
 
-		gps::start(device_name, fake_gps, enable_sat_info);
+		/* Allow to use a second gps device */
+		for (int i = 2; i < argc; i++) {
+			if (!strcmp(argv[i], "-dualgps")) {
+				if (argc > i + 1) {
+					device_name2 = argv[i + 1];
+
+				} else {
+					PX4_ERR("Did not get second device address");
+				}
+			}
+		}
+
+		gps::start(device_name, fake_gps, enable_sat_info, 1);
+
+		if (device_name2) {
+			gps::start(device_name2, fake_gps, enable_sat_info, 2);
+		}
+
 	}
 
 	if (!strcmp(argv[1], "stop")) {

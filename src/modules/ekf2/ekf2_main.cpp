@@ -58,7 +58,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
@@ -141,7 +140,7 @@ private:
 	int		_actuator_armed_sub = -1;
 	int		_vehicle_land_detected_sub = -1;
 
-	bool            _prev_motors_armed = false; // motors armed status from the previous frame
+	bool            _prev_landed = true; // landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
 
@@ -176,7 +175,6 @@ private:
 	// process noise
 	control::BlockParamFloat _gyro_bias_p_noise;
 	control::BlockParamFloat _accel_bias_p_noise;
-	control::BlockParamFloat _gyro_scale_p_noise;
 	control::BlockParamFloat _mage_p_noise;
 	control::BlockParamFloat _magb_p_noise;
 	control::BlockParamFloat _wind_vel_p_noise;
@@ -190,6 +188,7 @@ private:
 	control::BlockParamFloat _baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
 	control::BlockParamFloat _posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
 	control::BlockParamFloat _vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
+	control::BlockParamFloat _tas_innov_gate;	   // innovation gate for tas innovation test (std dev)
 
 	control::BlockParamFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
@@ -244,6 +243,15 @@ private:
 	control::BlockParamFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
 
+	// output predictor filter time constants
+	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
+	control::BlockParamFloat _tau_pos;	// time constant used by the output position complementary filter (s)
+
+	// IMU switch on bias paameters
+	control::BlockParamFloat _gyr_bias_init;	// 1-sigma gyro bias uncertainty at switch-on (rad/sec)
+	control::BlockParamFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
+	control::BlockParamFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
+
 	int update_subscriptions();
 
 };
@@ -275,7 +283,6 @@ Ekf2::Ekf2():
 	_accel_noise(this, "EKF2_ACC_NOISE", false, &_params->accel_noise),
 	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise),
 	_accel_bias_p_noise(this, "EKF2_ACC_B_NOISE", false, &_params->accel_bias_p_noise),
-	_gyro_scale_p_noise(this, "EKF2_GYR_S_NOISE", false, &_params->gyro_scale_p_noise),
 	_mage_p_noise(this, "EKF2_MAG_E_NOISE", false, &_params->mage_p_noise),
 	_magb_p_noise(this, "EKF2_MAG_B_NOISE", false, &_params->magb_p_noise),
 	_wind_vel_p_noise(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise),
@@ -288,6 +295,7 @@ Ekf2::Ekf2():
 	_baro_innov_gate(this, "EKF2_BARO_GATE", false, &_params->baro_innov_gate),
 	_posNE_innov_gate(this, "EKF2_GPS_P_GATE", false, &_params->posNE_innov_gate),
 	_vel_innov_gate(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate),
+	_tas_innov_gate(this, "EKF2_TAS_GATE", false, &_params->tas_innov_gate),
 	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise),
 	_mag_noise(this, "EKF2_MAG_NOISE", false, &_params->mag_noise),
 	_eas_noise(this, "EKF2_EAS_NOISE", false, &_params->eas_noise),
@@ -326,7 +334,12 @@ Ekf2::Ekf2():
 	_rng_pos_z(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2)),
 	_flow_pos_x(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0)),
 	_flow_pos_y(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1)),
-	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2))
+	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
+	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
+	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
+	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
+	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, &_params->switch_on_accel_bias),
+	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err)
 {
 
 }
@@ -351,7 +364,6 @@ void Ekf2::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
-	_actuator_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	px4_pollfd_struct_t fds[2] = {};
@@ -371,7 +383,7 @@ void Ekf2::task_main()
 	airspeed_s airspeed = {};
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
-	actuator_armed_s actuator_armed = {};
+	vehicle_land_detected_s vehicle_land_detected = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -404,7 +416,6 @@ void Ekf2::task_main()
 		bool airspeed_updated = false;
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
-		bool actuator_armed_updated = false;
 		bool vehicle_land_detected_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -504,17 +515,9 @@ void Ekf2::task_main()
 			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
 		}
 
-		orb_check(_actuator_armed_sub, &actuator_armed_updated);
-
-		if (actuator_armed_updated) {
-			orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
-			_ekf.set_arm_status(actuator_armed.armed);
-		}
-
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
 
 		if (vehicle_land_detected_updated) {
-			struct vehicle_land_detected_s vehicle_land_detected = {};
 			orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
 		}
@@ -560,11 +563,11 @@ void Ekf2::task_main()
 			// Acceleration data
 			matrix::Vector<float, 3> acceleration = {&sensors.accelerometer_m_s2[0]};
 
-			float accel_bias = 0.0f;
-			_ekf.get_accel_bias(&accel_bias);
-			ctrl_state.x_acc = acceleration(0);
-			ctrl_state.y_acc = acceleration(1);
-			ctrl_state.z_acc = acceleration(2) - accel_bias;
+			float accel_bias[3];
+			_ekf.get_accel_bias(accel_bias);
+			ctrl_state.x_acc = acceleration(0) - accel_bias[0];
+			ctrl_state.y_acc = acceleration(1) - accel_bias[1];
+			ctrl_state.z_acc = acceleration(2) - accel_bias[2];
 
 			// compute lowpass filtered horizontal acceleration
 			acceleration = R_to_body.transpose() * acceleration;
@@ -734,6 +737,7 @@ void Ekf2::task_main()
 		_ekf.get_covariances(status.covariances);
 		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
@@ -781,12 +785,13 @@ void Ekf2::task_main()
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 		}
 
-		// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
-		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !actuator_armed.armed) {
+		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
+		if ((_params->mag_declination_source & (1 << 1)) && !_prev_landed && vehicle_land_detected.landed) {
 			float decl_deg;
 			_ekf.copy_mag_decl_deg(&decl_deg);
 			_mag_declination_deg.set(decl_deg);
 		}
+		_prev_landed = vehicle_land_detected.landed;
 
 		// publish replay message if in replay mode
 		bool publish_replay_message = (bool)_param_record_replay_msg.get();
@@ -848,6 +853,19 @@ void Ekf2::task_main()
 				replay.rng_timestamp = 0;
 			}
 
+			if (airspeed_updated) {
+				replay.asp_timestamp = airspeed.timestamp;
+				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
+				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
+				replay.true_airspeed_unfiltered_m_s = airspeed.true_airspeed_unfiltered_m_s;
+				replay.air_temperature_celsius = airspeed.air_temperature_celsius;
+				replay.confidence = airspeed.confidence;
+
+			} else {
+				replay.asp_timestamp = 0;
+			}
+
+
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
 
@@ -870,11 +888,19 @@ int Ekf2::start()
 {
 	ASSERT(_control_task == -1);
 
+#ifdef __PX4_QURT
+	// On the DSP we seem to get random crashes with a stack size below 13000.
+	const unsigned stack_size = 15000;
+#else
+	const unsigned stack_size = 9000;
+#endif
+
+
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("ekf2",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   9000,
+					   stack_size,
 					   (px4_main_t)&Ekf2::task_main_trampoline,
 					   nullptr);
 

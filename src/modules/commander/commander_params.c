@@ -127,10 +127,11 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * Engine failure triggers only above this throttle value
  *
  * @group Commander
+ * @unit norm
  * @min 0.0
  * @max 1.0
- * @decimal 1
- * @increment 0.05
+ * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -142,7 +143,7 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * @group Commander
  * @min 0.0
  * @max 50.0
- * @unit A
+ * @unit A/%
  * @decimal 2
  * @increment 1
  */
@@ -233,6 +234,17 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * @value 2 Virtual RC by Joystick
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+
+/**
+ * RC input arm/disarm command duration
+ *
+ * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
+ *
+ * @group Commander
+ * @min 100
+ * @max 1500
+ */
+PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 
 /**
  * Time-out for auto disarm after landing

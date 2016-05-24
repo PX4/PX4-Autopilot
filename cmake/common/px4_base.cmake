@@ -364,13 +364,15 @@ function(px4_generate_messages)
 		NAME px4_generate_messages
 		OPTIONS VERBOSE
 		ONE_VALUE OS TARGET
-		MULTI_VALUE MSG_FILES DEPENDS
+		MULTI_VALUE MSG_FILES DEPENDS INCLUDES
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
 	set(QUIET)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
 	endif()
+
+	# headers
 	set(msg_out_path ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
 	set(msg_list)
 	foreach(msg_file ${MSG_FILES})
@@ -383,17 +385,47 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_out_path}
 			-e msg/templates/uorb
-			-t ${CMAKE_BINARY_DIR}/topics_temporary
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_header
 		DEPENDS ${DEPENDS} ${MSG_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		COMMENT "Generating uORB topic headers"
 		VERBATIM
 		)
+
+	# !sources
+	set(msg_source_out_path	${CMAKE_BINARY_DIR}/topics_sources)
+	set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
+	foreach(msg ${msg_list})
+		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_source_files_out}
+		COMMAND ${PYTHON_EXECUTABLE} 
+			Tools/px_generate_uorb_topic_files.py
+			--sources
+			${QUIET}
+			-d msg
+			-o ${msg_source_out_path}
+			-e msg/templates/uorb
+			-t ${CMAKE_BINARY_DIR}/topics_temporary_sources
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		COMMENT "Generating uORB topic sources"
+		VERBATIM
+		)
+	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
+
+	# We remove uORBTopics.cpp to make sure the generator is re-run, which is
+	# necessary when a .msg file is removed and because uORBTopics.cpp depends
+	# on all topics.
+	execute_process(COMMAND rm uORBTopics.cpp
+		WORKING_DIRECTORY ${msg_source_out_path}
+		ERROR_QUIET)
 
 	# multi messages for target OS
 	set(msg_multi_out_path
@@ -404,7 +436,8 @@ function(px4_generate_messages)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_multi_files_out}
 		COMMAND ${PYTHON_EXECUTABLE}
-			Tools/px_generate_uorb_topic_headers.py
+			Tools/px_generate_uorb_topic_files.py
+			--headers
 			${QUIET}
 			-d msg
 			-o ${msg_multi_out_path}
@@ -416,8 +449,13 @@ function(px4_generate_messages)
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
-	add_custom_target(${TARGET}
-		DEPENDS ${msg_multi_files_out} ${msg_files_out})
+
+	add_library(${TARGET}
+		${msg_source_files_out}
+		${msg_multi_files_out}
+		${msg_files_out}
+		)
+
 endfunction()
 
 #=============================================================================
@@ -487,6 +525,24 @@ function(px4_add_adb_push)
 
 	add_custom_target(${OUT}
 		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
+function(px4_add_scp_push)
+	px4_parse_function_args(
+		NAME px4_add_upload
+		ONE_VALUE OS BOARD OUT DEST
+		MULTI_VALUE FILES DEPENDS
+		REQUIRED OS BOARD OUT FILES DEPENDS DEST
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${CMAKE_SOURCE_DIR}/Tools/scp_upload.sh ${FILES} ${DEST}
 		DEPENDS ${DEPENDS}
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
@@ -588,7 +644,7 @@ function(px4_add_common_flags)
 	endif()
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
-		set(max_optimization -O0)
+		set(max_optimization -Os)
 
 		set(optimization_flags
 			-fno-strict-aliasing
@@ -596,7 +652,7 @@ function(px4_add_common_flags)
 			-funsafe-math-optimizations
 			-ffunction-sections
 			-fdata-sections
-			-g -fsanitize=address
+			-g3 -fsanitize=address
 			)
 	else()
 		set(max_optimization -Os)
@@ -655,6 +711,15 @@ function(px4_add_common_flags)
 		-D__CUSTOM_FILE_IO__
 		)
 
+	if (NOT (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*"))
+		# -fcheck-new is a no-op for Clang in general
+		# and has no effect, but can generate a compile
+		# error for some OS
+		list(APPEND cxx_compile_flags
+			-fcheck-new
+		)
+	endif()
+
 	set(visibility_flags
 		-fvisibility=hidden
 		-include visibility.h
@@ -712,7 +777,7 @@ function(px4_add_common_flags)
 		set(added_exe_linker_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections
-			#,--print-gc-sections 
+			#,--print-gc-sections
 			)
 	endif()
 
@@ -772,21 +837,21 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git describe --tags
+		COMMAND git describe --always --tags
 		OUTPUT_VARIABLE git_tag
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
 	#message(STATUS "GIT_TAG = ${git_tag}")
 	execute_process(
-		COMMAND git rev-parse HEAD
-		OUTPUT_VARIABLE git_desc
+		COMMAND git rev-parse --verify HEAD
+		OUTPUT_VARIABLE git_version
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_DESC = ${git_desc}")
-	set(git_desc_short)
-	string(SUBSTRING ${git_desc} 1 16 git_desc_short)
+	#message(STATUS "GIT_VERSION = ${git_version}")
+	set(git_version_short)
+	string(SUBSTRING ${git_version} 1 16 git_version_short)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 
@@ -857,6 +922,9 @@ function(px4_generate_parameters_source)
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
+	if ("${config_generate_parameters_scope}" STREQUAL "ALL")
+		set(SCOPE "")
+	endif()
 	add_custom_command(OUTPUT ${generated_files}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
 		DEPENDS ${XML} ${DEPS} ${SCOPE}

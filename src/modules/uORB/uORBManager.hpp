@@ -187,9 +187,6 @@ public:
 	 *      for the topic.
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
-	 *      If the topic in question is not known (due to an
-	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	int  orb_subscribe(const struct orb_metadata *meta) ;
 

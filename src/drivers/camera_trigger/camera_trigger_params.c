@@ -83,11 +83,8 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
 /**
  * Camera trigger mode
  *
- * 0 disables the trigger, 1 sets it to enabled on command, 2 time based and always on,
- * 3 distance based and always on, 4 distance based and started / stopped via mission or command.
- *
  * @value 0 Disable
- * @value 1 On invididual commands
+ * @value 1 On individual commands
  * @value 2 Time based, always on
  * @value 3 Distance based, always on
  * @value 4 Distance, mission controlled

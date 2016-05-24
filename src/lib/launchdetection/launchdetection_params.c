@@ -45,11 +45,9 @@
  */
 
 /**
- * Enable launch detection.
+ * Launch detection
  *
  * @boolean
- * @min 0
- * @max 1
  * @group Launch detection
  */
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
@@ -61,6 +59,8 @@ PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
  *
  * @unit m/s/s
  * @min 0
+ * @decimal 1
+ * @increment 0.5
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
@@ -71,7 +71,10 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
  * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
  *
  * @unit s
- * @min 0
+ * @min 0.0
+ * @max 5.0
+ * @decimal 2
+ * @increment 0.05
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
@@ -83,7 +86,10 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * Before this timespan is up the throttle will be set to FW_THR_IDLE, set to 0 to deactivate
  *
  * @unit s
- * @min 0
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
@@ -95,8 +101,10 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
  * This allows to limit the maximum pitch angle during a bungee launch (make the launch less steep).
  *
  * @unit deg
- * @min 0
- * @max 45
+ * @min 0.0
+ * @max 45.0
+ * @decimal 1
+ * @increment 0.5
  * @group Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);

@@ -37,6 +37,7 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
+    ../common/board_name.c
     px4flow_init.c
     px4flow_led.c
     px4flow_can.c

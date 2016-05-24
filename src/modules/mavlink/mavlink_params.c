@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,15 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
+ * MAVLink protocol version
+ * @group MAVLink
+ * @value 0 Default to 1, switch to 2 if GCS sends version 2
+ * @value 1 Always use version 1
+ * @value 2 Always use version 2
+ */
+PARAM_DEFINE_INT32(MAV_PROTO_VER, 1);
+
+/**
  * MAVLink Radio ID
  *
  * When non-zero the MAVLink app will attempt to configure the
@@ -67,7 +76,7 @@ PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
  * @min 1
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_TYPE, 1);
+PARAM_DEFINE_INT32(MAV_TYPE, 2);
 
 /**
  * Use/Accept HIL GPS message even if not in HIL mode

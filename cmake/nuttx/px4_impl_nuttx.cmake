@@ -526,7 +526,6 @@ function(px4_os_add_flags)
 
 	set(added_exe_linker_flags) # none currently
 
-
 	set(instrument_flags)
 	if ("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
 		set(instrument_flags

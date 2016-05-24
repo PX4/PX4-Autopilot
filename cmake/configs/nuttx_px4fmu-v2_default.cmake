@@ -69,11 +69,14 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	#systemcmds/sd_bench
+	#systemcmds/tests
 
 	#
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
@@ -86,7 +89,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-##	modules/local_position_estimator - Fit In FLASH
+	#modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -101,6 +104,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	modules/logger
 	modules/sdlog2
 
 	#

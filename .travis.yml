@@ -44,6 +44,7 @@ addons:
     - zlib1g-dev
 
 before_install:
+  - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          pushd .
       && cd ~ && mkdir gcc && cd gcc

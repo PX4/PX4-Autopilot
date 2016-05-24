@@ -79,10 +79,6 @@
 #include <lib/rc/sumd.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
@@ -2506,7 +2502,9 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		gpios |= 3;
 
 		/* flip the buffer to output mode if required */
-		if (GPIO_SET_OUTPUT == function) {
+		if (GPIO_SET_OUTPUT == function ||
+		    GPIO_SET_OUTPUT_LOW == function ||
+		    GPIO_SET_OUTPUT_HIGH == function) {
 			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
 		}
 	}
@@ -2523,6 +2521,14 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 
 			case GPIO_SET_OUTPUT:
 				stm32_configgpio(_gpio_tab[i].output);
+				break;
+
+			case GPIO_SET_OUTPUT_LOW:
+				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
+				break;
+
+			case GPIO_SET_OUTPUT_HIGH:
+				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
 				break;
 
 			case GPIO_SET_ALT_1:
@@ -2720,6 +2726,8 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 
 	case GPIO_SET_OUTPUT:
+	case GPIO_SET_OUTPUT_LOW:
+	case GPIO_SET_OUTPUT_HIGH:
 	case GPIO_SET_INPUT:
 	case GPIO_SET_ALT_1:
 		gpio_set_function(arg, cmd);

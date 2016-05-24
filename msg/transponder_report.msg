@@ -1,4 +1,3 @@
-uint64 timestamp	# Timestamp of this position report
 uint32 ICAO_address 	# ICAO address
 float64 lat 		# Latitude, expressed as degrees
 float64 lon 		# Longitude, expressed as degrees
