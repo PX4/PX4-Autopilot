@@ -32,86 +32,22 @@
 ****************************************************************************/
 
 /**
-* @file mount_params.c
-* @author Leon Müller (thedevleon)
-*
-*/
+ * @file mount_onboard
+ * @author Leon Müller (thedevleon)
+ *
+ */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
+ #ifndef _MOUNT_ONBOARD_H
+ #define _MOUNT_ONBOARD_H
 
-/**
-* Mount operation mode
-*
-* @value 0 DISABLE
-* @value 1 MAVLINK
-* @value 2 RC
-* @value 3 ONBOARD
-* @min 0
-* @max 3
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MODE, 0);
+ #include <sys/types.h>
+ #include <stdbool.h>
 
-/**
-* Mavlink System ID
-*
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
+// Public functions
+bool mount_onboard_init(void);
+void mount_onboard_deinit(void);
+void mount_onboard_configure(int mount_mode, bool stab_roll, bool stab_pitch, bool stab_yaw);
+void mount_onboard_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
+void mount_onboard_point_manual(float roll, float pitch, float yaw);
 
-/**
-* Mavlink Component ID
-*
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
-
-/**
-* Do we want to allow the mount to be controlled when no ROI is set?
-*
-* If set to 1, the mount will be controlled by the rc channels below.
-*
-* @boolean
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAN_CONTROL, 0);
-
-/**
-* Auxiliary channel to control roll.
-*
-* @value 0 Disable
-* @value 1 AUX1
-* @value 2 AUX2
-* @value 3 AUX3
-* @min 0
-* @max 3
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAN_ROLL, 0);
-
-/**
-* Auxiliary channel to control pitch.
-*
-* @value 0 Disable
-* @value 1 AUX1
-* @value 2 AUX2
-* @value 3 AUX3
-* @min 0
-* @max 3
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
-
-/**
-* Auxiliary channel to control yaw.
-*
-* @value 0 Disable
-* @value 1 AUX1
-* @value 2 AUX2
-* @value 3 AUX3
-* @min 0
-* @max 3
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
+ #endif /* _MOUNT_ONBOARD_H */

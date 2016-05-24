@@ -41,6 +41,7 @@
         mount_params.c
  		mount_rc.cpp
         mount_mavlink.cpp
+        mount_onboard.cpp
  	DEPENDS
  		platforms__common
  	)

@@ -118,6 +118,7 @@ set(msg_file_names
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	vehicle_roi.msg
+	vehicle_mount.msg
 	)
 
 # Get absolute paths

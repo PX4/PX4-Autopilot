@@ -64,7 +64,7 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int mount_task;
-typedef enum { IDLE, MAVLINK, RC } mount_state_t;
+typedef enum { IDLE, MAVLINK, RC, ONBOARD } mount_state_t;
 static mount_state_t mount_state = IDLE;
 
 /* functions */
@@ -138,6 +138,7 @@ static int mount_thread_main(int argc, char *argv[])
 	if(params.mnt_mode == 0) { mount_state = IDLE;}
     else if(params.mnt_mode == 1) { mount_state = MAVLINK;}
     else if(params.mnt_mode == 2) { mount_state = RC;}
+	else if(params.mnt_mode == 3) { mount_state = ONBOARD;}
 
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
 	memset(&vehicle_global_position, 0, sizeof(vehicle_global_position));
@@ -273,6 +274,14 @@ static int mount_thread_main(int argc, char *argv[])
 
         mount_rc_deinit();
     }
+	else if (mount_state == ONBOARD)
+	{
+		/** TODO
+		 * add vehicle_mount topic in commander.cpp and
+		 * implement parsing of MAV_CMD_DO_MOUNT_CONFIGURE, MAV_CMD_DO_MOUNT_CONTROL and MAV_CMD_DO_MOUNT_CONTROL_QUAT
+		 * implement onboard mount driver (similar to what the old gimbal driver did)
+		 **/
+	}
 
 	thread_running = false;
 	return 0;
@@ -342,6 +351,10 @@ int mount_main(int argc, char *argv[])
 
 			case RC:
 				errx(0, "running: RC");
+				break;
+
+			case ONBOARD:
+				errx(0, "running: ONBOARD");
 				break;
 
 			}

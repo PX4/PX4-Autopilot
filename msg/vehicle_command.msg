@@ -68,9 +68,9 @@ uint32 VEHICLE_CMD_RESULT_UNSUPPORTED = 3		# Command UNKNOWN/UNSUPPORTED |
 uint32 VEHICLE_CMD_RESULT_FAILED = 4			# Command executed, but failed |
 uint32 VEHICLE_CMD_RESULT_ENUM_END = 5			#
 
-uint32 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permant memory and stop stabilization |
+uint32 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
 uint32 VEHICLE_MOUNT_MODE_NEUTRAL = 1				# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
-uint32 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2			# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization |
+uint32 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2		# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization |
 uint32 VEHICLE_MOUNT_MODE_RC_TARGETING = 3			# Load neutral position and start RC Roll,Pitch,Yaw control with stabilization |
 uint32 VEHICLE_MOUNT_MODE_GPS_POINT = 4				# Load neutral position and start to point to Lat,Lon,Alt |
 uint32 VEHICLE_MOUNT_MODE_ENUM_END = 5				#
