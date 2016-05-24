@@ -75,6 +75,10 @@
 
 using namespace px4::logger;
 
+static Logger *logger_ptr = nullptr;
+static int logger_task = -1;
+static pthread_t writer_thread;
+
 int logger_main(int argc, char *argv[])
 {
 	// logger currently assumes little endian
@@ -464,7 +468,7 @@ void Logger::run()
 		return;
 	}
 
-	int ret = _writer.thread_start(_writer_thread);
+	int ret = _writer.thread_start(writer_thread);
 
 	if (ret) {
 		PX4_ERR("logger: failed to create writer thread (%i)", ret);
@@ -616,7 +620,7 @@ void Logger::run()
 	_writer.notify();
 
 	// wait for thread to complete
-	ret = pthread_join(_writer_thread, NULL);
+	ret = pthread_join(writer_thread, NULL);
 
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);
