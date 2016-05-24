@@ -79,7 +79,7 @@
      }
  }
 
- void mount_rc_point_location(float lat, float lon, float alt)
+ void mount_rc_point_location(double lat, double lon, float alt)
  {
      //TODO
  }
