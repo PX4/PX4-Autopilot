@@ -46,8 +46,10 @@
 // Public functions
 bool mount_onboard_init(void);
 void mount_onboard_deinit(void);
-void mount_onboard_configure(int mount_mode, bool stab_roll, bool stab_pitch, bool stab_yaw);
-void mount_onboard_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
-void mount_onboard_point_manual(float pitch, float roll, float yaw);
+void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw);
+void mount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
+void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw);
+void mount_onboard_point(void);
+void mount_onboard_update_topics(void);
 
  #endif /* _MOUNT_ONBOARD_H */
