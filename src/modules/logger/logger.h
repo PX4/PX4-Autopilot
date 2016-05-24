@@ -203,11 +203,8 @@ private:
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id; ///< id of next subscribed topic
+
 };
 
-Logger *logger_ptr = nullptr;
-int		logger_task = -1;
-pthread_t _writer_thread;
-
-}
-}
+} //namespace logger
+} //namespace px4
