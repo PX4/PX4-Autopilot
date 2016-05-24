@@ -176,7 +176,8 @@ static int mount_thread_main(int argc, char *argv[])
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
 			{
-				//TODO use position_setpoint_triplet->next
+				mount_mavlink_point_location(position_setpoint_triplet->next->lat,
+					position_setpoint_triplet->next->lon, position_setpoint_triplet->next->alt);
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
 			{
@@ -184,7 +185,7 @@ static int mount_thread_main(int argc, char *argv[])
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
 			{
-				//TODO
+				mount_mavlink_point_location(vehicle_roi->lat, vehicle_roi->lon, vehicle_roi->alt);
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
 			{
@@ -221,7 +222,8 @@ static int mount_thread_main(int argc, char *argv[])
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
 			{
-				//TODO use position_setpoint_triplet->next
+				mount_mavlink_point_location(position_setpoint_triplet->next->lat,
+					position_setpoint_triplet->next->lon, position_setpoint_triplet->next->alt);
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
 			{
@@ -229,7 +231,7 @@ static int mount_thread_main(int argc, char *argv[])
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
 			{
-				//TODO
+				mount_mavlink_point_location(vehicle_roi->lat, vehicle_roi->lon, vehicle_roi->alt);
 			}
 			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
 			{

@@ -47,7 +47,7 @@
  bool mount_rc_init(void);
  void mount_rc_deinit(void);
  void mount_rc_configure(int roi_mode, bool man_control);
- void mount_rc_point_location(float x, float y, float z);
+ void mount_rc_point_location(float lat, float lon, float alt);
  void mount_rc_point_manual(float roll, float pitch, float yaw);
 
  #endif /* _MOUNT_RC_H */

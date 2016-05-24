@@ -121,7 +121,10 @@
   */
 
 
- void mount_mavlink_point_location(float x, float y, float z)
+/*
+ *
+ */
+ void mount_mavlink_point_location(float lan, float lot, float alt)
  {
     vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
     vehicle_command->target_system = sys_id;
