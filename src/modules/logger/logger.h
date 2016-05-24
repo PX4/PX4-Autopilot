@@ -165,6 +165,13 @@ private:
 	bool write_wait(void *ptr, size_t size);
 
 	/**
+	 * Write data to the logger and handle dropouts.
+	 * Must be called with _writer.lock() held.
+	 * @return true if data written, false otherwise (on overflow)
+	 */
+	bool write(void *ptr, size_t size);
+
+	/**
 	 * Get the time for log file name
 	 * @param tt returned time
 	 * @param boot_time use time when booted instead of current time
