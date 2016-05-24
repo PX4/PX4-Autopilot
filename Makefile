@@ -188,8 +188,8 @@ zubaxgnss-v1_bootloader:
 esc35-v1_bootloader:
 	$(call cmake-build,nuttx_esc35-v1_bootloader)
 
-nuttx_sim_simple:
-	$(call cmake-build,$@)
+px4fmu-v2_lpe:
+	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
@@ -276,7 +276,7 @@ endif
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size
 
-check_defaults: \
+checks_defaults: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
@@ -286,7 +286,7 @@ check_defaults: \
 	check_px4esc-v1_default \
 	check_s2740vc-v1_default \
 
-check_bootloaders: \
+checks_bootloaders: \
 	check_px4cannode-v1_bootloader \
 	check_esc35-v1_bootloader \
 	check_px4esc-v1_bootloader \
@@ -294,25 +294,25 @@ check_bootloaders: \
 	check_s2740vc-v1_bootloader \
 	check_zubaxgnss-v1_bootloader \
 
-check_tests: \
+checks_tests: \
 	check_px4fmu-v2_test
 
-check_alts: \
+checks_alts: \
 	check_px4fmu-v2_lpe \
 	check_px4fmu-v2_ekf2 \
 
-check_uavcan: \
+checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
-	
-check_sitls: \
+
+checks_sitls: \
 	check_posix_sitl_default \
 	check_posix_sitl_test \
 
-check_last: \
+checks_last: \
 	check_unittest \
 	check_format \
 
-check: check_defaults check_tests check_alts check_uavcan check_bootloaders check_sitls check_last
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
