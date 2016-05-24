@@ -151,7 +151,7 @@ static int mount_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	if (mount_state == MAVLINK) {
-		if (!mount_mavlink_init()) {
+		if (!mount_mavlink_init(params.mnt_mav_sysid, params.mnt_mav_compid)) {
 			err(1, "could not initiate mount_mavlink");
 		}
 
@@ -159,7 +159,12 @@ static int mount_thread_main(int argc, char *argv[])
 
 		while (!thread_should_exit) {
             mount_update_topics();
-            mount_mavlink_configure(vehicle_roi.mode);
+
+			if(vehicle_roi_updated)
+			{
+				mount_mavlink_configure(vehicle_roi.mode, (params.mnt_man_control == 1));
+				vehicle_roi_updated = false;
+			}
 
 			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
 			{
@@ -199,9 +204,37 @@ static int mount_thread_main(int argc, char *argv[])
 
         while (!thread_should_exit) {
             mount_update_topics();
-            mount_rc_configure(vehicle_roi.mode);
 
-			//TODO
+			if(vehicle_roi_updated)
+			{
+				mount_rc_configure(vehicle_roi.mode, (params.mnt_man_control == 1));
+				vehicle_roi_updated = false;
+			}
+
+			if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE)
+			{
+				if(params.mnt_man_control && rc_channels_updated)
+				{
+					//TODO use mount_rc_point_manual to control gimbal
+					//with specified aux channels via the parameters
+				}
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT)
+			{
+				//TODO use position_setpoint_triplet->next
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX)
+			{
+				//TODO how to do this?
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION)
+			{
+				//TODO
+			}
+			else if(vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET)
+			{
+				//TODO is this even suported?
+			}
         }
 
         mount_rc_deinit();

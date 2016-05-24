@@ -45,6 +45,9 @@
  #include <arch/math.h>
  #include <geo/geo.h>
 
+ #include <uORB/uORB.h>
+ #include <uORB/topics/vehicle_roi.h>
+
  bool mount_rc_init()
  {
     //TODO
@@ -56,14 +59,28 @@
     //TODO
  }
 
- void mount_rc_configure(int mode)
+ void mount_rc_configure(int roi_mode, bool man_control)
  {
-    //TODO
+     switch (roi_mode) {
+         case vehicle_roi_s::VEHICLE_ROI_NONE:
+             if(!man_control) {/* TODO center mount with mount_rc_point_manual */}
+             break;
+         case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
+             break;
+         case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
+             break;
+         case vehicle_roi_s::VEHICLE_ROI_LOCATION:
+             break;
+         case vehicle_roi_s::VEHICLE_ROI_TARGET:
+             break;
+         default:
+            //TODO center mount with mount_rc_point_manual
+            break;
+     }
  }
 
  void mount_rc_point_location(float x, float y, float z)
  {
-    //TODO
  }
 
  void mount_rc_point_manual(float roll, float pitch, float yaw)

@@ -44,9 +44,9 @@
  #include <stdbool.h>
 
  // Public functions
- bool mount_mavlink_init(void);
+ bool mount_mavlink_init(int sysid, int compid);
  void mount_mavlink_deinit(void);
- void mount_mavlink_configure(int mode);
+ void mount_mavlink_configure(int roi_mode, bool man_control);
  void mount_mavlink_point_location(float x, float y, float z);
  void mount_mavlink_point_manual(float roll, float pitch, float yaw);
 

@@ -38,8 +38,9 @@
  		-Os
  	SRCS
  		mount.cpp
- 		mount_rc.c
-        mount_mavlink.c
+        mount_params.c
+ 		mount_rc.cpp
+        mount_mavlink.cpp
  	DEPENDS
  		platforms__common
  	)
