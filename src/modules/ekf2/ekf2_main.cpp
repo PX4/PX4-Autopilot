@@ -79,6 +79,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -139,6 +140,7 @@ private:
 	int 	_range_finder_sub = -1;
 	int		_actuator_armed_sub = -1;
 	int		_vehicle_land_detected_sub = -1;
+	int 	_status_sub = -1;
 
 	bool            _prev_landed = true; // landed status from the previous frame
 
@@ -252,6 +254,10 @@ private:
 	control::BlockParamFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
 	control::BlockParamFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
 
+	// control of airspeed and sideslip fusion
+	control::BlockParamFloat _arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
+													// the minimum airspeed which will still be fused
+
 	int update_subscriptions();
 
 };
@@ -339,7 +345,9 @@ Ekf2::Ekf2():
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
 	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, &_params->switch_on_accel_bias),
-	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err)
+	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err),
+	_arspFusionThreshold(this, "EKF2_ARSP_THR", false)
+
 {
 
 }
@@ -365,6 +373,7 @@ void Ekf2::task_main()
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = _sensors_sub;
@@ -384,6 +393,7 @@ void Ekf2::task_main()
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
+	vehicle_status_s _vehicle_status = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -417,9 +427,18 @@ void Ekf2::task_main()
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
 		bool vehicle_land_detected_updated = false;
+		bool vehicle_status_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
+
+		orb_check(_status_sub, &vehicle_status_updated);
+
+		if (vehicle_status_updated) {
+			orb_copy(ORB_ID(vehicle_status), _status_sub, &_vehicle_status);
+		}
+
+
 		orb_check(_gps_sub, &gps_updated);
 
 		if (gps_updated) {
@@ -488,10 +507,10 @@ void Ekf2::task_main()
 			_ekf.setGpsData(gps.timestamp_position, &gps_msg);
 		}
 
-		// read airspeed data if available
-		float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
-
-		if (airspeed_updated && airspeed.true_airspeed_m_s > 7.0f) {
+		// only set airspeed data if condition for airspeed fusion are met
+		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s;
+		if (fuse_airspeed) {
+			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
@@ -853,13 +872,10 @@ void Ekf2::task_main()
 				replay.rng_timestamp = 0;
 			}
 
-			if (airspeed_updated) {
+			if (fuse_airspeed) {
 				replay.asp_timestamp = airspeed.timestamp;
 				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
 				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
-				replay.true_airspeed_unfiltered_m_s = airspeed.true_airspeed_unfiltered_m_s;
-				replay.air_temperature_celsius = airspeed.air_temperature_celsius;
-				replay.confidence = airspeed.confidence;
 
 			} else {
 				replay.asp_timestamp = 0;
