@@ -367,6 +367,8 @@ function(px4_generate_messages)
 		MULTI_VALUE MSG_FILES DEPENDS INCLUDES
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
+	if("${config_nuttx_config}" STREQUAL "bootloader")
+	else()
 	set(QUIET)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
@@ -455,7 +457,7 @@ function(px4_generate_messages)
 		${msg_multi_files_out}
 		${msg_files_out}
 		)
-
+    endif()
 endfunction()
 
 #=============================================================================
