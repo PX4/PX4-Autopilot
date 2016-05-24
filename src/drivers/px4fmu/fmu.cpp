@@ -875,6 +875,7 @@ PX4FMU::update_pwm_out_state(bool on)
 
 void PX4FMU::setWIFIstate(int32_t wifi_mode, bool armed)
 {
+#ifdef WIFI_TX
 	switch (wifi_mode) {
 	case 0: /* always off */
 		WIFI_TX(0);
@@ -894,6 +895,7 @@ void PX4FMU::setWIFIstate(int32_t wifi_mode, bool armed)
 		WIFI_TX(1);
 		break;
 	}
+#endif
 }
 
 void
@@ -912,14 +914,18 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
+#ifdef WIFI_TX
 		/* read wifi TX control parameter and init the TX enable pin */
-		_wifi_tx_param = param_find("WIFI_TX_MODE");
-		param_get(_wifi_tx_param, &_wifi_tx_mode);
+		if (_wifi_tx_param != PARAM_INVALID) {
+			_wifi_tx_param = param_find("WIFI_TX_MODE");
+			param_get(_wifi_tx_param, &_wifi_tx_mode);
+		}
 
 		if (_wifi_tx_mode != 0) {
 			/* WIFI should be on at boot time */
 			WIFI_TX(1);
 		}
+#endif
 
 #ifdef RC_SERIAL_PORT
 		// dsm_init sets some file static variables and returns a file descriptor
@@ -1172,8 +1178,10 @@ PX4FMU::cycle()
 		}
 
 		/* check for update to WIFI control parameter */
-		param_get(_wifi_tx_param, &_wifi_tx_mode);
-		setWIFIstate(_wifi_tx_mode, _armed.armed);
+		if (_wifi_tx_param != PARAM_INVALID) {
+			param_get(_wifi_tx_param, &_wifi_tx_mode);
+			setWIFIstate(_wifi_tx_mode, _armed.armed);
+		}
 	}
 
 	/* update ADC sampling */
