@@ -261,6 +261,9 @@ __BEGIN_DECLS
 #define GPIO_8266_PD			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_8266_RST			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 
+/* ESP8266 TX control */
+#define WIFI_TX(_s)				stm32_gpiowrite(GPIO_8266_PD, _s);	/* enable/disable 8266 TX */
+
 /* Power switch controls ******************************************************/
 
 #define POWER_SPEKTRUM(_s)			px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
