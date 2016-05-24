@@ -1511,6 +1511,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
+			log_msg.body.log_STAT.is_rot_wing = (uint8_t)buf_status.is_rotary_wing;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
@@ -1595,9 +1596,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
 					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
 					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
-					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
-					log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
-					log_msg.body.log_RPL6.confidence = buf.replay.confidence;
 					LOGBUFFER_WRITE_AND_COUNT(RPL6);
 				}
 			}

@@ -417,9 +417,6 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_airspeed.timestamp = replay_part6.time_airs_usec;
 		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
 		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
-		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
-		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
-		_airspeed.confidence = replay_part6.confidence;
 		_read_part6 = true;
 
 	}
