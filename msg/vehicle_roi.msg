@@ -10,6 +10,6 @@ uint8 VEHICLE_ROI_ENUM_END = 5
 uint8 mode          # ROI mode (see above)
 uint32 mission_seq  # mission sequence to point to
 uint32 target_seq   # target sequence to point to
-float32 lat			    # Latitude to point to
-float32 lon			    # Longitude to point to
+float64 lat			    # Latitude to point to
+float64 lon			    # Longitude to point to
 float32 alt			    # Altitude to point to
