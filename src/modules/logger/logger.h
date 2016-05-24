@@ -81,6 +81,13 @@ public:
 	~Logger();
 
 	/**
+	 * Tell the logger that we're in replay mode. This must be called
+	 * before starting the logger.
+	 * @param file_name file name of the used log replay file. Will be copied.
+	 */
+	static void setReplayFile(const char *file_name);
+
+	/**
 	 * Add a topic to be logged. This must be called before start_log()
 	 * (because it does not write an ADD_LOGGED_MSG message).
 	 * @param name topic name
@@ -211,6 +218,7 @@ private:
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id; ///< id of next subscribed topic
 
+	static char		*_replay_file_name;
 };
 
 } //namespace logger
