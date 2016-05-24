@@ -42,7 +42,8 @@
 
 /**
 * Mount operation mode
-*
+* MAVLINK and RC use the ROI (or RC input if enabled) to control a gimbal.
+* ONBOARD uses the vehicle_mount topic to control a rc gimbal.
 * @value 0 DISABLE
 * @value 1 MAVLINK
 * @value 2 RC

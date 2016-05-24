@@ -1077,30 +1077,18 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
 
-		uint32_t mode = (uint32_t) cmd->param1;
+		roi->mode = cmd->param1;
 
-		if (mode == vehicle_command_s::VEHICLE_ROI_NONE) {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_NONE;
+		if (roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+			roi->mission_seq =  cmd->param2;
 		}
-		else if (mode == vehicle_command_s::VEHICLE_ROI_WPNEXT) {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPNEXT;
-		}
-		else if (mode == vehicle_command_s::VEHICLE_ROI_WPINDEX) {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_WPINDEX;
-			roi->mission_seq = (uint32_t) cmd->param2;
-		}
-		else if (mode == vehicle_command_s::VEHICLE_ROI_LOCATION) {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_LOCATION;
+		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
 			roi->lat = cmd->param5;
 			roi->lon = cmd->param6;
 			roi->alt = cmd->param7;
 		}
-		else if (mode == vehicle_command_s::VEHICLE_ROI_TARGET) {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_TARGET;
-			roi->target_seq = (uint32_t) cmd->param2;
-		}
-		else {
-			roi->mode = vehicle_roi_s::VEHICLE_ROI_NONE;
+		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+			roi->target_seq = cmd->param2;
 		}
 
 		if (*roi_pub != nullptr) {
@@ -1120,7 +1108,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		mount->pitch_lat = cmd->param1;
 		mount->roll_lon = cmd->param2;
 		mount->yaw_alt = cmd->param3;
-		mount->mode = (uint8_t) cmd->param7;
+		mount->mode = cmd->param7;
 		mount->config = false;
 
 		if (*mount_pub != nullptr) {
@@ -1135,7 +1123,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	}
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
 	{
-		mount->mode = (uint8_t) cmd->param1;
+		mount->mode = cmd->param1;
 		mount->stab_roll = ((uint8_t) cmd->param2 == 1);
 		mount->stab_pitch = ((uint8_t) cmd->param3 == 1);
 		mount->stab_yaw = ((uint8_t) cmd->param4 == 1);
