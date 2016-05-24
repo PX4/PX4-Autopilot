@@ -41,6 +41,8 @@
 
 #include <uORB/uORB.h>
 #include <uORB/uORBTopics.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -439,6 +441,7 @@ void Logger::run()
 
 	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
+	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
 
 
 	add_topic("sensor_gyro", 0);
@@ -547,35 +550,34 @@ void Logger::run()
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-						if (_writer.write(buffer, msg_size, _dropout_start)) {
+						if (write(buffer, msg_size)) {
 
 #ifdef DBGPRINT
 							total_bytes += msg_size;
 #endif /* DBGPRINT */
 
-							if (_dropout_start) {
-								float dropout_duration = (float)(hrt_elapsed_time(&_dropout_start) / 1000) / 1.e3f;
-
-								if (dropout_duration > _max_dropout_duration) {
-									_max_dropout_duration = dropout_duration;
-								}
-
-								_dropout_start = 0;
-							}
-
 							data_written = true;
 
 						} else {
-
-							if (!_dropout_start) {
-								_dropout_start = hrt_absolute_time();
-								++_write_dropouts;
-								_high_water = 0;
-							}
-
 							break;	// Write buffer overflow, skip this record
 						}
 					}
+				}
+			}
+
+			//check for new mavlink log message
+			if (mavlink_log_sub.check_updated()) {
+				mavlink_log_sub.update();
+				message_logging_s log_msg;
+				log_msg.log_level = mavlink_log_sub.get().severity + '0';
+				log_msg.timestamp = mavlink_log_sub.get().timestamp;
+				const char *message = (const char *)mavlink_log_sub.get().text;
+				int message_len = strlen(message);
+
+				if (message_len > 0) {
+					strncpy(log_msg.message, message, sizeof(log_msg.message));
+					log_msg.msg_size = sizeof(log_msg) - sizeof(log_msg.message) - MSG_HEADER_LEN + message_len;
+					write(&log_msg, log_msg.msg_size + MSG_HEADER_LEN);
 				}
 			}
 
@@ -640,6 +642,32 @@ void Logger::run()
 		orb_unadvertise(_mavlink_log_pub);
 		_mavlink_log_pub = nullptr;
 	}
+}
+
+bool Logger::write(void *ptr, size_t size)
+{
+	if (_writer.write(ptr, size, _dropout_start)) {
+
+		if (_dropout_start) {
+			float dropout_duration = (float)(hrt_elapsed_time(&_dropout_start) / 1000) / 1.e3f;
+
+			if (dropout_duration > _max_dropout_duration) {
+				_max_dropout_duration = dropout_duration;
+			}
+
+			_dropout_start = 0;
+		}
+
+		return true;
+	}
+
+	if (!_dropout_start) {
+		_dropout_start = hrt_absolute_time();
+		++_write_dropouts;
+		_high_water = 0;
+	}
+
+	return false;
 }
 
 int Logger::create_log_dir(tm *tt)

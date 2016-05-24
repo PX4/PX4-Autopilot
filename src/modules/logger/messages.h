@@ -42,6 +42,7 @@ enum class MessageType : uint8_t {
 	REMOVE_LOGGED_MSG = 'R',
 	SYNC = 'S',
 	DROPOUT = 'O',
+	LOGGING = 'L',
 };
 
 
@@ -106,6 +107,15 @@ struct message_info_header_s {
 
 	uint8_t key_len;
 	char key[255];
+};
+
+struct message_logging_s {
+	uint16_t msg_size; //size of message - MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::LOGGING);
+
+	uint8_t log_level; //same levels as in the linux kernel
+	uint64_t timestamp;
+	char message[255];
 };
 
 struct message_parameter_header_s {
