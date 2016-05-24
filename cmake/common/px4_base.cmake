@@ -602,7 +602,6 @@ function(px4_add_common_flags)
 		-Wall
 		-Werror
 		-Wextra
-		-Wpacked
 		-Wno-sign-compare
 		-Wshadow
 		-Wfloat-equal
@@ -842,7 +841,7 @@ function(px4_create_git_hash_header)
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
-	#message(STATUS "GIT_TAG = ${git_tag}")
+	message(STATUS "GIT_TAG = ${git_tag}")
 	execute_process(
 		COMMAND git rev-parse --verify HEAD
 		OUTPUT_VARIABLE git_version
