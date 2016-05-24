@@ -81,6 +81,9 @@ static Logger *logger_ptr = nullptr;
 static int logger_task = -1;
 static pthread_t writer_thread;
 
+
+char *Logger::_replay_file_name = nullptr;
+
 int logger_main(int argc, char *argv[])
 {
 	// logger currently assumes little endian
@@ -735,14 +738,21 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 		time_ok = get_log_time(&tt, false);
 	}
 
+	const char *replay_suffix = "";
+
+	if (_replay_file_name) {
+		replay_suffix = "_replayed";
+	}
+
+
 	if (time_ok) {
 		if (create_log_dir(&tt)) {
 			return -1;
 		}
 
 		char log_file_name[64] = "";
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.ulg", &tt);
-		snprintf(file_name, file_name_size, "%s/%s", _log_dir, log_file_name);
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S", &tt);
+		snprintf(file_name, file_name_size, "%s/%s%s.ulg", _log_dir, log_file_name, replay_suffix);
 
 	} else {
 		if (create_log_dir(nullptr)) {
@@ -754,7 +764,7 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
-			snprintf(file_name, file_name_size, "%s/log%03u.ulg", _log_dir, file_number);
+			snprintf(file_name, file_name_size, "%s/log%03u%s.ulg", _log_dir, file_number, replay_suffix);
 
 			if (!file_exist(file_name)) {
 				break;
@@ -771,6 +781,15 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 
 
 	return 0;
+}
+
+void Logger::setReplayFile(const char *file_name)
+{
+	if (_replay_file_name) {
+		free(_replay_file_name);
+	}
+
+	_replay_file_name = strdup(file_name);
 }
 
 bool Logger::get_log_time(struct tm *tt, bool boot_time)
@@ -996,6 +1015,10 @@ void Logger::write_version()
 	if (_log_utc_offset != PARAM_INVALID) {
 		param_get(_log_utc_offset, &utc_offset);
 		write_info("time_ref_utc", utc_offset * 60);
+	}
+
+	if (_replay_file_name) {
+		write_info("replay", _replay_file_name);
 	}
 }
 
