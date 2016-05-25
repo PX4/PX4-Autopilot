@@ -489,9 +489,9 @@ void Ekf2::task_main()
 		}
 
 		// read airspeed data if available
-		float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
-
 		if (airspeed_updated && airspeed.true_airspeed_m_s > 7.0f) {
+			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
