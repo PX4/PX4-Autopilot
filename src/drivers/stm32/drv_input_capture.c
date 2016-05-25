@@ -107,7 +107,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 				       hrt_abstime isrs_time , uint16_t isrs_rcnt)
 {
 	uint16_t capture = _REG32(timer, chan->ccr_offset);
-	channel_stats[chan_index].last_edge = stm32_gpioread(chan->gpio_in);
+	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
 	if ((isrs_rcnt - capture) > channel_stats[chan_index].latnecy) {
 		channel_stats[chan_index].latnecy = (isrs_rcnt - capture);

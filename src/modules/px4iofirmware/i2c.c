@@ -112,8 +112,8 @@ interface_init(void)
 	modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C1RST, 0);
 
 	/* configure the i2c GPIOs */
-	stm32_configgpio(GPIO_I2C1_SCL);
-	stm32_configgpio(GPIO_I2C1_SDA);
+	px4_arch_configgpio(GPIO_I2C1_SCL);
+	px4_arch_configgpio(GPIO_I2C1_SDA);
 
 	/* soft-reset the block */
 	rCR1 |= I2C_CR1_SWRST;

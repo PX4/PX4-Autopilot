@@ -760,7 +760,7 @@ hrt_init(void)
 
 #ifdef HRT_PPM_CHANNEL
 	/* configure the PPM input pin */
-	stm32_configgpio(GPIO_PPM_IN);
+	px4_arch_configgpio(GPIO_PPM_IN);
 #endif
 }
 

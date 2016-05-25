@@ -70,28 +70,28 @@
 __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
-	stm32_configgpio(GPIO_SPI_CS_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_HMC5983);
-	stm32_configgpio(GPIO_SPI_CS_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU9250);
+	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
+	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
-	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 
-	stm32_configgpio(GPIO_DRDY_MPU9250);
-	stm32_configgpio(GPIO_DRDY_HMC5983);
-	stm32_configgpio(GPIO_DRDY_ICM_20608_G);
+	px4_arch_configgpio(GPIO_DRDY_MPU9250);
+	px4_arch_configgpio(GPIO_DRDY_HMC5983);
+	px4_arch_configgpio(GPIO_DRDY_ICM_20608_G);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
-	stm32_configgpio(GPIO_SPI_CS_FRAM);
-	stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+	px4_arch_configgpio(GPIO_SPI_CS_FRAM);
+	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
 #endif
 
 }
@@ -103,10 +103,10 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	switch (devid) {
 	case PX4_SPIDEV_ICM:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
 		break;
 
 	case PX4_SPIDEV_ACCEL_MAG:
@@ -115,26 +115,26 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
 
 	case PX4_SPIDEV_HMC:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
 
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
 
 	default:
@@ -156,14 +156,14 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	switch (devid) {
 	case SPIDEV_FLASH:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
 		break;
 
 	default:

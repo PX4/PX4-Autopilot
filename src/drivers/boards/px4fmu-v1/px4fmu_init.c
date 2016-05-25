@@ -150,8 +150,8 @@ __EXPORT int nsh_archinitialize(void)
 	int result;
 
 	/* configure always-on ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
+	px4_arch_configgpio(GPIO_ADC1_IN10);
+	px4_arch_configgpio(GPIO_ADC1_IN11);
 	/* IN12 and IN13 further below */
 
 	/* configure the high-resolution time/callout interface */
@@ -223,8 +223,8 @@ __EXPORT int nsh_archinitialize(void)
 	spi2 = NULL;
 	message("[boot] Enabling IN12/13 instead of SPI2\n");
 	/* no SPI2, use pins for ADC */
-	stm32_configgpio(GPIO_ADC1_IN12);
-	stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+	px4_arch_configgpio(GPIO_ADC1_IN12);
+	px4_arch_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 #endif
 
 	/* Get the SPI port for the microSD slot */

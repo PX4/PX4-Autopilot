@@ -360,7 +360,7 @@ ADC::update_system_power(hrt_abstime now)
 
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
-	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
+	system_power.usb_connected = px4_arch_gpioread(GPIO_OTGFS_VBUS);
 
 #if defined (CONFIG_ARCH_BOARD_MINDPX_V2)
 	// note that the valid pins are active low
@@ -372,7 +372,7 @@ ADC::update_system_power(hrt_abstime now)
 	system_power.hipower_5V_OC = 1;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 	// note that the valid pins are active high
-	system_power.brick_valid   = stm32_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.brick_valid   = px4_arch_gpioread(GPIO_VDD_BRICK_VALID);
 	system_power.servo_valid   = 1;
 
 	// OC pins are not supported
@@ -380,12 +380,12 @@ ADC::update_system_power(hrt_abstime now)
 	system_power.hipower_5V_OC = 0;
 #else
 	// note that the valid pins are active low
-	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
-	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
+	system_power.brick_valid   = !px4_arch_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.servo_valid   = !px4_arch_gpioread(GPIO_VDD_SERVO_VALID);
 
 	// OC pins are active low
-	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
-	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+	system_power.periph_5V_OC  = !px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC);
+	system_power.hipower_5V_OC = !px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC);
 #endif
 
 	/* lazily publish */

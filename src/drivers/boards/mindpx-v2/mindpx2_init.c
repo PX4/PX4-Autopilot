@@ -230,23 +230,23 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
+	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-//	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-//	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-//	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-//	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+//	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+//	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+//	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+//	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -360,12 +360,12 @@ __EXPORT int nsh_archinitialize(void)
 #endif
 
 
-	stm32_configgpio(GPIO_I2C2_SCL);
-	stm32_configgpio(GPIO_I2C2_SDA);
+	px4_arch_configgpio(GPIO_I2C2_SCL);
+	px4_arch_configgpio(GPIO_I2C2_SDA);
 	message("[boot] Initialized ext I2C Port\n");
 
-	stm32_configgpio(GPIO_I2C1_SCL);
-	stm32_configgpio(GPIO_I2C1_SDA);
+	px4_arch_configgpio(GPIO_I2C1_SCL);
+	px4_arch_configgpio(GPIO_I2C1_SDA);
 	message("[boot] Initialized onboard I2C Port\n");
 
 

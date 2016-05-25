@@ -94,7 +94,7 @@
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
-#define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
+#define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
 #define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
 /*
@@ -408,7 +408,7 @@ PX4FMU::PX4FMU() :
 
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
-	stm32_configgpio(GPIO_SBUS_INV);
+	px4_arch_configgpio(GPIO_SBUS_INV);
 #endif
 
 	// If there is no safety button, disable it on boot.
@@ -540,7 +540,7 @@ PX4FMU:: safety_check_button(void)
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
-	stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+	px4_arch_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
 
 	if (blink_counter > 15) {
 		blink_counter = 0;
@@ -901,7 +901,7 @@ void PX4FMU::rc_io_invert(bool invert)
 
 	if (!invert) {
 		// set FMU_RC_OUTPUT high to pull RC_INPUT up
-		stm32_gpiowrite(GPIO_RC_OUT, 1);
+		px4_arch_gpiowrite(GPIO_RC_OUT, 1);
 	}
 }
 #endif
@@ -951,7 +951,7 @@ PX4FMU::cycle()
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
-		stm32_unconfiggpio(GPIO_PPM_IN);
+		px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif
 
 		_initialized = true;
@@ -1122,7 +1122,7 @@ PX4FMU::cycle()
 
 		if (_safety_disabled) {
 			/* safety switch disabled, turn LED on solid */
-			stm32_gpiowrite(GPIO_LED_SAFETY, 0);
+			px4_arch_gpiowrite(GPIO_LED_SAFETY, 0);
 			_safety_off = true;
 
 		} else {
@@ -1391,7 +1391,7 @@ PX4FMU::cycle()
 		if (_rc_scan_begin == 0) {
 			_rc_scan_begin = _cycle_timestamp;
 			// Configure timer input pin for CPPM
-			stm32_configgpio(GPIO_PPM_IN);
+			px4_arch_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
@@ -1412,7 +1412,7 @@ PX4FMU::cycle()
 
 		} else {
 			// disable CPPM input by mapping it away from the timer capture input
-			stm32_unconfiggpio(GPIO_PPM_IN);
+			px4_arch_unconfiggpio(GPIO_PPM_IN);
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SBUS);
 		}
@@ -2176,37 +2176,37 @@ PX4FMU::sensor_reset(int ms)
 	}
 
 	/* disable SPI bus */
-	stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
-	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
-	stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
-	stm32_configgpio(GPIO_SPI_CS_MPU_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_GYRO_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
 
-	stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
-	stm32_configgpio(GPIO_SPI1_SCK_OFF);
-	stm32_configgpio(GPIO_SPI1_MISO_OFF);
-	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
+	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
+	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
 
-	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	stm32_configgpio(GPIO_GYRO_DRDY_OFF);
-	stm32_configgpio(GPIO_MAG_DRDY_OFF);
-	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
-	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
+	px4_arch_configgpio(GPIO_GYRO_DRDY_OFF);
+	px4_arch_configgpio(GPIO_MAG_DRDY_OFF);
+	px4_arch_configgpio(GPIO_ACCEL_DRDY_OFF);
+	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
 
-	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	/* set the sensor rail off */
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -2215,36 +2215,36 @@ PX4FMU::sensor_reset(int ms)
 	/* re-enable power */
 
 	/* switch the sensor rail back on */
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
-	stm32_configgpio(GPIO_SPI_CS_GYRO);
-	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG);
-	stm32_configgpio(GPIO_SPI_CS_BARO);
-	stm32_configgpio(GPIO_SPI_CS_MPU);
+	px4_arch_configgpio(GPIO_SPI_CS_GYRO);
+	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	px4_arch_configgpio(GPIO_SPI_CS_BARO);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
-	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
-	stm32_configgpio(GPIO_SPI1_SCK);
-	stm32_configgpio(GPIO_SPI1_MISO);
-	stm32_configgpio(GPIO_SPI1_MOSI);
+	px4_arch_configgpio(GPIO_SPI1_SCK);
+	px4_arch_configgpio(GPIO_SPI1_MISO);
+	px4_arch_configgpio(GPIO_SPI1_MOSI);
 
 	// // XXX bring up the EXTI pins again
-	// stm32_configgpio(GPIO_GYRO_DRDY);
-	// stm32_configgpio(GPIO_MAG_DRDY);
-	// stm32_configgpio(GPIO_ACCEL_DRDY);
-	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+	// px4_arch_configgpio(GPIO_GYRO_DRDY);
+	// px4_arch_configgpio(GPIO_MAG_DRDY);
+	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
+	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
 
 #endif
 #endif
@@ -2255,35 +2255,35 @@ PX4FMU::sensor_reset(int ms)
 	}
 
 	/* disable SPI bus */
-	stm32_configgpio(GPIO_SPI_CS_OFF_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_OFF_HMC5983);
-	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_MPU9250);
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_HMC5983);
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_MS5611);
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
 
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
 
-	stm32_configgpio(GPIO_SPI1_SCK_OFF);
-	stm32_configgpio(GPIO_SPI1_MISO_OFF);
-	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
+	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
+	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
 
-	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
-	stm32_configgpio(GPIO_DRDY_OFF_HMC5983);
-	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
+	px4_arch_configgpio(GPIO_DRDY_OFF_MPU9250);
+	px4_arch_configgpio(GPIO_DRDY_OFF_HMC5983);
+	px4_arch_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
 
-	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
-	stm32_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
-	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
+	px4_arch_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
+	px4_arch_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
+	px4_arch_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
 
 	/* set the sensor rail off */
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -2292,36 +2292,36 @@ PX4FMU::sensor_reset(int ms)
 	/* re-enable power */
 
 	/* switch the sensor rail back on */
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
-	stm32_configgpio(GPIO_SPI_CS_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_HMC5983);
-	stm32_configgpio(GPIO_SPI_CS_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU9250);
+	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
+	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
-	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 
-	stm32_configgpio(GPIO_SPI1_SCK);
-	stm32_configgpio(GPIO_SPI1_MISO);
-	stm32_configgpio(GPIO_SPI1_MOSI);
+	px4_arch_configgpio(GPIO_SPI1_SCK);
+	px4_arch_configgpio(GPIO_SPI1_MISO);
+	px4_arch_configgpio(GPIO_SPI1_MOSI);
 
 	// // XXX bring up the EXTI pins again
-	// stm32_configgpio(GPIO_GYRO_DRDY);
-	// stm32_configgpio(GPIO_MAG_DRDY);
-	// stm32_configgpio(GPIO_ACCEL_DRDY);
-	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+	// px4_arch_configgpio(GPIO_GYRO_DRDY);
+	// px4_arch_configgpio(GPIO_MAG_DRDY);
+	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
+	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
 
 #endif
 #endif
@@ -2333,39 +2333,39 @@ PX4FMU::sensor_reset(int ms)
 	}
 
 	/* disable SPI bus */
-	stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
-	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
-	stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
-	//      stm32_configgpio(GPIO_SPI_CS_FRAM_OFF);
-	stm32_configgpio(GPIO_SPI_CS_MPU_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_GYRO_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
+	//      px4_arch_configgpio(GPIO_SPI_CS_FRAM_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
 
-	stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
-	//       stm32_gpiowrite(GPIO_SPI_CS_FRAM_OFF,0);
-	stm32_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+	//       px4_arch_gpiowrite(GPIO_SPI_CS_FRAM_OFF,0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
-	stm32_configgpio(GPIO_SPI4_SCK_OFF);
-	stm32_configgpio(GPIO_SPI4_MISO_OFF);
-	stm32_configgpio(GPIO_SPI4_MOSI_OFF);
+	px4_arch_configgpio(GPIO_SPI4_SCK_OFF);
+	px4_arch_configgpio(GPIO_SPI4_MISO_OFF);
+	px4_arch_configgpio(GPIO_SPI4_MOSI_OFF);
 
-	stm32_gpiowrite(GPIO_SPI4_SCK_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI4_MISO_OFF, 0);
-	stm32_gpiowrite(GPIO_SPI4_MOSI_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI4_SCK_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI4_MISO_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI4_MOSI_OFF, 0);
 
-	stm32_configgpio(GPIO_GYRO_DRDY_OFF);
-	stm32_configgpio(GPIO_MAG_DRDY_OFF);
-	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
-	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
+	px4_arch_configgpio(GPIO_GYRO_DRDY_OFF);
+	px4_arch_configgpio(GPIO_MAG_DRDY_OFF);
+	px4_arch_configgpio(GPIO_ACCEL_DRDY_OFF);
+	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
 
-	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	//        /* set the sensor rail off */
-	//        stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	//        stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	//        px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	//        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 	//
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -2374,37 +2374,37 @@ PX4FMU::sensor_reset(int ms)
 	//        /* re-enable power */
 	//
 	//        /* switch the sensor rail back on */
-	//        stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	//        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 	//
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI4
-	stm32_configgpio(GPIO_SPI_CS_GYRO);
-	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG);
-	stm32_configgpio(GPIO_SPI_CS_BARO);
-	//        stm32_configgpio(GPIO_SPI_CS_FRAM);
-	stm32_configgpio(GPIO_SPI_CS_MPU);
+	px4_arch_configgpio(GPIO_SPI_CS_GYRO);
+	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	px4_arch_configgpio(GPIO_SPI_CS_BARO);
+	//        px4_arch_configgpio(GPIO_SPI_CS_FRAM);
+	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
 	/* De-activate all peripherals,
 	* required for some peripheral
 	* state machines
 	*/
-	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
-	stm32_configgpio(GPIO_SPI4_SCK);
-	stm32_configgpio(GPIO_SPI4_MISO);
-	stm32_configgpio(GPIO_SPI4_MOSI);
+	px4_arch_configgpio(GPIO_SPI4_SCK);
+	px4_arch_configgpio(GPIO_SPI4_MISO);
+	px4_arch_configgpio(GPIO_SPI4_MOSI);
 
 	// // XXX bring up the EXTI pins again
-	// stm32_configgpio(GPIO_GYRO_DRDY);
-	// stm32_configgpio(GPIO_MAG_DRDY);
-	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// px4_arch_configgpio(GPIO_GYRO_DRDY);
+	// px4_arch_configgpio(GPIO_MAG_DRDY);
+	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
 
 #endif
 #endif
@@ -2420,8 +2420,8 @@ PX4FMU::peripheral_reset(int ms)
 	}
 
 	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -2430,7 +2430,7 @@ PX4FMU::peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 #endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
@@ -2439,13 +2439,13 @@ PX4FMU::peripheral_reset(int ms)
 	}
 
 	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_PERIPH_3V3_EN);
+	px4_arch_configgpio(GPIO_PERIPH_3V3_EN);
 
-	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
+	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
 
-	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
+	bool last = px4_arch_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
-	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
+	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -2454,8 +2454,8 @@ PX4FMU::peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
-	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
+	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
+	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
 #endif
 #if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
 
@@ -2475,17 +2475,17 @@ PX4FMU::gpio_reset(void)
 	 */
 	for (unsigned i = 0; i < _ngpio; i++) {
 		if (_gpio_tab[i].input != 0) {
-			stm32_configgpio(_gpio_tab[i].input);
+			px4_arch_configgpio(_gpio_tab[i].input);
 
 		} else if (_gpio_tab[i].output != 0) {
-			stm32_configgpio(_gpio_tab[i].output);
+			px4_arch_configgpio(_gpio_tab[i].output);
 		}
 	}
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	/* if we have a GPIO direction control, set it to zero (input) */
-	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
-	stm32_configgpio(GPIO_GPIO_DIR);
+	px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
+	px4_arch_configgpio(GPIO_GPIO_DIR);
 #endif
 }
 
@@ -2505,7 +2505,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (GPIO_SET_OUTPUT == function ||
 		    GPIO_SET_OUTPUT_LOW == function ||
 		    GPIO_SET_OUTPUT_HIGH == function) {
-			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
+			px4_arch_gpiowrite(GPIO_GPIO_DIR, 1);
 		}
 	}
 
@@ -2516,24 +2516,24 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (gpios & (1 << i)) {
 			switch (function) {
 			case GPIO_SET_INPUT:
-				stm32_configgpio(_gpio_tab[i].input);
+				px4_arch_configgpio(_gpio_tab[i].input);
 				break;
 
 			case GPIO_SET_OUTPUT:
-				stm32_configgpio(_gpio_tab[i].output);
+				px4_arch_configgpio(_gpio_tab[i].output);
 				break;
 
 			case GPIO_SET_OUTPUT_LOW:
-				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
+				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
 				break;
 
 			case GPIO_SET_OUTPUT_HIGH:
-				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
+				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
 				break;
 
 			case GPIO_SET_ALT_1:
 				if (_gpio_tab[i].alt != 0) {
-					stm32_configgpio(_gpio_tab[i].alt);
+					px4_arch_configgpio(_gpio_tab[i].alt);
 				}
 
 				break;
@@ -2545,7 +2545,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 
 	/* flip buffer to input mode if required */
 	if ((GPIO_SET_INPUT == function) && (gpios & 3)) {
-		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+		px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
 	}
 
 #endif
@@ -2558,7 +2558,7 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 
 	for (unsigned i = 0; i < _ngpio; i++)
 		if (gpios & (1 << i)) {
-			stm32_gpiowrite(_gpio_tab[i].output, value);
+			px4_arch_gpiowrite(_gpio_tab[i].output, value);
 		}
 }
 
@@ -2568,7 +2568,7 @@ PX4FMU::gpio_read(void)
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (stm32_gpioread(_gpio_tab[i].input)) {
+		if (px4_arch_gpioread(_gpio_tab[i].input)) {
 			bits |= (1 << i);
 		}
 
