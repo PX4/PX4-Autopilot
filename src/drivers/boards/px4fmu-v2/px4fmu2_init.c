@@ -74,6 +74,7 @@
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 
 #include <systemlib/hardfault_log.h>
 
@@ -183,6 +184,28 @@ fat_dma_free(FAR void *memory, size_t size)
 # define dma_alloc_init()
 
 #endif
+
+/************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
+{
+	/* set the peripheral rails off */
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+}
 
 /************************************************************************************
  * Name: stm32_boardinitialize
