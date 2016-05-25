@@ -53,6 +53,6 @@ void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_rol
 void mount_onboard_point(void);
 void mount_onboard_update_topics(void);
 float mount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				  float alt);
+				    float alt);
 
 #endif /* _MOUNT_ONBOARD_H */

@@ -136,8 +136,8 @@ void mount_mavlink_configure(int roi_mode, bool man_control)
 void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
 				  float alt)
 {
-    float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-    float new_pitch = mount_mavlink_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
+	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+	float new_pitch = mount_mavlink_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
 	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
 
 	mount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
@@ -157,12 +157,12 @@ void mount_mavlink_point_manual(float pitch, float roll, float yaw)
 }
 
 float mount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				  float alt)
+				    float alt)
 {
-    float x = (lon-global_lon)*cos(M_DEG_TO_RAD*((global_lat+lat)*0.00000005))*0.01113195;
-    float y = (lat-global_lat)*0.01113195;
-    float z = (alt-global_alt);
-    float target_distance = sqrtf(powf(x,2)+ powf(y,2));
+	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;
+	float y = (lat - global_lat) * 0.01113195;
+	float z = (alt - global_alt);
+	float target_distance = sqrtf(powf(x, 2) + powf(y, 2));
 
-    return atan2(z, target_distance) * M_RAD_TO_DEG;
+	return atan2(z, target_distance) * M_RAD_TO_DEG;
 }

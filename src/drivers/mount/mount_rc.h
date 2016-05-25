@@ -51,6 +51,6 @@ void mount_rc_set_location(double global_lat, double global_lon, float global_al
 void mount_rc_set_manual(float new_pitch, float new_roll, float new_yaw);
 void mount_rc_point(void);
 float mount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				  float alt);
+			       float alt);
 
 #endif /* _MOUNT_RC_H */
