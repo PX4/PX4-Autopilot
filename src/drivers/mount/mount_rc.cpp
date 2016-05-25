@@ -95,8 +95,8 @@ void mount_rc_configure(int roi_mode, bool man_control)
 void mount_rc_set_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
 {
 	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
-	float new_pitch = 0.0f; //TODO calculate pitch
-	float new_roll = 0.0f; //TODO calculate yaw
+    float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+    float new_pitch = 0.0f; //TODO calculate pitch
 
 	mount_rc_set_manual(new_pitch, new_roll, new_yaw);
 }

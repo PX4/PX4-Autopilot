@@ -137,8 +137,8 @@ void mount_mavlink_point_location(double global_lat, double global_lon, float gl
 				  float alt)
 {
 	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
-	float new_pitch = 0.0f; //TODO calculate pitch and roll
-	float new_roll = 0.0f;
+    float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+    float new_pitch = 0.0f; //TODO calculate pitch
 
 	mount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
 }
