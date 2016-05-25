@@ -273,9 +273,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 	memcpy(buffer, _samples, len);
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	return len;
 }

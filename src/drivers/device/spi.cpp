@@ -152,9 +152,9 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	switch (mode) {
 	default:
 	case LOCK_PREEMPTION: {
-			irqstate_t state = irqsave();
+			irqstate_t state = enter_critical_section();
 			result = _transfer(send, recv, len);
-			irqrestore(state);
+			leave_critical_section(state);
 		}
 		break;
 
