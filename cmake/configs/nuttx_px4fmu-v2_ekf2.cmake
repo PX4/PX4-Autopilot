@@ -35,7 +35,7 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
+## TO FIT	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
