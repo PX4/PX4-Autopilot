@@ -170,11 +170,9 @@ RGBLED_PWM::init()
 {
 	/* switch off LED on start */
 	CDev::init();
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
 	led_pwm_servo_init();
 	send_led_enable(false);
 	send_led_rgb();
-#endif
 	return OK;
 }
 void
@@ -536,7 +534,6 @@ RGBLED_PWM::send_led_enable(bool enable)
 int
 RGBLED_PWM::send_led_rgb()
 {
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
 
 	if (_enable) {
 		led_pwm_servo_set(0, _r);
@@ -549,7 +546,6 @@ RGBLED_PWM::send_led_rgb()
 		led_pwm_servo_set(2, 0);
 	}
 
-#endif
 	return (OK);
 }
 
