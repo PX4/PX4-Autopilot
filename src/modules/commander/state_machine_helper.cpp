@@ -39,6 +39,7 @@
  * @author Julian Oes		<julian@oes.ch>
  * @author Sander Smeets	<sander@droneslab.com>
  */
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <unistd.h>
