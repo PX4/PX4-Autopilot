@@ -228,8 +228,8 @@ PX4IO_serial::~PX4IO_serial()
 	irq_detach(PX4IO_SERIAL_VECTOR);
 
 	/* restore the GPIOs */
-	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
-	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
+	px4_arch_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
+	px4_arch_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* and kill our semaphores */
 	px4_sem_destroy(&_completion_semaphore);
@@ -264,8 +264,8 @@ PX4IO_serial::init()
 	}
 
 	/* configure pins for serial use */
-	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
-	stm32_configgpio(PX4IO_SERIAL_RX_GPIO);
+	px4_arch_configgpio(PX4IO_SERIAL_TX_GPIO);
+	px4_arch_configgpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* reset & configure the UART */
 	rCR1 = 0;

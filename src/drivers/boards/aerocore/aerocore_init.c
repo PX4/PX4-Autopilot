@@ -225,10 +225,10 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	px4_arch_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();

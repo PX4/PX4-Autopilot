@@ -910,10 +910,10 @@ GPS::cmd_reset()
 {
 #ifdef GPIO_GPS_NRESET
 	PX4_WARN("Toggling GPS reset pin");
-	stm32_configgpio(GPIO_GPS_NRESET);
-	stm32_gpiowrite(GPIO_GPS_NRESET, 0);
+	px4_arch_configgpio(GPIO_GPS_NRESET);
+	px4_arch_gpiowrite(GPIO_GPS_NRESET, 0);
 	usleep(100);
-	stm32_gpiowrite(GPIO_GPS_NRESET, 1);
+	px4_arch_gpiowrite(GPIO_GPS_NRESET, 1);
 	PX4_WARN("Toggled GPS reset pin");
 #endif
 }
