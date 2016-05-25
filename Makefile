@@ -136,6 +136,10 @@ endef
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
+#
+
+nuttx_sim_default:
+	$(call cmake-build,nuttx_sim_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
