@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/stm32f4discovery/include/board.h
+ * nuttx-configs/stm32f4discovery/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.

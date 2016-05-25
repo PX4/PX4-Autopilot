@@ -63,8 +63,11 @@
 
 #ifdef __PX4_NUTTX
 
-__EXPORT void sched_note_start(FAR struct tcb_s *tcb);
-__EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
+# include <nuttx/sched_note.h>
+
+void sched_note_suspend(FAR struct tcb_s *tcb);
+void sched_note_resume(FAR struct tcb_s *tcb);
+
 __EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
 
 __EXPORT struct system_load_s system_load;
@@ -137,32 +140,30 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 	}
 }
 
-void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
+void sched_note_suspend(FAR struct tcb_s *tcb)
 {
 	uint64_t new_time = hrt_absolute_time();
 
-	/* Kind of inefficient: find both tasks and update times */
-	uint8_t both_found = 0;
-
 	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 		/* Task ending its current scheduling run */
-		if (system_load.tasks[i].tcb->pid == pFromTcb->pid) {
-			//if (system_load.tasks[i].curr_start_time != 0)
-			{
-				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
-			}
-			both_found++;
-
-		} else if (system_load.tasks[i].tcb->pid == pToTcb->pid) {
-			system_load.tasks[i].curr_start_time = new_time;
-			both_found++;
-		}
-
-		/* Do only iterate as long as needed */
-		if (both_found == 2) {
+		if (system_load.tasks[i].tcb->pid == tcb->pid) {
+			system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
 			break;
 		}
 	}
+}
+
+void sched_note_resume(FAR struct tcb_s *tcb)
+{
+	uint64_t new_time = hrt_absolute_time();
+
+	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+		if (system_load.tasks[i].tcb->pid == tcb->pid) {
+			system_load.tasks[i].curr_start_time = new_time;
+			break;
+		}
+	}
+
 }
 
 #else

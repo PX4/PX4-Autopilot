@@ -1,5 +1,5 @@
 ############################################################################
-# configs/sim/nsh/Make.defs
+# nuttx-configs/sim/nsh/Make.defs
 #
 #   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -102,7 +102,7 @@ ifeq ($(CONFIG_SIM_M32),y)
 endif
 
 
-MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
 
 HOSTCC			= gcc
 HOSTINCLUDES		= -I.

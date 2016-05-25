@@ -1,5 +1,5 @@
 ############################################################################
-# configs/PX4_Warnings.mk
+# nuttx-configs/PX4_Warnings.mk
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

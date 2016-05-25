@@ -103,7 +103,9 @@ function(px4_parse_function_args)
 	endif()
 	foreach(arg ${IN_REQUIRED})
 		if (NOT OUT_${arg})
-			message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
+			if (NOT "${OUT_${arg}}" STREQUAL "0")
+				message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
+			endif()
 		endif()
 	endforeach()
 	foreach(arg ${IN_OPTIONS} ${IN_ONE_VALUE} ${IN_MULTI_VALUE})
@@ -143,6 +145,9 @@ function(px4_add_git_submodule)
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+# todo:Not have 2 list of submodues one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt) 
+# using the list of submodules from the CMake file to drive the test
+#		COMMAND Tools/check_submodules.sh ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
@@ -362,6 +367,8 @@ function(px4_generate_messages)
 		MULTI_VALUE MSG_FILES DEPENDS INCLUDES
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
+	if("${config_nuttx_config}" STREQUAL "bootloader")
+	else()
 	set(QUIET)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
@@ -450,7 +457,7 @@ function(px4_generate_messages)
 		${msg_multi_files_out}
 		${msg_files_out}
 		)
-
+    endif()
 endfunction()
 
 #=============================================================================
@@ -954,7 +961,7 @@ function(px4_generate_airframes_xml)
 	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
-			-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
+			-a ${CMAKE_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
@@ -1009,5 +1016,33 @@ function(px4_copy_tracked)
 	set(${OUT} ${_files_out} PARENT_SCOPE)
 endfunction()
 
+#=============================================================================
+#
+#	px4_share_subdirectory
+#
+#	This function simplifes sharing a sub directory
+#
+#	Usage:
+#		px4_share_subdirectory(RELDIR <relative path> ARGS <args>)
+#
+#	Input:
+#		RELDIR	: The relitive path to share.
+#		ARGS		: Any optional arguments to pass to add_subdirectory
+#
+#	Output:
+#						: None
+#
+#	Example:
+#		px4_share_subdirectory(RELDIR ../uavcan/libuavcan  ARGS EXCLUDE_FROM_ALL)
+#
+function(px4_share_subdirectory)
+	px4_parse_function_args(
+		NAME px4_share_subdirectory
+		ONE_VALUE OUT RELDIR
+		MULTI_VALUE ARGS
+		REQUIRED RELDIR
+		ARGN ${ARGN})
+		add_subdirectory(${RELDIR} ${RELDIR}/${RELDIR} ${ARGS})
+endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

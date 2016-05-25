@@ -44,6 +44,8 @@ set(include_dirs)
 set(link_dirs)
 set(definitions)
 
+px4_nuttx_configure(HWCLASS m3 CONFIG nsh)
+
 px4_os_prebuild_targets(OUT io_prebuild_targets
 	BOARD ${config_io_board}
 	THREADS ${THREADS})

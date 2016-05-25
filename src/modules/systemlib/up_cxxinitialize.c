@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm32f4discovery/src/up_cxxinitialize.c
+ * src/modules/systemlib/up_cxxinitialize.c
  * arch/arm/src/board/up_cxxinitialize.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without

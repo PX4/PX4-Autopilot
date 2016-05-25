@@ -136,6 +136,10 @@ endef
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
+#
+
+nuttx_sim_default:
+	$(call cmake-build,nuttx_sim_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
@@ -154,6 +158,39 @@ px4-stm32f4discovery_default:
 
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
+
+mavstation_default:
+	$(call cmake-build,nuttx_mavstation_default)
+
+px4cannode-v1_default:
+	$(call cmake-build,nuttx_px4cannode-v1_default)
+
+px4esc-v1_default:
+	$(call cmake-build,nuttx_px4esc-v1_default)
+
+s2740vc-v1_default:
+	$(call cmake-build,nuttx_s2740vc-v1_default)
+
+esc35-v1_default:
+	$(call cmake-build,nuttx_esc35-v1_default)
+
+px4cannode-v1_bootloader:
+	$(call cmake-build,nuttx_px4cannode-v1_bootloader)
+
+px4esc-v1_bootloader:
+	$(call cmake-build,nuttx_px4esc-v1_bootloader)
+
+px4flow-v2_bootloader:
+	$(call cmake-build,nuttx_px4flow-v2_bootloader)
+
+s2740vc-v1_bootloader:
+	$(call cmake-build,nuttx_s2740vc-v1_bootloader)
+
+zubaxgnss-v1_bootloader:
+	$(call cmake-build,nuttx_zubaxgnss-v1_bootloader)
+
+esc35-v1_bootloader:
+	$(call cmake-build,nuttx_esc35-v1_bootloader)
 
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
@@ -241,7 +278,46 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
-check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v2_test check_px4fmu-v2_lpe check_px4fmu-v2_ekf2 check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_posix_sitl_test check_unittest check_format
+sizes:
+	@-find build_* -name firmware_nuttx -type f | xargs size
+
+checks_defaults: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_mindpx-v2_default \
+	check_px4-stm32f4discovery_default \
+	check_mavstation_default \
+	check_px4cannode-v1_default \
+	check_px4esc-v1_default \
+	check_s2740vc-v1_default \
+
+checks_bootloaders: \
+	check_px4cannode-v1_bootloader \
+	check_esc35-v1_bootloader \
+	check_px4esc-v1_bootloader \
+	check_px4flow-v2_bootloader \
+	check_s2740vc-v1_bootloader \
+	check_zubaxgnss-v1_bootloader \
+
+checks_tests: \
+	check_px4fmu-v2_test
+
+checks_alts: \
+	check_px4fmu-v2_lpe \
+	check_px4fmu-v2_ekf2 \
+
+checks_uavcan: \
+	check_px4fmu-v4_default_and_uavcan
+
+checks_sitls: \
+	check_posix_sitl_default \
+	check_posix_sitl_test \
+
+checks_last: \
+	check_unittest \
+	check_format \
+
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")

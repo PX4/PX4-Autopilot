@@ -68,6 +68,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>
 
+#if defined(ADC_CHANNELS)
 /*
  * Register accessors.
  * For now, no reason not to just use ADC1.
@@ -273,9 +274,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 	memcpy(buffer, _samples, len);
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	return len;
 }
@@ -346,6 +347,7 @@ ADC::update_system_power(hrt_abstime now)
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || \
     defined (CONFIG_ARCH_BOARD_MINDPX_V2) || \
     defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+
 	system_power_s system_power = {};
 	system_power.timestamp = now;
 
@@ -498,3 +500,4 @@ adc_main(int argc, char *argv[])
 
 	exit(0);
 }
+#endif

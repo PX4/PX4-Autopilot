@@ -63,8 +63,8 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/i2c.h>
-#include <nuttx/mtd.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mtd/mtd.h>
 
 #include "systemlib/perf_counter.h"
 
@@ -146,7 +146,7 @@
 
 struct at24c_dev_s {
 	struct mtd_dev_s      mtd;      /* MTD interface */
-	FAR struct i2c_dev_s *dev;      /* Saved I2C interface instance */
+	FAR struct i2c_master_s *dev;   /* Saved I2C interface instance */
 	uint8_t               addr;     /* I2C address */
 	uint16_t              pagesize; /* 32, 63 */
 	uint16_t              npages;   /* 128, 256, 512, 1024 */
@@ -193,6 +193,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 	struct i2c_msg_s msgv[1] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &buf[0],
@@ -270,12 +271,14 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
 	struct i2c_msg_s msgv[2] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &addr[0],
 			.length = sizeof(addr),
 		},
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = I2C_M_READ,
 			.buffer = 0,
@@ -362,6 +365,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 
 	struct i2c_msg_s msgv[1] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &buf[0],
@@ -507,7 +511,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *
  ************************************************************************************/
 
-FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
+FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 {
 	FAR struct at24c_dev_s *priv;
 
@@ -546,12 +550,14 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
 
 	struct i2c_msg_s msgv[2] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &addrbuf[0],
 			.length = sizeof(addrbuf),
 		},
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = I2C_M_READ,
 			.buffer = &buf[0],

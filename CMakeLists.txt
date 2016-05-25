@@ -152,6 +152,16 @@ set(target_name "${OS}-${BOARD}-${LABEL}")
 
 message(STATUS "${target_name}")
 
+#  The Url for the elf file for crash logging
+
+if (DEFINED ENV{BUILD_URI})
+	set (BUILD_URI $ENV{BUILD_URI})
+else()
+	set (BUILD_URI "localhost")
+endif()
+
+add_definitions(-DBUILD_URI=${BUILD_URI})
+
 # switch to ros CMake file if building ros
 if (${OS} STREQUAL "ros")
 	include("cmake/ros-CMakeLists.txt")
@@ -295,6 +305,7 @@ add_definitions(${definitions})
 #=============================================================================
 # source code generation
 #
+
 add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}

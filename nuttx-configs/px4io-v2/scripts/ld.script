@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm3210e-eval/nsh/ld.script
+ * configs/px4io-v2/scripts/ld.script
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>

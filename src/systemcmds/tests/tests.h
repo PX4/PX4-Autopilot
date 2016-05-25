@@ -97,6 +97,7 @@ extern int	test_servo(int argc, char *argv[]);
 extern int	test_ppm_loopback(int argc, char *argv[]);
 extern int	test_uart_loopback(int argc, char *argv[]);
 extern int	test_uart_baudchange(int argc, char *argv[]);
+extern int	test_uart_break(int argc, char *argv[]);
 extern int	test_cpuload(int argc, char *argv[]);
 extern int	test_uart_send(int argc, char *argv[]);
 extern int	test_sleep(int argc, char *argv[]);

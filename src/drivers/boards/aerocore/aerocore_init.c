@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file aerocore_init.c
  *
  * AeroCore-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -53,11 +53,12 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
-#include <nuttx/i2c.h>
+#include <nuttx/board.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -70,6 +71,10 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -193,11 +198,11 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_autoled_initialize();
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization
@@ -221,7 +226,7 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
-__EXPORT int nsh_archinitialize(void)
+__EXPORT int board_app_initialize(void)
 {
 
 	/* configure ADC pins */
@@ -229,6 +234,21 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
 	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
 	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
+
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -263,11 +283,11 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_AMBER);
 
 	/* Configure Sensors on SPI bus #3 */
-	spi3 = up_spiinitialize(3);
+	spi3 = stm32_spibus_initialize(3);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		up_ledon(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -282,11 +302,11 @@ __EXPORT int nsh_archinitialize(void)
 	message("[boot] Initialized SPI port 3 (SENSORS)\n");
 
 	/* Configure FRAM on SPI bus #4 */
-	spi4 = up_spiinitialize(4);
+	spi4 = stm32_spibus_initialize(4);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		up_ledon(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 

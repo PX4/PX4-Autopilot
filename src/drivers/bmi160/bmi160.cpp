@@ -741,14 +741,14 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = enter_critical_section();
 
 			if (!_accel_reports->resize(arg)) {
-				irqrestore(flags);
+				leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			leave_critical_section(flags);
 
 			return OK;
 		}
@@ -837,14 +837,14 @@ BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = enter_critical_section();
 
 			if (!_gyro_reports->resize(arg)) {
-				irqrestore(flags);
+				leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			leave_critical_section(flags);
 
 			return OK;
 		}

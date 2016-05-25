@@ -46,8 +46,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-//#include <nuttx/spi.h>
-
 #include "tests.h"
 
 #include <px4_adc.h>

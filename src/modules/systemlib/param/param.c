@@ -63,8 +63,15 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
-#include "uORB/uORB.h"
-#include "uORB/topics/parameter_update.h"
+#if !defined(PARAM_NO_ORB)
+# include "uORB/uORB.h"
+# include "uORB/topics/parameter_update.h"
+#endif
+
+#if defined(FLASH_BASED_PARAMS)
+# include "systemlib/flashparams/flashparams.h"
+#endif
+
 #include "px4_parameters.h"
 
 #include <crc32.h>
@@ -136,8 +143,10 @@ UT_array	*param_values;
 /** array info for the modified parameters array */
 const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
+#if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
+#endif
 
 static void param_set_used_internal(param_t param);
 
@@ -235,6 +244,7 @@ param_find_changed(param_t param)
 static void
 param_notify_changes(bool is_saved)
 {
+#if !defined(PARAM_NO_ORB)
 	struct parameter_update_s pup;
 	pup.timestamp = hrt_absolute_time();
 	pup.saved = is_saved;
@@ -249,6 +259,8 @@ param_notify_changes(bool is_saved)
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
+#endif
 }
 
 param_t
@@ -581,6 +593,18 @@ out:
 	return result;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
+{
+	return param_set_internal(param, val, mark_saved, notify_changes, false);
+}
+
+const void *param_get_value_ptr_external(param_t param)
+{
+	return param_get_value_ptr(param);
+}
+#endif
+
 int
 param_set(param_t param, const void *val)
 {
@@ -732,6 +756,7 @@ int
 param_save_default(void)
 {
 	int res;
+#if !defined(FLASH_BASED_PARAMS)
 	int fd;
 
 	const char *filename = param_get_default_file();
@@ -757,6 +782,10 @@ param_save_default(void)
 	}
 
 	PARAM_CLOSE(fd);
+#else
+	res = flash_param_save();
+#endif
+
 
 	return res;
 }
@@ -791,16 +820,12 @@ param_load_default(void)
 	return 0;
 }
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-//struct spi_dev_s *dev = nullptr;
-irqstate_t irq_state;
-#endif
-
 static void
 param_bus_lock(bool lock)
 {
 
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+
 	// FMUv4 has baro and FRAM on the same bus,
 	// as this offers on average a 100% silent
 	// bus for the baro operation
@@ -813,11 +838,14 @@ param_bus_lock(bool lock)
 	// SPI_LOCK(dev, lock);
 
 	// we lock like this for Pixracer for now
+
+	static irqstate_t irq_state = 0;
+
 	if (lock) {
-		irq_state = irqsave();
+		irq_state = enter_critical_section();
 
 	} else {
-		irqrestore(irq_state);
+		leave_critical_section(irq_state);
 	}
 
 #endif

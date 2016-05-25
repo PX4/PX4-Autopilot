@@ -63,6 +63,7 @@ set(srcs
 if(${OS} STREQUAL "nuttx")
 	list(APPEND srcs
 		test_time.c
+		test_uart_break.c
 		)
 endif()
 

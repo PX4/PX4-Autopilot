@@ -441,7 +441,7 @@ protected:
 						} else {
 							(void)fputs("\n", fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(fileno(fp));
 #endif
 						}
 
@@ -462,7 +462,7 @@ protected:
 							fputs(msg.text, fp);
 							fputs("\n", fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(fileno(fp));
 #endif
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);

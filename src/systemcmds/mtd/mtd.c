@@ -51,8 +51,8 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <nuttx/spi.h>
-#include <nuttx/mtd.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
 
@@ -177,7 +177,7 @@ static void
 ramtron_attach(void)
 {
 	/* initialize the right spi */
-	struct spi_dev_s *spi = up_spiinitialize(PX4_SPI_BUS_RAMTRON);
+	struct spi_dev_s *spi = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	/* this resets the spi bus, set correct bus speed again */
 	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
@@ -225,9 +225,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
-	/* this resets the I2C bus, set correct bus speed again */
-	I2C_SETFREQUENCY(i2c, 400000);
+	struct i2c_master_s *i2c = stm32_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");

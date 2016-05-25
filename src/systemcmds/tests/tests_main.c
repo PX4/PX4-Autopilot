@@ -83,6 +83,7 @@ const struct {
 	{"time",		test_time,	OPT_NOJIGTEST},
 	{"sensors",		test_sensors,	0},
 	{"adc",			test_adc,	OPT_NOJIGTEST},
+	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #endif /* __PX4_NUTTX */
 	{"int",			test_int,	0},
 	{"float",		test_float,	0},

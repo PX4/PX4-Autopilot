@@ -176,8 +176,6 @@ __END_DECLS
 #define OK 0
 #define ERROR -1
 
-#define MAX_RAND 32767
-
 #if defined(__PX4_QURT)
 #include "dspal_math.h"
 __BEGIN_DECLS

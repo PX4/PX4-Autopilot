@@ -1,0 +1,24 @@
+diff --git NuttX/nuttx/include/cxx/cstdint NuttX/nuttx/include/cxx/cstdint
+index d662c5d..95334e9 100644
+--- NuttX/nuttx/include/cxx/cstdint
++++ NuttX/nuttx/include/cxx/cstdint
+@@ -46,6 +46,9 @@
+ // Namespace
+ //***************************************************************************
+ 
++ #define GCC_VERSION (__GNUC__ * 10000 \
++                      + __GNUC_MINOR__ * 100 \
++                      + __GNUC_PATCHLEVEL__)
+ namespace std
+ {
+   using ::int8_t;
+@@ -72,7 +75,9 @@ namespace std
+   using ::uint_fast64_t;
+   using ::uint_least8_t;
+   using ::uint_least16_t;
++#if GCC_VERSION <= 40804
+   using ::uint_least32_t;
++#endif
+   using ::uint_least64_t;
+   using ::uintmax_t;
+   using ::uintptr_t;

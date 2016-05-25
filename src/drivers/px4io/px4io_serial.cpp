@@ -231,6 +231,9 @@ PX4IO_serial::~PX4IO_serial()
 	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
 	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
+	/* Disable APB clock for the USART peripheral */
+	modifyreg32(STM32_RCC_APB2ENR, RCC_APB2ENR_USART6EN, 0);
+
 	/* and kill our semaphores */
 	px4_sem_destroy(&_completion_semaphore);
 	px4_sem_destroy(&_bus_semaphore);
@@ -262,6 +265,10 @@ PX4IO_serial::init()
 	if ((_tx_dma == nullptr) || (_rx_dma == nullptr)) {
 		return -1;
 	}
+
+
+	/* Enable the APB clock for the USART peripheral */
+	modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_USART6EN);
 
 	/* configure pins for serial use */
 	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
@@ -311,7 +318,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 	case 1:		/* XXX magic number - test operation */
 		switch (arg) {
 		case 0:
-			lowsyslog("test 0\n");
+			lowsyslog(LOG_INFO, "test 0\n");
 
 			/* kill DMA, this is a PIO test */
 			stm32_dmastop(_tx_dma);
@@ -338,7 +345,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 					}
 
 					if (count >= 5000) {
-						lowsyslog("==== test 1 : %u failures ====\n", fails);
+						lowsyslog(LOG_INFO, "==== test 1 : %u failures ====\n", fails);
 						perf_print_counter(_pc_txns);
 						perf_print_counter(_pc_dmasetup);
 						perf_print_counter(_pc_retries);
@@ -357,7 +364,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 			}
 
 		case 2:
-			lowsyslog("test 2\n");
+			lowsyslog(LOG_INFO, "test 2\n");
 			return 0;
 		}
 
@@ -597,7 +604,7 @@ PX4IO_serial::_wait_complete()
 		}
 
 		/* we might? see this for EINTR */
-		lowsyslog("unexpected ret %d/%d\n", ret, errno);
+		lowsyslog(LOG_ERR, "unexpected ret %d/%d\n", ret, errno);
 	}
 
 	/* reset DMA status */

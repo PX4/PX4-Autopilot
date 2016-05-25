@@ -1,5 +1,4 @@
 ############################################################################
-# configs/stm3210e-eval/src/Makefile
 #
 #   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>

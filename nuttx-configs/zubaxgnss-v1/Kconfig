@@ -1,0 +1,22 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if CONFIG_ARCH_BOARD_ZUBAX_GNSS_V1
+
+config BOARD_HAS_PROBES
+	bool "Board provides GPIO or other Hardware for signaling to timing analyze."
+	default y
+	---help---
+		This board provides GPIO PB5-9 as PROBE_1-5 to provide timing signals from selected drivers.
+
+config BOARD_USE_PROBES
+	bool "Enable the use provides GPIO PB5-9 as PROBE_1-5 to provide timing signals from selected drivers"
+	default n
+	depends on BOARD_HAS_PROBES
+
+	---help---
+		Select to use GPIO provides GPIO PB5-9 to provide  timing signals from selected drivers.
+
+endif

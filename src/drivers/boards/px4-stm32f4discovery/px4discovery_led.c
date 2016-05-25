@@ -37,14 +37,14 @@
  * PX4-stm32f4discovery LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
 #include "stm32.h"
 #include "board_config.h"
 
-#include <arch/board/board.h>
+#include <nuttx/board.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -60,14 +60,15 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-__EXPORT void led_init()
+__EXPORT void board_autoled_initialize(void)
 {
 	/* Configure LED1 GPIO for output */
 
 	stm32_configgpio(GPIO_LED1);
 }
 
-__EXPORT void led_on(int led)
+__EXPORT void board_autoled_on(int led)
+
 {
 	if (led == 1) {
 		/* Pull down to switch on */
@@ -75,7 +76,8 @@ __EXPORT void led_on(int led)
 	}
 }
 
-__EXPORT void led_off(int led)
+__EXPORT void board_autoled_off(int led)
+
 {
 	if (led == 1) {
 		/* Pull up to switch off */
