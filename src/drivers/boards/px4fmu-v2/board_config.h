@@ -146,13 +146,14 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_ONBOARD	2
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_ONBOARD
 
-/* Devices on the onboard bus.
+/*
+ * Devices on the onboard bus.
  *
- * Note that these are unshifted addresses.
+ * Note that these are unshifted addresses. If the address
+ * is strapped different than the device default, it should be
+ * listed here.
  */
 #define PX4_I2C_OBDEV_LED	0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_LIS3MDL	0x1e
 
 /*
  * ADC channels
