@@ -58,10 +58,11 @@
 #include "hmc5883.h"
 
 #include "board_config.h"
+#if defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)
 
-#ifdef PX4_I2C_OBDEV_HMC5883
+/* The unshifted i2c address of this device */
 
-#define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
+#define HMC5883L_ADDRESS		0x1e
 
 device::Device *HMC5883_I2C_interface(int bus);
 
@@ -113,16 +114,14 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case MAGIOCGEXTERNAL:
-// On PX4v1 the MAG can be on an internal I2C
-// On everything else its always external
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
+#if	defined(PX4_BOARD_HAS_I2C_HMC5883)
 		if (_bus == PX4_I2C_BUS_EXPANSION) {
 			return 1;
 
 		} else {
 			return 0;
 		}
-
 #else
 		return 1;
 #endif
@@ -184,5 +183,4 @@ HMC5883_I2C::read(unsigned address, void *data, unsigned count)
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
-
-#endif /* PX4_I2C_OBDEV_HMC5883 */
+#endif //  defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)

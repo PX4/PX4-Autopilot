@@ -103,17 +103,20 @@ __BEGIN_DECLS
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_ESC		1
-#define PX4_I2C_BUS_ONBOARD	2
-#define PX4_I2C_BUS_EXPANSION	3
-#define PX4_I2C_BUS_LED		3
+#define PX4_I2C_BUS_ESC         1
+#define PX4_I2C_BUS_ONBOARD     2
+#define PX4_I2C_BUS_EXPANSION   3
+#define PX4_I2C_BUS_LED         3
 
 /*
- * Devices on the onboard bus.
+ * i2c Devices on the onboard bus.
  *
- * Note that these are unshifted addresses.
+ * Note that these are unshifted addresses. If the address
+ * is strapped different than the device default, it should be
+ * listed here.
  */
-#define PX4_I2C_OBDEV_HMC5883	0x1e
+#define PX4_BOARD_HAS_I2C_HMC5883 1
+
 #define PX4_I2C_OBDEV_EEPROM	NOTDEFINED
 #define PX4_I2C_OBDEV_LED	0x55
 

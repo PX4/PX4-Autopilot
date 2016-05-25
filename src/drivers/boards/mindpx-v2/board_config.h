@@ -146,14 +146,14 @@ __BEGIN_DECLS
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO		1
-#define PX4_SPIDEV_ACCEL_MAG	2
-#define PX4_SPIDEV_BARO		3
-#define PX4_SPIDEV_MPU		4
+#define PX4_SPIDEV_GYRO      1
+#define PX4_SPIDEV_ACCEL_MAG 2
+#define PX4_SPIDEV_BARO      3
+#define PX4_SPIDEV_MPU       4
 
 
 #define PX4_SPIDEV_FLASH        5
-
+#define PX4_BOARD_HAS_MPU6500   1
 
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
@@ -168,16 +168,17 @@ __BEGIN_DECLS
 //#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
 
 /* I2C busses */
-#define PX4_I2C_BUS_EXPANSION	2
-#define PX4_I2C_BUS_ONBOARD	1
+#define PX4_I2C_BUS_ONBOARD   1
+#define PX4_I2C_BUS_EXPANSION 2
 
-/* Devices on the onboard bus.
+/*
+ * i2c Devices on the onboard bus.
  *
- * Note that these are unshifted addresses.
+ * Note that these are unshifted addresses. If the address
+ * is strapped different than the device default, it should be
+ * listed here.
  */
-//#define PX4_I2C_OBDEV_LED	0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-//#define PX4_I2C_OBDEV_MPU6050	0x68
+#define PX4_BOARD_HAS_I2C_HMC5883 1
 
 /*
  * ADC channels
