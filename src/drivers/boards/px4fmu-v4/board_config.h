@@ -285,6 +285,18 @@ __BEGIN_DECLS
 #define BOARD_ADC_PERIPH_5V_OC  (0)
 #define BOARD_ADC_HIPOWER_5V_OC (0)
 
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB { \
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
+		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
+		{GPIO_VDD_BRICK_VALID,   0,                       0}, }
+
 
 /****************************************************************************************************
  * Public Types
@@ -309,8 +321,12 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
+
+extern void board_peripheral_reset(int ms);
+
 
 /****************************************************************************
  * Name: nsh_archinitialize
