@@ -217,20 +217,20 @@ public:
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
 
-	// return the amount the local vertical position changed in the last reset and the time of the reset
-	virtual void get_posD_reset(float *delta, uint64_t *time_us) = 0;
+	// return the amount the local vertical position changed in the last reset and the number of reset events
+	virtual void get_posD_reset(float *delta, uint8_t *counter) = 0;
 
-	// return the amount the local vertical velocity changed in the last reset and the time of the reset
-	virtual void get_velD_reset(float *delta, uint64_t *time_us) = 0;
+	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	virtual void get_velD_reset(float *delta, uint8_t *counter) = 0;
 
-	// return the amount the local horizontal position changed in the last reset and the time of the reset
-	virtual void get_posNE_reset(Vector2f *delta, uint64_t *time_us) = 0;
+	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	virtual void get_posNE_reset(Vector2f *delta, uint8_t *counter) = 0;
 
-	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
-	virtual void get_velNE_reset(Vector2f *delta, uint64_t *time_us) = 0;
+	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	virtual void get_velNE_reset(Vector2f *delta, uint8_t *counter) = 0;
 
-	// return the amount the quaternion has changed in the last reset and the time of the reset
-	virtual void get_quat_reset(Quaternion *delta, uint64_t *time_us) = 0;
+	// return the amount the quaternion has changed in the last reset and the number of reset events
+	virtual void get_quat_reset(Quaternion *delta, uint8_t *counter) = 0;
 
 	// get EKF innovation consistency check status
 	virtual void get_innovation_test_status(uint16_t *val)

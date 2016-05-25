@@ -88,8 +88,8 @@ bool Ekf::resetVelocity()
 	_state_reset_status.velNE_change(0) = velocity_change(0);
 	_state_reset_status.velNE_change(1) = velocity_change(1);
 	_state_reset_status.velD_change = velocity_change(2);
-	_state_reset_status.velNE_time_us = _imu_sample_delayed.time_us;
-	_state_reset_status.velD_time_us = _imu_sample_delayed.time_us;
+	_state_reset_status.velNE_counter++;
+	_state_reset_status.velD_counter++;
 
 }
 
@@ -162,7 +162,7 @@ bool Ekf::resetPosition()
 
 	// capture the reset event
 	_state_reset_status.posNE_change = posNE_change;
-	_state_reset_status.posNE_time_us = _imu_sample_delayed.time_us;
+	_state_reset_status.posNE_counter++;
 
 }
 
@@ -290,12 +290,12 @@ void Ekf::resetHeight()
 	// store the reset amount and time to be published
 	if (vert_pos_reset) {
 		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
-		_state_reset_status.posD_time_us = _imu_sample_delayed.time_us;
+		_state_reset_status.posD_counter++;
 	}
 
 	if (vert_vel_reset) {
 		_state_reset_status.velD_change = _state.vel(2) - old_vert_vel;
-		_state_reset_status.velD_time_us = _imu_sample_delayed.time_us;
+		_state_reset_status.velD_counter++;
 	}
 
 	// add the reset amount to the output observer states
@@ -497,7 +497,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	}
 
 	// capture the reset event
-	_state_reset_status.quat_time_us = _imu_sample_delayed.time_us;
+	_state_reset_status.quat_counter++;
 
 	return true;
 }

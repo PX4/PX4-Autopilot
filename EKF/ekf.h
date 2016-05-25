@@ -127,23 +127,23 @@ public:
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
-	// return the amount the local vertical position changed in the last reset and the time of the reset
-	void get_posD_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.posD_change; *time_us = _state_reset_status.posD_time_us;}
+	// return the amount the local vertical position changed in the last reset and the number of reset events
+	void get_posD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.posD_change; *counter = _state_reset_status.posD_counter;}
 
-	// return the amount the local vertical velocity changed in the last reset and the time of the reset
-	void get_velD_reset(float *delta, uint64_t *time_us) {*delta = _state_reset_status.velD_change; *time_us = _state_reset_status.velD_time_us;}
+	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	void get_velD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.velD_change; *counter = _state_reset_status.velD_counter;}
 
-	// return the amount the local horizontal position changed in the last reset and the time of the reset
-	void get_posNE_reset(Vector2f *delta, uint64_t *time_us) {*delta = _state_reset_status.posNE_change; *time_us = _state_reset_status.posNE_time_us;}
+	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	void get_posNE_reset(Vector2f *delta, uint8_t *counter) {*delta = _state_reset_status.posNE_change; *counter = _state_reset_status.posNE_counter;}
 
-	// return the amount the local horizontal velocity changed in the last reset and the time of the reset
-	void get_velNE_reset(Vector2f *delta, uint64_t *time_us) {*delta = _state_reset_status.velNE_change; *time_us = _state_reset_status.velNE_time_us;}
+	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	void get_velNE_reset(Vector2f *delta, uint8_t *counter) {*delta = _state_reset_status.velNE_change; *counter = _state_reset_status.velNE_counter;}
 
-	// return the amount the quaternion has changed in the last reset and the time of the reset
-	void get_quat_reset(Quaternion *delta, uint64_t *time_us)
+	// return the amount the quaternion has changed in the last reset and the number of reset events
+	void get_quat_reset(Quaternion *delta, uint8_t *counter)
 	{
 		*delta = _state_reset_status.quat_change;
-		*time_us = _state_reset_status.quat_time_us;
+		*counter = _state_reset_status.quat_counter;
 	}
 
 private:
@@ -155,11 +155,11 @@ private:
 	// reset event monitoring
 	// structure containing velocity, position, height and yaw reset information
 	struct {
-		uint64_t velNE_time_us; // time stamp of the last horizontal velocity reset event (us)
-		uint64_t velD_time_us;	// time stamp of the last vertical velocity reset event (us)
-		uint64_t posNE_time_us; // time stamp of the last horizontal position reset event (us)
-		uint64_t posD_time_us;	// time stamp of the last vertical position reset event (us)
-		uint64_t quat_time_us;  // time stamp of the last quaternion reset event (us)
+		uint8_t velNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t velD_counter;	// number of vertical velocity reset events (allow to wrap if count exceeds 255)
+		uint8_t posNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t posD_counter;	// number of vertical position reset events (allow to wrap if count exceeds 255)
+		uint8_t quat_counter;	// number of quaternion reset events (allow to wrap if count exceeds 255)
 		Vector2f velNE_change;  // North East velocity change due to last reset (m)
 		float velD_change;	// Down velocity change due to last reset (m/s)
 		Vector2f posNE_change;	// North, East position change due to last reset (m)

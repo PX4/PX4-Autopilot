@@ -126,7 +126,7 @@ void Ekf::controlExternalVisionAiding()
 			}
 
 			// capture the reset event
-			_state_reset_status.quat_time_us = _imu_sample_delayed.time_us;
+			_state_reset_status.quat_counter++;
 
 			// flag the yaw as aligned
 			_control_status.flags.yaw_align = true;
