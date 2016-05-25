@@ -115,9 +115,9 @@ void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_st
 void mount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
 				double lon, float alt)
 {
-	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon);
     float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-    float new_pitch = 0.0f; //TODO calculate pitch
+    float new_pitch = mount_onboard_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
+	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
 
 	mount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
 }
@@ -164,4 +164,15 @@ void mount_onboard_update_topics()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
 	}
+}
+
+float mount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
+				  float alt)
+{
+    float x = (lon-global_lon)*cos(M_DEG_TO_RAD*((global_lat+lat)*0.00000005))*0.01113195;
+    float y = (lat-global_lat)*0.01113195;
+    float z = (alt-global_alt);
+    float target_distance = sqrtf(powf(x,2)+ powf(y,2));
+
+    return atan2(z, target_distance) * M_RAD_TO_DEG;
 }
