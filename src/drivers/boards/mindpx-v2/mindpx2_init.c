@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -282,7 +282,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 	message("[boot] Initialized SPI port 4 (SENSORS)\n");
-	spi4 = up_spiinitialize(4);
+	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
@@ -303,7 +303,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* Get the SPI port for the FRAM */
 	message("[boot] Initialized SPI port 1 (RAMTRON FRAM)\n");
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -324,7 +324,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Initialized SPI port 2 (nRF24 and ext)\n");
 
-	spi2 = up_spiinitialize(2);
+	spi2 = px4_spibus_initialize(2);
 
 	/* Default SPI2 to 10MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi2, 10000000);

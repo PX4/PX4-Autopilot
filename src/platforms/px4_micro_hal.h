@@ -37,4 +37,8 @@
 #ifdef __PX4_NUTTX
 # define enter_critical_section() irqsave()
 # define leave_critical_section(flags) irqrestore(flags)
+# define px4_spibus_initialize(port_1based) up_spiinitialize(port_1based)
+# define px4_i2cbus_initialize(bus_num_1based)  up_i2cinitialize(bus_num_1based)
+# define px4_i2cbus_uninitialize(pdev)  up_i2cuninitialize(pdev)
+
 #endif

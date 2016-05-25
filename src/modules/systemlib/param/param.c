@@ -807,7 +807,7 @@ param_bus_lock(bool lock)
 
 	// XXX this would be the preferred locking method
 	// if (dev == nullptr) {
-	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// 	dev = px4_spibus_initialize(PX4_SPI_BUS_BARO);
 	// }
 
 	// SPI_LOCK(dev, lock);
