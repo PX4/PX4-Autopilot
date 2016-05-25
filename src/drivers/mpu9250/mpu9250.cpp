@@ -876,14 +876,14 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = enter_critical_section();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_accel_reports->resize(arg)) {
-				leave_critical_section(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			leave_critical_section(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -972,14 +972,14 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = enter_critical_section();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_gyro_reports->resize(arg)) {
-				leave_critical_section(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			leave_critical_section(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
