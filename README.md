@@ -47,6 +47,12 @@ See the test directory for detailed examples. Some simple examples are included 
 	// convert to DCM from quaternion
 	Dcmf dcm(q_nb);
 
+	// you can assign a rotation instance that already exist to another rotation instance, e.g.
+	dcm = euler;
+
+	// you can also directly create a DCM instance from euler angles like this
+	dcm = Eulerf(roll, pitch, yaw);
+
 	// do some kalman filtering
 	const size_t n_x = 5;
 	const size_t n_y = 3;
