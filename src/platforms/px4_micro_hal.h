@@ -36,8 +36,8 @@
  */
 #ifdef __PX4_NUTTX
 
-#  define enter_critical_section()       irqsave()
-#  define leave_critical_section(flags)  irqrestore(flags)
+#  define px4_enter_critical_section()       irqsave()
+#  define px4_leave_critical_section(flags)  irqrestore(flags)
 
 #  define px4_spibus_initialize(port_1based)       up_spiinitialize(port_1based)
 
