@@ -301,12 +301,12 @@ i2c_rx_complete(void)
 			}
 
 			/* disable interrupts while reconfiguring DMA for the selected registers */
-			irqstate_t flags = enter_critical_section();
+			irqstate_t flags = px4_enter_critical_section();
 
 			stm32_dmastop(tx_dma);
 			i2c_tx_setup();
 
-			leave_critical_section(flags);
+			px4_leave_critical_section(flags);
 		}
 	}
 

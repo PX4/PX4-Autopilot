@@ -842,10 +842,10 @@ param_bus_lock(bool lock)
 	static irqstate_t irq_state = 0;
 
 	if (lock) {
-		irq_state = enter_critical_section();
+		irq_state = px4_enter_critical_section();
 
 	} else {
-		leave_critical_section(irq_state);
+		px4_leave_critical_section(irq_state);
 	}
 
 #endif
