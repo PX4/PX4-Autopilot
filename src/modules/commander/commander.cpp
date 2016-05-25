@@ -1154,22 +1154,14 @@ int commander_thread_main(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 	/* NuttX indicates 3 arguments when only 2 are present */
 	argc -= 1;
+	argv += 1;
 #endif
 
 	if (argc > 2) {
-#ifdef __PX4_QURT
 		if (!strcmp(argv[2],"-hil")) {
-#else
-		if (!strcmp(argv[3],"-hil")) {
-#endif
 			startup_in_hil = true;
 		} else {
-#ifdef __PX4_QURT		
-			PX4_ERR("Argument %s not supported.", argv[2]);
-#else
-			PX4_ERR("Argument %s not supported.", argv[3]);
-#endif			
-			PX4_ERR("COMMANDER NOT STARTED");
+			PX4_ERR("Argument %s not supported, abort.", argv[2]);	
 			thread_should_exit = true;
 		}
 	}
@@ -1269,7 +1261,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
-	if(startup_in_hil) {
+	if (startup_in_hil) {
 		status.hil_state = vehicle_status_s::HIL_STATE_ON;
 	} else {
 		status.hil_state = vehicle_status_s::HIL_STATE_OFF;
