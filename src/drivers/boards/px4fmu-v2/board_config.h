@@ -242,6 +242,16 @@ __BEGIN_DECLS
 
 #define BOARD_NAME "PX4FMU_V2"
 
+/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
+ * system_power interface, and therefore provides the true logic
+ * GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID   (!px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_SERVO_VALID   (!px4_arch_gpioread(GPIO_VDD_SERVO_VALID))
+#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
+#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

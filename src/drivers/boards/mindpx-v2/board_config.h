@@ -292,6 +292,16 @@ __BEGIN_DECLS
 
 #define BOARD_NAME "MINDPX_V2"
 
+/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
+ * system_power interface, and therefore provides the true logic
+ * GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID   (1)
+#define BOARD_ADC_SERVO_VALID   (1)
+#define BOARD_ADC_PERIPH_5V_OC  (0)
+#define BOARD_ADC_HIPOWER_5V_OC (0)
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
