@@ -280,7 +280,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -299,7 +299,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = up_spiinitialize(2);
+	spi2 = px4_spibus_initialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
