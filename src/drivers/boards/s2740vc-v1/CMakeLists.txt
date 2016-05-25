@@ -46,6 +46,7 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
+    ../common/board_name.c
     s2740vc_init.c
     s2740vc_can.c
    ../../../drivers/bootloaders/src/common/boot_app_shared.c

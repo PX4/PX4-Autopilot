@@ -77,10 +77,6 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
@@ -256,7 +252,7 @@ PWMSim::init()
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_DEFAULT,
-				   1000,
+				   1200,
 				   (px4_main_t)&PWMSim::task_main_trampoline,
 				   nullptr);
 

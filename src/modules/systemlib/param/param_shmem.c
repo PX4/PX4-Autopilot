@@ -86,11 +86,11 @@
 extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
+#define param_info_count	(param_info_limit - param_info_base)
 #else
 static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
-#endif
-
 #define	param_info_count		px4_parameters.param_count
+#endif /* _UNIT_TEST */
 
 /**
  * Storage for modified parameters.
@@ -157,9 +157,6 @@ UT_array	*param_values;
 
 /** array info for the modified parameters array */
 const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
-
-/** parameter update topic */
-ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;

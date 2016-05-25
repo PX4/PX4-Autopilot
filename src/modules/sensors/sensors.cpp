@@ -548,7 +548,7 @@ Sensors::Sensors() :
 	_diff_pres_pub(nullptr),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_airspeed_validator(),
 
 	_param_rc_values{},
@@ -672,6 +672,7 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG0_ROT");
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
+	(void)param_find("CAL_MAG_SIDES");
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
@@ -952,7 +953,7 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-#if !defined(__PX4_QURT) && !defined(__RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
@@ -1520,7 +1521,7 @@ Sensors::parameter_update_poll(bool forced)
 bool
 Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1541,7 +1542,7 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *g
 bool
 Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1562,7 +1563,7 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s 
 bool
 Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	const int res = h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
@@ -1705,7 +1706,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				actuator_controls_s ctrl;
 				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							     &_battery_status);
+							     _armed, &_battery_status);
 
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub != nullptr) {
@@ -1944,7 +1945,7 @@ Sensors::rc_poll()
 			if (_parameters.rc_map_flightmode > 0) {
 
 				/* the number of valid slots equals the index of the max marker minus one */
-				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+				const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two
@@ -2064,7 +2065,7 @@ Sensors::task_main()
 	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
 	ret = sensors_init();
 
-#if !defined(__PX4_QURT) && !defined(__RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
 	// TODO: move adc_init into the sensors_init call.
 	ret = ret || adc_init();
 #endif
@@ -2275,7 +2276,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2000,
+					   2200,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

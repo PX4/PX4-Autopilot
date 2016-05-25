@@ -149,6 +149,8 @@ __BEGIN_DECLS
 #define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
 		       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
 
+#define BOARD_NAME "PX4CANNODE_V1"
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

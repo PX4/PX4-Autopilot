@@ -442,6 +442,7 @@ void	stop();
 void	test();
 void	reset();
 void	info();
+void	usage(const char *reason);
 
 /**
  * Start the driver.
@@ -535,7 +536,20 @@ info()
 	g_dev->print_info();
 }
 
+void
+usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s", reason);
+	}
+
+	PX4_INFO("usage:");
+	PX4_INFO("gpssim {start|stop|test|reset|status}");
+	PX4_INFO("       [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
+}
+
 } // namespace
+
 
 
 int
@@ -547,22 +561,25 @@ gpssim_main(int argc, char *argv[])
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 
+
+	if (argc < 2) {
+
+		gpssim::usage("not enough arguments supplied");
+		return 1;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
 		if (g_dev != nullptr) {
-			PX4_WARN("gpssim already started");
+			PX4_WARN("already started");
 			return 0;
 		}
 
-		/* work around getopt unreliability */
 		if (argc > 3) {
 			if (!strcmp(argv[2], "-d")) {
 				device_name = argv[3];
-
-			} else {
-				goto out;
 			}
 		}
 
@@ -581,6 +598,13 @@ gpssim_main(int argc, char *argv[])
 		}
 
 		gpssim::start(device_name, fake_gps, enable_sat_info);
+		return 0;
+	}
+
+	/* The following need gpssim running. */
+	if (g_dev == nullptr) {
+		PX4_WARN("not running");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -609,8 +633,4 @@ gpssim_main(int argc, char *argv[])
 	}
 
 	return 0;
-
-out:
-	PX4_INFO("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
-	return 1;
 }

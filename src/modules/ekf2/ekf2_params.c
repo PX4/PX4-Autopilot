@@ -211,7 +211,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
  * @unit rad/s
  * @decimal 4
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 6.0e-2f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.5e-2f);
 
 /**
  * Accelerometer noise for covariance prediction.
@@ -222,39 +222,29 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 6.0e-2f);
  * @unit m/s/s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.25f);
+PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
 
 /**
- * Process noise for delta angle bias prediction.
- *
- * @group EKF2
- * @min 0.0
- * @max 0.0001
- * @unit rad/s
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 2.5e-6f);
-
-/**
- * Process noise for delta velocity z bias prediction.
+ * Process noise for IMU rate gyro bias prediction.
  *
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit m/s/s
- * @decimal 7
- */
-PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-5f);
-
-/**
- * Process noise for delta angle scale factor prediction.
- *
- * @group EKF2
- * @min 0.0
- * @max 0.01
+ * @unit rad/s**2
  * @decimal 6
  */
-PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-4f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 1.0e-3f);
+
+/**
+ * Process noise for IMU accelerometer bias prediction.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.01
+ * @unit m/s**3
+ * @decimal 6
+ */
+PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-3f);
 
 /**
  * Process noise for body magnetic field prediction.
@@ -265,7 +255,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-4f);
  * @unit Gauss/s
  * @decimal 6
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 5.0e-4f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
 
 /**
  * Process noise for earth magnetic field prediction.
@@ -276,7 +266,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 5.0e-4f);
  * @unit Gauss/s
  * @decimal 6
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 2.5e-3f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
 
 /**
  * Process noise for wind velocity prediction.
@@ -331,7 +321,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 2.0f);
 
 /**
  * Measurement noise for magnetic heading fusion.
@@ -419,8 +409,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis fusion
- * @value 3 2-D projection
- * @value 4 None
+ * @value 3 None
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -455,6 +444,16 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
+ * Gate size for TAS fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
+
+/**
  * Replay mode
  *
  * A value of 1 indicates that the ekf2 module will publish
@@ -466,15 +465,16 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 
 /**
- * Integer bitmask controlling which external aiding sources will be used.
+ * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to use GPS data if available
  * 1 : Set to true to use optical flow data if available
+ * 2 : Set to true to inhibit IMU bias estimation
  *
  * @group EKF2
  * @min 0
- * @max 3
+ * @max 15
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -699,3 +699,58 @@ PARAM_DEFINE_FLOAT(EKF2_OF_POS_Y, 0.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_POS_Z, 0.0f);
+
+/**
+ * Time constant of the velocity output prediction and smoothing filter
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
+
+/**
+ * Time constant of the position output prediction and smoothing filter
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
+
+/**
+ * 1-sigma IMU gyro switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.2
+ * @unit rad/sec
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
+
+/**
+ * 1-sigma IMU accelerometer switch-on bias
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit m/s/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
+
+/**
+ * 1-sigma tilt angle uncertainty after gravity vector alignment
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit rad
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);

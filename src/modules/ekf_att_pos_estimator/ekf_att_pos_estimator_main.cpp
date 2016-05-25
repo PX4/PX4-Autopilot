@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -176,14 +176,23 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_baro_gps_offset(0.0f),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_att_pos_estimator")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_dt")),
+#if 0
 	_loop_intvl(perf_alloc(PC_INTERVAL, "ekf_att_pos_est_interval")),
 	_perf_gyro(perf_alloc(PC_INTERVAL, "ekf_att_pos_gyro_upd")),
 	_perf_mag(perf_alloc(PC_INTERVAL, "ekf_att_pos_mag_upd")),
 	_perf_gps(perf_alloc(PC_INTERVAL, "ekf_att_pos_gps_upd")),
 	_perf_baro(perf_alloc(PC_INTERVAL, "ekf_att_pos_baro_upd")),
 	_perf_airspeed(perf_alloc(PC_INTERVAL, "ekf_att_pos_aspd_upd")),
-	_perf_reset(perf_alloc(PC_COUNT, "ekf_att_pos_reset")),
+#else
+	_loop_intvl(nullptr),
+	_perf_gyro(nullptr),
+	_perf_mag(nullptr),
+	_perf_gps(nullptr),
+	_perf_baro(nullptr),
+	_perf_airspeed(nullptr),
+#endif
+	_perf_reset(perf_alloc(PC_COUNT, "ekf_rst")),
 
 	/* states */
 	_gps_alt_filt(0.0f),
@@ -212,6 +221,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newAdsData(false),
 	_newDataMag(false),
 	_newRangeData(false),
+	_mavlink_log_pub(nullptr),
 
 	_mag_offset_x(this, "MAGB_X"),
 	_mag_offset_y(this, "MAGB_Y"),
@@ -412,8 +422,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 		// Do not warn about accel offset if we have no position updates
 		if (!(warn_index == 5 && _ekf->staticMode)) {
-			PX4_WARN("reset: %s", feedback[warn_index]);
-			mavlink_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
 		}
 	}
 
@@ -690,8 +699,6 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					_filter_ref_offset = -_baro.altitude;
 
-					PX4_INFO("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
-
 				} else {
 
 					if (!_gps_initialized && _gpsIsGood) {
@@ -776,7 +783,6 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 		_local_pos.ref_timestamp = timestamp;
 
 		map_projection_init(&_pos_ref, lat, lon);
-		mavlink_and_console_log_info(&_mavlink_log_pub, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 	}
 }
 

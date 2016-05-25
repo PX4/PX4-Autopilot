@@ -44,8 +44,10 @@ void _add_parameters()
 	param_array[2] = rc_x;
 	param_array[3] = rc2_x;
 	param_info_base = (struct param_info_s *) &param_array[0];
-	param_info_limit = (struct param_info_s *) &param_array[4]; 	// needs to point at the end of the data,
-	// therefore number of params + 1
+	// needs to point at the end of the data,
+	//  therefore number of params + 1
+	param_info_limit = (struct param_info_s *) &param_array[4];
+
 }
 
 void _assert_parameter_int_value(param_t param, int32_t expected)

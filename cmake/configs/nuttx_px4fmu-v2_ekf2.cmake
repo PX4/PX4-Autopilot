@@ -35,7 +35,7 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
+## TO FIT	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
@@ -58,6 +58,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/esc_calib
+	systemcmds/hardfault_log
 	systemcmds/reboot
 	#systemcmds/topic_listener
 	systemcmds/top
@@ -71,6 +72,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
@@ -80,11 +82,7 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	# Too high RAM usage due to static allocations
-	# modules/attitude_estimator_ekf
-	modules/attitude_estimator_q
 	modules/ekf2
-	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -100,6 +98,7 @@ set(config_module_list
 	# Logging
 	#
 	modules/sdlog2
+	modules/logger
 
 	#
 	# Library modules

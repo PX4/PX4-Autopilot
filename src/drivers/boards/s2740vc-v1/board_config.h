@@ -85,6 +85,9 @@ __BEGIN_DECLS
 #define GPIO_CAN_SILENT (GPIO_OUTPUT | GPIO_PUSHPULL | \
 			 GPIO_PORTB | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
 
+
+#define BOARD_NAME "S2740VC_V1"
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

@@ -12,8 +12,6 @@ int8 MODE_SLOT_5 = 4			# mode slot 5 selected
 int8 MODE_SLOT_6 = 5			# mode slot 6 selected
 int8 MODE_SLOT_MAX = 6			# number of slots plus one
 
-uint64 timestamp
-
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
 # The variable names follow the definition of the

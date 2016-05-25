@@ -35,7 +35,7 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
+## TO FIT	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
@@ -48,8 +48,8 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
+    drivers/snapdragon_rc_pwm
+## TO FIT 	drivers/lis3mdl
 
 	#
 	# System commands
@@ -69,11 +69,14 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	#systemcmds/sd_bench
+	#systemcmds/tests
 
 	#
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
@@ -86,7 +89,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-##	modules/local_position_estimator - Fit In FLASH
+	#modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -101,6 +104,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+## TO FIT modules/logger
 	modules/sdlog2
 
 	#

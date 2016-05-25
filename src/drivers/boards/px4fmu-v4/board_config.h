@@ -126,11 +126,13 @@ __BEGIN_DECLS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
-#define PX4_SPIDEV_ACCEL_MAG	2
+#define PX4_SPIDEV_ACCEL_MAG		2
 #define PX4_SPIDEV_MPU			4
 #define PX4_SPIDEV_HMC			5
 #define PX4_SPIDEV_ICM			6
 #define PX4_SPIDEV_LIS			7
+#define PX4_SPIDEV_BMI			8
+#define PX4_SPIDEV_BMA			9
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
@@ -269,6 +271,9 @@ __BEGIN_DECLS
 #define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 #define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
 #define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
+
+
+#define	BOARD_NAME "PX4FMU_V4"
 
 /****************************************************************************************************
  * Public Types

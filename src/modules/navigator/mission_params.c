@@ -51,6 +51,8 @@
  * @unit m
  * @min 0
  * @max 80
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
@@ -63,12 +65,14 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
  * @unit m
  * @min 0
  * @max 80
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
 
 /**
- * Enable persistent onboard mission storage
+ * Persistent onboard mission storage
  *
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
@@ -88,6 +92,8 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * @unit m
  * @min 0
  * @max 1000
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
@@ -133,18 +139,50 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * @unit s
  * @min -1
  * @max 20
+ * @decimal 1
  * @increment 1
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 
 /**
- * Max yaw error in degree needed for waypoint heading acceptance.
+ * Max yaw error in degrees needed for waypoint heading acceptance.
  *
  * @unit deg
  * @min 0
  * @max 90
+ * @decimal 1
  * @increment 1
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Weather-vane mode landings for missions
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
+
+/**
+ * Weather-vane mode for loiter mode
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
+
+/**
+ * Cruise Airspeed
+ *
+ * The fixed wing controller tries to fly at this airspeed.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);

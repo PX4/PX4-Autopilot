@@ -123,6 +123,7 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_MPU		4
 #define PX4_SPIDEV_HMC		5
 #define PX4_SPIDEV_LIS		7
+#define	PX4_SPIDEV_BMI		8
 
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
@@ -135,6 +136,8 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_EXT_BARO		PX4_SPIDEV_EXT1
 #define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT2
 #define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
+
+#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT_GYRO
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
@@ -236,6 +239,8 @@ __BEGIN_DECLS
 #define PWMIN_TIMER		4
 #define PWMIN_TIMER_CHANNEL	2
 #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
+
+#define BOARD_NAME "PX4FMU_V2"
 
 /****************************************************************************************************
  * Public Types

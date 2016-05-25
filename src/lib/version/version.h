@@ -43,70 +43,31 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
+/* The preferred method for publishing a board name up is to
+ * provide board_name()
+ *
  */
+__BEGIN_DECLS
+
+__EXPORT const char *board_name(void);
+
+__END_DECLS
+
 #define FREEZE_STR(s) #s
 #define STRINGIFY(s) FREEZE_STR(s)
 #define FW_GIT STRINGIFY(GIT_VERSION)
 #define FW_BUILD_URI STRINGIFY(BUILD_URI)
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
+#if defined(CONFIG_ARCH_BOARD_SITL)
+#  define	HW_ARCH "LINUXTEST"
+#elif defined(CONFIG_ARCH_BOARD_EAGLE)
+#  define	HW_ARCH "LINUXTEST"
+#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
+#  define HW_ARCH "LINUXTEST"
+#elif defined(CONFIG_ARCH_BOARD_RPI2)
+#  define	HW_ARCH "LINUXTEST"
+#else
+#define HW_ARCH (board_name())
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-#define	HW_ARCH "PX4FMU_V4"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define HW_ARCH "MINDPX_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_S2740VC_V1
-#define HW_ARCH "S2740VC_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FLOW_V2
-#define HW_ARCH "PX4FLOW_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4ESC_V1
-#define HW_ARCH "PX4ESC_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_RPI2
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_ESC35_V1
-#define	HW_ARCH "ESC35_V1"
-#endif
 #endif /* VERSION_H_ */

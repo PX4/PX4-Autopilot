@@ -150,16 +150,6 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-if("${OS}" STREQUAL "posix")
-	if (APPLE)
-		set(DF_TARGET darwin)
-	else()
-		set(DF_TARGET linux)
-	endif()
-else()
-	set(DF_TARGET ${OS})
-endif()
-
 message(STATUS "${target_name}")
 
 #  The Url for the elf file for crash logging
@@ -315,11 +305,12 @@ add_definitions(${definitions})
 #=============================================================================
 # source code generation
 #
-file(GLOB_RECURSE msg_files msg/*.msg)
+
+add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
-	DEPENDS git_genmsg git_gencpp
+	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})

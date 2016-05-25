@@ -88,12 +88,13 @@ public:
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
 	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
-				 battery_status_s *status);
+				 bool armed, battery_status_s *status);
 
 private:
 	void filterVoltage(float voltage_v);
+	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float throttle_normalized);
+	void estimateRemaining(float voltage_v, float throttle_normalized, bool armed);
 	void determineWarning();
 
 	control::BlockParamFloat _param_v_empty;
@@ -105,6 +106,7 @@ private:
 	control::BlockParamFloat _param_crit_thr;
 
 	float _voltage_filtered_v;
+	float _current_filtered_a;
 	float _discharged_mah;
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity

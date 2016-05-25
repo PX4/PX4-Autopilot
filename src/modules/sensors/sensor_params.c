@@ -688,6 +688,25 @@ PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
 
 /**
+ * Bitfield selecting mag sides for calibration
+ *
+ * DETECT_ORIENTATION_TAIL_DOWN = 1
+ * DETECT_ORIENTATION_NOSE_DOWN = 2
+ * DETECT_ORIENTATION_LEFT = 4
+ * DETECT_ORIENTATION_RIGHT = 8
+ * DETECT_ORIENTATION_UPSIDE_DOWN = 16
+ * DETECT_ORIENTATION_RIGHTSIDE_UP = 32
+ *
+ * @min 34
+ * @max 63
+ * @value 34 Two side calibration
+ * @value 38 Three side calibration
+ * @value 63 Six side calibration
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+
+/**
  * Primary baro ID
  *
  * @group Sensor Calibration
@@ -1913,7 +1932,7 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
- * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
+ * Relay control of relay 1 mapped to the Spektrum receiver power supply
  *
  * @min 0
  * @max 1
@@ -2918,7 +2937,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 
 /**
- * Enable Lidar-Lite (LL40LS) pwm driver
+ * Lidar-Lite (LL40LS) PWM
  *
  * @reboot_required true
  *
@@ -2928,7 +2947,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 
 /**
- * Enable sf0x driver
+ * Lightware SF0x laser rangefinder
  *
  * @reboot_required true
  *

@@ -45,7 +45,6 @@ set(srcs
 	test_servo.c
 	test_sleep.c
 	test_uart_baudchange.c
-	test_uart_break.c
 	test_uart_console.c
 	test_uart_loopback.c
 	test_uart_send.c
@@ -64,17 +63,19 @@ set(srcs
 if(${OS} STREQUAL "nuttx")
 	list(APPEND srcs
 		test_time.c
+		test_uart_break.c
 		)
 endif()
 
 px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
-	STACK_MAIN 8000
+	STACK_MAIN 9000
+	STACK_MAX 9000
 	COMPILE_FLAGS
-		-Wframe-larger-than=6000
+		-Wno-unused-result
 		-Wno-float-equal
-		-O0
+		-Os
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common
