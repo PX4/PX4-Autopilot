@@ -63,6 +63,7 @@
 
 #include <board_config.h>
 
+#include <systemlib/px4_macros.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
@@ -106,6 +107,9 @@
 #define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
 #define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
+#if !defined(BOARD_HAS_PWM)
+#  error "board_config.h needs to define BOARD_HAS_PWM"
+#endif
 class PX4FMU : public device::CDev
 {
 public:
@@ -271,76 +275,9 @@ private:
 	void safety_check_button(void);
 };
 
-const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
-	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
-	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
-	{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, GPIO_USART2_RTS_1},
-	{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, GPIO_USART2_TX_1},
-	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1},
-	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
-	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
-#endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
-	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
-	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
-	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
-	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
-	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] =	BOARD_FMU_GPIO_TAB;
 
-	{0,                      GPIO_VDD_5V_PERIPH_EN,   0},
-	{0,                      GPIO_VDD_3V3_SENSORS_EN, 0},
-	{GPIO_VDD_BRICK_VALID,   0,                       0},
-	{GPIO_VDD_SERVO_VALID,   0,                       0},
-	{GPIO_VDD_5V_HIPOWER_OC, 0,                       0},
-	{GPIO_VDD_5V_PERIPH_OC,  0,                       0},
-#endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
-	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
-	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
-	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
-	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
-	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
-	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
-
-	{0,                      GPIO_VDD_3V3_SENSORS_EN, 0},
-	{GPIO_VDD_BRICK_VALID,   0,                       0},
-#endif
-#if defined(CONFIG_ARCH_BOARD_AEROCORE)
-	/* AeroCore breaks out User GPIOs on J11 */
-	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
-	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
-	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
-	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
-	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
-	{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0},
-	{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0},
-	{GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0},
-	{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0},
-	{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,      0},
-	{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0},
-#endif
-#if  defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
-	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
-	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
-	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
-	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
-	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
-	{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0},
-	{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0},
-	{GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0},
-	{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0},
-	{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,       0},
-	{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,       0},
-	{GPIO_GPIO12_INPUT,      GPIO_GPIO12_OUTPUT,       0},
-	{0,       0,       0},
-#endif
-};
-
-const unsigned		PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
+const unsigned		PX4FMU::_ngpio = arraySize(PX4FMU::_gpio_tab);
 pwm_limit_t		PX4FMU::_pwm_limit;
 actuator_armed_s	PX4FMU::_armed = {};
 
@@ -608,7 +545,9 @@ PX4FMU::set_mode(Mode mode)
 
 		break;
 
-	case MODE_6PWM: // v2 PWMs as 6 PWM outs
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
+	case MODE_6PWM:
 		DEVICE_DEBUG("MODE_6PWM");
 
 		/* default output rates */
@@ -619,8 +558,9 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_initialized = false;
 
 		break;
+#endif
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
 		DEVICE_DEBUG("MODE_8PWM");
@@ -1548,8 +1488,10 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_4PWM:
 	case MODE_2PWM2CAP:
 	case MODE_3PWM1CAP:
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	case MODE_6PWM:
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 	case MODE_8PWM:
 #endif
 		ret = pwm_ioctl(filp, cmd, arg);
@@ -1792,7 +1734,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PWM_SERVO_SET(7):
 	case PWM_SERVO_SET(6):
@@ -1803,12 +1745,16 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #endif
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
 	case PWM_SERVO_SET(5):
 	case PWM_SERVO_SET(4):
 		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
 			break;
 		}
+
+#endif
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(3):
@@ -1836,7 +1782,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PWM_SERVO_GET(7):
 	case PWM_SERVO_GET(6):
@@ -1847,12 +1793,16 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #endif
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
 	case PWM_SERVO_GET(5):
 	case PWM_SERVO_GET(4):
 		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
 			break;
 		}
+
+#endif
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_GET(3):
@@ -1878,9 +1828,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(1):
 	case PWM_SERVO_GET_RATEGROUP(2):
 	case PWM_SERVO_GET_RATEGROUP(3):
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	case PWM_SERVO_GET_RATEGROUP(4):
 	case PWM_SERVO_GET_RATEGROUP(5):
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 	case PWM_SERVO_GET_RATEGROUP(6):
 	case PWM_SERVO_GET_RATEGROUP(7):
 #endif
@@ -1890,16 +1842,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 		case MODE_8PWM:
 			*(unsigned *)arg = 8;
 			break;
 #endif
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
 		case MODE_6PWM:
 			*(unsigned *)arg = 6;
 			break;
+#endif
 
 		case MODE_4PWM:
 			*(unsigned *)arg = 4;
@@ -1947,14 +1903,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				set_mode(MODE_4PWM);
 				break;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
-	|| defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=6
 
 			case 6:
 				set_mode(MODE_6PWM);
 				break;
 #endif
-#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=8
 
 			case 8:
 				set_mode(MODE_8PWM);
@@ -2138,21 +2094,10 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	unsigned count = len / 2;
 	uint16_t values[8];
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-
-	if (count > 8) {
-		// we have at most 8 outputs
-		count = 8;
+	if (count > BOARD_HAS_PWM) {
+		// we have at most BOARD_HAS_PWM outputs
+		count = BOARD_HAS_PWM;
 	}
-
-#else
-
-	if (count > 6) {
-		// we have at most 6 outputs
-		count = 6;
-	}
-
-#endif
 
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
@@ -2169,301 +2114,21 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 void
 PX4FMU::sensor_reset(int ms)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-
 	if (ms < 1) {
 		ms = 1;
 	}
 
-	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_GYRO_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
-
-	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
-
-	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
-
-	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
-
-	px4_arch_configgpio(GPIO_GYRO_DRDY_OFF);
-	px4_arch_configgpio(GPIO_MAG_DRDY_OFF);
-	px4_arch_configgpio(GPIO_ACCEL_DRDY_OFF);
-	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
-
-	px4_arch_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
-
-	/* set the sensor rail off */
-	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
-
-	/* wait for the sensor rail to reach GND */
-	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
-
-	/* re-enable power */
-
-	/* switch the sensor rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-
-	/* wait a bit before starting SPI, different times didn't influence results */
-	usleep(100);
-
-	/* reconfigure the SPI pins */
-#ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_GYRO);
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
-	px4_arch_configgpio(GPIO_SPI_CS_BARO);
-	px4_arch_configgpio(GPIO_SPI_CS_MPU);
-
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
-
-	px4_arch_configgpio(GPIO_SPI1_SCK);
-	px4_arch_configgpio(GPIO_SPI1_MISO);
-	px4_arch_configgpio(GPIO_SPI1_MOSI);
-
-	// // XXX bring up the EXTI pins again
-	// px4_arch_configgpio(GPIO_GYRO_DRDY);
-	// px4_arch_configgpio(GPIO_MAG_DRDY);
-	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
-	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
-
-#endif
-#endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
-
-	if (ms < 1) {
-		ms = 1;
-	}
-
-	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_MPU9250);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_HMC5983);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_MS5611);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
-
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
-
-	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
-
-	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
-
-	px4_arch_configgpio(GPIO_DRDY_OFF_MPU9250);
-	px4_arch_configgpio(GPIO_DRDY_OFF_HMC5983);
-	px4_arch_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
-
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
-
-	/* set the sensor rail off */
-	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
-
-	/* wait for the sensor rail to reach GND */
-	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
-
-	/* re-enable power */
-
-	/* switch the sensor rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-
-	/* wait a bit before starting SPI, different times didn't influence results */
-	usleep(100);
-
-	/* reconfigure the SPI pins */
-#ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_MPU9250);
-	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
-	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
-	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
-
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-
-	px4_arch_configgpio(GPIO_SPI1_SCK);
-	px4_arch_configgpio(GPIO_SPI1_MISO);
-	px4_arch_configgpio(GPIO_SPI1_MOSI);
-
-	// // XXX bring up the EXTI pins again
-	// px4_arch_configgpio(GPIO_GYRO_DRDY);
-	// px4_arch_configgpio(GPIO_MAG_DRDY);
-	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
-	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
-
-#endif
-#endif
-
-#if  defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-
-	if (ms < 1) {
-		ms = 1;
-	}
-
-	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_GYRO_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
-	//      px4_arch_configgpio(GPIO_SPI_CS_FRAM_OFF);
-	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
-
-	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
-	//       px4_arch_gpiowrite(GPIO_SPI_CS_FRAM_OFF,0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
-
-	px4_arch_configgpio(GPIO_SPI4_SCK_OFF);
-	px4_arch_configgpio(GPIO_SPI4_MISO_OFF);
-	px4_arch_configgpio(GPIO_SPI4_MOSI_OFF);
-
-	px4_arch_gpiowrite(GPIO_SPI4_SCK_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI4_MISO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI4_MOSI_OFF, 0);
-
-	px4_arch_configgpio(GPIO_GYRO_DRDY_OFF);
-	px4_arch_configgpio(GPIO_MAG_DRDY_OFF);
-	px4_arch_configgpio(GPIO_ACCEL_DRDY_OFF);
-	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
-
-	px4_arch_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
-	px4_arch_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
-
-	//        /* set the sensor rail off */
-	//        px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	//        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
-	//
-	/* wait for the sensor rail to reach GND */
-	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
-	//
-	//        /* re-enable power */
-	//
-	//        /* switch the sensor rail back on */
-	//        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-	//
-	/* wait a bit before starting SPI, different times didn't influence results */
-	usleep(100);
-
-	/* reconfigure the SPI pins */
-#ifdef CONFIG_STM32_SPI4
-	px4_arch_configgpio(GPIO_SPI_CS_GYRO);
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
-	px4_arch_configgpio(GPIO_SPI_CS_BARO);
-	//        px4_arch_configgpio(GPIO_SPI_CS_FRAM);
-	px4_arch_configgpio(GPIO_SPI_CS_MPU);
-
-	/* De-activate all peripherals,
-	* required for some peripheral
-	* state machines
-	*/
-	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
-
-	px4_arch_configgpio(GPIO_SPI4_SCK);
-	px4_arch_configgpio(GPIO_SPI4_MISO);
-	px4_arch_configgpio(GPIO_SPI4_MOSI);
-
-	// // XXX bring up the EXTI pins again
-	// px4_arch_configgpio(GPIO_GYRO_DRDY);
-	// px4_arch_configgpio(GPIO_MAG_DRDY);
-	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
-
-#endif
-#endif
+	board_spi_reset(ms);
 }
 
 void
 PX4FMU::peripheral_reset(int ms)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-
 	if (ms < 1) {
 		ms = 10;
 	}
 
-	/* set the peripheral rails off */
-	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
-
-	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
-
-	/* re-enable power */
-
-	/* switch the peripheral rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
-#endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
-
-	if (ms < 1) {
-		ms = 10;
-	}
-
-	/* set the peripheral rails off */
-	px4_arch_configgpio(GPIO_PERIPH_3V3_EN);
-
-	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
-
-	bool last = px4_arch_gpioread(GPIO_SPEKTRUM_PWR_EN);
-	/* Keep Spektum on to discharge rail*/
-	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
-
-	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
-
-	/* re-enable power */
-
-	/* switch the peripheral rail back on */
-	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
-	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
-#endif
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-
-	if (ms < 1) {
-		ms = 10;
-	}
-
-#endif
+	board_peripheral_reset(ms);
 }
 
 void
@@ -2482,7 +2147,7 @@ PX4FMU::gpio_reset(void)
 		}
 	}
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(GPIO_GPIO_DIR)
 	/* if we have a GPIO direction control, set it to zero (input) */
 	px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
 	px4_arch_configgpio(GPIO_GPIO_DIR);
@@ -2492,14 +2157,14 @@ PX4FMU::gpio_reset(void)
 void
 PX4FMU::gpio_set_function(uint32_t gpios, int function)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
 
 	/*
 	 * GPIOs 0 and 1 must have the same direction as they are buffered
 	 * by a shared 2-port driver.  Any attempt to set either sets both.
 	 */
-	if (gpios & 3) {
-		gpios |= 3;
+	if (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS) {
+		gpios |= BOARD_GPIO_SHARED_BUFFERED_BITS;
 
 		/* flip the buffer to output mode if required */
 		if (GPIO_SET_OUTPUT == function ||
@@ -2541,10 +2206,10 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
 
 	/* flip buffer to input mode if required */
-	if ((GPIO_SET_INPUT == function) && (gpios & 3)) {
+	if ((GPIO_SET_INPUT == function) && (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
 		px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
 	}
 
@@ -2814,21 +2479,19 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 	case PORT_FULL_PWM:
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
-	||  defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		servo_mode = PX4FMU::MODE_6PWM;
 #endif
-#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
 		break;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
-	|| defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */
@@ -2859,7 +2522,7 @@ fmu_new_mode(PortMode new_mode)
 #endif
 
 		/* mixed modes supported on v1 board only */
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
 
 	case PORT_FULL_SERIAL:
 		/* set all multi-GPIOs to serial mode */
@@ -3261,8 +2924,7 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
-	||  defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
@@ -3279,7 +2941,7 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
 
 	} else if (!strcmp(verb, "mode_serial")) {
 		new_mode = PORT_FULL_SERIAL;
@@ -3350,11 +3012,10 @@ fmu_main(int argc, char *argv[])
 	}
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
 	fprintf(stderr,
 		"  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4) || defined(CONFIG_ARCH_BOARD_AEROCORE) \
-	|| defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
 	exit(1);
