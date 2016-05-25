@@ -18,3 +18,5 @@ export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sitl_gazebo/model
 export GAZEBO_PLUGIN_PATH=${SRC_DIR}/Tools/sitl_gazebo/Build/:${GAZEBO_PLUGIN_PATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msgs/
 export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:${SRC_DIR}
+export GAZEBO_MODEL_DATABASE_URI=""
+export SITL_GAZEBO_PATH=$SRC_DIR/Tools/sitl_gazebo
