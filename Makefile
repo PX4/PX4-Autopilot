@@ -269,8 +269,6 @@ checks_last: \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
 
-check: check_px4fmu-v1_default check_px4fmu-v2_default check_px4fmu-v2_test check_px4fmu-v2_lpe check_px4fmu-v2_ekf2 check_px4fmu-v4_default_and_uavcan check_mindpx-v2_default check_px4-stm32f4discovery_default check_posix_sitl_default check_posix_sitl_test check_unittest check_format
-
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
