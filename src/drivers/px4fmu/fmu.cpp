@@ -145,6 +145,8 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
+	void		status(void);
+
 private:
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
@@ -2736,6 +2738,28 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 	}
 }
 
+void
+PX4FMU::status(void)
+{
+	static const char *modes[] = {"NONE", "2PWM", "2PWM2CAP", "3PWM", "3PWM1CAP",
+				      "4PWM", "6PWM", "8PWM", "4CAP", "5CAP", "6CAP"};
+
+	printf("status %s%s%s%s MODE_%s pwm_mask:0x%02x alt_mask:0x%02x rate:%u alt_rate:%u\n",
+	       _safety_off?" SAFETY_OFF": " SAFETY_SAFE",
+	       _servos_armed?" SERVOS_ARMED": " SERVOS_DISARMED",
+	       _pwm_on?" PWM_ON": " PWM_OFF",
+	       _oneshot_mode?" PWM_ONESHOT":" PWM_NORMAL",
+	       _mode<=MODE_6CAP?modes[_mode]:"INVALID",
+	       (unsigned)_pwm_mask,
+	       (unsigned)_pwm_alt_rate_channels,
+	       (unsigned)_pwm_default_rate,
+	       (unsigned)_pwm_alt_rate);
+	printf("failsafe PWM %u %u %u %u %u %u\n",
+	       _failsafe_pwm[0], _failsafe_pwm[1], _failsafe_pwm[2], _failsafe_pwm[3], _failsafe_pwm[4], _failsafe_pwm[5]);
+	printf("disarmed PWM %u %u %u %u %u %u\n",
+	       _disarmed_pwm[0], _disarmed_pwm[1], _disarmed_pwm[2], _disarmed_pwm[3], _disarmed_pwm[4], _disarmed_pwm[5]);
+}
+
 namespace
 {
 
@@ -3308,6 +3332,14 @@ fmu_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(verb, "status")) {
+		if (!g_fmu) {
+			errx(1, "not started");
+		}
+		g_fmu->status();
+		exit(0);
+	}
+        
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr,
