@@ -121,15 +121,11 @@ private:
 	math::Vector<3> _est_target_vel;
 	math::Vector<3> _target_distance;
 	math::Vector<3> _target_position_offset;
-	math::Vector<3> _rot_vector;
 	math::Vector<3> _target_position_delta;
 	math::Vector<3> _filtered_target_position_delta;
 
 	follow_target_s _current_target_motion;
 	follow_target_s _previous_target_motion;
-	float _avg_cos_ratio;
-	double _filtered_target_lat;
-	double _filtered_target_lon;
 	float _yaw_rate;
 	float _responsiveness;
 	float _yaw_auto_max;
