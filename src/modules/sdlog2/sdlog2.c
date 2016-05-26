@@ -1251,6 +1251,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+			struct log_RPL5_s log_RPL5;
 			struct log_RPL6_s log_RPL6;
 			struct log_LAND_s log_LAND;
 			struct log_LOAD_s log_LOAD;
@@ -1593,6 +1594,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
 					log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
 					LOGBUFFER_WRITE_AND_COUNT(RPL4);
+				}
+
+				if (buf.replay.ev_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL5_MSG;
+					log_msg.body.log_RPL5.time_ev_usec = buf.replay.ev_timestamp;
+					log_msg.body.log_RPL5.x = buf.replay.x;
+					log_msg.body.log_RPL5.y = buf.replay.y;
+					log_msg.body.log_RPL5.z = buf.replay.z;
+					log_msg.body.log_RPL5.yaw = buf.replay.yaw;
+					LOGBUFFER_WRITE_AND_COUNT(RPL5);
 				}
 
 				if (buf.replay.asp_timestamp > 0) {

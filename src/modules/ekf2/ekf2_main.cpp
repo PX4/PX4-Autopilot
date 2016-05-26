@@ -69,6 +69,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
@@ -126,7 +127,7 @@ public:
 
 private:
 	static constexpr float _dt_max = 0.02;
-	bool		_task_should_exit = false;
+	bool	_task_should_exit = false;
 	int		_control_task = -1;			// task handle for task
 	bool 	_replay_mode;	// should we use replay data from a log
 	int 	_publish_replay_mode;	// defines if we should publish replay messages
@@ -137,6 +138,7 @@ private:
 	int		_params_sub = -1;
 	int 	_optical_flow_sub = -1;
 	int 	_range_finder_sub = -1;
+	int 	_ev_pos_sub = -1;
 	int		_actuator_armed_sub = -1;
 	int		_vehicle_land_detected_sub = -1;
 
@@ -168,6 +170,7 @@ private:
 	control::BlockParamFloat _flow_delay_ms;
 	control::BlockParamFloat _rng_delay_ms;
 	control::BlockParamFloat _airspeed_delay_ms;
+	control::BlockParamFloat _ev_delay_ms;
 
 	control::BlockParamFloat _gyro_noise;
 	control::BlockParamFloat _accel_noise;
@@ -220,6 +223,11 @@ private:
 	control::BlockParamFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
 	control::BlockParamFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
+	// vision estimate fusion
+	control::BlockParamFloat _ev_noise;		// observation noise for range finder measurements (m)
+	control::BlockParamFloat _ev_innov_gate;	// range finder fusion innovation consistency gate size (STD)
+	control::BlockParamFloat _ev_gnd_clearance;	// minimum valid value for range when on ground (m)
+
 	// optical flow fusion
 	control::BlockParamFloat
 	_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
@@ -242,6 +250,9 @@ private:
 	control::BlockParamFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
 
 	// output predictor filter time constants
 	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
@@ -279,6 +290,7 @@ Ekf2::Ekf2():
 	_flow_delay_ms(this, "EKF2_OF_DELAY", false, &_params->flow_delay_ms),
 	_rng_delay_ms(this, "EKF2_RNG_DELAY", false, &_params->range_delay_ms),
 	_airspeed_delay_ms(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms),
+	_ev_delay_ms(this, "EKF2_EV_DELAY", false, &_params->ev_delay_ms),
 	_gyro_noise(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise),
 	_accel_noise(this, "EKF2_ACC_NOISE", false, &_params->accel_noise),
 	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise),
@@ -318,6 +330,9 @@ Ekf2::Ekf2():
 	_range_noise(this, "EKF2_RNG_NOISE", false, &_params->range_noise),
 	_range_innov_gate(this, "EKF2_RNG_GATE", false, &_params->range_innov_gate),
 	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, &_params->rng_gnd_clearance),
+	_ev_noise(this, "EKF2_EV_NOISE", false, &_params->ev_noise),
+	_ev_innov_gate(this, "EKF2_EV_GATE", false, &_params->ev_innov_gate),
+	_ev_gnd_clearance(this, "EKF2_MIN_EV", false, &_params->ev_gnd_clearance),
 	_flow_noise(this, "EKF2_OF_N_MIN", false, &_params->flow_noise),
 	_flow_noise_qual_min(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min),
 	_flow_qual_min(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min),
@@ -335,6 +350,9 @@ Ekf2::Ekf2():
 	_flow_pos_x(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0)),
 	_flow_pos_y(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1)),
 	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
+	_ev_pos_x(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0)),
+	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
+	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
 	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
@@ -364,6 +382,7 @@ void Ekf2::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
+	_ev_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	px4_pollfd_struct_t fds[2] = {};
@@ -384,6 +403,7 @@ void Ekf2::task_main()
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
+	vision_position_estimate_s ev = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -417,6 +437,7 @@ void Ekf2::task_main()
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
 		bool vehicle_land_detected_updated = false;
+		bool vision_position_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -442,6 +463,12 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
+		}
+
+		orb_check(_ev_pos_sub, &vision_position_updated);
+
+		if (vision_position_updated) {
+			orb_copy(ORB_ID(vision_position_estimate), _ev_pos_sub, &ev);
 		}
 
 		// in replay mode we are getting the actual timestamp from the sensor topic
@@ -514,6 +541,19 @@ void Ekf2::task_main()
 		if (range_finder_updated) {
 			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
 		}
+
+		if (vision_position_updated) {
+			ext_vision_message ev_data;
+			ev_data.posNED(0) = ev.x;
+			ev_data.posNED(1) = ev.y;
+			ev_data.posNED(2) = ev.z;
+			Quaternion q(ev.q);
+			ev_data.quat = q;
+			ev_data.posErr = 0.01;  // XXX constant 1 cm for now for all axis all measurements. Replace with actual variance later
+			ev_data.angErr = 0.01;  // XXX some small value in radians. Replace with actual variance later
+			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
+		}
+
 
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
 
@@ -865,6 +905,22 @@ void Ekf2::task_main()
 				replay.asp_timestamp = 0;
 			}
 
+
+			if (vision_position_updated) {
+				replay.ev_timestamp = ev.timestamp_computer;
+				replay.x = ev.x;
+				replay.y = ev.y;
+				replay.z = ev.z;
+				// calculate yaw from quat here just like ecl does.
+				// skip logging whole quat
+				Quaternion q(ev.q);
+				matrix::Quaternion<float> q_obs(q(0), q(1), q(2), q(3));
+				matrix::Euler<float> euler_obs(q_obs);
+				replay.yaw = euler_obs(2);
+
+			} else {
+				replay.ev_timestamp = 0;
+			}
 
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);

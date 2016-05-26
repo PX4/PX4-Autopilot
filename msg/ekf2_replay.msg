@@ -7,6 +7,7 @@ uint64 baro_timestamp			# timestamp of barometer measurement in us
 uint64 rng_timestamp			# timestamp of range finder measurement in us
 uint64 flow_timestamp			# timestamp of optical flow measurement in us
 uint64 asp_timestamp			# timestamp of airspeed measurement in us
+uint64 ev_timestamp			# timestamp of external vision measurement in us
 
 float32[3] gyro_integral_rad		# integrated gyro vector in rad
 float32[3] accelerometer_integral_m_s  	# integrated accelerometer vector in m/s
@@ -39,10 +40,15 @@ float32[2] flow_gyro_integral		# integrated gyro rate around x and y axes (rad)
 uint32 flow_time_integral		# integration timespan (usec)
 uint8 flow_quality			# Quality of accumulated optical flow data (0 - 255)
 
+# external vision measurements
+float32 x			# NED x (North metres)
+float32 y			# NED y (East metres)
+float32 z			# NED z (Down metres)
+float32 yaw			# heading (rad)
+
 # airspeed
 float32 indicated_airspeed_m_s		# indicated airspeed in meters per second, -1 if unknown
 float32 true_airspeed_m_s		# true filtered airspeed in meters per second, -1 if unknown
 float32 true_airspeed_unfiltered_m_s	# true airspeed in meters per second, -1 if unknown
 float32 air_temperature_celsius		# air temperature in degrees celsius, -1000 if unknown
-float32 confidence			# confidence value from 0 to 1 for this sensor
-
+float32 confidence
