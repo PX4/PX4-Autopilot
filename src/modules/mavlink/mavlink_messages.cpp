@@ -3196,21 +3196,17 @@ protected:
 			updated = true;
 
 			if (status.is_vtol) {
-				if (status.is_rotary_wing) {
-					if (status.in_transition_mode) {
-						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+				if (!status.in_transition_mode && status.is_rotary_wing) {
+					_msg.vtol_state = MAV_VTOL_STATE_MC;
 
-					} else {
-						_msg.vtol_state = MAV_VTOL_STATE_MC;
-					}
+				} else if (!status.in_transition_mode){
+					_msg.vtol_state = MAV_VTOL_STATE_FW;
 
-				} else {
-					if (status.in_transition_mode) {
-						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+				} else if (status.in_transition_mode && status.in_transition_to_fw) {
+					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
 
-					} else {
-						_msg.vtol_state = MAV_VTOL_STATE_FW;
-					}
+				} else if (status.in_transition_mode) {
+					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
 				}
 			}
 		}

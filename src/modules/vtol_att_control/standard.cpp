@@ -223,8 +223,11 @@ void Standard::update_vtol_state()
 		break;
 
 	case TRANSITION_TO_FW:
+		_vtol_mode = mode::TRANSITION_TO_MC;
+		break;
+
 	case TRANSITION_TO_MC:
-		_vtol_mode = TRANSITION;
+		_vtol_mode = mode::TRANSITION_TO_FW;
 		break;
 	}
 }
