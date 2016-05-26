@@ -53,6 +53,7 @@
 #include <uORB/topics/follow_target.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/Limits.hpp>
+#include <lib/mathlib/math/Quaternion.hpp>
 
 #include "navigator.h"
 
@@ -74,8 +75,6 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_current_target_motion({}),
 	_previous_target_motion({}),
 	_avg_cos_ratio(0.0F),
-	_filtered_target_lat(0.0F),
-	_filtered_target_lon(0.0F),
 	_yaw_rate(0.0F),
 	_responsiveness(0.0F),
 	_yaw_auto_max(0.0F),
@@ -88,6 +87,7 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_target_distance.zero();
 	_target_position_offset.zero();
 	_target_position_delta.zero();
+	_rot_vector.zero();
 }
 
 FollowTarget::~FollowTarget()
@@ -126,7 +126,7 @@ void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
 	math::Vector<3> target_reported_velocity(0, 0, 0);
-	follow_target_s target_motion = {};
+	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
 	bool _radius_exited = false;
@@ -136,6 +136,7 @@ void FollowTarget::on_active()
 	orb_check(_follow_target_sub, &updated);
 
 	if (updated) {
+		follow_target_s target_motion;
 
 		_target_updates++;
 
@@ -143,7 +144,15 @@ void FollowTarget::on_active()
 
 		_previous_target_motion = _current_target_motion;
 
-		orb_copy(ORB_ID(follow_target), _follow_target_sub, &_current_target_motion);
+		orb_copy(ORB_ID(follow_target), _follow_target_sub, &target_motion);
+
+		if(_current_target_motion.timestamp == 0) {
+			_current_target_motion = target_motion;
+		}
+
+		_current_target_motion.timestamp = target_motion.timestamp;
+		_current_target_motion.lat = (_current_target_motion.lat*(double)_responsiveness) + target_motion.lat*(double)(1 - _responsiveness);
+		_current_target_motion.lon = (_current_target_motion.lon*(double)_responsiveness) + target_motion.lon*(double)(1 - _responsiveness);
 
 		target_reported_velocity(0) = _current_target_motion.vx;
 		target_reported_velocity(1) = _current_target_motion.vy;
@@ -159,14 +168,7 @@ void FollowTarget::on_active()
 		// get distance to target
 
 		map_projection_init(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		map_projection_project(&target_ref, _filtered_target_lat, _filtered_target_lon, &_target_distance(0), &_target_distance(1));
-
-		target_motion = _current_target_motion;
-
-		// use target offset
-
-		map_projection_init(&target_ref,  _filtered_target_lat, _filtered_target_lon);
-		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1), &target_motion.lat, &target_motion.lon);
+		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0), &_target_distance(1));
 
 	}
 
@@ -190,39 +192,15 @@ void FollowTarget::on_active()
 
 			map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(_target_position_delta(0)), &(_target_position_delta(1)));
 
-			// filter out gps noise to figure out if we are actually moving
-
-			if (_target_position_delta.length() > 0.1F && prev_position_delta.length() > 0.1F) {
-
-				float cos_ratio = (_target_position_delta * prev_position_delta)/(_target_position_delta.length() * prev_position_delta.length());
-
-				_avg_cos_ratio = _responsiveness*_avg_cos_ratio + (1 - _responsiveness) * cos_ratio;
-
-				if(_avg_cos_ratio < 0) {
-					_avg_cos_ratio = 0.0F;
-				}
-
-				if (_avg_cos_ratio > 0.0F) {
-					_filtered_target_position_delta = _target_position_delta*_avg_cos_ratio + _filtered_target_position_delta*(1.0F - _avg_cos_ratio);
-				}
-
-				// if ratio is high enough, track target from a side
-
-				if(_avg_cos_ratio  > .70F) {
-					_target_position_offset = _rot_matrix * (_filtered_target_position_delta.normalized() * _follow_offset);
-				}
-
-			} else  {
-				_filtered_target_position_delta.zero();
-				_avg_cos_ratio = 0.0F;
-			}
-
 			// update the average velocity of the target based on the position
 
-			_est_target_vel = _filtered_target_position_delta / (dt_ms / 1000.0f);
+			_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
 
-			_filtered_target_lat = (_current_target_motion.lat*(double)_avg_cos_ratio) + _filtered_target_lat*(double)(1 - _avg_cos_ratio);
-			_filtered_target_lon = (_current_target_motion.lon*(double)_avg_cos_ratio) + _filtered_target_lon*(double)(1 - _avg_cos_ratio);
+			// if the target is moving add an offset and rotation
+
+			if(_est_target_vel.length() > .5F) {
+				_target_position_offset = _rot_matrix*_est_target_vel.normalized()*_follow_offset;
+			}
 
 			// are we within the target acceptance radius?
 			// give a buffer to exit/enter the radius to give the velocity controller
@@ -243,55 +221,60 @@ void FollowTarget::on_active()
 			_step_vel /= (dt_ms / 1000.0F * (float) INTERPOLATION_PNTS);
 			_step_time_in_ms = (dt_ms / (float) INTERPOLATION_PNTS);
 
-			// if we are less than 3 meters from the target don't worry about trying to yaw
-			// lock the yaw until we are a distance that makes sense
+			// if we are less than 1 meter from the target don't worry about trying to yaw
+			// lock the yaw until we are at a distance that makes sense
 
-			if((_target_distance).length() > 3.0F) {
+			if((_target_distance).length() > 1.0F) {
 
-				// yaw smoothing
+				// yaw rate smoothing
 
 				// this really needs to control the yaw rate directly in the attitude pid controller
-				// but seems to work ok for now since that cannot be controlled directly in auto mode
-				// right now
+				// but seems to work ok for now since the yaw rate cannot be controlled directly in auto mode
 
 				_yaw_angle = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-						_navigator->get_global_position()->lon,
-						_current_target_motion.lat,
-						_current_target_motion.lon);
+														  _navigator->get_global_position()->lon,
+														 _current_target_motion.lat,
+														 _current_target_motion.lon);
 
 				_yaw_rate = (_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
 
 				_yaw_rate = _wrap_pi(_yaw_rate);
 
-				_yaw_rate = math::constrain(_yaw_rate, -1.0F*_yaw_auto_max, _yaw_auto_max);//*.80F;
+				_yaw_rate = math::constrain(_yaw_rate, -1.0F*_yaw_auto_max, _yaw_auto_max);
 
 			} else {
 				_yaw_angle = _yaw_rate = NAN;
 			}
 		}
 
-//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
-//				(double) _step_vel(0),
-//				(double) _step_vel(1),
-//				(double) _current_vel(0),
-//				(double) _current_vel(1),
-//				(double) _est_target_vel(0),
-//				(double) _est_target_vel(1),
-//				(double) (_target_distance).length(),
-//				(double) (_target_position_offset + _target_distance).length(),
-//				_follow_target_state,
-//				(double)_avg_cos_ratio, (double) _yaw_rate);
+		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
+				(double) _step_vel(0),
+				(double) _step_vel(1),
+				(double) _current_vel(0),
+				(double) _current_vel(1),
+				(double) _est_target_vel(0),
+				(double) _est_target_vel(1),
+				(double) (_target_distance).length(),
+				(double) (_target_position_offset + _target_distance).length(),
+				_follow_target_state,
+				(double)_avg_cos_ratio, (double) _yaw_rate);
 	}
 
-	// prevent yaw rate smoothing from over shooting target
-	// uses modulus of two pi to get diff
-	// by converting float to int
+	if(target_position_valid()) {
 
-	int angle_diff = (int) ((fabsf(_yaw_angle) - fabsf(_navigator->get_global_position()->yaw)) * 1e4F);
-	float mod_diff = ((float)(angle_diff % ((int) (M_PI_F * 2.0F * 1e4F))))/1e4F;
+		// get the target position using the calculated offset
 
-	if (fabsf(mod_diff) < math::radians(5.0F)) {
-		_yaw_angle = _yaw_rate = NAN;
+		map_projection_init(&target_ref,  _current_target_motion.lat, _current_target_motion.lon);
+		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1), &target_motion_with_offset.lat, &target_motion_with_offset.lon);
+	}
+
+	// clamp yaw rate smoothing if we are with in
+	// 3 degrees of facing target
+
+	if (PX4_ISFINITE(_yaw_rate)) {
+		if (fabsf(fabsf(_yaw_angle) - fabsf(_navigator->get_global_position()->yaw)) < math::radians(3.0F)) {
+			_yaw_rate = NAN;
+		}
 	}
 
 	// update state machine
@@ -303,12 +286,11 @@ void FollowTarget::on_active()
 			if (_radius_entered == true) {
 				_follow_target_state = TRACK_VELOCITY;
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _est_target_vel;
-				_filtered_target_lat = _current_target_motion.lat;
-				_filtered_target_lon = _current_target_motion.lon;
-				update_position_sp(true, true, NAN);
+
+				update_position_sp(true, true, _yaw_rate);
 			} else {
 				_follow_target_state = SET_WAIT_FOR_TARGET_POSITION;
 			}
@@ -327,7 +309,7 @@ void FollowTarget::on_active()
 					_last_update_time = current_time;
 				}
 
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion, _yaw_angle);
+				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
 
 				update_position_sp(true, false, _yaw_rate);
 			} else {
@@ -356,11 +338,6 @@ void FollowTarget::on_active()
 		_follow_target_state = WAIT_FOR_TARGET_POSITION;
 	}
 	case WAIT_FOR_TARGET_POSITION: {
-
-		if(target_position_valid()) {
-			_filtered_target_lat = _current_target_motion.lat;
-			_filtered_target_lon = _current_target_motion.lon;
-		}
 
 		if (is_mission_item_reached() && target_velocity_valid()) {
 			_target_position_offset(0) = _follow_offset;

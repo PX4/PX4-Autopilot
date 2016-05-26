@@ -121,6 +121,7 @@ private:
 	math::Vector<3> _est_target_vel;
 	math::Vector<3> _target_distance;
 	math::Vector<3> _target_position_offset;
+	math::Vector<3> _rot_vector;
 	math::Vector<3> _target_position_delta;
 	math::Vector<3> _filtered_target_position_delta;
 
