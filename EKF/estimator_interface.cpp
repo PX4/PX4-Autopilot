@@ -119,7 +119,8 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		// get the oldest data from the buffer
 		_imu_sample_delayed = _imu_buffer.get_oldest();
 
-		// calculate the minimum interval between required to guarantee no loss of data
+		// calculate the minimum interval between observations required to guarantee no loss of data
+		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
 		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us)/(OBS_BUFFER_LENGTH - 1);
 
 	} else {
