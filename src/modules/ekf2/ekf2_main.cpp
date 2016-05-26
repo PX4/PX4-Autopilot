@@ -168,6 +168,7 @@ private:
 	control::BlockParamFloat _flow_delay_ms;
 	control::BlockParamFloat _rng_delay_ms;
 	control::BlockParamFloat _airspeed_delay_ms;
+	control::BlockParamFloat _ev_delay_ms;
 
 	control::BlockParamFloat _gyro_noise;
 	control::BlockParamFloat _accel_noise;
@@ -220,6 +221,11 @@ private:
 	control::BlockParamFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
 	control::BlockParamFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
+	// vision estimate fusion
+	control::BlockParamFloat _ev_noise;		// observation noise for range finder measurements (m)
+	control::BlockParamFloat _ev_innov_gate;	// range finder fusion innovation consistency gate size (STD)
+	control::BlockParamFloat _ev_gnd_clearance;	// minimum valid value for range when on ground (m)
+
 	// optical flow fusion
 	control::BlockParamFloat
 	_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
@@ -242,6 +248,9 @@ private:
 	control::BlockParamFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
 	control::BlockParamFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
+	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
 
 	// output predictor filter time constants
 	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
@@ -279,6 +288,7 @@ Ekf2::Ekf2():
 	_flow_delay_ms(this, "EKF2_OF_DELAY", false, &_params->flow_delay_ms),
 	_rng_delay_ms(this, "EKF2_RNG_DELAY", false, &_params->range_delay_ms),
 	_airspeed_delay_ms(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms),
+	_ev_delay_ms(this, "EKF2_EV_DELAY", false, &_params->ev_delay_ms),
 	_gyro_noise(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise),
 	_accel_noise(this, "EKF2_ACC_NOISE", false, &_params->accel_noise),
 	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise),
@@ -318,6 +328,9 @@ Ekf2::Ekf2():
 	_range_noise(this, "EKF2_RNG_NOISE", false, &_params->range_noise),
 	_range_innov_gate(this, "EKF2_RNG_GATE", false, &_params->range_innov_gate),
 	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, &_params->rng_gnd_clearance),
+	_ev_noise(this, "EKF2_EV_NOISE", false, &_params->ev_noise),
+	_ev_innov_gate(this, "EKF2_EV_GATE", false, &_params->ev_innov_gate),
+	_ev_gnd_clearance(this, "EKF2_MIN_EV", false, &_params->ev_gnd_clearance),
 	_flow_noise(this, "EKF2_OF_N_MIN", false, &_params->flow_noise),
 	_flow_noise_qual_min(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min),
 	_flow_qual_min(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min),
@@ -335,6 +348,9 @@ Ekf2::Ekf2():
 	_flow_pos_x(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0)),
 	_flow_pos_y(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1)),
 	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
+	_ev_pos_x(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0)),
+	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
+	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
 	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
