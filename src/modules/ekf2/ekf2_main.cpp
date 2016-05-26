@@ -69,6 +69,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
@@ -126,7 +127,7 @@ public:
 
 private:
 	static constexpr float _dt_max = 0.02;
-	bool		_task_should_exit = false;
+	bool	_task_should_exit = false;
 	int		_control_task = -1;			// task handle for task
 	bool 	_replay_mode;	// should we use replay data from a log
 	int 	_publish_replay_mode;	// defines if we should publish replay messages
@@ -137,6 +138,7 @@ private:
 	int		_params_sub = -1;
 	int 	_optical_flow_sub = -1;
 	int 	_range_finder_sub = -1;
+	int 	_ev_pos_sub = -1;
 	int		_actuator_armed_sub = -1;
 	int		_vehicle_land_detected_sub = -1;
 
@@ -380,6 +382,7 @@ void Ekf2::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
+	_ev_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	px4_pollfd_struct_t fds[2] = {};
@@ -400,6 +403,11 @@ void Ekf2::task_main()
 	optical_flow_s optical_flow = {};
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
+	vision_position_estimate_s ev = {};
+
+	// assumed errors for external vision data missing from current interface
+	const float pos_ev_err = 0.05; // position error 1-std (metres)
+	const float ang_ev_err = 0.05; // angular error 1-std (rad)
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -433,6 +441,7 @@ void Ekf2::task_main()
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
 		bool vehicle_land_detected_updated = false;
+		bool vision_position_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -458,6 +467,12 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
+		}
+
+		orb_check(_ev_pos_sub, &vision_position_updated);
+
+		if (vision_position_updated) {
+			orb_copy(ORB_ID(vision_position_estimate), _ev_pos_sub, &ev);
 		}
 
 		// in replay mode we are getting the actual timestamp from the sensor topic
@@ -529,6 +544,18 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
+		}
+
+		if (vision_position_updated) {
+			ext_vision_message ev_data;
+			ev_data.posNED(0) = ev.x;
+			ev_data.posNED(1) = ev.y;
+			ev_data.posNED(2) = ev.z;
+			Quaternion q(ev.q);
+			ev_data.quat = q;
+			ev_data.posErr = pos_ev_err; // TODO replace with errors published by the EV system when available
+			ev_data.angErr = ang_ev_err; // TODO replace with errors published by the EV system when available
+			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
 
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
@@ -881,6 +908,21 @@ void Ekf2::task_main()
 				replay.asp_timestamp = 0;
 			}
 
+			if (vision_position_updated) {
+				replay.ev_timestamp = ev.timestamp_computer;
+				replay.pos_ev[0] = ev.x;
+				replay.pos_ev[1] = ev.y;
+				replay.pos_ev[2] = ev.z;
+				replay.quat_ev[0] = ev.q[0];
+				replay.quat_ev[1] = ev.q[1];
+				replay.quat_ev[2] = ev.q[2];
+				replay.quat_ev[3] = ev.q[3];
+				replay.pos_err = pos_ev_err; // TODO replace with errors published by the EV system when available
+				replay.ang_err = ang_ev_err; // TODO replace with errors published by the EV system when available
+
+			} else {
+				replay.ev_timestamp = 0;
+			}
 
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
