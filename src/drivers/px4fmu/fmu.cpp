@@ -2754,10 +2754,16 @@ PX4FMU::status(void)
 	       (unsigned)_pwm_alt_rate_channels,
 	       (unsigned)_pwm_default_rate,
 	       (unsigned)_pwm_alt_rate);
-	printf("failsafe PWM %u %u %u %u %u %u\n",
-	       _failsafe_pwm[0], _failsafe_pwm[1], _failsafe_pwm[2], _failsafe_pwm[3], _failsafe_pwm[4], _failsafe_pwm[5]);
-	printf("disarmed PWM %u %u %u %u %u %u\n",
-	       _disarmed_pwm[0], _disarmed_pwm[1], _disarmed_pwm[2], _disarmed_pwm[3], _disarmed_pwm[4], _disarmed_pwm[5]);
+	printf("failsafe PWM ");
+	for (uint8_t i=0; i<_max_actuators; i++) {
+		printf("%u ", _failsafe_pwm[i]);
+	}
+	printf("\n");
+	printf("disarmed PWM ");
+	for (uint8_t i=0; i<_max_actuators; i++) {
+		printf("%u ", _disarmed_pwm[i]);
+	}
+	printf("\n");
 }
 
 namespace
