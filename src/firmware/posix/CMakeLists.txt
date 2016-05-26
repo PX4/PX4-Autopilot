@@ -91,6 +91,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+						 ${CMAKE_SOURCE_DIR}/posix-configs/bebop/mainapp.config
 			 DEPENDS mainapp
 			 DEST /usr/bin)
 			 

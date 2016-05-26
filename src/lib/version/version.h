@@ -61,6 +61,8 @@ __END_DECLS
 #  define HW_ARCH "LINUXTEST"
 #elif defined(CONFIG_ARCH_BOARD_RPI2)
 #  define	HW_ARCH "LINUXTEST"
+#elif defined(CONFIG_ARCH_BOARD_BEBOP)
+#  define	HW_ARCH "LINUXTEST"
 #else
 #define HW_ARCH (board_name())
 #endif
