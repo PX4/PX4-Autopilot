@@ -111,17 +111,8 @@ public:
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
+	// accumulate and downsample IMU data to the EKF prediction rate
 	virtual bool collect_imu(imuSample &imu) { return true; }
-
-	virtual bool collect_mag(uint64_t time_usec, float *data) { return true; }
-
-	virtual bool collect_baro(uint64_t time_usec, float *data) { return true; }
-
-	virtual bool collect_airspeed(uint64_t time_usec, float *true_airspeed, float *eas2tas) { return true; }
-
-	virtual bool collect_range(uint64_t time_usec, float *data) { return true; }
-
-	virtual bool collect_opticalflow(uint64_t time_usec, flow_message *flow) { return true; }
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
@@ -236,6 +227,8 @@ protected:
 	static const uint8_t OBS_BUFFER_LENGTH = 10;	// defines how many measurement samples we can buffer
 	static const uint8_t IMU_BUFFER_LENGTH = 30;	// defines how many imu samples we can buffer
 	static const unsigned FILTER_UPDATE_PERIOD_MS = 10;	// ekf prediction period in milliseconds
+
+	unsigned _min_obs_interval_us; // minimum time interval between observations that will guarantee data is not lost (usec)
 
 	float _dt_imu_avg;	// average imu update period in s
 
