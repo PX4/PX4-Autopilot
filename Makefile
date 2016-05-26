@@ -205,6 +205,9 @@ posix_rpi2_default:
 posix_rpi2_release:
 	$(call cmake-build,$@)
 
+posix_bebop_default:
+	$(call cmake-build,$@)
+
 posix: posix_sitl_default
 
 broadcast: posix_sitl_broadcast

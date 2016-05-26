@@ -61,7 +61,34 @@ elseif ("${BOARD}" STREQUAL "rpi2")
 			 DEPENDS mainapp
 			 DEST /home/pi)
 
+elseif ("${BOARD}" STREQUAL "bebop")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+
+	add_executable(mainapp
+		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		apps.h
+		)
+
+	if (NOT APPLE)
+		target_link_libraries(mainapp
+			-Wl,--start-group
+			${module_libraries}
+			${df_driver_libs}
+			pthread m rt
+			-Wl,--end-group
+			)
+	else()
+		target_link_libraries(mainapp
+			${module_libraries}
+			${df_driver_libs}
+			pthread m
+			)
+	endif()
+
 else()
+
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
