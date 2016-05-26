@@ -87,6 +87,13 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			)
 	endif()
 
+	px4_add_adb_push_to_bebop(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+			 DEPENDS mainapp
+			 DEST /usr/bin)
+			 
 else()
 
 	add_executable(mainapp
