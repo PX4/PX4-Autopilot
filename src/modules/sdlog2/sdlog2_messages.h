@@ -420,24 +420,6 @@ struct log_EST3_s {
     float cov[16];
 };
 
-/* --- EST4 - ESTIMATOR INNOVATIONS --- */
-#define LOG_EST4_MSG 48
-struct log_EST4_s {
-    float s[12];
-};
-
-/* --- EST5 - ESTIMATOR INNOVATIONS --- */
-#define LOG_EST5_MSG 49
-struct log_EST5_s {
-    float s[10];
-};
-
-/* --- EST6 - ESTIMATOR INNOVATIONS --- */
-#define LOG_EST6_MSG 53
-struct log_EST6_s {
-    float s[6];
-};
-
 /* --- TEL0..3 - TELEMETRY STATUS --- */
 #define LOG_TEL0_MSG 36
 #define LOG_TEL1_MSG 37
@@ -518,6 +500,18 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
+/* --- EST4 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST4_MSG 48
+struct log_EST4_s {
+    float s[12];
+};
+
+/* --- EST5 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST5_MSG 49
+struct log_EST5_s {
+    float s[10];
+};
+
 #define LOG_OUT1_MSG 50
 
 /* --- EKF2 REPLAY Part 1 --- */
@@ -558,6 +552,13 @@ struct log_RPL2_s {
 	float vel_d_m_s;
 	bool vel_ned_valid;
 };
+
+/* --- EST6 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST6_MSG 53
+struct log_EST6_s {
+    float s[6];
+};
+
 /* --- EKF2 REPLAY Part 3 --- */
 #define LOG_RPL3_MSG 54
 struct log_RPL3_s {
@@ -570,6 +571,13 @@ struct log_RPL3_s {
 	uint8_t flow_quality;
 };
 
+/* --- CAMERA TRIGGER --- */
+#define LOG_CAMT_MSG 55
+struct log_CAMT_s {
+	uint64_t timestamp;
+	uint32_t seq;
+};
+
 /* --- EKF2 REPLAY Part 4 --- */
 #define LOG_RPL4_MSG 56
 struct log_RPL4_s {
@@ -577,7 +585,16 @@ struct log_RPL4_s {
 	float range_to_ground;
 };
 
-/* --- EKF2 REPLAY Part 4 --- */
+/* --- LAND DETECTOR --- */
+#define LOG_LAND_MSG 57
+struct log_LAND_s {
+	uint8_t landed;
+};
+
+/* 58 used for DGPS message
+ shares struct with GPS MSG 8*/
+
+/* --- EKF2 REPLAY Part 6 --- */
 #define LOG_RPL6_MSG 59
 struct log_RPL6_s {
 	uint64_t time_airs_usec;
@@ -588,23 +605,23 @@ struct log_RPL6_s {
 	float confidence;
 };
 
-
-
-/* --- CAMERA TRIGGER --- */
-#define LOG_CAMT_MSG 55
-struct log_CAMT_s {
-	uint64_t timestamp;
-	uint32_t seq;
-};
-
-/* --- LAND DETECTOR --- */
-#define LOG_LAND_MSG 57
-struct log_LAND_s {
-	uint8_t landed;
+/* --- EKF2 REPLAY Part 5 --- */
+#define LOG_RPL5_MSG 60
+struct log_RPL5_s {
+	uint64_t time_ev_usec;
+	float x;
+	float y;
+	float z;
+	float q0;
+	float q1;
+	float q2;
+	float q3;
+	float pos_err;
+	float ang_err;
 };
 
 /* --- SYSTEM LOAD --- */
-#define LOG_LOAD_MSG 58
+#define LOG_LOAD_MSG 61
 struct log_LOAD_s {
 	float cpu_load;
 };
@@ -694,6 +711,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
+	LOG_FORMAT(RPL5, "Qfffffffff", "Tev,x,y,z,q0,q1,q2,q3,posErr,angErr"),
 	LOG_FORMAT(RPL6, "Qfffff", "Tasp,inAsp,trAsp,ufAsp,tpAsp,confAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
