@@ -231,9 +231,7 @@ struct parameters {
 	float rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
 	// vision position fusion
-	float ev_noise;		// observation noise for vision sensor estimates (m)
 	float ev_innov_gate;		// vision estimator fusion innovation consistency gate size (STD)
-	float ev_gnd_clearance;	// minimum valid value for vision based height estimate when on ground (m)
 
 	// optical flow fusion
 	float flow_noise;		// observation noise for optical flow LOS rate measurements (rad/sec)
