@@ -165,7 +165,7 @@ void Ekf::fuseVelPosHeight()
 			R[5] = R[5] * R[5];
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
-		} else if (_control_status.flags.ev_pos) {
+		} else if (_control_status.flags.ev_hgt) {
 			fuse_map[5] = true;
 			// calculate the innovation assuming the external vision observaton is in local NED frame
 			_vel_pos_innov[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);

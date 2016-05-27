@@ -204,7 +204,7 @@ void Ekf::resetHeight()
 			// TODO: reset to last known gps based estimate
 		}
 
-	} else if (_control_status.flags.ev_pos) {
+	} else if (_control_status.flags.ev_hgt) {
 		// initialize vertical position with newest measurement
 		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
 

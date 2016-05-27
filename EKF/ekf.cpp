@@ -423,11 +423,7 @@ bool Ekf::initialiseFilter(void)
 
 	// set the default height source from the adjustable parameter
 	if (_hgt_counter == 0) {
-		if (_params.fusion_mode & MASK_USE_EVPOS) {
-			_primary_hgt_source = VDIST_SENSOR_EV;
-		} else {
-			_primary_hgt_source = _params.vdist_sensor_type;
-		}
+		_primary_hgt_source = _params.vdist_sensor_type;
 	}
 
 	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
@@ -447,7 +443,7 @@ bool Ekf::initialiseFilter(void)
 		}
 
 	} else if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS || _primary_hgt_source == VDIST_SENSOR_EV) {
-		// if the user parameter specifies use of GPS for height we use baro height initially and switch to GPS
+		// if the user parameter specifies use of GPS or external vision (EV) for height we use baro height initially and switch to GPS or EV
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if (_hgt_counter == 0 && _baro_sample_delayed.time_us != 0) {
