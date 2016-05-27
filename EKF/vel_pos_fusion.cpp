@@ -86,7 +86,28 @@ void Ekf::fuseVelPosHeight()
 
 		// Calculate innovations and observation variance depending on type of observations
 		// being used
-		if (!_control_status.flags.gps && !_control_status.flags.ev_pos) {
+		if (_control_status.flags.gps) {
+			// we are using GPS measurements
+			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
+			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+			R[3] = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+			_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
+			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
+
+			// innovation gate size
+			gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
+
+
+		} else if (_control_status.flags.ev_pos) {
+			// we are using external vision measurements
+			R[3] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
+			_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
+			_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
+
+			// innovation gate size
+			gate_size[3] = fmaxf(_params.ev_innov_gate, 1.0f);
+
+		} else {
 			// No observations - use a static position to constrain drift
 			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
 				R[3] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
@@ -96,25 +117,18 @@ void Ekf::fuseVelPosHeight()
 			_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
 			_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
 
-		} else if (_control_status.flags.gps) {
-			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			R[3] = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
-			_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
-			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
-
-		} else if (_control_status.flags.ev_pos) {
-			R[3] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
-			_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
-			_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
+			// glitch protection is not required so set gate to a large value
+			gate_size[3] = 100.0f;
 
 		}
 
+		// convert North position noise to variance
 		R[3] = R[3] * R[3];
+
+		// copy North axis values to East axis
 		R[4] = R[3];
-		// innovation gate sizes
-		gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
 		gate_size[4] = gate_size[3];
+
 	}
 
 	if (_fuse_height) {
@@ -183,9 +197,7 @@ void Ekf::fuseVelPosHeight()
 	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
 			      && (_vel_pos_test_ratio[2] <= 1.0f);
 	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
-	bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
-	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f))
-			      || using_synthetic_measurements || !_control_status.flags.tilt_align;
+	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f)) || !_control_status.flags.tilt_align;
 	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
 	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
 
