@@ -547,6 +547,9 @@ void DfMpu9250Wrapper::_update_mag_calibration()
 		if (res != OK) {
 			PX4_ERR("Could not access param %s", str);
 		}
+
+		// We got calibration values, let's exit.
+		return;
 	}
 
 	// Set sane default calibration values
