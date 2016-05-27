@@ -163,7 +163,7 @@ int ver_main(int argc, char *argv[])
 				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 				printf("FW version: %s (%u.%u.%u %s)\n", px4_git_tag, major, minor, patch,
-					(type == 0) ? "stable" : "beta");
+				       (type == 0) ? "dev" : "stable");
 				/* middleware is currently the same thing as firmware, so not printing yet */
 				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
 				ret = 0;
