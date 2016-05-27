@@ -348,10 +348,15 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	/* transition may be denied even if the same state is requested because conditions may have changed */
 	switch (new_main_state) {
 	case commander_state_s::MAIN_STATE_MANUAL:
-	case commander_state_s::MAIN_STATE_ACRO:
-	case commander_state_s::MAIN_STATE_RATTITUDE:
 	case commander_state_s::MAIN_STATE_STAB:
 		ret = TRANSITION_CHANGED;
+		break;
+
+	case commander_state_s::MAIN_STATE_ACRO:
+	case commander_state_s::MAIN_STATE_RATTITUDE:
+		if (status->is_rotary_wing) {
+			ret = TRANSITION_CHANGED;
+		}
 		break;
 
 	case commander_state_s::MAIN_STATE_ALTCTL:
