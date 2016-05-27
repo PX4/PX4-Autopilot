@@ -46,9 +46,6 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
-// TODO-JYW: TESTING-TESTING
-#define DEBUG_BUILD 1
-
 #include <board_config.h>
 
 #include <px4_config.h>
