@@ -77,20 +77,20 @@ uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
-	unsigned mag = 1;
+	unsigned mag = 0;
 	bool dotparsed = false;
 
 	for (int i = len - 1; i >= 0; i--) {
 		if (tag[i] >= '0' && tag[i] <= '9') {
 			unsigned number = tag[i] - '0';
 
-			ver += number * mag;
-			mag *= 10;
+			ver += (number << mag);
+			mag += 8;
 
 		} else if (tag[i] == '.') {
 			continue;
 
-		} else if (ver > 100 && dotparsed) {
+		} else if (mag > 2 * 8 && dotparsed) {
 			/* this is a full version and we have enough digits */
 			return ver;
 
@@ -99,9 +99,12 @@ uint32_t version_tag_to_number(const char *tag)
 			 * are seeing non-numeric characters again
 			 */
 			ver = 0;
-			mag = 1;
+			mag = 0;
 		}
 	}
+
+	// XXX not reporting patch version yet
+	ver = (ver << 8);
 
 	return ver;
 }
@@ -154,7 +157,13 @@ int ver_main(int argc, char *argv[])
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
 				printf("FW git-hash: %s\n", px4_git_version);
-				printf("FW version: %s (%u)\n", px4_git_tag, version_tag_to_number(px4_git_tag));
+				unsigned fwver = version_tag_to_number(px4_git_tag);
+				unsigned major = (fwver >> (8 * 3)) & 0xFF;
+				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
+				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
+				unsigned type = (fwver >> (8 * 0)) & 0xFF;
+				printf("FW version: %s (%u.%u.%u %s)\n", px4_git_tag, major, minor, patch,
+					(type == 0) ? "stable" : "beta");
 				/* middleware is currently the same thing as firmware, so not printing yet */
 				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
 				ret = 0;
