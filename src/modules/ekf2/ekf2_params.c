@@ -753,3 +753,14 @@ PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
+
+/**
+ * Airspeed fusion threshold. A value of zero will deactivate airspeed fusion. Any other positive
+ * value will determine the minimum airspeed which will still be fused.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @unit m/s
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);

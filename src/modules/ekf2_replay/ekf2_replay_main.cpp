@@ -135,6 +135,7 @@ private:
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
 	orb_advert_t _airspeed_pub;
+	orb_advert_t _vehicle_status_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -151,6 +152,7 @@ private:
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
 	struct airspeed_s _airspeed;
+	struct vehicle_status_s _vehicle_status;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
@@ -206,6 +208,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
 	_airspeed_pub(nullptr),
+	_vehicle_status_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -217,6 +220,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_land_detected{},
 	_flow{},
 	_range{},
+	_airspeed{},
+	_vehicle_status{},
 	_message_counter(0),
 	_part1_counter_ref(0),
 	_read_part2(false),
@@ -348,6 +353,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL4_s replay_part4 = {};
 	struct log_RPL6_s replay_part6 = {};
 	struct log_LAND_s vehicle_landed = {};
+	struct log_STAT_s vehicle_status = {};
 
 	if (type == LOG_RPL1_MSG) {
 
@@ -417,9 +423,6 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_airspeed.timestamp = replay_part6.time_airs_usec;
 		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
 		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
-		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
-		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
-		_airspeed.confidence = replay_part6.confidence;
 		_read_part6 = true;
 
 	}
@@ -435,6 +438,20 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		} else if (_landed_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);
 		}
+	}
+
+	else if (type == LOG_STAT_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+		parseMessage(data, dest_ptr, type);
+		_vehicle_status.is_rotary_wing = vehicle_status.is_rot_wing;
+
+		if (_vehicle_status_pub == nullptr) {
+			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
+
+		} else if (_vehicle_status_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &_vehicle_status);
+		}
+
 	}
 }
 
