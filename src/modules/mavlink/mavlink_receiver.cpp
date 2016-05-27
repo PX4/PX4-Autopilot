@@ -967,6 +967,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.q[2] = q(2);
 	vision_position.q[3] = q(3);
 
+	// TODO fix this
+	vision_position.pos_err = 0.0f;
+	vision_position.ang_err = 0.0f;
+
 	if (_vision_position_pub == nullptr) {
 		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
 
