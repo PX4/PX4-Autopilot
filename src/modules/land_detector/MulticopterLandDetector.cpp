@@ -67,7 +67,8 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_ctrl_state{},
 	_ctrl_mode{},
 	_landTimer(0),
-	_freefallTimer(0)
+	_freefallTimer(0),
+	_min_trust_start(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");

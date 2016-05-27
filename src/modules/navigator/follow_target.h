@@ -126,9 +126,6 @@ private:
 
 	follow_target_s _current_target_motion;
 	follow_target_s _previous_target_motion;
-	float _avg_cos_ratio;
-	double _filtered_target_lat;
-	double _filtered_target_lon;
 	float _yaw_rate;
 	float _responsiveness;
 	float _yaw_auto_max;
