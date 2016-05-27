@@ -128,21 +128,23 @@ public:
 private:
 	static constexpr float _dt_max = 0.02;
 	bool	_task_should_exit = false;
-	int		_control_task = -1;			// task handle for task
-	bool 	_replay_mode;	// should we use replay data from a log
-	int 	_publish_replay_mode;	// defines if we should publish replay messages
+	int	_control_task = -1;		// task handle for task
+	bool 	_replay_mode;			// should we use replay data from a log
+	int 	_publish_replay_mode;		// defines if we should publish replay messages
+	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
+	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
-	int		_sensors_sub = -1;
-	int		_gps_sub = -1;
-	int		_airspeed_sub = -1;
-	int		_params_sub = -1;
+	int	_sensors_sub = -1;
+	int	_gps_sub = -1;
+	int	_airspeed_sub = -1;
+	int	_params_sub = -1;
 	int 	_optical_flow_sub = -1;
 	int 	_range_finder_sub = -1;
 	int 	_ev_pos_sub = -1;
-	int		_actuator_armed_sub = -1;
-	int		_vehicle_land_detected_sub = -1;
+	int	_actuator_armed_sub = -1;
+	int	_vehicle_land_detected_sub = -1;
 
-	bool            _prev_landed = true; // landed status from the previous frame
+	bool	_prev_landed = true;	// landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
 
@@ -224,9 +226,9 @@ private:
 	control::BlockParamFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
 	// vision estimate fusion
-	control::BlockParamFloat _ev_noise;		// observation noise for range finder measurements (m)
-	control::BlockParamFloat _ev_innov_gate;	// range finder fusion innovation consistency gate size (STD)
-	control::BlockParamFloat _ev_gnd_clearance;	// minimum valid value for range when on ground (m)
+	control::BlockParamFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
+	control::BlockParamFloat _ev_ang_noise;		// default angular observation noise for exernal vision measurements (rad)
+	control::BlockParamFloat _ev_innov_gate;	// external vision position innovation consistency gate size (STD)
 
 	// optical flow fusion
 	control::BlockParamFloat
@@ -330,9 +332,9 @@ Ekf2::Ekf2():
 	_range_noise(this, "EKF2_RNG_NOISE", false, &_params->range_noise),
 	_range_innov_gate(this, "EKF2_RNG_GATE", false, &_params->range_innov_gate),
 	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, &_params->rng_gnd_clearance),
-	_ev_noise(this, "EKF2_EV_NOISE", false, &_params->ev_noise),
+	_ev_pos_noise(this, "EKF2_EVP_NOISE", false, &_default_ev_pos_noise),
+	_ev_ang_noise(this, "EKF2_EVA_NOISE", false, &_default_ev_ang_noise),
 	_ev_innov_gate(this, "EKF2_EV_GATE", false, &_params->ev_innov_gate),
-	_ev_gnd_clearance(this, "EKF2_MIN_EV", false, &_params->ev_gnd_clearance),
 	_flow_noise(this, "EKF2_OF_N_MIN", false, &_params->flow_noise),
 	_flow_noise_qual_min(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min),
 	_flow_qual_min(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min),
@@ -404,10 +406,6 @@ void Ekf2::task_main()
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
 	vision_position_estimate_s ev = {};
-
-	// assumed errors for external vision data missing from current interface
-	const float pos_ev_err = 0.05; // position error 1-std (metres)
-	const float ang_ev_err = 0.05; // angular error 1-std (rad)
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -546,6 +544,8 @@ void Ekf2::task_main()
 			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
 		}
 
+		// get external vision data
+		// if error estimates are unavailable, use parameter defined defaults
 		if (vision_position_updated) {
 			ext_vision_message ev_data;
 			ev_data.posNED(0) = ev.x;
@@ -553,8 +553,19 @@ void Ekf2::task_main()
 			ev_data.posNED(2) = ev.z;
 			Quaternion q(ev.q);
 			ev_data.quat = q;
-			ev_data.posErr = pos_ev_err; // TODO replace with errors published by the EV system when available
-			ev_data.angErr = ang_ev_err; // TODO replace with errors published by the EV system when available
+			// position measurement error
+			if (ev.pos_err >= 0.001f) {
+				ev_data.posErr = ev.pos_err;
+			} else {
+				ev_data.posErr = _default_ev_pos_noise;
+			}
+			// angle measurement error
+			if (ev.ang_err >= 0.001f) {
+				ev_data.angErr = ev.ang_err;
+			} else {
+				ev_data.angErr = _default_ev_ang_noise;
+			}
+			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
 			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
 
@@ -917,8 +928,8 @@ void Ekf2::task_main()
 				replay.quat_ev[1] = ev.q[1];
 				replay.quat_ev[2] = ev.q[2];
 				replay.quat_ev[3] = ev.q[3];
-				replay.pos_err = pos_ev_err; // TODO replace with errors published by the EV system when available
-				replay.ang_err = ang_ev_err; // TODO replace with errors published by the EV system when available
+				replay.pos_err = ev.pos_err;
+				replay.ang_err = ev.ang_err;
 
 			} else {
 				replay.ev_timestamp = 0;
