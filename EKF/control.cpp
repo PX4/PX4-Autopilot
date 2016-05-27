@@ -439,6 +439,48 @@ void Ekf::controlHeightSensorTimeouts()
 			}
 		}
 
+		// handle the case where we are using external vision data for height
+		if (_control_status.flags.ev_hgt) {
+			// check if vision data is available
+			extVisionSample ev_init = _ext_vision_buffer.get_newest();
+			bool ev_data_available = ((_time_last_imu - ev_init.time_us) < 2 * EV_MAX_INTERVAL);
+			// check if baro data is available
+			baroSample baro_init = _baro_buffer.get_newest();
+			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+
+			// reset to baro if we have no vision data and baro data is available
+			bool reset_to_baro = !ev_data_available && baro_data_available;
+
+			// reset to ev data if it is available
+			bool reset_to_ev = ev_data_available;
+
+			if (reset_to_baro) {
+				// set height sensor health
+				_rng_hgt_faulty = true;
+				_baro_hgt_faulty = false;
+				// reset the height mode
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
+				// request a reset
+				reset_height = true;
+				printf("EKF ev hgt timeout - reset to baro\n");
+			} else if (reset_to_ev) {
+				// reset the height mode
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = true;
+				// request a reset
+				reset_height = true;
+				printf("EKF ev hgt timeout - reset to ev hgt\n");
+			} else {
+				// we have nothing to reset to
+				reset_height = false;
+			}
+		}
+
 		// Reset vertical position and velocity states to the last measurement
 		if (reset_height) {
 			resetHeight();
