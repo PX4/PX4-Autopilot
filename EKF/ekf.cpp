@@ -415,6 +415,13 @@ bool Ekf::initialiseFilter(void)
 		if (_ev_counter == 0 && _ev_sample_delayed.time_us !=0) {
 			// initialise the counter
 			_ev_counter = 1;
+			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
+			if (_primary_hgt_source == VDIST_SENSOR_EV) {
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = true;
+			}
 		} else if (_ev_counter != 0) {
 			// increment the sample count
 			_ev_counter ++;
@@ -426,6 +433,7 @@ bool Ekf::initialiseFilter(void)
 		_primary_hgt_source = _params.vdist_sensor_type;
 	}
 
+	// accumulate enough height measurements to be confident in the qulaity of the data
 	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
 			if (_hgt_counter == 0 && _range_sample_delayed.time_us != 0) {
@@ -433,6 +441,7 @@ bool Ekf::initialiseFilter(void)
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
+				_control_status.flags.ev_hgt = false;
 				_rng_filt_state = _range_sample_delayed.rng;
 				_hgt_counter = 1;
 			} else if (_hgt_counter != 0) {
@@ -442,8 +451,8 @@ bool Ekf::initialiseFilter(void)
 			}
 		}
 
-	} else if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS || _primary_hgt_source == VDIST_SENSOR_EV) {
-		// if the user parameter specifies use of GPS or external vision (EV) for height we use baro height initially and switch to GPS or EV
+	} else if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS) {
+		// if the user parameter specifies use of GPS for height we use baro height initially and switch to GPS
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if (_hgt_counter == 0 && _baro_sample_delayed.time_us != 0) {
@@ -460,14 +469,16 @@ bool Ekf::initialiseFilter(void)
 			}
 		}
 
+	} else if (_primary_hgt_source == VDIST_SENSOR_EV) {
+		// do nothing becasue vision data is checked elsewhere
 	} else {
 		return false;
 	}
 
 	// check to see if we have enough measurements and return false if not
-	bool hgt_count_fail = _hgt_counter <= 10;
-	bool mag_count_fail = _mag_counter <= 10;
-	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 10);
+	bool hgt_count_fail = _hgt_counter <= OBS_BUFFER_LENGTH;
+	bool mag_count_fail = _mag_counter <= OBS_BUFFER_LENGTH;
+	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= OBS_BUFFER_LENGTH);
 	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
 		return false;
 
@@ -512,12 +523,18 @@ bool Ekf::initialiseFilter(void)
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
-		// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
-		// so it can be used as a backup ad set the initial height using the range finder
 		if (_control_status.flags.rng_hgt) {
+			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
+			// so it can be used as a backup ad set the initial height using the range finder
 			baroSample baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
 			_state.pos(2) = -math::max(_rng_filt_state * _R_to_earth(2, 2),_params.rng_gnd_clearance);
+
+		} else if (_control_status.flags.ev_hgt) {
+			// if we are using external vision data for height, then the vertical position state needs to be reset
+			// because the initialisation position is not the zero datum
+			resetHeight();
+
 		}
 
 		// initialise the state covariance matrix
