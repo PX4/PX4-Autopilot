@@ -400,14 +400,17 @@ bool Ekf::initialiseFilter(void)
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 		if (_mag_counter == 0 && _mag_sample_delayed.time_us !=0) {
-			// initialise the filter states and counter when we start getting valid data from the buffer
-			_mag_filt_state = _mag_sample_delayed.mag;
+			// initialise the counter when we start getting data from the buffer
 			_mag_counter = 1;
 		} else if (_mag_counter != 0) {
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
 			// don't start using data until we can be certain all bad initial data has been flushed
-			if (_mag_counter > OBS_BUFFER_LENGTH) {
+			if (_mag_counter == OBS_BUFFER_LENGTH+1) {
+				// initialise filter states
+				_mag_filt_state = _mag_sample_delayed.mag;
+			} else if (_mag_counter > OBS_BUFFER_LENGTH+1) {
+				// noise filter the data
 				_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
 			}
 		}
@@ -440,18 +443,21 @@ bool Ekf::initialiseFilter(void)
 	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
 			if (_hgt_counter == 0 && _range_sample_delayed.time_us != 0) {
-				// initialise the filter states and counter when we start getting valid data from the buffer
+				// initialise the counter height fusion method when we start getting data from the buffer
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
 				_control_status.flags.ev_hgt = false;
-				_rng_filt_state = _range_sample_delayed.rng;
 				_hgt_counter = 1;
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
-				if (_hgt_counter > OBS_BUFFER_LENGTH) {
+				if (_hgt_counter == OBS_BUFFER_LENGTH+1) {
+					// initialise filter states
+					_rng_filt_state = _range_sample_delayed.rng;
+				} else if (_hgt_counter > OBS_BUFFER_LENGTH+1) {
+					// noise filter the data
 					_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
 				}
 			}
@@ -462,17 +468,20 @@ bool Ekf::initialiseFilter(void)
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if (_hgt_counter == 0 && _baro_sample_delayed.time_us != 0) {
-				// initialise the filter states and counter when we start getting valid data from the buffer
+				// initialise the counter and height fusion method when we start getting data from the buffer
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
-				_baro_hgt_offset = _baro_sample_delayed.hgt;
 				_hgt_counter = 1;
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
-				if (_hgt_counter > OBS_BUFFER_LENGTH) {
+				if (_hgt_counter == OBS_BUFFER_LENGTH+1) {
+					// initialise filter states
+					_baro_hgt_offset = _baro_sample_delayed.hgt;
+				} else if (_hgt_counter > OBS_BUFFER_LENGTH+1) {
+					// noise filter the data
 					_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 				}
 			}
