@@ -406,7 +406,10 @@ bool Ekf::initialiseFilter(void)
 		} else if (_mag_counter != 0) {
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
-			_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
+			// don't start using data until we can be certain all bad initial data has been flushed
+			if (_mag_counter > OBS_BUFFER_LENGTH) {
+				_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
+			}
 		}
 	}
 
@@ -447,7 +450,10 @@ bool Ekf::initialiseFilter(void)
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
-				_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
+				// don't start using data until we can be certain all bad initial data has been flushed
+				if (_hgt_counter > OBS_BUFFER_LENGTH) {
+					_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
+				}
 			}
 		}
 
@@ -465,7 +471,10 @@ bool Ekf::initialiseFilter(void)
 			} else if (_hgt_counter != 0) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
-				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
+				// don't start using data until we can be certain all bad initial data has been flushed
+				if (_hgt_counter > OBS_BUFFER_LENGTH) {
+					_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
+				}
 			}
 		}
 
@@ -476,9 +485,9 @@ bool Ekf::initialiseFilter(void)
 	}
 
 	// check to see if we have enough measurements and return false if not
-	bool hgt_count_fail = _hgt_counter <= OBS_BUFFER_LENGTH;
-	bool mag_count_fail = _mag_counter <= OBS_BUFFER_LENGTH;
-	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= OBS_BUFFER_LENGTH);
+	bool hgt_count_fail = _hgt_counter <= 2*OBS_BUFFER_LENGTH;
+	bool mag_count_fail = _mag_counter <= 2*OBS_BUFFER_LENGTH;
+	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 2*OBS_BUFFER_LENGTH);
 	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
 		return false;
 
