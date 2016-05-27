@@ -231,9 +231,7 @@ struct parameters {
 	float rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
 	// vision position fusion
-	float ev_noise;		// observation noise for vision sensor estimates (m)
 	float ev_innov_gate;		// vision estimator fusion innovation consistency gate size (STD)
-	float ev_gnd_clearance;	// minimum valid value for vision based height estimate when on ground (m)
 
 	// optical flow fusion
 	float flow_noise;		// observation noise for optical flow LOS rate measurements (rad/sec)
@@ -424,6 +422,7 @@ union filter_control_status_u {
 		uint16_t gps_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
 		uint16_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
 		uint16_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
+		uint16_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
 	} flags;
 	uint16_t value;
 };

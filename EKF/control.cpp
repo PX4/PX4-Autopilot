@@ -323,6 +323,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = true;
 				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF baro hgt timeout - reset to GPS\n");
@@ -333,6 +334,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF baro hgt timeout - reset to baro\n");
@@ -372,6 +374,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF gps hgt timeout - reset to baro\n");
@@ -382,6 +385,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = true;
 				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF gps hgt timeout - reset to GPS\n");
@@ -414,6 +418,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF rng hgt timeout - reset to baro\n");
@@ -424,9 +429,52 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
+				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
 				printf("EKF rng hgt timeout - reset to rng hgt\n");
+			} else {
+				// we have nothing to reset to
+				reset_height = false;
+			}
+		}
+
+		// handle the case where we are using external vision data for height
+		if (_control_status.flags.ev_hgt) {
+			// check if vision data is available
+			extVisionSample ev_init = _ext_vision_buffer.get_newest();
+			bool ev_data_available = ((_time_last_imu - ev_init.time_us) < 2 * EV_MAX_INTERVAL);
+			// check if baro data is available
+			baroSample baro_init = _baro_buffer.get_newest();
+			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+
+			// reset to baro if we have no vision data and baro data is available
+			bool reset_to_baro = !ev_data_available && baro_data_available;
+
+			// reset to ev data if it is available
+			bool reset_to_ev = ev_data_available;
+
+			if (reset_to_baro) {
+				// set height sensor health
+				_rng_hgt_faulty = true;
+				_baro_hgt_faulty = false;
+				// reset the height mode
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = false;
+				// request a reset
+				reset_height = true;
+				printf("EKF ev hgt timeout - reset to baro\n");
+			} else if (reset_to_ev) {
+				// reset the height mode
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_control_status.flags.ev_hgt = true;
+				// request a reset
+				reset_height = true;
+				printf("EKF ev hgt timeout - reset to ev hgt\n");
 			} else {
 				// we have nothing to reset to
 				reset_height = false;
@@ -448,25 +496,43 @@ void Ekf::controlHeightAiding()
 	// check for height sensor timeouts and reset and change sensor if necessary
 	controlHeightSensorTimeouts();
 
-	// Control the soure of height measurements for the main filter
-	if (_control_status.flags.ev_pos) {
-	       _control_status.flags.baro_hgt = false;
-	       _control_status.flags.gps_hgt = false;
-	       _control_status.flags.rng_hgt = false;
-	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
+	// Control the source of height measurements for the main filter
+	// do not switch to a sensor if it is unhealthy or the data is stale
+	if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO) &&
+			!_baro_hgt_faulty &&
+			(((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) || _control_status.flags.baro_hgt)) {
+
 		_control_status.flags.baro_hgt = true;
 		_control_status.flags.gps_hgt = false;
 		_control_status.flags.rng_hgt = false;
+		_control_status.flags.ev_hgt = false;
 
-	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS && !_gps_hgt_faulty) || _control_status.flags.gps_hgt) {
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS) &&
+		   !_gps_hgt_faulty &&
+		   (((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL) || _control_status.flags.gps_hgt)) {
+
 		_control_status.flags.baro_hgt = false;
 		_control_status.flags.gps_hgt = true;
 		_control_status.flags.rng_hgt = false;
+		_control_status.flags.ev_hgt = false;
 
-	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE && !_rng_hgt_faulty) {
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) &&
+		   !_rng_hgt_faulty &&
+		    (((_imu_sample_delayed.time_us - _range_sample_delayed.time_us) < 2 * RNG_MAX_INTERVAL)  || _control_status.flags.rng_hgt)) {
+
 		_control_status.flags.baro_hgt = false;
 		_control_status.flags.gps_hgt = false;
 		_control_status.flags.rng_hgt = true;
+		_control_status.flags.ev_hgt = false;
+
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_EV) &&
+		   (((_imu_sample_delayed.time_us - _ev_sample_delayed.time_us) < 2 * EV_MAX_INTERVAL)  || _control_status.flags.ev_hgt)) {
+
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.gps_hgt = false;
+		_control_status.flags.rng_hgt = false;
+		_control_status.flags.ev_hgt = true;
+
 	}
 }
 
