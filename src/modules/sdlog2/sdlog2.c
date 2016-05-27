@@ -917,8 +917,13 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
-				orb_copy(topic, *handle, buffer);
-				updated = true;
+
+				/* but only if it has really been updated */
+				orb_check(*handle, &updated);
+
+				if (updated) {
+					orb_copy(topic, *handle, buffer);
+				}
 			}
 		}
 	} else {
