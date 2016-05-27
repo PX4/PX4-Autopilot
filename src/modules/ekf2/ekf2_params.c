@@ -535,14 +535,24 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
 
 /**
- * Measurement noise for vision estimate fusion
+ * Measurement noise for vision position observations used when the vision system does not supply error estimates
  *
  * @group EKF2
  * @min 0.01
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_EV_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.05f);
+
+/**
+ * Measurement noise for vision angle observations used when the vision system does not supply error estimates
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit rad
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
 
 /**
  * Gate size for vision estimate fusion
