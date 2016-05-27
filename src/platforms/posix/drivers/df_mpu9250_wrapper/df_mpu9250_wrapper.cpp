@@ -151,7 +151,6 @@ private:
 
 	Integrator		    _accel_int;
 	Integrator		    _gyro_int;
-	Integrator		    _mag_int;
 
 	unsigned		    _publish_count;
 
@@ -161,7 +160,7 @@ private:
 	perf_counter_t		    _fifo_corruption_counter;
 	perf_counter_t		    _gyro_range_hit_counter;
 	perf_counter_t		    _accel_range_hit_counter;
-	perf_counter_t		    _mag_range_hit_counter;
+	perf_counter_t		    _mag_fifo_overflow_counter;
 	perf_counter_t		    _publish_perf;
 
 	hrt_abstime		    _last_accel_range_hit_time;
@@ -185,7 +184,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
 	_mag_orb_class_instance(-1),
 	_accel_int(MPU9250_NEVER_AUTOPUBLISH_US, false),
 	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
-	_mag_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
 	/*_rotation(rotation)*/
 	_publish_count(0),
 	_read_counter(perf_alloc(PC_COUNT, "mpu9250_reads")),
@@ -194,7 +192,7 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
 	_fifo_corruption_counter(perf_alloc(PC_COUNT, "mpu9250_fifo_corruptions")),
 	_gyro_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_gyro_range_hits")),
 	_accel_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_accel_range_hits")),
-	_mag_range_hit_counter(perf_alloc(PC_COUNT, "mpu9250_mag_range_hits")),
+	_mag_fifo_overflow_counter(perf_alloc(PC_COUNT, "mpu9250_mag_fifo_overflows")),
 	_publish_perf(perf_alloc(PC_ELAPSED, "mpu9250_publish")),
 	_last_accel_range_hit_time(0),
 	_last_accel_range_hit_count(0),
@@ -234,7 +232,7 @@ DfMpu9250Wrapper::~DfMpu9250Wrapper()
 	perf_free(_gyro_range_hit_counter);
 	perf_free(_accel_range_hit_counter);
 	if (_mag_enabled == true) {
-		perf_free(_mag_range_hit_counter);
+		perf_free(_mag_fifo_overflow_counter);
 	}
 	perf_free(_publish_perf);
 }
@@ -325,7 +323,7 @@ void DfMpu9250Wrapper::info()
 	perf_print_counter(_gyro_range_hit_counter);
 	perf_print_counter(_accel_range_hit_counter);
 	if (_mag_enabled == true) {
-		perf_print_counter(_mag_range_hit_counter);
+		perf_print_counter(_mag_fifo_overflow_counter);
 	}
 	perf_print_counter(_publish_perf);
 }
@@ -624,7 +622,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_set_count(_gyro_range_hit_counter, data.gyro_range_hit_counter);
 	perf_set_count(_accel_range_hit_counter, data.accel_range_hit_counter);
 	if (_mag_enabled == true) {
-		perf_set_count(_mag_range_hit_counter, data.mag_range_hit_counter);
+		perf_set_count(_mag_fifo_overflow_counter, data.mag_fifo_overflow_counter);
 	}
 
 	perf_begin(_publish_perf);
@@ -819,7 +817,7 @@ info()
 void
 usage()
 {
-	PX4_WARN("Usage: df_mpu9250_wrapper 'start', 'info', 'stop'");
+	PX4_WARN("Usage: df_mpu9250_wrapper 'start', 'start_without_mag', 'info', 'stop'");
 	PX4_WARN("options:");
 	//PX4_WARN("    -R rotation");
 }
@@ -856,12 +854,12 @@ df_mpu9250_wrapper_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-	if (!strcmp(verb, "start_with_mag")) {
-		ret = df_mpu9250_wrapper::start(true);
+	if (!strcmp(verb, "start_without_mag")) {
+		ret = df_mpu9250_wrapper::start(false);
 	}
 
 	else if (!strcmp(verb, "start")) {
-		ret = df_mpu9250_wrapper::start(false);
+		ret = df_mpu9250_wrapper::start(true);
 	}
 
 	else if (!strcmp(verb, "stop")) {
