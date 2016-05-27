@@ -208,12 +208,15 @@ void Ekf::resetHeight()
 		// initialize vertical position with newest measurement
 		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
 
-		if (_time_last_imu - ev_newest.time_us < 2 * EV_MAX_INTERVAL) {
+		// use the most recent data if it's time offset from the fusion time horizon is smaller
+		int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
+		int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
+		if (abs(dt_newest) < abs(dt_delayed)) {
 			_state.pos(2) = ev_newest.posNED(2);
-
 		} else {
-			// TODO: reset to last known baro based estimate
+			_state.pos(2) = _ev_sample_delayed.posNED(2);
 		}
+
 	}
 
 	// reset the vertical velocity covariance values
