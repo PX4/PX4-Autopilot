@@ -498,8 +498,10 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
  *
  * @group EKF2
  * @value 0 Barometric pressure
- * @value 1 Reserved (GPS)
+ * @value 1 GPS
  * @value 2 Range sensor
+ * @value 3 Vision
+ *
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
