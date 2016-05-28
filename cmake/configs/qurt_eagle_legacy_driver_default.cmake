@@ -64,7 +64,7 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/uart_esc
+	drivers/pwm_out_rc_in
 	drivers/qshell/qurt
 
 	#
