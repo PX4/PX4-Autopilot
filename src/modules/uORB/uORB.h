@@ -141,10 +141,22 @@ typedef void 	*orb_advert_t;
 extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
 
 /**
+ * @see uORB::Manager::orb_advertise()
+ */
+extern orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data,
+					unsigned int queue_size) __EXPORT;
+
+/**
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 					int priority) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_advertise_multi()
+ */
+extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
+		int priority, unsigned int queue_size) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unadvertise()

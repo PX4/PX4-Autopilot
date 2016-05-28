@@ -61,7 +61,8 @@ uORB::DeviceNode::SubscriberData  *uORB::DeviceNode::filp_to_sd(device::file_t *
 	return sd;
 }
 
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path, int priority) :
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
+			     int priority, unsigned int queue_size) :
 	VDev(name, path),
 	_meta(meta),
 	_data(nullptr),
@@ -70,6 +71,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 	_publisher(0),
 	_priority(priority),
 	_published(false),
+	_queue_size(queue_size),
 	_subscriber_count(0)
 {
 	// enable debug() calls
@@ -198,13 +200,26 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	 */
 	lock();
 
-	/* if the caller doesn't want the data, don't give it to them */
-	if (nullptr != buffer) {
-		memcpy(buffer, _data, _meta->o_size);
+	if (_generation > sd->generation + _queue_size) {
+		/* Reader is too far behind: some messages are lost */
+		sd->generation = _generation - _queue_size;
 	}
 
-	/* track the last generation that the file has seen */
-	sd->generation = _generation;
+	if (_generation == sd->generation && sd->generation > 0) {
+		/* The subscriber already read the latest message, but nothing new was published yet.
+		 * Return the previous message
+		 */
+		--sd->generation;
+	}
+
+	/* if the caller doesn't want the data, don't give it to them */
+	if (nullptr != buffer) {
+		memcpy(buffer, _data + (_meta->o_size * (sd->generation % _queue_size)), _meta->o_size);
+	}
+
+	if (sd->generation < _generation) {
+		++sd->generation;
+	}
 
 	/* set priority */
 	sd->priority = _priority;
@@ -238,7 +253,7 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 
 		/* re-check size */
 		if (nullptr == _data) {
-			_data = new uint8_t[_meta->o_size];
+			_data = new uint8_t[_meta->o_size * _queue_size];
 		}
 
 		unlock();
@@ -255,10 +270,11 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 	}
 
 	lock();
-	memcpy(_data, buffer, _meta->o_size);
+	memcpy(_data + (_meta->o_size * (_generation % _queue_size)), buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
+	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	_generation++;
 
 	_published = true;
@@ -304,6 +320,11 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case ORBIOCGPRIORITY:
 		*(int *)arg = sd->priority;
 		return PX4_OK;
+
+	case ORBIOCSETQUEUESIZE:
+		//no need for locking here, since this is used only during the advertisement call,
+		//and only one advertiser is allowed to open the DeviceNode at the same time.
+		return update_queue_size(arg);
 
 	default:
 		/* give it to the superclass */
@@ -525,6 +546,20 @@ void uORB::DeviceNode::remove_internal_subscriber()
 bool uORB::DeviceNode::is_published()
 {
 	return _published;
+}
+
+int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
+{
+	if (_queue_size == queue_size) {
+		return PX4_OK;
+	}
+
+	if (_data || _queue_size > queue_size) {
+		return ERROR;
+	}
+
+	_queue_size = queue_size;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
