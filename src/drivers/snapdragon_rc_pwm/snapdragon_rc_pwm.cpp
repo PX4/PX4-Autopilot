@@ -35,9 +35,10 @@
 /**
  * @file snapdragon_rc_pwm.cpp
  * @author Roman Bapst <roman@px4.io>
+ * @author Julian Oes <julian@oes.ch>
  *
- * This driver sends rc commands to the Snapdragon via UART. On the same UART it receives pwm
- * motor commands from the Snapdragon.
+ * This driver sends RC commands to the Snapdragon via UART. On the same UART
+ * it receives pwm motor commands from the Snapdragon.
  */
 
 
@@ -66,9 +67,9 @@ namespace snapdragon_rc_pwm
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
-volatile bool _task_should_exit = false; // flag indicating if uart_esc task should exit
+volatile bool _task_should_exit = false; // flag indicating if snapdragon_rc_pwm task should exit
 static char _device[MAX_LEN_DEV_PATH];
-static bool _is_running = false;         // flag indicating if uart_esc app is running
+static bool _is_running = false;         // flag indicating if snapdragon_rc_pwm app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _uart_fd = -1;
 int _pwm_fd = -1;
@@ -85,7 +86,7 @@ void usage();
 
 void start();
 
-/** uart_esc stop */
+/** snapdragon_rc_pwm stop */
 void stop();
 
 int initialise_uart();
@@ -103,7 +104,7 @@ void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls);
 /** task main trampoline function */
 void task_main_trampoline(int argc, char *argv[]);
 
-/** uart_esc thread primary entry point */
+/** snapdragon_rc_pwm thread primary entry point */
 void task_main(int argc, char *argv[]);
 
 void task_main(int argc, char *argv[])
@@ -365,7 +366,7 @@ int deinitialize_uart()
 	return close(_uart_fd);
 }
 
-// uart_esc main entrance
+// snapdragon_rc_pwm main entrance
 void task_main_trampoline(int argc, char *argv[])
 {
 	task_main(argc, argv);
@@ -450,7 +451,7 @@ int snapdragon_rc_pwm_main(int argc, char *argv[])
 
 
 		if (snapdragon_rc_pwm::_is_running) {
-			PX4_WARN("uart_esc already running");
+			PX4_WARN("snapdragon_rc_pwm already running");
 			return 1;
 		}
 
