@@ -134,6 +134,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -566,6 +567,11 @@ VtolAttitudeControl::parameters_update()
 	/* vtol lock elevons in multicopter */
 	param_get(_params_handles.elevons_mc_lock, &l);
 	_params.elevons_mc_lock = l;
+
+	/* minimum relative altitude for FW mode (QuadChute) */
+	param_get(_params_handles.fw_min_alt, &v);
+	_params.fw_min_alt = v;
+
 
 	return OK;
 }

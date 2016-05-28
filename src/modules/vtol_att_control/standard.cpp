@@ -68,7 +68,6 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thurst_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles_standard.fw_minimum_altitude = param_find("VT_FW_MIN_ALT");
 }
 
 Standard::~Standard()
@@ -114,9 +113,6 @@ Standard::parameters_update()
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
 	param_get(_params_handles_standard.forward_thurst_scale, &_params_standard.forward_thurst_scale);
-
-	/* QuadChute; minimum altitude for fixed wing flight */
-	param_get(_params_handles_standard.fw_minimum_altitude, &_params_standard.fw_minimum_altitude);
 
 
 	return OK;
@@ -262,12 +258,6 @@ void Standard::update_transition_state()
 			}
 		}
 
-		// quadchute
-		if(_params_standard.fw_minimum_altitude > FLT_EPSILON && _armed->armed){
-			if(-(_local_pos->z) < _params_standard.fw_minimum_altitude){
-				_attc->abort_front_transition();
-			}
-		}
 
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
@@ -372,13 +362,6 @@ void Standard::update_fw_state()
 		set_max_mc(950);
 		set_idle_fw();  // force them to stop, not just idle
 		_flag_enable_mc_motors = true;
-	}
-
-	// quadchute
-	if(_params_standard.fw_minimum_altitude > FLT_EPSILON && _armed->armed){
-		if(-(_local_pos->z) < _params_standard.fw_minimum_altitude){
-			_attc->abort_front_transition();
-		}
 	}
 }
 
