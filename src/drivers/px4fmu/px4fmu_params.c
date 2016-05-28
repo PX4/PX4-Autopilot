@@ -107,3 +107,17 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+
+/**
+ * Select Transmit enable option for ESP8266 WIFI module
+ *
+ * @value 0 disable TX
+ * @value 1 disable TX when armed
+ * @value 2 enable TX
+ * @min 0
+ * @max 2
+ * @reboot_required false
+ * @decimal 0
+ * @group WIFI Control
+ */
+PARAM_DEFINE_INT32(WIFI_TX_MODE, 1);
