@@ -95,7 +95,7 @@
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
-#define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
+#define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
 #define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
 /*
@@ -345,7 +345,7 @@ PX4FMU::PX4FMU() :
 
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
-	stm32_configgpio(GPIO_SBUS_INV);
+	px4_arch_configgpio(GPIO_SBUS_INV);
 #endif
 
 	// If there is no safety button, disable it on boot.
@@ -477,7 +477,7 @@ PX4FMU:: safety_check_button(void)
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
-	stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+	px4_arch_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
 
 	if (blink_counter > 15) {
 		blink_counter = 0;
@@ -841,7 +841,7 @@ void PX4FMU::rc_io_invert(bool invert)
 
 	if (!invert) {
 		// set FMU_RC_OUTPUT high to pull RC_INPUT up
-		stm32_gpiowrite(GPIO_RC_OUT, 1);
+		px4_arch_gpiowrite(GPIO_RC_OUT, 1);
 	}
 }
 #endif
@@ -891,7 +891,7 @@ PX4FMU::cycle()
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
-		stm32_unconfiggpio(GPIO_PPM_IN);
+		px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif
 
 		_initialized = true;
@@ -1062,7 +1062,7 @@ PX4FMU::cycle()
 
 		if (_safety_disabled) {
 			/* safety switch disabled, turn LED on solid */
-			stm32_gpiowrite(GPIO_LED_SAFETY, 0);
+			px4_arch_gpiowrite(GPIO_LED_SAFETY, 0);
 			_safety_off = true;
 
 		} else {
@@ -1331,7 +1331,7 @@ PX4FMU::cycle()
 		if (_rc_scan_begin == 0) {
 			_rc_scan_begin = _cycle_timestamp;
 			// Configure timer input pin for CPPM
-			stm32_configgpio(GPIO_PPM_IN);
+			px4_arch_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
@@ -1352,7 +1352,7 @@ PX4FMU::cycle()
 
 		} else {
 			// disable CPPM input by mapping it away from the timer capture input
-			stm32_unconfiggpio(GPIO_PPM_IN);
+			px4_arch_unconfiggpio(GPIO_PPM_IN);
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SBUS);
 		}
@@ -2117,6 +2117,7 @@ PX4FMU::sensor_reset(int ms)
 	if (ms < 1) {
 		ms = 1;
 	}
+
 	board_spi_reset(ms);
 }
 
@@ -2139,17 +2140,17 @@ PX4FMU::gpio_reset(void)
 	 */
 	for (unsigned i = 0; i < _ngpio; i++) {
 		if (_gpio_tab[i].input != 0) {
-			stm32_configgpio(_gpio_tab[i].input);
+			px4_arch_configgpio(_gpio_tab[i].input);
 
 		} else if (_gpio_tab[i].output != 0) {
-			stm32_configgpio(_gpio_tab[i].output);
+			px4_arch_configgpio(_gpio_tab[i].output);
 		}
 	}
 
 #if defined(GPIO_GPIO_DIR)
 	/* if we have a GPIO direction control, set it to zero (input) */
-	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
-	stm32_configgpio(GPIO_GPIO_DIR);
+	px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
+	px4_arch_configgpio(GPIO_GPIO_DIR);
 #endif
 }
 
@@ -2169,7 +2170,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (GPIO_SET_OUTPUT == function ||
 		    GPIO_SET_OUTPUT_LOW == function ||
 		    GPIO_SET_OUTPUT_HIGH == function) {
-			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
+			px4_arch_gpiowrite(GPIO_GPIO_DIR, 1);
 		}
 	}
 
@@ -2180,24 +2181,24 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (gpios & (1 << i)) {
 			switch (function) {
 			case GPIO_SET_INPUT:
-				stm32_configgpio(_gpio_tab[i].input);
+				px4_arch_configgpio(_gpio_tab[i].input);
 				break;
 
 			case GPIO_SET_OUTPUT:
-				stm32_configgpio(_gpio_tab[i].output);
+				px4_arch_configgpio(_gpio_tab[i].output);
 				break;
 
 			case GPIO_SET_OUTPUT_LOW:
-				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
+				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
 				break;
 
 			case GPIO_SET_OUTPUT_HIGH:
-				stm32_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
+				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
 				break;
 
 			case GPIO_SET_ALT_1:
 				if (_gpio_tab[i].alt != 0) {
-					stm32_configgpio(_gpio_tab[i].alt);
+					px4_arch_configgpio(_gpio_tab[i].alt);
 				}
 
 				break;
@@ -2222,7 +2223,7 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 
 	for (unsigned i = 0; i < _ngpio; i++)
 		if (gpios & (1 << i)) {
-			stm32_gpiowrite(_gpio_tab[i].output, value);
+			px4_arch_gpiowrite(_gpio_tab[i].output, value);
 		}
 }
 
@@ -2232,7 +2233,7 @@ PX4FMU::gpio_read(void)
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (stm32_gpioread(_gpio_tab[i].input)) {
+		if (px4_arch_gpioread(_gpio_tab[i].input)) {
 			bits |= (1 << i);
 		}
 

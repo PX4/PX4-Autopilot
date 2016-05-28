@@ -524,7 +524,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		/* Set up IO */
 		if (gpio) {
-			stm32_configgpio(gpio);
+			px4_arch_configgpio(gpio);
 		}
 
 
@@ -667,7 +667,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 			for (unsigned chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
 				if (action_cache[actions].gpio[chan]) {
-					stm32_configgpio(action_cache[actions].gpio[chan]);
+					px4_arch_configgpio(action_cache[actions].gpio[chan]);
 					action_cache[actions].gpio[chan] = 0;
 				}
 			}

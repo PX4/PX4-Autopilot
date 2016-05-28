@@ -194,8 +194,8 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -204,7 +204,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 }
 
 /************************************************************************************
@@ -221,6 +221,7 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure ADC pins */
+
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */

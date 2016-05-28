@@ -27,34 +27,34 @@ static int num_buttons = sizeof(buttons) / sizeof(buttons[0]);
 void gpio_interface_init(void)
 {
 	for (int i = 0; i < num_leds; i++) {
-		stm32_gpiowrite(leds[i], true);
-		stm32_configgpio(leds[i]);
+		px4_arch_gpiowrite(leds[i], true);
+		px4_arch_configgpio(leds[i]);
 	}
 
 	for (int i = 0; i < num_buttons; i++) {
-		stm32_configgpio(buttons[i].gpio);
+		px4_arch_configgpio(buttons[i].gpio);
 	}
 
-	stm32_gpiowrite(GPIO_USART2MUX, false);
-	stm32_configgpio(GPIO_USART2MUX);
+	px4_arch_gpiowrite(GPIO_USART2MUX, false);
+	px4_arch_configgpio(GPIO_USART2MUX);
 }
 
 void gpio_interface_tick(void)
 {
 	for (int i = 0; i < num_buttons; i++) {
-		buttons[i].state = stm32_gpioread(buttons[i].gpio);
+		buttons[i].state = px4_arch_gpioread(buttons[i].gpio);
 	}
 }
 
 void gpio_interface_setusart2mux(bool conn_to_rpi)
 {
-	stm32_gpiowrite(GPIO_USART2MUX, conn_to_rpi);
+	px4_arch_gpiowrite(GPIO_USART2MUX, conn_to_rpi);
 }
 
 void gpio_interface_setled(int led, bool on)
 {
 	if (led >= 0 && led < num_leds) {
-		stm32_gpiowrite(leds[led], !on);
+		px4_arch_gpiowrite(leds[led], !on);
 	}
 }
 

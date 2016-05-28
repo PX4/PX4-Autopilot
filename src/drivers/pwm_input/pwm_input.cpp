@@ -324,11 +324,11 @@ void PWMIN::_timer_init(void)
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* configure input pin */
-	stm32_configgpio(GPIO_PWM_IN);
+	px4_arch_configgpio(GPIO_PWM_IN);
 
 	// XXX refactor this out of this driver
 	/* configure reset pin */
-	stm32_configgpio(GPIO_VDD_RANGEFINDER_EN);
+	px4_arch_configgpio(GPIO_VDD_RANGEFINDER_EN);
 
 	/* claim our interrupt vector */
 	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr);
@@ -392,14 +392,14 @@ PWMIN::_freeze_test()
 void
 PWMIN::_turn_on()
 {
-	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
+	px4_arch_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
 }
 
 // XXX refactor this out of this driver
 void
 PWMIN::_turn_off()
 {
-	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0);
+	px4_arch_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0);
 }
 
 // XXX refactor this out of this driver

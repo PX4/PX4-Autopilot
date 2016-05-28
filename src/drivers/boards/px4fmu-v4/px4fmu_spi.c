@@ -183,35 +183,35 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_MPU9250);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_HMC5983);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_MS5611);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_OFF_MPU9250);
+	stm32_configgpio(GPIO_SPI_CS_OFF_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
+	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
 
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
 
-	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
+	stm32_configgpio(GPIO_SPI1_SCK_OFF);
+	stm32_configgpio(GPIO_SPI1_MISO_OFF);
+	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
 
-	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	px4_arch_configgpio(GPIO_DRDY_OFF_MPU9250);
-	px4_arch_configgpio(GPIO_DRDY_OFF_HMC5983);
-	px4_arch_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
+	stm32_configgpio(GPIO_DRDY_OFF_HMC5983);
+	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
 
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
 
 	/* set the sensor rail off */
-	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -220,36 +220,36 @@ __EXPORT void board_spi_reset(int ms)
 	/* re-enable power */
 
 	/* switch the sensor rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_MPU9250);
-	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
-	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
-	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_MPU9250);
+	stm32_configgpio(GPIO_SPI_CS_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_MS5611);
+	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 
-	px4_arch_configgpio(GPIO_SPI1_SCK);
-	px4_arch_configgpio(GPIO_SPI1_MISO);
-	px4_arch_configgpio(GPIO_SPI1_MOSI);
+	stm32_configgpio(GPIO_SPI1_SCK);
+	stm32_configgpio(GPIO_SPI1_MISO);
+	stm32_configgpio(GPIO_SPI1_MOSI);
 
 	// // XXX bring up the EXTI pins again
-	// px4_arch_configgpio(GPIO_GYRO_DRDY);
-	// px4_arch_configgpio(GPIO_MAG_DRDY);
-	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
-	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
 
 #endif
 

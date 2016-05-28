@@ -32,7 +32,7 @@
  ****************************************************************************/
 #pragma once
 /*
- * This file is a shim to bridge ust to nuttx_v3
+ * This file is a shim to bridge to nuttx_v3
  */
 #ifdef __PX4_NUTTX
 

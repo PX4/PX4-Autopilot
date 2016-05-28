@@ -194,13 +194,13 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-	px4_arch_configgpio(GPIO_PERIPH_3V3_EN);
+	stm32_configgpio(GPIO_PERIPH_3V3_EN);
 
-	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
 
-	bool last = px4_arch_gpioread(GPIO_SPEKTRUM_PWR_EN);
+	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
-	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -209,8 +209,8 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
-	px4_arch_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
 
 }
 
