@@ -95,7 +95,7 @@ SPI::init()
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = stm32_spibus_initialize(_bus);
+		_dev = px4_spibus_initialize(_bus);
 	}
 
 	if (_dev == nullptr) {
