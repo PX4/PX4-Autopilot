@@ -138,7 +138,7 @@ void Standard::update_vtol_state()
 			_mc_throttle_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE ||
-				   _vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+			   _vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// transition to mc mode
 			_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 			_flag_enable_mc_motors = true;
