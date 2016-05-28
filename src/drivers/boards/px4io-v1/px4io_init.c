@@ -81,26 +81,26 @@
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure GPIOs */
-	stm32_configgpio(GPIO_ACC1_PWR_EN);
-	stm32_configgpio(GPIO_ACC2_PWR_EN);
-	stm32_configgpio(GPIO_SERVO_PWR_EN);
-	stm32_configgpio(GPIO_RELAY1_EN);
-	stm32_configgpio(GPIO_RELAY2_EN);
+	px4_arch_configgpio(GPIO_ACC1_PWR_EN);
+	px4_arch_configgpio(GPIO_ACC2_PWR_EN);
+	px4_arch_configgpio(GPIO_SERVO_PWR_EN);
+	px4_arch_configgpio(GPIO_RELAY1_EN);
+	px4_arch_configgpio(GPIO_RELAY2_EN);
 
 	/* turn off - all leds are active low */
-	stm32_gpiowrite(GPIO_LED1, true);
-	stm32_gpiowrite(GPIO_LED2, true);
-	stm32_gpiowrite(GPIO_LED3, true);
+	px4_arch_gpiowrite(GPIO_LED1, true);
+	px4_arch_gpiowrite(GPIO_LED2, true);
+	px4_arch_gpiowrite(GPIO_LED3, true);
 
 	/* LED config */
-	stm32_configgpio(GPIO_LED1);
-	stm32_configgpio(GPIO_LED2);
-	stm32_configgpio(GPIO_LED3);
+	px4_arch_configgpio(GPIO_LED1);
+	px4_arch_configgpio(GPIO_LED2);
+	px4_arch_configgpio(GPIO_LED3);
 
-	stm32_configgpio(GPIO_ACC_OC_DETECT);
-	stm32_configgpio(GPIO_SERVO_OC_DETECT);
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	px4_arch_configgpio(GPIO_ACC_OC_DETECT);
+	px4_arch_configgpio(GPIO_SERVO_OC_DETECT);
+	px4_arch_configgpio(GPIO_BTN_SAFETY);
 
-	stm32_configgpio(GPIO_ADC_VBATT);
-	stm32_configgpio(GPIO_ADC_IN5);
+	px4_arch_configgpio(GPIO_ADC_VBATT);
+	px4_arch_configgpio(GPIO_ADC_IN5);
 }

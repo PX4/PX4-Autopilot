@@ -251,13 +251,13 @@ AirspeedSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			//irqstate_t flags = irqsave();
+			//irqstate_t flags = px4_enter_critical_section();
 			if (!_reports->resize(arg)) {
-				//irqrestore(flags);
+				//px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			//irqrestore(flags);
+			//px4_leave_critical_section(flags);
 
 			return OK;
 		}

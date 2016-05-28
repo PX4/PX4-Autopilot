@@ -71,6 +71,7 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -178,6 +179,28 @@ fat_dma_free(FAR void *memory, size_t size)
 #endif
 
 /************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
+{
+	/* set the peripheral rails off */
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+}
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -216,31 +239,31 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	// stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	// px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
+	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -276,7 +299,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -296,7 +319,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = up_spiinitialize(2);
+	spi2 = px4_spibus_initialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
@@ -313,7 +336,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	spi4 = up_spiinitialize(4);
+	spi4 = px4_spibus_initialize(4);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi4, 10000000);

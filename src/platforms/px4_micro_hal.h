@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +30,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file px4_config.h
-   Configuration flags used in code.
- */
-
 #pragma once
+/*
+ * This file is a shim to bridge to nuttx_v3
+ */
+#ifdef __PX4_NUTTX
 
-#if defined(__PX4_NUTTX)
+#  define px4_enter_critical_section()       irqsave()
+#  define px4_leave_critical_section(flags)  irqrestore(flags)
 
-#include <nuttx/config.h>
-#include <board_config.h>
-#include "px4_micro_hal.h"
+#  define px4_spibus_initialize(port_1based)       up_spiinitialize(port_1based)
 
-#elif defined (__PX4_POSIX)
+#  define px4_i2cbus_initialize(bus_num_1based)    up_i2cinitialize(bus_num_1based)
+#  define px4_i2cbus_uninitialize(pdev)            up_i2cuninitialize(pdev)
 
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_SITL 1
-
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 50000
-
-#define CONFIG_SCHED_INSTRUMENTATION 1
-#define CONFIG_MAX_TASKS 32
-
+#  if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_STM32F40XX)
+#    define px4_arch_configgpio(pinset)      stm32_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)     stm32_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)         stm32_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value) stm32_gpiowrite(pinset, value)
+#  endif
 #endif

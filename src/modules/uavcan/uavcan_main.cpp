@@ -537,12 +537,12 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * fail during initialization.
 	 */
 #if defined(GPIO_CAN1_RX)
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
+	px4_arch_configgpio(GPIO_CAN1_RX);
+	px4_arch_configgpio(GPIO_CAN1_TX);
 #endif
 #if defined(GPIO_CAN2_RX)
-	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	stm32_configgpio(GPIO_CAN2_TX);
+	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
+	px4_arch_configgpio(GPIO_CAN2_TX);
 #endif
 #if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
 # error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"

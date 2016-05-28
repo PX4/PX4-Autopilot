@@ -439,7 +439,7 @@ ToneAlarm::init()
 	}
 
 	/* configure the GPIO to the idle state */
-	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 
 	/* clock/power on our timer */
 	modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
@@ -571,7 +571,7 @@ ToneAlarm::start_note(unsigned note)
 	rCCER |= TONE_CCER;	// enable the output
 
 	// configure the GPIO to enable timer output
-	stm32_configgpio(GPIO_TONE_ALARM);
+	px4_arch_configgpio(GPIO_TONE_ALARM);
 }
 
 void
@@ -583,7 +583,7 @@ ToneAlarm::stop_note()
 	/*
 	 * Make sure the GPIO is not driving the speaker.
 	 */
-	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
 
 void
@@ -876,7 +876,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 
 	DEVICE_DEBUG("ioctl %i %u", cmd, arg);
 
-//	irqstate_t flags = irqsave();
+//	irqstate_t flags = px4_enter_critical_section();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
@@ -911,7 +911,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-//	irqrestore(flags);
+//	px4_leave_critical_section(flags);
 
 	/* give it to the superclass if we didn't like it */
 	if (result == -ENOTTY) {

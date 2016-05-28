@@ -73,7 +73,7 @@ static struct i2c_dev_s *i2c;
 int i2c_main(int argc, char *argv[])
 {
 	/* find the right I2C */
-	i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
+	i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");

@@ -183,7 +183,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
@@ -202,7 +202,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	 */
 	sd->update_reported = false;
 
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	return _meta->o_size;
 }
@@ -244,7 +244,7 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	}
 
 	/* Perform an atomic copy. */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 	memcpy(_data, buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
@@ -253,7 +253,7 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 
 	_published = true;
 
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
@@ -268,9 +268,9 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE: {
-			irqstate_t state = irqsave();
+			irqstate_t state = px4_enter_critical_section();
 			*(hrt_abstime *)arg = _last_update;
-			irqrestore(state);
+			px4_leave_critical_section(state);
 			return OK;
 		}
 
@@ -400,7 +400,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	bool ret = false;
 
 	/* avoid racing between interrupt and non-interrupt context calls */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
@@ -466,7 +466,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	}
 
 out:
-	irqrestore(state);
+	px4_leave_critical_section(state);
 
 	/* consider it updated */
 	return ret;

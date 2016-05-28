@@ -339,14 +339,14 @@ void
 CDev::poll_notify(pollevent_t events)
 {
 	/* lock against poll() as well as other wakeups */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
 		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
 		}
 
-	irqrestore(state);
+	px4_leave_critical_section(state);
 }
 
 void
