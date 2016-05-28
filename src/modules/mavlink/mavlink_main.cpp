@@ -912,7 +912,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (!should_transmit()) {
-		warnx("not transmitting");
 		return;
 	}
 
