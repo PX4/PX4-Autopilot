@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE lib__runway_takeoff
+	MODULE lib__fw_takeoff
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		RunwayTakeoff.cpp
+		FixedWingTakeoff.cpp
 	DEPENDS
 		platforms__common
 	)

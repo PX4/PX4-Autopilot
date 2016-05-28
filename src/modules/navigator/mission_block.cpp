@@ -78,7 +78,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
 	_param_yaw_err(this, "MIS_YAW_ERR", false),
 	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
-	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false)
+	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
+	_param_climbout_diff(this, "FW_CLMBOUT_DIFF", false)
 {
 }
 
@@ -149,21 +150,26 @@ MissionBlock::is_mission_item_reached()
 			              : _mission_item.altitude;
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
-				                          _navigator->get_global_position()->lat,
-							  _navigator->get_global_position()->lon,
-							  _navigator->get_global_position()->alt,
-				&dist_xy, &dist_z);
+													_navigator->get_global_position()->lat,
+													_navigator->get_global_position()->lon,
+													_navigator->get_global_position()->alt,
+													&dist_xy, &dist_z);
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
 			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
-			if (_navigator->get_global_position()->alt >
-				altitude_amsl - _navigator->get_acceptance_radius()) {
+			if (_navigator->get_global_position()->alt > (altitude_amsl - _navigator->get_acceptance_radius())) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+
+			bool climbout_finished = true;
+			if (_param_climbout_diff.get() > 0.001f) {
+				climbout_finished = _navigator->get_global_position()->alt - altitude_amsl < _param_climbout_diff.get();
+			}
+
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
+			if (climbout_finished && dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (!_navigator->get_vstatus()->is_rotary_wing &&

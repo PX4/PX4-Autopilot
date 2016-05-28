@@ -1180,9 +1180,8 @@ FixedwingAttitudeControl::task_main()
 
 					if (_att_sp.fw_control_yaw == true) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-					}
 
-					else {
+					} else {
 						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					}
 

@@ -63,12 +63,12 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/ecl
 	lib/external_lgpl
+	lib/fw_takeoff
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
 	lib/mathlib
 	lib/mathlib/math/filter
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 

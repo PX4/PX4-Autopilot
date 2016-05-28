@@ -11,6 +11,7 @@ find \
     src/include \
     src/lib/controllib \
     src/lib/conversion \
+    src/lib/fw_takeoff \
     src/lib/geo \
     src/lib/geo_lookup \
     src/lib/launchdetection \
