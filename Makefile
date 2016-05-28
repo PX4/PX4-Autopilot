@@ -167,9 +167,6 @@ posix_sitl_default:
 posix_sitl_test:
 	$(call cmake-build,$@)
 
-posix_sitl_ekf2:
-	$(call cmake-build,$@)
-
 posix_sitl_replay:
 	$(call cmake-build,$@)
 
