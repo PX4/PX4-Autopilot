@@ -137,19 +137,12 @@ void Standard::update_vtol_state()
 			_mc_yaw_weight = 1.0f;
 			_mc_throttle_weight = 1.0f;
 
-		} else if (_vtol_schedule.flight_mode == FW_MODE) {
+		} else if (_vtol_schedule.flight_mode == FW_MODE ||
+				   _vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// transition to mc mode
 			_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 			_flag_enable_mc_motors = true;
 			_vtol_schedule.transition_start = hrt_absolute_time();
-
-		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-			// failsafe back to mc mode
-			_vtol_schedule.flight_mode = MC_MODE;
-			_mc_roll_weight = 1.0f;
-			_mc_pitch_weight = 1.0f;
-			_mc_yaw_weight = 1.0f;
-			_mc_throttle_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
