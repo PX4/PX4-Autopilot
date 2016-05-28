@@ -86,16 +86,24 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		clear_line = CL;
 	}
 
-#ifdef __PX4_DARWIN
+#if defined (__PX4_LINUX)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX\n",
+		clear_line);
+
+#elif defined (__PX4_QURT)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON QURT\n",
+		clear_line);
+
+#elif defined (__PX4_DARWIN)
 	pid_t pid = getpid();   //-- this is the process id you need info for
-	task_t port;
-	task_for_pid(mach_task_self(), pid, &port);
+	task_t task_handle;
+	task_for_pid(mach_task_self(), pid, &task_handle);
 
 	task_info_data_t tinfo;
-	mach_msg_type_number_t task_info_count;
+	mach_msg_type_number_t th_info_cnt;
 
-	task_info_count = TASK_INFO_MAX;
-	kern_return_t kr = task_info(port, TASK_BASIC_INFO, (task_info_t)tinfo, &task_info_count);
+	th_info_cnt = TASK_INFO_MAX;
+	kern_return_t kr = task_info(task_handle, TASK_BASIC_INFO, (task_info_t)tinfo, &th_info_cnt);
 
 	if (kr != KERN_SUCCESS) {
 		return;
@@ -103,7 +111,7 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 
 	task_basic_info_t basic_info;
 	thread_array_t thread_list;
-	mach_msg_type_number_t thread_count;
+	mach_msg_type_number_t th_cnt;
 
 	thread_info_data_t th_info_data;
 	mach_msg_type_number_t thread_info_count;
@@ -114,15 +122,15 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	basic_info = (task_basic_info_t)tinfo;
 
 	// get all threads of the PX4 main task
-	kr = task_threads(port, &thread_list, &thread_count);
+	kr = task_threads(task_handle, &thread_list, &th_cnt);
 
 	if (kr != KERN_SUCCESS) {
 		PX4_WARN("ERROR getting thread list");
 		return;
 	}
 
-	if (thread_count > 0) {
-		stat_thread += thread_count;
+	if (th_cnt > 0) {
+		stat_thread += th_cnt;
 	}
 
 	long tot_sec = 0;
@@ -131,9 +139,9 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 
 	dprintf(fd, "%sThreads: %d total\n",
 		clear_line,
-		thread_count);
+		th_cnt);
 
-	for (int j = 0; j < thread_count; j++) {
+	for (int j = 0; j < th_cnt; j++) {
 		thread_info_count = THREAD_INFO_MAX;
 		kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
 				 (thread_info_t)th_info_data, &thread_info_count);
@@ -144,7 +152,6 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		}
 
 		basic_info_th = (thread_basic_info_t)th_info_data;
-
 
 		if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
 			tot_sec = tot_sec + basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
@@ -161,7 +168,7 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	}
 
 	kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list,
-			   thread_count * sizeof(thread_t));
+			   th_cnt * sizeof(thread_t));
 
 	if (kr != KERN_SUCCESS) {
 		PX4_WARN("ERROR cleaning up thread info");
