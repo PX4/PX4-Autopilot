@@ -356,10 +356,10 @@ void parameters_init()
 	_params_handles.mag_z_offset		=	param_find("CAL_MAG0_ZOFF");
 	_params_handles.mag_z_scale		=	param_find("CAL_MAG0_ZSCALE");
 
-	_params_handles.gyro_lpf_enum		=	param_find("MPU_GYRO_LPF_ENUM");
-	_params_handles.accel_lpf_enum		=	param_find("MPU_ACC_LPF_ENUM");
+	_params_handles.gyro_lpf_enum		=	param_find("MPU_GYRO_LPF_ENM");
+	_params_handles.accel_lpf_enum		=	param_find("MPU_ACC_LPF_ENM");
 
-	_params_handles.imu_sample_rate_enum	=	param_find("MPU_SAMPLE_RATE_ENUM");
+	_params_handles.imu_sample_rate_enum	=	param_find("MPU_SAMPLE_R_ENM");
 
 	parameters_update();
 }

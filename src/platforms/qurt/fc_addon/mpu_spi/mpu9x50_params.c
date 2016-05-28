@@ -41,49 +41,46 @@
 #include <systemlib/param/param.h>
 
 /**
- * IMU Low pass filter enum value for Gyro
+ * Low pass filter frequency for Gyro
  *
- * Acceptable values:
- *
- * MPU9X50_GYRO_LPF_250HZ = 0,
- * MPU9X50_GYRO_LPF_184HZ = 1,
- * MPU9X50_GYRO_LPF_92HZ = 2,
- * MPU9X50_GYRO_LPF_41HZ = 3,
- * MPU9X50_GYRO_LPF_20HZ = 4 (default),
- * MPU9X50_GYRO_LPF_10HZ = 5,
- * MPU9X50_GYRO_LPF_5HZ = 6,
- * MPU9X50_GYRO_LPF_3600HZ_NOLPF = 7,
+ * @value 0 MPU9X50_GYRO_LPF_250HZ
+ * @value 1 MPU9X50_GYRO_LPF_184HZ
+ * @value 2 MPU9X50_GYRO_LPF_92HZ
+ * @value 3 MPU9X50_GYRO_LPF_41HZ
+ * @value 4 MPU9X50_GYRO_LPF_20HZ
+ * @value 5 MPU9X50_GYRO_LPF_10HZ
+ * @value 6 MPU9X50_GYRO_LPF_5HZ
+ * @value 7 MPU9X50_GYRO_LPF_3600HZ_NOLPF
  *
  * @group MPU9x50 Configuration
  */
-PARAM_DEFINE_INT32(MPU_GYRO_LPF_ENUM, 4);
+PARAM_DEFINE_INT32(MPU_GYRO_LPF_ENM, 4);
 
 /**
- * IMU Low pass filter enum value for Accelerometer
+ * Low pass filter frequency for Accelerometer
  *
- * Acceptable values:
  *
- *  MPU9X50_ACC_LPF_460HZ = 0,
- *  MPU9X50_ACC_LPF_184HZ = 1,
- *  MPU9X50_ACC_LPF_92HZ = 2,
- *  MPU9X50_ACC_LPF_41HZ = 3,
- *  MPU9X50_ACC_LPF_20HZ = 4 (default),
- *  MPU9X50_ACC_LPF_10HZ = 5,
- *  MPU9X50_ACC_LPF_5HZ = 6,
- *  MPU9X50_ACC_LPF_460HZ_NOLPF = 7,
+ * @value 0 MPU9X50_ACC_LPF_460HZ
+ * @value 1 MPU9X50_ACC_LPF_184HZ
+ * @value 2 MPU9X50_ACC_LPF_92HZ
+ * @value 3 MPU9X50_ACC_LPF_41HZ
+ * @value 4 MPU9X50_ACC_LPF_20HZ
+ * @value 5 MPU9X50_ACC_LPF_10HZ
+ * @value 6 MPU9X50_ACC_LPF_5HZ
+ * @value 7 MPU9X50_ACC_LPF_460HZ_NOLPF
  *
  * @group MPU9x50 Configuration
  */
-PARAM_DEFINE_INT32(MPU_ACC_LPF_ENUM, 4);
+PARAM_DEFINE_INT32(MPU_ACC_LPF_ENM, 4);
 
 /**
- * IMU sample rate in Hz
- * acceptable values:
- * MPU9x50_SAMPLE_RATE_100HZ = 0,
- * MPU9x50_SAMPLE_RATE_200HZ,
- * MPU9x50_SAMPLE_RATE_500HZ, (default)
- * MPU9x50_SAMPLE_RATE_1000HZ,
+ * Sample rate in Hz
+ *
+ * @value 0 MPU9x50_SAMPLE_RATE_100HZ
+ * @value 1 MPU9x50_SAMPLE_RATE_200HZ
+ * @value 2 MPU9x50_SAMPLE_RATE_500HZ
+ * @value 3 MPU9x50_SAMPLE_RATE_1000HZ
  *
  * @group MPU9x50 Configuration
  */
-PARAM_DEFINE_INT32(MPU_SAMPLE_RATE_ENUM, 2);
+PARAM_DEFINE_INT32(MPU_SAMPLE_R_ENM, 2);
