@@ -39,15 +39,16 @@
 #  define px4_enter_critical_section()       enter_critical_section()
 #  define px4_leave_critical_section(flags)  leave_critical_section(flags)
 
-#  define px4_spibus_initialize(port_1based)       up_spiinitialize(port_1based)
+#  if defined(CONFIG_ARCH_CHIP_STM32)
+#    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
-#  define px4_i2cbus_initialize(bus_num_1based)    up_i2cinitialize(bus_num_1based)
-#  define px4_i2cbus_uninitialize(pdev)            up_i2cuninitialize(pdev)
+#    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
+#    define px4_i2cbus_uninitialize(pdev)            stm32_i2cbus_uninitialize(pdev)
 
-#  if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_STM32F40XX)
-#    define px4_arch_configgpio(pinset)      stm32_configgpio(pinset)
-#    define px4_arch_unconfiggpio(pinset)     stm32_unconfiggpio(pinset)
-#    define px4_arch_gpioread(pinset)         stm32_gpioread(pinset)
-#    define px4_arch_gpiowrite(pinset, value) stm32_gpiowrite(pinset, value)
+#    define px4_arch_configgpio(pinset)             stm32_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
 #  endif
 #endif
