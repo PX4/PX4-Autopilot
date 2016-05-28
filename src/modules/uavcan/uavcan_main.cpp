@@ -550,25 +550,33 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	/*
 	 * CAN driver init
+	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
+	 * shipped with libuavcan does not support deinitialization.
 	 */
-	static CanInitHelper can;
-	static bool can_initialized = false;
+	static CanInitHelper* can = nullptr;
 
-	if (!can_initialized) {
-		const int can_init_res = can.init(bitrate);
+	if (can == nullptr) {
+		warnx("CAN driver init...");
+
+		can = new CanInitHelper();
+
+		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
+			warnx("Out of memory");
+			return -1;
+		}
+
+		const int can_init_res = can->init(bitrate);
 
 		if (can_init_res < 0) {
 			warnx("CAN driver init failed %i", can_init_res);
 			return can_init_res;
 		}
-
-		can_initialized = true;
 	}
 
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, uavcan_stm32::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		warnx("Out of memory");
