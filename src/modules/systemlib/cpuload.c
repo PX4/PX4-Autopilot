@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- * 	     Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,11 +36,10 @@
  *
  * Measurement of CPU load of each individual task.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
 #include <px4_config.h>
-//#include <nuttx/sched.h>
 
 #include <sys/types.h>
 #include <stdint.h>
