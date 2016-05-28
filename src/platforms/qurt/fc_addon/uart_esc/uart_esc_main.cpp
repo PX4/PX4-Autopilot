@@ -131,14 +131,14 @@ struct {
 void parameters_init()
 {
 	_parameter_handles.model 		= param_find("UART_ESC_MODEL");
-	_parameter_handles.baudrate = param_find("UART_ESC_BAUDRATE");
+	_parameter_handles.baudrate = param_find("UART_ESC_BAUD");
 
 	/* PX4 motor mapping parameters */
 	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {
 		char nbuf[20];
 
 		/* min values */
-		sprintf(nbuf, "UART_ESC_PX4MOTOR%d", i + 1);
+		sprintf(nbuf, "UART_ESC_MOTOR%d", i + 1);
 		_parameter_handles.px4_motor_mapping[i] = param_find(nbuf);
 	}
 
@@ -157,13 +157,13 @@ void parameters_update()
 
 	if (param_get(_parameter_handles.baudrate, &v_int) == 0) {
 		_parameters.baudrate = v_int;
-		PX4_WARN("UART_ESC_BAUDRATE %d", _parameters.baudrate);
+		PX4_WARN("UART_ESC_BAUD %d", _parameters.baudrate);
 	}
 
 	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {
 		if (param_get(_parameter_handles.px4_motor_mapping[i], &v_int) == 0) {
 			_parameters.px4_motor_mapping[i] = v_int;
-			PX4_WARN("UART_ESC_PX4MOTOR%d %d", i + 1, _parameters.px4_motor_mapping[i]);
+			PX4_WARN("UART_ESC_MOTOR%d %d", i + 1, _parameters.px4_motor_mapping[i]);
 		}
 	}
 }
