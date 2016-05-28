@@ -89,7 +89,11 @@ top_main(int argc, char *argv[])
 
 			if (ret > 0) {
 
-				read(0, &c, 1);
+				ret = read(0, &c, 1);
+
+				if (ret) {
+					return 1;
+				}
 
 				switch (c) {
 				case 0x03: // ctrl-c
