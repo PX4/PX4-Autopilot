@@ -86,7 +86,15 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		clear_line = CL;
 	}
 
-#ifdef __PX4_DARWIN
+#if defined (__PX4_LINUX)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX\n",
+		clear_line);
+
+#elif defined (__PX4_QURT)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON QURT\n",
+		clear_line);
+
+#elif defined (__PX4_DARWIN)
 	pid_t pid = getpid();   //-- this is the process id you need info for
 	task_t port;
 	task_for_pid(mach_task_self(), pid, &port);
@@ -144,7 +152,6 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		}
 
 		basic_info_th = (thread_basic_info_t)th_info_data;
-
 
 		if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
 			tot_sec = tot_sec + basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
