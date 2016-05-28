@@ -46,7 +46,6 @@ px4_add_module(
 		sensors/baro.cpp
 		sensors/vision.cpp
 		sensors/mocap.cpp
-		params.c
 	DEPENDS
 		platforms__common
 	)
