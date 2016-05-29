@@ -114,13 +114,9 @@ public:
 
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
-	static mavlink_message_t *get_buffer_for_instance(unsigned instance) { return &_mavlink_buffer[instance]; }
+	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
 
-	mavlink_message_t 	*get_buffer() { return Mavlink::get_buffer_for_instance(_instance_id); }
-
-	static mavlink_status_t *get_status_for_instance(unsigned instance) { return &_mavlink_status[instance]; }
-
-	mavlink_status_t 	*get_status() { return Mavlink::get_status_for_instance(_instance_id); }
+	mavlink_status_t 	*get_status() { return &_mavlink_status; }
 
 	/**
 	 * Set the MAVLink version
@@ -404,8 +400,9 @@ private:
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
-	static mavlink_message_t _mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
-	static mavlink_status_t _mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
+	static const unsigned MAVLINK_MAX_INSTANCES = 4;
+	mavlink_message_t _mavlink_buffer;
+	mavlink_status_t _mavlink_status;
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */

@@ -136,7 +136,12 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
  */
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
-	return Mavlink::get_status_for_instance(channel);
+	Mavlink* m = Mavlink::get_instance((unsigned)channel);
+	if (m != nullptr) {
+		return m->get_status();
+	} else {
+		return nullptr;
+	}
 }
 
 /*
@@ -144,15 +149,18 @@ mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
  */
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
-	return Mavlink::get_buffer_for_instance(channel);
+	Mavlink* m = Mavlink::get_instance((unsigned)channel);
+	if (m != nullptr) {
+		return m->get_buffer();
+	} else {
+		return nullptr;
+	}
 }
 
 static void usage(void);
 
 bool Mavlink::_boot_complete = false;
 bool Mavlink::_config_link_on = false;
-mavlink_message_t Mavlink::_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS] = {};
-mavlink_status_t Mavlink::_mavlink_status[MAVLINK_COMM_NUM_BUFFERS] = {};
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -161,6 +169,8 @@ Mavlink::Mavlink() :
 	_instance_id(0),
 	_mavlink_log_pub(nullptr),
 	_task_running(false),
+	_mavlink_buffer{},
+	_mavlink_status{},
 	_hil_enabled(false),
 	_generate_rc(false),
 	_use_hil_gps(false),
@@ -2268,9 +2278,9 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
-	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+	if (ic == Mavlink::MAVLINK_MAX_INSTANCES) {
 		warnx("Maximum MAVLink instance count of %d reached.",
-			(int)MAVLINK_COMM_NUM_BUFFERS);
+			(int)Mavlink::MAVLINK_MAX_INSTANCES);
 		return 1;
 	}
 
