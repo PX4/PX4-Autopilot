@@ -303,8 +303,9 @@ void serial_callback(void *context, char *buffer, size_t num_bytes)
 		mavlink_message_t msg;
 
 		for (int i = 0; i < num_bytes; ++i) {
-			// TODO FIXME: we don't know if MAVLINK_COMM_1 is already taken.
-			if (mavlink_parse_char(MAVLINK_COMM_1, buffer[i], &msg, &serial_status)) {
+			// The MAVLink app doesn't use the internal buffer functions
+			// and hence the first port can be used here.
+			if (mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &serial_status)) {
 				// have a message, handle it
 				if (msg.msgid == MAVLINK_MSG_ID_RC_CHANNELS) {
 					// we should publish but would be great if this works
