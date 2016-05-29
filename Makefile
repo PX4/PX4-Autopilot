@@ -278,7 +278,7 @@ checks_sitls: \
 	check_posix_sitl_test \
 
 checks_last: \
-	check_unittest \
+	check_tests \
 	check_format \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last

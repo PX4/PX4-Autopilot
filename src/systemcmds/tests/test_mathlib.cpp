@@ -274,7 +274,7 @@ bool MathlibTest::testRotationMatrixQuaternion(void)
 	math::Matrix<3, 3> R_orig;
 	math::Matrix<3, 3> R;
 	math::Quaternion q;
-	float diff = 0.1f;
+	float diff = 0.2f;
 	float tol = 0.00001f;
 
 	//PX4_INFO("Quaternion transformation methods test.");

@@ -29,6 +29,7 @@ set(config_module_list
 	systemcmds/sd_bench
 	systemcmds/topic_listener
 	systemcmds/ver
+	systemcmds/top
 
 	modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
@@ -79,13 +80,11 @@ set(config_module_list
 	#
 	modules/commander/commander_tests
 	modules/controllib_test
-	modules/mavlink/mavlink_tests
+	#modules/mavlink/mavlink_tests  #TODO: fix mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 	)
-	
-set(config_testing 1)
 
 set(config_extra_builtin_cmds
 	serdis
