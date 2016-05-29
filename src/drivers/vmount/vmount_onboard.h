@@ -32,25 +32,28 @@
 ****************************************************************************/
 
 /**
- * @file mount_rc
+ * @file vmount_onboard
  * @author Leon Müller (thedevleon)
  *
  */
 
-#ifndef _MOUNT_RC_H
-#define _MOUNT_RC_H
+#ifndef _VMOUNT_ONBOARD_H
+#define _VMOUNT_ONBOARD_H
 
 #include <sys/types.h>
 #include <stdbool.h>
 
 // Public functions
-bool mount_rc_init(void);
-void mount_rc_deinit(void);
-void mount_rc_configure(int roi_mode, bool man_control);
-void mount_rc_set_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
-void mount_rc_set_manual(float new_pitch, float new_roll, float new_yaw);
-void mount_rc_point(void);
-float mount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-			       float alt);
+bool vmount_onboard_init(void);
+void vmount_onboard_deinit(void);
+void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw);
+void vmount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
+				double lon, float alt);
+void vmount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw);
+void vmount_onboard_set_mode(int new_mount_mode);
+void vmount_onboard_point(void);
+void vmount_onboard_update_topics(void);
+float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
+				    float alt);
 
-#endif /* _MOUNT_RC_H */
+#endif /* _VMOUNT_ONBOARD_H */

@@ -31,17 +31,17 @@
 #
 ############################################################################
  px4_add_module(
- 	MODULE drivers__mount
- 	MAIN mount
+ 	MODULE drivers__vmount
+ 	MAIN vmount
  	STACK_MAIN 1024
  	COMPILE_FLAGS
  		-Os
  	SRCS
- 		mount.cpp
-        mount_params.c
- 		mount_rc.cpp
-        mount_mavlink.cpp
-        mount_onboard.cpp
+	vmount.cpp
+	vmount_params.c
+	vmount_rc.cpp
+	vmount_mavlink.cpp
+	vmount_onboard.cpp
  	DEPENDS
  		platforms__common
  	)

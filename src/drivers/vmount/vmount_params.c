@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /**
-* @file mount_params.c
+* @file vmount_params.c
 * @author Leon Müller (thedevleon)
 *
 */

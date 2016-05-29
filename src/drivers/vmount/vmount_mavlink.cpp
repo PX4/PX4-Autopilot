@@ -32,12 +32,12 @@
 ****************************************************************************/
 
 /**
- * @file mount_mavlink.cpp
- * @author Leon Müllåer (thedevleon)
+ * @file vmount_mavlink.cpp
+ * @author Leon Müller (thedevleon)
  *
  */
 
-#include "mount_mavlink.h"
+#include "vmount_mavlink.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,7 +58,7 @@ static orb_advert_t vehicle_command_pub;
 static int sys_id;
 static int comp_id;
 
-bool mount_mavlink_init()
+bool vmount_mavlink_init()
 {
 	memset(&vehicle_command, 0, sizeof(vehicle_command));
 	vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
@@ -69,7 +69,7 @@ bool mount_mavlink_init()
 }
 
 
-void mount_mavlink_deinit()
+void vmount_mavlink_deinit()
 {
 	orb_unadvertise(vehicle_command_pub);
 	free(vehicle_command);
@@ -80,7 +80,7 @@ void mount_mavlink_deinit()
  *   param1 = mount_mode (1 = MAV_MOUNT_MODE_NEUTRAL recenters camera)
  */
 
-void mount_mavlink_configure(int roi_mode, bool man_control, int sysid, int compid)
+void vmount_mavlink_configure(int roi_mode, bool man_control, int sysid, int compid)
 {
 	sys_id = sysid;
 	comp_id = compid;
@@ -137,17 +137,17 @@ void mount_mavlink_configure(int roi_mode, bool man_control, int sysid, int comp
 /*
  *
  */
-void mount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
+void vmount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
 				  float alt)
 {
 	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-	float new_pitch = mount_mavlink_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
+	float new_pitch = vmount_mavlink_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
 	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
 
-	mount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
+	vmount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
 }
 
-void mount_mavlink_point_manual(float pitch, float roll, float yaw)
+void vmount_mavlink_point_manual(float pitch, float roll, float yaw)
 {
 	vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
 	vehicle_command->target_system = sys_id;
@@ -160,7 +160,7 @@ void mount_mavlink_point_manual(float pitch, float roll, float yaw)
 	orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
 }
 
-float mount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
+float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
 				    float alt)
 {
 	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mount.cpp
+ * @file vmount.cpp
  * @author Leon Müller (thedevleon)
  * MAV_MOUNT driver for controlling mavlink gimbals, rc gimbals/servors and
  * future kinds of mounts.
@@ -49,9 +49,9 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-#include "mount_mavlink.h"
-#include "mount_rc.h"
-#include "mount_onboard.h"
+#include "vmount_mavlink.h"
+#include "vmount_rc.h"
+#include "vmount_onboard.h"
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_roi.h>
@@ -69,19 +69,19 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static volatile bool thread_should_restart = false;
-static int mount_task;
-typedef enum { IDLE = -1, MAVLINK = 0, RC = 1, ONBOARD = 2 } mount_state_t;
-static mount_state_t mount_state = IDLE;
+static int vmount_task;
+typedef enum { IDLE = -1, MAVLINK = 0, RC = 1, ONBOARD = 2 } vmount_state_t;
+static vmount_state_t vmount_state = IDLE;
 
 /* functions */
 static void usage(void);
-static void mount_update_topics(void);
+static void vmount_update_topics(void);
 static void update_params(void);
 static bool get_params(void);
 static float get_aux_value(int);
 static void ack_mount_command(uint16_t command);
-static int mount_thread_main(int argc, char *argv[]);
-__EXPORT int mount_main(int argc, char *argv[]);
+static int vmount_thread_main(int argc, char *argv[]);
+__EXPORT int vmount_main(int argc, char *argv[]);
 
 /* uORB subscriptions */
 static int vehicle_roi_sub = -1;
@@ -143,28 +143,28 @@ static struct {
 static void usage()
 {
 	fprintf(stderr,
-		"usage: mount start\n"
-		"       mount stop\n"
-		"       mount status\n");
+		"usage: vmount start\n"
+		"       vmount stop\n"
+		"       vmount status\n");
 	exit(1);
 }
 
 /**
  * The daemon thread.
  */
-static int mount_thread_main(int argc, char *argv[])
+static int vmount_thread_main(int argc, char *argv[])
 {
 	if (!get_params()) {
 		err(1, "could not get mount parameters!");
 	}
 
-	if (params.mnt_mode == 0) { mount_state = IDLE;}
+	if (params.mnt_mode == 0) { vmount_state = IDLE;}
 
-	else if (params.mnt_mode == 1) { mount_state = MAVLINK;}
+	else if (params.mnt_mode == 1) { vmount_state = MAVLINK;}
 
-	else if (params.mnt_mode == 2) { mount_state = RC;}
+	else if (params.mnt_mode == 2) { vmount_state = RC;}
 
-	else if (params.mnt_mode == 3) { mount_state = ONBOARD;}
+	else if (params.mnt_mode == 3) { vmount_state = ONBOARD;}
 
 	//TODO is this needed?
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
@@ -194,27 +194,27 @@ static int mount_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	run: {
-		if (mount_state == MAVLINK) {
-			if (!mount_mavlink_init()) {
-				err(1, "could not initiate mount_mavlink");
+		if (vmount_state == MAVLINK) {
+			if (!vmount_mavlink_init()) {
+				err(1, "could not initiate vmount_mavlink");
 			}
 
 			warnx("running mount driver in mavlink mode");
 
 			while (!thread_should_exit || !thread_should_restart) {
-				mount_update_topics();
+				vmount_update_topics();
 
 				if (vehicle_roi_updated) {
 					vehicle_roi_updated = false;
-					mount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
+					vmount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 						if (params.mnt_man_control && manual_control_setpoint_updated) {
 							manual_control_setpoint_updated = false;
-							mount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+							vmount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 						}
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-						mount_mavlink_point_location(
+						vmount_mavlink_point_location(
 							vehicle_global_position->lat,
 							vehicle_global_position->lon,
 							vehicle_global_position->alt,
@@ -226,7 +226,7 @@ static int mount_thread_main(int argc, char *argv[])
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
 						//TODO how to do this?
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-						mount_mavlink_point_location(
+						vmount_mavlink_point_location(
 							vehicle_global_position->lat,
 							vehicle_global_position->lon,
 							vehicle_global_position->alt,
@@ -241,30 +241,30 @@ static int mount_thread_main(int argc, char *argv[])
 				}
 			}
 
-			mount_mavlink_deinit();
+			vmount_mavlink_deinit();
 
-		} else if (mount_state == RC) {
-			if (!mount_rc_init()) {
-				err(1, "could not initiate mount_rc");
+		} else if (vmount_state == RC) {
+			if (!vmount_rc_init()) {
+				err(1, "could not initiate vmount_rc");
 			}
 
 			warnx("running mount driver in rc mode");
 
 			while (!thread_should_exit || !thread_should_restart) {
-				mount_update_topics();
+				vmount_update_topics();
 
 
 				if (vehicle_roi_updated) {
 					vehicle_roi_updated = false;
-					mount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
+					vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 						if (params.mnt_man_control && manual_control_setpoint_updated) {
 							manual_control_setpoint_updated = false;
-							mount_rc_set_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+							vmount_rc_set_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 						}
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-						mount_rc_set_location(
+						vmount_rc_set_location(
 							vehicle_global_position->lat,
 							vehicle_global_position->lon,
 							vehicle_global_position->alt,
@@ -276,7 +276,7 @@ static int mount_thread_main(int argc, char *argv[])
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
 						//TODO how to do this?
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-						mount_rc_set_location(
+						vmount_rc_set_location(
 							vehicle_global_position->lat,
 							vehicle_global_position->lon,
 							vehicle_global_position->alt,
@@ -290,22 +290,22 @@ static int mount_thread_main(int argc, char *argv[])
 					}
 				}
 
-				mount_rc_point();
+				vmount_rc_point();
 			}
 
-			mount_rc_deinit();
+			vmount_rc_deinit();
 
-		} else if (mount_state == ONBOARD) {
-			if (!mount_onboard_init()) {
-				err(1, "could not initiate mount_onboard");
+		} else if (vmount_state == ONBOARD) {
+			if (!vmount_onboard_init()) {
+				err(1, "could not initiate vmount_onboard");
 			}
 
 			warnx("running mount driver in onboard mode");
 
 			while (!thread_should_exit || !thread_should_restart) {
-				mount_update_topics();
+				vmount_update_topics();
 
-				mount_onboard_update_topics();
+				vmount_onboard_update_topics();
 
 				if (params.mnt_mode_ovr && manual_control_setpoint_updated) {
 					manual_control_setpoint_updated = false;
@@ -314,11 +314,11 @@ static int mount_thread_main(int argc, char *argv[])
 
 					if(ovr_value < 0.0f)
 					{
-						mount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT);
+						vmount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT);
 					}
 					else if (ovr_value > 0.0f)
 					{
-						mount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING);
+						vmount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING);
 					}
 
 				}
@@ -333,17 +333,17 @@ static int mount_thread_main(int argc, char *argv[])
 							break;
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-							mount_onboard_set_manual(vehicle_command->param7, vehicle_command->param1,
+							vmount_onboard_set_manual(vehicle_command->param7, vehicle_command->param1,
 										 vehicle_command->param2, vehicle_command->param3);
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
 							if (params.mnt_man_control && manual_control_setpoint_updated) {
 								manual_control_setpoint_updated = false;
-								mount_onboard_set_manual(vehicle_command->param7, get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+								vmount_onboard_set_manual(vehicle_command->param7, get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 							}
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-							mount_onboard_set_location(
+							vmount_onboard_set_location(
 								vehicle_command->param7,
 								vehicle_global_position->lat,
 								vehicle_global_position->lon,
@@ -361,13 +361,13 @@ static int mount_thread_main(int argc, char *argv[])
 
 					else if(vehicle_command->command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE)
 					{
-						mount_onboard_configure(vehicle_command->param1,
+						vmount_onboard_configure(vehicle_command->param1,
 									((uint8_t) vehicle_command->param2 == 1), ((uint8_t) vehicle_command->param3 == 1), ((uint8_t) vehicle_command->param4 == 1));
 
 						ack_mount_command(vehicle_command->command);
 					}
 				}
-				mount_onboard_point();
+				vmount_onboard_point();
 			}
 		}
 	}
@@ -387,7 +387,7 @@ static int mount_thread_main(int argc, char *argv[])
  * The main command function.
  * Processes command line arguments and starts the daemon.
  */
-int mount_main(int argc, char *argv[])
+int vmount_main(int argc, char *argv[])
 {
 	if (argc < 1) {
 		warnx("missing command");
@@ -402,11 +402,11 @@ int mount_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		mount_task = px4_task_spawn_cmd("mount",
+		vmount_task = px4_task_spawn_cmd("vmount",
 						SCHED_DEFAULT, //TODO we might want a higher priority?
 						200,
 						1100,
-						mount_thread_main,
+						vmount_thread_main,
 						(char *const *)argv);
 
 		while (!thread_running) {
@@ -436,7 +436,7 @@ int mount_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			switch (mount_state) {
+			switch (vmount_state) {
 			case IDLE:
 				errx(0, "running: IDLE");
 				break;
@@ -467,7 +467,7 @@ int mount_main(int argc, char *argv[])
 }
 
 /* Update oURB topics */
-void mount_update_topics()
+void vmount_update_topics()
 {
 	orb_check(vehicle_roi_sub, &vehicle_roi_updated);
 
@@ -518,19 +518,19 @@ void update_params()
 	param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw);
 	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr);
 
-	if (mount_state != params.mnt_mode)
+	if (vmount_state != params.mnt_mode)
 	{
 		thread_should_restart = true;
 	}
-	else if (mount_state == MAVLINK)
+	else if (vmount_state == MAVLINK)
 	{
-		mount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
+		vmount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
 	}
-	else if (mount_state == RC)
+	else if (vmount_state == RC)
 	{
-		mount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
+		vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
 	}
-	else if(mount_state == ONBOARD)
+	else if(vmount_state == ONBOARD)
 	{
 		//None of the parameter changes require a reconfiguration of the onboard mount.
 	}

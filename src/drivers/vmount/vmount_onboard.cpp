@@ -32,12 +32,12 @@
 ****************************************************************************/
 
 /**
- * @file mount_onboard.cpp
+ * @file vmount_onboard.cpp
  * @author Leon Müller (thedevleon)
  *
  */
 
-#include "mount_onboard.h"
+#include "vmount_onboard.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,8 +49,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
-
-#include <px4_posix.h>
 
 
 /* uORB topics */
@@ -69,7 +67,7 @@ static int stab_pitch;
 static int stab_roll;
 static int stab_yaw;
 
-bool mount_onboard_init()
+bool vmount_onboard_init()
 {
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
@@ -78,12 +76,12 @@ bool mount_onboard_init()
 
 	if (!actuator_controls_pub || !vehicle_attitude_sub) { return false; }
 
-	mount_onboard_configure(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT, 0.0f, 0.0f, 0.0f);
+	vmount_onboard_configure(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT, 0.0f, 0.0f, 0.0f);
 
 	return true;
 }
 
-void mount_onboard_deinit()
+void vmount_onboard_deinit()
 {
 	orb_unadvertise(actuator_controls_pub);
 	orb_unsubscribe(vehicle_attitude_sub);
@@ -91,7 +89,7 @@ void mount_onboard_deinit()
 	free(vehicle_attitude);
 }
 
-void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw)
+void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw)
 {
 	mount_mode = new_mount_mode;
 	stab_roll = new_stab_roll;
@@ -101,12 +99,12 @@ void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_st
 	switch (mount_mode) {
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
 		retracts = -1.0f;
-		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		vmount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
 		break;
 
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 		retracts = 0.0f;
-		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		vmount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
 		break;
 
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
@@ -119,24 +117,24 @@ void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_st
 	}
 }
 
-void mount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
+void vmount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
 				double lon, float alt)
 {
 	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-	float new_pitch = mount_onboard_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
+	float new_pitch = vmount_onboard_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
 	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
 
-	mount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
+	vmount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
 }
 
-void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw)
+void vmount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw)
 {
 	/* This will happen if we did an override on the mode and just disabled override.
 	 * The current mount_mode will differ from the one received through the mavlink commands
 	 * so we need to reconfigure.
 	 */
 	if (new_mount_mode != mount_mode) {
-		mount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
+		vmount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
 	}
 
 	mount_mode = new_mount_mode;
@@ -145,12 +143,12 @@ void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_rol
 	yaw = new_yaw;
 }
 
-void mount_onboard_set_mode(int new_mount_mode)
+void vmount_onboard_set_mode(int new_mount_mode)
 {
-	mount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
+	vmount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
 }
 
-void mount_onboard_point()
+void vmount_onboard_point()
 {
 	if (mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT &&
 	    mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
@@ -176,7 +174,7 @@ void mount_onboard_point()
 	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
 
-void mount_onboard_update_topics()
+void vmount_onboard_update_topics()
 {
 	bool updated;
 	orb_check(vehicle_attitude_sub, &updated);
@@ -186,7 +184,7 @@ void mount_onboard_update_topics()
 	}
 }
 
-float mount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
+float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
 				    float alt)
 {
 	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;
