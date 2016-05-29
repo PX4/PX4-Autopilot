@@ -50,6 +50,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 
+#include <px4_posix.h>
+
 
 /* uORB topics */
 static struct actuator_controls_s *actuator_controls;
@@ -83,7 +85,10 @@ bool mount_onboard_init()
 
 void mount_onboard_deinit()
 {
+	//px4_close(actuator_controls_pub);
+	px4_close(vehicle_attitude_sub);
 	free(actuator_controls);
+	free(vehicle_attitude);
 }
 
 void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw)
@@ -126,10 +131,24 @@ void mount_onboard_set_location(int new_mount_mode, double global_lat, double gl
 
 void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw)
 {
+	/* This will happen if we did an override on the mode and just disabled override.
+	 * The current mount_mode will differ from the one received through the mavlink commands
+	 * so we need to reconfigure.
+	 */
+	if(new_mount_mode != mount_mode)
+	{
+		mount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
+	}
+
 	mount_mode = new_mount_mode;
 	pitch = new_pitch;
 	roll = new_roll;
 	yaw = new_yaw;
+}
+
+void mount_onboard_set_mode(int new_mount_mode)
+{
+	mount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
 }
 
 void mount_onboard_point()

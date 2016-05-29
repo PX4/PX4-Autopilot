@@ -49,6 +49,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_roi.h>
 
+#include <px4_posix.h>
+
 /* uORB advertising */
 static struct vehicle_command_s *vehicle_command;
 static orb_advert_t vehicle_command_pub;
@@ -69,6 +71,7 @@ bool mount_mavlink_init()
 
 void mount_mavlink_deinit()
 {
+	//px4_close(vehicle_command_pub);
 	free(vehicle_command);
 }
 

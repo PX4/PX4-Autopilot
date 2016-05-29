@@ -49,6 +49,8 @@
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/actuator_controls.h>
 
+#include <px4_posix.h>
+
 /* uORB advertising */
 static struct actuator_controls_s *actuator_controls;
 static orb_advert_t actuator_controls_pub;
@@ -69,6 +71,7 @@ bool mount_rc_init()
 
 void mount_rc_deinit()
 {
+	//px4_close(actuator_controls_pub);
 	free(actuator_controls);
 }
 

@@ -63,6 +63,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 
 #include <px4_config.h>
+#include <px4_posix.h>
 
 /* thread state */
 static volatile bool thread_should_exit = false;
@@ -77,6 +78,7 @@ static void usage(void);
 static void mount_update_topics(void);
 static void update_params(void);
 static bool get_params(void);
+static float get_aux_value(int);
 static void ack_mount_command(uint16_t command);
 static int mount_thread_main(int argc, char *argv[]);
 __EXPORT int mount_main(int argc, char *argv[]);
@@ -208,8 +210,8 @@ static int mount_thread_main(int argc, char *argv[])
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 						if (params.mnt_man_control && manual_control_setpoint_updated) {
-							//TODO use mount_mavlink_point_manual to control gimbal
-							//with specified aux channels via the parameters
+							manual_control_setpoint_updated = false;
+							mount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 						}
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 						mount_mavlink_point_location(
@@ -258,8 +260,8 @@ static int mount_thread_main(int argc, char *argv[])
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 						if (params.mnt_man_control && manual_control_setpoint_updated) {
-							//TODO use mount_rc_point_manual to control gimbal
-							//with specified aux channels via the parameters
+							manual_control_setpoint_updated = false;
+							mount_rc_set_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 						}
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 						mount_rc_set_location(
@@ -305,11 +307,21 @@ static int mount_thread_main(int argc, char *argv[])
 
 				mount_onboard_update_topics();
 
-				/*TODO check for MODE override
-				 * if <0.0f then MODE_RETRACT
-				 * if =0.0f then don't override
-				 * if >0.0f then MODE_NEUTRAL
-				 */
+				if (params.mnt_mode_ovr && manual_control_setpoint_updated) {
+					manual_control_setpoint_updated = false;
+
+					float ovr_value = get_aux_value(params.mnt_mode_ovr);
+
+					if(ovr_value < 0.0f)
+					{
+						mount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT);
+					}
+					else if (ovr_value > 0.0f)
+					{
+						mount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING);
+					}
+
+				}
 
 				if (vehicle_command_updated) {
 
@@ -326,7 +338,8 @@ static int mount_thread_main(int argc, char *argv[])
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
 							if (params.mnt_man_control && manual_control_setpoint_updated) {
-								//TODO use defined aux channels to control mount
+								manual_control_setpoint_updated = false;
+								mount_onboard_set_manual(vehicle_command->param7, get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
 							}
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
@@ -556,4 +569,25 @@ void ack_mount_command(uint16_t command)
 	vehicle_command_ack->result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 	orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
+}
+
+float get_aux_value(int aux)
+{
+	switch (aux)
+	{
+		case 0:
+			return 0.0f;
+		case 1:
+			return manual_control_setpoint->aux1;
+		case 2:
+			return manual_control_setpoint->aux2;
+		case 3:
+			return manual_control_setpoint->aux3;
+		case 4:
+			return manual_control_setpoint->aux4;
+		case 5:
+			return manual_control_setpoint->aux5;
+		default:
+			return 0.0f;
+	}
 }
