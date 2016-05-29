@@ -98,8 +98,10 @@ PARAM_DEFINE_INT32(MNT_MAN_ROLL, 0);
 * @value 1 AUX1
 * @value 2 AUX2
 * @value 3 AUX3
+* @value 4 AUX4
+* @value 5 AUX5
 * @min 0
-* @max 3
+* @max 5
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
@@ -111,8 +113,28 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 * @value 1 AUX1
 * @value 2 AUX2
 * @value 3 AUX3
+* @value 4 AUX4
+* @value 5 AUX5
 * @min 0
-* @max 3
+* @max 5
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
+
+/**
+* Auxiliary channel to override current mount mode
+* if <0.0f then MODE_RETRACT
+* if =0.0f then don't override
+* if >0.0f then MODE_NEUTRAL
+* (if for example )
+* @value 0 Disable
+* @value 1 AUX1
+* @value 2 AUX2
+* @value 3 AUX3
+* @value 4 AUX4
+* @value 5 AUX5
+* @min 0
+* @max 5
+* @group Mount
+*/
+PARAM_DEFINE_INT32(MNT_MODE_OVR, 0);

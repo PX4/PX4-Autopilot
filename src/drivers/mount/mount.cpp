@@ -120,6 +120,7 @@ static struct {
 	int mnt_man_roll;
 	int mnt_man_pitch;
 	int mnt_man_yaw;
+	int mnt_mode_ovr;
 } params;
 
 static struct {
@@ -130,6 +131,7 @@ static struct {
 	param_t mnt_man_roll;
 	param_t mnt_man_pitch;
 	param_t mnt_man_yaw;
+	param_t mnt_mode_ovr;
 } params_handels;
 
 
@@ -302,6 +304,12 @@ static int mount_thread_main(int argc, char *argv[])
 				mount_update_topics();
 
 				mount_onboard_update_topics();
+
+				/*TODO check for MODE override
+				 * if <0.0f then MODE_RETRACT
+				 * if =0.0f then don't override
+				 * if >0.0f then MODE_NEUTRAL
+				 */
 
 				if (vehicle_command_updated) {
 
@@ -494,6 +502,7 @@ void update_params()
 	param_get(params_handels.mnt_man_roll, &params.mnt_man_roll);
 	param_get(params_handels.mnt_man_pitch, &params.mnt_mode);
 	param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw);
+	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr)
 
 	if (mount_state != params.mnt_mode)
 	{
@@ -522,6 +531,7 @@ bool get_params()
 	params_handels.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	params_handels.mnt_man_pitch = param_find("MNT_MAN_PITCH");
 	params_handels.mnt_man_yaw = param_find("MNT_MAN_YAW");
+	params_handels.mnt_mode_ovr = param_find("MNT_MODE_OVR");
 
 
 	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) |
@@ -530,7 +540,8 @@ bool get_params()
 	    !param_get(params_handels.mnt_man_control, &params.mnt_man_control) |
 	    !param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) |
 	    !param_get(params_handels.mnt_man_pitch, &params.mnt_mode) |
-	    !param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw)) {
+	    !param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw) |
+		!param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr)) {
 		return false;
 	}
 
