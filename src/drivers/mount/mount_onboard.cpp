@@ -135,8 +135,7 @@ void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_rol
 	 * The current mount_mode will differ from the one received through the mavlink commands
 	 * so we need to reconfigure.
 	 */
-	if(new_mount_mode != mount_mode)
-	{
+	if (new_mount_mode != mount_mode) {
 		mount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
 	}
 
