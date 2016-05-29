@@ -170,6 +170,7 @@ private:
 
 	int32_t _wifi_tx_mode = 1;
 	param_t _wifi_tx_param = PARAM_INVALID;
+	param_t _wifi_factory_reset_param = PARAM_INVALID;
 
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
@@ -277,6 +278,7 @@ private:
 	void rc_io_invert(bool invert);
 	void safety_check_button(void);
 	void setWIFIstate(int32_t mode, bool armed);
+	void setWIFIFactoryDefaults();
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] =	BOARD_FMU_GPIO_TAB;
@@ -900,35 +902,49 @@ void PX4FMU::setWIFIstate(int32_t wifi_mode, bool armed)
 #endif
 }
 
+void PX4FMU::setWIFIFactoryDefaults()
+{
+#ifdef WIFI_FACTORY_DEFAULTS
+	WIFI_FACTORY_DEFAULTS(1);
+	usleep(500);
+	WIFI_FACTORY_DEFAULTS(0);
+#endif
+}
+
 void
 PX4FMU::cycle()
 {
 	if (!_initialized) {
-		/* force a reset of the update rate */
+		// force a reset of the update rate
 		_current_update_rate = 0;
 
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 		_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
-		/* initialize PWM limit lib */
+		// initialize PWM limit lib
 		pwm_limit_init(&_pwm_limit);
 
 		update_pwm_rev_mask();
 
 #ifdef WIFI_TX
 
-		/* read wifi TX control parameter and init the TX enable pin */
+		// read wifi TX control parameter and init the TX enable pin
+		_wifi_tx_param = param_find("WIFI_TX_MODE");
 		if (_wifi_tx_param != PARAM_INVALID) {
-			_wifi_tx_param = param_find("WIFI_TX_MODE");
 			param_get(_wifi_tx_param, &_wifi_tx_mode);
 		}
 
 		if (_wifi_tx_mode != 0) {
-			/* WIFI should be on at boot time */
+			// WIFI should be on at boot time
 			WIFI_TX(1);
 		}
 
+#endif
+
+#ifdef WIFI_FACTORY_DEFAULTS
+		// init param, but execute only later
+		_wifi_factory_reset_param = param_find("WIFI_FACTORY_RST");
 #endif
 
 #ifdef RC_SERIAL_PORT
@@ -1185,6 +1201,20 @@ PX4FMU::cycle()
 		if (_wifi_tx_param != PARAM_INVALID) {
 			param_get(_wifi_tx_param, &_wifi_tx_mode);
 			setWIFIstate(_wifi_tx_mode, _armed.armed);
+		}
+
+		/* check for update to WIFI control parameter */
+		if (_wifi_factory_reset_param != PARAM_INVALID) {
+			int32_t defval = 0;
+			param_get(_wifi_factory_reset_param, &defval);
+
+			if (defval) {
+				setWIFIFactoryDefaults();
+
+				/* reset param value */
+				defval = 0;
+				param_set(_wifi_factory_reset_param, &defval);
+			}
 		}
 	}
 
