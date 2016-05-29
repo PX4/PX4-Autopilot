@@ -502,7 +502,7 @@ void update_params()
 	param_get(params_handels.mnt_man_roll, &params.mnt_man_roll);
 	param_get(params_handels.mnt_man_pitch, &params.mnt_mode);
 	param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw);
-	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr)
+	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr);
 
 	if (mount_state != params.mnt_mode)
 	{
