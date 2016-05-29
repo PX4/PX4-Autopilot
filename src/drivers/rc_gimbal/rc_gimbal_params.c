@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file gimbal_params.c
+ * @file rc_gimbal_params.c
  *
  * Parameters for the gimbal controller.
  *
@@ -49,9 +49,9 @@
  * If set to 1, mount mode will be enforced.
  *
  * @boolean
- * @group Gimbal
+ * @group RC Gimbal
  */
-PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
+PARAM_DEFINE_INT32(RCGB_USE_MNT, 0);
 
 /**
  * Auxiliary switch to set mount operation mode.
@@ -69,6 +69,6 @@ PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
  * @value 3 AUX3
  * @min 0
  * @max 3
- * @group Gimbal
+ * @group RC Gimbal
  */
-PARAM_DEFINE_INT32(GMB_AUX_MNT_CHN, 0);
+PARAM_DEFINE_INT32(RCGB_AUX_MNT_CHN, 0);

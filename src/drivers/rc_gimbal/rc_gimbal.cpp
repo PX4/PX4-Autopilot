@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file gimbal.cpp
+ * @file rc_gimbal.cpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Matosov <anton.matosov@gmail.com>
  * @author Andreas Antener <andreas@uaventure.com>
  *
- * Driver to control a gimbal - relies on input via telemetry or RC
+ * Driver to control a rc gimbal - relies on input via telemetry or RC
  * and output via the standardized control group #2 and a mixer.
  */
 
@@ -91,17 +91,17 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define GIMBAL_DEVICE_PATH	"/dev/gimbal"
+#define RC_GIMBAL_DEVICE_PATH	"/dev/rc_gimbal"
 
-#define GIMBAL_UPDATE_INTERVAL (5 * 1000)
+#define RC_GIMBAL_UPDATE_INTERVAL (5 * 1000)
 
-#define GIMBALIOCATTCOMPENSATE		1
+#define RC_GIMBALIOCATTCOMPENSATE		1
 
-class Gimbal : public device::CDev
+class RC_Gimbal : public device::CDev
 {
 public:
-	Gimbal();
-	virtual ~Gimbal();
+	RC_Gimbal();
+	virtual ~RC_Gimbal();
 
 	virtual int 			init();
 
@@ -189,10 +189,10 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int gimbal_main(int argc, char *argv[]);
+extern "C" __EXPORT int rc_gimbal_main(int argc, char *argv[]);
 
-Gimbal::Gimbal() :
-	CDev("Gimbal", GIMBAL_DEVICE_PATH),
+RC_Gimbal::RC_Gimbal() :
+	CDev("RC_Gimbal", RC_GIMBAL_DEVICE_PATH),
 	_vehicle_command_sub(-1),
 	_att_sub(-1),
 	_vehicle_control_mode_sub(-1),
@@ -207,15 +207,15 @@ Gimbal::Gimbal() :
 	// disable debug() calls
 	_debug_enabled = false;
 
-	_params_handles.aux_mnt_chn = param_find("GMB_AUX_MNT_CHN");
-	_params_handles.use_mnt = param_find("GMB_USE_MNT");
+	_params_handles.aux_mnt_chn = param_find("RCGB_AUX_MNT_CHN");
+	_params_handles.use_mnt = param_find("RCGB_USE_MNT");
 	update_params();
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-Gimbal::~Gimbal()
+RC_Gimbal::~RC_Gimbal()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -224,7 +224,7 @@ Gimbal::~Gimbal()
 }
 
 int
-Gimbal::init()
+RC_Gimbal::init()
 {
 	int ret = ERROR;
 
@@ -241,17 +241,17 @@ out:
 }
 
 int
-Gimbal::probe()
+RC_Gimbal::probe()
 {
 	return OK;
 }
 
 int
-Gimbal::ioctl(struct file *filp, int cmd, unsigned long arg)
+RC_Gimbal::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case GIMBALIOCATTCOMPENSATE:
+	case RC_GIMBALIOCATTCOMPENSATE:
 		_attitude_compensation_roll = (arg != 0);
 		_attitude_compensation_pitch = (arg != 0);
 		_attitude_compensation_yaw = (arg != 0);
@@ -264,41 +264,41 @@ Gimbal::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-Gimbal::read(struct file *filp, char *buffer, size_t buflen)
+RC_Gimbal::read(struct file *filp, char *buffer, size_t buflen)
 {
 	return 0;
 }
 
 void
-Gimbal::start()
+RC_Gimbal::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&Gimbal::cycle_trampoline, this, 1);
+	work_queue(LPWORK, &_work, (worker_t)&RC_Gimbal::cycle_trampoline, this, 1);
 }
 
 void
-Gimbal::stop()
+RC_Gimbal::stop()
 {
 	work_cancel(LPWORK, &_work);
 }
 
 void
-Gimbal::cycle_trampoline(void *arg)
+RC_Gimbal::cycle_trampoline(void *arg)
 {
-	Gimbal *dev = static_cast<Gimbal *>(arg);
+	RC_Gimbal *dev = static_cast<RC_Gimbal *>(arg);
 
 	dev->cycle();
 }
 
 void
-Gimbal::update_params()
+RC_Gimbal::update_params()
 {
 	param_get(_params_handles.aux_mnt_chn, &_parameters.aux_mnt_chn);
 	param_get(_params_handles.use_mnt, &_parameters.use_mnt);
 }
 
 void
-Gimbal::cycle()
+RC_Gimbal::cycle()
 {
 	if (!_initialized) {
 		/* get subscription handles */
@@ -529,20 +529,20 @@ Gimbal::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(LPWORK,
 		   &_work,
-		   (worker_t)&Gimbal::cycle_trampoline,
+		   (worker_t)&RC_Gimbal::cycle_trampoline,
 		   this,
-		   USEC2TICK(GIMBAL_UPDATE_INTERVAL));
+		   USEC2TICK(RC_GIMBAL_UPDATE_INTERVAL));
 }
 
 void
-Gimbal::print_info()
+RC_Gimbal::print_info()
 {
 }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace gimbal
+namespace rc_gimbal
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -551,7 +551,7 @@ namespace gimbal
 #endif
 const int ERROR = -1;
 
-Gimbal	*g_dev;
+RC_Gimbal	*g_dev;
 
 void	start();
 void	stop();
@@ -570,7 +570,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new Gimbal();
+	g_dev = new RC_Gimbal();
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -616,9 +616,9 @@ void stop()
 void
 test()
 {
-	int fd = open(GIMBAL_DEVICE_PATH, O_RDONLY);
+	int fd = open(RC_GIMBAL_DEVICE_PATH, O_RDONLY);
 
-	if (ioctl(fd, GIMBALIOCATTCOMPENSATE, 1) < 0) {
+	if (ioctl(fd, RC_GIMBALIOCATTCOMPENSATE, 1) < 0) {
 		err(1, "failed enabling compensation");
 	}
 
@@ -631,7 +631,7 @@ test()
 void
 reset()
 {
-	int fd = open(GIMBAL_DEVICE_PATH, O_RDONLY);
+	int fd = open(RC_GIMBAL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -663,41 +663,41 @@ info()
 } // namespace
 
 int
-gimbal_main(int argc, char *argv[])
+rc_gimbal_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		gimbal::start();
+		rc_gimbal::start();
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		gimbal::stop();
+		rc_gimbal::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		gimbal::test();
+		rc_gimbal::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		gimbal::reset();
+		rc_gimbal::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		gimbal::info();
+		rc_gimbal::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'stop', 'reset', 'test' or 'info'");
