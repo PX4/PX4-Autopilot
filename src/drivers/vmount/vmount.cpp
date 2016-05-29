@@ -81,7 +81,7 @@ static bool get_params(void);
 static float get_aux_value(int);
 static void ack_mount_command(uint16_t command);
 static int vmount_thread_main(int argc, char *argv[]);
-__EXPORT int vmount_main(int argc, char *argv[]);
+extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
 /* uORB subscriptions */
 static int vehicle_roi_sub = -1;
@@ -155,7 +155,7 @@ static void usage()
 static int vmount_thread_main(int argc, char *argv[])
 {
 	if (!get_params()) {
-		err(1, "could not get mount parameters!");
+		warnx("could not get mount parameters!");
 	}
 
 	if (params.mnt_mode == 0) { vmount_state = IDLE;}
@@ -368,6 +368,13 @@ static int vmount_thread_main(int argc, char *argv[])
 					}
 				}
 				vmount_onboard_point();
+			}
+		} else if (vmount_state == IDLE)
+		{
+			warnx("running mount driver in idle mode");
+
+			while (!thread_should_exit || !thread_should_restart) {
+				vmount_update_topics();
 			}
 		}
 	}
