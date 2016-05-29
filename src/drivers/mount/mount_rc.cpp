@@ -77,7 +77,6 @@ void mount_rc_configure(int roi_mode, bool man_control)
 	switch (roi_mode) {
 	case vehicle_roi_s::VEHICLE_ROI_NONE:
 		if (!man_control) {mount_rc_set_manual(0.0f, 0.0f, 0.0f);}
-
 		break;
 
 	case vehicle_roi_s::VEHICLE_ROI_WPNEXT:

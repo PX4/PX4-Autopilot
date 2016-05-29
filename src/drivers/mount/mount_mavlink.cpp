@@ -56,10 +56,8 @@ static orb_advert_t vehicle_command_pub;
 static int sys_id;
 static int comp_id;
 
-bool mount_mavlink_init(int sysid, int compid)
+bool mount_mavlink_init()
 {
-	sys_id = sysid;
-	comp_id = compid;
 	memset(&vehicle_command, 0, sizeof(vehicle_command));
 	vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
 
@@ -79,8 +77,11 @@ void mount_mavlink_deinit()
  *   param1 = mount_mode (1 = MAV_MOUNT_MODE_NEUTRAL recenters camera)
  */
 
-void mount_mavlink_configure(int roi_mode, bool man_control)
+void mount_mavlink_configure(int roi_mode, bool man_control, int sysid, int compid)
 {
+	sys_id = sysid;
+	comp_id = compid;
+
 	vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
 	vehicle_command->target_system = sys_id;
 	vehicle_command->target_component = comp_id;

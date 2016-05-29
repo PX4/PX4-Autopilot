@@ -48,7 +48,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_mount.h>
+#include <uORB/topics/vehicle_command.h>
 
 
 /* uORB topics */
@@ -76,6 +76,8 @@ bool mount_onboard_init()
 
 	if (!actuator_controls_pub || !vehicle_attitude_sub) { return false; }
 
+	mount_onboard_configure(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT, 0.0f, 0.0f, 0.0f);
+
 	return true;
 }
 
@@ -92,19 +94,19 @@ void mount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_st
 	stab_yaw = new_stab_yaw;
 
 	switch (mount_mode) {
-	case vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT:
-		retracts = 1.0f;
+	case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+		retracts = -1.0f;
 		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
 		break;
 
-	case vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+	case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 		retracts = 0.0f;
 		mount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
 		break;
 
-	case vehicle_mount_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-	case vehicle_mount_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-	case vehicle_mount_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+	case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
+	case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+	case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
 		retracts = 0.0f;
 
 	default:
@@ -132,8 +134,8 @@ void mount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_rol
 
 void mount_onboard_point()
 {
-	if (mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_RETRACT &&
-	    mount_mode != vehicle_mount_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
+	if (mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT &&
+	    mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
 		if (stab_roll) {
 			roll += 1.0f / M_PI_F * -vehicle_attitude->roll;
 		}

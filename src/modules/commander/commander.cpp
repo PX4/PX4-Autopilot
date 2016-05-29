@@ -91,7 +91,6 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_roi.h>
-#include <uORB/topics/vehicle_mount.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -180,7 +179,6 @@ static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status = {};
 static struct vehicle_roi_s _roi = {};
-static struct vehicle_mount_s _mount = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
@@ -235,7 +233,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
-			orb_advert_t *roi_pub, struct vehicle_mount_s *mount, orb_advert_t *mount_pub);
+			orb_advert_t *roi_pub);
 
 /**
  * Mainloop of commander.
@@ -664,7 +662,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-			struct vehicle_roi_s *roi, orb_advert_t *roi_pub, struct vehicle_mount_s *mount, orb_advert_t *mount_pub)
+			struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1104,42 +1102,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	}
 
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
-	{
-		mount->pitch_lat = cmd->param1;
-		mount->roll_lon = cmd->param2;
-		mount->yaw_alt = cmd->param3;
-		mount->mode = cmd->param7;
-		mount->config = false;
-
-		if (*mount_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_mount), *mount_pub, mount);
-
-		} else {
-			*mount_pub = orb_advertise(ORB_ID(vehicle_mount), mount);
-		}
-
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-		break;
-	}
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
-	{
-		mount->mode = cmd->param1;
-		mount->stab_roll = ((uint8_t) cmd->param2 == 1);
-		mount->stab_pitch = ((uint8_t) cmd->param3 == 1);
-		mount->stab_yaw = ((uint8_t) cmd->param4 == 1);
-		mount->config = true;
-
-		if (*mount_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_mount), *mount_pub, mount);
-
-		} else {
-			*mount_pub = orb_advertise(ORB_ID(vehicle_mount), mount);
-		}
-
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-		break;
-	}
-
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
@@ -1403,10 +1366,6 @@ int commander_thread_main(int argc, char *argv[])
 	/* region of interest */
 	orb_advert_t roi_pub = nullptr;
 	memset(&_roi, 0, sizeof(_roi));
-
-	/* onboard mount */
-	orb_advert_t mount_pub = nullptr;
-	memset(&_mount, 0, sizeof(_mount));
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
@@ -2730,7 +2689,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub, &_mount, &mount_pub)) {
+					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub)) {
 				status_changed = true;
 			}
 		}
