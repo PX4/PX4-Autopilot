@@ -634,11 +634,11 @@ then
 		else
 			if param compare SYS_LOGGER 0
 			then
-				if sdlog2 start -r 100 -a -b 10 -t
+				if sdlog2 start -r 100 -a -b 9 -t
 				then
 				fi
 			else
-				if logger start -b 20
+				if logger start -b 9
 				then
 				fi
 			fi
