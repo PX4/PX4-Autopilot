@@ -174,9 +174,6 @@ posix_sitl_default:
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-posix_sitl_test:
-	$(call cmake-build,$@)
-
 posix_sitl_replay:
 	$(call cmake-build,$@)
 
@@ -280,7 +277,7 @@ checks_last: \
 	check_tests \
 	check_format \
 
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
 quick_check: check_px4fmu-v2_default check_px4fmu-v4_default checks_last
 
 check_format:
@@ -307,12 +304,12 @@ unittest: posix_sitl_test
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
-tests: posix_sitl_test unittest
-	@mkdir -p build_posix_sitl_test/src/firmware/posix/rootfs/fs/microsd
-	@mkdir -p build_posix_sitl_test/src/firmware/posix/rootfs/eeprom
-	@touch build_posix_sitl_test/src/firmware/posix/rootfs/eeprom/parameters
-	@(cd build_posix_sitl_test/src/firmware/posix && ./mainapp -d ../../../../posix-configs/SITL/init/rcS_test | tee test_output)
-	@(cd build_posix_sitl_test/src/firmware/posix && grep --color=always "All tests passed" test_output)
+tests: posix_sitl_default unittest
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/fs/microsd
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/eeprom
+	@touch build_posix_sitl_default/src/firmware/posix/rootfs/eeprom/parameters
+	@(cd build_posix_sitl_default/src/firmware/posix && ./mainapp -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
+	@(cd build_posix_sitl_default/src/firmware/posix && grep --color=always "All tests passed" test_output)
 
 tests: posix_sitl_test unittest
 

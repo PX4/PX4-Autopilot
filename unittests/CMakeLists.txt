@@ -35,7 +35,7 @@ add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
 set(PX4_SRC ${CMAKE_SOURCE_DIR}/../src)
-set(PX4_SITL_BUILD ${PX4_SRC}/../build_posix_sitl_test)
+set(PX4_SITL_BUILD ${PX4_SRC}/../build_posix_sitl_default)
 
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${PX4_SITL_BUILD}/src)
