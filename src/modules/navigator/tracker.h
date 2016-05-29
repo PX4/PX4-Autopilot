@@ -31,11 +31,11 @@ private:
     
     /*
     * Number of positions that are retained in the recent path buffer.
-    * This must be a multiple of 16. 
+    * This must be a multiple of 16.
     * The effective recent path length is RECENT_PATH_LENGTH * ACCURACY
     * Memory usage in bytes is RECENT_PATH_LENGTH * sizeof(pos_t) + c
     */
-    static constexpr int RECENT_PATH_LENGTH = 20;
+    static constexpr int RECENT_PATH_LENGTH = 64;
     
     /*
     * Number voxels along each dimension to keep in the flyable region volume.
@@ -47,6 +47,13 @@ private:
     typedef struct {
         float x, y, z;
     } pos_t;
+    
+    typedef struct {
+        int valid : 1;
+        int delta_x : 5;
+        int delta_y : 5;
+        int delta_z : 5;
+    } rel_pos_t;
     
     static inline bool is_close(pos_t pos1, pos_t pos2);
     
@@ -62,9 +69,16 @@ private:
     
     pos_t home_position;
     
-    // The recent path respects the following invariant:
-    // No two points are closer than ACCURACY.
-    pos_t recent_path[RECENT_PATH_LENGTH];
+    
+    // Stores the (potentially shortened) recent flight path.
+    // The recent path respects the following invariant: No two points are closer than ACCURACY.
+    // Each item stores a position relative to the previous position in the list.
+    // Note that the first item carries no valid information other than that the path is non-empty.
+    rel_pos_t recent_path[RECENT_PATH_LENGTH];
+    
+    // The most recent position.
+    // If the recent path is empty, this is invalid.
+    pos_t recent_path_head = { .x = 0, .y = 0, .z = 0 };
     
     size_t recent_path_next_write = 0; // always valid, 0 if empty, equal to next_read if full
     size_t recent_path_next_read = RECENT_PATH_LENGTH; // LENGTH if empty, valid if non-empty
