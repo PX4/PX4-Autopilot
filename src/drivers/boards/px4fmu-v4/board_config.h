@@ -254,7 +254,7 @@ __BEGIN_DECLS
 //#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, 1-_s);
 /* for R12, this signal is active high */
 #define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
+#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s)
 
 #define GPIO_8266_GPIO0			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
 #define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
@@ -262,7 +262,8 @@ __BEGIN_DECLS
 #define GPIO_8266_RST			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 
 /* ESP8266 TX control */
-#define WIFI_TX(_s)				stm32_gpiowrite(GPIO_8266_PD, _s);	/* enable/disable 8266 TX */
+#define WIFI_TX(_s)				px4_arch_gpiowrite(GPIO_8266_PD, _s)	/* enable/disable 8266 power supply */
+#define WIFI_FACTORY_DEFAULTS(_s)				px4_arch_gpiowrite(GPIO_8266_GPIO0, _s)	/* reset 8266 to factory defaults */
 
 /* Power switch controls ******************************************************/
 
