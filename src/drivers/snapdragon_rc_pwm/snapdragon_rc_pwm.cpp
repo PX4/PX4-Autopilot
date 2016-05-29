@@ -52,6 +52,7 @@
 #include <termios.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/actuator_controls.h>
+
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 
@@ -155,7 +156,7 @@ void task_main(int argc, char *argv[])
 				mavlink_message_t msg;
 
 				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &serial_status)) {
 						// have a message, handle it
 						handle_message(&msg);
 					}
