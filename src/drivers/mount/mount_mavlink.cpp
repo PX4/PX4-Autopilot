@@ -71,7 +71,7 @@ bool mount_mavlink_init()
 
 void mount_mavlink_deinit()
 {
-	//px4_close(vehicle_command_pub);
+	orb_unadvertise(vehicle_command_pub);
 	free(vehicle_command);
 }
 

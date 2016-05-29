@@ -85,8 +85,8 @@ bool mount_onboard_init()
 
 void mount_onboard_deinit()
 {
-	//px4_close(actuator_controls_pub);
-	px4_close(vehicle_attitude_sub);
+	orb_unadvertise(actuator_controls_pub);
+	orb_unsubscribe(vehicle_attitude_sub);
 	free(actuator_controls);
 	free(vehicle_attitude);
 }
