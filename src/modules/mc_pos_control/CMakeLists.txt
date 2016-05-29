@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE modules__mc_pos_control
 	MAIN mc_pos_control
+	COMPILE_FLAGS -Os
 	STACK_MAIN 1200
 	SRCS
 		mc_pos_control_main.cpp
