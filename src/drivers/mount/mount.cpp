@@ -362,6 +362,7 @@ static int mount_thread_main(int argc, char *argv[])
 	if (thread_should_restart)
 	{
 		thread_should_restart = false;
+		warnx("parameter update, restarting mount driver!");
 		goto run;
 	}
 
