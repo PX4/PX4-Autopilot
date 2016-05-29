@@ -353,7 +353,8 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("navigator timed out");
+				PX4_WARN("no GPS - navigator timed out");
+				global_pos_available_once = false;
 			}
 			continue;
 
@@ -663,7 +664,7 @@ Navigator::start()
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 5,
-					 1500,
+					 1300,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 

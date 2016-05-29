@@ -64,8 +64,15 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/uart_esc
+	drivers/pwm_out_rc_in
 	drivers/qshell/qurt
+
+	#
+	# FC_ADDON drivers
+	#
+	platforms/qurt/fc_addon/rc_receiver
+	platforms/qurt/fc_addon/uart_esc
+	#platforms/qurt/fc_addon/mpu_spi
 
 	#
 	# Libraries

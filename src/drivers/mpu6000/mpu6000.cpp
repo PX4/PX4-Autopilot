@@ -737,7 +737,7 @@ int MPU6000::reset()
 
 	while (--tries != 0) {
 		irqstate_t state;
-		state = irqsave();
+		state = px4_enter_critical_section();
 
 		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 		up_udelay(10000);
@@ -750,7 +750,7 @@ int MPU6000::reset()
 
 		// Disable I2C bus (recommended on datasheet)
 		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-		irqrestore(state);
+		px4_leave_critical_section(state);
 
 		if (read_reg(MPUREG_PWR_MGMT_1) == MPU_CLK_SEL_PLLGYROZ) {
 			break;
@@ -1364,14 +1364,14 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_accel_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -1449,14 +1449,14 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_gyro_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}

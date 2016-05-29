@@ -24,12 +24,12 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/ll40ls
-	drivers/trone
+	#drivers/srf02
+	#drivers/sf0x
+	#drivers/ll40ls
+	#drivers/trone
 	drivers/gps
-	drivers/pwm_out_sim
+	#drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
@@ -45,8 +45,8 @@ set(config_module_list
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
-	drivers/bst
-	drivers/snapdragon_rc_pwm
+	#drivers/bst
+	#drivers/snapdragon_rc_pwm
 	#drivers/lis3mdl
 	#drivers/bmi160
 
@@ -67,6 +67,8 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/sd_bench
+	systemcmds/tests
 
 	#
 	# Testing
@@ -77,7 +79,6 @@ set(config_module_list
 	modules/mavlink/mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
-	systemcmds/tests
 
 	#
 	# General system control
@@ -111,6 +112,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	#modules/logger
 	#modules/sdlog2
 
 	#

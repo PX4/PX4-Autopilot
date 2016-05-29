@@ -34,6 +34,7 @@
 px4_add_module(
 	MODULE modules__ekf_att_pos_estimator
 	MAIN ekf_att_pos_estimator
+	COMPILE_FLAGS -Os
 	STACK_MAIN 3000
 	STACK_MAX 3400
 	SRCS

@@ -216,7 +216,7 @@ led_pwm_channel_init(unsigned channel)
 	unsigned timer = led_pwm_channels[channel].timer_index;
 
 	/* configure the GPIO first */
-	stm32_configgpio(led_pwm_channels[channel].gpio_out);
+	px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
 	/* configure the channel */
 	switch (led_pwm_channels[channel].timer_channel) {

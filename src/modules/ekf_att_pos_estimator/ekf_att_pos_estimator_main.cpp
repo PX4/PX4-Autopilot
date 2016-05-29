@@ -221,6 +221,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newAdsData(false),
 	_newDataMag(false),
 	_newRangeData(false),
+	_mavlink_log_pub(nullptr),
 
 	_mag_offset_x(this, "MAGB_X"),
 	_mag_offset_y(this, "MAGB_Y"),
@@ -421,8 +422,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 		// Do not warn about accel offset if we have no position updates
 		if (!(warn_index == 5 && _ekf->staticMode)) {
-			PX4_WARN("reset: %s", feedback[warn_index]);
-			mavlink_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
 		}
 	}
 

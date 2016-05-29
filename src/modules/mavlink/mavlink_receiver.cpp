@@ -967,6 +967,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.q[2] = q(2);
 	vision_position.q[3] = q(3);
 
+	// TODO fix this
+	vision_position.pos_err = 0.0f;
+	vision_position.ang_err = 0.0f;
+
 	if (_vision_position_pub == nullptr) {
 		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
 
@@ -1109,7 +1113,7 @@ void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first ORB_MULTI_MAX_INSTANCES mavlink channels */
-	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
+	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
@@ -1319,7 +1323,7 @@ void
 MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
+	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
@@ -1353,9 +1357,7 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 	if ((mavlink_system.sysid == ping.target_system) &&
 	    (mavlink_system.compid == ping.target_component)) {
-		mavlink_message_t msg_out;
-		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
-		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
 }
 
@@ -1423,7 +1425,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 		rsync.tc1 = now_ns;
 		rsync.ts1 = tsync.ts1;
 
-		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
+		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
 
 		return;
 
@@ -2086,6 +2088,10 @@ MavlinkReceiver::receive_thread(void *arg)
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
+
+						/* check if we received version 2 */
+						// XXX todo _mavlink->set_proto_version(2);
+
 						/* handle generic messages and commands */
 						handle_message(&msg);
 

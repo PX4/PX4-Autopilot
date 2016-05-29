@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2015 Mark Charlebois. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,42 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__uart_esc
-	MAIN uart_esc
-	COMPILE_FLAGS
-		-Os
-		-Wno-packed
-	SRCS
-		uart_esc.cpp
-	DEPENDS
-		platforms__common
+
+set(TOOLS_ERROR_MSG 
+		"The FC_ADDON must be installed and the environment variable FC_ADDON must be set"
+		"(e.g. export FC_ADDON=${HOME}/Qualcomm/addon)")
+
+if ("$ENV{FC_ADDON}" STREQUAL "")
+	message(FATAL_ERROR ${TOOLS_ERROR_MSG})
+else()
+	set(FC_ADDON $ENV{FC_ADDON})
+endif()
+
+include_directories(
+	${FC_ADDON}/flight_controller/hexagon/inc
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+add_library(libuart_esc SHARED IMPORTED GLOBAL)
+set_target_properties(libuart_esc PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/flight_controller/hexagon/libs/libuart_esc.so)
+
+px4_add_module(
+        MODULE platforms__qurt__fc_addon__uart_esc
+        MAIN uart_esc
+	STACK_MAIN 1200
+        COMPILE_FLAGS
+                -Os -Weffc++
+        SRCS
+                uart_esc_main.cpp
+		uart_esc_params.c
+
+        DEPENDS
+                platforms__common
+        )
+
+set(module_external_libraries 
+	${module_external_libraries}
+	libuart_esc 
+	CACHE INTERNAL "module_external_libraries"
+	)
+	
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
