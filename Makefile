@@ -274,8 +274,7 @@ checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
 
 checks_sitls: \
-	check_posix_sitl_default \
-	check_posix_sitl_test \
+	check_posix_sitl_default
 
 checks_last: \
 	check_tests \
