@@ -46,6 +46,7 @@ set(srcs
 	test_jig_voltages.c
 	test_led.c
 	test_mathlib.cpp
+	test_matrix.cpp
 	test_mixer.cpp
 	test_mount.c
 	test_params.c
@@ -71,12 +72,15 @@ endif()
 px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
-	STACK_MAIN 9000
-	STACK_MAX 9000
+	STACK_MAIN 10000
+	STACK_MAX 10000
 	COMPILE_FLAGS
+		${MODULE_CFLAGS}
 		-Wno-unused-result
 		-Wno-float-equal
 		-Wno-missing-declarations
+		-Wno-double-promotion
+		-Wno-unknown-warning-option
 		-Os
 	SRCS ${srcs}
 	DEPENDS

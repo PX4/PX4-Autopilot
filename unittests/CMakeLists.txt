@@ -62,6 +62,12 @@ add_definitions(-Dmain_t=int)
 add_definitions(-Dnoreturn_function=)
 add_definitions(-DOK=0)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	add_definitions(-D__PX4_DARWIN)
+else()
+	add_definitions(-D__PX4_LINUX)
+endif()
+
 # check
 add_custom_target(check
 		COMMAND ${CMAKE_CTEST_COMMAND} -j2 --output-on-failure
@@ -72,10 +78,8 @@ function(add_gtest)
 	foreach(test_name ${ARGN})
 		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 			target_link_libraries(${test_name} gtest_main pthread px4_platform)
-			add_definitions(-D__PX4_DARWIN)
 		else()
 			target_link_libraries(${test_name} gtest_main pthread rt px4_platform)
-			add_definitions(-D__PX4_LINUX)
 		endif()
 		add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 		add_dependencies(check ${test_name})

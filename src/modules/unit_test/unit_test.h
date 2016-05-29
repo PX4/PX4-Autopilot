@@ -103,6 +103,9 @@ protected:
 		}								\
 	} while (0)
 
+/// @brief Used to assert a value within a unit test.
+#define ut_test(test) ut_assert("test", test)
+
 /// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
 /// since it will give you better error reporting of the actual values being compared.
 #define ut_compare(message, v1, v2)								\
