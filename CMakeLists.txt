@@ -295,7 +295,7 @@ add_definitions(${definitions})
 #=============================================================================
 # source code generation
 #
-file(GLOB msg_files msg/*.msg)
+add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
@@ -347,6 +347,9 @@ foreach(module ${config_module_list})
 	list(APPEND module_libraries ${mangled_name})
 	#message(STATUS "adding module: ${module}")
 endforeach()
+
+# Keep track of external shared libs required for modules
+set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "module_external_libraries")
 
 add_subdirectory(src/firmware/${OS})
 

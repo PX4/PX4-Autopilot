@@ -415,6 +415,13 @@ function(px4_generate_messages)
 		)
 	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
+	# We remove uORBTopics.cpp to make sure the generator is re-run, which is
+	# necessary when a .msg file is removed and because uORBTopics.cpp depends
+	# on all topics.
+	execute_process(COMMAND rm uORBTopics.cpp
+		WORKING_DIRECTORY ${msg_source_out_path}
+		ERROR_QUIET)
+
 	# multi messages for target OS
 	set(msg_multi_out_path
 		${CMAKE_BINARY_DIR}/src/platforms/${OS}/px4_messages)
@@ -521,6 +528,24 @@ function(px4_add_adb_push)
 		)
 endfunction()
 
+function(px4_add_scp_push)
+	px4_parse_function_args(
+		NAME px4_add_upload
+		ONE_VALUE OS BOARD OUT DEST
+		MULTI_VALUE FILES DEPENDS
+		REQUIRED OS BOARD OUT FILES DEPENDS DEST
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${CMAKE_SOURCE_DIR}/Tools/scp_upload.sh ${FILES} ${DEST}
+		DEPENDS ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
 
 #=============================================================================
 #
@@ -572,7 +597,6 @@ function(px4_add_common_flags)
 		-Wall
 		-Werror
 		-Wextra
-		-Wpacked
 		-Wno-sign-compare
 		-Wshadow
 		-Wfloat-equal
@@ -614,7 +638,7 @@ function(px4_add_common_flags)
 	endif()
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
-		set(max_optimization -O0)
+		set(max_optimization -Os)
 
 		set(optimization_flags
 			-fno-strict-aliasing
@@ -622,7 +646,7 @@ function(px4_add_common_flags)
 			-funsafe-math-optimizations
 			-ffunction-sections
 			-fdata-sections
-			-g -fsanitize=address
+			-g3 -fsanitize=address
 			)
 	else()
 		set(max_optimization -Os)

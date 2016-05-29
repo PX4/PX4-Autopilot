@@ -221,6 +221,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newAdsData(false),
 	_newDataMag(false),
 	_newRangeData(false),
+	_mavlink_log_pub(nullptr),
 
 	_mag_offset_x(this, "MAGB_X"),
 	_mag_offset_y(this, "MAGB_Y"),
@@ -421,8 +422,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 		// Do not warn about accel offset if we have no position updates
 		if (!(warn_index == 5 && _ekf->staticMode)) {
-			PX4_WARN("reset: %s", feedback[warn_index]);
-			mavlink_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
 		}
 	}
 
@@ -699,8 +699,6 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					_filter_ref_offset = -_baro.altitude;
 
-					PX4_INFO("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
-
 				} else {
 
 					if (!_gps_initialized && _gpsIsGood) {
@@ -785,7 +783,6 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 		_local_pos.ref_timestamp = timestamp;
 
 		map_projection_init(&_pos_ref, lat, lon);
-		mavlink_and_console_log_info(&_mavlink_log_pub, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 	}
 }
 

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__accelsim
 	MAIN accelsim
 	COMPILE_FLAGS
-		-Wno-packed
 	SRCS
 		accelsim.cpp
 	DEPENDS

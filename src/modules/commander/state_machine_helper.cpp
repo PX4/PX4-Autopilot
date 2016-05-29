@@ -39,6 +39,7 @@
  * @author Julian Oes		<julian@oes.ch>
  * @author Sander Smeets	<sander@droneslab.com>
  */
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -167,7 +168,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		 * Perform an atomic state update
 		 */
 		#ifdef __PX4_NUTTX
-		irqstate_t flags = irqsave();
+		irqstate_t flags = px4_enter_critical_section();
 		#endif
 
 		/* enforce lockdown in HIL */
@@ -306,7 +307,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 		/* end of atomic state update */
 		#ifdef __PX4_NUTTX
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 		#endif
 	}
 

@@ -56,15 +56,20 @@
 #include <v1.0/common/mavlink.h>
 
 
-namespace uart_esc
+/*
+ * This driver is supposed to run on Snapdragon. It sends actuator_controls (PWM)
+ * to a Pixhawk/Pixfalcon/Pixracer over UART (mavlink) and receives RC input.
+ */
+
+namespace pwm_out_rc_in
 {
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
-volatile bool _task_should_exit = false; // flag indicating if uart_esc task should exit
+volatile bool _task_should_exit = false; // flag indicating if pwm_out_rc_in task should exit
 static char _device[32] = {};
-static bool _is_running = false;         // flag indicating if uart_esc app is running
+static bool _is_running = false;         // flag indicating if pwm_out_rc_in app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 
 // subscriptions
@@ -473,7 +478,7 @@ void start()
 	_task_should_exit = false;
 
 	/* start the task */
-	_task_handle = px4_task_spawn_cmd("uart_esc_main",
+	_task_handle = px4_task_spawn_cmd("pwm_out_rc_in_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
 					  1500,
@@ -501,17 +506,17 @@ void stop()
 
 void usage()
 {
-	PX4_INFO("usage: uart_esc start -d /dev/tty-3");
-	PX4_INFO("       uart_esc stop");
-	PX4_INFO("       uart_esc status");
+	PX4_INFO("usage: pwm_out_rc_in start -d /dev/tty-3");
+	PX4_INFO("       pwm_out_rc_in stop");
+	PX4_INFO("       pwm_out_rc_in status");
 }
 
-} // namespace uart_esc
+} // namespace pwm_out_rc_in
 
 /* driver 'main' command */
-extern "C" __EXPORT int uart_esc_main(int argc, char *argv[]);
+extern "C" __EXPORT int pwm_out_rc_in_main(int argc, char *argv[]);
 
-int uart_esc_main(int argc, char *argv[])
+int pwm_out_rc_in_main(int argc, char *argv[])
 {
 	const char *device = nullptr;
 	int ch;
@@ -528,49 +533,49 @@ int uart_esc_main(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(uart_esc::_device, device, strlen(device));
+			strncpy(pwm_out_rc_in::_device, device, strlen(device));
 			break;
 		}
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &uart_esc::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &uart_esc::_pwm_min);
-	param_get(param_find("PWM_MAX"), &uart_esc::_pwm_max);
+	param_get(param_find("PWM_DISARMED"), &pwm_out_rc_in::_pwm_disarmed);
+	param_get(param_find("PWM_MIN"), &pwm_out_rc_in::_pwm_min);
+	param_get(param_find("PWM_MAX"), &pwm_out_rc_in::_pwm_max);
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		if (uart_esc::_is_running) {
-			PX4_WARN("uart_esc already running");
+		if (pwm_out_rc_in::_is_running) {
+			PX4_WARN("pwm_out_rc_in already running");
 			return 1;
 		}
 
 		// Check on required arguments
 		if (device == nullptr || strlen(device) == 0) {
-			uart_esc::usage();
+			pwm_out_rc_in::usage();
 			return 1;
 		}
 
-		uart_esc::start();
+		pwm_out_rc_in::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (!uart_esc::_is_running) {
-			PX4_WARN("uart_esc is not running");
+		if (!pwm_out_rc_in::_is_running) {
+			PX4_WARN("pwm_out_rc_in is not running");
 			return 1;
 		}
 
-		uart_esc::stop();
+		pwm_out_rc_in::stop();
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("uart_esc is %s", uart_esc::_is_running ? "running" : "not running");
+		PX4_WARN("pwm_out_rc_in is %s", pwm_out_rc_in::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
-		uart_esc::usage();
+		pwm_out_rc_in::usage();
 		return 1;
 	}
 

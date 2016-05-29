@@ -350,11 +350,11 @@ pwm_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "min")) {
 
 		if (set_mask == 0) {
-			usage("no channels set");
+			usage("min: no channels set");
 		}
 
 		if (pwm_value == 0) {
-			usage("no PWM value provided");
+			usage("min: no PWM value provided");
 		}
 
 		struct pwm_output_values pwm_values;
@@ -381,7 +381,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_values.channel_count == 0) {
-			usage("no PWM values added");
+			usage("min: no channels provided");
 
 		} else {
 
@@ -428,7 +428,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_values.channel_count == 0) {
-			usage("no PWM values added");
+			usage("max: no PWM channels");
 
 		} else {
 
@@ -475,7 +475,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_values.channel_count == 0) {
-			usage("no PWM values added");
+			usage("disarmed: no PWM channels");
 
 		} else {
 
@@ -495,7 +495,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_value == 0) {
-			usage("no PWM provided");
+			usage("failsafe: no PWM provided");
 		}
 
 		struct pwm_output_values pwm_values;
@@ -522,7 +522,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_values.channel_count == 0) {
-			usage("no PWM values added");
+			usage("failsafe: no PWM channels");
 
 		} else {
 

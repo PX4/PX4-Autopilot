@@ -88,11 +88,11 @@
 /* Power switch controls ******************************************************/
 
 #define GPIO_SPEKTRUM_PWR_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+#define POWER_SPEKTRUM(_s)		px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
 
-#define SPEKTRUM_RX_HIGH(_s)	stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
-#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
-#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM)
+#define SPEKTRUM_RX_HIGH(_s)	px4_arch_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
+#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 #define GPIO_SERVO_FAULT_DETECT (GPIO_INPUT|GPIO_CNF_INPULLUP|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN15)
 

@@ -491,6 +491,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 	if (_abort_front_transition) {
 		if (to_fw) {
 			to_fw = false;
+
 		} else {
 			// the state changed to mc mode, reset the abort request
 			_abort_front_transition = false;
@@ -507,7 +508,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 void
 VtolAttitudeControl::abort_front_transition()
 {
-	if(!_abort_front_transition) {
+	if (!_abort_front_transition) {
 		mavlink_log_critical(&_mavlink_log_pub, "Front transition timeout occured, aborting");
 		_abort_front_transition = true;
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
@@ -789,8 +790,8 @@ void VtolAttitudeControl::task_main()
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
-			_v_control_mode.flag_control_rates_enabled ||
-			_v_control_mode.flag_control_manual_enabled) {
+		    _v_control_mode.flag_control_rates_enabled ||
+		    _v_control_mode.flag_control_manual_enabled) {
 			if (_actuators_0_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 

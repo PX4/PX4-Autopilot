@@ -106,9 +106,6 @@ static const int ERROR = -1;
 
 static Mavlink *_mavlink_instances = nullptr;
 
-static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
-
 /**
  * mavlink app start / stop handling function
  *
@@ -118,10 +115,44 @@ extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
 extern mavlink_system_t mavlink_system;
 
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
+{
+	Mavlink* m = Mavlink::get_instance((unsigned)chan);
+	if (m != nullptr) {
+		m->send_bytes(ch, length);
+	}
+}
+
+void mavlink_end_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink* m = Mavlink::get_instance((unsigned)chan);
+	if (m != nullptr) {
+		(void)m->send_packet();
+	}
+}
+
+/*
+ * Internal function to give access to the channel status for each channel
+ */
+mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
+{
+	return Mavlink::get_status_for_instance(channel);
+}
+
+/*
+ * Internal function to give access to the channel buffer for each channel
+ */
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
+{
+	return Mavlink::get_buffer_for_instance(channel);
+}
+
 static void usage(void);
 
 bool Mavlink::_boot_complete = false;
 bool Mavlink::_config_link_on = false;
+mavlink_message_t Mavlink::_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS] = {};
+mavlink_status_t Mavlink::_mavlink_status[MAVLINK_COMM_NUM_BUFFERS] = {};
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -168,6 +199,7 @@ Mavlink::Mavlink() :
 	_last_write_success_time(0),
 	_last_write_try_time(0),
 	_mavlink_start_time(0),
+	_protocol_version(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
 	_bytes_rx(0),
@@ -181,6 +213,8 @@ Mavlink::Mavlink() :
 	_bcast_addr{},
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
+	_network_buf{},
+	_network_buf_len(0),
 #endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
@@ -277,6 +311,18 @@ Mavlink::~Mavlink()
 
 	if (_mavlink_instances) {
 		LL_DELETE(_mavlink_instances, this);
+	}
+}
+
+void
+Mavlink::set_proto_version(unsigned version)
+{
+	_protocol_version = version;
+
+	if (version == 1 || ((version == 0) && !_received_messages)) {
+		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+	} else if (version == 2) {
+		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
 	}
 }
 
@@ -476,6 +522,7 @@ void Mavlink::mavlink_update_system(void)
 	if (!_param_initialized) {
 		_param_system_id = param_find("MAV_SYS_ID");
 		_param_component_id = param_find("MAV_COMP_ID");
+		_param_proto_ver = param_find("MAV_PROTO_VER");
 		_param_radio_id = param_find("MAV_RADIO_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
@@ -491,6 +538,10 @@ void Mavlink::mavlink_update_system(void)
 
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
+
+	int32_t proto;
+	param_get(_param_proto_ver, &proto);
+	set_proto_version(proto);
 
 	param_get(_param_radio_id, &_radio_id);
 
@@ -813,8 +864,50 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
+int
+Mavlink::send_packet()
+{
+	int ret = -1;
+
+#ifdef __PX4_POSIX
+
+	if (get_protocol() == UDP) {
+		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+
+		struct telemetry_status_s &tstatus = get_rx_status();
+
+		/* resend message via broadcast if no valid connection exists */
+		if ((_mode != MAVLINK_MODE_ONBOARD) &&
+			(!get_client_source_initialized()
+			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
+
+			if (!_broadcast_address_found) {
+				find_broadcast_address();
+			}
+
+			if (_broadcast_address_found) {
+
+				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+
+				if (bret <= 0) {
+					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+				}
+			}
+		}
+
+	} else if (get_protocol() == TCP) {
+		/* not implemented, but possible to do so */
+		warnx("TCP transport pending implementation");
+	}
+
+	_network_buf_len = 0;
+#endif
+
+	return ret;
+}
+
 void
-Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
+Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
@@ -823,9 +916,6 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	}
 
 	pthread_mutex_lock(&_send_mutex);
-
-	uint8_t payload_len = mavlink_message_lengths[msgid];
-	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	_last_write_try_time = hrt_absolute_time();
 
@@ -845,29 +935,6 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		}
 	}
 
-	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-
-	/* header */
-	buf[0] = MAVLINK_STX;
-	buf[1] = payload_len;
-	/* use mavlink's internal counter for the TX seq */
-	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;
-	buf[3] = mavlink_system.sysid;
-	buf[4] = (component_ID == 0) ? mavlink_system.compid : component_ID;
-	buf[5] = msgid;
-
-	/* payload */
-	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], msg, payload_len);
-
-	/* checksum */
-	uint16_t checksum;
-	crc_init(&checksum);
-	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
-
-	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
-	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
-
 	size_t ret = -1;
 
 	/* send message to UART */
@@ -876,34 +943,14 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	}
 
 #ifdef __PX4_POSIX
-	if (get_protocol() == UDP) {
-		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
-		struct telemetry_status_s &tstatus = get_rx_status();
+	else {
+		if (_network_buf_len + packet_len < sizeof(_network_buf) / sizeof(_network_buf[0])) {
+			memcpy(&_network_buf[_network_buf_len], buf, packet_len);
+			_network_buf_len += packet_len;
 
-		/* resend heartbeat via broadcast */
-		if ((_mode != MAVLINK_MODE_ONBOARD) &&
-			(!get_client_source_initialized()
-			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
-			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
-
-			if (!_broadcast_address_found) {
-				find_broadcast_address();
-			}
-
-			if (_broadcast_address_found) {
-
-				int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
-
-				if (bret <= 0) {
-					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
-				}
-			}
+			ret = packet_len;
 		}
-
-	} else if (get_protocol() == TCP) {
-		/* not implemented, but possible to do so */
-		warnx("TCP transport pending implementation");
 	}
 #endif
 
@@ -1214,7 +1261,7 @@ void Mavlink::send_autopilot_capabilites()
 		mcu_unique_id(uid);
 		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
 
-		this->send_message(MAVLINK_MSG_ID_AUTOPILOT_VERSION, &msg);
+		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
 	}
 }
 
@@ -2027,7 +2074,7 @@ Mavlink::task_main(int argc, char *argv[])
 			msg.result = command_ack.result;
 			msg.command = command_ack.command;
 
-			send_message(MAVLINK_MSG_ID_COMMAND_ACK, &msg);
+			mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 		}
 
 		struct mavlink_log_s mavlink_log;

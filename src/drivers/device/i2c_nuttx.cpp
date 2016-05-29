@@ -75,7 +75,7 @@ I2C::I2C(const char *name,
 I2C::~I2C()
 {
 	if (_dev) {
-		up_i2cuninitialize(_dev);
+		px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
 }
@@ -105,7 +105,7 @@ I2C::init()
 	unsigned bus_index;
 
 	// attach to the i2c bus
-	_dev = up_i2cinitialize(_bus);
+	_dev = px4_i2cbus_initialize(_bus);
 
 	if (_dev == nullptr) {
 		DEVICE_DEBUG("failed to init I2C");
@@ -120,7 +120,7 @@ I2C::init()
 	// abort if the max frequency we allow (the frequency we ask)
 	// is smaller than the bus frequency
 	if (_bus_clocks[bus_index] > _frequency) {
-		(void)up_i2cuninitialize(_dev);
+		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
 			   _bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
@@ -168,7 +168,7 @@ I2C::init()
 out:
 
 	if ((ret != OK) && (_dev != nullptr)) {
-		up_i2cuninitialize(_dev);
+		px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
 

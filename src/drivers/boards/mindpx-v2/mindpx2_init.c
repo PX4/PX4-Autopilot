@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -230,23 +230,23 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
+	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-//	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-//	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-//	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-//	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+//	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+//	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+//	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+//	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -282,7 +282,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 	message("[boot] Initialized SPI port 4 (SENSORS)\n");
-	spi4 = up_spiinitialize(4);
+	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
@@ -303,7 +303,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* Get the SPI port for the FRAM */
 	message("[boot] Initialized SPI port 1 (RAMTRON FRAM)\n");
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -324,7 +324,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Initialized SPI port 2 (nRF24 and ext)\n");
 
-	spi2 = up_spiinitialize(2);
+	spi2 = px4_spibus_initialize(2);
 
 	/* Default SPI2 to 10MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi2, 10000000);
@@ -360,12 +360,12 @@ __EXPORT int nsh_archinitialize(void)
 #endif
 
 
-	stm32_configgpio(GPIO_I2C2_SCL);
-	stm32_configgpio(GPIO_I2C2_SDA);
+	px4_arch_configgpio(GPIO_I2C2_SCL);
+	px4_arch_configgpio(GPIO_I2C2_SDA);
 	message("[boot] Initialized ext I2C Port\n");
 
-	stm32_configgpio(GPIO_I2C1_SCL);
-	stm32_configgpio(GPIO_I2C1_SDA);
+	px4_arch_configgpio(GPIO_I2C1_SCL);
+	px4_arch_configgpio(GPIO_I2C1_SDA);
 	message("[boot] Initialized onboard I2C Port\n");
 
 

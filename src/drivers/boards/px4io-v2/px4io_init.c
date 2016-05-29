@@ -105,55 +105,55 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure GPIOs */
 
 	/* LEDS - default to off */
-	stm32_configgpio(GPIO_LED1);
-	stm32_configgpio(GPIO_LED2);
-	stm32_configgpio(GPIO_LED3);
-	stm32_configgpio(GPIO_LED4);
+	px4_arch_configgpio(GPIO_LED1);
+	px4_arch_configgpio(GPIO_LED2);
+	px4_arch_configgpio(GPIO_LED3);
+	px4_arch_configgpio(GPIO_LED4);
 
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	px4_arch_configgpio(GPIO_BTN_SAFETY);
 
 	/* spektrum power enable is active high - enable it by default */
-	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
+	px4_arch_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
-	stm32_configgpio(GPIO_SERVO_FAULT_DETECT);
+	px4_arch_configgpio(GPIO_SERVO_FAULT_DETECT);
 
 	/* RSSI inputs */
-	stm32_configgpio(GPIO_TIM_RSSI); /* xxx alternate function */
-	stm32_configgpio(GPIO_ADC_RSSI);
+	px4_arch_configgpio(GPIO_TIM_RSSI); /* xxx alternate function */
+	px4_arch_configgpio(GPIO_ADC_RSSI);
 
 	/* servo rail voltage */
-	stm32_configgpio(GPIO_ADC_VSERVO);
+	px4_arch_configgpio(GPIO_ADC_VSERVO);
 
-	stm32_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
-	stm32_configgpio(GPIO_SBUS_OUTPUT);
+	px4_arch_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
+	px4_arch_configgpio(GPIO_SBUS_OUTPUT);
 
 	/* sbus output enable is active low - disable it by default */
-	stm32_gpiowrite(GPIO_SBUS_OENABLE, true);
-	stm32_configgpio(GPIO_SBUS_OENABLE);
+	px4_arch_gpiowrite(GPIO_SBUS_OENABLE, true);
+	px4_arch_configgpio(GPIO_SBUS_OENABLE);
 
-	stm32_configgpio(GPIO_PPM); /* xxx alternate function */
+	px4_arch_configgpio(GPIO_PPM); /* xxx alternate function */
 
-	stm32_gpiowrite(GPIO_PWM1, true);
-	stm32_configgpio(GPIO_PWM1);
+	px4_arch_gpiowrite(GPIO_PWM1, true);
+	px4_arch_configgpio(GPIO_PWM1);
 
-	stm32_gpiowrite(GPIO_PWM2, true);
-	stm32_configgpio(GPIO_PWM2);
+	px4_arch_gpiowrite(GPIO_PWM2, true);
+	px4_arch_configgpio(GPIO_PWM2);
 
-	stm32_gpiowrite(GPIO_PWM3, true);
-	stm32_configgpio(GPIO_PWM3);
+	px4_arch_gpiowrite(GPIO_PWM3, true);
+	px4_arch_configgpio(GPIO_PWM3);
 
-	stm32_gpiowrite(GPIO_PWM4, true);
-	stm32_configgpio(GPIO_PWM4);
+	px4_arch_gpiowrite(GPIO_PWM4, true);
+	px4_arch_configgpio(GPIO_PWM4);
 
-	stm32_gpiowrite(GPIO_PWM5, true);
-	stm32_configgpio(GPIO_PWM5);
+	px4_arch_gpiowrite(GPIO_PWM5, true);
+	px4_arch_configgpio(GPIO_PWM5);
 
-	stm32_gpiowrite(GPIO_PWM6, true);
-	stm32_configgpio(GPIO_PWM6);
+	px4_arch_gpiowrite(GPIO_PWM6, true);
+	px4_arch_configgpio(GPIO_PWM6);
 
-	stm32_gpiowrite(GPIO_PWM7, true);
-	stm32_configgpio(GPIO_PWM7);
+	px4_arch_gpiowrite(GPIO_PWM7, true);
+	px4_arch_configgpio(GPIO_PWM7);
 
-	stm32_gpiowrite(GPIO_PWM8, true);
-	stm32_configgpio(GPIO_PWM8);
+	px4_arch_gpiowrite(GPIO_PWM8, true);
+	px4_arch_configgpio(GPIO_PWM8);
 }

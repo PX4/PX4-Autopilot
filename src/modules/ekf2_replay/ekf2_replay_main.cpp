@@ -69,6 +69,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/vision_position_estimate.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -133,6 +135,8 @@ private:
 	orb_advert_t _landed_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
+	orb_advert_t _airspeed_pub;
+	orb_advert_t _ev_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -148,12 +152,16 @@ private:
 	struct vehicle_land_detected_s _land_detected;
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
+	struct airspeed_s _airspeed;
+	struct vision_position_estimate_s _ev;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
 	bool _read_part2;				// indicates if part 2 of replay message has been read
 	bool _read_part3;
 	bool _read_part4;
+	bool _read_part6;
+	bool _read_part5;
 
 	int _write_fd = -1;
 	px4_pollfd_struct_t _fds[1];
@@ -201,6 +209,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_landed_pub(nullptr),
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
+	_airspeed_pub(nullptr),
+	_ev_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -217,6 +227,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_read_part2(false),
 	_read_part3(false),
 	_read_part4(false),
+	_read_part6(false),
+	_read_part5(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -264,12 +276,29 @@ void Ekf2Replay::publishEstimatorInput()
 
 	_read_part4 = false;
 
+	if (_ev_pub == nullptr && _read_part5) {
+		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev);
+
+	} else if (_ev_pub != nullptr && _read_part5) {
+		orb_publish(ORB_ID(vision_position_estimate), _ev_pub, &_ev);
+	}
+
+	_read_part5 = false;
+
 	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
 
 	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
+
+	if (_airspeed_pub == nullptr && _read_part6) {
+		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+	} else if (_airspeed_pub != nullptr) {
+		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
+	}
+
+	_read_part6 = false;
 }
 
 void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t type)
@@ -332,6 +361,8 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL2_s replay_part2 = {};
 	struct log_RPL3_s replay_part3 = {};
 	struct log_RPL4_s replay_part4 = {};
+	struct log_RPL6_s replay_part6 = {};
+	struct log_RPL5_s replay_part5 = {};
 	struct log_LAND_s vehicle_landed = {};
 
 	if (type == LOG_RPL1_MSG) {
@@ -393,6 +424,33 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.timestamp = replay_part4.time_rng_usec;
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
+
+	} else if (type == LOG_RPL6_MSG){
+		uint8_t *dest_ptr = (uint8_t *)&replay_part6.time_airs_usec;
+		parseMessage(data, dest_ptr, type);
+		_airspeed.timestamp = replay_part6.time_airs_usec;
+		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
+		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
+		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
+		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
+		_airspeed.confidence = replay_part6.confidence;
+		_read_part6 = true;
+
+	} else if (type == LOG_RPL5_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
+		parseMessage(data, dest_ptr, type);
+		_ev.timestamp = replay_part5.time_ev_usec;
+		_ev.timestamp_computer = replay_part5.time_ev_usec; // fake this timestamp
+		_ev.x = replay_part5.x;
+		_ev.y = replay_part5.y;
+		_ev.z = replay_part5.z;
+		_ev.q[0] = replay_part5.q0;
+		_ev.q[1] = replay_part5.q1;
+		_ev.q[2] = replay_part5.q2;
+		_ev.q[3] = replay_part5.q3;
+		_ev.pos_err = replay_part5.pos_err;
+		_ev.ang_err = replay_part5.pos_err;
+		_read_part5 = true;
 
 	} else if (type == LOG_LAND_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
@@ -582,6 +640,9 @@ void Ekf2Replay::logIfUpdated()
 
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
+		log_message.body.innov2.s[8] = innov.airspeed_innov;
+		log_message.body.innov2.s[9] = innov.airspeed_innov_var;
+
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 
 		// optical flow innovations and innovation variances

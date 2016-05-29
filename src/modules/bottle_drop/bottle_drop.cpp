@@ -170,6 +170,7 @@ BottleDrop::BottleDrop() :
 
 	_task_should_exit(false),
 	_main_task(-1),
+	_mavlink_log_pub(nullptr),
 	_command_sub(-1),
 	_wind_estimate_sub(-1),
 	_command {},

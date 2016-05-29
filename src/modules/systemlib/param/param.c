@@ -173,7 +173,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 	return (count && param < count);
 }
 
@@ -807,17 +807,17 @@ param_bus_lock(bool lock)
 
 	// XXX this would be the preferred locking method
 	// if (dev == nullptr) {
-	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// 	dev = px4_spibus_initialize(PX4_SPI_BUS_BARO);
 	// }
 
 	// SPI_LOCK(dev, lock);
 
 	// we lock like this for Pixracer for now
 	if (lock) {
-		irq_state = irqsave();
+		irq_state = px4_enter_critical_section();
 
 	} else {
-		irqrestore(irq_state);
+		px4_leave_critical_section(irq_state);
 	}
 
 #endif
