@@ -35,7 +35,7 @@
  * @file px4io_init.c
  *
  * PX4IO-specific early startup code.  This file implements the
- * board_app_initialize() function that is called early by nsh during startup.
+ * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.

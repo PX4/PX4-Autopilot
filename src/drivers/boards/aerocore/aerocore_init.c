@@ -194,10 +194,19 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* configure ADC pins */
+
+	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
+	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
+
 	/* configure SPI interfaces */
+
 	stm32_spiinitialize();
 
 	/* configure LEDs */
+
 	board_autoled_initialize();
 }
 
@@ -205,36 +214,31 @@ stm32_boardinitialize(void)
  * Name: board_app_initialize
  *
  * Description:
- *   Perform architecture specific initialization
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command BOARDIOC_INIT.
+ *
+ * Input Parameters:
+ *   arg - The boardctl() argument is passed to the board_app_initialize()
+ *         implementation without modification.  The argument has no
+ *         meaning to NuttX; the meaning of the argument is a contract
+ *         between the board-specific initalization logic and the the
+ *         matching application logic.  The value cold be such things as a
+ *         mode enumeration value, a set of DIP switch switch settings, a
+ *         pointer to configuration data read from a file or serial FLASH,
+ *         or whatever you would like to do with it.  Every implementation
+ *         should accept zero/NULL as a default configuration.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
 
 static struct spi_dev_s *spi3;
 static struct spi_dev_s *spi4;
-
-#include <math.h>
-
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
+__EXPORT int board_app_initialize(uintptr_t arg)
 {
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
-__EXPORT int board_app_initialize(void)
-{
-
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
-
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
