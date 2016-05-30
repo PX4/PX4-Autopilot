@@ -223,6 +223,8 @@ Mavlink::Mavlink() :
 	_bcast_addr{},
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
+	_broadcast_address_not_found_warned(false),
+	_sendto_result(1),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -899,9 +901,10 @@ Mavlink::send_packet()
 
 				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
-				if (bret <= 0) {
-					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+				if (bret <= 0 && _sendto_result > 0) {
+					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
 				}
+				_sendto_result = bret;
 			}
 		}
 
@@ -1150,9 +1153,13 @@ Mavlink::find_broadcast_address()
 		if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
 			PX4_WARN("setting broadcast permission failed");
 		}
+		_broadcast_address_not_found_warned = false;
 
 	} else {
-		PX4_WARN("no broadcasting address found");
+		if (!_broadcast_address_not_found_warned) {
+			PX4_WARN("no broadcasting address found");
+			_broadcast_address_not_found_warned = true;
+		}
 	}
 
 	delete[] ifconf.ifc_req;
