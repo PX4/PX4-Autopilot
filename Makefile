@@ -219,6 +219,7 @@ posix_eagle_default:
 	$(call cmake-build,$@)
 
 eagle_default: posix_eagle_default qurt_eagle_default
+eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
 
 qurt_eagle_legacy_driver_default:
 	$(call cmake-build,$@)	
@@ -295,7 +296,6 @@ checks_tests: \
 	check_px4fmu-v2_test
 
 checks_alts: \
-	check_px4fmu-v2_lpe \
 	check_px4fmu-v2_ekf2 \
 
 checks_uavcan: \

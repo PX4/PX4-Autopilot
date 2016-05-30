@@ -287,6 +287,7 @@ __EXPORT void board_spi_reset(int ms)
 	* required for some peripheral
 	* state machines
 	*/
+
 	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);

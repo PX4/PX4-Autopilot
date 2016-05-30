@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE modules__load_mon
 	MAIN load_mon
 	STACK_MAIN 1200
+	COMPILE_FLAGS -Os
 	SRCS
 		load_mon.cpp
 	DEPENDS

@@ -136,7 +136,12 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
  */
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
-	return Mavlink::get_status_for_instance(channel);
+	Mavlink* m = Mavlink::get_instance((unsigned)channel);
+	if (m != nullptr) {
+		return m->get_status();
+	} else {
+		return nullptr;
+	}
 }
 
 /*
@@ -144,15 +149,18 @@ mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
  */
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
-	return Mavlink::get_buffer_for_instance(channel);
+	Mavlink* m = Mavlink::get_instance((unsigned)channel);
+	if (m != nullptr) {
+		return m->get_buffer();
+	} else {
+		return nullptr;
+	}
 }
 
 static void usage(void);
 
 bool Mavlink::_boot_complete = false;
 bool Mavlink::_config_link_on = false;
-mavlink_message_t Mavlink::_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS] = {};
-mavlink_status_t Mavlink::_mavlink_status[MAVLINK_COMM_NUM_BUFFERS] = {};
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -161,6 +169,8 @@ Mavlink::Mavlink() :
 	_instance_id(0),
 	_mavlink_log_pub(nullptr),
 	_task_running(false),
+	_mavlink_buffer{},
+	_mavlink_status{},
 	_hil_enabled(false),
 	_generate_rc(false),
 	_use_hil_gps(false),
@@ -213,6 +223,8 @@ Mavlink::Mavlink() :
 	_bcast_addr{},
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
+	_broadcast_address_not_found_warned(false),
+	_sendto_result(1),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -889,9 +901,10 @@ Mavlink::send_packet()
 
 				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
-				if (bret <= 0) {
-					PX4_WARN("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+				if (bret <= 0 && _sendto_result > 0) {
+					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
 				}
+				_sendto_result = bret;
 			}
 		}
 
@@ -1140,9 +1153,13 @@ Mavlink::find_broadcast_address()
 		if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
 			PX4_WARN("setting broadcast permission failed");
 		}
+		_broadcast_address_not_found_warned = false;
 
 	} else {
-		PX4_WARN("no broadcasting address found");
+		if (!_broadcast_address_not_found_warned) {
+			PX4_WARN("no broadcasting address found");
+			_broadcast_address_not_found_warned = true;
+		}
 	}
 
 	delete[] ifconf.ifc_req;
@@ -2268,9 +2285,9 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
-	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+	if (ic == Mavlink::MAVLINK_MAX_INSTANCES) {
 		warnx("Maximum MAVLink instance count of %d reached.",
-			(int)MAVLINK_COMM_NUM_BUFFERS);
+			(int)Mavlink::MAVLINK_MAX_INSTANCES);
 		return 1;
 	}
 

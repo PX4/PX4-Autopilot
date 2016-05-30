@@ -283,7 +283,8 @@ __EXPORT int board_app_initialize(void)
 	led_off(LED_AMBER);
 
 	/* Configure Sensors on SPI bus #3 */
-	spi3 = stm32_spibus_initialize(3);
+
+	spi3 = px4_spibus_initialize(3);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
@@ -302,7 +303,8 @@ __EXPORT int board_app_initialize(void)
 	message("[boot] Initialized SPI port 3 (SENSORS)\n");
 
 	/* Configure FRAM on SPI bus #4 */
-	spi4 = stm32_spibus_initialize(4);
+
+	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");

@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN pwm_out_rc_in
 	COMPILE_FLAGS
 		-Os
-		-Wno-packed
+		-DMAVLINK_COMM_NUM_BUFFERS=1
 	SRCS
 		pwm_out_rc_in.cpp
 	DEPENDS
