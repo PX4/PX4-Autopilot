@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE lib__rc
+	MODULE drivers__sf0x__sf0x_tests
+	MAIN sf0x_tests
 	COMPILE_FLAGS
-		-Os
-		-Wno-unused-result
 	SRCS
-		st24.c
-		sumd.c
-		sbus.c
-		dsm.c
+		SF0XTest.cpp
+		../sf0x_parser.cpp
 	DEPENDS
 		platforms__common
 	)

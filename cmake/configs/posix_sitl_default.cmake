@@ -71,6 +71,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/rc
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
@@ -86,6 +87,8 @@ set(config_module_list
 	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
+	lib/rc/rc_tests
+	drivers/sf0x/sf0x_tests
 	)
 
 set(config_extra_builtin_cmds

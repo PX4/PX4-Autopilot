@@ -90,12 +90,15 @@ const struct {
 	{"sensors",		test_sensors,	0},
 	{"time",		test_time,	OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
+#else
+	{"rc",			rc_tests_main,	0},
 #endif /* __PX4_NUTTX */
 
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
 	//{"mavlink",		mavlink_tests_main,	0}, // TODO: fix mavlink_tests
+	{"sf0x",			sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
 
 	{"autodeclination",		test_autodeclination,	0},

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE lib__rc
+	MODULE lib__rc__rc_tests
+	MAIN rc_tests
 	COMPILE_FLAGS
-		-Os
 		-Wno-unused-result
 	SRCS
-		st24.c
-		sumd.c
-		sbus.c
-		dsm.c
+		RCTest.cpp
 	DEPENDS
 		platforms__common
 	)

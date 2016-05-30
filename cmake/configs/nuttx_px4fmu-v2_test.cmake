@@ -79,6 +79,8 @@ set(config_module_list
 	modules/mavlink/mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
+	#lib/rc/rc_tests
+	drivers/sf0x/sf0x_tests
 
 	#
 	# General system control

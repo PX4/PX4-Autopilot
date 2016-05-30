@@ -126,27 +126,6 @@ target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms)
 #    add_executable(example_test example_test.cpp)
 #    add_gtest(example_test)
 
-# sbus2_test
-add_executable(sbus2_test sbus2_test.cpp
-						${PX4_SRC}/lib/rc/sbus.c)
-add_gtest(sbus2_test)
-
-# DSM test
-add_executable(dsm_test dsm_test.cpp
-						${PX4_SRC}/lib/rc/dsm.c)
-add_gtest(dsm_test)
-
-# st24_test
-add_executable(rc_input_test st24_test.cpp sumd_test.cpp
-						${PX4_SRC}/lib/rc/st24.c
-						${PX4_SRC}/lib/rc/sumd.c)
-add_gtest(rc_input_test)
-
-# sf0x_test
-add_executable(sf0x_test sf0x_test.cpp
-						${PX4_SRC}/drivers/sf0x/sf0x_parser.cpp)
-add_gtest(sf0x_test)
-
 # param_test
 add_executable(param_test param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/bson/tinybson.c
@@ -160,5 +139,3 @@ add_gtest(param_test)
 #						${PX4_SRC}/modules/systemlib/param/param_shmem.c)
 #target_link_libraries(param_shmem_test ${PX4_SITL_BUILD}/libmsg_gen.a)
 #add_gtest(param_shmem_test)
-
-#add_subdirectory(uorb_unittests)
