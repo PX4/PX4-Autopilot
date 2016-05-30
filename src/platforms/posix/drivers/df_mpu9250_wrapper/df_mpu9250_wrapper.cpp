@@ -61,6 +61,8 @@
 #include <drivers/drv_mag.h>
 #include <drivers/device/integrator.h>
 
+#include <lib/conversion/rotation.h>
+
 #include <uORB/topics/parameter_update.h>
 
 #include <mpu9250/MPU9250.hpp>
@@ -78,7 +80,7 @@ using namespace DriverFramework;
 class DfMpu9250Wrapper : public MPU9250
 {
 public:
-	DfMpu9250Wrapper(bool mag_enabled);
+	DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation);
 	~DfMpu9250Wrapper();
 
 
@@ -108,8 +110,6 @@ private:
 	void _update_gyro_calibration();
 	void _update_mag_calibration();
 
-	//enum Rotation		_rotation;
-
 	orb_advert_t		    _accel_topic;
 	orb_advert_t		    _gyro_topic;
 	orb_advert_t		    _mag_topic;
@@ -135,6 +135,8 @@ private:
 		float z_offset;
 		float z_scale;
 	} _gyro_calibration;
+
+	math::Matrix<3, 3>	    _rotation_matrix;
 
 	struct mag_calibration_s {
 		float x_offset;
@@ -169,7 +171,7 @@ private:
 	bool _mag_enabled;
 };
 
-DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
+DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	MPU9250(IMU_DEVICE_PATH, mag_enabled),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
@@ -184,7 +186,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
 	_mag_orb_class_instance(-1),
 	_accel_int(MPU9250_NEVER_AUTOPUBLISH_US, false),
 	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
-	/*_rotation(rotation)*/
 	_publish_count(0),
 	_read_counter(perf_alloc(PC_COUNT, "mpu9250_reads")),
 	_error_counter(perf_alloc(PC_COUNT, "mpu9250_errors")),
@@ -221,6 +222,9 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
 		_mag_calibration.y_offset = 0.0f;
 		_mag_calibration.z_offset = 0.0f;
 	}
+
+	// Get sensor rotation matrix
+	get_rot_matrix(rotation, &_rotation_matrix);
 }
 
 DfMpu9250Wrapper::~DfMpu9250Wrapper()
@@ -576,6 +580,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 				  (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale,
 				  (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale);
 
+	// apply sensor rotation on the accel measurement
+	accel_val = _rotation_matrix * accel_val;
 
 	_accel_int.put_with_interval(data.fifo_sample_interval_us,
 				     accel_val,
@@ -586,7 +592,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 				 (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale,
 				 (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale);
 
-	math::Vector<3> gyro_val_integrated_unused;
+	// apply sensor rotation on the gyro measurement
+	gyro_val = _rotation_matrix * gyro_val;
 
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
@@ -746,14 +753,14 @@ namespace df_mpu9250_wrapper
 
 DfMpu9250Wrapper *g_dev = nullptr;
 
-int start(/* enum Rotation rotation */);
+int start(enum Rotation rotation);
 int stop();
 int info();
 void usage();
 
-int start(bool mag_enabled)
+int start(bool mag_enabled, enum Rotation rotation)
 {
-	g_dev = new DfMpu9250Wrapper(mag_enabled);
+	g_dev = new DfMpu9250Wrapper(mag_enabled, rotation);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating DfMpu9250Wrapper object");
@@ -823,7 +830,7 @@ usage()
 {
 	PX4_WARN("Usage: df_mpu9250_wrapper 'start', 'start_without_mag', 'info', 'stop'");
 	PX4_WARN("options:");
-	//PX4_WARN("    -R rotation");
+	PX4_WARN("    -R rotation");
 }
 
 } // namespace df_mpu9250_wrapper
@@ -833,7 +840,7 @@ int
 df_mpu9250_wrapper_main(int argc, char *argv[])
 {
 	int ch;
-	// enum Rotation rotation = ROTATION_NONE;
+	enum Rotation rotation = ROTATION_NONE;
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -841,9 +848,9 @@ df_mpu9250_wrapper_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		//case 'R':
-		//	rotation = (enum Rotation)atoi(myoptarg);
-		//	break;
+		case 'R':
+			rotation = (enum Rotation)atoi(myoptarg);
+			break;
 
 		default:
 			df_mpu9250_wrapper::usage();
@@ -859,11 +866,11 @@ df_mpu9250_wrapper_main(int argc, char *argv[])
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start_without_mag")) {
-		ret = df_mpu9250_wrapper::start(false);
+		ret = df_mpu9250_wrapper::start(false, rotation);
 	}
 
 	else if (!strcmp(verb, "start")) {
-		ret = df_mpu9250_wrapper::start(true);
+		ret = df_mpu9250_wrapper::start(true, rotation);
 	}
 
 	else if (!strcmp(verb, "stop")) {
