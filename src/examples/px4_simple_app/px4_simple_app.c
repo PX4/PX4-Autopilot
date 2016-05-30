@@ -77,11 +77,13 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	for (int i = 0; i < 5; i++) {
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+		// 等待一个文件描述符的传感器更新1秒
 		int poll_ret = px4_poll(fds, 1, 1000);
 
-		/* handle the poll result */
+		/* handle the poll result 处理查询结果*/
 		if (poll_ret == 0) {
 			/* this means none of our providers is giving us data */
+			// 没有数据进来
 			PX4_ERR("[px4_simple_app] Got no data within a second");
 
 		} else if (poll_ret < 0) {
