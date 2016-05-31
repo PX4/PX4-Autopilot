@@ -139,33 +139,40 @@ then
 	set MAV_TYPE none
 	set FAILSAFE none
 	set USE_IO yes
+	set BOARD unknown
+
+	# Detect board type and set env variables
+	if ver hwcmp PX4FMU_V1
+	then
+		set BOARD PX4FMU_V1
+	fi
+
+	if ver hwcmp PX4FMU_V2
+	then
+		set BOARD PX4FMU_V2
+	fi
+
+	if ver hwcmp PX4FMU_V4
+	then
+		set BOARD PX4FMU_V4
+	fi
+
+	if ver hwcmp MINDPX_V2
+	then
+		set BOARD MINDPX_V2
+	fi
 
 	#
 	# Set USE_IO flag
 	#
 	if param compare SYS_USE_IO 1
 	then
-		if ver hwcmp PX4FMU_V4
-		then
-			set USE_IO no
-		fi
-
-		if ver hwcmp MINDPX_V2
+		if [ $BOARD == PX4FMU_V4 -o $BOARD == MINDPX_V2 ]
 		then
 			set USE_IO no
 		fi
 	else
 		set USE_IO no
-	fi
-
-	# should set to 0.8 for mindpx-v2 borad.
-	if param compare INAV_LIDAR_ERR 0.5
-	then
-		if ver hwcmp MINDPX_V2
-		then
-			param set INAV_LIDAR_ERR 0.8
-			param save
-		fi
 	fi
 
 	#
@@ -181,7 +188,7 @@ then
 
 	#
 	# Wipe incompatible settings for boards not having two outputs
-	if ver hwcmp PX4FMU_V4
+	if [ $BOARD == PX4FMU_V4 ]
 	then
 		set MIXER_AUX none
 	fi
@@ -287,7 +294,7 @@ then
 		set OUTPUT_MODE none
 
 		# Avoid using ttyS0 for MAVLink on FMUv1
-		if ver hwcmp PX4FMU_V1
+		if [ $BOARD == PX4FMU_V1 ]
 		then
 			set FMU_MODE serial
 		fi
@@ -301,7 +308,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		if ver hwcmp PX4FMU_V1
+		if [ $BOARD == PX4FMU_V1 ]
 		then
 			set FMU_MODE serial
 		fi
@@ -380,7 +387,7 @@ then
 				tone_alarm $TUNE_ERR
 			fi
 
-			if ver hwcmp PX4FMU_V1
+			if [ $BOARD == PX4FMU_V1 ]
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 				then
@@ -450,7 +457,7 @@ then
 					tone_alarm $TUNE_ERR
 				fi
 
-				if ver hwcmp PX4FMU_V1
+				if [ $BOARD == PX4FMU_V1 ]
 				then
 					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 					then
@@ -478,7 +485,7 @@ then
 		else
 			set MAVLINK_F "-r 1200"
 			# Avoid using ttyS1 for MAVLink on FMUv4
-			if ver hwcmp PX4FMU_V4
+			if [ $BOARD == PX4FMU_V4 ]
 			then
 				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
@@ -493,9 +500,8 @@ then
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V1
+	if [ $BOARD != PX4FMU_V1 ]
 	then
-	else
 		# XXX We need a better way for runtime eval of shell variables,
 		# but this works for now
 		if param compare SYS_COMPANION 10
@@ -583,20 +589,14 @@ then
 		sf0x start
 	fi
 
-	if ver hwcmp PX4FMU_V4
+	if [ $BOARD == PX4FMU_V4 ]
 	then
 		frsky_telemetry start -d /dev/ttyS6
 	fi
 
-	if ver hwcmp PX4FMU_V2
+	if [ $BOARD == PX4FMU_V2 -o $BOARD == MINDPX_V2 ]
 	then
 		# Check for flow sensor - as it is a background task, launch it last
-		px4flow start &
-	fi
-
-	if ver hwcmp MINDPX_V2
-	then
-		#mindxp also need flow
 		px4flow start &
 	fi
 
@@ -612,7 +612,7 @@ then
 	#
 	# Logging
 	#
-	if ver hwcmp PX4FMU_V1
+	if [ $BOARD == PX4FMU_V1 ]
 	then
 		if sdlog2 start -r 30 -a -b 2 -t
 		then
@@ -829,14 +829,14 @@ then
 		fi
 
 		# Start snapdragon interface on serial port.
-		if ver hwcmp PX4FMU_V2
+		if [ $BOARD == PX4FMU_V2 ]
 		then
 			# On Pixfalcon use the standard telemetry port (Telem 1).
 			snapdragon_rc_pwm start -d /dev/ttyS1
 			px4io start
 		fi
 
-		if ver hwcmp PX4FMU_V4
+		if [ $BOARD == PX4FMU_V4 ]
 		then
 			# On Pixracer use Telem 2 port (TL2).
 			snapdragon_rc_pwm start -d /dev/ttyS2
