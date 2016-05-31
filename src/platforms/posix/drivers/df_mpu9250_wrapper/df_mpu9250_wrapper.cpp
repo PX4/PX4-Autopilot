@@ -231,9 +231,11 @@ DfMpu9250Wrapper::~DfMpu9250Wrapper()
 	perf_free(_fifo_corruption_counter);
 	perf_free(_gyro_range_hit_counter);
 	perf_free(_accel_range_hit_counter);
+
 	if (_mag_enabled) {
 		perf_free(_mag_fifo_overflow_counter);
 	}
+
 	perf_free(_publish_perf);
 }
 
@@ -313,9 +315,11 @@ void DfMpu9250Wrapper::info()
 	perf_print_counter(_fifo_corruption_counter);
 	perf_print_counter(_gyro_range_hit_counter);
 	perf_print_counter(_accel_range_hit_counter);
+
 	if (_mag_enabled) {
 		perf_print_counter(_mag_fifo_overflow_counter);
 	}
+
 	perf_print_counter(_publish_perf);
 }
 
@@ -612,6 +616,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_set_count(_fifo_corruption_counter, data.fifo_overflow_counter);
 	perf_set_count(_gyro_range_hit_counter, data.gyro_range_hit_counter);
 	perf_set_count(_accel_range_hit_counter, data.accel_range_hit_counter);
+
 	if (_mag_enabled) {
 		perf_set_count(_mag_fifo_overflow_counter, data.mag_fifo_overflow_counter);
 	}
@@ -623,6 +628,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	mag_report mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
+
 	if (_mag_enabled) {
 		mag_report.timestamp = accel_report.timestamp;
 	}
@@ -703,6 +709,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 			if (_mag_topic == nullptr) {
 				_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
 								 &_mag_orb_class_instance, ORB_PRIO_LOW);
+
 			} else {
 				orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 			}
