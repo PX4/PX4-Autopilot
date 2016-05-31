@@ -83,6 +83,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
+#include <lib/ecl/validation/data_validator_group.h>
 
 #include <mathlib/mathlib.h>
 
@@ -681,10 +682,11 @@ private:
 	MavlinkOrbSubscription *_sensor_sub;
 	uint64_t _sensor_time;
 
-	uint64_t _accel_timestamp;
-	uint64_t _gyro_timestamp;
-	uint64_t _mag_timestamp;
 	uint64_t _baro_timestamp;
+
+	DataValidatorGroup _voter_gyro;
+	DataValidatorGroup _voter_accel;
+	DataValidatorGroup _voter_mag;
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
@@ -694,62 +696,102 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
-		_accel_timestamp(0),
-		_gyro_timestamp(0),
-		_mag_timestamp(0),
-		_baro_timestamp(0)
+		_baro_timestamp(0),
+		_voter_gyro(3),
+		_voter_accel(3),
+		_voter_mag(3)
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct sensor_combined_s sensor;
 
+
+		struct sensor_combined_s sensor;
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
+
+			const unsigned num_sensors = sizeof(sensor.gyro_timestamp) / sizeof(sensor.gyro_timestamp[0]);
+			for (unsigned i = 0; i < num_sensors; ++i) {
+
+				_voter_gyro.put(i, sensor.gyro_timestamp[i],
+						&sensor.gyro_rad_s[i * 3],
+						sensor.gyro_errcount[i],
+						sensor.gyro_priority[i]);
+				_voter_accel.put(i, sensor.accelerometer_timestamp[i],
+						 &sensor.accelerometer_m_s2[i * 3],
+						 sensor.accelerometer_errcount[i],
+						 sensor.accelerometer_priority[i]);
+				_voter_mag.put(i, sensor.magnetometer_timestamp[i],
+					       &sensor.magnetometer_ga[i * 3],
+					       sensor.magnetometer_errcount[i],
+					       sensor.magnetometer_priority[i]);
+
+				// TODO: add baro here as well
+			}
+
 			uint16_t fields_updated = 0;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp[0]) {
+			const hrt_abstime curr_time = hrt_absolute_time();
+			int best_index = 0;
+			float *tmp_vec = nullptr;
+
+			mavlink_highres_imu_t msg;
+			msg.time_usec = sensor.timestamp;
+
+			tmp_vec = _voter_accel.get_best(curr_time, &best_index);
+			if (tmp_vec) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp[0];
+				msg.xacc = tmp_vec[0];
+				msg.yacc = tmp_vec[1];
+				msg.zacc = tmp_vec[2];
+			} else {
+				msg.xacc = NAN;
+				msg.yacc = NAN;
+				msg.zacc = NAN;
 			}
 
-			if (_gyro_timestamp != sensor.gyro_timestamp[0]) {
+			tmp_vec = _voter_gyro.get_best(curr_time, &best_index);
+			if (tmp_vec) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				_gyro_timestamp = sensor.gyro_timestamp[0];
+				msg.xgyro = tmp_vec[0];
+				msg.ygyro = tmp_vec[1];
+				msg.zgyro = tmp_vec[2];
+			} else {
+				msg.xgyro = NAN;
+				msg.ygyro = NAN;
+				msg.zgyro = NAN;
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp[0]) {
+			tmp_vec = _voter_mag.get_best(curr_time, &best_index);
+			if (tmp_vec) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp[0];
+				msg.xmag = tmp_vec[0];
+				msg.ymag = tmp_vec[1];
+				msg.zmag = tmp_vec[2];
+			} else {
+
 			}
 
 			if (_baro_timestamp != sensor.baro_timestamp[0]) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
 				_baro_timestamp = sensor.baro_timestamp[0];
+			} else {
+				_baro_timestamp = NAN;
 			}
 
-			mavlink_highres_imu_t msg;
+			if (fields_updated) {
 
-			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0];
-			msg.yacc = sensor.accelerometer_m_s2[1];
-			msg.zacc = sensor.accelerometer_m_s2[2];
-			msg.xgyro = sensor.gyro_rad_s[0];
-			msg.ygyro = sensor.gyro_rad_s[1];
-			msg.zgyro = sensor.gyro_rad_s[2];
-			msg.xmag = sensor.magnetometer_ga[0];
-			msg.ymag = sensor.magnetometer_ga[1];
-			msg.zmag = sensor.magnetometer_ga[2];
-			msg.abs_pressure = sensor.baro_pres_mbar[0];
-			msg.diff_pressure = sensor.differential_pressure_pa[0];
-			msg.pressure_alt = sensor.baro_alt_meter[0];
-			msg.temperature = sensor.baro_temp_celcius[0];
-			msg.fields_updated = fields_updated;
+				msg.abs_pressure = sensor.baro_pres_mbar[0];
+				msg.diff_pressure = sensor.differential_pressure_pa[0];
+				msg.pressure_alt = sensor.baro_alt_meter[0];
+				msg.temperature = sensor.baro_temp_celcius[0];
+				msg.fields_updated = fields_updated;
 
-			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
+				mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
+			}
 		}
 	}
 };
