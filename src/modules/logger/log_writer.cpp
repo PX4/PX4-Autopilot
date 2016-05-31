@@ -250,7 +250,7 @@ bool LogWriter::write(void *ptr, size_t size, uint64_t dropout_start)
 	size_t dropout_size = 0;
 
 	if (dropout_start) {
-		dropout_size = sizeof(message_dropout_s);
+		dropout_size = sizeof(ulog_message_dropout_s);
 	}
 
 	if (size + dropout_size > available) {
@@ -260,7 +260,7 @@ bool LogWriter::write(void *ptr, size_t size, uint64_t dropout_start)
 
 	if (dropout_start) {
 		//write dropout msg
-		message_dropout_s dropout_msg;
+		ulog_message_dropout_s dropout_msg;
 		dropout_msg.duration = (uint16_t)(hrt_elapsed_time(&dropout_start) / 1000);
 		write_no_check(&dropout_msg, sizeof(dropout_msg));
 	}

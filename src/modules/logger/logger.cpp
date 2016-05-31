@@ -341,9 +341,9 @@ int Logger::add_topic(const orb_metadata *topic)
 
 	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
 
-	if (fields_len > sizeof(message_format_s::format)) {
+	if (fields_len > sizeof(ulog_message_format_s::format)) {
 		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			 sizeof(message_format_s::format));
+			 sizeof(ulog_message_format_s::format));
 
 		return -1;
 	}
@@ -537,18 +537,18 @@ void Logger::run()
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
 				 */
-				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size_no_padding;
+				size_t msg_size = sizeof(ulog_message_data_header_s) + sub.metadata->o_size_no_padding;
 				uint8_t buffer[msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub, instance, buffer + sizeof(message_data_header_s))) {
+					if (copy_if_updated_multi(sub, instance, buffer + sizeof(ulog_message_data_header_s))) {
 
-						message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
-						header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-						header->msg_size = static_cast<uint16_t>(msg_size - MSG_HEADER_LEN);
+						ulog_message_data_header_s *header = reinterpret_cast<ulog_message_data_header_s *>(buffer);
+						header->msg_type = static_cast<uint8_t>(ULogMessageType::DATA);
+						header->msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
 						header->msg_id = sub.msg_ids[instance];
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
@@ -571,7 +571,7 @@ void Logger::run()
 			//check for new mavlink log message
 			if (mavlink_log_sub.check_updated()) {
 				mavlink_log_sub.update();
-				message_logging_s log_msg;
+				ulog_message_logging_s log_msg;
 				log_msg.log_level = mavlink_log_sub.get().severity + '0';
 				log_msg.timestamp = mavlink_log_sub.get().timestamp;
 				const char *message = (const char *)mavlink_log_sub.get().text;
@@ -579,8 +579,8 @@ void Logger::run()
 
 				if (message_len > 0) {
 					strncpy(log_msg.message, message, sizeof(log_msg.message));
-					log_msg.msg_size = sizeof(log_msg) - sizeof(log_msg.message) - MSG_HEADER_LEN + message_len;
-					write(&log_msg, log_msg.msg_size + MSG_HEADER_LEN);
+					log_msg.msg_size = sizeof(log_msg) - sizeof(log_msg.message) - ULOG_MSG_HEADER_LEN + message_len;
+					write(&log_msg, log_msg.msg_size + ULOG_MSG_HEADER_LEN);
 				}
 			}
 
@@ -890,14 +890,14 @@ bool Logger::write_wait(void *ptr, size_t size)
 void Logger::write_formats()
 {
 	_writer.lock();
-	message_format_s msg;
+	ulog_message_format_s msg;
 	const orb_metadata **topics = orb_get_topics();
 
 	//write all known formats
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", topics[i]->o_name, topics[i]->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
-		msg.msg_size = msg_size - MSG_HEADER_LEN;
+		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 		write_wait(&msg, msg_size);
 	}
@@ -922,7 +922,7 @@ void Logger::write_all_add_logged_msg()
 
 void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance)
 {
-	message_add_logged_s msg;
+	ulog_message_add_logged_s msg;
 
 	msg.multi_id = instance;
 	subscription.msg_ids[instance] = _next_topic_id;
@@ -933,7 +933,7 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 	memcpy(msg.message_name, subscription.metadata->o_name, message_name_len);
 
 	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
-	msg.msg_size = msg_size - MSG_HEADER_LEN;
+	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 	write_wait(&msg, msg_size);
 
@@ -944,9 +944,9 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 void Logger::write_info(const char *name, const char *value)
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(message_info_header_s)];
-	message_info_header_s *msg = reinterpret_cast<message_info_header_s *>(buffer);
-	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
+	uint8_t buffer[sizeof(ulog_message_info_header_s)];
+	ulog_message_info_header_s *msg = reinterpret_cast<ulog_message_info_header_s *>(buffer);
+	msg->msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
@@ -958,7 +958,7 @@ void Logger::write_info(const char *name, const char *value)
 		memcpy(&buffer[msg_size], value, vlen);
 		msg_size += vlen;
 
-		msg->msg_size = msg_size - MSG_HEADER_LEN;
+		msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 		write_wait(buffer, msg_size);
 	}
@@ -968,9 +968,9 @@ void Logger::write_info(const char *name, const char *value)
 void Logger::write_info(const char *name, int32_t value)
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(message_info_header_s)];
-	message_info_header_s *msg = reinterpret_cast<message_info_header_s *>(buffer);
-	msg->msg_type = static_cast<uint8_t>(MessageType::INFO);
+	uint8_t buffer[sizeof(ulog_message_info_header_s)];
+	ulog_message_info_header_s *msg = reinterpret_cast<ulog_message_info_header_s *>(buffer);
+	msg->msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	/* construct format key (type and name) */
 	msg->key_len = snprintf(msg->key, sizeof(msg->key), "int32_t %s", name);
@@ -980,7 +980,7 @@ void Logger::write_info(const char *name, int32_t value)
 	memcpy(&buffer[msg_size], &value, sizeof(int32_t));
 	msg_size += sizeof(int32_t);
 
-	msg->msg_size = msg_size - MSG_HEADER_LEN;
+	msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 	write_wait(buffer, msg_size);
 
@@ -989,7 +989,7 @@ void Logger::write_info(const char *name, int32_t value)
 
 void Logger::write_header()
 {
-	message_file_header_s header;
+	ulog_file_header_s header;
 	header.magic[0] = 'U';
 	header.magic[1] = 'L';
 	header.magic[2] = 'o';
@@ -1025,10 +1025,10 @@ void Logger::write_version()
 void Logger::write_parameters()
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(message_parameter_header_s) + sizeof(param_value_u)];
-	message_parameter_header_s *msg = reinterpret_cast<message_parameter_header_s *>(buffer);
+	uint8_t buffer[sizeof(ulog_message_parameter_header_s) + sizeof(param_value_u)];
+	ulog_message_parameter_header_s *msg = reinterpret_cast<ulog_message_parameter_header_s *>(buffer);
 
-	msg->msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	msg->msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 	int param_idx = 0;
 	param_t param = 0;
 
@@ -1069,7 +1069,7 @@ void Logger::write_parameters()
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - MSG_HEADER_LEN;
+			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
@@ -1082,10 +1082,10 @@ void Logger::write_parameters()
 void Logger::write_changed_parameters()
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(message_parameter_header_s) + sizeof(param_value_u)];
-	message_parameter_header_s *msg = reinterpret_cast<message_parameter_header_s *>(buffer);
+	uint8_t buffer[sizeof(ulog_message_parameter_header_s) + sizeof(param_value_u)];
+	ulog_message_parameter_header_s *msg = reinterpret_cast<ulog_message_parameter_header_s *>(buffer);
 
-	msg->msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	msg->msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 	int param_idx = 0;
 	param_t param = 0;
 
@@ -1129,7 +1129,7 @@ void Logger::write_changed_parameters()
 			msg_size += value_size;
 
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
-			msg->msg_size = msg_size - MSG_HEADER_LEN;
+			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_wait(buffer, msg_size);
 		}
