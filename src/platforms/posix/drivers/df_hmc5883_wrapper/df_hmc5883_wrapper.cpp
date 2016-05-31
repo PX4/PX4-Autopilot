@@ -143,16 +143,6 @@ DfHmc9250Wrapper::~DfHmc9250Wrapper()
 
 int DfHmc9250Wrapper::start()
 {
-	// TODO: don't publish garbage here
-	mag_report mag_report = {};
-	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
-					 &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_mag_topic == nullptr) {
-		PX4_ERR("sensor_mag advert fail");
-		return -1;
-	}
-
 	/* Subscribe to param update topic. */
 	if (_param_update_sub < 0) {
 		_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -301,7 +291,10 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
-		if (_mag_topic != nullptr) {
+		if (_mag_topic == nullptr) {
+			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
+							 &_mag_orb_class_instance, ORB_PRIO_HIGH);
+		} else {
 			orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 		}
 
