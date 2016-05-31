@@ -319,6 +319,9 @@ __BEGIN_DECLS
 		{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0}, \
 		{GPIO_GPIO12_INPUT,      GPIO_GPIO12_OUTPUT,      0}, }
 
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 8192
 
 /****************************************************************************************************
  * Public Types
@@ -368,6 +371,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 
