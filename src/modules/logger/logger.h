@@ -107,6 +107,8 @@ public:
 
 	void status();
 
+	void set_arm_override(bool override) { _arm_override = override; }
+
 private:
 	static void run_trampoline(int argc, char *argv[]);
 
@@ -193,6 +195,8 @@ private:
 	 */
 	int add_topics_from_file(const char *fname);
 
+	void add_default_topics();
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -209,6 +213,8 @@ private:
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
 	bool						_was_armed = false;
+	bool						_arm_override;
+
 
 	// statistics
 	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)

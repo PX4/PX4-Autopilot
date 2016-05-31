@@ -120,6 +120,24 @@ int logger_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "on")) {
+		if (logger_ptr != nullptr) {
+			logger_ptr->set_arm_override(true);
+			return 0;
+		}
+
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "off")) {
+		if (logger_ptr != nullptr) {
+			logger_ptr->set_arm_override(false);
+			return 0;
+		}
+
+		return 1;
+	}
+
 	if (!strcmp(argv[1], "stop")) {
 		if (logger_ptr == nullptr) {
 			PX4_INFO("not running");
@@ -157,7 +175,7 @@ void Logger::usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO("usage: logger {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
 		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
@@ -295,6 +313,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp) :
+	_arm_override(false),
 	_log_on_start(log_on_start),
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
@@ -422,6 +441,28 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	return updated;
 }
 
+void Logger::add_default_topics()
+{
+	add_topic("sensor_gyro", 0);
+	add_topic("sensor_accel", 0);
+	add_topic("vehicle_rates_setpoint", 10);
+	add_topic("vehicle_attitude_setpoint", 10);
+	add_topic("vehicle_attitude", 0);
+	add_topic("actuator_outputs", 50);
+	add_topic("battery_status", 100);
+	add_topic("vehicle_command", 100);
+	add_topic("actuator_controls", 10);
+	add_topic("vehicle_local_position_setpoint", 200);
+	add_topic("rc_channels", 20);
+	add_topic("commander_state", 100);
+	add_topic("vehicle_local_position", 200);
+	add_topic("vehicle_global_position", 200);
+	add_topic("system_power", 100);
+	add_topic("servorail_status", 200);
+	add_topic("mc_att_ctrl_status", 50);
+	add_topic("vehicle_status", 200);
+}
+
 int Logger::add_topics_from_file(const char *fname)
 {
 	FILE		*fp;
@@ -457,6 +498,7 @@ int Logger::add_topics_from_file(const char *fname)
 		// default interval to zero
 		interval = 0;
 		int nfields = sscanf(line, "%s, %u", topic_name, &interval);
+
 		if (nfields > 0) {
 			/* add topic with specified interval */
 			add_topic(topic_name, interval);
@@ -494,7 +536,13 @@ void Logger::run()
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
 
-	add_topics_from_file("/etc/logging/default_topics.txt");
+	int ntopics = add_topics_from_file("/fs/microsd/etc/logging/logger_topics.txt");
+	warnx("logging %d topics from logger_topics.txt", ntopics);
+
+	if (ntopics < 1) {
+		warnx("logging default topics");
+		add_default_topics();
+	}
 
 	//all topics added. Get required message buffer size
 	int max_msg_size = 0;
@@ -559,7 +607,8 @@ void Logger::run()
 		if (vehicle_status_sub.check_updated()) {
 			vehicle_status_sub.update();
 			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
+				     _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;
