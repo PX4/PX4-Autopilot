@@ -426,7 +426,7 @@ int Logger::add_topics_from_file(const char *fname)
 {
 	FILE		*fp;
 	char		line[80];
-	char		topic_name[40];
+	char		topic_name[80];
 	unsigned	interval;
 	int			ntopics = 0;
 
@@ -450,24 +450,17 @@ int Logger::add_topics_from_file(const char *fname)
 		}
 
 		/* skip comment lines */
-		if ((strlen(line) < 2) || (line[1] == '#')) {
+		if ((strlen(line) < 2) || (line[0] == '#')) {
 			continue;
 		}
 
-		int nfields = sscanf(line, "%s, %u", &topic_name[0], &interval);
-		switch (nfields) {
-		case 1:
-			/* add topic with default interval */
-			add_topic(&topic_name[0], 0);
-			ntopics++;
-			break;
-		case 2:
+		// default interval to zero
+		interval = 0;
+		int nfields = sscanf(line, "%s, %u", topic_name, &interval);
+		if (nfields > 0) {
 			/* add topic with specified interval */
-			add_topic(&topic_name[0], interval);
+			add_topic(topic_name, interval);
 			ntopics++;
-			break;
-		default:
-			break;
 		}
 	}
 
