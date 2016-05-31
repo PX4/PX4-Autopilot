@@ -687,9 +687,16 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.z = accel_val_filt(2);
 
 	if (_mag_enabled) {
-		mag_report.x = (data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale;
-		mag_report.y = (data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale;
-		mag_report.z = (data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale;
+
+		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
+					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
+					(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+
+		mag_val = _rotation_matrix * mag_val;
+
+		mag_report.x = mag_val(0);
+		mag_report.y = mag_val(1);
+		mag_report.z = mag_val(2);
 	}
 
 	gyro_report.x_integral = gyro_val_integ(0);
