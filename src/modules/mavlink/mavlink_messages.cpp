@@ -778,16 +778,18 @@ protected:
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
 				_baro_timestamp = sensor.baro_timestamp[0];
+				msg.abs_pressure = sensor.baro_pres_mbar[0];
+				msg.pressure_alt = sensor.baro_alt_meter[0];
+				msg.temperature = sensor.baro_temp_celcius[0];
 			} else {
-				_baro_timestamp = NAN;
+				msg.abs_pressure = NAN;
+				msg.pressure_alt = NAN;
+				msg.temperature = NAN;
 			}
 
 			if (fields_updated) {
 
-				msg.abs_pressure = sensor.baro_pres_mbar[0];
 				msg.diff_pressure = sensor.differential_pressure_pa[0];
-				msg.pressure_alt = sensor.baro_alt_meter[0];
-				msg.temperature = sensor.baro_temp_celcius[0];
 				msg.fields_updated = fields_updated;
 
 				mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
