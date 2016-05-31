@@ -835,9 +835,9 @@ info()
 void
 usage()
 {
-	PX4_WARN("Usage: df_mpu9250_wrapper 'start', 'start_without_mag', 'info', 'stop'");
-	PX4_WARN("options:");
-	PX4_WARN("    -R rotation");
+	PX4_INFO("Usage: df_mpu9250_wrapper 'start', 'start_without_mag', 'info', 'stop'");
+	PX4_INFO("options:");
+	PX4_INFO("    -R rotation");
 }
 
 } // namespace df_mpu9250_wrapper
