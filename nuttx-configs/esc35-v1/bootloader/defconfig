@@ -244,6 +244,7 @@ CONFIG_ARCH_CHIP_STM32F303CC=y
 # CONFIG_ARCH_CHIP_STM32F373VC is not set
 # CONFIG_ARCH_CHIP_STM32F401RE is not set
 # CONFIG_ARCH_CHIP_STM32F411RE is not set
+# CONFIG_ARCH_CHIP_STM32F411VE is not set
 # CONFIG_ARCH_CHIP_STM32F405RG is not set
 # CONFIG_ARCH_CHIP_STM32F405VG is not set
 # CONFIG_ARCH_CHIP_STM32F405ZG is not set
@@ -506,16 +507,11 @@ CONFIG_ARCH_BOARD="esc35-v1"
 #
 # Common Board Options
 #
-CONFIG_ARCH_HAVE_LEDS=y
-# CONFIG_ARCH_LEDS is not set
-# CONFIG_ARCH_BUTTONS is not set
 
 #
 # Board-Specific Options
 #
 # CONFIG_LIB_BOARDCTL is not set
-CONFIG_BOARD_HAS_PROBES=y
-# CONFIG_BOARD_USE_PROBES is not set
 
 #
 # RTOS Features
@@ -630,7 +626,12 @@ CONFIG_ARCH_HAVE_I2CRESET=y
 # CONFIG_BCH is not set
 # CONFIG_INPUT is not set
 # CONFIG_IOEXPANDER is not set
+
+#
+# LCD Driver Support
+#
 # CONFIG_LCD is not set
+# CONFIG_SLCD is not set
 
 #
 # LED Support
@@ -869,6 +870,7 @@ CONFIG_EXAMPLES_NULL=y
 # Network Utilities
 #
 # CONFIG_NETUTILS_CODECS is not set
+# CONFIG_NETUTILS_ESP8266 is not set
 # CONFIG_NETUTILS_FTPC is not set
 # CONFIG_NETUTILS_JSON is not set
 # CONFIG_NETUTILS_SMTP is not set
