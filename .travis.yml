@@ -7,11 +7,15 @@ matrix:
   fast_finish: true
   include:
     - os: linux
-      sudo: false
+      sudo: required
       env: GCC_VER=4.8
-    - os: linux
-      sudo: false
-      env: GCC_VER=4.9
+      services:
+        - docker
+    #- os: linux
+    #  sudo: required
+    #  env: GCC_VER=4.9
+    #  services:
+    #    - docker
     - os: osx
       osx_image: xcode7
       sudo: true
@@ -22,46 +26,15 @@ cache:
 
 addons:
   apt:
-    sources:
-    - kubuntu-backports
-    - ubuntu-toolchain-r-test
-    - george-edison55-precise-backports
     packages:
-    - build-essential
-    - ccache
-    - clang-3.5
-    - cmake
-    - g++-4.9
-    - gcc-4.9
-    - genromfs
-    - libc6-i386
-    - libncurses5-dev
-    - ninja-build
-    - python-argparse
-    - python-empy
     - s3cmd
-    - texinfo
-    - zlib1g-dev
 
 before_install:
   - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         pushd .
-      && cd ~ && mkdir gcc && cd gcc
-      && if [ "$GCC_VER" = "4.8" ]; then GCC_URL="https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2" ; fi
-      && if [ "$GCC_VER" = "4.9" ]; then GCC_URL="https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2" ; fi
-      && wget -O gcc.tar.bz2 ${GCC_URL}
-      && tar -jxf gcc.tar.bz2 --strip 1
-      && exportline="export PATH=$HOME/gcc/bin:\$PATH"
-      && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
-      && . ~/.profile
-      && popd
+         docker pull danielagar/docker-px4-dev
       && git clone git://github.com/PX4/CI-Tools.git
       && ./CI-Tools/s3cmd-configure
-      && mkdir -p ~/bin
-      && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
-      && astyle --version
-      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
@@ -73,24 +46,8 @@ before_install:
       ;
     fi
 
-before_script:
-# setup ccache
-  - mkdir -p ~/bin
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-size
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-objcopy
-  - ln -s /usr/bin/ccache ~/bin/clang++
-  - ln -s /usr/bin/ccache ~/bin/clang++-3.4
-  - ln -s /usr/bin/ccache ~/bin/clang++-3.5
-  - ln -s /usr/bin/ccache ~/bin/clang
-  - ln -s /usr/bin/ccache ~/bin/clang-3.4
-  - ln -s /usr/bin/ccache ~/bin/clang-3.5
-  - export PATH=~/bin:$PATH
-
 env:
   global:
-    - NINJA_BUILD=1
 # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
@@ -100,7 +57,7 @@ env:
 script:
   - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      arm-none-eabi-gcc --version && make check VECTORCONTROL=1;
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make check";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
