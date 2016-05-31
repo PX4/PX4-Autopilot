@@ -422,6 +422,59 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	return updated;
 }
 
+int Logger::add_topics_from_file(const char *fname)
+{
+	FILE		*fp;
+	char		line[80];
+	char		topic_name[40];
+	unsigned	interval;
+	int			ntopics = 0;
+
+	/* open the topic list file */
+	fp = fopen(fname, "r");
+
+	if (fp == NULL) {
+		warnx("file not found");
+		return -1;
+	}
+
+	/* call add_topic for each topic line in the file */
+	// format is TOPIC_NAME, [interval]
+	for (;;) {
+
+		/* get a line, bail on error/EOF */
+		line[0] = '\0';
+
+		if (fgets(line, sizeof(line), fp) == NULL) {
+			break;
+		}
+
+		/* skip comment lines */
+		if ((strlen(line) < 2) || (line[1] == '#')) {
+			continue;
+		}
+
+		int nfields = sscanf(line, "%s, %u", &topic_name[0], &interval);
+		switch (nfields) {
+		case 1:
+			/* add topic with default interval */
+			add_topic(&topic_name[0], 0);
+			ntopics++;
+			break;
+		case 2:
+			/* add topic with specified interval */
+			add_topic(&topic_name[0], interval);
+			ntopics++;
+			break;
+		default:
+			break;
+		}
+	}
+
+	fclose(fp);
+	return ntopics;
+}
+
 void Logger::run()
 {
 #ifdef DBGPRINT
@@ -448,28 +501,7 @@ void Logger::run()
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
 
-
-	add_topic("sensor_gyro", 0);
-	add_topic("sensor_accel", 0);
-	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("vehicle_attitude_setpoint", 10);
-	add_topic("vehicle_attitude", 0);
-	add_topic("actuator_outputs", 50);
-	add_topic("battery_status", 100);
-	add_topic("vehicle_command", 100);
-	add_topic("actuator_controls", 10);
-	add_topic("vehicle_local_position_setpoint", 200);
-	add_topic("rc_channels", 20);
-//	add_topic("ekf2_innovations", 20);
-	add_topic("commander_state", 100);
-	add_topic("vehicle_local_position", 200);
-	add_topic("vehicle_global_position", 200);
-	add_topic("system_power", 100);
-	add_topic("servorail_status", 200);
-	add_topic("mc_att_ctrl_status", 50);
-//	add_topic("control_state");
-//	add_topic("estimator_status");
-	add_topic("vehicle_status", 200);
+	add_topics_from_file("/etc/logging/default_topics.txt");
 
 	//all topics added. Get required message buffer size
 	int max_msg_size = 0;

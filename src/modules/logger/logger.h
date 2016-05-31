@@ -186,6 +186,13 @@ private:
 	 */
 	bool get_log_time(struct tm *tt, bool boot_time = false);
 
+	/**
+	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
+	 * @param fname name of file
+	 * @return number of topics added
+	 */
+	int add_topics_from_file(const char *fname);
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
