@@ -282,9 +282,9 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	mag_report.z_raw = NAN;
 
 
-	math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
-				(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
-				(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+	math::Vector<3> mag_val((data.field_x_ga - _mag_calibration.x_offset) * _mag_calibration.x_scale,
+				(data.field_y_ga - _mag_calibration.y_offset) * _mag_calibration.y_scale,
+				(data.field_z_ga - _mag_calibration.z_offset) * _mag_calibration.z_scale);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
