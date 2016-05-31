@@ -100,6 +100,8 @@ public:
 
 	void status();
 
+	bool _arm_override;
+
 private:
 	static void run_trampoline(int argc, char *argv[]);
 
@@ -178,6 +180,8 @@ private:
 	 * @return number of topics added
 	 */
 	int add_topics_from_file(const char *fname);
+
+	void add_default_topics();
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
