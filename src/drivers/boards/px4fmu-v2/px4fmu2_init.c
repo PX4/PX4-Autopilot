@@ -58,7 +58,6 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -111,73 +110,9 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
-#if defined(CONFIG_FAT_DMAMEMORY)
-# if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-#  error microSD DMA support requires CONFIG_GRAN
-# endif
-
-static GRAN_HANDLE dma_allocator;
-
-/*
- * The DMA heap size constrains the total number of things that can be
- * ready to do DMA at a time.
- *
- * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file.
- *
- * We use a fundamental alignment / granule size of 64B; this is sufficient
- * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
- */
-static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
-static perf_counter_t g_dma_perf;
-
-static void
-dma_alloc_init(void)
-{
-	dma_allocator = gran_initialize(g_dma_heap,
-					sizeof(g_dma_heap),
-					7,  /* 128B granule - must be > alignment (XXX bug?) */
-					6); /* 64B alignment */
-
-	if (dma_allocator == NULL) {
-		message("DMA alloc FAILED");
-
-	} else {
-		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
-	}
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/*
- * DMA-aware allocator stubs for the FAT filesystem.
- */
-
-__EXPORT void *fat_dma_alloc(size_t size);
-__EXPORT void fat_dma_free(FAR void *memory, size_t size);
-
-void *
-fat_dma_alloc(size_t size)
-{
-	perf_count(g_dma_perf);
-	return gran_alloc(dma_allocator, size);
-}
-
-void
-fat_dma_free(FAR void *memory, size_t size)
-{
-	gran_free(dma_allocator, memory, size);
-}
-
-#else
-
-# define dma_alloc_init()
-
-#endif
-
 /************************************************************************************
  * Name: board_peripheral_reset
  *
@@ -269,7 +204,10 @@ __EXPORT int nsh_archinitialize(void)
 	hrt_init();
 
 	/* configure the DMA allocator */
-	dma_alloc_init();
+
+	if (board_dma_alloc_init() < 0) {
+		message("DMA alloc FAILED");
+	}
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION

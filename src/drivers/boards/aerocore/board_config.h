@@ -235,6 +235,8 @@ extern void stm32_spiinitialize(void);
 int nsh_archinitialize(void);
 #endif
 
+#include "../common/board_common.h"
+
 #endif /* __ASSEMBLY__ */
 
 __END_DECLS
