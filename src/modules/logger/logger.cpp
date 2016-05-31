@@ -116,6 +116,7 @@ int logger_main(int argc, char *argv[])
 			logger_ptr->_arm_override = true;
 			return 0;
 		}
+
 		return 1;
 	}
 
@@ -124,6 +125,7 @@ int logger_main(int argc, char *argv[])
 			logger_ptr->_arm_override = false;
 			return 0;
 		}
+
 		return 1;
 	}
 
@@ -563,7 +565,7 @@ void Logger::run()
 			vehicle_status_sub.update();
 			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
-					 _arm_override;
+				     _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;
