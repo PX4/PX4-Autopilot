@@ -463,7 +463,9 @@ bool GPS::injectData(uint8_t *data, size_t len)
 		}
 	}
 
-	return ::write(_serial_fd, data, len) == len;
+	size_t written = ::write(_serial_fd, data, len);
+	::fsync(_serial_fd);
+	return written == len;
 }
 
 int GPS::setBaudrate(unsigned baud)
