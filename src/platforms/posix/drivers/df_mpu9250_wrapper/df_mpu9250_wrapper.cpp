@@ -213,7 +213,7 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled) :
 	_gyro_calibration.y_offset = 0.0f;
 	_gyro_calibration.z_offset = 0.0f;
 
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		_mag_calibration.x_scale = 1.0f;
 		_mag_calibration.y_scale = 1.0f;
 		_mag_calibration.z_scale = 1.0f;
@@ -231,7 +231,7 @@ DfMpu9250Wrapper::~DfMpu9250Wrapper()
 	perf_free(_fifo_corruption_counter);
 	perf_free(_gyro_range_hit_counter);
 	perf_free(_accel_range_hit_counter);
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		perf_free(_mag_fifo_overflow_counter);
 	}
 	perf_free(_publish_perf);
@@ -313,7 +313,7 @@ void DfMpu9250Wrapper::info()
 	perf_print_counter(_fifo_corruption_counter);
 	perf_print_counter(_gyro_range_hit_counter);
 	perf_print_counter(_accel_range_hit_counter);
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		perf_print_counter(_mag_fifo_overflow_counter);
 	}
 	perf_print_counter(_publish_perf);
@@ -472,7 +472,7 @@ void DfMpu9250Wrapper::_update_accel_calibration()
 
 void DfMpu9250Wrapper::_update_mag_calibration()
 {
-	if (_mag_enabled == false) {
+	if (!_mag_enabled) {
 		return;
 	}
 
@@ -612,7 +612,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	perf_set_count(_fifo_corruption_counter, data.fifo_overflow_counter);
 	perf_set_count(_gyro_range_hit_counter, data.gyro_range_hit_counter);
 	perf_set_count(_accel_range_hit_counter, data.accel_range_hit_counter);
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		perf_set_count(_mag_fifo_overflow_counter, data.mag_fifo_overflow_counter);
 	}
 
@@ -623,7 +623,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	mag_report mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		mag_report.timestamp = accel_report.timestamp;
 	}
 
@@ -636,7 +636,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
 
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		mag_report.scaling = -1.0f;
 		mag_report.range_ga = -1.0f;
 		mag_report.device_id = m_id.dev_id;
@@ -651,7 +651,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y_raw = NAN;
 	accel_report.z_raw = NAN;
 
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		mag_report.x_raw = NAN;
 		mag_report.y_raw = NAN;
 		mag_report.z_raw = NAN;
@@ -673,7 +673,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y = accel_val_filt(1);
 	accel_report.z = accel_val_filt(2);
 
-	if (_mag_enabled == true) {
+	if (_mag_enabled) {
 		mag_report.x = (data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale;
 		mag_report.y = (data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale;
 		mag_report.z = (data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale;
