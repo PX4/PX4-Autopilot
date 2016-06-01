@@ -82,7 +82,7 @@ static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
-				PX4_WARN("  arg%d = '%s'\n", i, arg[i]);
+				PX4_DEBUG("  arg%d = '%s'\n", i, arg[i]);
 				++i;
 			}
 
@@ -128,10 +128,10 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 
 			// If we have a command to run
 			if (appargs.size() > 0) {
-				PX4_WARN("Processing command: %s", appargs[0].c_str());
+				PX4_DEBUG("Processing command: %s", appargs[0].c_str());
 
 				for (int ai = 1; ai < (int)appargs.size(); ai++) {
-					PX4_WARN("   > arg: %s", appargs[ai].c_str());
+					PX4_DEBUG("   > arg: %s", appargs[ai].c_str());
 				}
 
 				run_cmd(apps, appargs);
