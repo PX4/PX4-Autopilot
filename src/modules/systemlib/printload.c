@@ -218,14 +218,14 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 				uint16_t dma_total;
 				uint16_t dma_used;
-				uint16_t dma_peek_used;
+				uint16_t dma_peak_used;
 
-				if (board_get_dma_usage(&dma_total, &dma_used, &dma_peek_used) >= 0) {
-					dprintf(fd, "%sDMA Memory: %d total, %d used %d peek\n",
+				if (board_get_dma_usage(&dma_total, &dma_used, &dma_peak_used) >= 0) {
+					dprintf(fd, "%sDMA Memory: %d total, %d used %d peak\n",
 						clear_line,
 						dma_total,
 						dma_used,
-						dma_peek_used);
+						dma_peak_used);
 				}
 
 #endif
