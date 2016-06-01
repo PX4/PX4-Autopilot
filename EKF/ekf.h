@@ -127,14 +127,45 @@ public:
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 
-	// return the amount the local vertical position changed in the last height reset and the time of the reset
-	void get_vert_pos_reset(float *delta, uint64_t *time_us) {*delta = _vert_pos_reset_delta; *time_us = _time_vert_pos_reset;}
+	// return the amount the local vertical position changed in the last reset and the number of reset events
+	void get_posD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.posD_change; *counter = _state_reset_status.posD_counter;}
+
+	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	void get_velD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.velD_change; *counter = _state_reset_status.velD_counter;}
+
+	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	void get_posNE_reset(Vector2f *delta, uint8_t *counter) {*delta = _state_reset_status.posNE_change; *counter = _state_reset_status.posNE_counter;}
+
+	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	void get_velNE_reset(Vector2f *delta, uint8_t *counter) {*delta = _state_reset_status.velNE_change; *counter = _state_reset_status.velNE_counter;}
+
+	// return the amount the quaternion has changed in the last reset and the number of reset events
+	void get_quat_reset(Quaternion *delta, uint8_t *counter)
+	{
+		*delta = _state_reset_status.quat_change;
+		*counter = _state_reset_status.quat_counter;
+	}
 
 private:
 
 	static const uint8_t _k_num_states = 24;
 	static const float _k_earth_rate;
 	static const float _gravity_mss;
+
+	// reset event monitoring
+	// structure containing velocity, position, height and yaw reset information
+	struct {
+		uint8_t velNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t velD_counter;	// number of vertical velocity reset events (allow to wrap if count exceeds 255)
+		uint8_t posNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t posD_counter;	// number of vertical position reset events (allow to wrap if count exceeds 255)
+		uint8_t quat_counter;	// number of quaternion reset events (allow to wrap if count exceeds 255)
+		Vector2f velNE_change;  // North East velocity change due to last reset (m)
+		float velD_change;	// Down velocity change due to last reset (m/s)
+		Vector2f posNE_change;	// North, East position change due to last reset (m)
+		float posD_change;	// Down position change due to last reset (m)
+		Quaternion quat_change;	// quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
+	} _state_reset_status;
 
 	float _dt_ekf_avg;		// average update rate of the ekf
 
@@ -235,10 +266,6 @@ private:
 	int _primary_hgt_source;	// priary source of height data set at initialisation
 
 	float _baro_hgt_offset;		// baro height reading at the local NED origin (m)
-	float _vert_pos_reset_delta;	// increase in vertical position state at the last reset(m)
-	uint64_t _time_vert_pos_reset;	// last system time in usec that the vertical position state was reset
-	float _vert_vel_reset_delta;	// increase in vertical position velocity at the last reset(m)
-	uint64_t _time_vert_vel_reset;	// last system time in usec that the vertical velocity state was reset
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)

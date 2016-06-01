@@ -388,6 +388,25 @@ union fault_status_u {
 
 };
 
+// define structure used to communicate innovation test failures
+union innovation_fault_status_u {
+	struct {
+		bool reject_vel_NED: 1;		// 0 - true if velocity observations have been rejected
+		bool reject_pos_NE: 1;		// 1 - true if horizontal position observations have been rejected
+		bool reject_pos_D: 1;		// 2 - true if true if vertical position observations have been rejected
+		bool reject_mag_x: 1;		// 3 - true if the X magnetometer observation has been rejected
+		bool reject_mag_y: 1;		// 4 - true if the Y magnetometer observation has been rejected
+		bool reject_mag_z: 1;		// 5 - true if the Z magnetometer observation has been rejected
+		bool reject_yaw: 1;		// 6 - true if the yaw observation has been rejected
+		bool reject_airspeed: 1;	// 7 - true if the airspeed observation has been rejected
+		bool reject_hagl: 1;		// 8 - true if the height above ground observation has been rejected
+		bool reject_optflow_X: 1;	// 9 - true if the X optical flow observation has been rejected
+		bool reject_optflow_Y: 1;	// 10 - true if the Y optical flow observation has been rejected
+	} flags;
+	uint16_t value;
+
+};
+
 // publish the status of various GPS quality checks
 union gps_check_fail_status_u {
 	struct {

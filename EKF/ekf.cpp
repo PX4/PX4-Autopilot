@@ -107,10 +107,6 @@ Ekf::Ekf():
 	_gps_hgt_faulty(false),
 	_rng_hgt_faulty(false),
 	_baro_hgt_offset(0.0f),
-	_vert_pos_reset_delta(0.0f),
-	_time_vert_pos_reset(0),
-	_vert_vel_reset_delta(0.0f),
-	_time_vert_vel_reset(0),
 	_time_bad_vert_accel(0)
 {
 	_state = {};
@@ -132,6 +128,7 @@ Ekf::Ekf():
 	_flow_gyro_bias = {};
 	_imu_del_ang_of = {};
 	_gps_check_fail_status.value = 0;
+	_state_reset_status = {};
 }
 
 Ekf::~Ekf()
@@ -170,7 +167,6 @@ bool Ekf::init(uint64_t timestamp)
 	_imu_updated = false;
 	_NED_origin_initialised = false;
 	_gps_speed_valid = false;
-	_mag_healthy = false;
 
 	_filter_initialised = false;
 	_terrain_initialised = false;
@@ -179,6 +175,9 @@ bool Ekf::init(uint64_t timestamp)
 	_control_status_prev.value = 0;
 
 	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
+
+	_fault_status.value = 0;
+	_innov_check_fail_status.value = 0;
 
 	return ret;
 }
@@ -567,6 +566,9 @@ bool Ekf::initialiseFilter(void)
 		_time_last_vel_fuse = _time_last_imu;
 		_time_last_hagl_fuse = _time_last_imu;
 		_time_last_of_fuse = _time_last_imu;
+
+		// reset the output predictor state history to match the EKF initial values
+		alignOutputFilter();
 
 		return true;
 	}

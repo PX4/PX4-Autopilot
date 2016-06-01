@@ -138,11 +138,11 @@ void Ekf::fuseAirspeed()
 
 		// If the innovation consistency check fails then don't fuse the sample and indicate bad airspeed health
 		if (_tas_test_ratio > 1.0f) {
-			_airspeed_healthy = false;
+			_innov_check_fail_status.flags.reject_airspeed = true;
 			return;
 		}
 		else {
-			_airspeed_healthy = true;
+			_innov_check_fail_status.flags.reject_airspeed = false;
 		}
 
 		// Airspeed measurement sample has passed check so record it

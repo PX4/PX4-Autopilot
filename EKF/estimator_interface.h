@@ -217,8 +217,26 @@ public:
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
 
-	// return the amount the local vertical position changed in the last height reset and the time of the reset
-	virtual void get_vert_pos_reset(float *delta, uint64_t *time_us) = 0;
+	// return the amount the local vertical position changed in the last reset and the number of reset events
+	virtual void get_posD_reset(float *delta, uint8_t *counter) = 0;
+
+	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	virtual void get_velD_reset(float *delta, uint8_t *counter) = 0;
+
+	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	virtual void get_posNE_reset(Vector2f *delta, uint8_t *counter) = 0;
+
+	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	virtual void get_velNE_reset(Vector2f *delta, uint8_t *counter) = 0;
+
+	// return the amount the quaternion has changed in the last reset and the number of reset events
+	virtual void get_quat_reset(Quaternion *delta, uint8_t *counter) = 0;
+
+	// get EKF innovation consistency check status
+	virtual void get_innovation_test_status(uint16_t *val)
+	{
+		*val = _innov_check_fail_status.value;
+	}
 
 protected:
 
@@ -259,12 +277,12 @@ protected:
 	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
 	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians)
 
-	bool _mag_healthy;              // computed by mag innovation test
-	bool _airspeed_healthy;			// computed by airspeed innovation test
+	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio
 	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
-	float _tas_test_ratio;			// tas innovation consistency check ratio
+	float _tas_test_ratio;		// tas innovation consistency check ratio
+	innovation_fault_status_u _innov_check_fail_status;
 
 	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer;

@@ -51,6 +51,10 @@
 // gps measurement then use for velocity initialisation
 bool Ekf::resetVelocity()
 {
+	// used to calculate the velocity change due to the reset
+	Vector3f vel_before_reset = _state.vel;
+
+	// reset EKF states
 	if (_control_status.flags.gps) {
 		// if we have a valid GPS measurement use it to initialise velocity states
 		gpsSample gps_newest = _gps_buffer.get_newest();
@@ -69,12 +73,35 @@ bool Ekf::resetVelocity()
 	} else {
 		return false;
 	}
+
+	// calculate the change in velocity and apply to the output predictor state history
+	Vector3f velocity_change = _state.vel - vel_before_reset;
+	outputSample output_states;
+	unsigned max_index = _output_buffer.get_length() - 1;
+	for (unsigned index=0; index <= max_index; index++) {
+		output_states = _output_buffer.get_from_index(index);
+		output_states.vel += velocity_change;
+		_output_buffer.push_to_index(index,output_states);
+	}
+
+	// capture the reset event
+	_state_reset_status.velNE_change(0) = velocity_change(0);
+	_state_reset_status.velNE_change(1) = velocity_change(1);
+	_state_reset_status.velD_change = velocity_change(2);
+	_state_reset_status.velNE_counter++;
+	_state_reset_status.velD_counter++;
+
 }
 
 // Reset position states. If we have a recent and valid
 // gps measurement then use for position initialisation
 bool Ekf::resetPosition()
 {
+	// used to calculate the position change due to the reset
+	Vector2f posNE_before_reset;
+	posNE_before_reset(0) = _state.pos(0);
+	posNE_before_reset(1) = _state.pos(1);
+
 	if (_control_status.flags.gps) {
 		// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
 		gpsSample gps_newest = _gps_buffer.get_newest();
@@ -119,6 +146,24 @@ bool Ekf::resetPosition()
 	} else {
 		return false;
 	}
+
+	// calculate the change in position and apply to the output predictor state history
+	Vector2f posNE_change;
+	posNE_change(0) = _state.pos(0) - posNE_before_reset(0);
+	posNE_change(1) = _state.pos(1) - posNE_before_reset(1);
+	outputSample output_states;
+	unsigned max_index = _output_buffer.get_length() - 1;
+	for (unsigned index=0; index <= max_index; index++) {
+		output_states = _output_buffer.get_from_index(index);
+		output_states.pos(0) += posNE_change(0);
+		output_states.pos(1) += posNE_change(1);
+		_output_buffer.push_to_index(index,output_states);
+	}
+
+	// capture the reset event
+	_state_reset_status.posNE_change = posNE_change;
+	_state_reset_status.posNE_counter++;
+
 }
 
 // Reset height state using the last height measurement
@@ -244,18 +289,18 @@ void Ekf::resetHeight()
 
 	// store the reset amount and time to be published
 	if (vert_pos_reset) {
-		_vert_pos_reset_delta = _state.pos(2) - old_vert_pos;
-		_time_vert_pos_reset = _time_last_imu;
+		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
+		_state_reset_status.posD_counter++;
 	}
 
 	if (vert_vel_reset) {
-		_vert_vel_reset_delta = _state.vel(2) - old_vert_vel;
-		_time_vert_vel_reset = _time_last_imu;
+		_state_reset_status.velD_change = _state.vel(2) - old_vert_vel;
+		_state_reset_status.velD_counter++;
 	}
 
 	// add the reset amount to the output observer states
-	_output_new.pos(2) += _vert_pos_reset_delta;
-	_output_new.vel(2) += _vert_vel_reset_delta;
+	_output_new.pos(2) += _state_reset_status.posD_change;
+	_output_new.vel(2) += _state_reset_status.velD_change;
 
 	// add the reset amount to the output observer buffered data
 	outputSample output_states;
@@ -264,11 +309,11 @@ void Ekf::resetHeight()
 		output_states = _output_buffer.get_from_index(i);
 
 		if (vert_pos_reset) {
-			output_states.pos(2) += _vert_pos_reset_delta;
+			output_states.pos(2) += _state_reset_status.posD_change;
 		}
 
 		if (vert_vel_reset) {
-			output_states.vel(2) += _vert_vel_reset_delta;
+			output_states.vel(2) += _state_reset_status.velD_change;
 		}
 
 		_output_buffer.push_to_index(i,output_states);
@@ -305,6 +350,8 @@ void Ekf::alignOutputFilter()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	Quaternion quat_before_reset = _state.quat_nominal;
 
 	// calculate the variance for the rotation estimate expressed as a rotation vector
 	// this will be used later to reset the quaternion state covariances
@@ -436,6 +483,21 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	for (uint8_t index = 16; index <= 21; index ++) {
 		P[index][index] = sq(_params.mag_noise);
 	}
+
+	// calculate the amount that the quaternion has changed by
+	_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+
+	// add the reset amount to the output observer buffered data
+	outputSample output_states;
+	unsigned output_length = _output_buffer.get_length();
+	for (unsigned i=0; i < output_length; i++) {
+		output_states = _output_buffer.get_from_index(i);
+		output_states.quat_nominal *= _state_reset_status.quat_change;
+		_output_buffer.push_to_index(i,output_states);
+	}
+
+	// capture the reset event
+	_state_reset_status.quat_counter++;
 
 	return true;
 }

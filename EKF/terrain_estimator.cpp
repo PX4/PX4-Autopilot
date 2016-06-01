@@ -115,10 +115,14 @@ void Ekf::fuseHagl()
 			_terrain_vpos -= gain * _hagl_innov;
 			// correct the variance
 			_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
-			// record last successful fusion time
+			// record last successful fusion event
 			_time_last_hagl_fuse = _time_last_imu;
-		}
+			_innov_check_fail_status.flags.reject_hagl = false;
 
+		} else {
+			_innov_check_fail_status.flags.reject_hagl = true;
+
+		}
 
 	} else {
 		return;
