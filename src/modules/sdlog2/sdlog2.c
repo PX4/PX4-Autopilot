@@ -1110,7 +1110,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	/* initialize log buffer with specified size */
-	PX4_WARN("log buffer size: %i bytes", log_buffer_size);
+	PX4_DEBUG("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
 		PX4_WARN("can't allocate log buffer, exiting");
