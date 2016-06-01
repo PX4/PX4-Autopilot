@@ -59,8 +59,8 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <board_config.h>
-//#include <mathlib/math/filter/LowPassFilter2p.hpp>
-//#include <lib/conversion/rotation.h>
+
+#include <lib/conversion/rotation.h>
 
 #include <hmc5883/HMC5883.hpp>
 #include <DevMgr.hpp>
@@ -74,7 +74,7 @@ using namespace DriverFramework;
 class DfHmc9250Wrapper : public HMC5883
 {
 public:
-	DfHmc9250Wrapper(/*enum Rotation rotation*/);
+	DfHmc9250Wrapper(enum Rotation rotation);
 	~DfHmc9250Wrapper();
 
 
@@ -97,8 +97,6 @@ private:
 
 	void _update_mag_calibration();
 
-	//enum Rotation		_rotation;
-
 	orb_advert_t		_mag_topic;
 
 	int			_param_update_sub;
@@ -112,20 +110,21 @@ private:
 		float z_scale;
 	} _mag_calibration;
 
+	math::Matrix<3, 3>      _rotation_matrix;
+
 	int			_mag_orb_class_instance;
 
 	perf_counter_t		_mag_sample_perf;
 
 };
 
-DfHmc9250Wrapper::DfHmc9250Wrapper(/*enum Rotation rotation*/) :
+DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation) :
 	HMC5883(MAG_DEVICE_PATH),
 	_mag_topic(nullptr),
 	_param_update_sub(-1),
 	_mag_calibration{},
 	_mag_orb_class_instance(-1),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "df_mag_read"))
-	/*_rotation(rotation)*/
 {
 	// Set sane default calibration values
 	_mag_calibration.x_scale = 1.0f;
@@ -134,6 +133,9 @@ DfHmc9250Wrapper::DfHmc9250Wrapper(/*enum Rotation rotation*/) :
 	_mag_calibration.x_offset = 0.0f;
 	_mag_calibration.y_offset = 0.0f;
 	_mag_calibration.z_offset = 0.0f;
+
+	// Get sensor rotation matrix
+	get_rot_matrix(rotation, &_rotation_matrix);
 }
 
 DfHmc9250Wrapper::~DfHmc9250Wrapper()
@@ -143,16 +145,6 @@ DfHmc9250Wrapper::~DfHmc9250Wrapper()
 
 int DfHmc9250Wrapper::start()
 {
-	// TODO: don't publish garbage here
-	mag_report mag_report = {};
-	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
-					 &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_mag_topic == nullptr) {
-		PX4_ERR("sensor_mag advert fail");
-		return -1;
-	}
-
 	/* Subscribe to param update topic. */
 	if (_param_update_sub < 0) {
 		_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -288,9 +280,19 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	mag_report.x_raw = NAN;
 	mag_report.y_raw = NAN;
 	mag_report.z_raw = NAN;
-	mag_report.x = (data.field_x_ga - _mag_calibration.x_offset) * _mag_calibration.x_scale;
-	mag_report.y = (data.field_y_ga - _mag_calibration.y_offset) * _mag_calibration.y_scale;
-	mag_report.z = (data.field_z_ga - _mag_calibration.z_offset) * _mag_calibration.z_scale;
+
+
+	math::Vector<3> mag_val((data.field_x_ga - _mag_calibration.x_offset) * _mag_calibration.x_scale,
+				(data.field_y_ga - _mag_calibration.y_offset) * _mag_calibration.y_scale,
+				(data.field_z_ga - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+
+	// apply sensor rotation on the accel measurement
+	mag_val = _rotation_matrix * mag_val;
+
+	mag_report.x = mag_val(0);
+	mag_report.y = mag_val(1);
+	mag_report.z = mag_val(2);
+
 
 	// TODO: get these right
 	//mag_report.scaling = -1.0f;
@@ -301,7 +303,11 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
-		if (_mag_topic != nullptr) {
+		if (_mag_topic == nullptr) {
+			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
+							 &_mag_orb_class_instance, ORB_PRIO_HIGH);
+
+		} else {
 			orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 		}
 
@@ -321,14 +327,14 @@ namespace df_hmc5883_wrapper
 
 DfHmc9250Wrapper *g_dev = nullptr;
 
-int start(/* enum Rotation rotation */);
+int start(enum Rotation rotation);
 int stop();
 int info();
 void usage();
 
-int start(/*enum Rotation rotation*/)
+int start(enum Rotation rotation)
 {
-	g_dev = new DfHmc9250Wrapper(/*rotation*/);
+	g_dev = new DfHmc9250Wrapper(rotation);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating DfHmc9250Wrapper object");
@@ -395,9 +401,9 @@ info()
 void
 usage()
 {
-	PX4_WARN("Usage: df_hmc5883_wrapper 'start', 'info', 'stop'");
-	PX4_WARN("options:");
-	//PX4_WARN("    -R rotation");
+	PX4_INFO("Usage: df_hmc5883_wrapper 'start', 'info', 'stop'");
+	PX4_INFO("options:");
+	PX4_INFO("    -R rotation");
 }
 
 } // namespace df_hmc5883_wrapper
@@ -407,7 +413,7 @@ int
 df_hmc5883_wrapper_main(int argc, char *argv[])
 {
 	int ch;
-	// enum Rotation rotation = ROTATION_NONE;
+	enum Rotation rotation = ROTATION_NONE;
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -415,9 +421,9 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		//case 'R':
-		//	rotation = (enum Rotation)atoi(myoptarg);
-		//	break;
+		case 'R':
+			rotation = (enum Rotation)atoi(myoptarg);
+			break;
 
 		default:
 			df_hmc5883_wrapper::usage();
@@ -434,7 +440,7 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_hmc5883_wrapper::start(/*rotation*/);
+		ret = df_hmc5883_wrapper::start(rotation);
 	}
 
 	else if (!strcmp(verb, "stop")) {
