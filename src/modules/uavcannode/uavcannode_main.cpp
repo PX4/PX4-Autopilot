@@ -50,8 +50,10 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/scheduling_priorities.h>
 #include <version/version.h>
-#include <arch/board/board.h>
+__BEGIN_DECLS
+#include <nuttx/board.h>
 #include <arch/chip/chip.h>
+__END_DECLS
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -533,11 +535,11 @@ extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
 
 int uavcannode_start(int argc, char *argv[])
 {
-	resources("Before app_archinitialize");
+	resources("Before board_app_initialize");
 
-	app_archinitialize();
+	board_app_initialize(NULL);
 
-	resources("After app_archinitialize");
+	resources("After board_app_initialize");
 
 	// CAN bitrate
 	int32_t bitrate = 0;

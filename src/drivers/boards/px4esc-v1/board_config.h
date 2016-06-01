@@ -378,7 +378,9 @@ int usbmsc_archinitialize(void);
 #if !defined(CONFIG_NSH_BUILTIN_APPS) && !defined(CONFIG_SYSTEM_COMPOSITE)
 extern int composite_archinitialize(void);
 #endif
-///
+
+#include "../common/board_common.h"
+
 #endif /* __ASSEMBLY__ */
 
 __END_DECLS
