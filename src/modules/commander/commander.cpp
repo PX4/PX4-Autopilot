@@ -1161,7 +1161,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (!strcmp(argv[2],"-hil")) {
 			startup_in_hil = true;
 		} else {
-			PX4_ERR("Argument %s not supported, abort.", argv[2]);	
+			PX4_ERR("Argument %s not supported, abort.", argv[2]);
 			thread_should_exit = true;
 		}
 	}
