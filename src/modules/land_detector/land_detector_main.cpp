@@ -140,7 +140,7 @@ static int land_detector_start(const char *mode)
 	}
 
 	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
+	const uint64_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
 
 	/* avoid printing dots just yet and do one sleep before the first check */
 	usleep(10000);
