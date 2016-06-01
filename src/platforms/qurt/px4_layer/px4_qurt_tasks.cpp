@@ -197,11 +197,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 #endif
 	size_t fixed_stacksize = -1;
 	pthread_attr_getstacksize(&attr, &fixed_stacksize);
-	PX4_INFO("stack size: %d passed stacksize(%d)", fixed_stacksize, stack_size);
+	PX4_DEBUG("stack size: %d passed stacksize(%d)", fixed_stacksize, stack_size);
 	fixed_stacksize = 8 * 1024;
 	fixed_stacksize = (fixed_stacksize < (size_t)stack_size) ? (size_t)stack_size : fixed_stacksize;
 
-	PX4_INFO("setting the thread[%s] stack size to[%d]", name, fixed_stacksize);
+	PX4_DEBUG("setting the thread[%s] stack size to[%d]", name, fixed_stacksize);
 	pthread_attr_setstacksize(&attr, fixed_stacksize);
 
 	PX4_DEBUG("stack address after pthread_attr_setstacksize: 0x%X", attr.stackaddr);
