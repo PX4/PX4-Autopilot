@@ -109,8 +109,6 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 
 		arg[i] = (char *)0;
 
-		cout << endl;
-
 		int retval = apps[command](i, (char **)arg);
 
 		if (retval) {
