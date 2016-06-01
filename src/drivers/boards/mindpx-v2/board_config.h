@@ -321,7 +321,7 @@ __BEGIN_DECLS
 
 /* This board provides a DMA pool and APIs */
 
-#define BOARD_DMA_ALLOC_POOL_SIZE 8192
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /****************************************************************************************************
  * Public Types
