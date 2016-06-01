@@ -340,7 +340,10 @@ unsigned long px4_getpid()
 		}
 	}
 
+#ifndef __PX4_QURT
+	// XXX This doesn't seem to be working on QURT
 	PX4_ERR("px4_getpid() called from unknown thread context!");
+#endif
 	return ~0;
 }
 
