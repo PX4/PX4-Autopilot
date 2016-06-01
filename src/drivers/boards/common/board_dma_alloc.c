@@ -91,7 +91,7 @@ static GRAN_HANDLE dma_allocator;
 static uint8_t g_dma_heap[BOARD_DMA_ALLOC_POOL_SIZE] __attribute__((aligned(64)));
 static perf_counter_t g_dma_perf;
 static uint16_t dma_heap_inuse;
-static uint16_t dma_heap_peek_use;
+static uint16_t dma_heap_peak_use;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -107,18 +107,18 @@ __EXPORT int board_dma_alloc_init(void)
 
 	} else {
 		dma_heap_inuse = 0;
-		dma_heap_peek_use = 0;
+		dma_heap_peak_use = 0;
 		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
 	}
 
 	return OK;
 }
 
-__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peek_used)
+__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used)
 {
 	*dma_total = sizeof(g_dma_heap);
 	*dma_used = dma_heap_inuse;
-	*dma_peek_used = dma_heap_peek_use;
+	*dma_peak_used = dma_heap_peak_use;
 
 	return OK;
 }
@@ -139,8 +139,8 @@ fat_dma_alloc(size_t size)
 	if (rv != NULL) {
 		dma_heap_inuse += size;
 
-		if (dma_heap_inuse > dma_heap_peek_use) {
-			dma_heap_peek_use = dma_heap_inuse;
+		if (dma_heap_inuse > dma_heap_peak_use) {
+			dma_heap_peak_use = dma_heap_inuse;
 		}
 	}
 

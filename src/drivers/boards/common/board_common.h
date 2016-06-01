@@ -95,7 +95,7 @@ __EXPORT int board_dma_alloc_init(void);
  *
  ************************************************************************************/
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peek_used);
+__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used);
 #else
-#define board_get_dma_usage(dma_total,dma_used, dma_peek_used) (-ENOMEM)
+#define board_get_dma_usage(dma_total,dma_used, dma_peak_used) (-ENOMEM)
 #endif
