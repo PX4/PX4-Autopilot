@@ -878,7 +878,7 @@ exit:
 	}
 
 	if (res == OK) {
-		PX4_INFO("saving params completed successfully");
+		PX4_DEBUG("saving params completed successfully");
 	}
 
 	return res;
