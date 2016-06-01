@@ -3606,7 +3606,7 @@ void *commander_low_prio_loop(void *arg)
 					if (ret != OK) {
 						mavlink_and_console_log_critical(&mavlink_log_pub, "settings auto save error");
 					} else {
-						PX4_INFO("commander: settings saved.");
+						PX4_DEBUG("commander: settings saved.");
 					}
 
 					need_param_autosave = false;
