@@ -584,7 +584,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
-			
+
 			if(_transfer_in_progress)
 			{
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
@@ -793,7 +793,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[5] = mavlink_mission_item->y;
 		mission_item->params[6] = mavlink_mission_item->z;
 		break;
-			
+
 	default:
 		return MAV_MISSION_UNSUPPORTED_FRAME;
 	}
