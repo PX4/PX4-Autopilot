@@ -20,6 +20,7 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
+	platforms/posix/drivers/df_ms5607_wrapper
 
 	#
 	# System commands
@@ -93,4 +94,8 @@ set(config_module_list
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
+)
+
+set(config_df_driver_list
+  ms5607
 )
