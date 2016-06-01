@@ -2486,7 +2486,7 @@ Mavlink::stream_command(int argc, char *argv[])
 		}
 
 	} else {
-		warnx("usage: mavlink stream [-d device] [-u network_port] -s stream -r rate");
+		PX4_INFO("usage: mavlink stream [-d device] [-u network_port] -s stream -r rate");
 		return 1;
 	}
 
@@ -2513,7 +2513,22 @@ Mavlink::set_boot_complete()
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	PX4_INFO("usage: mavlink {start|status|stream|stop-all|boot_complete}");
+	PX4_INFO("    [-d device]");
+#ifdef __PX4_POSIX
+	PX4_INFO("    [-u network_port]");
+	PX4_INFO("    [-o remote_port]");
+	PX4_INFO("    [-t partner_ip]");
+#endif
+	PX4_INFO("    [-b baudrate]");
+	PX4_INFO("    [-r rate]");
+	PX4_INFO("    [-m mode]");
+	PX4_INFO("    [-s stream]");
+	PX4_INFO("    [-f]");
+	PX4_INFO("    [-p]");
+	PX4_INFO("    [-v]");
+	PX4_INFO("    [-w]");
+	PX4_INFO("    [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -2527,11 +2542,11 @@ int mavlink_main(int argc, char *argv[])
 		return Mavlink::start(argc, argv);
 
 	} else if (!strcmp(argv[1], "stop")) {
-		warnx("mavlink stop is deprecated, use stop-all instead");
+		PX4_WARN("mavlink stop is deprecated, use stop-all instead");
 		usage();
 		return 1;
 
-	} else if (!strcmp(argv[1], "stop") || !strcmp(argv[1], "stop-all") ) {
+	} else if (!strcmp(argv[1], "stop-all") ) {
 		return Mavlink::destroy_all_instances();
 
 	} else if (!strcmp(argv[1], "status")) {
