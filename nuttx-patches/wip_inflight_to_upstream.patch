@@ -1,0 +1,155 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/Kconfig NuttX/nuttx/arch/arm/src/stm32/Kconfig
+index 1da3821..fc5eb83 100644
+--- NuttX/nuttx/arch/arm/src/stm32/Kconfig
++++ NuttX/nuttx/arch/arm/src/stm32/Kconfig
+@@ -1182,7 +1182,6 @@ config STM32_VALUELINE
+ 	select STM32_HAVE_TIM15
+ 	select STM32_HAVE_TIM16
+ 	select STM32_HAVE_TIM17
+-	select STM32_HAVE_ADC2
+ 	select STM32_HAVE_SPI2 if STM32_HIGHDENSITY
+ 	select STM32_HAVE_SPI3 if STM32_HIGHDENSITY
+ 
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_adc.c NuttX/nuttx/arch/arm/src/stm32/stm32_adc.c
+index c24a98d..5e34110 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_adc.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_adc.c
+@@ -344,22 +344,20 @@ static void adc_rccreset(FAR struct stm32_dev_s *priv, bool reset);
+ /* ADC Interrupt Handler */
+ 
+ static int adc_interrupt(FAR struct adc_dev_s *dev);
+-#ifdef CONFIG_STM32_STM32L15XX
++#if defined(STM32_IRQ_ADC1) && defined(CONFIG_STM32_ADC1)
+ static int adc1_interrupt(int irq, FAR void *context);
+ #endif
+-#if (defined(CONFIG_STM32_STM32F10XX) || \
+-     defined(CONFIG_STM32_STM32F30XX)) && \
+-    (defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2))
++#if defined(STM32_IRQ_ADC12) && (defined(CONFIG_STM32_ADC1) || \
++                                 defined(CONFIG_STM32_ADC2))
+ static int adc12_interrupt(int irq, FAR void *context);
+ #endif
+-#if (defined(CONFIG_STM32_STM32F10XX) || \
+-     defined(CONFIG_STM32_STM32F30XX)) && defined(CONFIG_STM32_ADC3)
++#if (defined(STM32_IRQ_ADC3) && defined(CONFIG_STM32_ADC3))
+ static int adc3_interrupt(int irq, FAR void *context);
+ #endif
+-#if defined(CONFIG_STM32_STM32F30XX) && defined(CONFIG_STM32_ADC4)
++#if defined(STM32_IRQ_ADC4) && defined(CONFIG_STM32_ADC4)
+ static int adc4_interrupt(int irq, FAR void *context);
+ #endif
+-#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
++#if defined(STM32_IRQ_ADC)
+ static int adc123_interrupt(int irq, FAR void *context);
+ #endif
+ 
+@@ -433,15 +431,17 @@ static const struct adc_ops_s g_adcops =
+ #ifdef CONFIG_STM32_ADC1
+ static struct stm32_dev_s g_adcpriv1 =
+ {
+-#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F30XX)
+-  .irq         = STM32_IRQ_ADC12,
+-  .isr         = adc12_interrupt,
+-#elif defined(CONFIG_STM32_STM32L15XX)
++#if defined(STM32_IRQ_ADC1)
+   .irq         = STM32_IRQ_ADC1,
+   .isr         = adc1_interrupt,
+-#else
++#elif defined(STM32_IRQ_ADC12)
++  .irq         = STM32_IRQ_ADC12,
++  .isr         = adc12_interrupt,
++#elif defined(STM32_IRQ_ADC)
+   .irq         = STM32_IRQ_ADC,
+   .isr         = adc123_interrupt,
++#else
++#  error "No STM32_IRQ_ADC1 STM32_IRQ_ADC12 or STM32_IRQ_ADC  defined for CONFIG_STM32_ADC1"
+ #endif
+   .intf        = 1,
+   .base        = STM32_ADC1_BASE,
+@@ -470,12 +470,14 @@ static struct adc_dev_s g_adcdev1 =
+ #ifdef CONFIG_STM32_ADC2
+ static struct stm32_dev_s g_adcpriv2 =
+ {
+-#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F30XX)
++#if defined(STM32_IRQ_ADC12)
+   .irq         = STM32_IRQ_ADC12,
+   .isr         = adc12_interrupt,
+-#else
++#elif defined(STM32_IRQ_ADC)
+   .irq         = STM32_IRQ_ADC,
+   .isr         = adc123_interrupt,
++#else
++#  error "No STM32_IRQ_ADC12 or STM32_IRQ_ADC  defined for CONFIG_STM32_ADC2"
+ #endif
+   .intf        = 2,
+   .base        = STM32_ADC2_BASE,
+@@ -504,12 +506,14 @@ static struct adc_dev_s g_adcdev2 =
+ #ifdef CONFIG_STM32_ADC3
+ static struct stm32_dev_s g_adcpriv3 =
+ {
+-#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F30XX)
++#if defined(STM32_IRQ_ADC3)
+   .irq         = STM32_IRQ_ADC3,
+   .isr         = adc3_interrupt,
+-#else
++#elif defined(STM32_IRQ_ADC)
+   .irq         = STM32_IRQ_ADC,
+   .isr         = adc123_interrupt,
++#else
++#  error "No STM32_IRQ_ADC3 or STM32_IRQ_ADC  defined for CONFIG_STM32_ADC3"
+ #endif
+   .intf        = 3,
+   .base        = STM32_ADC3_BASE,
+@@ -2781,7 +2785,7 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
+  *
+  ****************************************************************************/
+ 
+-#ifdef CONFIG_STM32_STM32L15XX
++#if defined(STM32_IRQ_ADC1)
+ static int adc1_interrupt(int irq, FAR void *context)
+ {
+   adc_interrupt(&g_adcdev1);
+@@ -2802,8 +2806,7 @@ static int adc1_interrupt(int irq, FAR void *context)
+  *
+  ****************************************************************************/
+ 
+-#if (defined(CONFIG_STM32_STM32F10XX) || \
+-     defined(CONFIG_STM32_STM32F30XX)) && \
++#if defined(STM32_IRQ_ADC12) && \
+     (defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2))
+ static int adc12_interrupt(int irq, FAR void *context)
+ {
+@@ -2831,8 +2834,7 @@ static int adc12_interrupt(int irq, FAR void *context)
+  *
+  ****************************************************************************/
+ 
+-#if (defined(CONFIG_STM32_STM32F10XX) || \
+-     defined(CONFIG_STM32_STM32F30XX)) && defined(CONFIG_STM32_ADC3)
++#if defined(STM32_IRQ_ADC3) && defined(CONFIG_STM32_ADC3)
+ static int adc3_interrupt(int irq, FAR void *context)
+ {
+   adc_interrupt(&g_adcdev3);
+@@ -2853,13 +2855,10 @@ static int adc3_interrupt(int irq, FAR void *context)
+  *
+  ****************************************************************************/
+ 
+-#if defined(CONFIG_STM32_STM32F30XX) && defined(CONFIG_STM32_ADC4)
++#if defined(STM32_IRQ_ADC4) && defined(CONFIG_STM32_ADC4)
+ static int adc4_interrupt(int irq, FAR void *context)
+ {
+-#ifdef CONFIG_STM32_ADC4
+   adc_interrupt(&g_adcdev4);
+-#endif
+-
+   return OK;
+ }
+ #endif
+@@ -2876,7 +2875,7 @@ static int adc4_interrupt(int irq, FAR void *context)
+  *
+  ****************************************************************************/
+ 
+-#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
++#if defined(STM32_IRQ_ADC)
+ static int adc123_interrupt(int irq, FAR void *context)
+ {
+ #ifdef CONFIG_STM32_ADC1
