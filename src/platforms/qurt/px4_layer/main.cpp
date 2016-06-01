@@ -211,7 +211,7 @@ const char *get_commands()
 
 int dspal_entry(int argc, char *argv[])
 {
-	PX4_INFO("In main\n");
+	PX4_INFO("In dspal_entry");
 	map<string, px4_main_t> apps;
 	init_app_map(apps);
 	DriverFramework::Framework::initialize();
@@ -233,7 +233,7 @@ int dspal_entry(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: dspal {start |stop}");
+	PX4_INFO("Usage: dspal {start |stop}");
 }
 
 
