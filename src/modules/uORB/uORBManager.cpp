@@ -352,8 +352,8 @@ uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator(void)
 int16_t uORB::Manager::process_add_subscription(const char *messageName,
 		int32_t msgRateInHz)
 {
-	warnx("[posix-uORB::Manager::process_add_subscription(%d)] entering Manager_process_add_subscription: name: %s",
-	      __LINE__, messageName);
+	PX4_DEBUG("[posix-uORB::Manager::process_add_subscription(%d)] entering Manager_process_add_subscription: name: %s",
+		  __LINE__, messageName);
 	int16_t rc = 0;
 	_remote_subscriber_topics.insert(messageName);
 	char nodepath[orb_maxpath];
@@ -364,8 +364,8 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
 
 		if (node == nullptr) {
-			warnx("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
-			      __LINE__, messageName);
+			PX4_DEBUG("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
+				  __LINE__, messageName);
 
 		} else {
 			// node is present.
@@ -396,8 +396,8 @@ int16_t uORB::Manager::process_remove_subscription(
 
 		// get the node name.
 		if (node == nullptr) {
-			warnx("[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber found for message: [%s]",
-			      __LINE__, messageName);
+			PX4_DEBUG("[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber found for message: [%s]",
+				  __LINE__, messageName);
 
 		} else {
 			// node is present.
@@ -425,8 +425,8 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 
 		// get the node name.
 		if (node == nullptr) {
-			warnx("[uORB::Manager::process_received_message(%d)]Error No existing subscriber found for message: [%s] nodepath:[%s]",
-			      __LINE__, messageName, nodepath);
+			PX4_DEBUG("[uORB::Manager::process_received_message(%d)]Error No existing subscriber found for message: [%s] nodepath:[%s]",
+				  __LINE__, messageName, nodepath);
 
 		} else {
 			// node is present.
