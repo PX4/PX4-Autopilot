@@ -169,6 +169,25 @@ public:
 		BROADCAST_MODE_ON
 	};
 
+	static const char *mavlink_mode_str(enum MAVLINK_MODE mode) {
+		switch (mode) {
+			case MAVLINK_MODE_NORMAL:
+				return "Normal";
+			case MAVLINK_MODE_CUSTOM:
+				return "Custom";
+			case MAVLINK_MODE_ONBOARD:
+				return "Onboard";
+			case MAVLINK_MODE_OSD:
+				return "OSD";
+			case MAVLINK_MODE_MAGIC:
+				return "Magic";
+			case MAVLINK_MODE_CONFIG:
+				return "Config";
+			default:
+				return "Unknown";
+		}
+	}
+
 	void			set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE	get_mode() { return _mode; }
 
@@ -486,7 +505,6 @@ private:
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
 	bool _broadcast_address_not_found_warned;
-	int _sendto_result;
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif

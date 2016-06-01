@@ -224,7 +224,6 @@ Mavlink::Mavlink() :
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
 	_broadcast_address_not_found_warned(false),
-	_sendto_result(1),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -890,34 +889,42 @@ Mavlink::send_packet()
 
 #ifdef __PX4_POSIX
 
+	/* Only send packets if there is something in the buffer. */
+	if (_network_buf_len == 0) {
+		return 0;
+	}
+
 	if (get_protocol() == UDP) {
-		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+
+
+		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
+			     (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend message via broadcast if no valid connection exists */
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-			(!get_client_source_initialized()
-			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
+		    (!get_client_source_initialized()
+		    || (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
 			}
 
-			if (_broadcast_address_found) {
+			if (_broadcast_address_found && _network_buf_len > 0) {
 
-				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
+						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
-				if (bret <= 0 && _sendto_result > 0) {
+				if (bret <= 0) {
 					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
 				}
-				_sendto_result = bret;
 			}
 		}
 
 	} else if (get_protocol() == TCP) {
 		/* not implemented, but possible to do so */
-		warnx("TCP transport pending implementation");
+		PX4_ERR("TCP transport pending implementation");
 	}
 
 	_network_buf_len = 0;
@@ -1179,7 +1186,7 @@ Mavlink::init_udp()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 
-	PX4_INFO("Setting up UDP w/port %d", _network_port);
+	PX4_DEBUG("Setting up UDP with port %d", _network_port);
 
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -1792,7 +1799,8 @@ Mavlink::task_main(int argc, char *argv[])
 			return ERROR;
 		}
 
-		warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+		PX4_INFO("mode: %s, data rate: %d B/s on %s @ %dB",
+			 mavlink_mode_str(_mode), _datarate, _device_name, _baudrate);
 
 		/* flush stdout in case MAVLink is about to take it over */
 		fflush(stdout);
@@ -1814,7 +1822,8 @@ Mavlink::task_main(int argc, char *argv[])
 			return ERROR;
 		}
 
-		warnx("mode: %u, data rate: %d B/s on udp port %hu", _mode, _datarate, _network_port);
+		PX4_INFO("mode: %s, data rate: %d B/s on udp port %hu",
+			 mavlink_mode_str(_mode), _datarate, _network_port);
 	}
 
 	/* initialize send mutex */
@@ -2015,7 +2024,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* init socket if necessary */
 	if (get_protocol() == UDP) {
-		find_broadcast_address();
 		init_udp();
 	}
 
@@ -2111,18 +2119,18 @@ Mavlink::task_main(int argc, char *argv[])
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
 					if ( get_protocol() == SERIAL ) {
-						PX4_INFO("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
-							(double)_subscribe_to_stream_rate);
+						PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
+							  (double)_subscribe_to_stream_rate);
 					} else if ( get_protocol() == UDP ) {
-						PX4_INFO("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
-							(double)_subscribe_to_stream_rate);
+						PX4_DEBUG("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
+							  (double)_subscribe_to_stream_rate);
 					}
 
 				} else {
 					if ( get_protocol() == SERIAL ) {
-						PX4_WARN("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+						PX4_INFO("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 					} else if ( get_protocol() == UDP ) {
-						PX4_WARN("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
+						PX4_INFO("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
 					}
 				}
 
