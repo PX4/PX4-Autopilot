@@ -414,20 +414,13 @@ PWMSim::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = 0;
-
 		if (_poll_fds_num == 0) {
-			usleep(1000 * 1000);
-
-			/* this can happen during boot, but after the sleep its likely resolved */
-			if (_poll_fds_num == 0) {
-				PX4_WARN("pwm_out_sim: No valid fds");
-			}
-
-		} else {
-			ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
+			PX4_DEBUG("no valid fds");
+			continue;
 		}
+
+		/* sleep waiting for data, but no more than a second */
+		int ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {
