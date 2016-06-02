@@ -139,10 +139,15 @@ if (DEBUG_BUILD)
     add_dependencies(uavcan_optim libuavcan_dsdlc)
 
     # GTest executables
-    find_package(GTest REQUIRED)
-    add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
-    add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${cpp03_flags}")   # C++03
-    add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
+    find_package(GTest)
+    if (GTEST_FOUND)
+        message(STATUS "GTest found, tests will be built and run [${GTEST_INCLUDE_DIRS}] [${GTEST_BOTH_LIBRARIES}]")
+        add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
+        add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${cpp03_flags}")   # C++03
+        add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
+    else (GTEST_FOUND)
+        message(STATUS "GTest was not found, tests will not be built")
+    endif (GTEST_FOUND)
 else ()
     message(STATUS "Release build type: " ${CMAKE_BUILD_TYPE})
 endif ()
