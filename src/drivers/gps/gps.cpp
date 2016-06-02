@@ -441,6 +441,11 @@ void GPS::handleInjectDataTopic()
 		if (updated) {
 			struct gps_inject_data_s msg;
 			orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
+
+			/* Write the message to the gps device. Note that the message could be fragmented.
+			 * But as we don't write anywhere else to the device during operation, we don't
+			 * need to assemble the message first.
+			 */
 			injectData(msg.data, msg.len);
 
 			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd_count;
@@ -458,7 +463,9 @@ bool GPS::injectData(uint8_t *data, size_t len)
 		}
 	}
 
-	return ::write(_serial_fd, data, len) == len;
+	size_t written = ::write(_serial_fd, data, len);
+	::fsync(_serial_fd);
+	return written == len;
 }
 
 int GPS::setBaudrate(unsigned baud)
