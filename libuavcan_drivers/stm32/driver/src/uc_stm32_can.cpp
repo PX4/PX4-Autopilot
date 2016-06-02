@@ -879,7 +879,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
 
 static void nvicEnableVector(IRQn_Type irq,  uint8_t prio)
 {
-     #if !defined  (USE_HAL_DRIVER)
+    #if !defined (USE_HAL_DRIVER)
       NVIC_InitTypeDef NVIC_InitStructure;
       NVIC_InitStructure.NVIC_IRQChannel = irq;
       NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = prio;

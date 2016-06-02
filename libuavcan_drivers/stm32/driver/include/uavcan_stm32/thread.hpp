@@ -168,7 +168,7 @@ public:
 class BusEvent
 {
     SemaphoreHandle_t sem_;
-    BaseType_t xHigherPriorityTaskWoken;
+    BaseType_t higher_priority_task_woken;
 
 public:
     BusEvent(CanDriver& can_driver)
