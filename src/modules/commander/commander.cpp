@@ -1956,15 +1956,15 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (was_landed != land_detector.landed) {
 				if (land_detector.landed) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "LANDING DETECTED");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 				} else {
-					mavlink_and_console_log_info(&mavlink_log_pub, "TAKEOFF DETECTED");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
 				}
 			}
 
 			if (was_falling != land_detector.freefall) {
 				if (land_detector.freefall) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "FREEFALL DETECTED");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
 				}
 			}
 
