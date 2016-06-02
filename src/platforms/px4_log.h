@@ -60,11 +60,11 @@ static inline void do_nothing(int level, ...)
 #if defined(__PX4_ROS)
 
 #include <ros/console.h>
-#define PX4_PANIC(...)	ROS_WARN(__VA_ARGS__)
-#define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_PANIC(...)	ROS_FATAL(__VA_ARGS__)
+#define PX4_ERR(...)	ROS_ERROR(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_DEBUG(...)
+#define PX4_INFO(...) 	ROS_INFO(__VA_ARGS__)
+#define PX4_DEBUG(...)	ROS_DEBUG(__VA_ARGS__)
 #define PX4_BACKTRACE()
 
 #elif defined(__PX4_QURT)
