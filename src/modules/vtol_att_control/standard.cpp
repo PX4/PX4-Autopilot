@@ -312,10 +312,11 @@ void Standard::update_mc_state()
 	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2));
 	body_z_sp = R_yaw * body_z_sp;
 	body_z_sp.normalize();
-	
+
 	// calculate the desired pitch seen in the heading frame
 	// this value corresponds to the amount the vehicle would try to pitch forward
 	float pitch_forward = asinf(body_z_sp(0));
+
 	// only allow pitching forward up to threshold, the rest of the desired
 	// forward acceleration will be compensated by the pusher
 	if (pitch_forward < -_params_standard.down_pitch_max) {
