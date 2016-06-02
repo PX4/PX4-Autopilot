@@ -560,8 +560,8 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 
 	if (ret == 0) {
 		PX4_DEBUG("%c %s: match\n",
-		       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-		       param_name(param));
+			  param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+			  param_name(param));
 	}
 
 	return ret;
