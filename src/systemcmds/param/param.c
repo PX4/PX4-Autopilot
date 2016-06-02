@@ -209,7 +209,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'select' or 'save'");
+	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'greater', 'select', 'save', or 'reset' ");
 	return 1;
 }
 
