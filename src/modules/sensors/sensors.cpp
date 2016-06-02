@@ -912,7 +912,7 @@ Sensors::parameters_update()
 
 	if (param_get(_parameter_handles.battery_v_div, &(_parameters.battery_v_div)) != OK) {
 		warnx("%s", paramerr);
-		_parameters.battery_v_div = 100.0f;
+		_parameters.battery_v_div = 0.0f;
 
 	} else if (_parameters.battery_v_div < 0.0f) {
 		/* apply scaling according to defaults if set to default */
@@ -926,13 +926,13 @@ Sensors::parameters_update()
 		_parameters.battery_v_div = 5.7013919372f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
-		_parameters.battery_v_div = 100.0f;
+		_parameters.battery_v_div = 0.0f;
 #endif
 	}
 
 	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
 		warnx("%s", paramerr);
-		_parameters.battery_a_per_v = 100.0f;
+		_parameters.battery_a_per_v = 0.0f;
 
 	} else if (_parameters.battery_a_per_v < 0.0f) {
 		/* apply scaling according to defaults if set to default */
@@ -944,7 +944,7 @@ Sensors::parameters_update()
 		_parameters.battery_a_per_v = 15.391030303f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
-		_parameters.battery_a_per_v = 100.0f;
+		_parameters.battery_a_per_v = 0.0f;
 #endif
 	}
 
