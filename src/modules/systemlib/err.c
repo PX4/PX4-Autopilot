@@ -60,6 +60,8 @@ extern int lib_lowvprintf(const char *fmt, va_list ap);
 #  warning Cannot output without one of CONFIG_NFILE_STREAMS or CONFIG_ARCH_LOWPUTC
 #endif
 
+// XXX not used anymore
+#if 0
 const char *
 getprogname(void)
 {
@@ -201,3 +203,4 @@ vwarnx(const char *fmt, va_list args)
 {
 	warnerr_core(NOCODE, fmt, args);
 }
+#endif
