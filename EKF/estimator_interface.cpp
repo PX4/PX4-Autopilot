@@ -43,6 +43,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <math.h>
+#include <ecl/ecl.h>
 #include "estimator_interface.h"
 #include "mathlib.h"
 
@@ -335,7 +336,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _ext_vision_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
-		printf("EKF buffer allocation failed!");
+		ECL_ERR("EKF buffer allocation failed!");
 		unallocate_buffers();
 		return false;
 	}

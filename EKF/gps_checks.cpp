@@ -39,9 +39,11 @@
  *
  */
 
+#include <ecl/ecl.h>
 #include "ekf.h"
 #include "mathlib.h"
 #include "geo.h"
+
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS  (1<<0)
 #define MASK_GPS_GDOP   (1<<1)
@@ -59,7 +61,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 	if (!_NED_origin_initialised) {
 		// we have good GPS data so can now set the origin's WGS-84 position
 		if (gps_is_good(gps) && !_NED_origin_initialised) {
-			printf("EKF gps is good - setting origin\n");
+			ECL_INFO("EKF gps is good - setting origin");
 			// Set the origin's WGS-84 position to the last gps fix
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
@@ -84,7 +86,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 
 			// if the user has selected GPS as the primary height source, switch across to using it
 			if (_primary_hgt_source == VDIST_SENSOR_GPS) {
-				printf("EKF switching to GPS height\n");
+				ECL_INFO("EKF switching to GPS height");
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = true;
 				_control_status.flags.rng_hgt = false;
