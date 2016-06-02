@@ -123,6 +123,8 @@ static inline void do_nothing(int level, ...)
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <stdio.h>
+#include <stdarg.h>
+
 #include <px4_defines.h>
 
 __BEGIN_DECLS
@@ -235,7 +237,10 @@ static inline void __px4_log_modulename(int level, const char *fmt, ...)
 	if (level <= __px4_log_level_current) {
 		printf(__px4__log_level_fmt __px4__log_level_arg(level));
 		printf(__px4__log_modulename_fmt __px4__log_modulename_arg);
-		printf(fmt);
+		va_list argptr;
+		va_start(argptr, fmt);
+		vprintf(fmt, argptr);
+		va_end(argptr);
 		printf("\n");
 	}
 }
