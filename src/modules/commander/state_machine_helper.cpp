@@ -849,20 +849,20 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->failsafe = true;
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
-				if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid
-					&& offb_loss_rc_act == 3) {
+				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
+						&& status_flags->condition_home_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-				} else if (status_flags->condition_global_position_valid && offb_loss_rc_act == 0) {
+				} else if (offb_loss_rc_act == 0 && status_flags->condition_global_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 
-				} else if (status_flags->condition_local_altitude_valid && offb_loss_rc_act == 1) {
+				} else if (offb_loss_rc_act == 1 && status_flags->condition_local_altitude_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 
 				} else if (offb_loss_rc_act == 2) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 
-				} else if (status_flags->condition_global_position_valid && offb_loss_rc_act == 4) {
+				} else if (offb_loss_rc_act == 4 && status_flags->condition_global_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 				} else if (status_flags->condition_local_altitude_valid) {
@@ -888,14 +888,14 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->failsafe = true;
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
-				if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid
-					&& offb_loss_rc_act == 2) {
+				if (offb_loss_act == 2 && status_flags->condition_global_position_valid
+						&& status_flags->condition_home_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-				} else if (status_flags->condition_global_position_valid && offb_loss_rc_act == 1) {
+				} else if (offb_loss_act == 1 && status_flags->condition_global_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
-				} else if (status_flags->condition_global_position_valid && offb_loss_rc_act == 0) {
+				} else if (offb_loss_act == 0 && status_flags->condition_global_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 				} else if (status_flags->condition_local_altitude_valid) {
