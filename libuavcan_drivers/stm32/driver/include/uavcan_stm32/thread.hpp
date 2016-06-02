@@ -18,7 +18,6 @@
 # include <cstring>
 #elif UAVCAN_STM32_BAREMETAL
 #elif UAVCAN_STM32_FREERTOS
-# include <stm32f4xx.h>
 # include <cmsis_os.h>
 #else
 # error "Unknown OS"
