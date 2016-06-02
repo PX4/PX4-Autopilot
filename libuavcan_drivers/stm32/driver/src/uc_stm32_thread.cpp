@@ -7,6 +7,7 @@
 #include <uavcan_stm32/can.hpp>
 #include "internal.hpp"
 
+
 namespace uavcan_stm32
 {
 
@@ -78,6 +79,59 @@ void Mutex::unlock()
     mtx_.unlock();
 # endif
 }
+
+
+#elif UAVCAN_STM32_FREERTOS
+
+bool BusEvent::wait(uavcan::MonotonicDuration duration)
+{
+    static const uavcan::int64_t MaxDelayMSec = 0x000FFFFF;
+
+    const uavcan::int64_t msec = duration.toMSec();
+
+    BaseType_t ret;
+
+    if (msec <= 0)
+    {
+        ret = xSemaphoreTake( sem_, ( TickType_t ) 0 );
+    }
+    else
+    {
+        ret = xSemaphoreTake( sem_, (msec > MaxDelayMSec) ? (MaxDelayMSec/portTICK_RATE_MS) : (msec/portTICK_RATE_MS));
+    }
+    return ret == pdTRUE;
+}
+
+void BusEvent::signal()
+{
+    xSemaphoreGive( sem_ );
+}
+
+void BusEvent::signalFromInterrupt()
+{
+    higher_priority_task_woken = pdFALSE;
+
+    xSemaphoreGiveFromISR( sem_, &higher_priority_task_woken );
+}
+
+void BusEvent::yieldFromISR()
+{
+    portYIELD_FROM_ISR( higher_priority_task_woken );
+}
+
+/*
+ * Mutex
+ */
+void Mutex::lock()
+{
+    xSemaphoreTake( mtx_, portMAX_DELAY );
+}
+
+void Mutex::unlock()
+{
+    xSemaphoreGive( mtx_ );
+}
+
 
 #elif UAVCAN_STM32_NUTTX
 

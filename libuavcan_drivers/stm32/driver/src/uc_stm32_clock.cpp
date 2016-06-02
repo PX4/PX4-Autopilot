@@ -14,7 +14,7 @@
 /*
  * Timer instance
  */
-# if (UAVCAN_STM32_CHIBIOS && CH_KERNEL_MAJOR == 2) || UAVCAN_STM32_BAREMETAL
+# if (UAVCAN_STM32_CHIBIOS && CH_KERNEL_MAJOR == 2) || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
 #  define TIMX                    UAVCAN_STM32_GLUE2(TIM, UAVCAN_STM32_TIMER_NUMBER)
 #  define TIMX_IRQn               UAVCAN_STM32_GLUE3(TIM, UAVCAN_STM32_TIMER_NUMBER, _IRQn)
 #  define TIMX_INPUT_CLOCK        STM32_TIMCLK1
@@ -81,16 +81,21 @@ uavcan::uint64_t time_utc = 0;
 
 }
 
-#if UAVCAN_STM32_BAREMETAL
+#if UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
 
-static void nvicEnableVector(int irq,  uint8_t prio)
+static void nvicEnableVector(IRQn_Type irq,  uint8_t prio)
 {
+    #if !defined (USE_HAL_DRIVER)
       NVIC_InitTypeDef NVIC_InitStructure;
       NVIC_InitStructure.NVIC_IRQChannel = irq;
       NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = prio;
       NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
       NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
       NVIC_Init(&NVIC_InitStructure);
+    #else
+      HAL_NVIC_SetPriority(irq, prio, 0);
+      HAL_NVIC_EnableIRQ(irq);
+    #endif
 
 }
 
@@ -106,7 +111,7 @@ void init()
     initialized = true;
 
 
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
     // Power-on and reset
     TIMX_RCC_ENR |= TIMX_RCC_ENR_MASK;
     TIMX_RCC_RSTR |=  TIMX_RCC_RSTR_MASK;
@@ -178,7 +183,7 @@ void setUtc(uavcan::UtcTime time)
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
     UAVCAN_ASSERT(initialized);
     UAVCAN_ASSERT(TIMX->DIER & TIM_DIER_UIE);
 
@@ -228,7 +233,7 @@ uavcan::MonotonicTime getMonotonic()
 
         volatile uavcan::uint64_t time = time_mono;
 
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
 
         volatile uavcan::uint32_t cnt = TIMX->CNT;
         if (TIMX->SR & TIM_SR_UIF)
@@ -435,7 +440,7 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
 {
     UAVCAN_STM32_IRQ_PROLOGUE();
 
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
     TIMX->SR = 0;
 # endif
 # if UAVCAN_STM32_NUTTX

@@ -15,6 +15,9 @@
 # include <syslog.h>
 #elif UAVCAN_STM32_BAREMETAL
 # include <chip.h>
+#elif UAVCAN_STM32_FREERTOS
+# include <chip.h>
+# include <cmsis_os.h>
 #else
 # error "Unknown OS"
 #endif
@@ -71,6 +74,15 @@
 # endif
 #endif
 
+#if UAVCAN_STM32_FREERTOS
+/**
+ * Priority mask for timer and CAN interrupts.
+ */
+# ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
+#  define UAVCAN_STM32_IRQ_PRIORITY_MASK  configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
+# endif
+#endif
+
 /**
  * Glue macros
  */
@@ -119,6 +131,22 @@ struct CriticalSectionLocker
     ~CriticalSectionLocker()
     {
       __enable_irq();
+    }
+};
+
+#elif UAVCAN_STM32_FREERTOS
+
+struct CriticalSectionLocker
+{
+
+    CriticalSectionLocker()
+    {
+        taskENTER_CRITICAL();
+    }
+
+    ~CriticalSectionLocker()
+    {
+        taskEXIT_CRITICAL();
     }
 };
 

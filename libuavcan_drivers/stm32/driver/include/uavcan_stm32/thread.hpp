@@ -17,6 +17,8 @@
 # include <ctime>
 # include <cstring>
 #elif UAVCAN_STM32_BAREMETAL
+#elif UAVCAN_STM32_FREERTOS
+# include <cmsis_os.h>
 #else
 # error "Unknown OS"
 #endif
@@ -136,7 +138,7 @@ public:
         (void)can_driver;
     }
 
-    bool wait(uavcan::MonotonicDuration)
+    bool wait(uavcan::MonotonicDuration duration)
     {
         (void)duration;
         bool lready = ready;
@@ -159,6 +161,42 @@ class Mutex
 public:
     void lock() { }
     void unlock() { }
+};
+
+#elif UAVCAN_STM32_FREERTOS
+
+class BusEvent
+{
+    SemaphoreHandle_t sem_;
+    BaseType_t higher_priority_task_woken;
+
+public:
+    BusEvent(CanDriver& can_driver)
+    {
+        (void)can_driver;
+        sem_ = xSemaphoreCreateBinary();
+    }
+
+    bool wait(uavcan::MonotonicDuration duration);
+
+    void signal();
+
+    void signalFromInterrupt();
+
+    void yieldFromISR();
+};
+
+class Mutex
+{
+    SemaphoreHandle_t mtx_;
+
+public:
+    Mutex(void)
+    {
+        mtx_ = xSemaphoreCreateMutex();
+    }
+    void lock();
+    void unlock();
 };
 
 #endif
