@@ -525,7 +525,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 
 				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (i == j)) ||
 				    ((cmp_op == COMPARE_OPERATOR_GREATER) && (i > j))) {
-					printf(" %ld: ", (long)i);
+					PX4_DEBUG(" %ld: ", (long)i);
 					ret = 0;
 				}
 			}
@@ -545,7 +545,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 
 				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (fabsf(f - g) < 1e-7f)) ||
 				    ((cmp_op == COMPARE_OPERATOR_GREATER) && (f > g))) {
-					printf(" %4.4f: ", (double)f);
+					PX4_DEBUG(" %4.4f: ", (double)f);
 					ret = 0;
 				}
 			}
@@ -559,7 +559,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	}
 
 	if (ret == 0) {
-		printf("%c %s: match\n",
+		PX4_DEBUG("%c %s: match\n",
 		       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 		       param_name(param));
 	}
