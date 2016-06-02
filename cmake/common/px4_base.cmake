@@ -303,6 +303,9 @@ function(px4_add_module)
 	if(MAIN)
 		set_target_properties(${MODULE} PROPERTIES
 			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)
+		add_definitions(-DMODULE_NAME="${MAIN}")
+	else()
+		add_definitions(-DMODULE_NAME="unknown")
 	endif()
 
 	if(INCLUDES)
@@ -400,7 +403,7 @@ function(px4_generate_messages)
 		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_source_files_out}
-		COMMAND ${PYTHON_EXECUTABLE} 
+		COMMAND ${PYTHON_EXECUTABLE}
 			Tools/px_generate_uorb_topic_files.py
 			--sources
 			${QUIET}
