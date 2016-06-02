@@ -305,7 +305,7 @@ function(px4_add_module)
 			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)
 		add_definitions(-DMODULE_NAME="${MAIN}")
 	else()
-		add_definitions(-DMODULE_NAME="unknown")
+		add_definitions(-DMODULE_NAME="${MODULE}")
 	endif()
 
 	if(INCLUDES)
