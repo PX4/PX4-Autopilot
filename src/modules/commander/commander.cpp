@@ -1668,7 +1668,11 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status_flags.offboard_control_signal_lost) {
 				status_flags.offboard_control_signal_lost = true;
+				status_changed = true;
+			}
 
+			/* check timer if offboard was there but now lost */
+			if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
 				if (offboard_loss_timeout < FLT_EPSILON) {
 					/* execute loss action immediately */
 					status_flags.offboard_control_loss_timeout = true;
@@ -1676,9 +1680,12 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					/* wait for timeout if set */
 					status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
-						OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f > hrt_absolute_time();
+						OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f < hrt_absolute_time();
 				}
-				status_changed = true;
+
+				if (status_flags.offboard_control_loss_timeout) {
+					status_changed = true;
+				}
 			}
 		}
 
