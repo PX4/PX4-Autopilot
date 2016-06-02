@@ -39,7 +39,7 @@
  *
  */
 
-#include <ecl/ecl.h>
+#include "../ecl.h"
 #include "ekf.h"
 #include "mathlib.h"
 #include "geo.h"
