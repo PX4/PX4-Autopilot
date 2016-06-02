@@ -32,9 +32,9 @@ else
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
-			echo "[i] microSD card formatted"
+			echo "INFO  [init] MicroSD card formatted"
 		else
-			echo "[i] format failed"
+			echo "ERROR [init] Format failed"
 			tone_alarm MNBG
 			set LOG_FILE /dev/null
 		fi
@@ -50,7 +50,7 @@ fi
 set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
-	echo "[i] Executing script: $FRC"
+	echo "INFO  [init] Executing script: $FRC"
 	sh $FRC
 	set MODE custom
 fi
@@ -173,7 +173,7 @@ then
 	#
 	if param compare SYS_AUTOSTART 0
 	then
-		echo "[i] No autostart"
+		echo "INFO  [init] No autostart"
 	else
 		sh /etc/init.d/rc.autostart
 	fi
@@ -192,7 +192,7 @@ then
 	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
-		echo "[i] Custom: $FCONFIG"
+		echo "INFO  [init] Custom: $FCONFIG"
 		sh $FCONFIG
 	fi
 	unset FCONFIG
@@ -223,7 +223,7 @@ then
 
 		if px4io checkcrc ${IO_FILE}
 		then
-			echo "PX4IO CRC OK" >> $LOG_FILE
+			echo "INFO  [init] PX4IO CRC OK" >> $LOG_FILE
 
 			set IO_PRESENT yes
 		else
@@ -246,16 +246,16 @@ then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					echo "INFO  [init] PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
 
 					set IO_PRESENT yes
 				else
-					echo "PX4IO update failed" >> $LOG_FILE
+					echo "ERROR [init] PX4IO update failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			else
-				echo "PX4IO update failed" >> $LOG_FILE
+				echo "ERROR [init] PX4IO update failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -263,7 +263,7 @@ then
 
 		if [ $IO_PRESENT == no ]
 		then
-			echo "ERROR: PX4IO not found" >> $LOG_FILE
+			echo "ERROR [init] PX4IO not found" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
 		fi
 	fi
@@ -355,7 +355,7 @@ then
 		then
 			if param compare UAVCAN_ENABLE 0
 			then
-				echo "[i] OVERRIDING UAVCAN_ENABLE = 1"
+				echo "INFO  [init] OVERRIDING UAVCAN_ENABLE = 1" >> $LOG_FILE
 				param set UAVCAN_ENABLE 1
 			fi
 		fi
@@ -366,7 +366,7 @@ then
 			then
 				sh /etc/init.d/rc.io
 			else
-				echo "PX4IO start failed" >> $LOG_FILE
+				echo "INFO  [init] PX4IO start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -376,7 +376,7 @@ then
 			if fmu mode_$FMU_MODE
 			then
 			else
-				echo "FMU start failed" >> $LOG_FILE
+				echo "ERR  [init] FMU start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 
@@ -408,7 +408,7 @@ then
 			if mkblctrl $MKBLCTRL_ARG
 			then
 			else
-				echo "ERROR: MK start failed" >> $LOG_FILE
+				echo "ERROR [init] MK start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 			unset MKBLCTRL_ARG
@@ -420,7 +420,7 @@ then
 			if pwm_out_sim mode_port2_pwm8
 			then
 			else
-				echo "PWM SIM start failed" >> $LOG_FILE
+				echo "ERROR [init] PWM SIM start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -436,7 +436,7 @@ then
 				then
 					sh /etc/init.d/rc.io
 				else
-					echo "PX4IO start failed" >> $LOG_FILE
+					echo "ERROR [init] PX4IO start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			fi
@@ -446,7 +446,7 @@ then
 				if fmu mode_$FMU_MODE
 				then
 				else
-					echo "FMU mode_$FMU_MODE start failed" >> $LOG_FILE
+					echo "ERROR [init] FMU mode_$FMU_MODE start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 
@@ -658,7 +658,7 @@ then
 	#
 	if [ $VEHICLE_TYPE == fw ]
 	then
-		echo "FIXED WING"
+		echo "INFO  [init] Fixedwing"
 
 		if [ $MIXER == none ]
 		then
@@ -686,11 +686,11 @@ then
 	#
 	if [ $VEHICLE_TYPE == mc ]
 	then
-		echo "MULTICOPTER"
+		echo "INFO  [init] Multicopter"
 
 		if [ $MIXER == none ]
 		then
-			echo "Mixer undefined"
+			echo "INFO  [init] Mixer undefined"
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -737,7 +737,7 @@ then
 		# Still no MAV_TYPE found
 		if [ $MAV_TYPE == none ]
 		then
-			echo "Unknown MAV_TYPE"
+			echo "WARN  [init] Unknown MAV_TYPE"
 			param set MAV_TYPE 2
 		else
 			param set MAV_TYPE $MAV_TYPE
@@ -755,11 +755,11 @@ then
 	#
 	if [ $VEHICLE_TYPE == vtol ]
 	then
-		echo "VTOL"
+		echo "INFO  [init] VTOL"
 
 		if [ $MIXER == none ]
 		then
-			echo "VTOL mixer undefined"
+			echo "WARN  [init] VTOL mixer undefined"
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -782,7 +782,7 @@ then
 		# Still no MAV_TYPE found
 		if [ $MAV_TYPE == none ]
 		then
-			echo "Unknown MAV_TYPE"
+			echo "WARN  [init] Unknown MAV_TYPE"
 			param set MAV_TYPE 19
 		else
 			param set MAV_TYPE $MAV_TYPE
@@ -866,14 +866,14 @@ then
 	#
 	if [ $VEHICLE_TYPE == none ]
 	then
-		echo "[i] No autostart ID found"
+		echo "WARN  [init] No autostart ID found"
 	fi
 
 	# Start any custom addons
 	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
 	then
-		echo "[i] Addons script: $FEXTRAS"
+		echo "INFO  [init] Addons script: $FEXTRAS"
 		sh $FEXTRAS
 	fi
 	unset FEXTRAS
@@ -897,7 +897,7 @@ mavlink boot_complete
 
 if [ $EXIT_ON_END == yes ]
 then
-	echo "NSH EXIT"
+	echo "INFO  [init] NSH exit"
 	exit
 fi
 unset EXIT_ON_END
