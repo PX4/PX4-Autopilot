@@ -24,7 +24,7 @@ RCRecover::RCRecover(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_state(RCRECOVER_STATE_NONE),
 	_start_lock(false),
-	_param_rtl_delay(this, "RCRECOVER_RTL_DELAY", false)
+	_param_rtl_delay(this, "RCRCVR_RTL_DELAY", false)
 {
 	// load initial params
 	updateParams();

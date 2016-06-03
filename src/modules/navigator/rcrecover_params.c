@@ -21,4 +21,4 @@
  * @increment 0.5
  * @group RC Recover
  */
-PARAM_DEFINE_FLOAT(RCRECOVER_RTL_DELAY, -1.0f);
+PARAM_DEFINE_FLOAT(RCRCVR_RTL_DELAY, -1.0f);
