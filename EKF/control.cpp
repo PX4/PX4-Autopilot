@@ -306,7 +306,7 @@ void Ekf::controlHeightSensorTimeouts()
 		_time_bad_vert_accel =  _time_last_imu;
 	}
 
-	if ((P[8][8] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
+	if ((P[9][9] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
 		// boolean that indicates we will do a height reset
 		bool reset_height = false;
 
