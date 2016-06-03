@@ -59,11 +59,13 @@ void RCRecover::on_activation()
 	if (_state == RCRECOVER_STATE_NONE) {
 		// for safety reasons don't go into RCRecover if landed
 		if (_navigator->get_land_detected()->landed) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no RC Recover when landed");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: not available when landed");
 
 		// otherwise, return along recent path
 		} else {
 			_state = RCRECOVER_STATE_RETURN;
+			
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: return along recent path");
 			
 			// in case there is no recent path, loiter at the current position
 			loiter_lat = _navigator->get_global_position()->lat;
@@ -93,6 +95,9 @@ void RCRecover::update_mission_item()
 		set_previous_pos_setpoint();
 
 	_navigator->set_can_loiter_at_sp(false);
+	
+	//if (_state == RCRECOVER_STATE_LOITER)
+		// todo: switch to RTL mode
 
 	switch (_state) {
 	case RCRECOVER_STATE_RETURN: {
@@ -112,8 +117,6 @@ void RCRecover::update_mission_item()
 			_mission_item.pitch_min = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: return along recent path");
 			
 			_start_lock = true;
 			break;

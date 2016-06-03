@@ -46,7 +46,11 @@ private:
     
     typedef struct {
         float x, y, z;
-    } pos_t;
+    } fpos_t;
+    
+    typedef struct {
+        int x, y, z;
+    } ipos_t;
     
     typedef struct {
         int valid : 1;
@@ -55,19 +59,22 @@ private:
         int delta_z : 5;
     } rel_pos_t;
     
-    static inline bool is_close(pos_t pos1, pos_t pos2);
+    static inline bool is_close(fpos_t pos1, fpos_t pos2);
+    static inline bool is_close(ipos_t pos1, fpos_t pos2);
+    static inline fpos_t to_fpos(ipos_t &pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; };
+    static inline ipos_t to_ipos(fpos_t &pos) { return { .x = (int)pos.x, .y = (int)pos.y, .z = (int)pos.z }; };
     
     // Pushes a new current position to the recent path. This works even while the recent path is disabled.
-    void push_recent_path(pos_t &position);
+    void push_recent_path(fpos_t &position);
     
     // Pops the last position from the recent path. Returns false if the path is empty.
-    bool pop_recent_path(pos_t &position);
+    bool pop_recent_path(fpos_t &position);
     
     double ref_lat;
     double ref_lon;
     float ref_alt;
     
-    pos_t home_position;
+    fpos_t home_position;
     
     
     // Stores the (potentially shortened) recent flight path.
@@ -78,7 +85,7 @@ private:
     
     // The most recent position.
     // If the recent path is empty, this is invalid.
-    pos_t recent_path_head = { .x = 0, .y = 0, .z = 0 };
+    fpos_t recent_path_head = { .x = 0, .y = 0, .z = 0 };
     
     size_t recent_path_next_write = 0; // always valid, 0 if empty, equal to next_read if full
     size_t recent_path_next_read = RECENT_PATH_LENGTH; // LENGTH if empty, valid if non-empty

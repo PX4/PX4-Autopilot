@@ -216,7 +216,8 @@ void
 Navigator::local_position_update()
 {
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-	_tracker.update(&_local_pos);
+	if (!_land_detected.landed)
+		_tracker.update(&_local_pos);
 }
 
 void
@@ -262,6 +263,8 @@ void
 Navigator::vehicle_land_detected_update()
 {
 	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
+	if (!_land_detected.landed)
+		_tracker.update(&_local_pos);
 }
 
 void
