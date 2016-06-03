@@ -249,6 +249,7 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
+	_tune_names[TONE_HOME_SET] = "home_set";
 }
 
 ToneAlarm::~ToneAlarm()
