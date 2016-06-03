@@ -54,6 +54,11 @@
 #include <mach/mach.h>
 #endif
 
+#ifdef __PX4_QURT
+// dprintf is not available on QURT. Use the usual output to mini-dm.
+#define dprintf(_fd, _text, ...) ((_fd) == 1 ? PX4_INFO((_text), ##__VA_ARGS__) : (void)(_fd))
+#endif
+
 extern struct system_load_s system_load;
 
 #define CL "\033[K" // clear line

@@ -33,7 +33,7 @@
 
 #pragma once
 
-enum class MessageType : uint8_t {
+enum class ULogMessageType : uint8_t {
 	FORMAT = 'F',
 	DATA = 'D',
 	INFO = 'I',
@@ -42,75 +42,85 @@ enum class MessageType : uint8_t {
 	REMOVE_LOGGED_MSG = 'R',
 	SYNC = 'S',
 	DROPOUT = 'O',
+	LOGGING = 'L',
 };
 
 
 /* declare message data structs with byte alignment (no padding) */
 #pragma pack(push, 1)
 
-#define MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
+#define ULOG_MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
 
 /** first bytes of the file */
-struct message_file_header_s {
+struct ulog_file_header_s {
 	uint8_t magic[8];
 	uint64_t timestamp;
 };
 
-struct message_format_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
+struct ulog_message_format_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::FORMAT);
 
 	char format[2096];
 };
 
-struct message_add_logged_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::ADD_LOGGED_MSG);
+struct ulog_message_add_logged_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::ADD_LOGGED_MSG);
 
 	uint8_t multi_id;
 	uint16_t msg_id;
 	char message_name[255];
 };
 
-struct message_remove_logged_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::REMOVE_LOGGED_MSG);
+struct ulog_message_remove_logged_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::REMOVE_LOGGED_MSG);
 
 	uint16_t msg_id;
 };
 
-struct message_sync_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::SYNC);
+struct ulog_message_sync_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::SYNC);
 
 	uint8_t sync_magic[8];
 };
 
-struct message_dropout_s {
-	uint16_t msg_size = sizeof(uint16_t); //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::DROPOUT);
+struct ulog_message_dropout_s {
+	uint16_t msg_size = sizeof(uint16_t); //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::DROPOUT);
 
 	uint16_t duration; //in ms
 };
 
-struct message_data_header_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
+struct ulog_message_data_header_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::DATA);
 
 	uint16_t msg_id;
 };
 
-struct message_info_header_s {
-	uint16_t msg_size; //size of message - MSG_HEADER_LEN
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
+struct ulog_message_info_header_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	uint8_t key_len;
 	char key[255];
 };
 
-struct message_parameter_header_s {
+struct ulog_message_logging_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING);
+
+	uint8_t log_level; //same levels as in the linux kernel
+	uint64_t timestamp;
+	char message[255];
+};
+
+struct ulog_message_parameter_header_s {
 	uint16_t msg_size;
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 
 	uint8_t key_len;
 	char key[255];

@@ -81,6 +81,13 @@ public:
 	~Logger();
 
 	/**
+	 * Tell the logger that we're in replay mode. This must be called
+	 * before starting the logger.
+	 * @param file_name file name of the used log replay file. Will be copied.
+	 */
+	static void setReplayFile(const char *file_name);
+
+	/**
 	 * Add a topic to be logged. This must be called before start_log()
 	 * (because it does not write an ADD_LOGGED_MSG message).
 	 * @param name topic name
@@ -165,6 +172,13 @@ private:
 	bool write_wait(void *ptr, size_t size);
 
 	/**
+	 * Write data to the logger and handle dropouts.
+	 * Must be called with _writer.lock() held.
+	 * @return true if data written, false otherwise (on overflow)
+	 */
+	bool write(void *ptr, size_t size);
+
+	/**
 	 * Get the time for log file name
 	 * @param tt returned time
 	 * @param boot_time use time when booted instead of current time
@@ -203,11 +217,9 @@ private:
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id; ///< id of next subscribed topic
+
+	static char		*_replay_file_name;
 };
 
-Logger *logger_ptr = nullptr;
-int		logger_task = -1;
-pthread_t _writer_thread;
-
-}
-}
+} //namespace logger
+} //namespace px4
