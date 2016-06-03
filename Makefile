@@ -309,7 +309,7 @@ submodulesclean:
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean
-	@git clean -ff -x -d
+	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
