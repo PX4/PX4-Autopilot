@@ -35,6 +35,7 @@
  * @file mixer.cpp
  *
  * Control channel input/output mixer and failsafe.
+ * 控制通道的输入/输出混控以及失效保护
  *
  * @author Lorenz Meier <lorenz@px4.io>
  */
@@ -61,11 +62,13 @@ extern "C" {
 
 /*
  * Maximum interval in us before FMU signal is considered lost
+ * 判断FMU信号丢失的最大时间间隔
  */
 #define FMU_INPUT_DROP_LIMIT_US		500000
 #define NAN_VALUE	(0.0f/0.0f)
 
 /* current servo arm/disarm state */
+// 当前电机上锁/解锁状态
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
 static bool should_arm_nothrottle = false;
@@ -75,6 +78,7 @@ static volatile bool in_mixer = false;
 extern int _sbus_fd;
 
 /* selected control values and count for mixing */
+// 选择用来混控的控制值以及数目
 enum mixer_source {
 	MIX_NONE,
 	MIX_FMU,

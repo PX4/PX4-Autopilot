@@ -191,7 +191,7 @@ private:
 	math::Vector<3>		_rates_sp;			/**< angular rates setpoint 角速度设定值*/
 	math::Vector<3>		_rates_int;		/**< angular rates integral error 角速度积分误差*/
 	float				_thrust_sp;		/**< thrust setpoint 推力设定值*/
-	math::Vector<3>		_att_control;		/**< attitude control vector 姿态控制向量-欧拉角*/
+	math::Vector<3>		_att_control;		/**< attitude control vector 姿态控制量-欧拉角*/
 
 	math::Matrix<3, 3>  _I;					/**< identity matrix 单位矩阵*/
 
@@ -232,8 +232,8 @@ private:
 		math::Vector<3> rate_p;				/**< P gain for angular rate error 角速度误差的P增益*/
 		math::Vector<3> rate_i;				/**< I gain for angular rate error 角速度误差的I增益*/
 		math::Vector<3> rate_d;				/**< D gain for angular rate error 角速度误差的D增益*/
-		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates 期望速度的前馈增益*/
-		float yaw_ff;						/**< yaw control feed-forward 偏航控制的前馈*/
+		math::Vector<3>	rate_ff;			    /**< Feedforward gain for desired rates 期望角速度的前馈增益*/
+		float yaw_ff;						    /**< yaw control feed-forward 偏航控制的前馈*/
 
 		float roll_rate_max;
 		float pitch_rate_max;
@@ -568,7 +568,7 @@ void
 MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	/* check if there is a new setpoint */
-	// 检查是否有新的设定值
+	// 检查是否有新的角度设定值
 	bool updated;
 	orb_check(_v_att_sp_sub, &updated);
 
@@ -581,6 +581,7 @@ void
 MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	/* check if there is a new setpoint */
+	// 检查是否有新的角速度设定值
 	bool updated;
 	orb_check(_v_rates_sp_sub, &updated);
 

@@ -34,7 +34,7 @@
 /**
  * @file position_estimator_inav_main.c
  * Model-identification based position estimator for multirotors
- *
+ * 基于多旋翼位置估计的模式识别
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
@@ -86,10 +86,10 @@ static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool inav_verbose_mode = false;
 
-static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
-static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s
-static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
-static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
+static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s 视觉话题暂停时间
+static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s  动作捕捉话题暂停时间
+static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s    GPS话题暂停时间
+static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s 光流话题暂停时间
 static const hrt_abstime lidar_timeout = 150000;	// lidar timeout = 150ms
 static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distance during this time after lidar loss
 static const unsigned updates_counter_len = 1000000;
