@@ -77,6 +77,8 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_virtual_fw.h>
+#include <uORB/topics/actuator_controls_virtual_mc.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
@@ -121,11 +123,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define RATES_I_LIMIT	0.3f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
-
-#define AXIS_INDEX_ROLL 0
-#define AXIS_INDEX_PITCH 1
-#define AXIS_INDEX_YAW 2
-#define AXIS_COUNT 3
 
 class MulticopterAttitudeControl
 {
@@ -176,9 +173,9 @@ private:
 															// ÒÖÖÆÊä³öµÄ¶ÏÂ·Æ÷
 
 	struct control_state_s				_ctrl_state;		/**< control state ¿ØÖÆ×´Ì¬*/
-	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< ÐÐÆ÷×ËÌ¬Éè¶¨Öµ */
-	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**<·ÉÐÐÆ÷½ÇËÙ¶ÈÉè¶¨Öµ*/
-	struct manual_control_setpoint_s	_manual_control_sp;	/**< ÊÖ¶¯¿ØÖÆÉè¶¨Öµ*/
+	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint ·ÉÐÐÆ÷×ËÌ¬Éè¶¨Öµ */
+	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint ·ÉÐÐÆ÷ËÙ¶ÈÉè¶¨Öµ*/
+	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint ÊÖ¶¯¿ØÖÆÉè¶¨Öµ*/
 	struct vehicle_control_mode_s		_v_control_mode;	    /**< vehicle control mode */
 	struct actuator_controls_s			_actuators;			/**< actuator controls */
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
@@ -193,8 +190,13 @@ private:
 	math::Vector<3>		_rates_sp_prev;   /**< previous rates setpoint Ö®Ç°µÄ½ÇËÙ¶ÈÉè¶¨Öµ*/
 	math::Vector<3>		_rates_sp;			/**< angular rates setpoint ½ÇËÙ¶ÈÉè¶¨Öµ*/
 	math::Vector<3>		_rates_int;		/**< angular rates integral error ½ÇËÙ¶È»ý·ÖÎó²î*/
+<<<<<<< HEAD
 	float				_thrust_sp;		/**< thrust setpoint ÍÆÁ¦Éè¶¨Öµ*/
+	math::Vector<3>		_att_control;		/**< attitude control vector ×ËÌ¬¿ØÖÆÁ¿-Å·À­½Ç*/
+=======
+	float					_thrust_sp;		/**< thrust setpoint ÍÆÁ¦Éè¶¨Öµ*/
 	math::Vector<3>		_att_control;		/**< attitude control vector ×ËÌ¬¿ØÖÆÏòÁ¿-Å·À­½Ç*/
+>>>>>>> e425d673fdd9949d9fde353151b551aeeffc1ce4
 
 	math::Matrix<3, 3>  _I;					/**< identity matrix µ¥Î»¾ØÕó*/
 
@@ -209,8 +211,6 @@ private:
 		param_t pitch_rate_i;
 		param_t pitch_rate_d;
 		param_t pitch_rate_ff;
-		param_t tpa_breakpoint;
-		param_t tpa_slope;
 		param_t yaw_p;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
@@ -237,11 +237,8 @@ private:
 		math::Vector<3> rate_p;				/**< P gain for angular rate error ½ÇËÙ¶ÈÎó²îµÄPÔöÒæ*/
 		math::Vector<3> rate_i;				/**< I gain for angular rate error ½ÇËÙ¶ÈÎó²îµÄIÔöÒæ*/
 		math::Vector<3> rate_d;				/**< D gain for angular rate error ½ÇËÙ¶ÈÎó²îµÄDÔöÒæ*/
-		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates ÆÚÍûËÙ¶ÈµÄÇ°À¡ÔöÒæ*/
-		float yaw_ff;						/**< yaw control feed-forward Æ«º½¿ØÖÆµÄÇ°À¡*/
-
-		float tpa_breakpoint;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_slope;					/**< Throttle PID Attenuation slope */
+		math::Vector<3>	rate_ff;			    /**< Feedforward gain for desired rates ÆÚÍû½ÇËÙ¶ÈµÄÇ°À¡ÔöÒæ*/
+		float yaw_ff;						    /**< yaw control feed-forward Æ«º½¿ØÖÆµÄÇ°À¡*/
 
 		float roll_rate_max;
 		float pitch_rate_max;
@@ -403,8 +400,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
 	_params_handles.pitch_rate_ff 	= 	param_find("MC_PITCHRATE_FF");
-	_params_handles.tpa_breakpoint 	= 	param_find("MC_TPA_BREAK");
-	_params_handles.tpa_slope	 	= 	param_find("MC_TPA_SLOPE");
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
@@ -454,10 +449,6 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 		} while (_control_task != -1);
 	}
 
-	if (_ts_opt_recovery != nullptr) {
-		delete _ts_opt_recovery;
-	}
-
 	delete _ts_opt_recovery;
 	mc_att_control::g_control = nullptr;
 }
@@ -495,11 +486,6 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_ff, &v);
 	_params.rate_ff(1) = v;
-
-	param_get(_params_handles.tpa_breakpoint, &v);
-	_params.tpa_breakpoint = v;
-	param_get(_params_handles.tpa_slope, &v);
-	_params.tpa_slope = v;
 
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
@@ -587,7 +573,7 @@ void
 MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	/* check if there is a new setpoint */
-	// ¼ì²éÊÇ·ñÓÐÐÂµÄÉè¶¨Öµ
+	// ¼ì²éÊÇ·ñÓÐÐÂµÄ½Ç¶ÈÉè¶¨Öµ
 	bool updated;
 	orb_check(_v_att_sp_sub, &updated);
 
@@ -600,6 +586,7 @@ void
 MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	/* check if there is a new setpoint */
+	// ¼ì²éÊÇ·ñÓÐÐÂµÄ½ÇËÙ¶ÈÉè¶¨Öµ
 	bool updated;
 	orb_check(_v_rates_sp_sub, &updated);
 
@@ -784,11 +771,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	* Ö±½Ó¼ÆËã²Î¿¼Ïµµ½»úÌåÏµµÄÐý×ª¾ØÕó£¬²¢×ª»»³ÉËÄÔªÊýÐÎÊ½
 	*/
 	if (e_R_z_cos < 0.0f) {
-		/* for large thrust vector rotations use another rotation method:
-		 * calculate angle and axis for R -> R_sp rotation directly */
-		//math::Quaternion q_error;
-		//q_error.from_dcm(R.transposed() * R_sp);
-		//math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f : -q_error.imag() * 2.0f;
 		 /* for large thrust vector rotations use another rotation method:
 		  * calculate angle and axis for R -> R_sp rotation directly 
 		  * ¶ÔÓÚ´óµÄÍÆÁ¦ÏòÁ¿Ê¹ÓÃÆäËûÐý×ª·½·¨:¼ÆËã½Ç¶ÈÒÔ¼°ÖáÖ±½Ó×÷ÓÃÓÚR->R_spµÄÐý×ª
@@ -802,7 +784,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		math::Vector<3> e_R_d = q.imag(); //È¡³öÐé²¿
 		e_R_d.normalize(); // ¹éÒ»»¯
 		e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0)); //µÃµ½Ò»¸öÎó²î½Ç¶ÈÏòÁ¿
-
 
 		/* use fusion of Z axis based rotation and direct rotation */
 		// Ê¹ÓÃZÖáÈÚºÏ»ù±¾Ðý×ªÒÔ¼°Ö±½ÓÐý×ª
@@ -819,28 +800,13 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* limit rates ½ÇËÙ¶ÈÏÞÖÆ*/
 	for (int i = 0; i < 3; i++) {
-		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
-		    !_v_control_mode.flag_control_manual_enabled) {
-			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
-
-		} else {
-			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
-		}
-
+		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 	}
 
 	/* feed forward yaw setpoint rate */
 	// Æ«º½ËÙ¶ÈÉè¶¨ÖµµÄÇ°À¡
 	// yawÏìÓ¦½ÏÂý£¬Òò´ËÔÙ¼ÓÈëÒ»¸öÇ°À¡¿ØÖÆ
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
-	/* weather-vane mode, dampen yaw rate */
-	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
-	    _v_att_sp.disable_mc_yaw_control == true && !_v_control_mode.flag_control_manual_enabled) {
-		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
-		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
-		// prevent integrator winding up in weathervane mode
-		_rates_int(2) = 0.0f;
-	}
 }
    /*
     *ÉÏÃæÕâ²¿·Ö´úÂë¾Í¾­¹ýÒ»ÏµÁÐµÄËã·¨´¦Àí¹ýÒÔºó»ñÈ¡µÃµ½Ä¿±êÄÚ»·
@@ -874,33 +840,23 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) = _ctrl_state.pitch_rate;
 	rates(2) = _ctrl_state.yaw_rate;
 
-	/* throttle pid attenuation factor */
-	float tpa =  fmaxf(0.0f, fminf(1.0f, 1.0f - _params.tpa_slope * (fabsf(_v_rates_sp.thrust) - _params.tpa_breakpoint)));
-
 	/* angular rates error */
 	// ½ÇËÙ¶ÈÎó²î 
 	math::Vector<3> rates_err = _rates_sp - rates;
-
-	_att_control = _params.rate_p.emult(rates_err * tpa) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
-		       _params.rate_ff.emult(_rates_sp);
-
-	//_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
-	//	       _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;  // Î¢·Ö
-
+	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
+		       _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;  // Î¢·Ö
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit and if motor commands are not saturated */
 	// ½öµ±µÍÏÞÖÆ²»±¥ºÍÒÔ¼°µç»úÃüÁî²»±¥ºÍÊ±¸üÐÂ»ý·Ö???
 	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
-		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+		for (int i = 0; i < 3; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
-				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
-				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
 					_rates_int(i) = rate_i;
 				}
 			}
@@ -933,7 +889,7 @@ MulticopterAttitudeControl::task_main()
 	 * ¶©ÔÄ
 	 * 
 	 * ×¢Òâ¸ÃËã·¨´¦Àí¹ý³ÌÖÐµÄÓÐÐ§Êý¾ÝµÄÓÃÍ¾ÎÊÌâ£¬×îºó´¦Àí¹ýµÄÊý¾Ý×îºóÓÖ±»¸Ä½ø³Ì×Ô¼º¶©ÔÄÁË£¬ 
-	 * È»ºóÔÙ´¦Àí£¬ÔÙ¶©ÔÄ£¬Ò»Ö±´¦ÓÚÑ­»·×´Ì¬£¬Õâ¾ÍÊÇËùÎ½µÄPID·´À¡¿ØÖÆÆ÷°É£¡£
+	 * È»ºóÔÙ´¦Àí£¬ÔÙ¶©ÔÄ£¬Ò»Ö±´¦ÓÚÑ­»·×´Ì¬£¬Õâ¾ÍÊÇËùÎ½µÄPID·´À¡¿ØÖÆÆ÷°É£¡?
 	 * ×îÖÕ´ïµ½ËùÐèÇóµÄ¿ØÖÆÐ§¹û£¬´ïµ½¿ØÖÆÐ§¹ûÒÔºó¾Í°ÑÒ»ÏµÁÐµÄ¿ØÖÆÁ¿ÖÃ0£¨ÀàËÆÓÚidle£©£¬
 	 * ¸ÃÈÎÎñÒ»Ö±ÔÚÔËÐÐ£¬ËæÆô¶¯½Å±¾Æô¶¯µÄ¡£
 	 */
@@ -1023,9 +979,6 @@ MulticopterAttitudeControl::task_main()
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
-			 * even bother running the attitude controllers */
-			 
-			//if (_v_control_mode.flag_control_rattitude_enabled) {
 			 * even bother running the attitude controllers 
 			 * ¼ì²éÎÒÃÇÊÇ·ñ´¦ÓÚrAttitudeÄ£Ê½ÒÔ¼°·ÉÐÐÔ±(¸©Ñö»òÕßÆ«º½(Æ«º½ÔÚÒ»°ã×ËÌ¬¿ØÖÆÏÂ¿ÉÒÔ360¶È
 			 * Ðý×ª))ÊÇ·ñÔÚÓÍÃÅãÐÖµÖ®ÉÏ¡£

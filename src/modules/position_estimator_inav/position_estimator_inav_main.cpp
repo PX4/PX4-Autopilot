@@ -34,7 +34,7 @@
 /**
  * @file position_estimator_inav_main.c
  * Model-identification based position estimator for multirotors
- *
+ * 基于多旋翼位置估计的模式识别
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
@@ -82,10 +82,10 @@ static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool inav_verbose_mode = false;
 
-static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
-static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s
-static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
-static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
+static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s 视觉话题暂停时间
+static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s  动作捕捉话题暂停时间
+static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s    GPS话题暂停时间
+static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s 光流话题暂停时间
 static const hrt_abstime lidar_timeout = 150000;	// lidar timeout = 150ms
 static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distance during this time after lidar loss
 static const unsigned updates_counter_len = 1000000;
@@ -388,12 +388,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
-	TerrainEstimator terrain_estimator;
-=======
 
 	TerrainEstimator *terrain_estimator = new TerrainEstimator();
->>>>>>> let's start
 
 	thread_running = true;
 
@@ -402,29 +398,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (ret < 0) {
 			/* poll error */
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 			mavlink_log_info(&mavlink_log_pub, "[inav] poll error on init");
 
 		} else if (hrt_absolute_time() - baro_wait_for_sample_time > MAX_WAIT_FOR_BARO_SAMPLE) {
 			wait_baro = false;
 			mavlink_log_info(&mavlink_log_pub, "[inav] timed out waiting for a baro sample");
-=======
-			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
-			PX4_WARN("INAV poll error");
->>>>>>> let's start
 
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
 					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
-=======
-				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp[0];
->>>>>>> let's start
+
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
@@ -540,7 +527,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated2) {
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 			}
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
 
@@ -551,8 +537,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
 					}
-=======
->>>>>>> let's start
 
 			if (updated && updated2) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
@@ -561,19 +545,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 //				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
 //				flow_prev = flow.flow_timestamp;
 
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 					if (lidar_first) {
 						lidar_first = false;
 						lidar_offset = dist_ground + z_est[0];
 						mavlink_log_info(&mavlink_log_pub, "[inav] LIDAR: new ground offset");
 						warnx("[inav] LIDAR: new ground offset");
 					}
-=======
-				if ((lidar.current_distance > 0.21f) &&
-					(lidar.current_distance < 4.0f) &&
-					/*(PX4_R(att.R, 2, 2) > 0.7f) &&*/
-					(fabsf(lidar.current_distance - lidar_prev) > FLT_EPSILON)) {
->>>>>>> let's start
 
 					lidar_time = t;
 					lidar_prev = lidar.current_distance;
@@ -604,12 +581,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						lidar_valid_time = t;
 						lidar_valid = true;
 					}
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 
 				} else {
 					lidar_valid = false;
-=======
->>>>>>> let's start
+
 				}
 
 				float flow_q = flow.quality / 255.0f;
@@ -668,8 +643,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
-
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
 					orb_check(vehicle_rate_sp_sub, &updated);
 
@@ -713,15 +686,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					}
 
-=======
-					//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-					flow_ang[0] = (flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0] - yaw_comp[0];//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
-					flow_ang[1] = (flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1] - yaw_comp[1];//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
-					/* flow measurements vector */
-					float flow_m[3];
-					flow_m[0] = -flow_ang[0] * flow_dist;
-					flow_m[1] = -flow_ang[1] * flow_dist;
->>>>>>> let's start
 					flow_m[2] = z_est[1];
 					/* velocity in NED */
 					float flow_v[2] = { 0.0f, 0.0f };
@@ -842,16 +806,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					z_est[0] = mocap.z;
 
 					mocap_valid = true;
-
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 						warnx("MOCAP data valid");
 						mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP data valid");
 					}
-=======
-					warnx("MOCAP data valid");
-					mavlink_log_info(mavlink_fd, "[inav] MOCAP data valid");
-				}
->>>>>>> let's start
 
 				/* calculate correction for position */
 				corr_mocap[0][0] = mocap.x - x_est[0];
@@ -873,24 +830,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps_valid) {
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 						mavlink_log_info(&mavlink_log_pub, "[inav] GPS signal lost");
 						warnx("[inav] GPS signal lost");
-=======
-						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
->>>>>>> let's start
 					}
 
 				} else {
 					if (gps.eph < max_eph_epv * 0.7f && gps.epv < max_eph_epv * 0.7f && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 						mavlink_log_info(&mavlink_log_pub, "[inav] GPS signal found");
 						warnx("[inav] GPS signal found");
-=======
-						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
->>>>>>> let's start
 					}
 				}
 
@@ -1012,11 +961,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (lidar_valid && (t > (lidar_time + lidar_timeout))) {
 			corr_lidar = 0.0f;
 			lidar_valid = false;
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 			warnx("LIDAR timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] LIDAR timeout");
-=======
->>>>>>> let's start
+
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
@@ -1044,15 +991,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
 		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W
 				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used
-=======
-		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W;
-		if(params.disable_mocap) { //disable mocap if fake gps is used
->>>>>>> let's start
 			use_mocap = false;
 		}
 		/* use flow if it's valid and (accurate or no GPS available) */
@@ -1176,16 +1118,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			accel_bias_corr[1] -= corr_flow[1] * params.w_xy_flow;
 		}
 
-<<<<<<< fd2be75d086e81726495197a6c8cb7a75ee1a45e
 		if (use_lidar) {
 			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
 
 		} else {
 			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 		}
-=======
-		accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
->>>>>>> let's start
 
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {

@@ -34,7 +34,7 @@
 /**
  * @file mc_mixer.cpp
  * Dummy multicopter mixer for rotors simulator (gazebo)
- *
+ * 用于电机仿真的虚拟多旋翼混控器 (眺望台)
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
 #include <ros/ros.h>
@@ -88,6 +88,8 @@ const MultirotorMixer::Rotor _config_x[] = {
 	{  0.707107,  0.707107, -1.00 },
 	{ -0.707107, -0.707107, -1.00 },
 };
+// 绕 X,Y轴旋转的拉力力矩   绕Z轴旋转的扭矩
+// 逆时针转动的电机，产生顺时针的力矩 (关于Z轴)
 
 const MultirotorMixer::Rotor _config_quad_plus[] = {
 	{ -1.000000,  0.000000,  1.00 },
