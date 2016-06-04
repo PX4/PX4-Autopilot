@@ -470,14 +470,14 @@ void Logger::run()
 	add_topic("vehicle_status", 200);
 
 	if (!_writer.init()) {
-		PX4_ERR("logger: init of writer failed");
+		PX4_ERR("init of writer failed (alloc failed)");
 		return;
 	}
 
 	int ret = _writer.thread_start(writer_thread);
 
 	if (ret) {
-		PX4_ERR("logger: failed to create writer thread (%i)", ret);
+		PX4_ERR("failed to create writer thread (%i)", ret);
 		return;
 	}
 
@@ -806,17 +806,20 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 	/* Get the latest GPS publication */
 	vehicle_gps_position_s gps_pos;
+	time_t utc_time_sec;
+	bool use_clock_time = true;
 
-	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) < 0) {
+	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) == 0) {
+		utc_time_sec = gps_pos.time_utc_usec / 1e6;
 		orb_unsubscribe(vehicle_gps_position_sub);
-		return false;
+
+		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
+			use_clock_time = false;
+		}
 	}
 
-	orb_unsubscribe(vehicle_gps_position_sub);
-	time_t utc_time_sec = gps_pos.time_utc_usec / 1e6;
-
-	if (gps_pos.fix_type < 2 || utc_time_sec < GPS_EPOCH_SECS) {
-		//take clock time if there's no fix (yet)
+	if (use_clock_time) {
+		/* take clock time if there's no fix (yet) */
 		struct timespec ts;
 		px4_clock_gettime(CLOCK_REALTIME, &ts);
 		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
@@ -1102,7 +1105,6 @@ void Logger::write_changed_parameters()
 
 		// log parameters which are valid AND used AND unsaved
 		if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
-			warnx("logging change to parameter %s", param_name(param));
 
 			/* get parameter type and size */
 			const char *type_str;
