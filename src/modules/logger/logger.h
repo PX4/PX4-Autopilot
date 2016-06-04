@@ -195,6 +195,8 @@ private:
 	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";
 #endif
 
+	uint8_t						*_msg_buffer = nullptr;
+	int						_msg_buffer_len = 0;
 	bool						_task_should_exit = true;
 	char 						_log_dir[64];
 	bool						_has_log_dir = false;

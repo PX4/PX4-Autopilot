@@ -293,8 +293,6 @@ void Logger::run_trampoline(int argc, char *argv[])
 }
 
 
-static constexpr size_t MAX_DATA_SIZE = 740;
-
 Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp) :
 	_log_on_start(log_on_start),
@@ -327,18 +325,15 @@ Logger::~Logger()
 			}
 		} while (logger_task != -1);
 	}
+
+	if (_msg_buffer) {
+		delete[](_msg_buffer);
+	}
 }
 
 int Logger::add_topic(const orb_metadata *topic)
 {
 	int fd = -1;
-
-	if (topic->o_size > MAX_DATA_SIZE) {
-		PX4_WARN("skip topic %s, data size is too large: %zu (max is %zu)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
-		return -1;
-
-	}
-
 	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
 
 	if (fields_len > sizeof(ulog_message_format_s::format)) {
@@ -469,6 +464,33 @@ void Logger::run()
 //	add_topic("estimator_status");
 	add_topic("vehicle_status", 200);
 
+	//all topics added. Get required message buffer size
+	int max_msg_size = 0;
+
+	for (const auto &subscription : _subscriptions) {
+		//use o_size, because that's what orb_copy will use
+		if (subscription.metadata->o_size > max_msg_size) {
+			max_msg_size = subscription.metadata->o_size;
+		}
+	}
+
+	max_msg_size += sizeof(ulog_message_data_header_s);
+
+	if (max_msg_size > _msg_buffer_len) {
+		if (_msg_buffer) {
+			delete[](_msg_buffer);
+		}
+
+		_msg_buffer_len = max_msg_size;
+		_msg_buffer = new uint8_t[_msg_buffer_len];
+
+		if (!_msg_buffer) {
+			PX4_ERR("failed to alloc message buffer");
+			return;
+		}
+	}
+
+
 	if (!_writer.init()) {
 		PX4_ERR("init of writer failed (alloc failed)");
 		return;
@@ -538,26 +560,25 @@ void Logger::run()
 				/* each message consists of a header followed by an orb data object
 				 */
 				size_t msg_size = sizeof(ulog_message_data_header_s) + sub.metadata->o_size_no_padding;
-				uint8_t buffer[msg_size];
 
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub, instance, buffer + sizeof(ulog_message_data_header_s))) {
+					if (copy_if_updated_multi(sub, instance, _msg_buffer + sizeof(ulog_message_data_header_s))) {
 
 						uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
 						//write one byte after another (necessary because of alignment)
-						buffer[0] = (uint8_t)write_msg_size;
-						buffer[1] = (uint8_t)(write_msg_size >> 8);
-						buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
+						_msg_buffer[0] = (uint8_t)write_msg_size;
+						_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+						_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
 						uint16_t write_msg_id = sub.msg_ids[instance];
-						buffer[3] = (uint8_t)write_msg_id;
-						buffer[4] = (uint8_t)(write_msg_id >> 8);
+						_msg_buffer[3] = (uint8_t)write_msg_id;
+						_msg_buffer[4] = (uint8_t)(write_msg_id >> 8);
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-						if (write(buffer, msg_size)) {
+						if (write(_msg_buffer, msg_size)) {
 
 #ifdef DBGPRINT
 							total_bytes += msg_size;
