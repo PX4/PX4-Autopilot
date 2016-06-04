@@ -186,7 +186,7 @@ private:
 	 */
 	bool get_log_time(struct tm *tt, bool boot_time = false);
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
+	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 #ifdef __PX4_POSIX_EAGLE
