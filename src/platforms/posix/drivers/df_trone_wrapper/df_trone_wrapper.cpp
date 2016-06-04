@@ -175,6 +175,7 @@ int DfTROneWrapper::_publish(struct range_sensor_data &data)
 	if (_range_topic == nullptr) {
 		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,
 						   &_orb_class_instance, ORB_PRIO_DEFAULT);
+
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _range_topic, &d);
 	}
