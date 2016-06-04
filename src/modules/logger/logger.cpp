@@ -546,10 +546,14 @@ void Logger::run()
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
 					if (copy_if_updated_multi(sub, instance, buffer + sizeof(ulog_message_data_header_s))) {
 
-						ulog_message_data_header_s *header = reinterpret_cast<ulog_message_data_header_s *>(buffer);
-						header->msg_type = static_cast<uint8_t>(ULogMessageType::DATA);
-						header->msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
-						header->msg_id = sub.msg_ids[instance];
+						uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
+						//write one byte after another (necessary because of alignment)
+						buffer[0] = (uint8_t)write_msg_size;
+						buffer[1] = (uint8_t)(write_msg_size >> 8);
+						buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
+						uint16_t write_msg_id = sub.msg_ids[instance];
+						buffer[3] = (uint8_t)write_msg_id;
+						buffer[4] = (uint8_t)(write_msg_id >> 8);
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
