@@ -476,6 +476,10 @@ void Logger::run()
 
 	max_msg_size += sizeof(ulog_message_data_header_s);
 
+	if (sizeof(ulog_message_logging_s) > max_msg_size) {
+		max_msg_size = sizeof(ulog_message_logging_s);
+	}
+
 	if (max_msg_size > _msg_buffer_len) {
 		if (_msg_buffer) {
 			delete[](_msg_buffer);
@@ -596,16 +600,20 @@ void Logger::run()
 			//check for new mavlink log message
 			if (mavlink_log_sub.check_updated()) {
 				mavlink_log_sub.update();
-				ulog_message_logging_s log_msg;
-				log_msg.log_level = mavlink_log_sub.get().severity + '0';
-				log_msg.timestamp = mavlink_log_sub.get().timestamp;
 				const char *message = (const char *)mavlink_log_sub.get().text;
 				int message_len = strlen(message);
 
 				if (message_len > 0) {
-					strncpy(log_msg.message, message, sizeof(log_msg.message));
-					log_msg.msg_size = sizeof(log_msg) - sizeof(log_msg.message) - ULOG_MSG_HEADER_LEN + message_len;
-					write(&log_msg, log_msg.msg_size + ULOG_MSG_HEADER_LEN);
+					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
+							- ULOG_MSG_HEADER_LEN + message_len;
+					_msg_buffer[0] = (uint8_t)write_msg_size;
+					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
+					_msg_buffer[3] = mavlink_log_sub.get().severity + '0';
+					memcpy(_msg_buffer+4, &mavlink_log_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
+					strncpy((char*)(_msg_buffer+12), message, sizeof(ulog_message_logging_s::message));
+
+					write(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
 				}
 			}
 
