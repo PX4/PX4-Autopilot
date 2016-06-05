@@ -87,24 +87,6 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
 /**
- * Set RC loss failsafe mode
- *
- * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will not be triggered.
- * Setting this parameter to 4 will enable CASA Outback Challenge rules,
- * which are only recommended to participants of that competition.
- *
- * @value 0 Disabled
- * @value 1 Loiter
- * @value 2 Return to Land
- * @value 3 Land at current position
- *
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_RCL_ACT, 0);
-
-/**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
