@@ -107,6 +107,8 @@ public:
 
 	void status();
 
+	bool _arm_override;
+
 private:
 	static void run_trampoline(int argc, char *argv[]);
 
@@ -185,6 +187,15 @@ private:
 	 * @return true on success, false otherwise (eg. if no gps)
 	 */
 	bool get_log_time(struct tm *tt, bool boot_time = false);
+
+	/**
+	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
+	 * @param fname name of file
+	 * @return number of topics added
+	 */
+	int add_topics_from_file(const char *fname);
+
+	void add_default_topics();
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
