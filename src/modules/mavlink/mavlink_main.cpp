@@ -237,12 +237,15 @@ Mavlink::Mavlink() :
 	_message_buffer_mutex {},
 	_send_mutex {},
 	_param_initialized(false),
-	_param_system_id(0),
-	_param_component_id(0),
-	_param_radio_id(0),
-	_param_system_type(MAV_TYPE_FIXED_WING),
-	_param_use_hil_gps(0),
-	_param_forward_externalsp(0),
+	_logging_enabled(false),
+	_broadcast_mode(Mavlink::BROADCAST_MODE_OFF),
+	_param_system_id(PARAM_INVALID),
+	_param_component_id(PARAM_INVALID),
+	_param_radio_id(PARAM_INVALID),
+	_param_system_type(PARAM_INVALID),
+	_param_use_hil_gps(PARAM_INVALID),
+	_param_forward_externalsp(PARAM_INVALID),
+	_param_broadcast(PARAM_INVALID),
 	_system_type(0),
 
 	/* performance counters */
@@ -539,6 +542,7 @@ void Mavlink::mavlink_update_system(void)
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
+		_param_broadcast = param_find("MAV_BROADCAST");
 
 		/* test param - needs to be referenced, but is unused */
 		(void)param_find("MAV_TEST_PAR");
@@ -596,6 +600,8 @@ void Mavlink::mavlink_update_system(void)
 
 	int32_t forward_externalsp;
 	param_get(_param_forward_externalsp, &forward_externalsp);
+
+	param_get(_param_broadcast, &_broadcast_mode);
 
 	_forward_externalsp = (bool)forward_externalsp;
 }
@@ -889,7 +895,7 @@ Mavlink::send_packet()
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend message via broadcast if no valid connection exists */
-		if ((_mode != MAVLINK_MODE_ONBOARD) &&
+		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
 			(!get_client_source_initialized()
 			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
 
@@ -2473,6 +2479,26 @@ Mavlink::stream_command(int argc, char *argv[])
 	}
 
 	return OK;
+}
+
+void
+Mavlink::set_boot_complete()
+{
+	_boot_complete = true;
+
+#ifdef __PX4_POSIX
+	Mavlink *inst;
+	LL_FOREACH(::_mavlink_instances, inst) {
+		if ((inst->get_mode() != MAVLINK_MODE_ONBOARD) &&
+			(!inst->broadcast_enabled()) &&
+			((inst->get_protocol() == UDP) || (inst->get_protocol() == TCP))) {
+			printf("\n\n   **********   NETWORK BROADCAST NOT ENABLED   **********\n" \
+				"   The drone will only connect to localhost (excluding VMs).\n" \
+				"   Run 'pxh> param set MAV_BROADCAST 1' to enable.\n");
+		}
+	}
+#endif
+
 }
 
 static void usage()
