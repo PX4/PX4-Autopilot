@@ -323,10 +323,6 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
-
-	if (_mavlink_instances) {
-		LL_DELETE(_mavlink_instances, this);
-	}
 }
 
 void
@@ -370,13 +366,10 @@ Mavlink *
 Mavlink::get_instance(unsigned instance)
 {
 	Mavlink *inst;
-	unsigned inst_index = 0;
 	LL_FOREACH(::_mavlink_instances, inst) {
-		if (instance == inst_index) {
+		if (instance == inst->get_instance_id()) {
 			return inst;
 		}
-
-		inst_index++;
 	}
 
 	return nullptr;
@@ -439,6 +432,14 @@ Mavlink::destroy_all_instances()
 				return ERROR;
 			}
 		}
+
+	}
+
+	//we know all threads have exited, so it's safe to manipulate the linked list and delete objects.
+	while (_mavlink_instances) {
+		inst_to_del = _mavlink_instances;
+		LL_DELETE(_mavlink_instances, inst_to_del);
+		delete (inst_to_del);
 	}
 
 	printf("\n");
@@ -2259,8 +2260,7 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
 
-	warnx("exiting");
-	_task_running = false;
+	warnx("exiting channel %i", (int)_channel);
 
 	return OK;
 }
@@ -2281,9 +2281,8 @@ int Mavlink::start_helper(int argc, char *argv[])
 	} else {
 		/* this will actually only return once MAVLink exits */
 		res = instance->task_main(argc, argv);
+		instance->_task_running = false;
 
-		/* delete instance on main thread end */
-		delete instance;
 	}
 
 	return res;
