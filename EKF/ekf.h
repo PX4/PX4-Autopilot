@@ -248,6 +248,10 @@ private:
 	Vector3f _mag_filt_state;	// filtered magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
 	float _hgt_sensor_offset;	// set as necessary if desired to maintain the same height after a height reset (m)
+	float _baro_hgt_offset;		// baro height reading at the local NED origin (m)
+
+	// Variables used to control activation of post takeoff functionality
+	float _last_on_ground_posD; // last vertical position when the in_air status was false (m)
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
@@ -264,8 +268,6 @@ private:
 	bool _gps_hgt_faulty;		// true if valid gps height data is unavailable for use
 	bool _rng_hgt_faulty;		// true if valid rnage finder height data is unavailable for use
 	int _primary_hgt_source;	// priary source of height data set at initialisation
-
-	float _baro_hgt_offset;		// baro height reading at the local NED origin (m)
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)

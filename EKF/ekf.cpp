@@ -98,6 +98,8 @@ Ekf::Ekf():
 	_ev_counter(0),
 	_time_last_mag(0),
 	_hgt_sensor_offset(0.0f),
+	_baro_hgt_offset(0.0f),
+	_last_on_ground_posD(0.0f),
 	_terrain_vpos(0.0f),
 	_terrain_var(1.e4f),
 	_hagl_innov(0.0f),
@@ -106,7 +108,6 @@ Ekf::Ekf():
 	_baro_hgt_faulty(false),
 	_gps_hgt_faulty(false),
 	_rng_hgt_faulty(false),
-	_baro_hgt_offset(0.0f),
 	_time_bad_vert_accel(0)
 {
 	_state = {};

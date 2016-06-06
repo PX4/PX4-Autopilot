@@ -552,6 +552,11 @@ void Ekf::controlHeightAiding()
 		_control_status.flags.ev_hgt = true;
 
 	}
+
+	// If we are on ground, store the local position and time to use as a reference for takeoff checks
+	if (!_control_status.flags.in_air) {
+		_last_on_ground_posD = _state.pos(2);
+	}
 }
 
 void Ekf::controlMagAiding()
@@ -564,22 +569,27 @@ void Ekf::controlMagAiding()
 	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 	// or the more accurate 3-axis fusion
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
+		// start 3D fusion if in-flight and height has increased sufficiently
+		// to be away from ground magnetic anomalies
+		// don't switch back to heading fusion until we are back on the ground
+		bool height_achieved = (_last_on_ground_posD - _state.pos(2)) > 1.5f;
+		bool use_3D_fusion = _control_status.flags.in_air && (_control_status.flags.mag_3D || height_achieved);
 
-	if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-		// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
-		if (!_control_status.flags.mag_3D) {
-			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+		if (use_3D_fusion && _control_status.flags.tilt_align) {
+			// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
+			if (!_control_status.flags.mag_3D) {
+				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			}
+
+			// use 3D mag fusion when airborne
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_3D = true;
+
+		} else {
+			// use heading fusion when on the ground
+			_control_status.flags.mag_hdg = true;
+			_control_status.flags.mag_3D = false;
 		}
-
-		// use 3D mag fusion when airborne
-		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_3D = true;
-
-	} else {
-		// use heading fusion when on the ground
-		_control_status.flags.mag_hdg = true;
-		_control_status.flags.mag_3D = false;
-	}
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 		// always use heading fusion
