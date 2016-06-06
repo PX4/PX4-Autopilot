@@ -673,18 +673,12 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					*(adv->instance) = group_tries;
 				}
 
-				/* driver wants a permanent copy of the node name, so make one here */
-				objname = strdup(meta->o_name);
-
-				if (objname == nullptr) {
-					return -ENOMEM;
-				}
+				objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
 
 				/* driver wants a permanent copy of the path, so make one here */
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -693,7 +687,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					free((void *)objname);
 					free((void *)devpath);
 					return -ENOMEM;
 				}
@@ -720,7 +713,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					}
 
 					/* also discard the name now */
-					free((void *)objname);
 					free((void *)devpath);
 
 				} else {
