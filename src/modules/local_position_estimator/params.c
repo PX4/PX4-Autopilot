@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.0f);
 
 /**
- * GPS
+ * Enables GPS data, also forces alt init with GPS
  *
  * @group Local Position Estimator
  * @boolean
