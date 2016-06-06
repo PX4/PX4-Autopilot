@@ -150,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 
 MavlinkReceiver::~MavlinkReceiver()
 {
+	orb_unsubscribe(_control_mode_sub);
 }
 
 void
