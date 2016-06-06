@@ -269,6 +269,14 @@ private:
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
+	// counters for reset events on position and velocity states
+	// they are used to identify a reset event
+	uint8_t _z_reset_counter;
+	uint8_t _xy_reset_counter;
+	uint8_t _vz_reset_counter;
+	uint8_t _vxy_reset_counter;
+	uint8_t _heading_reset_counter;
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -407,7 +415,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
-	control_vel_enabled_prev(false)
+	control_vel_enabled_prev(false),
+	_z_reset_counter(0),
+	_xy_reset_counter(0),
+	_vz_reset_counter(0),
+	_vxy_reset_counter(0),
+	_heading_reset_counter(0)
 {
 	// Make the quaternion valid for control state
 	_ctrl_state.q[0] = 1.0f;
@@ -660,6 +673,18 @@ MulticopterPositionControl::poll_subscriptions()
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
+
+		if (_control_mode.flag_control_manual_enabled) {
+			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
+				_heading_reset_counter = _ctrl_state.quat_reset_counter;
+				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2], _ctrl_state.delta_q_reset[3]);
+
+				// we only extract the heading change from the delta quaternion
+				math::Vector<3> delta_euler = delta_q.to_euler();
+				_att_sp.yaw_body += delta_euler(2);
+			}
+		}
+
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -690,6 +715,37 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+
+		// check if a reset event has happened
+		// if the vehicle is in manual mode we will shift the setpoints of the
+		// states which were reset. In auto mode we do not shift the setpoints
+		// since we want the vehicle to track the original state.
+		if (_control_mode.flag_control_manual_enabled) {
+			if (_z_reset_counter != _local_pos.z_reset_counter) {
+				_pos_sp(2) += _local_pos.delta_z;
+				_z_reset_counter = _local_pos.z_reset_counter;
+			}
+
+			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
+				_pos_sp(0) += _local_pos.delta_xy[0];
+				_pos_sp(1) += _local_pos.delta_xy[1];
+				_xy_reset_counter = _local_pos.xy_reset_counter;
+			}
+
+			if (_vz_reset_counter != _local_pos.vz_reset_counter) {
+				_vel_sp(2) += _local_pos.delta_vz;
+				_vel_sp_prev(2) +=  _local_pos.delta_vz;
+				_vz_reset_counter = _local_pos.vz_reset_counter;
+			}
+
+			if (_vxy_reset_counter != _local_pos.vxy_reset_counter) {
+				_vel_sp(0) += _local_pos.delta_vxy[0];
+				_vel_sp(1) += _local_pos.delta_vxy[1];
+				_vel_sp_prev(0) += _local_pos.delta_vxy[0];
+				_vel_sp_prev(1) += _local_pos.delta_vxy[1];
+				_vxy_reset_counter = _local_pos.vxy_reset_counter;
+			}
+		}
 	}
 }
 

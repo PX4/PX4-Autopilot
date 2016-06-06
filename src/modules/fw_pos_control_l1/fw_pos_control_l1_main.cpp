@@ -248,6 +248,10 @@ private:
 	float _asp_after_transition;
 	bool _was_in_transition;
 
+	// estimator reset counters
+	uint8_t _pos_reset_counter;		// captures the number of times the estimator has reset the horizontal position
+	uint8_t _alt_reset_counter;		// captures the number of times the estimator has reset the altitude state
+
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
 	enum FW_POSCTRL_MODE {
@@ -613,6 +617,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_last_tecs_update(0.0f),
 	_asp_after_transition(0.0f),
 	_was_in_transition(false),
+	_pos_reset_counter(0),
+	_alt_reset_counter(0),
 	_l1_control(),
 	_tecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER),
@@ -2282,6 +2288,22 @@ FixedwingPositionControl::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+
+			// handle estimator reset events. we only adjust setpoins for manual modes
+			if (_control_mode.flag_control_manual_enabled) {
+				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
+					_hold_alt += _global_pos.delta_alt;
+				}
+
+				// adjust navigation waypoints in position control mode
+				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
+					_hdg_hold_prev_wp.lat += _global_pos.delta_lat_lon[0];
+					_hdg_hold_prev_wp.lon += _global_pos.delta_lat_lon[1];
+					_hdg_hold_curr_wp.lat += _global_pos.delta_lat_lon[0];
+					_hdg_hold_curr_wp.lon += _global_pos.delta_lat_lon[1];
+					_pos_reset_counter = _global_pos.lat_lon_reset_counter;
+				}
+			}
 
 			// XXX add timestamp check
 			_global_pos_valid = true;
