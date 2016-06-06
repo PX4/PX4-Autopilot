@@ -125,7 +125,6 @@ private:
 		unsigned  update_interval; /**< if nonzero minimum interval between updates */
 		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
 		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-		void    *poll_priv; /**< saved copy of fds->f_priv while poll is active */
 		bool    update_reported; /**< true if we have reported the update via poll/check */
 		int   priority; /**< priority of publisher */
 	};
