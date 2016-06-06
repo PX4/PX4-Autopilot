@@ -583,37 +583,32 @@ void BlockLocalPositionEstimator::publishLocalPos()
 
 void BlockLocalPositionEstimator::publishEstimatorStatus()
 {
-	if (PX4_ISFINITE(_x(X_x)) &&
-	    PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
-	    && PX4_ISFINITE(_x(X_vz))) {
-		_pub_est_status.get().timestamp = _timeStamp;
+	_pub_est_status.get().timestamp = _timeStamp;
 
-		for (int i = 0; i < n_x; i++) {
-			_pub_est_status.get().states[i] = _x(i);
-			_pub_est_status.get().covariances[i] = _P(i, i);
-		}
-
-		_pub_est_status.get().n_states = n_x;
-		_pub_est_status.get().nan_flags = 0;
-		_pub_est_status.get().health_flags =
-			((_baroFault > fault_lvl_disable) << SENSOR_BARO)
-			+ ((_gpsFault > fault_lvl_disable) << SENSOR_GPS)
-			+ ((_lidarFault > fault_lvl_disable) << SENSOR_LIDAR)
-			+ ((_flowFault > fault_lvl_disable) << SENSOR_FLOW)
-			+ ((_sonarFault > fault_lvl_disable) << SENSOR_SONAR)
-			+ ((_visionFault > fault_lvl_disable) << SENSOR_VISION)
-			+ ((_mocapFault > fault_lvl_disable) << SENSOR_MOCAP);
-		_pub_est_status.get().timeout_flags =
-			(_baroInitialized << SENSOR_BARO)
-			+ (_gpsInitialized << SENSOR_GPS)
-			+ (_flowInitialized << SENSOR_FLOW)
-			+ (_lidarInitialized << SENSOR_LIDAR)
-			+ (_sonarInitialized << SENSOR_SONAR)
-			+ (_visionInitialized << SENSOR_VISION)
-			+ (_mocapInitialized << SENSOR_MOCAP);
-		_pub_est_status.update();
+	for (int i = 0; i < n_x; i++) {
+		_pub_est_status.get().states[i] = _x(i);
+		_pub_est_status.get().covariances[i] = _P(i, i);
 	}
+
+	_pub_est_status.get().n_states = n_x;
+	_pub_est_status.get().nan_flags = 0;
+	_pub_est_status.get().health_flags =
+		((_baroFault > fault_lvl_disable) << SENSOR_BARO)
+		+ ((_gpsFault > fault_lvl_disable) << SENSOR_GPS)
+		+ ((_lidarFault > fault_lvl_disable) << SENSOR_LIDAR)
+		+ ((_flowFault > fault_lvl_disable) << SENSOR_FLOW)
+		+ ((_sonarFault > fault_lvl_disable) << SENSOR_SONAR)
+		+ ((_visionFault > fault_lvl_disable) << SENSOR_VISION)
+		+ ((_mocapFault > fault_lvl_disable) << SENSOR_MOCAP);
+	_pub_est_status.get().timeout_flags =
+		(_baroInitialized << SENSOR_BARO)
+		+ (_gpsInitialized << SENSOR_GPS)
+		+ (_flowInitialized << SENSOR_FLOW)
+		+ (_lidarInitialized << SENSOR_LIDAR)
+		+ (_sonarInitialized << SENSOR_SONAR)
+		+ (_visionInitialized << SENSOR_VISION)
+		+ (_mocapInitialized << SENSOR_MOCAP);
+	_pub_est_status.update();
 }
 
 void BlockLocalPositionEstimator::publishGlobalPos()
