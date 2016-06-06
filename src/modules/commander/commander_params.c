@@ -263,6 +263,19 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
 /**
+ * Allow arming without GPS
+ *
+ * The default allows to arm the vehicle without GPS signal.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ * @value 0 Don't allow arming without GPS
+ * @value 1 Allow arming without GPS
+ */
+PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+
+/**
  * Battery failsafe mode
  *
  * Action the system takes on low battery. Defaults to off
