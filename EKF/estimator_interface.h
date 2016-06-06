@@ -224,13 +224,13 @@ public:
 	virtual void get_velD_reset(float *delta, uint8_t *counter) = 0;
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
-	virtual void get_posNE_reset(Vector2f *delta, uint8_t *counter) = 0;
+	virtual void get_posNE_reset(float delta[2], uint8_t *counter) = 0;
 
 	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
-	virtual void get_velNE_reset(Vector2f *delta, uint8_t *counter) = 0;
+	virtual void get_velNE_reset(float delta[2], uint8_t *counter) = 0;
 
 	// return the amount the quaternion has changed in the last reset and the number of reset events
-	virtual void get_quat_reset(Quaternion *delta, uint8_t *counter) = 0;
+	virtual void get_quat_reset(float delta_quat[4], uint8_t *counter) = 0;
 
 	// get EKF innovation consistency check status
 	virtual void get_innovation_test_status(uint16_t *val)
