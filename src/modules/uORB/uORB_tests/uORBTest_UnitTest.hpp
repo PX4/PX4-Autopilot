@@ -131,7 +131,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	t.val = 308;
 	t.time = hrt_absolute_time();
 
-	orb_advert_t pfd0 = orb_advertise(T, &t);
+	orb_advert_t pfd0 = orb_advertise(T, &t, 1);
 
 	char *const args[1] = { NULL };
 
