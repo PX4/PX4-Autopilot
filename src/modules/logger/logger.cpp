@@ -399,6 +399,13 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 
 			/* copy first data */
 			if (handle >= 0) {
+				/* set to the same interval as the first instance */
+				unsigned int interval;
+
+				if (orb_get_interval(sub.fd[0], &interval) == 0 && interval > 0) {
+					orb_set_interval(handle, interval);
+				}
+
 				orb_copy(sub.metadata, handle, buffer);
 				updated = true;
 			}
@@ -605,13 +612,13 @@ void Logger::run()
 
 				if (message_len > 0) {
 					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
-							- ULOG_MSG_HEADER_LEN + message_len;
+								  - ULOG_MSG_HEADER_LEN + message_len;
 					_msg_buffer[0] = (uint8_t)write_msg_size;
 					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
 					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
 					_msg_buffer[3] = mavlink_log_sub.get().severity + '0';
-					memcpy(_msg_buffer+4, &mavlink_log_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
-					strncpy((char*)(_msg_buffer+12), message, sizeof(ulog_message_logging_s::message));
+					memcpy(_msg_buffer + 4, &mavlink_log_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
+					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
 					write(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
 				}
