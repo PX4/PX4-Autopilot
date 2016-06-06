@@ -735,6 +735,8 @@ void Ekf2::task_main()
 				ctrl_state.q[2] = q(2);
 				ctrl_state.q[3] = q(3);
 
+				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
+
 				// Acceleration data
 				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
 
@@ -854,6 +856,12 @@ void Ekf2::task_main()
 			lpos.eph = sqrt(pos_var(0) + pos_var(1));
 			lpos.epv = sqrt(pos_var(2));
 
+			// get state reset information of position and velocity
+			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+			_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
 			// publish vehicle local position data
 			if (_lpos_pub == nullptr) {
 				_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
@@ -869,12 +877,17 @@ void Ekf2::task_main()
 				global_pos.timestamp = hrt_absolute_time(); // Time of this estimate, in microseconds since system start
 				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
-				double est_lat, est_lon;
+				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
 				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
 				global_pos.lat = est_lat; // Latitude in degrees
 				global_pos.lon = est_lon; // Longitude in degrees
+				map_projection_reproject(&ekf_origin, lpos.x - lpos.delta_xy[0], lpos.y - lpos.delta_xy[1], &lat_pre_reset, &lon_pre_reset);
+				global_pos.delta_lat_lon[0] = est_lat - lat_pre_reset;
+				global_pos.delta_lat_lon[1] = est_lon - lon_pre_reset;
+				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
 				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
+				_ekf.get_posD_reset(&global_pos.delta_alt, &global_pos.alt_reset_counter);
 
 				global_pos.vel_n = velocity[0]; // Ground north velocity, m/s
 				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
