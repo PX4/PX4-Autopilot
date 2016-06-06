@@ -603,7 +603,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_RATTITUDE:
 	case commander_state_s::MAIN_STATE_STAB:
 	case commander_state_s::MAIN_STATE_ALTCTL:
-	case commander_state_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
 		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
 			status->failsafe = true;
@@ -640,13 +639,48 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 				break;
 
-			case commander_state_s::MAIN_STATE_POSCTL:
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-				break;
-
 			default:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 				break;
+			}
+		}
+		break;
+
+	case commander_state_s::MAIN_STATE_POSCTL:
+		{
+			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
+			PX4_INFO("lost RC: %s", rc_lost ? "yes" : "no");
+
+			if (rc_lost && armed && !landed) {
+				status->failsafe = true;
+
+				if (status_flags->condition_global_position_valid &&
+				    status_flags->condition_home_position_valid &&
+				    !status_flags->gps_failure) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+
+				} else if (status_flags->condition_local_position_valid &&
+					   !status_flags->gps_failure) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+				} else if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
+
+			/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
+			} else if (status_flags->gps_failure && armed && !landed) {
+				status->failsafe = true;
+
+				if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
+				}
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			}
 		}
 		break;
