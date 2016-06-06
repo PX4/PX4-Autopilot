@@ -589,7 +589,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed,
-		   const int offb_loss_act, const int offb_loss_rc_act)
+		   const bool rc_loss_enabled, const int offb_loss_act, const int offb_loss_rc_act)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
@@ -605,7 +605,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_ALTCTL:
 	case commander_state_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
-		if ((status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
+		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
