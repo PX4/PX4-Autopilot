@@ -46,6 +46,8 @@
 // Hack until everything is using this header
 #include <systemlib/visibility.h>
 
+#define ORB_DEFAULT_QUEUE_SIZE 1
+
 /**
  * Object metadata.
  */
