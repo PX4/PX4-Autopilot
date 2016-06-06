@@ -36,11 +36,23 @@
  * Adapter / shim layer for system calls needed by ECL
  *
  */
+#pragma once
+
+#if defined(__PX4_POSIX) || defined(__PX4_NUTTX)
 
 #include <drivers/drv_hrt.h>
 #include <px4_log.h>
 
 #define ecl_absolute_time hrt_absolute_time
 #define ecl_elapsed_time hrt_elapsed_time
-#define ECL_WARN PX4_WARN
 #define ECL_INFO PX4_INFO
+#define ECL_WARN PX4_WARN
+#define ECL_ERR	 PX4_ERR
+
+#else
+
+#define ECL_INFO printf
+#define ECL_WARN printf
+#define ECL_ERR printf
+
+#endif

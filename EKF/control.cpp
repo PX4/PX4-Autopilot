@@ -39,6 +39,7 @@
  *
  */
 
+#include "../ecl.h"
 #include "ekf.h"
 
 void Ekf::controlFusionModes()
@@ -79,7 +80,7 @@ void Ekf::controlExternalVisionAiding()
 		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 			// turn on use of external vision measurements for position and height
 			_control_status.flags.ev_pos = true;
-			printf("EKF switching to external vision position fusion\n");
+			ECL_INFO("EKF switching to external vision position fusion");
 			// turn off other forms of height aiding
 			_control_status.flags.baro_hgt = false;
 			_control_status.flags.gps_hgt = false;
@@ -137,7 +138,7 @@ void Ekf::controlExternalVisionAiding()
 			_control_status.flags.mag_3D = false;
 			_control_status.flags.mag_dec = false;
 
-			printf("EKF switching to external vision yaw fusion\n");
+			ECL_INFO("EKF switching to external vision yaw fusion");
 		}
 	}
 
@@ -344,7 +345,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF baro hgt timeout - reset to GPS\n");
+				ECL_INFO("EKF baro hgt timeout - reset to GPS");
 			} else if (reset_to_baro){
 				// set height sensor health
 				_baro_hgt_faulty = false;
@@ -355,7 +356,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF baro hgt timeout - reset to baro\n");
+				ECL_INFO("EKF baro hgt timeout - reset to baro");
 			} else {
 				// we have nothing we can reset to
 				// deny a reset
@@ -395,7 +396,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF gps hgt timeout - reset to baro\n");
+				ECL_INFO("EKF gps hgt timeout - reset to baro");
 			} else if (reset_to_gps) {
 				// set height sensor health
 				_gps_hgt_faulty = false;
@@ -406,7 +407,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF gps hgt timeout - reset to GPS\n");
+				ECL_INFO("EKF gps hgt timeout - reset to GPS");
 			} else {
 				// we have nothing to reset to
 				reset_height = false;
@@ -439,7 +440,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF rng hgt timeout - reset to baro\n");
+				ECL_INFO("EKF rng hgt timeout - reset to baro");
 			} else if (reset_to_rng) {
 				// set height sensor health
 				_rng_hgt_faulty = false;
@@ -450,7 +451,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF rng hgt timeout - reset to rng hgt\n");
+				ECL_INFO("EKF rng hgt timeout - reset to rng hgt");
 			} else {
 				// we have nothing to reset to
 				reset_height = false;
@@ -483,7 +484,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = false;
 				// request a reset
 				reset_height = true;
-				printf("EKF ev hgt timeout - reset to baro\n");
+				ECL_INFO("EKF ev hgt timeout - reset to baro");
 			} else if (reset_to_ev) {
 				// reset the height mode
 				_control_status.flags.baro_hgt = false;
@@ -492,7 +493,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_control_status.flags.ev_hgt = true;
 				// request a reset
 				reset_height = true;
-				printf("EKF ev hgt timeout - reset to ev hgt\n");
+				ECL_INFO("EKF ev hgt timeout - reset to ev hgt");
 			} else {
 				// we have nothing to reset to
 				reset_height = false;
