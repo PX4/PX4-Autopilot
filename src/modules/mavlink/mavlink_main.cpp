@@ -2249,6 +2249,11 @@ Mavlink::task_main(int argc, char *argv[])
 		::close(_uart_fd);
 	}
 
+	if (_socket_fd >= 0) {
+		close(_socket_fd);
+		_socket_fd = -1;
+	}
+
 	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
