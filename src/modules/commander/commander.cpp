@@ -83,7 +83,6 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
@@ -98,6 +97,8 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
