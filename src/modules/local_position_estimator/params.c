@@ -204,6 +204,17 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.25f);
 PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 
 /**
+ * GPS max epv
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 1.0
+ * @max 5.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
+
+/**
  * Vision xy standard deviation.
  *
  * @group Local Position Estimator
