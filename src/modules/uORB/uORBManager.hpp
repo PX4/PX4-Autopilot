@@ -327,6 +327,18 @@ public:
 	 */
 	int  orb_set_interval(int handle, unsigned interval) ;
 
+
+	/**
+	 * Get the minimum interval between which updates are seen for a subscription.
+	 *
+	 * @see orb_set_interval()
+	 *
+	 * @param handle  A handle returned from orb_subscribe.
+	 * @param interval  The returned interval period in milliseconds.
+	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 */
+	int	orb_get_interval(int handle, unsigned *interval);
+
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel

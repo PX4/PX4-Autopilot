@@ -326,6 +326,10 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		//and only one advertiser is allowed to open the DeviceNode at the same time.
 		return update_queue_size(arg);
 
+	case ORBIOCGETINTERVAL:
+		*(unsigned *)arg = sd->update_interval;
+		return OK;
+
 	default:
 		/* give it to the superclass */
 		return VDev::ioctl(filp, cmd, arg);

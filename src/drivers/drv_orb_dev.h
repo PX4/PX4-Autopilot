@@ -90,4 +90,7 @@
 /** Set the queue size of the topic */
 #define ORBIOCSETQUEUESIZE	_ORBIOC(15)
 
+/** Get the minimum interval at which the topic can be seen to be updated for this subscription */
+#define ORBIOCGETINTERVAL	_ORBIOC(16)
+
 #endif /* _DRV_UORB_H */
