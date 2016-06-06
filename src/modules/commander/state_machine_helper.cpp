@@ -649,7 +649,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_POSCTL:
 		{
 			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
-			PX4_INFO("lost RC: %s", rc_lost ? "yes" : "no");
 
 			if (rc_lost && armed && !landed) {
 				status->failsafe = true;
