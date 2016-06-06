@@ -296,6 +296,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
 
@@ -319,6 +320,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
 
@@ -342,6 +344,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
 
@@ -365,11 +368,12 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 
 /**
- * Fift flightmode slot (1640-1800)
+ * Fifth flightmode slot (1640-1800)
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
@@ -388,6 +392,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 
@@ -411,5 +416,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Airspeed
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);

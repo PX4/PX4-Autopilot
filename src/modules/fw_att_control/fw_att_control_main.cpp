@@ -976,20 +976,6 @@ FixedwingAttitudeControl::task_main()
 					yaw_sp = _att_sp.yaw_body;
 					throttle_sp = _att_sp.thrust;
 
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
-
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
 
 					/* the pilot does not want to change direction,
@@ -1006,20 +992,6 @@ FixedwingAttitudeControl::task_main()
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
-
 				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
 					/*
 					 * Velocity should be controlled and manual is enabled.
@@ -1028,19 +1000,13 @@ FixedwingAttitudeControl::task_main()
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
+				} else if (_vcontrol_mode.flag_control_airspeed_enabled) {
+					/*
+					 * airspeed should be controlled and manual is enabled.
+					*/
+					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 
 				} else {
 					/*
@@ -1086,6 +1052,20 @@ FixedwingAttitudeControl::task_main()
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
 					}
+				}
+
+				/* reset integrals where needed */
+				if (_att_sp.roll_reset_integral) {
+					_roll_ctrl.reset_integrator();
+				}
+
+				if (_att_sp.pitch_reset_integral) {
+					_pitch_ctrl.reset_integrator();
+				}
+
+				if (_att_sp.yaw_reset_integral) {
+					_yaw_ctrl.reset_integrator();
+					_wheel_ctrl.reset_integrator();
 				}
 
 				/* If the aircraft is on ground reset the integrators */
