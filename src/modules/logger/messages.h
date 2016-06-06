@@ -115,7 +115,7 @@ struct ulog_message_logging_s {
 
 	uint8_t log_level; //same levels as in the linux kernel
 	uint64_t timestamp;
-	char message[200];
+	char message[128]; //defines the maximum length of a logged message string
 };
 
 struct ulog_message_parameter_header_s {
