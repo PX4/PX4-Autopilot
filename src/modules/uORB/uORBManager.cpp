@@ -204,6 +204,14 @@ int uORB::Manager::orb_set_interval(int handle, unsigned interval)
 	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
 }
 
+int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
+{
+	ASSERT(interval);
+	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
+	*interval /= 1000;
+	return ret;
+}
+
 
 int uORB::Manager::node_advertise
 (

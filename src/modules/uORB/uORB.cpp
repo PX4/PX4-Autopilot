@@ -140,8 +140,12 @@ int  orb_priority(int handle, int32_t *priority)
 	return uORB::Manager::get_instance()->orb_priority(handle, priority);
 }
 
-int  orb_set_interval(int handle, unsigned interval)
+int orb_set_interval(int handle, unsigned interval)
 {
 	return uORB::Manager::get_instance()->orb_set_interval(handle, interval);
 }
 
+int orb_get_interval(int handle, unsigned *interval)
+{
+	return uORB::Manager::get_instance()->orb_get_interval(handle, interval);
+}
