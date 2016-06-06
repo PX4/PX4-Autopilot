@@ -358,11 +358,11 @@ PWMSim::subscribe()
 
 		if (unsub_groups & (1 << i)) {
 			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
-			px4_close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
