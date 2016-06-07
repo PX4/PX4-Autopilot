@@ -182,7 +182,6 @@ PWMSim::PWMSim() :
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_current_update_rate(0),
-	_control_subs { -1},
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
@@ -201,6 +200,10 @@ PWMSim::PWMSim() :
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		_control_subs[i] = -1;
+	}
 }
 
 PWMSim::~PWMSim()
@@ -402,7 +405,7 @@ PWMSim::task_main()
 			}
 
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
+				if (_control_subs[i] >= 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
 				}
 			}
@@ -441,7 +444,7 @@ PWMSim::task_main()
 		unsigned poll_id = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] > 0) {
+			if (_control_subs[i] >= 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 				}
@@ -527,12 +530,12 @@ PWMSim::task_main()
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
-			px4_close(_control_subs[i]);
+		if (_control_subs[i] >= 0) {
+			orb_unsubscribe(_control_subs[i]);
 		}
 	}
 
-	px4_close(_armed_sub);
+	orb_unsubscribe(_armed_sub);
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
