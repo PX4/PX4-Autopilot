@@ -258,8 +258,6 @@ void Standard::update_transition_state()
 			}
 		}
 
-
-
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > 0.0f) {
