@@ -179,8 +179,8 @@ void VtolType::update_fw_state()
 	}
 
 	// quadchute
-	if(_params->fw_min_alt > FLT_EPSILON && _armed->armed){
-		if(-(_local_pos->z) < _params->fw_min_alt){
+	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
+		if (-(_local_pos->z) < _params->fw_min_alt) {
 			_attc->abort_front_transition();
 		}
 	}
@@ -190,8 +190,8 @@ void VtolType::update_fw_state()
 void VtolType::update_transition_state()
 {
 	// quadchute
-	if(_params->fw_min_alt > FLT_EPSILON && _armed->armed){
-		if(-(_local_pos->z) < _params->fw_min_alt){
+	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
+		if (-(_local_pos->z) < _params->fw_min_alt) {
 			_attc->abort_front_transition();
 		}
 	}
