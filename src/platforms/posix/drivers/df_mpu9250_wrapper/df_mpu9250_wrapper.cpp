@@ -760,7 +760,7 @@ namespace df_mpu9250_wrapper
 
 DfMpu9250Wrapper *g_dev = nullptr;
 
-int start(enum Rotation rotation);
+int start(bool mag_enabled, enum Rotation rotation);
 int stop();
 int info();
 void usage();
