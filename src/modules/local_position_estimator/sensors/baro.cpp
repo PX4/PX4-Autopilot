@@ -6,7 +6,7 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_BARO_INIT_COUNT = 500; // require 5 seconds of data
+static const uint32_t 		REQ_BARO_INIT_COUNT = 100;
 static const uint32_t 		BARO_TIMEOUT =   	100000;	// 0.1 s
 
 void BlockLocalPositionEstimator::baroInit()
