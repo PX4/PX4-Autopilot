@@ -71,7 +71,10 @@ deploy:
     acl: public_read
     skip_cleanup: true
     on:
-      branches: master,beta,stable,docker
+      branch: master
+      branch: beta
+      branch: stable
+      branch: docker
       condition: $GCC_VER = 4.8
   - provider: s3
     access_key_id: $PX4_AWS_KEY
@@ -87,7 +90,10 @@ deploy:
     acl: public_read
     skip_cleanup: true
     on:
-      branches: master,beta,stable,docker
+      branch: master
+      branch: beta
+      branch: stable
+      branch: docker
       condition: $GCC_VER = 4.8
   - provider: releases
     api_key: 
