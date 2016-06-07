@@ -923,7 +923,7 @@ void Ekf2::task_main()
 				replay.rng_timestamp = 0;
 			}
 
-			if (fuse_airspeed) {
+			if (airspeed_updated) {
 				replay.asp_timestamp = airspeed.timestamp;
 				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
 				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
