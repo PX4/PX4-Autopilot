@@ -27,7 +27,7 @@ cache:
 before_install:
   - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         docker pull danielagar/docker-px4-dev;
+         docker pull px4io/px4-dev-base;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
