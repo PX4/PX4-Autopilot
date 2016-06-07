@@ -10,7 +10,7 @@
  * TODO: use googlemock
 ******************************************/
 
-orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
+orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size)
 {
 	return (orb_advert_t)0;
 }
