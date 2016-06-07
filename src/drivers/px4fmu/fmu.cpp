@@ -727,7 +727,8 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 
 	if (_outputs_pub == nullptr) {
 		int instance = -1;
-		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
+		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT,
+						   ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);

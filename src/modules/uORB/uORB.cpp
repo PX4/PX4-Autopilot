@@ -46,7 +46,7 @@ orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, un
 }
 
 orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-				       int priority, unsigned int queue_size)
+				 int priority, unsigned int queue_size)
 {
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority, queue_size);
 }

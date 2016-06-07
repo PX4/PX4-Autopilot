@@ -639,7 +639,8 @@ void AttitudeEstimatorQ::task_main()
 			/* the instance count is not used here */
 			int ctrl_inst;
 			/* publish to control state topic */
-			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
+			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH,
+					 ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		{
