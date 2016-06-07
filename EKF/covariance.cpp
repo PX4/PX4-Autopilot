@@ -778,3 +778,19 @@ void Ekf::fixCovarianceErrors()
 		makeSymmetrical(P,22,23);
 	}
 }
+
+void Ekf::resetMagCovariance()
+{	
+	// set the quaternion covariance terms to zero
+	zeroRows(P,0,3);
+	zeroCols(P,0,3);
+
+	// set the magnetic field covariance terms to zero
+	zeroRows(P,16,21);
+	zeroCols(P,16,21);
+
+	// set the field state variance to the observation variance
+	for (uint8_t rc_index=16; rc_index <= 21; rc_index ++) {
+		P[rc_index][rc_index] = sq(_params.mag_noise);
+	}
+}

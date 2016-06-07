@@ -156,8 +156,8 @@ void Ekf::fuseMag()
 				// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_x = true;
 
-				// we need to reinitialise the covariance matrix and abort this fusion step
-				initialiseCovariance();
+				// we need to re-initialise covariances and abort this fusion step
+				resetMagCovariance();
 				ECL_ERR("EKF magX fusion numerical error - covariance reset");
 				return;
 			}
@@ -208,8 +208,8 @@ void Ekf::fuseMag()
 				// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_y = true;
 
-				// we need to reinitialise the covariance matrix and abort this fusion step
-				initialiseCovariance();
+				// we need to re-initialise covariances and abort this fusion step
+				resetMagCovariance();
 				ECL_ERR("EKF magY fusion numerical error - covariance reset");
 				return;
 			}
@@ -260,8 +260,8 @@ void Ekf::fuseMag()
 				// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_z = true;
 
-				// we need to reinitialise the covariance matrix and abort this fusion step
-				initialiseCovariance();
+				// we need to re-initialise covariances and abort this fusion step
+				resetMagCovariance();
 				ECL_ERR("EKF magZ fusion numerical error - covariance reset");
 				return;
 			}

@@ -399,4 +399,7 @@ private:
 	// initialise the quaternion covariances using rotation vector variances
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
 
+	// perform a limited reset of the magnetic field state covariances
+	void resetMagCovariance();
+
 };
