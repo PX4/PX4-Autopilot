@@ -65,6 +65,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_vxy_stddev(this, "GPS_VXY"),
 	_gps_vz_stddev(this, "GPS_VZ"),
 	_gps_eph_max(this, "EPH_MAX"),
+	_gps_epv_max(this, "EPV_MAX"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
 	_vision_on(this, "VIS_ON"),

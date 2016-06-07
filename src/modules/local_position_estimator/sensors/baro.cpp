@@ -29,7 +29,8 @@ void BlockLocalPositionEstimator::baroInit()
 		_baroInitialized = true;
 		_baroFault = FAULT_NONE;
 
-		if (!_altHomeInitialized) {
+		// only initialize alt home with baro if gps is disabled
+		if (!_altHomeInitialized && !_gps_on.get()) {
 			_altHomeInitialized = true;
 			_altHome = _baroAltHome;
 		}
