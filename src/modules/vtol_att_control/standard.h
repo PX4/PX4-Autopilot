@@ -75,7 +75,7 @@ private:
 		float front_trans_timeout;
 		float front_trans_time_min;
 		float down_pitch_max;
-		float forward_thurst_scale;		
+		float forward_thurst_scale;
 	} _params_standard;
 
 	struct {
