@@ -807,7 +807,7 @@ PX4IO::init()
 		cmd.confirmation =  1;
 
 		/* send command once */
-		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 
 		/* spin here until IO's state has propagated into the system */
 		do {
@@ -1629,7 +1629,7 @@ PX4IO::io_handle_status(uint16_t status)
 		orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 	} else {
-		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		_to_safety = orb_advertise(ORB_ID(safety), &safety, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	return ret;
@@ -1696,7 +1696,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
 		} else {
-			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 }
@@ -1725,7 +1725,7 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
 
 	} else {
-		_to_servorail = orb_advertise(ORB_ID(servorail_status), &_servorail_status);
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &_servorail_status, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -1898,7 +1898,7 @@ PX4IO::io_publish_raw_rc()
 
 	/* lazily advertise on first publication */
 	if (_to_input_rc == nullptr) {
-		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
+		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(input_rc), _to_input_rc, &rc_val);
@@ -1935,7 +1935,7 @@ PX4IO::io_publish_pwm_outputs()
 	if (_to_outputs == nullptr) {
 		int instance;
 		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-						  &outputs, &instance, ORB_PRIO_MAX);
+						  &outputs, &instance, ORB_PRIO_MAX, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
@@ -1952,7 +1952,7 @@ PX4IO::io_publish_pwm_outputs()
 
 	/* publish mixer status */
 	if (_to_mixer_status == nullptr) {
-		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &motor_limits);

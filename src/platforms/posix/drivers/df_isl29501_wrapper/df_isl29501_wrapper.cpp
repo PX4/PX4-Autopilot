@@ -121,7 +121,7 @@ int DfISL29501Wrapper::start()
 
 	struct distance_sensor_s d;
 	_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-					   &_orb_class_instance, ORB_PRIO_DEFAULT);
+					   &_orb_class_instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	int ret;
 	ret = ISL29501::init();

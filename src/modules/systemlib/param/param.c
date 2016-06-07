@@ -244,7 +244,7 @@ param_notify_changes(bool is_saved)
 	 * just publish.
 	 */
 	if (param_topic == NULL) {
-		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+		param_topic = orb_advertise(ORB_ID(parameter_update), &pup, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);

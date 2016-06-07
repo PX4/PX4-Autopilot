@@ -248,7 +248,7 @@ int DfMpu9250Wrapper::start()
 	// TODO: don't publish garbage here
 	accel_report accel_report = {};
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
-					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
+					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_accel_topic == nullptr) {
 		PX4_ERR("sensor_accel advert fail");
@@ -258,7 +258,7 @@ int DfMpu9250Wrapper::start()
 	// TODO: don't publish garbage here
 	gyro_report gyro_report = {};
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
-					  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
+					  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_gyro_topic == nullptr) {
 		PX4_ERR("sensor_gyro advert fail");
@@ -722,7 +722,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 			if (_mag_topic == nullptr) {
 				_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
-								 &_mag_orb_class_instance, ORB_PRIO_LOW);
+								 &_mag_orb_class_instance, ORB_PRIO_LOW, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);

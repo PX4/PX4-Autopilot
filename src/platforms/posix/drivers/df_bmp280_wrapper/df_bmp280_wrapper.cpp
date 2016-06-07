@@ -118,7 +118,7 @@ int DfBmp280Wrapper::start()
 	// TODO: don't publish garbage here
 	baro_report baro_report = {};
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
-					  &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
+					  &_baro_orb_class_instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_baro_topic == nullptr) {
 		PX4_ERR("sensor_baro advert fail");

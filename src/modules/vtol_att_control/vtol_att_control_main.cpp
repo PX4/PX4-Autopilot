@@ -600,7 +600,7 @@ void VtolAttitudeControl::publish_att_sp()
 
 	} else {
 		/* advertise and publish */
-		_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+		_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -662,7 +662,7 @@ void VtolAttitudeControl::task_main()
 
 		} else {
 			_vtol_vehicle_status.timestamp = hrt_absolute_time();
-			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
+			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		/* wait for up to 100ms for data */
@@ -796,14 +796,14 @@ void VtolAttitudeControl::task_main()
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 			} else {
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
+				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0, ORB_DEFAULT_QUEUE_SIZE);
 			}
 
 			if (_actuators_1_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 			} else {
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1, ORB_DEFAULT_QUEUE_SIZE);
 			}
 		}
 
@@ -812,7 +812,7 @@ void VtolAttitudeControl::task_main()
 			orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 		} else {
-			_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+			_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 

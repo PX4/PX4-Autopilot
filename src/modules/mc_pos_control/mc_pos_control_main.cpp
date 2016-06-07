@@ -1382,7 +1382,7 @@ MulticopterPositionControl::task_main()
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 				} else if (_attitude_setpoint_id) {
-					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 			} else if (_control_mode.flag_control_manual_enabled
@@ -1410,7 +1410,7 @@ MulticopterPositionControl::task_main()
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 				} else if (_attitude_setpoint_id) {
-					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 			} else {
@@ -1578,7 +1578,7 @@ MulticopterPositionControl::task_main()
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
 				} else {
-					_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
+					_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
@@ -1936,7 +1936,7 @@ MulticopterPositionControl::task_main()
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
 			} else {
-				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp, ORB_DEFAULT_QUEUE_SIZE);
 			}
 
 		} else {
@@ -2074,7 +2074,7 @@ MulticopterPositionControl::task_main()
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 			} else if (_attitude_setpoint_id) {
-				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 			}
 		}
 

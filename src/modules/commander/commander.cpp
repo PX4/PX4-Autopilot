@@ -440,7 +440,7 @@ int commander_main(int argc, char *argv[])
 				cmd.param6 = NAN;
 				cmd.param7 = NAN;
 
-				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 				(void)orb_unadvertise(h);
 
 			} else {
@@ -469,7 +469,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param6 = NAN;
 		cmd.param7 = NAN;
 
-		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 		(void)orb_unadvertise(h);
 
 		return 0;
@@ -532,7 +532,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
 
 		// XXX inspect use of publication handle
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		(void)orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 
 		return 0;
 	}
@@ -990,7 +990,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
-					*home_pub = orb_advertise(ORB_ID(home_position), home);
+					*home_pub = orb_advertise(ORB_ID(home_position), home, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 				/* mark home position as set */
@@ -1123,7 +1123,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 		orb_publish(ORB_ID(home_position), homePub, &home);
 
 	} else {
-		homePub = orb_advertise(ORB_ID(home_position), &home);
+		homePub = orb_advertise(ORB_ID(home_position), &home, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	//Play tune first time we initialize HOME
@@ -1294,10 +1294,10 @@ int commander_thread_main(int argc, char *argv[])
 	get_circuit_breaker_params();
 
 	/* publish initial state */
-	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+	status_pub = orb_advertise(ORB_ID(vehicle_status), &status, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (status_pub == nullptr) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?, ORB_DEFAULT_QUEUE_SIZE).\n");
 		warnx("exiting.");
 		px4_task_exit(ERROR);
 	}
@@ -1305,11 +1305,11 @@ int commander_thread_main(int argc, char *argv[])
 	/* Initialize armed with all false */
 	memset(&armed, 0, sizeof(armed));
 	/* armed topic */
-	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed, ORB_DEFAULT_QUEUE_SIZE);
 
 	/* vehicle control mode topic */
 	memset(&control_mode, 0, sizeof(control_mode));
-	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
+	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode, ORB_DEFAULT_QUEUE_SIZE);
 
 	/* home position */
 	orb_advert_t home_pub = nullptr;
@@ -1345,7 +1345,7 @@ int commander_thread_main(int argc, char *argv[])
 			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
 
-		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission, ORB_DEFAULT_QUEUE_SIZE);
 		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
 
@@ -2815,7 +2815,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);
 
 		} else {
-			commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state);
+			commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
@@ -3570,7 +3570,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
 	} else {
-		command_ack_pub = orb_advertise(ORB_ID(vehicle_command_ack), &command_ack);
+		command_ack_pub = orb_advertise(ORB_ID(vehicle_command_ack), &command_ack, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

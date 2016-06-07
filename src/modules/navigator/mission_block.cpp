@@ -297,7 +297,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
 
 		} else {
-			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 	} else {
@@ -310,7 +310,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 }
@@ -528,7 +528,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 

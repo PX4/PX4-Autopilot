@@ -695,7 +695,7 @@ Navigator::publish_position_setpoint_triplet()
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
 
 	} else {
-		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
+		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -823,7 +823,7 @@ Navigator::publish_mission_result()
 
 	} else {
 		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	/* reset some of the flags */
@@ -846,7 +846,7 @@ Navigator::publish_geofence_result()
 
 	} else {
 		/* advertise and publish */
-		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
+		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -860,7 +860,7 @@ Navigator::publish_att_sp()
 
 	} else {
 		/* advertise and publish */
-		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

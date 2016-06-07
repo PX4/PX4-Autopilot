@@ -268,7 +268,7 @@ BMP280::init()
 	_reports->get(&brp);
 
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-					  &_orb_class_instance, _interface->is_external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, _interface->is_external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_baro_topic == nullptr) {
 		warnx("failed to create sensor_baro publication");

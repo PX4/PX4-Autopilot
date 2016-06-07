@@ -407,7 +407,7 @@ MPU9250::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_accel_topic == nullptr) {
 		warnx("ADVERT FAIL");
@@ -418,7 +418,7 @@ MPU9250::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		warnx("ADVERT FAIL");

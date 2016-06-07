@@ -337,7 +337,7 @@ ADC::update_adc_report(hrt_abstime now)
 	}
 
 	int instance;
-	orb_publish_auto(ORB_ID(adc_report), &_to_adc_report, &adc, &instance, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(adc_report), &_to_adc_report, &adc, &instance, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 }
 
 void
@@ -379,7 +379,7 @@ ADC::update_system_power(hrt_abstime now)
 		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
 
 	} else {
-		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
+		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 #endif // BOARD_ADC_USB_CONNECTED

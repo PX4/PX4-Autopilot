@@ -308,7 +308,7 @@ void
 Geofence::publishFence(unsigned vertices)
 {
 	if (_fence_pub == nullptr) {
-		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
+		_fence_pub = orb_advertise(ORB_ID(fence), &vertices, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(fence), _fence_pub, &vertices);

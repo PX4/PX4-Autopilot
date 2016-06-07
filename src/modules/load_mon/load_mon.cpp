@@ -165,7 +165,7 @@ void LoadMon::_compute()
 	_cpuload.load = 1.0f - (float)interval_idletime / (float)LOAD_MON_INTERVAL_US;
 
 	if (_cpuload_pub == nullptr) {
-		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &_cpuload);
+		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &_cpuload, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(cpuload), _cpuload_pub, &_cpuload);

@@ -1084,7 +1084,7 @@ FixedwingAttitudeControl::task_main()
 
 					} else if (_attitude_setpoint_id) {
 						/* advertise and publish */
-						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
+						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp, ORB_DEFAULT_QUEUE_SIZE);
 					}
 				}
 
@@ -1238,7 +1238,7 @@ FixedwingAttitudeControl::task_main()
 
 				} else if (_rates_sp_id) {
 					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
+					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 			} else {
@@ -1269,7 +1269,7 @@ FixedwingAttitudeControl::task_main()
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
 				} else if (_actuators_id) {
-					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 				if (_actuators_2_pub != nullptr) {
@@ -1278,7 +1278,7 @@ FixedwingAttitudeControl::task_main()
 
 				} else {
 					/* advertise and publish */
-					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 		}

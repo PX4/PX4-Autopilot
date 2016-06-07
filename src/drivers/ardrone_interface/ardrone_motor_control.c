@@ -346,7 +346,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 
 	if (pub == 0) {
 		/* advertise to channel 0 / primary */
-		pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
+		pub = orb_advertise(ORB_ID(actuator_outputs), &outputs, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {

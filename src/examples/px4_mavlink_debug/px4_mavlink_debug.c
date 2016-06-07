@@ -56,7 +56,7 @@ int px4_mavlink_debug_main(int argc, char *argv[])
 
 	/* advertise debug value */
 	struct debug_key_value_s dbg = { .key = "velx", .value = 0.0f };
-	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg, ORB_DEFAULT_QUEUE_SIZE);
 
 	int value_counter = 0;
 

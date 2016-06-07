@@ -270,8 +270,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	 * Advertise that this controller will publish actuator
 	 * control values and the rate setpoint
 	 */
-	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-	orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators, ORB_DEFAULT_QUEUE_SIZE);
+	orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp, ORB_DEFAULT_QUEUE_SIZE);
 
 	/* subscribe to topics. */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));

@@ -295,7 +295,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// publish the battery voltage
 			int batt_multi;
-			orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 		}
 		break;
 
@@ -324,7 +324,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		// publish message
 		if (publish) {
 			int rc_multi;
-			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		break;
@@ -802,7 +802,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		gyro.temperature = imu->temperature;
 
 		int gyro_multi;
-		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro_pub, &gyro, &gyro_multi, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro_pub, &gyro, &gyro_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	/* accelerometer */
@@ -820,7 +820,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		accel.temperature = imu->temperature;
 
 		int accel_multi;
-		orb_publish_auto(ORB_ID(sensor_accel), &_accel_pub, &accel, &accel_multi, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(sensor_accel), &_accel_pub, &accel, &accel_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	/* magnetometer */
@@ -838,7 +838,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		mag.temperature = imu->temperature;
 
 		int mag_multi;
-		orb_publish_auto(ORB_ID(sensor_mag), &_mag_pub, &mag, &mag_multi, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(sensor_mag), &_mag_pub, &mag, &mag_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	/* baro */
@@ -851,7 +851,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		baro.temperature = imu->temperature;
 
 		int baro_multi;
-		orb_publish_auto(ORB_ID(sensor_baro), &_baro_pub, &baro, &baro_multi, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(sensor_baro), &_baro_pub, &baro, &baro_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 	return OK;
@@ -880,7 +880,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	flow.quality = flow_mavlink->quality;
 
 	int flow_multi;
-	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 	return OK;
 }

@@ -481,14 +481,14 @@ MK::task_main()
 	memset(&outputs, 0, sizeof(outputs));
 	int dummy;
 	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-					 &outputs, &dummy, ORB_PRIO_HIGH);
+					 &outputs, &dummy, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 	/*
 	 * advertise the blctrl status.
 	 */
 	esc_status_s esc;
 	memset(&esc, 0, sizeof(esc));
-	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
+	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc, ORB_DEFAULT_QUEUE_SIZE);
 
 
 	pollfd fds[2];

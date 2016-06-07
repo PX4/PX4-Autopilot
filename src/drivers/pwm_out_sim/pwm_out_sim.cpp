@@ -382,7 +382,7 @@ PWMSim::task_main()
 	actuator_outputs_s outputs = {};
 
 	/* advertise the mixed control outputs, insist on the first group output */
-	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
+	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs, ORB_DEFAULT_QUEUE_SIZE);
 
 
 	/* loop until killed */
@@ -936,7 +936,7 @@ fake(int argc, char *argv[])
 
 	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
 
-	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
+	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (handle == nullptr) {
 		puts("advertise failed");

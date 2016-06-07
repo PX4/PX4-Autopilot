@@ -1024,7 +1024,7 @@ void FixedwingPositionControl::fw_pos_ctrl_status_publish()
 		orb_publish(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_pub, &_fw_pos_ctrl_status);
 
 	} else {
-		_fw_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_fw_pos_ctrl_status);
+		_fw_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_fw_pos_ctrl_status, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -2162,7 +2162,7 @@ FixedwingPositionControl::task_main()
 
 				} else if (_attitude_setpoint_id) {
 					/* advertise and publish */
-					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 				/* XXX check if radius makes sense here */
@@ -2356,7 +2356,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 
 	} else {
-		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
+		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

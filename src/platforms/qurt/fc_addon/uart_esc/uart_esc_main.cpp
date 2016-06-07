@@ -386,7 +386,7 @@ void task_main(int argc, char *argv[])
 					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 				} else {
-					_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+					_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 

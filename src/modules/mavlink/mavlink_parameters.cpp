@@ -92,7 +92,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.param_index = 0;
 
 				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
+					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req, ORB_DEFAULT_QUEUE_SIZE);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
 				}
@@ -156,7 +156,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 
 				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
+					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req, ORB_DEFAULT_QUEUE_SIZE);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
 				}
@@ -223,7 +223,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
+					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req, ORB_DEFAULT_QUEUE_SIZE);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
 				}
@@ -258,7 +258,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				_rc_param_map.timestamp = hrt_absolute_time();
 
 				if (_rc_param_map_pub == nullptr) {
-					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
+					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map, ORB_DEFAULT_QUEUE_SIZE);
 
 				} else {
 					orb_publish(ORB_ID(rc_parameter_map), _rc_param_map_pub, &_rc_param_map);

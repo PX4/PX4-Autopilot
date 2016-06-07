@@ -58,14 +58,14 @@ int MuorbTestExample::main()
 int  MuorbTestExample::DefaultTest()
 {
 	int i = 0;
-	orb_advert_t pub_id = orb_advertise(ORB_ID(esc_status), & m_esc_status);
+	orb_advert_t pub_id = orb_advertise(ORB_ID(esc_status), & m_esc_status, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_id == 0) {
 		PX4_ERR("error publishing esc_status");
 		return -1;
 	}
 
-	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc);
+	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_id_vc == 0) {
 		PX4_ERR("error publishing vehicle_command");
@@ -127,7 +127,7 @@ int  MuorbTestExample::DefaultTest()
 int MuorbTestExample::PingPongTest()
 {
 	int i = 0;
-	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc);
+	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_id_vc == 0) {
 		PX4_ERR("error publishing vehicle_command");

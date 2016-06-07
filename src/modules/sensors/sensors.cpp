@@ -1165,7 +1165,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 			orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 
 		} else {
-			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 }
@@ -1691,7 +1691,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
 
 						} else {
-							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
+							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres, ORB_DEFAULT_QUEUE_SIZE);
 						}
 					}
 
@@ -1710,7 +1710,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
 				} else {
-					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 
@@ -1914,7 +1914,7 @@ Sensors::rc_poll()
 			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 
 		} else {
-			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
+			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		/* only publish manual control if the signal is still present */
@@ -1990,7 +1990,7 @@ Sensors::rc_poll()
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
 
 			} else {
-				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual, ORB_DEFAULT_QUEUE_SIZE);
 			}
 
 			/* copy from mapped manual control to control group 3 */
@@ -2012,7 +2012,7 @@ Sensors::rc_poll()
 				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
 
 			} else {
-				_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
+				_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3, ORB_DEFAULT_QUEUE_SIZE);
 			}
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
@@ -2145,7 +2145,7 @@ Sensors::task_main()
 	rc_parameter_map_poll(true /* forced */);
 
 	/* advertise the sensor_combined topic and make the initial publication */
-	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
+	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw, ORB_DEFAULT_QUEUE_SIZE);
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] = {};

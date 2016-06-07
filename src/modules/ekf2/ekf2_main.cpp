@@ -641,7 +641,7 @@ void Ekf2::task_main()
 
 			// publish control state data
 			if (_control_state_pub == nullptr) {
-				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
@@ -667,7 +667,7 @@ void Ekf2::task_main()
 
 			// publish vehicle attitude data
 			if (_att_pub == nullptr) {
-				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
@@ -725,7 +725,7 @@ void Ekf2::task_main()
 
 			// publish vehicle local position data
 			if (_lpos_pub == nullptr) {
-				_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
+				_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
@@ -763,7 +763,7 @@ void Ekf2::task_main()
 				global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
 
 				if (_vehicle_global_position_pub == nullptr) {
-					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos, ORB_DEFAULT_QUEUE_SIZE);
 
 				} else {
 					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
@@ -777,7 +777,7 @@ void Ekf2::task_main()
 			att.timestamp = 0;
 
 			if (_att_pub == nullptr) {
-				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
@@ -794,7 +794,7 @@ void Ekf2::task_main()
 		_ekf.get_filter_fault_status(&status.filter_fault_flags);
 
 		if (_estimator_status_pub == nullptr) {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
@@ -809,7 +809,7 @@ void Ekf2::task_main()
 		wind_estimate.covariance_east = status.covariances[23];
 
 		if (_wind_pub == nullptr) {
-			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
 			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
@@ -833,7 +833,7 @@ void Ekf2::task_main()
 		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
 		if (_estimator_innovations_pub == nullptr) {
-			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
@@ -936,7 +936,7 @@ void Ekf2::task_main()
 			}
 
 			if (_replay_pub == nullptr) {
-				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
+				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay, ORB_DEFAULT_QUEUE_SIZE);
 
 			} else {
 				orb_publish(ORB_ID(ekf2_replay), _replay_pub, &replay);

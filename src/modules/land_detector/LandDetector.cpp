@@ -93,7 +93,7 @@ void LandDetector::cycle()
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = false;
 		_landDetected.freefall = false;
-		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected, ORB_DEFAULT_QUEUE_SIZE);
 
 		// initialize land detection algorithm
 		initialize();

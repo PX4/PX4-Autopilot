@@ -322,7 +322,7 @@ BottleDrop::actuators_publish()
 		return orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
 
 	} else {
-		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
+		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators, ORB_DEFAULT_QUEUE_SIZE);
 
 		if (_actuator_pub != nullptr) {
 			return OK;
@@ -628,7 +628,7 @@ BottleDrop::task_main()
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
-						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
+						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission, ORB_DEFAULT_QUEUE_SIZE);
 					}
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,

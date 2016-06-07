@@ -332,7 +332,7 @@ GPSSIM::task_main()
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 
@@ -352,7 +352,7 @@ GPSSIM::task_main()
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 
@@ -370,7 +370,7 @@ GPSSIM::task_main()
 							orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
 
 						} else {
-							_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
+							_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info, ORB_DEFAULT_QUEUE_SIZE);
 						}
 					}
 				}

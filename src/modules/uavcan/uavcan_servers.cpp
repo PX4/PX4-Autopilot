@@ -633,7 +633,7 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 			}
 
 			if (_param_response_pub == nullptr) {
-				_param_response_pub = orb_advertise(ORB_ID(uavcan_parameter_value), &response);
+				_param_response_pub = orb_advertise(ORB_ID(uavcan_parameter_value), &response, ORB_DEFAULT_QUEUE_SIZE);
 			} else {
 				orb_publish(ORB_ID(uavcan_parameter_value), _param_response_pub, &response);
 			}

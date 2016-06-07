@@ -501,7 +501,7 @@ L3GD20::init()
 	_reports->get(&grp);
 
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_gyro_topic == nullptr) {
 		DEVICE_DEBUG("failed to create sensor_gyro publication");

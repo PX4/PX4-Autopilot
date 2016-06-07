@@ -231,7 +231,7 @@ CameraTrigger::CameraTrigger() :
 
 	struct camera_trigger_s	camera_trigger = {};
 
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &camera_trigger);
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &camera_trigger, ORB_DEFAULT_QUEUE_SIZE);
 }
 
 CameraTrigger::~CameraTrigger()

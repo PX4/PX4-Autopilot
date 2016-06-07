@@ -72,14 +72,14 @@ int MuorbTestExample::DefaultTest()
 	memset(&pwm, 0, sizeof(pwm_input_s));
 	memset(&sc, 0, sizeof(sensor_combined_s));
 	PX4_WARN("Successful after memset... ");
-	orb_advert_t pub_fd = orb_advertise(ORB_ID(pwm_input), &pwm);
+	orb_advert_t pub_fd = orb_advertise(ORB_ID(pwm_input), &pwm, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_fd == nullptr) {
 		PX4_WARN("Error: advertizing  pwm_input topic");
 		return -1;
 	}
 
-	orb_advert_t pub_sc = orb_advertise(ORB_ID(sensor_combined), &sc);
+	orb_advert_t pub_sc = orb_advertise(ORB_ID(sensor_combined), &sc, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_sc == nullptr) {
 		PX4_WARN("Error: advertizing  sensor_combined topic");
@@ -106,7 +106,7 @@ int MuorbTestExample::DefaultTest()
 int MuorbTestExample::PingPongTest()
 {
 	int i = 0;
-	orb_advert_t pub_id_esc_status = orb_advertise(ORB_ID(esc_status), & m_esc_status);
+	orb_advert_t pub_id_esc_status = orb_advertise(ORB_ID(esc_status), & m_esc_status, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (pub_id_esc_status == 0) {
 		PX4_ERR("error publishing esc_status");

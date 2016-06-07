@@ -61,7 +61,7 @@ int ex_hwtest_main(int argc, char *argv[])
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
-	orb_advert_t actuator_pub_ptr = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
+	orb_advert_t actuator_pub_ptr = orb_advertise(ORB_ID(actuator_controls_0), &actuators, ORB_DEFAULT_QUEUE_SIZE);
 
 	struct actuator_armed_s arm;
 	memset(&arm, 0 , sizeof(arm));
@@ -69,7 +69,7 @@ int ex_hwtest_main(int argc, char *argv[])
 	arm.timestamp = hrt_absolute_time();
 	arm.ready_to_arm = true;
 	arm.armed = true;
-	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm);
+	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm, ORB_DEFAULT_QUEUE_SIZE);
 	orb_publish(ORB_ID(actuator_armed), arm_pub_ptr, &arm);
 
 	/* read back values to validate */

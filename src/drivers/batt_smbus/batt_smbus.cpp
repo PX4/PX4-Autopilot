@@ -710,7 +710,7 @@ BATT_SMBUS::cycle()
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
 
 		} else {
-			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
+			_batt_topic = orb_advertise(_batt_orb_id, &new_report, ORB_DEFAULT_QUEUE_SIZE);
 
 			if (_batt_topic == nullptr) {
 				errx(1, "ADVERT FAIL");

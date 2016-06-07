@@ -146,7 +146,7 @@ AirspeedSim::init()
 		_reports->get(&arp);
 
 		/* measurement will have generated a report, publish */
-		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
+		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp, ORB_DEFAULT_QUEUE_SIZE);
 
 		if (_airspeed_pub == nullptr) {
 			PX4_WARN("uORB started?");
@@ -381,7 +381,7 @@ AirspeedSim::update_status()
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
 
 		} else {
-			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info);
+			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		_last_published_sensor_ok = _sensor_ok;

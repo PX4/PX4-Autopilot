@@ -194,6 +194,6 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
 
 	} else {
-		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
+		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }

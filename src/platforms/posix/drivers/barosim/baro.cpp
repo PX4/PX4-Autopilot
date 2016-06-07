@@ -257,7 +257,7 @@ BAROSIM::init()
 	_reports->flush();
 
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-					  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_baro_topic == nullptr) {
 		PX4_ERR("failed to create sensor_baro publication");

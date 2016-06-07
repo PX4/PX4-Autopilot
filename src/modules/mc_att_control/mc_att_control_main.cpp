@@ -912,7 +912,7 @@ MulticopterAttitudeControl::task_main()
 					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
 				} else if (_rates_sp_id) {
-					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp, ORB_DEFAULT_QUEUE_SIZE);
 				}
 
 				//}
@@ -936,7 +936,7 @@ MulticopterAttitudeControl::task_main()
 						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
 					} else if (_rates_sp_id) {
-						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp, ORB_DEFAULT_QUEUE_SIZE);
 					}
 
 				} else {
@@ -972,7 +972,7 @@ MulticopterAttitudeControl::task_main()
 						perf_end(_controller_latency_perf);
 
 					} else if (_actuators_id) {
-						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators, ORB_DEFAULT_QUEUE_SIZE);
 					}
 
 				}
@@ -982,7 +982,7 @@ MulticopterAttitudeControl::task_main()
 					orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
 
 				} else {
-					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status, ORB_DEFAULT_QUEUE_SIZE);
 				}
 			}
 		}

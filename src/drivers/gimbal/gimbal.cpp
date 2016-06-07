@@ -312,7 +312,7 @@ Gimbal::cycle()
 		struct actuator_controls_s zero_report;
 		memset(&zero_report, 0, sizeof(zero_report));
 		zero_report.timestamp = hrt_absolute_time();
-		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report);
+		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report, ORB_DEFAULT_QUEUE_SIZE);
 
 		if (_actuator_controls_2_topic == nullptr) {
 			warnx("advert err");

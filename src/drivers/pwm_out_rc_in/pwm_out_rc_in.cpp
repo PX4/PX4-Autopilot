@@ -353,7 +353,7 @@ void handle_message(mavlink_message_t *rc_message)
 		orb_publish(ORB_ID(input_rc), _rc_pub, &_rc);
 
 	} else {
-		_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -390,7 +390,7 @@ void task_main(int argc, char *argv[])
 	pwm_limit_init(&_pwm_limit);
 
 	// TODO XXX: this is needed otherwise we crash in the callback context.
-	_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
+	_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc, ORB_DEFAULT_QUEUE_SIZE);
 
 	// Main loop
 	while (!_task_should_exit) {
@@ -447,7 +447,7 @@ void task_main(int argc, char *argv[])
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 			} else {
-				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs, ORB_DEFAULT_QUEUE_SIZE);
 			}
 		}
 

@@ -602,7 +602,7 @@ void AttitudeEstimatorQ::task_main()
 
 		/* the instance count is not used here */
 		int att_inst;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 		{
 			struct control_state_s ctrl_state = {};
@@ -639,7 +639,7 @@ void AttitudeEstimatorQ::task_main()
 			/* the instance count is not used here */
 			int ctrl_inst;
 			/* publish to control state topic */
-			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		{
@@ -655,7 +655,7 @@ void AttitudeEstimatorQ::task_main()
 			/* publish to control state topic */
 			// TODO handle attitude states in position estimators instead so we can publish all data at once
 			// or we need to enable more thatn just one estimator_status topic
-			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
+			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 }

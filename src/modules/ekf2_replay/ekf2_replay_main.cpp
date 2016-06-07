@@ -250,7 +250,7 @@ Ekf2Replay::~Ekf2Replay()
 void Ekf2Replay::publishEstimatorInput()
 {
 	if (_gps_pub == nullptr && _read_part2) {
-		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_gps);
+		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_gps, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else if (_gps_pub != nullptr && _read_part2) {
 		orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &_gps);
@@ -259,7 +259,7 @@ void Ekf2Replay::publishEstimatorInput()
 	_read_part2 = false;
 
 	if (_flow_pub == nullptr && _read_part3) {
-		_flow_pub = orb_advertise(ORB_ID(optical_flow), &_flow);
+		_flow_pub = orb_advertise(ORB_ID(optical_flow), &_flow, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else if (_flow_pub != nullptr && _read_part3) {
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &_flow);
@@ -268,7 +268,7 @@ void Ekf2Replay::publishEstimatorInput()
 	_read_part3 = false;
 
 	if (_range_pub == nullptr && _read_part4) {
-		_range_pub = orb_advertise(ORB_ID(distance_sensor), &_range);
+		_range_pub = orb_advertise(ORB_ID(distance_sensor), &_range, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else if (_range_pub != nullptr && _read_part4) {
 		orb_publish(ORB_ID(distance_sensor), _range_pub, &_range);
@@ -277,7 +277,7 @@ void Ekf2Replay::publishEstimatorInput()
 	_read_part4 = false;
 
 	if (_ev_pub == nullptr && _read_part5) {
-		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev);
+		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else if (_ev_pub != nullptr && _read_part5) {
 		orb_publish(ORB_ID(vision_position_estimate), _ev_pub, &_ev);
@@ -286,14 +286,14 @@ void Ekf2Replay::publishEstimatorInput()
 	_read_part5 = false;
 
 	if (_sensors_pub == nullptr) {
-		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
+		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
 
 	if (_airspeed_pub == nullptr && _read_part6) {
-		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed, ORB_DEFAULT_QUEUE_SIZE);
 	} else if (_airspeed_pub != nullptr) {
 		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 	}
@@ -458,7 +458,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_land_detected.landed =  vehicle_landed.landed;
 
 		if (_landed_pub == nullptr) {
-			_landed_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_land_detected);
+			_landed_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_land_detected, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else if (_landed_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);

@@ -131,7 +131,7 @@ int LidarLiteI2C::init()
 	measure();
 	_reports->get(&ds_report);
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_LOW);
+				 &_orb_class_instance, ORB_PRIO_LOW, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_distance_sensor_topic == nullptr) {
 		DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");

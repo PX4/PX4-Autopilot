@@ -246,7 +246,7 @@ PX4FLOW::init()
 	struct distance_sensor_s ds_report = {};
 
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
+				 &_orb_class_instance, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_distance_sensor_topic == nullptr) {
 		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
@@ -546,7 +546,7 @@ PX4FLOW::collect()
 	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
 
 	if (_px4flow_topic == nullptr) {
-		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
+		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		/* publish it */
@@ -604,7 +604,7 @@ PX4FLOW::start()
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		pub = orb_advertise(ORB_ID(subsystem_info), &info, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

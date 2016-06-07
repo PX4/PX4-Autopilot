@@ -983,12 +983,12 @@ GPS::publish()
 {
 	if (_gps_num == 1) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
-				 ORB_PRIO_DEFAULT);
+				 ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 		is_gps1_advertised = true;
 
 	} else if (is_gps1_advertised) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
-				 ORB_PRIO_DEFAULT);
+				 ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 }
@@ -997,7 +997,7 @@ GPS::publishSatelliteInfo()
 {
 	if (_gps_num == 1) {
 		orb_publish_auto(ORB_ID(satellite_info), &_report_sat_info_pub, _p_report_sat_info, &_gps_sat_orb_instance,
-				 ORB_PRIO_DEFAULT);
+				 ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		//we don't publish satellite info for the secondary gps

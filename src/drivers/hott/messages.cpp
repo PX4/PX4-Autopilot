@@ -124,7 +124,7 @@ publish_gam_message(const uint8_t *buffer)
 		orb_publish(ORB_ID(esc_status), _esc_pub, &esc);
 
 	} else {
-		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc);
+		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

@@ -334,7 +334,7 @@ BMA180::init()
 		_reports->get(&arp);
 
 		/* measurement will have generated a report, publish */
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 out:

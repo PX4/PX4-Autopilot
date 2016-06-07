@@ -300,7 +300,7 @@ SF0X::init()
 		struct distance_sensor_s ds_report = {};
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-					 &_orb_class_instance, ORB_PRIO_HIGH);
+					 &_orb_class_instance, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
@@ -644,7 +644,7 @@ SF0X::start()
 	// 	orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 	// } else {
-	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info);
+	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info, ORB_DEFAULT_QUEUE_SIZE);
 	// }
 }
 

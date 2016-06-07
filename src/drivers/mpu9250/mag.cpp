@@ -225,7 +225,7 @@ MPU9250_mag::init()
 	_mag_reports->get(&mrp);
 
 	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, ORB_PRIO_LOW);
+					 &_mag_orb_class_instance, ORB_PRIO_LOW, ORB_DEFAULT_QUEUE_SIZE);
 //			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_mag_topic == nullptr) {

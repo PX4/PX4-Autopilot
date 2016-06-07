@@ -75,7 +75,7 @@ void motor_test(unsigned channel, float value)
 
 	} else {
 		/* advertise and publish */
-		_test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
+		_test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 

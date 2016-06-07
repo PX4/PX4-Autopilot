@@ -514,7 +514,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
 
 		} else {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 
@@ -872,7 +872,7 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 
 	} else {
 		/* advertise and publish */
-		_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
+		_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -953,7 +953,7 @@ void AttitudePositionEstimatorEKF::publishControlState()
 
 	} else {
 		/* advertise and publish */
-		_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &_ctrl_state);
+		_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &_ctrl_state, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -997,7 +997,7 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 
 	} else {
 		/* advertise and publish */
-		_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
+		_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -1083,7 +1083,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	} else {
 		/* advertise and publish */
-		_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+		_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos, ORB_DEFAULT_QUEUE_SIZE);
 	}
 }
 
@@ -1105,7 +1105,7 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 
 	} else {
 		/* advertise and publish */
-		_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+		_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 }

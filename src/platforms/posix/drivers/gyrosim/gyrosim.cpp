@@ -464,7 +464,7 @@ GYROSIM::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, ORB_PRIO_HIGH);
+					   &_accel_orb_class_instance, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -478,7 +478,7 @@ GYROSIM::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
+			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");

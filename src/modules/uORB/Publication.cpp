@@ -79,10 +79,10 @@ void PublicationBase::update(void *data)
 		if (_priority > 0) {
 			handle = orb_advertise_multi(
 					 getMeta(), data,
-					 &_instance, _priority);
+					 &_instance, _priority, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
-			handle = orb_advertise(getMeta(), data);
+			handle = orb_advertise(getMeta(), data, ORB_DEFAULT_QUEUE_SIZE);
 		}
 
 		if (int64_t(handle) != PX4_ERROR) {

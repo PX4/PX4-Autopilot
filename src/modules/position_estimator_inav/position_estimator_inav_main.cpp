@@ -384,7 +384,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	/* advertise */
-	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
+	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos, ORB_DEFAULT_QUEUE_SIZE);
 	orb_advert_t vehicle_global_position_pub = NULL;
 
 	struct position_estimator_inav_params params;
@@ -1365,7 +1365,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.pressure_alt = sensor.baro_alt_meter[0];
 
 				if (vehicle_global_position_pub == NULL) {
-					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos, ORB_DEFAULT_QUEUE_SIZE);
 
 				} else {
 					orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);

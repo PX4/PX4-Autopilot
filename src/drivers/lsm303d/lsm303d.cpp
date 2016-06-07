@@ -687,7 +687,7 @@ LSM303D::init()
 
 	/* measurement will have generated a report, publish */
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
+					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_mag->_mag_topic == nullptr) {
 		warnx("ADVERT ERR");
@@ -702,7 +702,7 @@ LSM303D::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (_accel_topic == nullptr) {
 		warnx("ADVERT ERR");

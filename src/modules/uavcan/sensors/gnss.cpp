@@ -181,7 +181,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
 
 	} else {
-		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report);
+		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report, ORB_DEFAULT_QUEUE_SIZE);
 	}
 
 }

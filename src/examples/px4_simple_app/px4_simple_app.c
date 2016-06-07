@@ -63,7 +63,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	/* advertise attitude topic */
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att, ORB_DEFAULT_QUEUE_SIZE);
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	px4_pollfd_struct_t fds[] = {

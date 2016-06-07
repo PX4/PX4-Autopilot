@@ -161,7 +161,7 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 
 		/* mission state saved successfully, publish offboard_mission topic */
 		if (_offboard_mission_pub == nullptr) {
-			_offboard_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+			_offboard_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
 			orb_publish(ORB_ID(offboard_mission), _offboard_mission_pub, &mission);

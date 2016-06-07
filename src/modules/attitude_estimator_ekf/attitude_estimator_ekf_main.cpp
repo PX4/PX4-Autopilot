@@ -304,7 +304,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	int mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 
 	/* advertise attitude */
-	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att, ORB_DEFAULT_QUEUE_SIZE);
 
 	int loopcounter = 0;
 

@@ -727,7 +727,7 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 
 	if (_outputs_pub == nullptr) {
 		int instance = -1;
-		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT);
+		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT, ORB_DEFAULT_QUEUE_SIZE);
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
@@ -1086,7 +1086,7 @@ PX4FMU::cycle()
 			orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 		} else {
-			_to_safety = orb_advertise(ORB_ID(safety), &safety);
+			_to_safety = orb_advertise(ORB_ID(safety), &safety, ORB_DEFAULT_QUEUE_SIZE);
 		}
 	}
 
@@ -1383,7 +1383,7 @@ PX4FMU::cycle()
 	if (rc_updated) {
 		/* lazily advertise on first publication */
 		if (_to_input_rc == nullptr) {
-			_to_input_rc = orb_advertise(ORB_ID(input_rc), &_rc_in);
+			_to_input_rc = orb_advertise(ORB_ID(input_rc), &_rc_in, ORB_DEFAULT_QUEUE_SIZE);
 
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
@@ -2849,7 +2849,7 @@ fake(int argc, char *argv[])
 
 	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
 
-	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
+	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (handle == nullptr) {
 		errx(1, "advertise failed");
@@ -2860,7 +2860,7 @@ fake(int argc, char *argv[])
 	aa.armed = true;
 	aa.lockdown = false;
 
-	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
+	handle = orb_advertise(ORB_ID(actuator_armed), &aa, ORB_DEFAULT_QUEUE_SIZE);
 
 	if (handle == nullptr) {
 		errx(1, "advertise failed 2");

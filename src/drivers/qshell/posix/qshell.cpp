@@ -70,7 +70,7 @@ int QShell::main(std::vector<std::string> argList)
 
 	PX4_DEBUG("Requesting %s", cmd.c_str());
 
-	orb_advert_t pub_id_qshell_req = orb_advertise(ORB_ID(qshell_req), & m_qshell_req);
+	orb_advert_t pub_id_qshell_req = orb_advertise(ORB_ID(qshell_req), & m_qshell_req, ORB_DEFAULT_QUEUE_SIZE);
 
 	m_qshell_req.strlen = cmd.size();
 
