@@ -120,24 +120,6 @@ void Ekf::fuseMag()
 	H_MAG[2][18] = SH_MAG[3] - SH_MAG[4] - SH_MAG[5] + SH_MAG[6];
 	H_MAG[2][21] = 1.0f;
 
-	// Perform an innovation consistency check on each measurement and if one axis fails
-	// do not fuse any data from the sensor because the most common errors affect multiple axes.
-	bool mag_fail = false;
-	for (uint8_t index = 0; index <= 2; index++) {
-		_mag_test_ratio[index] = sq(_mag_innov[index]) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var[index]);
-
-		if (_mag_test_ratio[index] > 1.0f) {
-			mag_fail = false;
-			_innov_check_fail_status.value |= (1 << (index + 3));
-		} else {
-			_innov_check_fail_status.value &= !(1 << (index + 3));
-		}
-	}
-
-	if (mag_fail) {
-		return;
-	}
-
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains
@@ -302,6 +284,16 @@ void Ekf::fuseMag()
 			return;
 		}
 
+		// Perform an innovation consistency check and report the result
+		bool healthy = true;
+		_mag_test_ratio[index] = sq(_mag_innov[index]) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var[index]);
+		if (_mag_test_ratio[index] > 1.0f) {
+			healthy = false;
+			_innov_check_fail_status.value |= (1 << (index + 3));
+		} else {
+			_innov_check_fail_status.value &= !(1 << (index + 3));
+		}
+
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
@@ -334,7 +326,6 @@ void Ekf::fuseMag()
 
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
-		bool healthy = true;
 		_fault_status.flags.bad_mag_x = false;
 		_fault_status.flags.bad_mag_y = false;
 		_fault_status.flags.bad_mag_z = false;
