@@ -66,6 +66,7 @@
 #define _SYSTEMLIB_ERR_H
 
 #include <px4_log.h>
+#include <px4_tasks.h>
 #include <stdarg.h>
 #include <errno.h>
 #include "visibility.h"
@@ -75,18 +76,22 @@ __BEGIN_DECLS
 __EXPORT const char *getprogname(void);
 
 
-#include <errno.h>
-#include <px4_tasks.h>
+#ifdef __PX4_NUTTX
+#define EXIT(eval) exit(eval)
+#else
+#define EXIT(eval) px4_task_exit(eval)
+#endif
+
 
 #define err(eval, ...)		do { \
 		PX4_ERR(__VA_ARGS__); \
 		PX4_ERR("Task exited with errno=%i\n", errno); \
-		px4_task_exit(eval); } \
-	while(0)
+		EXIT(eval); \
+	} while(0)
 
 #define errx(eval, ...)		do { \
 		PX4_ERR(__VA_ARGS__); \
-		px4_task_exit(eval); \
+		EXIT(eval); \
 	} while(0)
 
 #define warn(...) 		PX4_WARN(__VA_ARGS__)
