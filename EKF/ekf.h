@@ -377,25 +377,25 @@ private:
 	void controlFusionModes();
 
 	// control fusion of external vision observations
-	void controlExternalVisionAiding();
+	void controlExternalVisionFusion();
 
 	// control fusion of optical flow observtions
-	void controlOpticalFlowAiding();
+	void controlOpticalFlowFusion();
 
 	// control fusion of GPS observations
-	void controlGpsAiding();
+	void controlGpsFusion();
 
 	// control fusion of magnetometer observations
-	void controlMagAiding();
+	void controlMagFusion();
 
 	// control fusion of range finder observations
-	void controlRangeFinderAiding();
+	void controlRangeFinderFusion();
 
 	// control fusion of air data observations
-	void controlAirDataAiding();
+	void controlAirDataFusion();
 
 	// control fusion of pressure altitude observations
-	void controlBaroAiding();
+	void controlBaroFusion();
 
 	// control fusion of velocity and position observations
 	void controlVelPosFusion();

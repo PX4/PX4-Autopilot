@@ -82,13 +82,13 @@ void Ekf::controlFusionModes()
 	controlHeightSensorTimeouts();
 
 	// control use of observations for aiding
-	controlMagAiding();
-	controlExternalVisionAiding();
-	controlOpticalFlowAiding();
-	controlGpsAiding();
-	controlBaroAiding();
-	controlRangeFinderAiding();
-	controlAirDataAiding();
+	controlMagFusion();
+	controlExternalVisionFusion();
+	controlOpticalFlowFusion();
+	controlGpsFusion();
+	controlBaroFusion();
+	controlRangeFinderFusion();
+	controlAirDataFusion();
 
 	// for efficiency, fusion of direct state observations for position ad velocity is performed sequentially
 	// in a single function using sensor data from multiple sources (GPS, external vision, baro, range finder, etc)
@@ -96,7 +96,7 @@ void Ekf::controlFusionModes()
 
 }
 
-void Ekf::controlExternalVisionAiding()
+void Ekf::controlExternalVisionFusion()
 {
 	// Check for new exernal vision data
 	if (_ev_data_ready) {
@@ -198,7 +198,7 @@ void Ekf::controlExternalVisionAiding()
 	}
 }
 
-void Ekf::controlOpticalFlowAiding()
+void Ekf::controlOpticalFlowFusion()
 {
 	// Check for new optical flow data that has fallen behind the fusion time horizon
 	if (_flow_data_ready) {
@@ -307,7 +307,7 @@ void Ekf::controlOpticalFlowAiding()
 	}
 }
 
-void Ekf::controlGpsAiding()
+void Ekf::controlGpsFusion()
 {
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
@@ -666,7 +666,7 @@ void Ekf::controlHeightSensorTimeouts()
 	}
 }
 
-void Ekf::controlBaroAiding()
+void Ekf::controlBaroFusion()
 {
 	if (_baro_data_ready) {
 		// determine if we should use the baro as our height source
@@ -692,7 +692,7 @@ void Ekf::controlBaroAiding()
 	}
 }
 
-void Ekf::controlRangeFinderAiding()
+void Ekf::controlRangeFinderFusion()
 {
 	// determine if we should use range finder data for height
 	if (_range_data_ready) {
@@ -736,7 +736,7 @@ void Ekf::controlRangeFinderAiding()
 	}
 }
 
-void Ekf::controlAirDataAiding()
+void Ekf::controlAirDataFusion()
 {
 	// TODO This is just to get the logic inside but we will only start fusion once we tested this again
 	//if (_tas_data_ready) {
@@ -756,7 +756,7 @@ void Ekf::controlAirDataAiding()
 	}
 }
 
-void Ekf::controlMagAiding()
+void Ekf::controlMagFusion()
 {
 	// If we are using external vision data for heading then no magnetometer fusion is used
 	if (_control_status.flags.ev_yaw) {
