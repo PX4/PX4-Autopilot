@@ -671,7 +671,7 @@ void Ekf::controlBaroFusion()
 	if (_baro_data_ready) {
 		// determine if we should use the baro as our height source
 		uint64_t last_baro_time_us = _baro_sample_delayed.time_us;
-		if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO) && !_baro_hgt_faulty) {
+		if (((_params.vdist_sensor_type == VDIST_SENSOR_BARO) || _control_status.flags.baro_hgt) && !_baro_hgt_faulty) {
 			_control_status.flags.baro_hgt = true;
 			_control_status.flags.gps_hgt = false;
 			_control_status.flags.rng_hgt = false;
