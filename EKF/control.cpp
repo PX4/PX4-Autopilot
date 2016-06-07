@@ -398,7 +398,7 @@ void Ekf::controlGpsFusion()
 		}
 
 		// Determine if GPS should be used as the height source
-		if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS) && !_gps_hgt_faulty) {
+		if (((_params.vdist_sensor_type == VDIST_SENSOR_GPS) || _control_status.flags.gps) && !_gps_hgt_faulty) {
 			_control_status.flags.baro_hgt = false;
 			_control_status.flags.gps_hgt = true;
 			_control_status.flags.rng_hgt = false;
