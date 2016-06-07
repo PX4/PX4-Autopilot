@@ -55,9 +55,10 @@ script:
     fi
 
 after_success:
-  - make package_firmware
-  - find . -name \*.px4 -exec cp "{}" . \;
+  - make package_firmware && mkdir s3deploy-archive && mv Firmware.zip
+  - find . -type f -name 'nuttx-*-default.px4' -exec cp "{}" . \;
   - find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
+  - mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch
 
 deploy:
   - provider: s3
@@ -65,9 +66,8 @@ deploy:
     secret_access_key:
       secure: $PX4_AWS_SECRET
     bucket: px4-travis
-    file:
-      - Firmware.zip
-    upload-dir: archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
+    local_dir: s3deploy-archive
+    upload-dir: archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
     acl: public_read
     skip_cleanup: true
     on:
@@ -81,12 +81,8 @@ deploy:
     secret_access_key:
       secure: $PX4_AWS_SECRET
     bucket: px4-travis
-    file_glob: true
-    file:
-      - ./*.px4
-      - build_px4fmu-v2_default/parameters.xml
-      - build_px4fmu-v2_default/airframes.xml
-    upload-dir: Firmware/$TRAVIS_BRANCH/
+    local_dir: s3deploy-branch
+    upload-dir: Firmware/$TRAVIS_BRANCH
     acl: public_read
     skip_cleanup: true
     on:
