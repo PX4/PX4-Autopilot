@@ -24,18 +24,10 @@ cache:
   directories:
     - $HOME/.ccache
 
-addons:
-  apt:
-    packages:
-    - s3cmd
-
 before_install:
   - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         docker pull danielagar/docker-px4-dev
-      && git clone git://github.com/PX4/CI-Tools.git
-      && ./CI-Tools/s3cmd-configure
-      ;
+         docker pull danielagar/docker-px4-dev;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
@@ -63,31 +55,50 @@ script:
     fi
 
 after_success:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
-         make package_firmware
-      && find . -name \*.px4 -exec cp "{}" . \;
-      && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
-      && ./CI-Tools/s3cmd-put `find . -maxdepth 1 -mindepth 1 -type f -name '*_default.px4'` build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
-      && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
-      && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
-      && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
-      && ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
-      && echo ""
-      && echo "Binaries have been posted to:" https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
-      ;
-    fi
+  - make package_firmware
+  - find . -name \*.px4 -exec cp "{}" . \;
+  - find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
 
 deploy:
-  provider: releases
-  api_key:
-    secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-  file: "Firmware.zip"
-  skip_cleanup: true
-  on:
-    tags: true
-    all_branches: true
-    repo: PX4/Firmware
-    condition: $GCC_VER = 4.8
+  - provider: s3
+    access_key_id: $PX4_AWS_KEY
+    secret_access_key:
+      secure: $PX4_AWS_SECRET
+    bucket: px4-travis
+    file:
+      - Firmware.zip
+    upload-dir: archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
+    acl: public_read
+    skip_cleanup: true
+    on:
+      branches: master,beta,stable,docker
+      condition: $GCC_VER = 4.8
+  - provider: s3
+    access_key_id: $PX4_AWS_KEY
+    secret_access_key:
+      secure: $PX4_AWS_SECRET
+    bucket: px4-travis
+    file_glob: true
+    file:
+      - ./*.px4
+      - build_px4fmu-v2_default/parameters.xml
+      - build_px4fmu-v2_default/airframes.xml
+    upload-dir: Firmware/$TRAVIS_BRANCH/
+    acl: public_read
+    skip_cleanup: true
+    on:
+      branches: master,beta,stable,docker
+      condition: $GCC_VER = 4.8
+  - provider: releases
+    api_key: 
+      secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
+    file: "Firmware.zip"
+    skip_cleanup: true
+    on:
+      tags: true
+      all_branches: true
+      repo: PX4/Firmware
+      condition: $GCC_VER = 4.8
 
 notifications:
   webhooks:
