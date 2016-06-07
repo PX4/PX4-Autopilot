@@ -56,21 +56,15 @@ bool Ekf::resetVelocity()
 
 	// reset EKF states
 	if (_control_status.flags.gps) {
-		// if we have a valid GPS measurement use it to initialise velocity states
-		gpsSample gps_newest = _gps_buffer.get_newest();
+		// this reset is only called if we have new gps data at the fusion time horizon
+		_state.vel = _gps_sample_delayed.vel;
 
-		if (_time_last_imu - gps_newest.time_us < 2*GPS_MAX_INTERVAL) {
-			_state.vel = gps_newest.vel;
-
-		} else {
-			// XXX use the value of the last known velocity
-			return false;
-		}
 	} else if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
 		_state.vel.setZero();
 
 	} else {
 		return false;
+
 	}
 
 	// calculate the change in velocity and apply to the output predictor state history
@@ -81,6 +75,7 @@ bool Ekf::resetVelocity()
 		output_states = _output_buffer.get_from_index(index);
 		output_states.vel += velocity_change;
 		_output_buffer.push_to_index(index,output_states);
+
 	}
 
 	// capture the reset event
@@ -103,45 +98,21 @@ bool Ekf::resetPosition()
 	posNE_before_reset(1) = _state.pos(1);
 
 	if (_control_status.flags.gps) {
-		// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
-		gpsSample gps_newest = _gps_buffer.get_newest();
+		// this reset is only called if we have new gps data at the fusion time horizon
+		_state.pos(0) = _gps_sample_delayed.pos(0);
+		_state.pos(1) = _gps_sample_delayed.pos(1);
+		return true;
 
-		float time_delay = 1e-6f * (float)(_imu_sample_delayed.time_us - gps_newest.time_us);
-		float max_time_delay = 1e-6f * (float)GPS_MAX_INTERVAL;
-
-		if (time_delay < max_time_delay) {
-			_state.pos(0) = gps_newest.pos(0) + gps_newest.vel(0) * time_delay;
-			_state.pos(1) = gps_newest.pos(1) + gps_newest.vel(1) * time_delay;
-			return true;
-
-		} else {
-			// XXX use the value of the last known position
-			return false;
-		}
 	} else if (_control_status.flags.opt_flow) {
 		_state.pos(0) = 0.0f;
 		_state.pos(1) = 0.0f;
 		return true;
-	} else if (_control_status.flags.ev_pos) {
-		// if we have fresh data, reset the position to the measurement
-		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
-		if (_time_last_imu - ev_newest.time_us < 2*EV_MAX_INTERVAL) {
-			// use the most recent data if it's time offset from the fusion time horizon is smaller
-			int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
-			int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
-			if (abs(dt_newest) < abs(dt_delayed)) {
-				_state.pos(0) = ev_newest.posNED(0);
-				_state.pos(1) = ev_newest.posNED(1);
-			} else {
-				_state.pos(0) = _ev_sample_delayed.posNED(0);
-				_state.pos(1) = _ev_sample_delayed.posNED(1);
-			}
-			return true;
 
-		} else {
-			// XXX use the value of the last known position
-			return false;
-		}
+	} else if (_control_status.flags.ev_pos) {
+		// this reset is only called if we have new ev data at the fusion time horizon
+		_state.pos(0) = _ev_sample_delayed.posNED(0);
+		_state.pos(1) = _ev_sample_delayed.posNED(1);
+		return true;
 
 	} else {
 		return false;

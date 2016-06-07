@@ -187,8 +187,15 @@ private:
 	bool _fuse_pos;			// gps position data should be fused
 	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel;		// gps vertical velocity measurement should be fused
-	bool _fuse_flow;		// flow measurement should be fused
-	bool _fuse_hagl_data;		// if true then range data will be fused to estimate terrain height
+
+	// booleans true when fresh sensor data is available at the fusion time horizon
+	bool _gps_data_ready;
+	bool _mag_data_ready;
+	bool _baro_data_ready;
+	bool _range_data_ready;
+	bool _flow_data_ready;
+	bool _ev_data_ready;
+	bool _tas_data_ready;
 
 	uint64_t _time_last_fake_gps;	// last time in us at which we have faked gps measurement for static mode
 
@@ -378,11 +385,20 @@ private:
 	// control fusion of GPS observations
 	void controlGpsAiding();
 
-	// control fusion of height position observations
-	void controlHeightAiding();
-
 	// control fusion of magnetometer observations
 	void controlMagAiding();
+
+	// control fusion of range finder observations
+	void controlRangeFinderAiding();
+
+	// control fusion of air data observations
+	void controlAirDataAiding();
+
+	// control fusion of pressure altitude observations
+	void controlBaroAiding();
+
+	// control fusion of velocity and position observations
+	void controlVelPosFusion();
 
 	// control for height sensor timeouts, sensor changes and state resets
 	void controlHeightSensorTimeouts();
