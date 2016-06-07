@@ -69,6 +69,7 @@
 #include <px4_tasks.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "visibility.h"
 
 __BEGIN_DECLS
