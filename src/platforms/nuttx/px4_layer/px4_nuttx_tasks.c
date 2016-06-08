@@ -38,6 +38,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -106,3 +107,15 @@ int px4_task_delete(int pid)
 {
 	return task_delete(pid);
 }
+
+const char *getprogname(void)
+{
+#if CONFIG_TASK_NAME_SIZE > 0
+	FAR struct tcb_s	*thisproc = sched_self();
+
+	return thisproc->name;
+#else
+	return "app";
+#endif
+}
+

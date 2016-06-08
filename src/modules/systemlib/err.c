@@ -62,17 +62,6 @@ extern int lib_lowvprintf(const char *fmt, va_list ap);
 
 // XXX not used anymore
 #if 0
-const char *
-getprogname(void)
-{
-#if CONFIG_TASK_NAME_SIZE > 0
-	FAR struct tcb_s	*thisproc = sched_self();
-
-	return thisproc->name;
-#else
-	return "app";
-#endif
-}
 
 static void
 warnerr_core(int errcode, const char *fmt, va_list args)

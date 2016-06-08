@@ -134,5 +134,7 @@ __EXPORT bool px4_task_is_running(const char *taskname);
 __EXPORT int px4_prctl(int option, const char *arg2, unsigned pid);
 #endif
 
+__EXPORT const char *getprogname(void);
+
 __END_DECLS
 
