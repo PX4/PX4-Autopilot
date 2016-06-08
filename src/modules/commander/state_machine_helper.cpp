@@ -651,7 +651,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		{
 			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
 
-			if (rc_lost && armed && !landed) {
+			if (rc_lost && armed) {
 				status->failsafe = true;
 
 				if (status_flags->condition_global_position_valid &&
@@ -671,7 +671,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				}
 
 			/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
-			} else if (status_flags->gps_failure && armed && !landed) {
+			} else if (status_flags->gps_failure && armed) {
 				status->failsafe = true;
 
 				if (status_flags->condition_local_altitude_valid) {
