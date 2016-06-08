@@ -119,12 +119,10 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 			}
 		}
 
-
-
 	} else if (command.compare("help") == 0) {
 		list_builtins();
 
-	} else if (command.length() == 0) {
+	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
 
 	} else {
