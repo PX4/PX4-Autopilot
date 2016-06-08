@@ -628,6 +628,10 @@ void Ekf2::task_main()
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
+		// only fuse synthetic sideslip measurements if conditions are met
+		bool fuse_beta = !vehicle_status.is_rotary_wing && _fuseBeta.get();
+		_ekf.set_fuse_beta_flag(fuse_beta);
+
 		if (optical_flow_updated) {
 			flow_message flow;
 			flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
