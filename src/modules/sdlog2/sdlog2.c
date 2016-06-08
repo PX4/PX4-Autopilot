@@ -196,6 +196,10 @@ static pthread_attr_t logwriter_attr;
 
 static perf_counter_t perf_write;
 
+/* Keep track if we've already created a folder named sessXXX because
+ * we don't want to create yet another one. */
+static bool sess_folder_created = false;
+
 /**
  * Log buffer writing thread. Open and close file here.
  */
@@ -452,13 +456,16 @@ int create_log_dir()
 		}
 
 	} else {
-		/* look for the next dir that does not exist */
-		while (dir_number <= MAX_NO_LOGFOLDER) {
+		/* Look for the next dir that does not exist.
+		 * However, if we've already crated a sessXXX folder in this session
+		 * let's re-use it. */
+		while (dir_number <= MAX_NO_LOGFOLDER && !sess_folder_created) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			sprintf(log_dir, "%s/sess%03u", log_root, dir_number);
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
+				sess_folder_created = true;
 				break;
 
 			} else if (errno != EEXIST) {
