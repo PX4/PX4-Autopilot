@@ -180,7 +180,7 @@ void Tailsitter::update_vtol_state()
 
 			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
 			if ((_airspeed->indicated_airspeed_m_s >= _params_tailsitter.airspeed_trans
-			     && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
+			     && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
 			}
@@ -250,9 +250,9 @@ void Tailsitter::update_transition_state()
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
 		if (_airspeed->indicated_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
 			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
-					    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
+					     (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
 			_thrust_transition = math::constrain(_thrust_transition , _thrust_transition_start ,
-							    (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
+							     (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
 			_v_att_sp->thrust = _thrust_transition;
 		}
 

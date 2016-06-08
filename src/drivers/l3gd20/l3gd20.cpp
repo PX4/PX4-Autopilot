@@ -666,14 +666,14 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -1050,6 +1050,18 @@ L3GD20::measure()
 
 	report.z_raw = raw_report.z;
 
+#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+	int16_t tx = -report.y_raw;
+	int16_t ty = -report.x_raw;
+	int16_t tz = -report.z_raw;
+	report.x_raw = tx;
+	report.y_raw = ty;
+	report.z_raw = tz;
+#endif
+
+
+
+
 	report.temperature_raw = raw_report.temp;
 
 	float xraw_f = report.x_raw;
@@ -1210,7 +1222,7 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#ifdef PX4_SPI_BUS_EXT
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
 		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		errx(0, "External SPI not available");

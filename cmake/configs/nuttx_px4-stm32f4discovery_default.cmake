@@ -30,19 +30,20 @@ set(config_module_list
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
-	modules/controllib
 	modules/uORB
 
 	#
 	# Libraries
 	#
 	#lib/mathlib/CMSIS
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
 	lib/conversion
+	lib/DriverFramework/framework
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
@@ -80,8 +81,12 @@ set(config_extra_builtin_cmds
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "sercon"
+	STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "serdis"
+	STACK_MAIN "2048")

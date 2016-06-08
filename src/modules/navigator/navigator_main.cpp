@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
-#include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
 
@@ -107,7 +107,8 @@ Navigator::Navigator() :
 	_gps_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
-	_capabilities_sub(-1),
+	_land_detected_sub(-1),
+	_fw_pos_ctrl_status_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
@@ -118,14 +119,17 @@ Navigator::Navigator() :
 	_geofence_result_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_vstatus{},
+	_land_detected{},
 	_control_mode{},
 	_global_pos{},
 	_gps_pos{},
 	_sensor_combined{},
 	_home_pos{},
 	_mission_item{},
-	_nav_caps{},
+	_fw_pos_ctrl_status{},
 	_pos_sp_triplet{},
+	_reposition_triplet{},
+	_takeoff_triplet{},
 	_mission_result{},
 	_att_sp{},
 	_mission_item_valid(false),
@@ -151,8 +155,8 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
-	_param_datalinkloss_obc(this, "DLL_OBC"),
-	_param_rcloss_obc(this, "RCL_OBC"),
+	_param_datalinkloss_act(this, "DLL_ACT"),
+	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_mission_cruising_speed(-1.0f)
@@ -227,9 +231,9 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::navigation_capabilities_update()
+Navigator::fw_pos_ctrl_status_update()
 {
-	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+	orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
 }
 
 void
@@ -239,6 +243,12 @@ Navigator::vehicle_status_update()
 		/* in case the commander is not be running */
 		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 	}
+}
+
+void
+Navigator::vehicle_land_detected_update()
+{
+	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
 }
 
 void
@@ -288,8 +298,9 @@ Navigator::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
+	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
@@ -299,20 +310,23 @@ Navigator::task_main()
 
 	/* copy all topics first time */
 	vehicle_status_update();
+	vehicle_land_detected_update();
 	vehicle_control_mode_update();
 	global_position_update();
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
-	navigation_capabilities_update();
+	fw_pos_ctrl_status_update();
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[2] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vehicle_command_sub;
+	fds[1].events = POLLIN;
 
 	bool global_pos_available_once = false;
 
@@ -324,7 +338,8 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("navigator timed out");
+				PX4_WARN("no GPS - navigator timed out");
+				global_pos_available_once = false;
 			}
 			continue;
 
@@ -374,10 +389,16 @@ Navigator::task_main()
 			vehicle_status_update();
 		}
 
-		/* navigation capabilities updated */
-		orb_check(_capabilities_sub, &updated);
+		/* vehicle land detected updated */
+		orb_check(_land_detected_sub, &updated);
 		if (updated) {
-			navigation_capabilities_update();
+			vehicle_land_detected_update();
+		}
+
+		/* navigation capabilities updated */
+		orb_check(_fw_pos_ctrl_status_sub, &updated);
+		if (updated) {
+			fw_pos_ctrl_status_update();
 		}
 
 		/* home position updated */
@@ -392,10 +413,65 @@ Navigator::task_main()
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
-				warnx("navigator: got reposition command");
-			}
 
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
+				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+				// store current position as previous position and goal as next
+				rep->previous.yaw = get_global_position()->yaw;
+				rep->previous.lat = get_global_position()->lat;
+				rep->previous.lon = get_global_position()->lon;
+				rep->previous.alt = get_global_position()->alt;
+
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction = 1;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+				// Go on and check which changes had been requested
+				if (PX4_ISFINITE(cmd.param4)) {
+					rep->current.yaw = cmd.param4;
+				} else {
+					rep->current.yaw = NAN;
+				}
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = cmd.param5 / (double)1e7;
+					rep->current.lon = cmd.param6 / (double)1e7;
+				} else {
+					rep->current.lat = get_global_position()->lat;
+					rep->current.lon = get_global_position()->lon;
+				}
+
+				if (PX4_ISFINITE(cmd.param7)) {
+					rep->current.alt = cmd.param7;
+				} else {
+					rep->current.alt = get_global_position()->alt;
+				}
+
+				rep->previous.valid = true;
+				rep->current.valid = true;
+				rep->next.valid = false;
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
+				struct position_setpoint_triplet_s *rep = get_takeoff_triplet();
+
+				// store current position as previous position and goal as next
+				rep->previous.yaw = get_global_position()->yaw;
+				rep->previous.lat = get_global_position()->lat;
+				rep->previous.lon = get_global_position()->lon;
+				rep->previous.alt = get_global_position()->alt;
+
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction = 1;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+				rep->current.yaw = cmd.param4;
+				rep->current.lat = cmd.param5 / (double)1e7;
+				rep->current.lon = cmd.param6 / (double)1e7;
+				rep->current.alt = cmd.param7;
+
+				rep->previous.valid = true;
+				rep->current.valid = true;
+				rep->next.valid = false;
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
 				warnx("navigator: got pause/continue command");
 			}
 		}
@@ -449,7 +525,7 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				if (_nav_caps.abort_landing) {
+				if (_fw_pos_ctrl_status.abort_landing) {
 					// pos controller aborted landing, requests loiter
 					// above landing waypoint
 					_navigation_mode = &_loiter;
@@ -465,9 +541,13 @@ Navigator::task_main()
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_rcloss_obc.get() != 0) {
+				if (_param_rcloss_act.get() == 1) {
+					_navigation_mode = &_loiter;
+				} else if (_param_rcloss_act.get() == 3) {
+					_navigation_mode = &_land;
+				} else if (_param_rcloss_act.get() == 4) {
 					_navigation_mode = &_rcLoss;
-				} else {
+				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;
@@ -491,9 +571,13 @@ Navigator::task_main()
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
-				if (_param_datalinkloss_obc.get() != 0) {
+				if (_param_datalinkloss_act.get() == 1) {
+					_navigation_mode = &_loiter;
+				} else if (_param_datalinkloss_act.get() == 3) {
+					_navigation_mode = &_land;
+				} else if (_param_datalinkloss_act.get() == 4) {
 					_navigation_mode = &_dataLinkLoss;
-				} else {
+				} else { /* if == 2 or unknown, RTL */
 					_navigation_mode = &_rtl;
 				}
 				break;
@@ -556,7 +640,7 @@ Navigator::start()
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 5,
-					 1500,
+					 1300,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -601,6 +685,11 @@ Navigator::publish_position_setpoint_triplet()
 	/* update navigation state */
 	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
+	/* do not publish an empty triplet */
+	if (!_pos_sp_triplet.current.valid) {
+		return;
+	}
+
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub != nullptr) {
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
@@ -608,6 +697,12 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
+}
+
+float
+Navigator::get_default_acceptance_radius()
+{
+	return _param_acceptance_radius.get();
 }
 
 float
@@ -638,9 +733,9 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
 	// so that a stale _vstatus doesn't trigger an accepted mission item.
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode && hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
-		if (_nav_caps.turn_distance > radius) {
-			radius = _nav_caps.turn_distance;
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
+		if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 5000000) && (_fw_pos_ctrl_status.turn_distance > radius)) {
+			radius = _fw_pos_ctrl_status.turn_distance;
 		}
 	}
 

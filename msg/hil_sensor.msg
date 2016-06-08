@@ -17,7 +17,6 @@ int32 MAGNETOMETER_MODE_NEGATIVE_BIAS = 2
 #
 # NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes Change with consideration only
 
-uint64 timestamp			# Timestamp in microseconds since boot, from gyro
 #
 int16[3] gyro_raw			# Raw sensor values of angular velocity
 float32[3] gyro_rad_s			# Angular velocity in radian per seconds

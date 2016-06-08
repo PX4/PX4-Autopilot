@@ -49,3 +49,38 @@
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
+
+/**
+ * Maximum allowed down-pitch the controller is able to demand. This prevents large, negative
+ * lift values being created when facing strong winds. The vehicle will use the pusher motor
+ * to accelerate forward if necessary.
+ *
+ * @min 0.0
+ * @max 45.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
+
+/**
+ * Fixed wing thrust scale for hover forward flight.
+ *
+ * Scale applied to fixed wing thrust being used as source for forward acceleration in multirotor mode.
+ * This technique can be used to avoid the plane having to pitch down a lot in order to move forward.
+ * Setting this value to 0 (default) will disable this strategy.
+ * @min 0.0
+ * @max 2.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
+
+
+/**
+ * QuadChute
+ *
+ * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
+ * the vehicle will transition back to MC mode and enter failsafe RTL
+ * @min 0.0
+ * @max 200.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);

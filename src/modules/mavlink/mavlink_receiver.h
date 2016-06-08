@@ -75,6 +75,8 @@
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
+#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/gps_inject_data.h>
 
 #include "mavlink_ftp.h"
 
@@ -138,6 +140,8 @@ private:
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
+	void handle_message_adsb_vehicle(mavlink_message_t *msg);
+	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -150,7 +154,7 @@ private:
 	/**
 	 * Exponential moving average filter to smooth time offset
 	 */
-	void smooth_time_offset(uint64_t offset_ns);
+	void smooth_time_offset(int64_t offset_ns);
 
 	/**
 	 * Decode a switch position from a bitfield
@@ -200,6 +204,10 @@ private:
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
+	orb_advert_t _transponder_report_pub;
+	static const int _gps_inject_data_pub_size = 4;
+	orb_advert_t _gps_inject_data_pub[_gps_inject_data_pub_size];
+	int _gps_inject_data_next_idx = 0;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
@@ -213,7 +221,7 @@ private:
 	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
-	uint64_t _time_offset;
+	int64_t _time_offset;
 	int	_orb_class_instance;
 
 	static constexpr unsigned MOM_SWITCH_COUNT = 8;

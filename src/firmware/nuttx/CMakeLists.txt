@@ -13,7 +13,7 @@ add_executable(firmware_nuttx
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
-	romfs apps nuttx m gcc df_driver_framework
+	romfs apps nuttx m gcc
 	)
 
 if(NOT ${BOARD} STREQUAL "sim")
@@ -29,6 +29,7 @@ endif()
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${module_libraries}
+	${df_driver_libs}
 	${config_extra_libs}
 	${link_libs}
 	-Wl,--end-group)
@@ -44,16 +45,21 @@ if(NOT ${BOARD} STREQUAL "sim")
 	if (config_io_board)
 		set(extras "${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
 	endif()
+	
+	set(romfs_dir "ROMFS/px4fmu_common")
+	if (${BOARD} STREQUAL "px4fmu-v2" AND ${LABEL} STREQUAL "test")
+	    set(romfs_dir "ROMFS/px4fmu_test")
+	endif()
 
 	px4_nuttx_add_romfs(OUT romfs
-		ROOT ROMFS/px4fmu_common
+		ROOT ${romfs_dir}
 		EXTRAS ${extras}
 		)
 	if (config_io_board)
 	    add_dependencies(romfs fw_io)
 	endif()
-	set(fw_file
-		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+
+	set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
 	px4_nuttx_add_firmware(OUT ${fw_file}
 		BOARD ${BOARD}

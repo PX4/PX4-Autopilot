@@ -107,6 +107,7 @@ def main():
                         metavar="SUMMARY",
                         default="Automagically updated parameter documentation from code.",
                         help="DokuWiki page edit summary")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
     args = parser.parse_args()
 
     # Check for valid command
@@ -120,7 +121,7 @@ def main():
     parser = srcparser.SourceParser()
 
     # Scan directories, and parse the files
-    print("Scanning source path " + args.src_path)
+    if (args.verbose): print("Scanning source path " + args.src_path)
     if not scanner.ScanDir(args.src_path, parser):
         sys.exit(1)
     if not parser.Validate():
@@ -129,7 +130,7 @@ def main():
 
     # Output to XML file
     if args.xml:
-        print("Creating XML file " + args.xml)
+        if args.verbose: print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board, os.path.join(args.src_path, args.inject_xml))
         out.Save(args.xml)
 
@@ -147,7 +148,7 @@ def main():
             else:
                 print("Error: You need to specify DokuWiki XML-RPC username and password!")
 
-    print("All done!")
+    #print("All done!")
 
 
 if __name__ == "__main__":

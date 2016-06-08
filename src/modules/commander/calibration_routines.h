@@ -113,3 +113,27 @@ void calibrate_cancel_unsubscribe(int cancel_sub);
 /// Used to periodically check for a cancel command
 bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 			    int cancel_sub);	///< Cancel subcription fromcalibration_cancel_subscribe
+
+
+// TODO FIXME: below are workarounds for QGC. The issue is that sometimes
+// a mavlink log message is overwritten by the following one. A workaround
+// is to wait for some time after publishing each message and hope that it
+// gets sent out in the meantime.
+
+#define calibration_log_info(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_info(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);
+
+#define calibration_log_critical(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_critical(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);
+
+#define calibration_log_emergency(_pub, _text, ...)			\
+	do { \
+		mavlink_and_console_log_emergency(_pub, _text, ##__VA_ARGS__); \
+		usleep(10000); \
+	} while(0);

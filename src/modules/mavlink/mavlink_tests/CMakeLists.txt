@@ -33,13 +33,9 @@
 px4_add_module(
 	MODULE modules__mavlink__mavlink_tests
 	MAIN mavlink_tests
-	STACK 5000
+	STACK_MAIN 5000
 	COMPILE_FLAGS
-		-Weffc++
 		-DMAVLINK_FTP_UNIT_TEST
-		-Wno-attributes
-		-Wno-packed
-		-Wno-packed
 		-Os
 	SRCS
 		mavlink_tests.cpp

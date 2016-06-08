@@ -47,7 +47,7 @@
 #include <px4_time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -55,6 +55,9 @@
 #include <poll.h>
 #include <time.h>
 #include <float.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/sensor_combined.h>
@@ -63,9 +66,11 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/vision_position_estimate.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -127,9 +132,11 @@ private:
 
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
-	orb_advert_t _status_pub;
+	orb_advert_t _landed_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
+	orb_advert_t _airspeed_pub;
+	orb_advert_t _ev_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -142,15 +149,19 @@ private:
 	struct log_format_s _formats[100];
 	struct sensor_combined_s _sensors;
 	struct vehicle_gps_position_s _gps;
-	struct vehicle_status_s _status;
+	struct vehicle_land_detected_s _land_detected;
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
+	struct airspeed_s _airspeed;
+	struct vision_position_estimate_s _ev;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
 	bool _read_part2;				// indicates if part 2 of replay message has been read
 	bool _read_part3;
 	bool _read_part4;
+	bool _read_part6;
+	bool _read_part5;
 
 	int _write_fd = -1;
 	px4_pollfd_struct_t _fds[1];
@@ -188,14 +199,18 @@ private:
 	// it will then wait for the output data from the estimator and call the propoper
 	// functions to handle it
 	void publishAndWaitForEstimator();
+
+	void setUserParams(const char *filename);
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
-	_status_pub(nullptr),
+	_landed_pub(nullptr),
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
+	_airspeed_pub(nullptr),
+	_ev_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -204,7 +219,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_formats{},
 	_sensors{},
 	_gps{},
-	_status{},
+	_land_detected{},
 	_flow{},
 	_range{},
 	_message_counter(0),
@@ -212,6 +227,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_read_part2(false),
 	_read_part3(false),
 	_read_part4(false),
+	_read_part6(false),
+	_read_part5(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -222,7 +239,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_file_name = path_to_log;
 
 	// we always start landed
-	_status.condition_landed = true;
+	_land_detected.landed = true;
 }
 
 Ekf2Replay::~Ekf2Replay()
@@ -259,12 +276,29 @@ void Ekf2Replay::publishEstimatorInput()
 
 	_read_part4 = false;
 
+	if (_ev_pub == nullptr && _read_part5) {
+		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev);
+
+	} else if (_ev_pub != nullptr && _read_part5) {
+		orb_publish(ORB_ID(vision_position_estimate), _ev_pub, &_ev);
+	}
+
+	_read_part5 = false;
+
 	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
 
 	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
+
+	if (_airspeed_pub == nullptr && _read_part6) {
+		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+	} else if (_airspeed_pub != nullptr) {
+		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
+	}
+
+	_read_part6 = false;
 }
 
 void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t type)
@@ -327,7 +361,9 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL2_s replay_part2 = {};
 	struct log_RPL3_s replay_part3 = {};
 	struct log_RPL4_s replay_part4 = {};
-	struct log_STAT_s vehicle_status = {};
+	struct log_RPL6_s replay_part6 = {};
+	struct log_RPL5_s replay_part5 = {};
+	struct log_LAND_s vehicle_landed = {};
 
 	if (type == LOG_RPL1_MSG) {
 
@@ -367,6 +403,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_gps.vel_e_m_s = replay_part2.vel_e_m_s;
 		_gps.vel_d_m_s = replay_part2.vel_d_m_s;
 		_gps.vel_ned_valid = replay_part2.vel_ned_valid;
+		_gps.alt = replay_part2.alt;
 		_read_part2 = true;
 
 	} else if (type == LOG_RPL3_MSG) {
@@ -388,17 +425,43 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
 
-	} else if (type == LOG_STAT_MSG) {
-		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+	} else if (type == LOG_RPL6_MSG){
+		uint8_t *dest_ptr = (uint8_t *)&replay_part6.time_airs_usec;
 		parseMessage(data, dest_ptr, type);
-		_status.arming_state = vehicle_status.arming_state;
-		_status.condition_landed = (bool)vehicle_status.landed;
+		_airspeed.timestamp = replay_part6.time_airs_usec;
+		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
+		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
+		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
+		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
+		_airspeed.confidence = replay_part6.confidence;
+		_read_part6 = true;
 
-		if (_status_pub == nullptr) {
-			_status_pub = orb_advertise(ORB_ID(vehicle_status), &_status);
+	} else if (type == LOG_RPL5_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
+		parseMessage(data, dest_ptr, type);
+		_ev.timestamp = replay_part5.time_ev_usec;
+		_ev.timestamp_computer = replay_part5.time_ev_usec; // fake this timestamp
+		_ev.x = replay_part5.x;
+		_ev.y = replay_part5.y;
+		_ev.z = replay_part5.z;
+		_ev.q[0] = replay_part5.q0;
+		_ev.q[1] = replay_part5.q1;
+		_ev.q[2] = replay_part5.q2;
+		_ev.q[3] = replay_part5.q3;
+		_ev.pos_err = replay_part5.pos_err;
+		_ev.ang_err = replay_part5.pos_err;
+		_read_part5 = true;
 
-		} else if (_status_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_status), _status_pub, &_status);
+	} else if (type == LOG_LAND_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
+		parseMessage(data, dest_ptr, type);
+		_land_detected.landed =  vehicle_landed.landed;
+
+		if (_landed_pub == nullptr) {
+			_landed_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_land_detected);
+
+		} else if (_landed_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);
 		}
 	}
 }
@@ -436,6 +499,13 @@ void Ekf2Replay::logIfUpdated()
 	// update attitude
 	struct vehicle_attitude_s att = {};
 	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+
+	// if the timestamp of the attitude is zero, then this means that the ekf did not
+	// do an update so we can ignore this message and just continue
+	if (att.timestamp == 0) {
+		return;
+	}
+
 	memset(&log_message.body.att.q_w, 0, sizeof(log_ATT_s));
 
 	log_message.type = LOG_ATT_MSG;
@@ -506,7 +576,7 @@ void Ekf2Replay::logIfUpdated()
 		memcpy(&(log_message.body.est0.s), est_status.states, maxcopy0);
 		log_message.body.est0.n_states = est_status.n_states;
 		log_message.body.est0.nan_flags = est_status.nan_flags;
-		log_message.body.est0.health_flags = est_status.health_flags;
+		log_message.body.est0.fault_flags = est_status.filter_fault_flags;
 		log_message.body.est0.timeout_flags = est_status.timeout_flags;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST0_MSG].length);
 
@@ -570,6 +640,9 @@ void Ekf2Replay::logIfUpdated()
 
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
+		log_message.body.innov2.s[8] = innov.airspeed_innov;
+		log_message.body.innov2.s[9] = innov.airspeed_innov_var;
+
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 
 		// optical flow innovations and innovation variances
@@ -632,11 +705,52 @@ void Ekf2Replay::publishAndWaitForEstimator()
 	}
 }
 
+void Ekf2Replay::setUserParams(const char *filename)
+{
+	std::string line;
+	std::ifstream myfile(filename);
+	std::string param_name;
+	std::string value_string;
+
+	if (myfile.is_open()) {
+		while (! myfile.eof()) {
+			getline(myfile, line);
+
+			if (line.empty()) {
+				continue;
+			}
+
+			std::istringstream mystrstream(line);
+			mystrstream >> param_name;
+			mystrstream >> value_string;
+
+			double param_value_double = std::stod(value_string);
+
+			param_t handle = param_find(param_name.c_str());
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_value_double;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				float value = 0;
+				value = (float)param_value_double;
+				param_set(handle, (const void *)&value);
+			}
+		}
+
+		myfile.close();
+	}
+}
+
 void Ekf2Replay::task_main()
 {
 	// formats
 	const int _k_max_data_size = 1024;	// 16x16 bytes
 	uint8_t data[_k_max_data_size] = {};
+	const char param_file[] = "./rootfs/replay_params.txt";
 
 	// Open log file from which we read data
 	// TODO Check if file exists
@@ -661,6 +775,25 @@ void Ekf2Replay::task_main()
 	// open logfile to write
 	_write_fd = ::open(path_to_replay_log, O_WRONLY | O_CREAT, S_IRWXU);
 
+	std::ifstream tmp_file;
+	tmp_file.open(param_file);
+
+	std::string line;
+	bool set_default_params_in_file = false;
+
+	if (tmp_file.is_open() && ! tmp_file.eof()) {
+		getline(tmp_file, line);
+
+		if (line.empty()) {
+			// the parameter file is empty so write the default values to it
+			set_default_params_in_file = true;
+		}
+	}
+
+	tmp_file.close();
+
+	std::ofstream myfile(param_file, std::ios::app);
+
 	// subscribe to estimator topics
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
@@ -673,6 +806,7 @@ void Ekf2Replay::task_main()
 	_fds[0].events = POLLIN;
 
 	bool read_first_header = false;
+	bool set_user_params = false;
 
 	PX4_INFO("Replay in progress... \n");
 	PX4_INFO("Log data will be written to %s\n", replay_file_location);
@@ -695,8 +829,9 @@ void Ekf2Replay::task_main()
 
 		read_first_header = true;
 
-		if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
-			PX4_WARN("bad log header\n");
+		if ((header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2)) {
+			// we assume that the log file is finished here
+			PX4_WARN("Done!");
 			_task_should_exit = true;
 			continue;
 		}
@@ -730,6 +865,43 @@ void Ekf2Replay::task_main()
 
 			writeMessage(_write_fd, &data[0], sizeof(log_PARM_s));
 
+			// apply the parameters
+			char param_name[16];
+
+			for (unsigned i = 0; i < 16; i++) {
+				param_name[i] = data[i];
+
+				if (data[i] == '\0') {
+					break;
+				}
+			}
+
+			float param_data = 0;
+			memcpy(&param_data, &data[16], sizeof(float));
+			param_t handle = param_find(param_name);
+			param_type_t param_format = param_type(handle);
+
+			if (param_format == PARAM_TYPE_INT32) {
+				int32_t value = 0;
+				value = (int32_t)param_data;
+				param_set(handle, (const void *)&value);
+
+			} else if (param_format == PARAM_TYPE_FLOAT) {
+				param_set(handle, (const void *)&param_data);
+			}
+
+			// if the user param file was empty then we fill it with the ekf2 parameter values from
+			// the log file
+			if (set_default_params_in_file) {
+				if (strncmp(param_name, "EKF2", 4) == 0) {
+					std::ostringstream os;
+					double value = (double)param_data;
+					os << std::string(param_name) << " ";
+					os << value << "\n";
+					myfile << os.str();
+				}
+			}
+
 		} else if (header[2] == LOG_VER_MSG) {
 			// version message
 			if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
@@ -752,6 +924,14 @@ void Ekf2Replay::task_main()
 			writeMessage(_write_fd, &data[0], sizeof(log_TIME_s));
 
 		} else {
+			// the first time we arrive here we should apply the parameters specified in the user file
+			// this makes sure they are applied after the parameter values of the log file
+			if (!set_user_params) {
+				myfile.close();
+				setUserParams(param_file);
+				set_user_params = true;
+			}
+
 			// data message
 			if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
 				PX4_INFO("Done!");

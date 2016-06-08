@@ -15,6 +15,8 @@ then
 	param set PWM_DISARMED 900
 	param set PWM_MIN 1075
 	param set PWM_MAX 1950
+
+	param set RTL_LAND_DELAY 0
 fi
 
 # set environment variables (!= parameters)

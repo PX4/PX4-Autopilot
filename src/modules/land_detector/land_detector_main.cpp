@@ -55,6 +55,9 @@
 #include "MulticopterLandDetector.h"
 #include "VtolLandDetector.h"
 
+namespace landdetection
+{
+
 //Function prototypes
 static int land_detector_start(const char *mode);
 static void land_detector_stop();
@@ -137,7 +140,7 @@ static int land_detector_start(const char *mode)
 	}
 
 	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
+	const uint64_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
 
 	/* avoid printing dots just yet and do one sleep before the first check */
 	usleep(10000);
@@ -207,4 +210,6 @@ exiterr:
 	PX4_WARN("usage: land_detector {start|stop|status} [mode]");
 	PX4_WARN("mode can either be 'fixedwing' or 'multicopter'");
 	return 1;
+}
+
 }

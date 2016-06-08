@@ -60,7 +60,7 @@ typedef void (*capture_callback_t)(void *context, uint32_t chan_index,
 				   hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 
 /**
- * Maximum number of PWM output channels supported by the device.
+ * Maximum number of PWM input channels supported by the device.
  */
 #ifndef INPUT_CAPTURE_MAX_CHANNELS
 #define INPUT_CAPTURE_MAX_CHANNELS 6

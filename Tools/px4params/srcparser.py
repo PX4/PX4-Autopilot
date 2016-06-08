@@ -144,7 +144,7 @@ class SourceParser(object):
     def __init__(self):
         self.param_groups = {}
 
-    def Parse(self, contents):
+    def Parse(self, scope, contents):
         """
         Incrementally parse program contents and append all found parameters
         to the list.
@@ -241,6 +241,7 @@ class SourceParser(object):
                     if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
+                    param.SetField("scope", scope)
                     param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
@@ -283,6 +284,9 @@ class SourceParser(object):
         for group in self.GetParamGroups():
             for param in group.GetParams():
                 name  = param.GetName()
+                if len(name) > 16:
+                    sys.stderr.write("Parameter Name {0} is too long (Limit is 16)\n".format(name))
+                    return False
                 board = param.GetFieldValue("board")
                 # Check for duplicates
                 name_plus_board = name + "+" + board

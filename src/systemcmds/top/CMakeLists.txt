@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__top
 	MAIN top
-	STACK 1700
+	STACK_MAIN 1700
 	COMPILE_FLAGS
 		-Os
 	SRCS

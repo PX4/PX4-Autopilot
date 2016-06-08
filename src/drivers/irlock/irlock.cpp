@@ -48,7 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <drivers/boards/px4fmu-v2/board_config.h>
+#include <board_config.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_irlock.h>

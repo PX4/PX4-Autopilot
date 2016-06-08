@@ -688,6 +688,25 @@ PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
 
 /**
+ * Bitfield selecting mag sides for calibration
+ *
+ * DETECT_ORIENTATION_TAIL_DOWN = 1
+ * DETECT_ORIENTATION_NOSE_DOWN = 2
+ * DETECT_ORIENTATION_LEFT = 4
+ * DETECT_ORIENTATION_RIGHT = 8
+ * DETECT_ORIENTATION_UPSIDE_DOWN = 16
+ * DETECT_ORIENTATION_RIGHTSIDE_UP = 32
+ *
+ * @min 34
+ * @max 63
+ * @value 34 Two side calibration
+ * @value 38 Three side calibration
+ * @value 63 Six side calibration
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+
+/**
  * Primary baro ID
  *
  * @group Sensor Calibration
@@ -1913,7 +1932,7 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
- * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
+ * Relay control of relay 1 mapped to the Spektrum receiver power supply
  *
  * @min 0
  * @max 1
@@ -1945,20 +1964,64 @@ PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 
 /**
- * Scaling factor for battery voltage sensor on FMU v2.
+ * Scaling from ADC counts to volt on the ADC input (battery voltage)
+ *
+ * This is not the battery voltage, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
  *
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
 
 /**
- * Scaling factor for battery current sensor.
+ * Scaling from ADC counts to volt on the ADC input (battery current)
+ *
+ * This is not the battery current, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
  *
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
+
+/**
+ * Offset in volt as seen by the ADC input of the current sensor.
+ *
+ * This offset will be subtracted before calculating the battery
+ * current based on the voltage.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
+
+/**
+ * Battery voltage divider (V divider)
+ *
+ * This is the divider from battery voltage to 3.3V ADC voltage.
+ * If using e.g. Mauch power modules the value from the datasheet
+ * can be applied straight here. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+
+/**
+ * Battery current per volt (A/V)
+ *
+ * The voltage seen by the 3.3V ADC multiplied by this factor
+ * will determine the battery current. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 
 
 /**
@@ -2438,7 +2501,7 @@ PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
 /**
- * AUX1 channel
+ * AUX1 Passthrough RC Channel
  *
  * Default function: Camera pitch
  *
@@ -2468,7 +2531,7 @@ PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
 /**
- * AUX2 channel
+ * AUX2 Passthrough RC Channel
  *
  * Default function: Camera roll
  *
@@ -2498,7 +2561,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
 /**
- * AUX3 Channel
+ * AUX3 Passthrough RC Channel
  *
  * Default function: Camera azimuth / yaw
  *
@@ -2526,6 +2589,62 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
  * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
+
+/**
+ * AUX4 Passthrough RC Channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_AUX4, 0);
+
+/**
+ * AUX5 Passthrough RC Channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_AUX5, 0);
 
 /**
  * PARAM1 tuning channel
@@ -2854,7 +2973,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 
 /**
- * Enable Lidar-Lite (LL40LS) pwm driver
+ * Lidar-Lite (LL40LS) PWM
  *
  * @reboot_required true
  *
@@ -2862,6 +2981,16 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+
+/**
+ * Lightware SF0x laser rangefinder
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensor Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 
 /**
  * Set the minimum PWM for the MAIN outputs

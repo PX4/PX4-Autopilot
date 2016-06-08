@@ -39,6 +39,10 @@ extern "C" {
 
 	int px4muorb_orb_initialize() __EXPORT;
 
+	int px4muorb_set_absolute_time_offset(int32_t time_diff_us) __EXPORT;
+
+	int px4muorb_get_absolute_time(uint64_t *time_us) __EXPORT;
+
 	int px4muorb_add_subscriber(const char *name) __EXPORT;
 
 	int px4muorb_remove_subscriber(const char *name) __EXPORT;

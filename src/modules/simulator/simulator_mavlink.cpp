@@ -69,6 +69,8 @@ static int _fd;
 static unsigned char _buf[1024];
 sockaddr_in _srcaddr;
 static socklen_t _addrlen = sizeof(_srcaddr);
+static bool actuators_on = false;
+static hrt_abstime batt_sim_start = 0;
 
 using namespace simulator;
 
@@ -111,6 +113,8 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	if (_vehicle_status.timestamp == 0) {
 		memset(out, 0, sizeof(out));
 	}
+
+	actuators_on = (out[3] > 0.1f);
 
 	actuator_msg.time_usec = hrt_absolute_time();
 	actuator_msg.roll_ailerons = out[0];
@@ -250,7 +254,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			px4_clock_gettime(CLOCK_REALTIME, &ts);
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
-			perf_set(_perf_sim_delay, timestamp - sim_timestamp);
+			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
 			perf_count(_perf_sim_interval);
 
 			if (publish) {
@@ -259,56 +263,39 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			update_sensors(&imu);
 
-			/* battery */
-			{
-				hrt_abstime now = hrt_absolute_time();
-				const float discharge_interval_us = 60 * 1000 * 1000;
+			// battery simulation
+			hrt_abstime now = hrt_absolute_time();
 
-				static hrt_abstime batt_sim_start = now;
+			const float discharge_interval_us = 60 * 1000 * 1000;
 
-				float cellcount = 3.0f;
-
-				float vbatt = 4.2f * cellcount;
-				float ibatt = 20.0f;
-
-				vbatt -= (0.5f * cellcount) * ((now - batt_sim_start) / discharge_interval_us);
-
-				if (vbatt < (cellcount * 3.7f)) {
-					vbatt = cellcount * 3.7f;
-				}
-
-				battery_status_s	battery_status;
-				battery_status.timestamp = hrt_absolute_time();
-
-				/* voltage is scaled to mV */
-				battery_status.voltage_v = vbatt;
-				battery_status.voltage_filtered_v = vbatt;
-
-				/*
-				  ibatt contains the raw ADC count, as 12 bit ADC
-				  value, with full range being 3.3v
-				*/
-				battery_status.current_a = ibatt;
-
-				/*
-				  integrate battery over time to get total mAh used
-				*/
-				if (_battery_last_timestamp != 0) {
-					_battery_mamphour_total += battery_status.current_a *
-								   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-				}
-
-				battery_status.discharged_mah = _battery_mamphour_total;
-
-				/* lazily publish the battery voltage */
-				if (_battery_pub != nullptr) {
-					orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
-					_battery_last_timestamp = battery_status.timestamp;
-
-				} else {
-					_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
-				}
+			if (!actuators_on || batt_sim_start == 0 || batt_sim_start > now) {
+				batt_sim_start = now;
 			}
+
+			unsigned cellcount = _battery.cell_count();
+
+			float vbatt = _battery.full_cell_voltage() ;
+			float ibatt = -1.0f;
+
+			float discharge_v = _battery.full_cell_voltage() - _battery.empty_cell_voltage();
+
+			vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
+
+			float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
+
+			if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
+				vbatt = cellcount * batt_voltage_loaded;
+			}
+
+			battery_status_s battery_status = {};
+
+			// TODO: don't hard-code throttle.
+			const float throttle = 0.5f;
+			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, actuators_on, &battery_status);
+
+			// publish the battery voltage
+			int batt_multi;
+			orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH);
 		}
 		break;
 
@@ -336,12 +323,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 		// publish message
 		if (publish) {
-			if (_rc_channels_pub == nullptr) {
-				_rc_channels_pub = orb_advertise(ORB_ID(input_rc), &_rc_input);
-
-			} else {
-				orb_publish(ORB_ID(input_rc), _rc_channels_pub, &_rc_input);
-			}
+			int rc_multi;
+			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
 		}
 
 		break;
@@ -479,7 +462,7 @@ void Simulator::initializeSensorData()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::pollForMAVLinkMessages(bool publish)
+void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 {
 	// set the threads name
 #ifdef __PX4_DARWIN
@@ -490,13 +473,16 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 	// udp socket data
 	struct sockaddr_in _myaddr;
-	const int _port = UDP_PORT;
+
+	if (udp_port < 1) {
+		udp_port = UDP_PORT;
+	}
 
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(_port);
+	_myaddr.sin_port = htons(udp_port);
 
 	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		PX4_WARN("create socket failed\n");
@@ -526,20 +512,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
-	if (serial_fd < 0) {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-
-	} else {
-
-		// tell the device to stream some messages
-		char command[] = "\nsh /etc/init.d/rc.usb\n";
-		int w = ::write(serial_fd, command, sizeof(command));
-
-		if (w <= 0) {
-			PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
-		}
-	}
-
 	char serial_buf[1024];
 
 	struct pollfd fds[2];
@@ -553,6 +525,9 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		fds[1].fd = serial_fd;
 		fds[1].events = POLLIN;
 		fd_count++;
+
+	} else {
+		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
 	}
 
 	int len = 0;
@@ -560,21 +535,51 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for first data from simulator and respond with first controls
 	// this is important for the UDP communication to work
 	int pret = -1;
-	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
+	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..", udp_port);
 
-	while (pret <= 0) {
+	uint64_t pstart_time = 0;
+
+	bool no_sim_data = true;
+
+	while (!px4_exit_requested() && no_sim_data) {
 		pret = ::poll(&fds[0], fd_count, 100);
+
+		if (fds[0].revents & POLLIN) {
+			if (pstart_time == 0) {
+				pstart_time = hrt_system_time();
+			}
+
+			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			// send hearbeat
+			mavlink_heartbeat_t hb = {};
+			send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
+
+			if (len > 0) {
+				mavlink_message_t msg;
+				mavlink_status_t udp_status = {};
+
+				for (int i = 0; i < len; i++) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
+						// have a message, handle it
+						handle_message(&msg, publish);
+
+						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 1000000)) {
+							PX4_INFO("Got initial simuation data, running sim..");
+							no_sim_data = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (px4_exit_requested()) {
+		return;
 	}
 
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
-
-	if (fds[0].revents & POLLIN) {
-		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_INFO("Sending initial controls message to simulator");
-		send_controls();
-	}
 
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
@@ -796,12 +801,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 		gyro.temperature = imu->temperature;
 
-		if (_gyro_pub == nullptr) {
-			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
-
-		} else {
-			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
-		}
+		int gyro_multi;
+		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro_pub, &gyro, &gyro_multi, ORB_PRIO_HIGH);
 	}
 
 	/* accelerometer */
@@ -818,12 +819,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 		accel.temperature = imu->temperature;
 
-		if (_accel_pub == nullptr) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
-
-		} else {
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
-		}
+		int accel_multi;
+		orb_publish_auto(ORB_ID(sensor_accel), &_accel_pub, &accel, &accel_multi, ORB_PRIO_HIGH);
 	}
 
 	/* magnetometer */
@@ -840,13 +837,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 		mag.temperature = imu->temperature;
 
-		if (_mag_pub == nullptr) {
-			/* publish to the first mag topic */
-			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
-
-		} else {
-			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
-		}
+		int mag_multi;
+		orb_publish_auto(ORB_ID(sensor_mag), &_mag_pub, &mag, &mag_multi, ORB_PRIO_HIGH);
 	}
 
 	/* baro */
@@ -858,12 +850,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		baro.altitude = imu->pressure_alt;
 		baro.temperature = imu->temperature;
 
-		if (_baro_pub == nullptr) {
-			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
-
-		} else {
-			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-		}
+		int baro_multi;
+		orb_publish_auto(ORB_ID(sensor_baro), &_baro_pub, &baro, &baro_multi, ORB_PRIO_HIGH);
 	}
 
 	return OK;
@@ -873,33 +861,26 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	/* flow */
-	{
-		struct optical_flow_s flow;
-		memset(&flow, 0, sizeof(flow));
+	struct optical_flow_s flow;
+	memset(&flow, 0, sizeof(flow));
 
-		flow.sensor_id = flow_mavlink->sensor_id;
-		flow.timestamp = timestamp;
-		flow.time_since_last_sonar_update = 0;
-		flow.frame_count_since_last_readout = 0; // ?
-		flow.integration_timespan = flow_mavlink->integration_time_us;
+	flow.sensor_id = flow_mavlink->sensor_id;
+	flow.timestamp = timestamp;
+	flow.time_since_last_sonar_update = 0;
+	flow.frame_count_since_last_readout = 0; // ?
+	flow.integration_timespan = flow_mavlink->integration_time_us;
 
-		flow.ground_distance_m = flow_mavlink->distance;
-		flow.gyro_temperature = flow_mavlink->temperature;
-		flow.gyro_x_rate_integral = flow_mavlink->integrated_xgyro;
-		flow.gyro_y_rate_integral = flow_mavlink->integrated_ygyro;
-		flow.gyro_z_rate_integral = flow_mavlink->integrated_zgyro;
-		flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
-		flow.pixel_flow_x_integral = flow_mavlink->integrated_y;
-		flow.quality = flow_mavlink->quality;
+	flow.ground_distance_m = flow_mavlink->distance;
+	flow.gyro_temperature = flow_mavlink->temperature;
+	flow.gyro_x_rate_integral = flow_mavlink->integrated_xgyro;
+	flow.gyro_y_rate_integral = flow_mavlink->integrated_ygyro;
+	flow.gyro_z_rate_integral = flow_mavlink->integrated_zgyro;
+	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
+	flow.pixel_flow_x_integral = flow_mavlink->integrated_y;
+	flow.quality = flow_mavlink->quality;
 
-		if (_flow_pub == nullptr) {
-			_flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
-
-		} else {
-			orb_publish(ORB_ID(optical_flow), _flow_pub, &flow);
-		}
-	}
+	int flow_multi;
+	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
 
 	return OK;
 }

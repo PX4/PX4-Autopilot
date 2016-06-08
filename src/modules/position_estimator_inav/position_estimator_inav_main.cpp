@@ -52,10 +52,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -410,7 +406,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
-	TerrainEstimator *terrain_estimator = new TerrainEstimator();
+	TerrainEstimator terrain_estimator;
 
 	thread_running = true;
 	hrt_abstime baro_wait_for_sample_time = hrt_absolute_time();
@@ -1264,8 +1260,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* run terrain estimator */
-		terrain_estimator->predict(dt, &att, &sensor, &lidar);
-		terrain_estimator->measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
+		terrain_estimator.predict(dt, &att, &sensor, &lidar);
+		terrain_estimator.measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
 
 		if (inav_verbose_mode) {
 			/* print updates rate */
@@ -1358,8 +1354,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.eph = eph;
 				global_pos.epv = epv;
 
-				if (terrain_estimator->is_valid()) {
-					global_pos.terrain_alt = global_pos.alt - terrain_estimator->get_distance_to_ground();
+				if (terrain_estimator.is_valid()) {
+					global_pos.terrain_alt = global_pos.alt - terrain_estimator.get_distance_to_ground();
 					global_pos.terrain_alt_valid = true;
 
 				} else {

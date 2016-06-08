@@ -46,15 +46,16 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 
+namespace landdetection
+{
+
 FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_controlStateSub(-1),
-	_vehicleStatusSub(-1),
 	_armingSub(-1),
 	_airspeedSub(-1),
 	_controlState{},
-	_vehicleStatus{},
 	_arming{},
 	_airspeed{},
 	_parameterSub(-1),
@@ -73,7 +74,6 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 void FixedwingLandDetector::initialize()
 {
 	_controlStateSub = orb_subscribe(ORB_ID(control_state));
-	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 
@@ -83,16 +83,36 @@ void FixedwingLandDetector::initialize()
 void FixedwingLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(control_state), _controlStateSub, &_controlState);
-	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
-bool FixedwingLandDetector::update()
+LandDetectionResult FixedwingLandDetector::update()
 {
 	// First poll for new data from our subscriptions
 	updateSubscriptions();
 
+	if (get_freefall_state()) {
+		_state = LANDDETECTION_RES_FREEFALL;
+
+	} else if (get_landed_state()) {
+		_state = LANDDETECTION_RES_LANDED;
+
+	} else {
+		_state = LANDDETECTION_RES_FLYING;
+	}
+
+	return _state;
+}
+
+bool FixedwingLandDetector::get_freefall_state()
+{
+	//TODO
+	return false;
+}
+
+bool FixedwingLandDetector::get_landed_state()
+{
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		return true;
@@ -162,4 +182,6 @@ void FixedwingLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
 		param_get(_paramHandle.maxIntVelocity, &_params.maxIntVelocity);
 	}
+}
+
 }

@@ -100,6 +100,8 @@ public:
 
 	void requestCheckAllNodesFirmwareAndUpdate() { _check_fw = true; }
 
+	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
+
 private:
 	pthread_t         _subnode_thread;
 	pthread_mutex_t   _subnode_mutex;

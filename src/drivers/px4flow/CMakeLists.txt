@@ -33,9 +33,8 @@
 px4_add_module(
 	MODULE drivers__px4flow
 	MAIN px4flow
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Wno-attributes
 		-Os
 	SRCS
 		px4flow.cpp

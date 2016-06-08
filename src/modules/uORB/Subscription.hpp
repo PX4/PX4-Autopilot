@@ -172,6 +172,8 @@ public:
 		     int instance = 0,
 		     List<SubscriptionNode *> *list = nullptr);
 
+	Subscription(const Subscription &);
+
 	/**
 	 * Deconstructor
 	 */
@@ -183,6 +185,10 @@ public:
 	 */
 	void update();
 
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	bool check_updated();
 	/*
 	 * This function gets the T struct data
 	 * */

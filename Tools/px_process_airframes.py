@@ -71,6 +71,7 @@ def main():
                          const="",
                          metavar="BOARD",
                          help="Board to create airframes xml for")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
     args = parser.parse_args()
 
     # Check for valid command
@@ -84,7 +85,7 @@ def main():
     parser = srcparser.SourceParser()
 
     # Scan directories, and parse the files
-    print("Scanning source path " + args.airframes_path)
+    if args.verbose: print("Scanning source path " + args.airframes_path)
     if not scanner.ScanDir(args.airframes_path, parser):
         sys.exit(1)
     # We can't validate yet
@@ -94,16 +95,16 @@ def main():
 
     # Output to XML file
     if args.xml:
-        print("Creating XML file " + args.xml)
+        if args.verbose: print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
 
     if args.start_script:
-        print("Creating start script " + args.start_script)
+        if args.verbose: print("Creating start script " + args.start_script)
         out = rcout.RCOutput(param_groups, args.board)
         out.Save(args.start_script)
 
-    print("All done!")
+    if (args.verbose): print("All done!")
 
 
 if __name__ == "__main__":

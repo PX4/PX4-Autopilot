@@ -107,7 +107,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 				       hrt_abstime isrs_time , uint16_t isrs_rcnt)
 {
 	uint16_t capture = _REG32(timer, chan->ccr_offset);
-	channel_stats[chan_index].last_edge = stm32_gpioread(chan->gpio_in);
+	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
 	if ((isrs_rcnt - capture) > channel_stats[chan_index].latnecy) {
 		channel_stats[chan_index].latnecy = (isrs_rcnt - capture);
@@ -133,10 +133,10 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 
 static void input_capture_bind(unsigned channel, capture_callback_t callback, void *context)
 {
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 	channel_handlers[channel].callback = callback;
 	channel_handlers[channel].context = context;
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 }
 
 static void input_capture_unbind(unsigned channel)
@@ -171,7 +171,7 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 
 			input_capture_bind(channel, callback, context);
 
-			int rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);
+			rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);
 
 			if (rv != 0) {
 				return rv;
@@ -258,7 +258,7 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 			uint32_t timer = timer_io_channels[channel].timer_index;
 			uint16_t rvalue;
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			switch (timer_io_channels[channel].timer_channel) {
 
@@ -290,7 +290,7 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 				rv = -EIO;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 		}
 	}
 
@@ -401,7 +401,7 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 			uint16_t rvalue;
 			rv = OK;
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			switch (timer_io_channels[channel].timer_channel) {
 
@@ -437,7 +437,7 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 				rv = -EIO;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 		}
 	}
 
@@ -456,10 +456,10 @@ int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback
 
 		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 			*callback = channel_handlers[channel].callback;
 			*context = channel_handlers[channel].context;
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 			rv = OK;
 		}
 	}
@@ -492,14 +492,14 @@ int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, b
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-		irqstate_t flags = irqsave();
+		irqstate_t flags = px4_enter_critical_section();
 		*stats =  channel_stats[channel];
 
 		if (clear) {
 			memset(&channel_stats[channel], 0, sizeof(*stats));
 		}
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 	}
 
 	return rv;

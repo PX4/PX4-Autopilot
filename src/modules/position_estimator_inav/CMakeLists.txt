@@ -31,16 +31,12 @@
 #
 ############################################################################
 
-set(MODULE_CFLAGS )
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
-endif()
-
 px4_add_module(
 	MODULE modules__position_estimator_inav
 	MAIN position_estimator_inav
-	STACK 1200
-	COMPILE_FLAGS ${MODULE_CFLAGS}
+	STACK_MAIN 1200
+	STACK_MAX 4000
+	COMPILE_FLAGS -Os
 	SRCS
 		position_estimator_inav_main.cpp
 		position_estimator_inav_params.cpp

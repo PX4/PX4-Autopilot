@@ -109,8 +109,6 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 
 		arg[i] = (char *)0;
 
-		cout << endl;
-
 		int retval = apps[command](i, (char **)arg);
 
 		if (retval) {
@@ -148,10 +146,6 @@ static void usage()
 
 static void process_line(string &line, bool exit_on_fail)
 {
-	if (line.length() == 0) {
-		printf("\n");
-	}
-
 	vector<string> appargs(10);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
@@ -163,6 +157,11 @@ static void restore_term(void)
 {
 	cout << "Restoring terminal\n";
 	tcsetattr(0, TCSANOW, &orig_term);
+}
+
+bool px4_exit_requested(void)
+{
+	return _ExitFlag;
 }
 
 int main(int argc, char **argv)
@@ -237,6 +236,11 @@ int main(int argc, char **argv)
 
 		if (infile.is_open()) {
 			for (string line; getline(infile, line, '\n');) {
+
+				if (px4_exit_requested()) {
+					break;
+				}
+
 				// TODO: this should be true but for that we have to check all startup files
 				process_line(line, false);
 			}
@@ -319,19 +323,20 @@ int main(int argc, char **argv)
 				}
 
 				if (buf_ptr_write > 0) {
-					if (mystr != string_buffer[buf_ptr_write - 1]) {
+					if (!mystr.empty() && mystr != string_buffer[buf_ptr_write - 1]) {
 						string_buffer[buf_ptr_write] = mystr;
 						buf_ptr_write++;
 					}
 
 				} else {
-					if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
+					if (!mystr.empty() && mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
 						string_buffer[buf_ptr_write] = mystr;
 						buf_ptr_write++;
 					}
 				}
 
 				process_line(mystr, false);
+				cout << endl;
 				mystr = "";
 				buf_ptr_read = buf_ptr_write;
 

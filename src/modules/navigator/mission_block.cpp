@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator.h"
 #include "mission_block.h"
@@ -93,8 +94,9 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_SET_SERVO:
 			return true;
 
-		case NAV_CMD_LAND:
-			return _navigator->get_vstatus()->condition_landed;
+		case NAV_CMD_LAND: /* fall through */
+		case NAV_CMD_VTOL_LAND:
+			return _navigator->get_land_detected()->landed;
 
 		/* TODO: count turns */
 		/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
@@ -109,14 +111,12 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			/*
 			 * We wait half a second to give the transition command time to propagate.
-			 * As soon as the timeout is over or when we're in transition mode let the mission continue.
+			 * Then monitor the transition status for completion.
 			 */
-			if (hrt_absolute_time() - _action_start > 500000 ||
-					_navigator->get_vstatus()->in_transition_mode) {
+			if (hrt_absolute_time() - _action_start > 500000 &&
+					!_navigator->get_vstatus()->in_transition_mode) {
 				_action_start = 0;
-
 				return true;
-
 			} else {
 				return false;
 			}
@@ -137,7 +137,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_vstatus()->condition_landed == false)
+	if ((_navigator->get_land_detected()->landed == false)
 		&& !_waypoint_position_reached) {
 
 		float dist = -1.0f;
@@ -154,7 +154,8 @@ MissionBlock::is_mission_item_reached()
 							  _navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
-		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF && _navigator->get_vstatus()->is_rotary_wing) {
+		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+			&& _navigator->get_vstatus()->is_rotary_wing) {
 			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
 			if (_navigator->get_global_position()->alt >
 				altitude_amsl - _navigator->get_acceptance_radius()) {
@@ -334,6 +335,21 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 void
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
+	/* set the correct setpoint for vtol transition */
+
+	if(item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && PX4_ISFINITE(item->yaw)
+			&& item->params[0] >= vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW - 0.5f) {
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,
+										   _navigator->get_global_position()->lon,
+										   item->yaw,
+										   1000000.0f,
+										   &sp->lat,
+										   &sp->lon);
+		sp->alt = _navigator->get_global_position()->alt;
+	}
+
+
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
 		return;
@@ -358,10 +374,12 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
+	case NAV_CMD_VTOL_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_land.get()){
 			sp->disable_mc_yaw_control = true;
@@ -388,15 +406,15 @@ MissionBlock::set_previous_pos_setpoint()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-    if (pos_sp_triplet->current.valid) {
-        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-    }
+	if (pos_sp_triplet->current.valid) {
+		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+	}
 }
 
 void
 MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
@@ -437,7 +455,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 void
 MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
@@ -451,7 +469,7 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 		item->lon = target.lon;
 		item->altitude = _navigator->get_home_position()->alt;
 
-		if (min_clearance > 0.0f) {
+		if (min_clearance > 8.0f) {
 			item->altitude += min_clearance;
 		} else {
 			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
@@ -506,7 +524,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if(_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
@@ -521,16 +539,17 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = _navigator->get_global_position()->lat;
 		item->lon = _navigator->get_global_position()->lon;
+		item->yaw = _navigator->get_global_position()->yaw;
 
 	/* use home position */
 	} else {
 		item->lat = _navigator->get_home_position()->lat;
 		item->lon = _navigator->get_home_position()->lon;
+		item->yaw = _navigator->get_home_position()->yaw;
 	}
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();

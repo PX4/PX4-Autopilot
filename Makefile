@@ -111,7 +111,13 @@ define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
 +@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@); fi
 +@Tools/check_submodules.sh
-+$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
++@(echo "PX4 CONFIG: $@" && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
+endef
+
+define cmake-build-other
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake $(2) -G$(PX4_CMAKE_GENERATOR) || (cd .. && rm -rf $(PWD)/build_$@); fi
++@(cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 # create empty targets to avoid msgs for targets passed to cmake
@@ -119,6 +125,12 @@ define cmake-targ
 $(1):
 	@#
 .PHONY: $(1)
+endef
+
+define colorecho
+      @tput setaf 6
+      @echo $1
+      @tput sgr0
 endef
 
 # ADD CONFIGS HERE
@@ -130,6 +142,9 @@ px4fmu-v1_default:
 
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
+	
+px4fmu-v2_test:
+	$(call cmake-build,nuttx_px4fmu-v2_test)
 
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
@@ -140,19 +155,19 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
-px4fmu-v2_lpe:
-	$(call cmake-build,nuttx_px4fmu-v2_lpe)
+mindpx-v2_default:
+	$(call cmake-build,nuttx_mindpx-v2_default)
 
 posix_sitl_default:
 	$(call cmake-build,$@)
 
-posix_sitl_lpe:
-	$(call cmake-build,$@)
-
-posix_sitl_ekf2:
+posix_sitl_test:
 	$(call cmake-build,$@)
 
 posix_sitl_replay:
+	$(call cmake-build,$@)
+
+posix_sitl_broadcast:
 	$(call cmake-build,$@)
 
 ros_sitl_default:
@@ -161,17 +176,28 @@ ros_sitl_default:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
-qurt_eagle_release:
-	$(call cmake-build,$@)
-
-posix_eagle_release:
-	$(call cmake-build,$@)
-
 qurt_eagle_default:
 	$(call cmake-build,$@)
 
 posix_eagle_default:
 	$(call cmake-build,$@)
+
+eagle_default: posix_eagle_default qurt_eagle_default
+eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
+
+qurt_eagle_legacy_driver_default:
+	$(call cmake-build,$@)	
+	
+posix_eagle_legacy_driver_default:
+	$(call cmake-build,$@) 
+
+qurt_excelsior_default:
+	$(call cmake-build,$@)
+
+posix_excelsior_default:
+	$(call cmake-build,$@)
+
+excelsior_default: posix_excelsior_default qurt_excelsior_default
 
 posix_rpi2_default:
 	$(call cmake-build,$@)
@@ -179,7 +205,12 @@ posix_rpi2_default:
 posix_rpi2_release:
 	$(call cmake-build,$@)
 
+posix_bebop_default:
+	$(call cmake-build,$@)
+
 posix: posix_sitl_default
+
+broadcast: posix_sitl_broadcast
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
@@ -192,20 +223,78 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
+.PHONY: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+
+gazebo_build:
+	@mkdir -p build_gazebo
+	@if [ ! -e $(PWD)/build_gazebo/CMakeCache.txt ];then cd build_gazebo && cmake -Wno-dev -G$(PX4_CMAKE_GENERATOR) $(PWD)/Tools/sitl_gazebo; fi
+	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS)
+	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS) sdf
+
 uavcan_firmware:
-	@(rm -rf vectorcontrol && git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --no-print-directory -s && BOARD=px4esc_1_6 make --no-print-directory -s && ../Tools/uavcan_copy.sh)
+ifeq ($(VECTORCONTROL),1)
+	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
+	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
+endif
+
+checks_defaults: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_mindpx-v2_default \
+	check_px4-stm32f4discovery_default \
+
+checks_bootloaders: \
+
+
+checks_tests: \
+	check_px4fmu-v2_test
+
+checks_alts: \
+	check_px4fmu-v2_ekf2 \
+
+checks_uavcan: \
+	check_px4fmu-v4_default_and_uavcan
+
+checks_sitls: \
+	check_posix_sitl_default \
+	check_posix_sitl_test \
+
+checks_last: \
+	check_unittest \
+	check_format \
+
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
 
 check_format:
-	@./Tools/check_code_style.sh
+	$(call colorecho,"Checking formatting with astyle")
+	@./Tools/fix_code_style.sh
+	@./Tools/check_code_style_all.sh
 
-check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discovery_default check_format tests
+check_%:
+	@echo
+	$(call colorecho,"Building" $(subst check_,,$@))
+	@$(MAKE) --no-print-directory $(subst check_,,$@)
+	@echo
 
-unittest: posix_sitl_default
-	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest)
+check_px4fmu-v4_default: uavcan_firmware
+check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
+	@echo
+ifeq ($(VECTORCONTROL),1)
+	@echo "Cleaning up vectorcontrol firmware"
+	@rm -rf vectorcontrol
+	@rm -rf ROMFS/px4fmu_common/uavcan
+endif
 
-tests: unittest
-	@make --no-print-directory px4fmu-v2_default test
-	@make --no-print-directory posix_sitl_default test
+unittest: posix_sitl_test
+	@export CC=clang
+	@export CXX=clang++
+	@export ASAN_OPTIONS=symbolize=1
+	$(call cmake-build-other,unittest, ../unittests)
+	@(cd build_unittest && ctest -j2 --output-on-failure)
+	
+test_onboard_sitl:
+	@HEADLESS=1 make posix_sitl_test gazebo_iris
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
@@ -215,32 +304,24 @@ clean:
 	@(cd NuttX/nuttx && make clean)
 
 submodulesclean:
+	@git submodule sync --recursive
 	@git submodule deinit -f .
-	@git submodule sync
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean
-	@git clean -ff -x -d
+	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
 	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
-	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean
 
 CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
-# Future:
-#$(CONFIGS):
-##	@cd Build/$@ && cmake ../.. -DCONFIG=$@
-#	@cd Build/$@ && make
-#
-#clean-all:
-#	@rm -rf Build/*
-#
 #help:
 #	@echo
 #	@echo "Type 'make ' and hit the tab key twice to see a list of the available"

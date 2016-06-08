@@ -388,7 +388,7 @@ GYROSIM::~GYROSIM()
 int
 GYROSIM::init()
 {
-	PX4_INFO("GYROSIM::init");
+	PX4_DEBUG("init");
 	int ret = 1;
 
 	struct accel_report arp = {};
@@ -535,7 +535,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	PX4_INFO("GYROSIM::_set_sample_rate %u Hz", desired_sample_rate_hz);
+	PX4_DEBUG("_set_sample_rate %u Hz", desired_sample_rate_hz);
 
 	if (desired_sample_rate_hz == 0 ||
 	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
@@ -554,7 +554,7 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	write_reg(MPUREG_SMPLRT_DIV, div - 1);
 
 	unsigned sample_rate = 1000 / div;
-	PX4_INFO("GYROSIM: Changed sample rate to %uHz", sample_rate);
+	PX4_DEBUG("Changed sample rate to %uHz", sample_rate);
 	setSampleInterval(1000000 / sample_rate);
 	_gyro->setSampleInterval(1000000 / sample_rate);
 }
@@ -1213,7 +1213,7 @@ int
 GYROSIM_gyro::init()
 {
 	int ret = VirtDevObj::init();
-	PX4_INFO("GYROSIM_gyro::init base class ret: %d", ret);
+	PX4_DEBUG("GYROSIM_gyro::init base class ret: %d", ret);
 	return ret;
 }
 

@@ -66,7 +66,7 @@
 
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if  defined(CONFIG_ARCH_BOARD_PX4FMU_V2)  || defined(CONFIG_ARCH_BOARD_MINDPX_V2)
 /*
  * PX4FMUv2 GPIO numbers.
  *
@@ -144,6 +144,7 @@
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
 	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
+	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) &&\
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
@@ -192,5 +193,11 @@
 #define GPIO_SENSOR_RAIL_RESET	GPIOC(13)
 
 #define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
+
+/** configure the board GPIOs in (arg) as outputs, initially low */
+#define GPIO_SET_OUTPUT_LOW	GPIOC(15)
+
+/** configure the board GPIOs in (arg) as outputs, initially high */
+#define GPIO_SET_OUTPUT_HIGH	GPIOC(16)
 
 #endif /* _DRV_GPIO_H */

@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE modules__land_detector
 	MAIN land_detector
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Os
 	SRCS

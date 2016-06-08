@@ -84,15 +84,8 @@ function(px4_qurt_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		# default
-		set(MAIN_DEFAULT MAIN-NOTFOUND)
-		set(STACK_DEFAULT 1024)
-		set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-		foreach(property MAIN STACK PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY) 
 			get_target_property(${property} ${module} ${property})
-			if(NOT ${property})
-				set(${property} ${${property}_DEFAULT})
-			endif()
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
@@ -183,8 +176,6 @@ function(px4_os_add_flags)
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-
-	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})

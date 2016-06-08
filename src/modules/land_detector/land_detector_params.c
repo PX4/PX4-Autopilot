@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
  * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -55,6 +56,7 @@ PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
  * Maximum horizontal velocity allowed in the landed state (m/s)
  *
  * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -66,22 +68,40 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.50f);
  * Maximum allowed angular velocity around each axis allowed in the landed state.
  *
  * @unit deg/s
+ * @decimal 1
  *
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 
 /**
- * Multicopter max throttle
+ * Multicopter specific force threshold
  *
- * Maximum actuator output on throttle allowed in the landed state
+ * Multicopter threshold on the specific force measured by accelerometers in m/s^2 for free-fall detection
  *
+ * @unit m/s^2
  * @min 0.1
- * @max 0.5
+ * @max 10
+ * @decimal 2
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
+
+/**
+ * Multicopter free-fall trigger time
+ *
+ * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
+ * Minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
 
 /**
  * Fixedwing max horizontal velocity
@@ -91,6 +111,7 @@ PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
  * @unit m/s
  * @min 0.5
  * @max 10
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -104,6 +125,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  * @unit m/s
  * @min 5
  * @max 20
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -117,6 +139,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
  * @unit m/s
  * @min 2
  * @max 10
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -130,6 +153,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
  * @unit m/s
  * @min 4
  * @max 20
+ * @decimal 1
  *
  * @group Land Detector
  */

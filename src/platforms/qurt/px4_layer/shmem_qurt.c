@@ -47,6 +47,8 @@
 #include <shmem.h>
 #include <drivers/drv_hrt.h>
 
+//#define SHMEM_DEBUG
+
 int mem_fd;
 unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
@@ -57,8 +59,21 @@ void init_shared_memory(void);
 void copy_params_to_shmem(struct param_info_s *);
 void update_to_shmem(param_t param, union param_value_u value);
 int update_from_shmem(param_t param, union param_value_u *value);
+void update_index_from_shmem(void);
 uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 static unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1];
+
+// Small helper to get log2 for ints
+static unsigned log2_for_int(unsigned v)
+{
+	unsigned r = 0;
+
+	while (v >>= 1) {
+		++r;
+	}
+
+	return r;
+}
 
 struct param_wbuf_s {
 	param_t			param;
@@ -206,7 +221,7 @@ void update_to_shmem(param_t param, union param_value_u value)
 
 }
 
-static void update_index_from_shmem(void)
+void update_index_from_shmem(void)
 {
 	unsigned int i;
 
@@ -215,10 +230,25 @@ static void update_index_from_shmem(void)
 		return;
 	}
 
-	//PX4_INFO("Updating index from shmem\n");
+	PX4_DEBUG("Updating index from shmem\n");
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
-		krait_changed_index[i] = shmem_info_p->krait_changed_index[i];
+		// Check if any param has been changed.
+		if (krait_changed_index[i] != shmem_info_p->krait_changed_index[i]) {
+
+			// If a param has changed, we need to find out which one.
+			// From the byte and bit that is different, we can resolve the param number.
+			unsigned bit = log2_for_int(krait_changed_index[i] ^ shmem_info_p->krait_changed_index[i]);
+			param_t param_to_get = i * 8 + bit;
+
+			// Update our krait_changed_index as well.
+			krait_changed_index[i] = shmem_info_p->krait_changed_index[i];
+
+			// FIXME: this is a hack but it gets the param so that it gets added
+			// to the local list param_values in param_shmem.c.
+			int32_t dummy;
+			param_get(param_to_get, &dummy);
+		}
 	}
 
 	release_shmem_lock();
@@ -285,7 +315,7 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	//else {PX4_INFO("no change to param %s\n", param_name(param));}
 
-	//PX4_INFO("%s %d bit on krait changed index[%d]\n", (retval)?"cleared":"unchanged", bit_changed, byte_changed);
+	PX4_DEBUG("%s %d bit on krait changed index[%d]\n", (retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
 
 	return retval;
 }

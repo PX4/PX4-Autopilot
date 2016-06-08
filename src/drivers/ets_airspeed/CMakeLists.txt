@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__ets_airspeed
 	MAIN ets_airspeed
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Os
 	SRCS

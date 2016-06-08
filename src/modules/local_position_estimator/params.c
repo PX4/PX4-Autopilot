@@ -4,15 +4,7 @@
 
 
 /**
- * Enable local position estimator.
- *
- * @boolean
- * @group Local Position Estimator
- */
-PARAM_DEFINE_INT32(LPE_ENABLED, 1);
-
-/**
- * Enable accelerometer integration for prediction.
+ * Accelerometer integration for prediction.
  *
  * @boolean
  * @group Local Position Estimator
@@ -136,6 +128,13 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
  */
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.0f);
 
+/**
+ * Enables GPS data, also forces alt init with GPS
+ *
+ * @group Local Position Estimator
+ * @boolean
+ */
+PARAM_DEFINE_INT32(LPE_GPS_ON, 1);
 
 /**
  * GPS delay compensaton
@@ -205,6 +204,17 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.25f);
 PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 
 /**
+ * GPS max epv
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 1.0
+ * @max 5.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
+
+/**
  * Vision xy standard deviation.
  *
  * @group Local Position Estimator
@@ -227,16 +237,12 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.5f);
 PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
 
 /**
- * Circuit breaker to disable vision input.
- *
- * Set to the appropriate key (328754) to disable vision input.
+ * Vision correction
  *
  * @group Local Position Estimator
- * @min 0
- * @max 1
- * @decimal 0
+ * @boolean
  */
-PARAM_DEFINE_INT32(LPE_NO_VISION, 0);
+PARAM_DEFINE_INT32(LPE_VIS_ON, 1);
 
 /**
  * Vicon position standard deviation.
@@ -303,3 +309,26 @@ PARAM_DEFINE_FLOAT(LPE_PN_T, 1e-3f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
+
+/**
+ * Home latitude for nav w/o GPS
+ *
+ * @group Local Position Estimator
+ * @unit deg
+ * @min -90
+ * @max 90
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
+
+/**
+ * Home longitude for nav w/o GPS
+ *
+ * @group Local Position Estimator
+ * @unit deg
+ * @min -180
+ * @max 180
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
+

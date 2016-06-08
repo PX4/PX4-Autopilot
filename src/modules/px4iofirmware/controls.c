@@ -542,7 +542,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 	}
 
 	/* avoid racing with PPM updates */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	/*
 	 * If we have received a new PPM frame within the last 200ms, accept it
@@ -571,7 +571,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		result = (*num_values > 0);
 	}
 
-	irqrestore(state);
+	px4_leave_critical_section(state);
 
 	return result;
 }

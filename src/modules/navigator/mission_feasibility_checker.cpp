@@ -55,11 +55,11 @@
 
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_log_pub(nullptr),
-	_capabilities_sub(-1),
+	_fw_pos_ctrl_status_sub(-1),
 	_initDone(false),
 	_dist_1wp_ok(false)
 {
-	_nav_caps = {0};
+	_fw_pos_ctrl_status = {};
 }
 
 
@@ -242,6 +242,8 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
 			missionitem.nav_cmd != NAV_CMD_LAND &&
 			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
+			missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
+			missionitem.nav_cmd != NAV_CMD_VTOL_TAKEOFF &&
 			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
@@ -273,7 +275,6 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 	/* Go through all mission items and search for a landing waypoint
 	 * if landing waypoint is found: the previous waypoint is checked to be at a feasible distance and altitude given the landing slope */
 
-
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
@@ -291,15 +292,15 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 				}
 
 				float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat , missionitem_previous.lon, missionitem.lat, missionitem.lon);
-				float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude, _nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
-				float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude, missionitem.altitude, _nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
+				float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude, _fw_pos_ctrl_status.landing_horizontal_slope_displacement, _fw_pos_ctrl_status.landing_slope_angle_rad);
+				float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude, missionitem.altitude, _fw_pos_ctrl_status.landing_horizontal_slope_displacement, _fw_pos_ctrl_status.landing_slope_angle_rad);
 				float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
 //				warnx("wp_distance %.2f, delta_altitude %.2f, missionitem_previous.altitude %.2f, missionitem.altitude %.2f, slope_alt_req %.2f, wp_distance_req %.2f",
 //						wp_distance, delta_altitude, missionitem_previous.altitude, missionitem.altitude, slope_alt_req, wp_distance_req);
 //				warnx("_nav_caps.landing_horizontal_slope_displacement %.4f, _nav_caps.landing_slope_angle_rad %.4f, _nav_caps.landing_flare_length %.4f",
 //						_nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad, _nav_caps.landing_flare_length);
 
-				if (wp_distance > _nav_caps.landing_flare_length) {
+				if (wp_distance > _fw_pos_ctrl_status.landing_flare_length) {
 					/* Last wp is before flare region */
 
 					if (delta_altitude < 0) {
@@ -422,14 +423,14 @@ MissionFeasibilityChecker::isPositionCommand(unsigned cmd){
 
 void MissionFeasibilityChecker::updateNavigationCapabilities()
 {
-	(void)orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+	(void)orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
 }
 
 void MissionFeasibilityChecker::init()
 {
 	if (!_initDone) {
 
-		_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
+		_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 
 		_initDone = true;
 	}

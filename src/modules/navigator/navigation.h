@@ -61,12 +61,13 @@ enum NAV_CMD {
 	NAV_CMD_TAKEOFF = 22,
 	NAV_CMD_ROI = 80,
 	NAV_CMD_PATHPLANNING = 81,
-	NAV_CMD_FOLLOW_TARGET = 194, // temporary placeholder
-	NAV_CMD_GOTO_TAREGT = 195,
+	NAV_CMD_VTOL_TAKEOFF = 84,
+	NAV_CMD_VTOL_LAND = 85,
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
 	NAV_CMD_DO_SET_SERVO=183,
 	NAV_CMD_DO_REPEAT_SERVO=184,
+	NAV_CMD_FOLLOW_TARGET = 194, // temporary placeholder
 	NAV_CMD_DO_DIGICAM_CONTROL=203,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
 	NAV_CMD_DO_VTOL_TRANSITION=3000,
@@ -118,8 +119,5 @@ struct mission_item_s {
  * @}
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(offboard_mission);
-ORB_DECLARE(onboard_mission);
 
 #endif

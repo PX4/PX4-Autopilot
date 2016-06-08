@@ -3,10 +3,33 @@
 # Standard apps for vtol:
 # att & pos estimator, att & pos control.
 #
+#
 
-attitude_estimator_q start
-#ekf_att_pos_estimator start
-position_estimator_inav start
+
+#---------------------------------------
+# Estimator group selction
+#
+# INAV
+if param compare SYS_MC_EST_GROUP 0
+then
+	attitude_estimator_q start
+	position_estimator_inav start
+fi
+
+# LPE
+if param compare SYS_MC_EST_GROUP 1
+then
+	attitude_estimator_q start
+	local_position_estimator start
+fi
+
+# EKF
+if param compare SYS_MC_EST_GROUP 2
+then
+	ekf2 start
+fi
+#---------------------------------------
+
 
 vtol_att_control start
 mc_att_control start

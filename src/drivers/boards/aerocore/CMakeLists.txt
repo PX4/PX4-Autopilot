@@ -35,6 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
+		../common/board_name.c
 		aerocore_init.c
 		aerocore_pwm_servo.c
 		aerocore_spi.c

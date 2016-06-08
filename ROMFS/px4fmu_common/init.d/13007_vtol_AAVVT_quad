@@ -31,6 +31,10 @@ then
 	param set MC_YAWRATE_I 0.02
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
+
+	param set VT_MOT_COUNT 4
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_TYPE 2
 fi
 
 set MIXER vtol_quad_x
@@ -42,7 +46,3 @@ set PWM_ACHDIS 5
 set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
-
-param set VT_MOT_COUNT 4
-param set VT_IDLE_PWM_MC 1080
-param set VT_TYPE 2

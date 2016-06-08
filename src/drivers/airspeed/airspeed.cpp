@@ -255,14 +255,14 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -375,12 +375,11 @@ Airspeed::update_status()
 {
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
-		struct subsystem_info_s info = {
-			true,
-			true,
-			_sensor_ok,
-			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
-		};
+		struct subsystem_info_s info = {};
+		info.present = true;
+		info.enabled = true;
+		info.ok = _sensor_ok;
+		info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE;
 
 		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);

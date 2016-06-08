@@ -151,7 +151,7 @@ private:
 	bool		_mag_decl_auto = false;
 	bool		_acc_comp = false;
 	float		_bias_max = 0.0f;
-	float		_vibration_warning_threshold = 1.0f;
+	float		_vibration_warning_threshold = 2.0f;
 	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
 
@@ -460,10 +460,10 @@ void AttitudeEstimatorQ::task_main()
 
 				} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 					_vibration_warning = true;
-					mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-									 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
-									 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
-									 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
+					// mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+					// 				 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
+					// 				 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
+					// 				 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
 				}
 
 			} else {
@@ -615,6 +615,10 @@ void AttitudeEstimatorQ::task_main()
 			ctrl_state.q[2] = _q(2);
 			ctrl_state.q[3] = _q(3);
 
+			ctrl_state.x_acc = _accel(0);
+			ctrl_state.y_acc = _accel(1);
+			ctrl_state.z_acc = _accel(2);
+
 			/* attitude rates for control state */
 			ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
 
@@ -647,9 +651,11 @@ void AttitudeEstimatorQ::task_main()
 			est.vibe[2] = _voter_accel.get_vibration_offset(est.timestamp, 2);
 
 			/* the instance count is not used here */
-			int est_inst;
+			//int est_inst;
 			/* publish to control state topic */
-			orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
+			// TODO handle attitude states in position estimators instead so we can publish all data at once
+			// or we need to enable more thatn just one estimator_status topic
+			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
 		}
 	}
 }

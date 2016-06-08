@@ -32,6 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE lib__terrain_estimation
+	STACK_MAIN 1024
 	COMPILE_FLAGS
 		-Os
 	SRCS

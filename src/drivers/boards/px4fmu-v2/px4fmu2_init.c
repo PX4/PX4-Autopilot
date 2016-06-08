@@ -58,7 +58,6 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -71,6 +70,7 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -110,72 +110,30 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
-#if defined(CONFIG_FAT_DMAMEMORY)
-# if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-#  error microSD DMA support requires CONFIG_GRAN
-# endif
-
-static GRAN_HANDLE dma_allocator;
-
-/*
- * The DMA heap size constrains the total number of things that can be
- * ready to do DMA at a time.
- *
- * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file.
- *
- * We use a fundamental alignment / granule size of 64B; this is sufficient
- * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
- */
-static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
-static perf_counter_t g_dma_perf;
-
-static void
-dma_alloc_init(void)
-{
-	dma_allocator = gran_initialize(g_dma_heap,
-					sizeof(g_dma_heap),
-					7,  /* 128B granule - must be > alignment (XXX bug?) */
-					6); /* 64B alignment */
-
-	if (dma_allocator == NULL) {
-		message("[boot] DMA allocator setup FAILED");
-
-	} else {
-		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
-	}
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/*
- * DMA-aware allocator stubs for the FAT filesystem.
- */
-
-__EXPORT void *fat_dma_alloc(size_t size);
-__EXPORT void fat_dma_free(FAR void *memory, size_t size);
-
-void *
-fat_dma_alloc(size_t size)
+/************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
 {
-	perf_count(g_dma_perf);
-	return gran_alloc(dma_allocator, size);
+	/* set the peripheral rails off */
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 }
-
-void
-fat_dma_free(FAR void *memory, size_t size)
-{
-	gran_free(dma_allocator, memory, size);
-}
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -216,37 +174,40 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	// stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	// px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
+	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
 	/* configure the DMA allocator */
-	dma_alloc_init();
+
+	if (board_dma_alloc_init() < 0) {
+		message("DMA alloc FAILED");
+	}
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -276,7 +237,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -296,7 +257,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = up_spiinitialize(2);
+	spi2 = px4_spibus_initialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
@@ -313,7 +274,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	spi4 = up_spiinitialize(4);
+	spi4 = px4_spibus_initialize(4);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi4, 10000000);

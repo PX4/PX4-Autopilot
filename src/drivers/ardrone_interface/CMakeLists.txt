@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__ardrone_interface
 	MAIN ardrone_interface
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Os
 	SRCS

@@ -81,6 +81,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vehicle_cmd_sub(-1),
 	_vehicle_status_sub(-1),
 	_tecs_status_sub(-1),
+	_land_detected_sub(-1),
 
 	//init publication handlers
 	_actuators_0_pub(nullptr),
@@ -115,6 +116,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_tecs_status, 0, sizeof(_tecs_status));
+	memset(&_land_detected, 0, sizeof(_land_detected));
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
@@ -132,6 +134,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -445,6 +448,21 @@ VtolAttitudeControl::tecs_status_poll()
 }
 
 /**
+* Check for land detector updates.
+*/
+void
+VtolAttitudeControl::land_detected_poll()
+{
+	bool updated;
+
+	orb_check(_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub , &_land_detected);
+	}
+}
+
+/**
 * Check received command
 */
 void
@@ -467,13 +485,14 @@ VtolAttitudeControl::is_fixed_wing_requested()
 
 	// listen to transition commands if not in manual
 	if (!_v_control_mode.flag_control_manual_enabled) {
-		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		to_fw = _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
 	// handle abort request
 	if (_abort_front_transition) {
 		if (to_fw) {
 			to_fw = false;
+
 		} else {
 			// the state changed to mc mode, reset the abort request
 			_abort_front_transition = false;
@@ -490,8 +509,8 @@ VtolAttitudeControl::is_fixed_wing_requested()
 void
 VtolAttitudeControl::abort_front_transition()
 {
-	if(!_abort_front_transition) {
-		mavlink_log_critical(&_mavlink_log_pub, "Front transition timeout occured, aborting");
+	if (!_abort_front_transition) {
+		mavlink_log_critical(&_mavlink_log_pub, "Transition timeout or FW min alt occured, aborting");
 		_abort_front_transition = true;
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
@@ -548,6 +567,11 @@ VtolAttitudeControl::parameters_update()
 	/* vtol lock elevons in multicopter */
 	param_get(_params_handles.elevons_mc_lock, &l);
 	_params.elevons_mc_lock = l;
+
+	/* minimum relative altitude for FW mode (QuadChute) */
+	param_get(_params_handles.fw_min_alt, &v);
+	_params.fw_min_alt = v;
+
 
 	return OK;
 }
@@ -614,6 +638,7 @@ void VtolAttitudeControl::task_main()
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
 	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
@@ -692,6 +717,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_cmd_poll();
 		vehicle_status_poll();
 		tecs_status_poll();
+		land_detected_poll();
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
@@ -699,10 +725,10 @@ void VtolAttitudeControl::task_main()
 		// reset transition command if not auto control
 		if (_v_control_mode.flag_control_manual_enabled) {
 			if (_vtol_type->get_mode() == ROTARY_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			}
 		}
 
@@ -770,8 +796,8 @@ void VtolAttitudeControl::task_main()
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
-			_v_control_mode.flag_control_rates_enabled ||
-			_v_control_mode.flag_control_manual_enabled) {
+		    _v_control_mode.flag_control_rates_enabled ||
+		    _v_control_mode.flag_control_manual_enabled) {
 			if (_actuators_0_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
@@ -810,7 +836,7 @@ VtolAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
-					   2048,
+					   1100,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 					   nullptr);
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <px4_config.h>
@@ -77,10 +78,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -112,6 +109,9 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/commander_state.h>
+#include <uORB/topics/cpuload.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -408,7 +408,7 @@ bool get_log_time_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
-	time_t utc_time_sec;
+	time_t utc_time_sec = 0;
 
 	if (_gpstime_only && has_gps_3d_fix) {
 		utc_time_sec = gps_time_sec;
@@ -576,7 +576,7 @@ int open_perf_file(const char* str)
 #ifdef __PX4_NUTTX
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 #else
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0666);
 #endif
 
 	if (fd < 0) {
@@ -807,8 +807,8 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	/* free log buffer */
-	logbuffer_free(&lb);
+	/* reset the logbuffer */
+	logbuffer_reset(&lb);
 
 	mavlink_and_console_log_info(&mavlink_log_pub, "[blackbox] stopped (%lu drops)", skipped_count);
 
@@ -903,12 +903,27 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 	bool updated = false;
 
 	if (*handle < 0) {
-		if (OK == orb_exists(topic, multi_instance)) {
+#if __PX4_POSIX_EAGLE
+		// The orb_exists call doesn't work correctly on Snapdragon yet.
+		// (No data gets sent from the QURT to the Linux side because there
+		// are no subscribers. However, there won't be any subscribers, if
+		// they check using orb_exists() before subscribing.)
+		if (true)
+#else
+		if (OK == orb_exists(topic, multi_instance))
+#endif
+
+		{
 			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
-				orb_copy(topic, *handle, buffer);
-				updated = true;
+
+				/* but only if it has really been updated */
+				orb_check(*handle, &updated);
+
+				if (updated) {
+					orb_copy(topic, *handle, buffer);
+				}
 			}
 		}
 	} else {
@@ -936,9 +951,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	flag_system_armed = false;
 
-	/* work around some stupidity in task_create's argv handling */
+#ifdef __PX4_NUTTX
+	/* work around some stupidity in NuttX's task_create's argv handling */
 	argc -= 2;
 	argv += 2;
+#endif
+
 	int ch;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
@@ -973,6 +991,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case 'e':
 			log_on_start = true;
+			log_when_armed = true;
 			break;
 
 		case 'a':
@@ -1091,7 +1110,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	/* initialize log buffer with specified size */
-	PX4_WARN("log buffer size: %i bytes", log_buffer_size);
+	PX4_DEBUG("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
 		PX4_WARN("can't allocate log buffer, exiting");
@@ -1105,14 +1124,33 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
 
 	struct vehicle_command_s buf_cmd;
-	memset(&buf_status, 0, sizeof(buf_cmd));
+	memset(&buf_cmd, 0, sizeof(buf_cmd));
 
-	// check if we are gathering data for a replay log for ekf2
-	// is yes then disable logging of some topics to avoid dropouts
+	struct commander_state_s buf_commander_state;
+	memset(&buf_commander_state, 0, sizeof(buf_commander_state));
+
+	/* There are different log types possible on different platforms. */
+	enum {
+		LOG_TYPE_NORMAL,
+		LOG_TYPE_REPLAY_ONLY,
+		LOG_TYPE_ALL
+	} log_type;
+
+	/* Check if we are gathering data for a replay log for ekf2. */
 	param_t replay_handle = param_find("EKF2_REC_RPL");
 	int32_t tmp = 0;
 	param_get(replay_handle, &tmp);
 	bool record_replay_log = (bool)tmp;
+
+	if (record_replay_log) {
+#if defined(__PX4_QURT) || defined(__PX4_POSIX)
+		log_type = LOG_TYPE_ALL;
+#else
+		log_type = LOG_TYPE_REPLAY_ONLY;
+#endif
+	} else {
+		log_type = LOG_TYPE_NORMAL;
+	}
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
@@ -1153,6 +1191,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
+		struct vehicle_land_detected_s land_detected;
+		struct cpuload_s cpuload;
+		struct vehicle_gps_position_s dual_gps_pos;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1210,6 +1251,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+			struct log_RPL5_s log_RPL5;
+			struct log_LAND_s log_LAND;
+			struct log_RPL6_s log_RPL6;
+			struct log_LOAD_s log_LOAD;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1233,7 +1278,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sp_sub;
 		int global_pos_sub;
 		int triplet_sub;
-		int gps_pos_sub;
+		int gps_pos_sub[2];
 		int sat_info_sub;
 		int att_pos_mocap_sub;
 		int vision_pos_sub;
@@ -1257,12 +1302,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int innov_sub;
 		int cam_trig_sub;
 		int replay_sub;
+		int land_detected_sub;
+		int commander_state_sub;
+		int cpuload_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
 	subs.status_sub = -1;
 	subs.vtol_status_sub = -1;
-	subs.gps_pos_sub = -1;
+	subs.gps_pos_sub[0] = -1;
+	subs.gps_pos_sub[1] = -1;
 	subs.sensor_sub = -1;
 	subs.att_sub = -1;
 	subs.att_sp_sub = -1;
@@ -1296,6 +1345,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
+	subs.land_detected_sub = -1;
+	subs.commander_state_sub = -1;
+	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1306,16 +1358,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	subs.sat_info_sub = -1;
 
-#ifdef __PX4_NUTTX
-	/* close non-needed fd's. We cannot do this for posix since the file
-	   descriptors will also be closed for the parent process
-	*/
-
-	/* close stdin */
-	close(0);
-	/* close stdout */
-	close(1);
-#endif
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
@@ -1334,7 +1376,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
-			if (!orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
+			if (!copy_if_updated_multi(ORB_ID(vehicle_gps_position), 0, &subs.gps_pos_sub[0], &buf_gps_pos)) {
 				gps_time_sec = buf_gps_pos.time_utc_usec / 1e6;
 			}
 		}
@@ -1352,17 +1394,36 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	int poll_to_logging_factor = 1;
 
-	if (record_replay_log) {
-		subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
-		fds[0].fd = subs.replay_sub;
-		fds[0].events = POLLIN;
-		poll_to_logging_factor = 1;
-	} else {
-		subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-		fds[0].fd = subs.sensor_sub;
-		fds[0].events = POLLIN;
-		// TODO Remove hardcoded rate!
-		poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
+	switch (log_type) {
+		case LOG_TYPE_ALL:
+			subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+			fds[0].fd = subs.sensor_sub;
+			fds[0].events = POLLIN;
+
+			poll_to_logging_factor = 1;
+
+			break;
+
+		case LOG_TYPE_NORMAL:
+
+			subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+			fds[0].fd = subs.sensor_sub;
+			fds[0].events = POLLIN;
+
+			// TODO Remove hardcoded rate!
+			poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
+
+			break;
+
+		case LOG_TYPE_REPLAY_ONLY:
+
+			subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
+			fds[0].fd = subs.replay_sub;
+			fds[0].events = POLLIN;
+
+			poll_to_logging_factor = 1;
+
+			break;
 	}
 
 	if (poll_to_logging_factor < 1) {
@@ -1392,11 +1453,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			continue;
 		}
 
-		// copy topic always
-		if (record_replay_log) {
-			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
-		} else {
-			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+		switch (log_type) {
+			case LOG_TYPE_ALL:
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+				break;
+
+			case LOG_TYPE_NORMAL:
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+				break;
+
+			case LOG_TYPE_REPLAY_ONLY:
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+				break;
 		}
 
 		if ((poll_counter + 1) % poll_to_logging_factor == 0) {
@@ -1422,7 +1490,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- GPS POSITION - LOG MANAGEMENT --- */
-		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), &subs.gps_pos_sub, &buf_gps_pos);
+		bool gps_pos_updated = copy_if_updated_multi(ORB_ID(vehicle_gps_position), 0, &subs.gps_pos_sub[0], &buf_gps_pos);
 
 		if (gps_pos_updated && log_name_timestamp) {
 			gps_time_sec = buf_gps_pos.time_utc_usec / 1e6;
@@ -1438,83 +1506,130 @@ int sdlog2_thread_main(int argc, char *argv[])
 		log_msg.body.log_TIME.t = hrt_absolute_time();
 		LOGBUFFER_WRITE_AND_COUNT(TIME);
 
+		/* --- COMMANDER INTERNAL STATE --- */
+		copy_if_updated(ORB_ID(commander_state), &subs.commander_state_sub,
+				&buf_commander_state);
+
 		/* --- VEHICLE STATUS --- */
 		if (status_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
-			log_msg.body.log_STAT.main_state = buf_status.main_state;
+			log_msg.body.log_STAT.main_state = buf_commander_state.main_state;
+			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
-			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
-			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
 		/* --- EKF2 REPLAY --- */
-		if(record_replay_log) {
-			// we poll on the replay topic so we know that it was updated
-			log_msg.msg_type = LOG_RPL1_MSG;
-			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
-			log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
-			log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
-			log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
-			log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
-			log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
-			log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
-			log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
-			log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
-			log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
-			log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
-			log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
-			log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
-			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
-			log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
-			LOGBUFFER_WRITE_AND_COUNT(RPL1);
+		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_REPLAY_ONLY) {
 
-			// only log the gps replay data if it actually updated
-			if (buf.replay.time_usec > 0) {
-				log_msg.msg_type = LOG_RPL2_MSG;
-				log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-				log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
-				log_msg.body.log_RPL2.lat = buf.replay.lat;
-				log_msg.body.log_RPL2.lon = buf.replay.lon;
-				log_msg.body.log_RPL2.alt = buf.replay.alt;
-				log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
-				log_msg.body.log_RPL2.nsats = buf.replay.nsats;
-				log_msg.body.log_RPL2.eph = buf.replay.eph;
-				log_msg.body.log_RPL2.epv = buf.replay.epv;
-				log_msg.body.log_RPL2.sacc = buf.replay.sacc;
-				log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
-				log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
-				log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
-				log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
-				log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
-				LOGBUFFER_WRITE_AND_COUNT(RPL2);
+			bool replay_updated = false;
+
+			if (log_type == LOG_TYPE_ALL) {
+				// When logging everything we are polling for sensor_combined, so
+				// we need to use the usual copy_if_updated which includes orb_subscribe.
+				replay_updated = copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay);
+
+			} else {
+				// We poll on the replay topic so we know that it was updated
+				// but we need to copy it again since we are re-using the buffer.
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+				replay_updated = true;
 			}
 
-			if (buf.replay.flow_timestamp > 0) {
-				log_msg.msg_type = LOG_RPL3_MSG;
-				log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
-				log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
-				log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
-				log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
-				log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
-				log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
-				log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
-				LOGBUFFER_WRITE_AND_COUNT(RPL3);
+			if (replay_updated) {
+				log_msg.msg_type = LOG_RPL1_MSG;
+				log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
+				log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
+				log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
+				log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
+				log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
+				log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
+				log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
+				log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
+				log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
+				log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
+				log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
+				log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
+				log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
+				log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
+				log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
+				LOGBUFFER_WRITE_AND_COUNT(RPL1);
+
+				// only log the gps replay data if it actually updated
+				if (buf.replay.time_usec > 0) {
+					log_msg.msg_type = LOG_RPL2_MSG;
+					log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
+					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+					log_msg.body.log_RPL2.lat = buf.replay.lat;
+					log_msg.body.log_RPL2.lon = buf.replay.lon;
+					log_msg.body.log_RPL2.alt = buf.replay.alt;
+					log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+					log_msg.body.log_RPL2.nsats = buf.replay.nsats;
+					log_msg.body.log_RPL2.eph = buf.replay.eph;
+					log_msg.body.log_RPL2.epv = buf.replay.epv;
+					log_msg.body.log_RPL2.sacc = buf.replay.sacc;
+					log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
+					log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
+					log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
+					log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
+					log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
+					LOGBUFFER_WRITE_AND_COUNT(RPL2);
+				}
+
+				if (buf.replay.flow_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL3_MSG;
+					log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
+					log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
+					log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
+					log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
+					log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
+					log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
+					log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
+					LOGBUFFER_WRITE_AND_COUNT(RPL3);
+				}
+
+				if (buf.replay.rng_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL4_MSG;
+					log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
+					log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
+					LOGBUFFER_WRITE_AND_COUNT(RPL4);
+				}
+
+				if (buf.replay.asp_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL6_MSG;
+					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
+					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
+					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
+					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
+					log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
+					log_msg.body.log_RPL6.confidence = buf.replay.confidence;
+					LOGBUFFER_WRITE_AND_COUNT(RPL6);
+				}
+
+				if (buf.replay.ev_timestamp > 0) {
+					log_msg.msg_type = LOG_RPL5_MSG;
+					log_msg.body.log_RPL5.time_ev_usec = buf.replay.ev_timestamp;
+					log_msg.body.log_RPL5.x = buf.replay.pos_ev[0];
+					log_msg.body.log_RPL5.y = buf.replay.pos_ev[1];
+					log_msg.body.log_RPL5.z = buf.replay.pos_ev[2];
+					log_msg.body.log_RPL5.q0 = buf.replay.quat_ev[0];
+					log_msg.body.log_RPL5.q1 = buf.replay.quat_ev[1];
+					log_msg.body.log_RPL5.q2 = buf.replay.quat_ev[2];
+					log_msg.body.log_RPL5.q3 = buf.replay.quat_ev[3];
+					log_msg.body.log_RPL5.pos_err = buf.replay.pos_err;
+					log_msg.body.log_RPL5.ang_err = buf.replay.ang_err;
+					LOGBUFFER_WRITE_AND_COUNT(RPL5);
+				}
 			}
+		}
 
-			if (buf.replay.rng_timestamp > 0) {
-				log_msg.msg_type = LOG_RPL4_MSG;
-				log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
-				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
-				LOGBUFFER_WRITE_AND_COUNT(RPL4);
-			}
+		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_NORMAL) {
 
-		} else { /* !record_replay_log */
+			// We poll on sensor combined, so we know it has updated just now
+			// but we need to copy it again because we are re-using the buffer.
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 
-			/* we poll on sensor combined, so we know it has updated just now */
 			for (unsigned i = 0; i < 3; i++) {
 				bool write_IMU = false;
 				bool write_SENS = false;
@@ -1598,6 +1713,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
 				log_msg.msg_type = LOG_VTOL_MSG;
 				log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
+				log_msg.body.log_VTOL.rw_mode = buf.vtol_status.vtol_in_rw_mode;
+				log_msg.body.log_VTOL.trans_mode = buf.vtol_status.vtol_in_trans_mode;
+				log_msg.body.log_VTOL.failsafe_mode = buf.vtol_status.vtol_transition_failsafe;
 				LOGBUFFER_WRITE_AND_COUNT(VTOL);
 			}
 
@@ -1620,6 +1738,27 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPS.snr_mean = snr_mean;
 				log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
 				log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
+				LOGBUFFER_WRITE_AND_COUNT(GPS);
+			}
+
+			/* --- GPS POSITION - UNIT #2 --- */
+			if (copy_if_updated_multi(ORB_ID(vehicle_gps_position), 1, &subs.gps_pos_sub[1], &buf.dual_gps_pos)) {
+				log_msg.msg_type = LOG_GPS_MSG;
+				log_msg.body.log_GPS.gps_time = buf.dual_gps_pos.time_utc_usec;
+				log_msg.body.log_GPS.fix_type = buf.dual_gps_pos.fix_type;
+				log_msg.body.log_GPS.eph = buf.dual_gps_pos.eph;
+				log_msg.body.log_GPS.epv = buf.dual_gps_pos.epv;
+				log_msg.body.log_GPS.lat = buf.dual_gps_pos.lat;
+				log_msg.body.log_GPS.lon = buf.dual_gps_pos.lon;
+				log_msg.body.log_GPS.alt = buf.dual_gps_pos.alt * 0.001f;
+				log_msg.body.log_GPS.vel_n = buf.dual_gps_pos.vel_n_m_s;
+				log_msg.body.log_GPS.vel_e = buf.dual_gps_pos.vel_e_m_s;
+				log_msg.body.log_GPS.vel_d = buf.dual_gps_pos.vel_d_m_s;
+				log_msg.body.log_GPS.cog = buf.dual_gps_pos.cog_rad;
+				log_msg.body.log_GPS.sats = buf.dual_gps_pos.satellites_used;
+				log_msg.body.log_GPS.snr_mean = snr_mean;
+				log_msg.body.log_GPS.noise_per_ms = buf.dual_gps_pos.noise_per_ms;
+				log_msg.body.log_GPS.jamming_indicator = buf.dual_gps_pos.jamming_indicator;
 				LOGBUFFER_WRITE_AND_COUNT(GPS);
 			}
 
@@ -1695,13 +1834,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- ACTUATOR OUTPUTS --- */
-			if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
+			if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
 				log_msg.msg_type = LOG_OUT0_MSG;
 				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 				LOGBUFFER_WRITE_AND_COUNT(OUT);
 			}
 
-			if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+			if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
 				log_msg.msg_type = LOG_OUT1_MSG;
 				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 				LOGBUFFER_WRITE_AND_COUNT(OUT);
@@ -1786,6 +1925,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_GPOS.terrain_alt = -1.0f;
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
+			}
+
+			/* --- BATTERY --- */
+			if (copy_if_updated(ORB_ID(battery_status), &subs.battery_sub, &buf.battery)) {
+				log_msg.msg_type = LOG_BATT_MSG;
+				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
+				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
+				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
+				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+				log_msg.body.log_BATT.remaining = buf.battery.remaining;
+				log_msg.body.log_BATT.warning = buf.battery.warning;
+				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
 
 			/* --- GLOBAL POSITION SETPOINT --- */
@@ -1907,6 +2059,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
 				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
@@ -1964,7 +2117,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				memcpy(&(log_msg.body.log_EST0.s), buf.estimator_status.states, maxcopy0);
 				log_msg.body.log_EST0.n_states = buf.estimator_status.n_states;
 				log_msg.body.log_EST0.nan_flags = buf.estimator_status.nan_flags;
-				log_msg.body.log_EST0.health_flags = buf.estimator_status.health_flags;
+				log_msg.body.log_EST0.fault_flags = buf.estimator_status.filter_fault_flags;
 				log_msg.body.log_EST0.timeout_flags = buf.estimator_status.timeout_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST0);
 
@@ -1978,6 +2131,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				unsigned maxcopy2 = (sizeof(buf.estimator_status.covariances) < sizeof(log_msg.body.log_EST2.cov)) ? sizeof(buf.estimator_status.covariances) : sizeof(log_msg.body.log_EST2.cov);
 				memset(&(log_msg.body.log_EST2.cov), 0, sizeof(log_msg.body.log_EST2.cov));
 				memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
+				log_msg.body.log_EST2.gps_check_fail_flags = buf.estimator_status.gps_check_fail_flags;
+				log_msg.body.log_EST2.control_mode_flags = buf.estimator_status.control_mode_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST2);
 
 				log_msg.msg_type = LOG_EST3_MSG;
@@ -2006,6 +2161,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				log_msg.body.log_INO2.s[6] = buf.innovations.heading_innov;
 				log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
+				log_msg.body.log_INO2.s[8] = buf.innovations.airspeed_innov;
+				log_msg.body.log_INO2.s[9] = buf.innovations.airspeed_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
 				log_msg.msg_type = LOG_EST6_MSG;
@@ -2117,6 +2274,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
 		}
 
+		/* --- LAND DETECTED --- */
+		if (copy_if_updated(ORB_ID(vehicle_land_detected), &subs.land_detected_sub, &buf.land_detected)) {
+			log_msg.msg_type = LOG_LAND_MSG;
+			log_msg.body.log_LAND.landed = buf.land_detected.landed;
+			LOGBUFFER_WRITE_AND_COUNT(LAND);
+		}
+
+		/* --- LOAD --- */
+		if (copy_if_updated(ORB_ID(cpuload), &subs.cpuload_sub, &buf.cpuload)) {
+			log_msg.msg_type = LOG_LOAD_MSG;
+			log_msg.body.log_LOAD.cpu_load = buf.cpuload.load;
+			LOGBUFFER_WRITE_AND_COUNT(LOAD);
+
+		}
+
 		pthread_mutex_lock(&logbuffer_mutex);
 
 		/* signal the other thread new data, but not yet unlock */
@@ -2136,7 +2308,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
 
-	free(lb.data);
+	/* free log buffer */
+	logbuffer_free(&lb);
 
 	thread_running = false;
 

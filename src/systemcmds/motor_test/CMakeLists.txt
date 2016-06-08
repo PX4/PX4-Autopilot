@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__motor_test
 	MAIN motor_test
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Os
 	SRCS

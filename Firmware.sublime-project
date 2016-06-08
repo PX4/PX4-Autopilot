@@ -70,6 +70,13 @@
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
 			"cmd": ["make posix"],
 			"shell": true
+		},
+		{
+			"name": "MindPX_V2: make and upload",
+			"working_dir": "${project_path}",
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"cmd": ["make upload mindpx-v2_default -j8"],
+			"shell": true
 		}
 	]
 }

@@ -1,4 +1,3 @@
-uint64 timestamp			# microseconds since system boot, needed to integrate
 float32 indicated_airspeed_m_s		# indicated airspeed in meters per second, -1 if unknown
 float32 true_airspeed_m_s		# true filtered airspeed in meters per second, -1 if unknown
 float32 true_airspeed_unfiltered_m_s	# true airspeed in meters per second, -1 if unknown

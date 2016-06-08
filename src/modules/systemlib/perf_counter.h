@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -122,7 +122,17 @@ __EXPORT extern void		perf_end(perf_counter_t handle);
  * @param handle		The handle returned from perf_alloc.
  * @param elapsed		The time elapsed. Negative values lead to incrementing the overrun counter.
  */
-__EXPORT extern void		perf_set(perf_counter_t handle, int64_t elapsed);
+__EXPORT extern void		perf_set_elapsed(perf_counter_t handle, int64_t elapsed);
+
+/**
+ * Set a counter
+ *
+ * This call applies to counters of type PC_COUNT. It (re-)sets the count.
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param count			The counter value to be set.
+ */
+__EXPORT extern void		perf_set_count(perf_counter_t handle, uint64_t count);
 
 /**
  * Cancel a performance event.

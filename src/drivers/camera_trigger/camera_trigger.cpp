@@ -116,7 +116,7 @@ private:
 	int 			_gpio_fd;
 
 	int 			_polarity;
-	int			_mode;
+	int				_mode;
 	float 			_activation_time;
 	float  			_interval;
 	float  			_distance;
@@ -229,9 +229,9 @@ CameraTrigger::CameraTrigger() :
 		i++;
 	}
 
-	struct camera_trigger_s	trigger = {};
+	struct camera_trigger_s	camera_trigger = {};
 
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &camera_trigger);
 }
 
 CameraTrigger::~CameraTrigger()
@@ -283,8 +283,8 @@ CameraTrigger::start()
 {
 
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-		stm32_configgpio(_gpios[_pins[i]]);
-		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);
+		px4_arch_configgpio(_gpios[_pins[i]]);
+		px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
 	}
 
 	// enable immediate if configured that way
@@ -448,7 +448,7 @@ CameraTrigger::trigger(CameraTrigger *trig, bool trigger)
 	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
 		if (trig->_pins[i] >= 0) {
 			// ACTIVE_LOW == 1
-			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], trigger);
+			px4_arch_gpiowrite(trig->_gpios[trig->_pins[i]], trigger);
 		}
 	}
 }

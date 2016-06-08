@@ -180,7 +180,8 @@ PX4IO_serial::PX4IO_serial() :
 	_rx_dma_status(_dma_status_inactive),
 	_bus_semaphore(SEM_INITIALIZER(0)),
 	_completion_semaphore(SEM_INITIALIZER(0)),
-	_pc_txns(perf_alloc(PC_ELAPSED, "io_txns     ")),
+	_pc_txns(perf_alloc(PC_ELAPSED, "io_txns")),
+#if 0
 	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"io_dmasetup ")),
 	_pc_retries(perf_alloc(PC_COUNT,	"io_retries  ")),
 	_pc_timeouts(perf_alloc(PC_COUNT,	"io_timeouts ")),
@@ -190,6 +191,17 @@ PX4IO_serial::PX4IO_serial() :
 	_pc_uerrs(perf_alloc(PC_COUNT,		"io_uarterrs ")),
 	_pc_idle(perf_alloc(PC_COUNT,		"io_idle     ")),
 	_pc_badidle(perf_alloc(PC_COUNT,	"io_badidle  "))
+#else
+	_pc_dmasetup(nullptr),
+	_pc_retries(nullptr),
+	_pc_timeouts(nullptr),
+	_pc_crcerrs(nullptr),
+	_pc_dmaerrs(nullptr),
+	_pc_protoerrs(nullptr),
+	_pc_uerrs(nullptr),
+	_pc_idle(nullptr),
+	_pc_badidle(nullptr)
+#endif
 {
 	g_interface = this;
 }
@@ -216,8 +228,8 @@ PX4IO_serial::~PX4IO_serial()
 	irq_detach(PX4IO_SERIAL_VECTOR);
 
 	/* restore the GPIOs */
-	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
-	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
+	px4_arch_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
+	px4_arch_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* and kill our semaphores */
 	px4_sem_destroy(&_completion_semaphore);
@@ -252,8 +264,8 @@ PX4IO_serial::init()
 	}
 
 	/* configure pins for serial use */
-	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
-	stm32_configgpio(PX4IO_SERIAL_RX_GPIO);
+	px4_arch_configgpio(PX4IO_SERIAL_TX_GPIO);
+	px4_arch_configgpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* reset & configure the UART */
 	rCR1 = 0;

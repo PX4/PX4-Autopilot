@@ -150,16 +150,6 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-if("${OS}" STREQUAL "posix")
-	if (APPLE)
-		set(DF_TARGET darwin)
-	else()
-		set(DF_TARGET linux)
-	endif()
-else()
-	set(DF_TARGET ${OS})
-endif()
-
 message(STATUS "${target_name}")
 
 # switch to ros CMake file if building ros
@@ -298,18 +288,18 @@ px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
 include_directories(${include_dirs})
-message("INCLUDE_DIRS=${include_dirs}")
+#message("INCLUDE_DIRS=${include_dirs}")
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
 #=============================================================================
 # source code generation
 #
-file(GLOB_RECURSE msg_files msg/*.msg)
+add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
-	DEPENDS git_genmsg git_gencpp
+	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
@@ -333,12 +323,11 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 #=============================================================================
 # DriverFramework Drivers
 #
-message("ADDING DRIVERS")
 set(df_driver_libs)
 foreach(driver ${config_df_driver_list})
 	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
 	list(APPEND df_driver_libs df_${driver})
-	message("adding driver: ${driver}")
+	message("Adding DF driver: ${driver}")
 endforeach()
 
 #=============================================================================
@@ -359,9 +348,10 @@ foreach(module ${config_module_list})
 	#message(STATUS "adding module: ${module}")
 endforeach()
 
-add_subdirectory(src/firmware/${OS})
+# Keep track of external shared libs required for modules
+set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "module_external_libraries")
 
-add_subdirectory(src/lib/DriverFramework/framework/src)
+add_subdirectory(src/firmware/${OS})
 
 #add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
 if (NOT "${OS}" STREQUAL "nuttx")

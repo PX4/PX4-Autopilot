@@ -363,7 +363,19 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-		if ((hrt_absolute_time() - last_heartbeat_time) > 250 * 1000) {
+		/*
+		  blink blue LED at 4Hz in normal operation. When in
+		  override blink 4x faster so the user can clearly see
+		  that override is happening. This helps when
+		  pre-flight testing the override system
+		 */
+		uint32_t heartbeat_period_us = 250 * 1000UL;
+
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+			heartbeat_period_us /= 4;
+		}
+
+		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
 			last_heartbeat_time = hrt_absolute_time();
 			heartbeat_blink();
 		}

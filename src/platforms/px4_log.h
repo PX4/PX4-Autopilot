@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@ static inline void do_nothing(int level, ...)
 	(void)level;
 }
 
+
 /****************************************************************************
  * __px4_log_omit:
  * Compile out the message
@@ -59,11 +60,11 @@ static inline void do_nothing(int level, ...)
 #if defined(__PX4_ROS)
 
 #include <ros/console.h>
-#define PX4_PANIC(...)	ROS_WARN(__VA_ARGS__)
-#define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_PANIC(...)	ROS_FATAL(__VA_ARGS__)
+#define PX4_ERR(...)	ROS_ERROR(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_DEBUG(...)
+#define PX4_INFO(...) 	ROS_INFO(__VA_ARGS__)
+#define PX4_DEBUG(...)	ROS_DEBUG(__VA_ARGS__)
 #define PX4_BACKTRACE()
 
 #elif defined(__PX4_QURT)
@@ -122,6 +123,8 @@ static inline void do_nothing(int level, ...)
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <stdio.h>
+#include <stdarg.h>
+
 #include <px4_defines.h>
 
 __BEGIN_DECLS
@@ -150,17 +153,23 @@ __END_DECLS
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
 #define __px4__log_printline(level, ...)    if (level <= __px4_log_level_current) printf(__VA_ARGS__)
 
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "Unknown"
+#endif
+
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
 #define __px4__log_level_fmt		"%-5s "
 #define __px4__log_level_arg(level)	,__px4_log_level_str[level]
 #define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,(unsigned int)pthread_self()
+#define __px4__log_modulename_fmt	"%-10s "
+#define __px4__log_modulename_arg	,"[" MODULE_NAME "]"
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
 #define __px4__log_file_and_line_arg 	, __FILE__, __LINE__
 #define __px4__log_end_fmt 		"\n"
-#define __px4__log_endline 		)
 
 /****************************************************************************
  * Output format macros
@@ -198,6 +207,43 @@ __END_DECLS
 			     __px4__log_end_fmt \
 			     __px4__log_level_arg(level), ##__VA_ARGS__\
 			    )
+
+/****************************************************************************
+ * __px4_log_modulename:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s [%-10s] val is %d\n", __px4_log_level_str[3],
+ *		MODULENAME, val);
+ ****************************************************************************/
+
+/* It turns out the macro below uses a lot more flash space than a static
+ * inline function. */
+#if 0
+#define __px4_log_modulename(level, FMT, ...) \
+	__px4__log_printline(level,\
+			     __px4__log_level_fmt\
+			     __px4__log_modulename_fmt\
+			     FMT\
+			     __px4__log_end_fmt\
+			     __px4__log_level_arg(level)\
+			     __px4__log_modulename_arg\
+			     , ##__VA_ARGS__\
+			    )
+#endif
+
+static inline void __px4_log_modulename(int level, const char *fmt, ...)
+{
+	if (level <= __px4_log_level_current) {
+		printf(__px4__log_level_fmt __px4__log_level_arg(level));
+		printf(__px4__log_modulename_fmt __px4__log_modulename_arg);
+		va_list argptr;
+		va_start(argptr, fmt);
+		vprintf(fmt, argptr);
+		va_end(argptr);
+		printf("\n");
+	}
+}
 
 /****************************************************************************
  * __px4_log_timestamp:
@@ -338,7 +384,7 @@ __END_DECLS
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
 #define PX4_LOG(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
-#define PX4_INFO(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
@@ -362,8 +408,8 @@ __END_DECLS
 /****************************************************************************
  * Non-verbose settings for a Release build to minimize strings in build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
@@ -371,9 +417,9 @@ __END_DECLS
 /****************************************************************************
  * Medium verbose settings for a default build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
-#define PX4_WARN(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif

@@ -79,7 +79,7 @@ typedef struct hrt_call {
 } *hrt_call_t;
 
 /**
- * Get absolute time.
+ * Get absolute time in [us] (does not wrap).
  */
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
 
@@ -108,6 +108,15 @@ __EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
  */
 __EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
+
+#ifdef __PX4_QURT
+/**
+ * Set a time offset to hrt_absolute_time on the DSP.
+ * @param time_diff_us: time difference of the DSP clock to Linux clock.
+ *   This param is positive if the Linux clock is ahead of the DSP one.
+ */
+__EXPORT extern int hrt_set_absolute_time_offset(int32_t time_diff_us);
+#endif
 
 /**
  * Call callout(arg) after delay has elapsed.

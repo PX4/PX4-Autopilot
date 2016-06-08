@@ -104,8 +104,8 @@ interface_init(void)
 	rx_dma = stm32_dmachannel(PX4FMU_SERIAL_RX_DMA);
 
 	/* configure pins for serial use */
-	stm32_configgpio(PX4FMU_SERIAL_TX_GPIO);
-	stm32_configgpio(PX4FMU_SERIAL_RX_GPIO);
+	px4_arch_configgpio(PX4FMU_SERIAL_TX_GPIO);
+	px4_arch_configgpio(PX4FMU_SERIAL_RX_GPIO);
 
 	/* reset and configure the UART */
 	rCR1 = 0;

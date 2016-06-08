@@ -385,6 +385,14 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc, bool checkGyro,
 		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool reportFailures)
 {
+
+#ifdef __PX4_QURT
+	// WARNING: Preflight checks are important and should be added back when
+	// all the sensors are supported
+	PX4_WARN("Preflight checks always pass on Snapdragon.");
+	return true;
+#endif
+
 	bool failed = false;
 
 	/* ---- MAG ---- */
@@ -527,14 +535,6 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 			failed = true;
 		}
 	}
-
-
-#ifdef __PX4_QURT
-	// WARNING: Preflight checks are important and should be added back when
-	// all the sensors are supported
-	PX4_WARN("WARNING: Preflight checks PASS always.");
-	failed = false;
-#endif
 
 	/* Report status */
 	return !failed;

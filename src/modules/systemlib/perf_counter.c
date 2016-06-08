@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,10 +46,8 @@
 #include "perf_counter.h"
 
 #ifdef __PX4_QURT
-#define dprintf(...)
-#define ddeclare(...)
-#else
-#define ddeclare(...) __VA_ARGS__
+// There is presumably no dprintf on QURT. Therefore use the usual output to mini-dm.
+#define dprintf(_fd, _text, ...) ((_fd) == 1 ? PX4_INFO((_text), ##__VA_ARGS__) : (void)(_fd))
 #endif
 
 /**
@@ -299,7 +297,7 @@ perf_end(perf_counter_t handle)
 #include <systemlib/err.h>
 
 void
-perf_set(perf_counter_t handle, int64_t elapsed)
+perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 {
 	if (handle == NULL) {
 		return;
@@ -340,6 +338,25 @@ perf_set(perf_counter_t handle, int64_t elapsed)
 	default:
 		break;
 	}
+}
+
+void
+perf_set_count(perf_counter_t handle, uint64_t count)
+{
+	if (handle == NULL) {
+		return;
+	}
+
+	switch (handle->type) {
+	case PC_COUNT: {
+			((struct perf_ctr_count *)handle)->event_count = count;
+		}
+		break;
+
+	default:
+		break;
+	}
+
 }
 
 void
@@ -402,6 +419,10 @@ perf_reset(perf_counter_t handle)
 void
 perf_print_counter(perf_counter_t handle)
 {
+	if (handle == NULL) {
+		return;
+	}
+
 	perf_print_counter_fd(1, handle);
 }
 
@@ -420,14 +441,14 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		break;
 
 	case PC_ELAPSED: {
-			ddeclare(struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;)
-			ddeclare(float rms = sqrtf(pce->M2 / (pce->event_count - 1));)
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pce->event_count,
 				(unsigned long long)pce->event_overruns,
 				(unsigned long long)pce->time_total,
-				pce->event_count == 0 ? 0 : (unsigned long long)pce->time_total / pce->event_count,
+				(pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
 				(unsigned long long)pce->time_least,
 				(unsigned long long)pce->time_most,
 				(double)(1e6f * rms));
@@ -435,13 +456,13 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		}
 
 	case PC_INTERVAL: {
-			ddeclare(struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;)
-			ddeclare(float rms = sqrtf(pci->M2 / (pci->event_count - 1));)
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
 			dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pci->event_count,
-				(unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
+				(pci->event_count == 0) ? 0 : (unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
 				(unsigned long long)pci->time_least,
 				(unsigned long long)pci->time_most,
 				(double)(1e6f * rms));

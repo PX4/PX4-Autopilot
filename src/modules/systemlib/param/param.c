@@ -90,12 +90,11 @@
 extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
+#define param_info_count	(param_info_limit - param_info_base)
 #else
-// FIXME - start and end are reversed
 static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
-#endif
-
 #define	param_info_count		px4_parameters.param_count
+#endif /* _UNIT_TEST */
 
 /**
  * Storage for modified parameters.
@@ -137,9 +136,6 @@ UT_array	*param_values;
 /** array info for the modified parameters array */
 const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
-/** parameter update topic */
-ORB_DEFINE(parameter_update, struct parameter_update_s);
-
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
 
@@ -177,7 +173,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 	return (count && param < count);
 }
 
@@ -239,7 +235,9 @@ param_find_changed(param_t param)
 static void
 param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved};
+	struct parameter_update_s pup;
+	pup.timestamp = hrt_absolute_time();
+	pup.saved = is_saved;
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -795,7 +793,7 @@ param_load_default(void)
 
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 //struct spi_dev_s *dev = nullptr;
-irqstate_t state;
+irqstate_t irq_state;
 #endif
 
 static void
@@ -809,17 +807,17 @@ param_bus_lock(bool lock)
 
 	// XXX this would be the preferred locking method
 	// if (dev == nullptr) {
-	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// 	dev = px4_spibus_initialize(PX4_SPI_BUS_BARO);
 	// }
 
 	// SPI_LOCK(dev, lock);
 
 	// we lock like this for Pixracer for now
 	if (lock) {
-		state = irqsave();
+		irq_state = px4_enter_critical_section();
 
 	} else {
-		irqrestore(state);
+		px4_leave_critical_section(irq_state);
 	}
 
 #endif

@@ -5,14 +5,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
 #include <lib/geo/geo.h>
-
-#ifdef USE_MATRIX_LIB
-#include "matrix/Matrix.hpp"
-using namespace matrix;
-#else
-#include <Eigen/Eigen>
-using namespace Eigen;
-#endif
+#include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
 #include <uORB/Subscription.hpp>
@@ -37,13 +30,13 @@ using namespace Eigen;
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/estimator_status.h>
 
-#define CBRK_NO_VISION_KEY	328754
-
+using namespace matrix;
 using namespace control;
 
 static const float GPS_DELAY_MAX = 0.5; // seconds
 static const float HIST_STEP = 0.05; // 20 hz
-static const size_t HIST_LEN = (GPS_DELAY_MAX / HIST_STEP);
+static const size_t HIST_LEN = 10; // GPS_DELAY_MAX / HIST_STEP;
+static const size_t N_DIST_SUBS = 4;
 
 enum fault_t {
 	FAULT_NONE = 0,
@@ -61,12 +54,26 @@ enum sensor_t {
 	SENSOR_MOCAP
 };
 
+// change this to set when
+// the system will abort correcting a measurement
+// given a fault has been detected
+static const fault_t fault_lvl_disable = FAULT_SEVERE;
+
+// for fault detection
+// chi squared distribution, false alarm probability 0.0001
+// see fault_table.py
+// note skip 0 index so we can use degree of freedom as index
+static const float BETA_TABLE[7] = {0,
+				    8.82050518214,
+				    12.094592431,
+				    13.9876612368,
+				    16.0875642296,
+				    17.8797700658,
+				    19.6465647819,
+				   };
+
 class BlockLocalPositionEstimator : public control::SuperBlock
 {
-//
-// The purpose of this estimator is to provide a robust solution for
-// indoor flight.
-//
 // dynamics:
 //
 //	x(+) = A * x(-) + B * u(+)
@@ -92,8 +99,8 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 // states:
 // 	px, py, pz , ( position NED)
 // 	vx, vy, vz ( vel NED),
-// 	bx, by, bz ( TODO accelerometer bias)
-// 	tz (TODO terrain altitude)
+// 	bx, by, bz ( accel bias)
+// 	tz (terrain altitude, ASL)
 //
 // measurements:
 //
@@ -141,27 +148,55 @@ private:
 	// predict the next state
 	void predict();
 
-	// correct the state prediction with a measurement
-	void correctBaro();
-	void correctGps();
-	void correctLidar();
-	void correctFlow();
-	void correctSonar();
-	void correctVision();
-	void correctMocap();
+	// lidar
+	int  lidarMeasure(Vector<float, n_y_lidar> &y);
+	void lidarCorrect();
+	void lidarInit();
+	void lidarCheckTimeout();
 
-	// sensor timeout checks
+	// sonar
+	int  sonarMeasure(Vector<float, n_y_sonar> &y);
+	void sonarCorrect();
+	void sonarInit();
+	void sonarCheckTimeout();
+
+	// baro
+	int  baroMeasure(Vector<float, n_y_baro> &y);
+	void baroCorrect();
+	void baroInit();
+	void baroCheckTimeout();
+
+	// gps
+	int  gpsMeasure(Vector<double, n_y_gps> &y);
+	void gpsCorrect();
+	void gpsInit();
+	void gpsCheckTimeout();
+
+	// flow
+	int  flowMeasure(Vector<float, n_y_flow> &y);
+	void flowCorrect();
+	void flowInit();
+	void flowCheckTimeout();
+
+	// vision
+	int  visionMeasure(Vector<float, n_y_vision> &y);
+	void visionCorrect();
+	void visionInit();
+	void visionCheckTimeout();
+
+	// mocap
+	int  mocapMeasure(Vector<float, n_y_mocap> &y);
+	void mocapCorrect();
+	void mocapInit();
+	void mocapCheckTimeout();
+
+	// timeouts
 	void checkTimeouts();
 
-	// sensor initialization
+	// misc
+	float agl();
+	void detectDistanceSensors();
 	void updateHome();
-	void initBaro();
-	void initGps();
-	void initLidar();
-	void initSonar();
-	void initFlow();
-	void initVision();
-	void initMocap();
 
 	// publications
 	void publishLocalPos();
@@ -185,7 +220,11 @@ private:
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
-	uORB::Subscription<distance_sensor_s> *_distance_subs[ORB_MULTI_MAX_INSTANCES];
+	uORB::Subscription<distance_sensor_s> _sub_dist0;
+	uORB::Subscription<distance_sensor_s> _sub_dist1;
+	uORB::Subscription<distance_sensor_s> _sub_dist2;
+	uORB::Subscription<distance_sensor_s> _sub_dist3;
+	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
 
@@ -216,17 +255,19 @@ private:
 	BlockParamFloat  _baro_stddev;
 
 	// gps parameters
+	BlockParamInt   _gps_on;
 	BlockParamFloat  _gps_delay;
 	BlockParamFloat  _gps_xy_stddev;
 	BlockParamFloat  _gps_z_stddev;
 	BlockParamFloat  _gps_vxy_stddev;
 	BlockParamFloat  _gps_vz_stddev;
 	BlockParamFloat  _gps_eph_max;
+	BlockParamFloat  _gps_epv_max;
 
 	// vision parameters
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
-	BlockParamInt    _no_vision;
+	BlockParamInt   _vision_on;
 
 	// mocap parameters
 	BlockParamFloat  _mocap_p_stddev;
@@ -244,18 +285,22 @@ private:
 	BlockParamFloat  _pn_b_noise_density;
 	BlockParamFloat  _pn_t_noise_density;
 
+	// init home
+	BlockParamFloat  _init_home_lat;
+	BlockParamFloat  _init_home_lon;
+
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
 	BlockHighPass _flow_gyro_y_high_pass;
 
 	// stats
-	BlockStats<float, 1> _baroStats;
-	BlockStats<float, 1> _sonarStats;
-	BlockStats<float, 1> _lidarStats;
+	BlockStats<float, n_y_baro> _baroStats;
+	BlockStats<float, n_y_sonar> _sonarStats;
+	BlockStats<float, n_y_lidar> _lidarStats;
 	BlockStats<float, 1> _flowQStats;
-	BlockStats<float, 3> _visionStats;
-	BlockStats<float, 3> _mocapStats;
-	BlockStats<double, 3> _gpsStats;
+	BlockStats<float, n_y_vision> _visionStats;
+	BlockStats<float, n_y_mocap> _mocapStats;
+	BlockStats<double, n_y_gps> _gpsStats;
 
 	// delay blocks
 	BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
@@ -275,9 +320,9 @@ private:
 	uint64_t _time_last_sonar;
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
-	orb_advert_t _mavlink_log_pub;
 
 	// initialization flags
+	bool _receivedGps;
 	bool _baroInitialized;
 	bool _gpsInitialized;
 	bool _lidarInitialized;
@@ -299,18 +344,14 @@ private:
 	float _flowY;
 	float _flowMeanQual;
 
-	// referene lat/lon
-	double _gpsLatHome;
-	double _gpsLonHome;
-
 	// status
 	bool _canEstimateXY;
 	bool _canEstimateZ;
 	bool _canEstimateT;
-	bool _canEstimateGlobal;
 	bool _xyTimeout;
 	bool _zTimeout;
 	bool _tzTimeout;
+	bool _lastArmedState;
 
 	// sensor faults
 	fault_t _baroFault;
