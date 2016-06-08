@@ -258,9 +258,10 @@ private:
 	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
 	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
 	// control of airspeed and sideslip fusion
- 	control::BlockParamFloat _arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
- 													// the minimum airspeed which will still be fused
- 	
+	control::BlockParamFloat
+	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
+	// the minimum airspeed which will still be fused
+
 	// output predictor filter time constants
 	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
 	control::BlockParamFloat _tau_pos;	// time constant used by the output position complementary filter (s)
@@ -453,11 +454,11 @@ void Ekf2::task_main()
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
 
- 		orb_check(_status_sub, &vehicle_status_updated);
+		orb_check(_status_sub, &vehicle_status_updated);
 
 		if (vehicle_status_updated) {
- 			orb_copy(ORB_ID(vehicle_status), _status_sub, &_vehicle_status);
- 		}
+			orb_copy(ORB_ID(vehicle_status), _status_sub, &_vehicle_status);
+		}
 
 		orb_check(_gps_sub, &gps_updated);
 
@@ -534,11 +535,13 @@ void Ekf2::task_main()
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
- 		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s;
- 		if (fuse_airspeed) {
- 			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing
+				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s;
+
+		if (fuse_airspeed) {
+			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
-  		}
+		}
 
 		if (optical_flow_updated) {
 			flow_message flow;
@@ -569,18 +572,23 @@ void Ekf2::task_main()
 			ev_data.posNED(2) = ev.z;
 			Quaternion q(ev.q);
 			ev_data.quat = q;
+
 			// position measurement error
 			if (ev.pos_err >= 0.001f) {
 				ev_data.posErr = ev.pos_err;
+
 			} else {
 				ev_data.posErr = _default_ev_pos_noise;
 			}
+
 			// angle measurement error
 			if (ev.ang_err >= 0.001f) {
 				ev_data.angErr = ev.ang_err;
+
 			} else {
 				ev_data.angErr = _default_ev_ang_noise;
 			}
+
 			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
 			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
@@ -861,6 +869,7 @@ void Ekf2::task_main()
 			_ekf.copy_mag_decl_deg(&decl_deg);
 			_mag_declination_deg.set(decl_deg);
 		}
+
 		_prev_landed = vehicle_land_detected.landed;
 
 		// publish replay message if in replay mode

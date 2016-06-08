@@ -226,7 +226,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_flow{},
 	_range{},
 	_airspeed{},
- 	_vehicle_status{},
+	_vehicle_status{},
 	_message_counter(0),
 	_part1_counter_ref(0),
 	_read_part2(false),
@@ -299,6 +299,7 @@ void Ekf2Replay::publishEstimatorInput()
 
 	if (_airspeed_pub == nullptr && _read_part6) {
 		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+
 	} else if (_airspeed_pub != nullptr) {
 		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 	}
@@ -431,7 +432,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
 
-	} else if (type == LOG_RPL6_MSG){
+	} else if (type == LOG_RPL6_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part6.time_airs_usec;
 		parseMessage(data, dest_ptr, type);
 		_airspeed.timestamp = replay_part6.time_airs_usec;
@@ -469,17 +470,17 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	}
 
 	else if (type == LOG_STAT_MSG) {
- 		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
- 		parseMessage(data, dest_ptr, type);
- 		_vehicle_status.is_rotary_wing = vehicle_status.is_rot_wing;
- 
- 		if (_vehicle_status_pub == nullptr) {
- 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
- 
- 		} else if (_vehicle_status_pub != nullptr) {
- 			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &_vehicle_status);
- 		}
- 	}
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+		parseMessage(data, dest_ptr, type);
+		_vehicle_status.is_rotary_wing = vehicle_status.is_rot_wing;
+
+		if (_vehicle_status_pub == nullptr) {
+			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
+
+		} else if (_vehicle_status_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &_vehicle_status);
+		}
+	}
 }
 
 void Ekf2Replay::writeMessage(int &fd, void *data, size_t size)
