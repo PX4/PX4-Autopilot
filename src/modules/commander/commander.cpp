@@ -1617,8 +1617,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
-			param_set(_param_offboard_loss_act, &offboard_loss_act);
-			param_set(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
+			param_get(_param_offboard_loss_act, &offboard_loss_act);
+			param_get(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
