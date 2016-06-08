@@ -348,7 +348,7 @@ unsigned long px4_getpid()
 }
 
 
-const char *getprogname()
+const char *px4_get_taskname()
 {
 	pthread_t pid = pthread_self();
 
