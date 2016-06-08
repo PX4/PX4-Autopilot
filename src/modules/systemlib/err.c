@@ -67,7 +67,7 @@ static void
 warnerr_core(int errcode, const char *fmt, va_list args)
 {
 #if CONFIG_NFILE_STREAMS > 0
-	fprintf(stderr, "%s: ", getprogname());
+	fprintf(stderr, "%s: ", px4_get_taskname());
 	vfprintf(stderr, fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
@@ -81,7 +81,7 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
-	lowsyslog("%s: ", getprogname());
+	lowsyslog("%s: ", px4_get_taskname());
 	lowvsyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
