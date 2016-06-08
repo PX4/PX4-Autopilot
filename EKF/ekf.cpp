@@ -399,10 +399,10 @@ bool Ekf::initialiseFilter(void)
 
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_mag_counter == 0 && _mag_sample_delayed.time_us !=0) {
+		if ((_mag_counter == 0) && (_mag_sample_delayed.time_us != 0)) {
 			// initialise the counter when we start getting data from the buffer
 			_mag_counter = 1;
-		} else if (_mag_counter != 0) {
+		} else if ((_mag_counter != 0) && (_mag_sample_delayed.time_us != 0)) {
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
 			// don't start using data until we can be certain all bad initial data has been flushed
@@ -418,7 +418,7 @@ bool Ekf::initialiseFilter(void)
 
 	// Count the number of external vision measurements received
 	if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
-		if (_ev_counter == 0 && _ev_sample_delayed.time_us !=0) {
+		if ((_ev_counter == 0) && (_ev_sample_delayed.time_us != 0)) {
 			// initialise the counter
 			_ev_counter = 1;
 			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
@@ -428,7 +428,7 @@ bool Ekf::initialiseFilter(void)
 				_control_status.flags.rng_hgt = false;
 				_control_status.flags.ev_hgt = true;
 			}
-		} else if (_ev_counter != 0) {
+		} else if ((_ev_counter != 0) && (_ev_sample_delayed.time_us != 0)) {
 			// increment the sample count
 			_ev_counter ++;
 		}
@@ -442,14 +442,14 @@ bool Ekf::initialiseFilter(void)
 	// accumulate enough height measurements to be confident in the qulaity of the data
 	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
-			if (_hgt_counter == 0 && _range_sample_delayed.time_us != 0) {
+			if ((_hgt_counter == 0) && (_range_sample_delayed.time_us != 0)) {
 				// initialise the counter height fusion method when we start getting data from the buffer
 				_control_status.flags.baro_hgt = false;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = true;
 				_control_status.flags.ev_hgt = false;
 				_hgt_counter = 1;
-			} else if (_hgt_counter != 0) {
+			} else if ((_hgt_counter != 0) && (_range_sample_delayed.time_us != 0)) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
@@ -467,13 +467,13 @@ bool Ekf::initialiseFilter(void)
 		// if the user parameter specifies use of GPS for height we use baro height initially and switch to GPS
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-			if (_hgt_counter == 0 && _baro_sample_delayed.time_us != 0) {
+			if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
 				// initialise the counter and height fusion method when we start getting data from the buffer
 				_control_status.flags.baro_hgt = true;
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
 				_hgt_counter = 1;
-			} else if (_hgt_counter != 0) {
+			} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
