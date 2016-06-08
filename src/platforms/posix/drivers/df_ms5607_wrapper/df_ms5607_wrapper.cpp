@@ -112,16 +112,6 @@ DfMS5607Wrapper::~DfMS5607Wrapper()
 
 int DfMS5607Wrapper::start()
 {
-	// TODO: don't publish garbage here
-	baro_report baro_report = {};
-	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
-					  &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_baro_topic == nullptr) {
-		PX4_ERR("sensor_baro advert fail");
-		return -1;
-	}
-
 	/* Init device and start sensor. */
 	int ret = init();
 
@@ -194,7 +184,11 @@ int DfMS5607Wrapper::_publish(struct baro_sensor_data &data)
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
-		if (_baro_topic != nullptr) {
+		if (_baro_topic == nullptr) {
+		  _baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
+		                                    &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
+
+		} else {
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &baro_report);
 		}
 	}
