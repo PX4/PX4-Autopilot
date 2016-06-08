@@ -61,7 +61,6 @@ bool Ekf::resetVelocity()
 
 		if (_time_last_imu - gps_newest.time_us < 2*GPS_MAX_INTERVAL) {
 			_state.vel = gps_newest.vel;
-			return true;
 
 		} else {
 			// XXX use the value of the last known velocity
@@ -69,7 +68,7 @@ bool Ekf::resetVelocity()
 		}
 	} else if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
 		_state.vel.setZero();
-		return true;
+
 	} else {
 		return false;
 	}
@@ -91,6 +90,7 @@ bool Ekf::resetVelocity()
 	_state_reset_status.velNE_counter++;
 	_state_reset_status.velD_counter++;
 
+	return true;
 }
 
 // Reset position states. If we have a recent and valid
