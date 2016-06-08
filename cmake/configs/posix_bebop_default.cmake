@@ -13,7 +13,7 @@ set(CMAKE_PROGRAM_PATH
 
 set(config_module_list
 
-  examples/px4_simple_app
+  # examples/px4_simple_app
 
 	#
 	# Board support modules
