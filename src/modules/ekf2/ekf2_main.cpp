@@ -271,6 +271,9 @@ private:
 	control::BlockParamFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
 	control::BlockParamFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
 
+	// airspeed mode parameter
+	control::BlockParamInt _airspeed_mode;
+
 	int update_subscriptions();
 
 };
@@ -366,7 +369,8 @@ Ekf2::Ekf2():
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
 	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, &_params->switch_on_accel_bias),
-	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err)
+	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err),
+	_airspeed_mode(this, "FW_ARSP_MODE", false)
 {
 
 }
@@ -655,14 +659,27 @@ void Ekf2::task_main()
 						1) * acceleration(1));
 			ctrl_state.horz_acc_mag = _acc_hor_filt;
 
-			// Airspeed - take airspeed measurement directly here as no wind is estimated
-			if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
-			    && airspeed.timestamp > 0) {
-				ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-				ctrl_state.airspeed_valid = true;
+			float vel[3] = {};
+			_ekf.get_velocity(vel);
 
+			ctrl_state.airspeed_valid = false;
+
+			// use estimated velocity for airspeed estimate
+			if (_airspeed_mode.get() == 1) {
+				if (_ekf.local_position_is_valid()) {
+					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] +vel[2] * vel[2]);
+				}
+			// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed	
+			} else if (_airspeed_mode.get() == 2) {
+
+			// use the measured airspeed
 			} else {
-				ctrl_state.airspeed_valid = false;
+				/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
+				    && airspeed.timestamp > 0) {
+					ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+					ctrl_state.airspeed_valid = true;
+				}
 			}
 
 			// publish control state data
@@ -702,7 +719,6 @@ void Ekf2::task_main()
 			// generate vehicle local position data
 			struct vehicle_local_position_s lpos = {};
 			float pos[3] = {};
-			float vel[3] = {};
 
 			lpos.timestamp = hrt_absolute_time();
 
@@ -713,7 +729,6 @@ void Ekf2::task_main()
 			lpos.z = pos[2];
 
 			// Velocity of body origin in local NED frame (m/s)
-			_ekf.get_velocity(vel);
 			lpos.vx = vel[0];
 			lpos.vy = vel[1];
 			lpos.vz = vel[2];
