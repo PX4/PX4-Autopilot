@@ -91,21 +91,16 @@ void Ekf::initialiseCovariance()
 	P[15][15] = P[13][13];
 
 	// variances for optional states
-	// these state variances are set to zero until the states are required, then they must be initialised
 
-	// earth magnetic field
-	P[16][16] = 0.0f;
-	P[17][17] = 0.0f;
-	P[18][18] = 0.0f;
-
-	// body magnetic field
-	P[19][19] = 0.0f;
-	P[20][20] = 0.0f;
-	P[21][21] = 0.0f;
+	// earth frame and body frame magnetic field
+	// set to observation variance
+	for (uint8_t index=16; index <= 21; index ++) {
+		P[index][index] = sq(_params.mag_noise);
+	}
 
 	// wind
-	P[22][22] = 0.0f;
-	P[23][23] = 0.0f;
+	P[22][22] = 1.0f;
+	P[23][23] = 1.0f;
 
 }
 
@@ -781,5 +776,21 @@ void Ekf::fixCovarianceErrors()
 		}
 		// force symmetry
 		makeSymmetrical(P,22,23);
+	}
+}
+
+void Ekf::resetMagCovariance()
+{	
+	// set the quaternion covariance terms to zero
+	zeroRows(P,0,3);
+	zeroCols(P,0,3);
+
+	// set the magnetic field covariance terms to zero
+	zeroRows(P,16,21);
+	zeroCols(P,16,21);
+
+	// set the field state variance to the observation variance
+	for (uint8_t rc_index=16; rc_index <= 21; rc_index ++) {
+		P[rc_index][rc_index] = sq(_params.mag_noise);
 	}
 }

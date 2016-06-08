@@ -921,7 +921,11 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 		float t43 = t16-t25;
 		float t44 = t17-t36;
 
-		// auto-code generated using matlab symbolic toolbox
+		// zero all the quaternion covariances
+		zeroRows(P,0,3);
+		zeroCols(P,0,3);
+
+		// Update the quaternion internal covariances using auto-code generated using matlab symbolic toolbox
 		P[0][0] = rot_vec_var(0)*t2*t9*t10*0.25f+rot_vec_var(1)*t4*t9*t10*0.25f+rot_vec_var(2)*t5*t9*t10*0.25f;
 		P[0][1] = t22;
 		P[0][2] = t35+rotX*rot_vec_var(0)*t3*t11*(t15-rotX*rotY*t10*t12*0.5f)*0.5f-rotY*rot_vec_var(1)*t3*t11*t30*0.5f;

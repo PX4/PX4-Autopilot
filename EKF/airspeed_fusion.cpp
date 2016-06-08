@@ -40,6 +40,7 @@
  * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
+#include "../ecl.h"
 #include "ekf.h"
 #include "mathlib.h"
 
@@ -92,9 +93,10 @@ void Ekf::fuseAirspeed()
 			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
 			_fault_status.flags.bad_airspeed = false;
 
-		} else { // Reset the estimator
+		} else { // Reset the estimator covarinace matrix
 			_fault_status.flags.bad_airspeed = true;
 			initialiseCovariance();
+			ECL_ERR("EKF airspeed fusion numerical error - covariance reset");
 			return;
 		}
 
