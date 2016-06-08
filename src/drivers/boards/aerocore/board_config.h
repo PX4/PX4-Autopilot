@@ -166,6 +166,11 @@ __BEGIN_DECLS
 #define HRT_TIMER		8	/* use timer 8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
+//To fix error of PWMIN needing to be defined, I copied values over from the PX4FMU-V2
+#define PWMIN_TIMER		4
+#define PWMIN_TIMER_CHANNEL	2
+#define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
+
 /* Tone Alarm (no onboard speaker )*/
 #define TONE_ALARM_TIMER	2	/* timer 2 */
 #define TONE_ALARM_CHANNEL	1	/* channel 1 */

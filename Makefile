@@ -136,6 +136,8 @@ endef
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
+aerocore_default:
+	$(call cmake-build,nuttx_aerocore_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)

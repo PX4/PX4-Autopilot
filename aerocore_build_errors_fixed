@@ -1,0 +1,51 @@
+// COPIED FILE OVER FROM PX4/FIRMWARE
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:72:33: fatal error: mavlink/mavlink_log.h: No such file or directory
+ #include <mavlink/mavlink_log.h>
+
+// Copied a couple lines over from px4fmu-v2
+/home/jessica/src/Firmware/src/drivers/pwm_input/pwm_input.cpp:95:2: error: #error PWMIN defines are needed in board_config.h for this board
+ #error PWMIN defines are needed in board_config.h for this board
+  ^
+// Tried to fix error by modifying if statement
+/home/jessica/src/Firmware/src/drivers/ms5611/ms5611_nuttx.cpp:832:75: error: 'PX4_SPI_BUS_BARO' was not declared in this scope
+
+//Removed hil from drivers (its documentation suggests that it is used when there are not enough 
+// PWM ports to go around.  This should not be a problem for me
+/home/jessica/src/Firmware/src/drivers/hil/hil.cpp:78:45: fatal error: uORB/topics/actuator_controls_0.h: No such file or directory
+ #include <uORB/topics/actuator_controls_0.h>
+
+//Replace 'RingBuffer' with ringbuffer::RingBuffer
+// Solution found https://github.com/PX4/Firmware/pull/2222/files
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:119:2: error: 'RingBuffer' does not name a type
+  RingBuffer  *_reports;
+  ^
+
+//https://groups.google.com/forum/#!msg/px4users/VjXcHIaFwT0/hnld7Wa_AAAJ
+//changed __rc_topic(-1) to __rc_topic(nullptr) and __to_input_rc(-1) to __to_input_rc(nullptr)
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp: In constructor 'AeroCoreIO::AeroCoreIO()':
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:202:50: error: invalid conversion from 'int' to 'orb_advert_t {aka void*}' [-fpermissive]
+  _perf_chan_count(perf_alloc(PC_COUNT, "io rc #"))
+  ^
+
+//
+In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:51:0:
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c: In function 'dsm_init':
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.h:139:45: error: 'GPIO_SPEKTRUM_PWR_EN' undeclared (first use in this function)
+ # define POWER_SPEKTRUM(_s) stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+                                             ^
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:207:2: note: in expansion of macro 'POWER_SPEKTRUM'
+  POWER_SPEKTRUM(true);
+  ^
+
+
+//Missing from deconfig file??
+/home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
+__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
+
+//
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp: In member function 'virtual int AeroCoreIO::init()':
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:239:27: error: 'debug' was not declared in this scope
+   debug("CDev init failed");
+                           ^
+					    ^
+

@@ -1,0 +1,44 @@
+Script started on Mon 27 Jun 2016 10:39:13 AM EDT
+]0;jessica@mcwiljl-ll1: ~/src/Firmwarejessica@mcwiljl-ll1:~/src/Firmware$ make ea[K[Kaere[Kocore_default f[K[K
+PX4 CONFIG: aerocore_default
+[  1%] Built target git_gencpp
+[  1%] Built target git_nuttx
+[  1%] Built target git_genmsg
+[  2%] Built target git_mavlink
+[  2%] Built target git_matrix
+[  2%] Built target git_uavcan
+[  2%] [34m[1mBuilding NuttX for px4io-v2[0m
+[  2%] Built target mixer_gen
+[  3%] [34m[1mBuilding NuttX for aerocore[0m
+[  3%] Built target git_ecl
+make[4]: warning: jobserver unavailable: using -j1.  Add `+' to parent make rule.
+make[4]: warning: jobserver unavailable: using -j1.  Add `+' to parent make rule.
+make[4]: warning: -jN forced in submake: disabling jobserver mode.
+make[4]: warning: -jN forced in submake: disabling jobserver mode.
+
+
+##### FILE WITH PREVIOUS DEFINITION SHOULD NOT BE EDITED 
+### Other file is in Firmware/Nuttx/nuttx/arch/arm/src/stm32_i2c.c
+### Going to ignore this error for now and proceed
+chip/stm32_i2c.c:129:0: error: "CONFIG_STM32_I2CTIMEOTICKS" redefined [-Werror]
+ #define CONFIG_STM32_I2CTIMEOTICKS \
+ ^
+In file included from chip/stm32_i2c.c:71:0:
+/home/jessica/src/Firmware/build_aerocore_default/aerocore/NuttX/nuttx/include/nuttx/config.h:71:0: note: this is the location of the previous definition
+ #define CONFIG_STM32_I2CTIMEOTICKS 500
+ ^
+cc1: all warnings being treated as errors
+make[5]: *** [stm32_i2c.o] Error 1
+make[4]: *** [arch/arm/src/libarch.a] Error 2
+make[4]: *** Waiting for unfinished jobs....
+make[3]: *** [aerocore.export] Error 2
+make[2]: *** [CMakeFiles/nuttx_export_aerocore.dir/all] Error 2
+make[2]: *** Waiting for unfinished jobs....
+[  3%] [34m[1mGenerating nuttx_export_px4io-v2.stamp[0m
+[  3%] Built target nuttx_export_px4io-v2
+make[1]: *** [all] Error 2
+make: *** [aerocore_default] Error 2
+]0;jessica@mcwiljl-ll1: ~/src/Firmwarejessica@mcwiljl-ll1:~/src/Firmware$ exit
+exit
+
+Script done on Mon 27 Jun 2016 10:39:51 AM EDT

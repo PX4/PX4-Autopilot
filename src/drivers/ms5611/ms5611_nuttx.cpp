@@ -828,7 +828,9 @@ struct ms5611_bus_option {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
 	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXT, NULL },
 #endif
-#ifdef PX4_SPIDEV_BARO
+//#ifdef PX4_SPIDEV_BARO
+//try changing to fix compiling error
+#if defined(PX4_SPIDEV_BARO) && defined(PX4_SPI_BUS_BARO)
 	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_BARO, NULL },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD

@@ -1,0 +1,68 @@
+Script started on Mon 27 Jun 2016 12:07:14 PM EDT
+]0;jessica@mcwiljl-ll1: ~/src/Firmwarejessica@mcwiljl-ll1:~/src/Firmware$ make aerocore_e[Kdefault 
+PX4 CONFIG: aerocore_default
+[  0%] Built target git_gencpp
+[  0%] Built target git_nuttx
+[  1%] Built target git_mavlink
+[  2%] Built target git_genmsg
+[  2%] Built target git_uavcan
+[  2%] Built target git_matrix
+[  2%] Built target git_ecl
+[  3%] Built target mixer_gen
+[  3%] Built target nuttx_export_aerocore
+[  3%] Built target prebuild_targets
+[  4%] Built target romfs
+[ 29%] Built target msg_gen
+[ 30%] Built target platforms__common
+[ 30%] Built target platforms__nuttx
+[ 31%] Built target drivers__stm32__adc
+[ 32%] Built target drivers__stm32
+[ 34%] Built target drivers__stm32__tone_alarm
+[ 34%] Built target drivers__led
+[ 37%] Built target drivers__device
+[ 38%] Built target drivers__px4fmu
+[ 38%] Built target drivers__lsm303d
+[ 39%] Built target drivers__boards__aerocore
+[ 39%] Built target drivers__l3gd20
+[ 40%] Built target drivers__gps
+[35m[1mScanning dependencies of target drivers__pwm_input[0m
+[ 40%] [32mBuilding CXX object src/drivers/ms5611/CMakeFiles/drivers__ms5611.dir/ms5611_nuttx.cpp.obj[0m
+[ 40%] Built target modules__sensors
+[35m[1mScanning dependencies of target drivers__aerocore_rc[0m
+/home/jessica/src/Firmware/src/drivers/ms5611/ms5611_nuttx.cpp:832:75: error: 'PX4_SPI_BUS_BARO' was not declared in this scope
+  { MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_BARO, NULL },
+                                                                           ^
+compilation terminated due to -Wfatal-errors.
+[ 40%] [32mBuilding CXX object src/drivers/hil/CMakeFiles/drivers__hil.dir/hil.cpp.obj[0m
+/home/jessica/src/Firmware/src/drivers/hil/hil.cpp:78:45: fatal error: uORB/topics/actuator_controls_0.h: No such file or directory
+ #include <uORB/topics/actuator_controls_0.h>
+                                             ^
+compilation terminated.
+make[3]: *** [src/drivers/ms5611/CMakeFiles/drivers__ms5611.dir/ms5611_nuttx.cpp.obj] Error 1
+make[2]: *** [src/drivers/ms5611/CMakeFiles/drivers__ms5611.dir/all] Error 2
+make[2]: *** Waiting for unfinished jobs....
+make[3]: *** [src/drivers/hil/CMakeFiles/drivers__hil.dir/hil.cpp.obj] Error 1
+make[2]: *** [src/drivers/hil/CMakeFiles/drivers__hil.dir/all] Error 2
+[ 40%] [32mBuilding C object src/drivers/aerocore_rc/CMakeFiles/drivers__aerocore_rc.dir/registers.c.obj[0m
+[ 41%] [32mBuilding C object src/drivers/aerocore_rc/CMakeFiles/drivers__aerocore_rc.dir/controls.c.obj[0m
+[ 41%] [32mBuilding CXX object src/drivers/aerocore_rc/CMakeFiles/drivers__aerocore_rc.dir/aerocore_rc.cpp.obj[0m
+/home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:72:33: fatal error: mavlink/mavlink_log.h: No such file or directory
+ #include <mavlink/mavlink_log.h>
+                                 ^
+compilation terminated.
+make[3]: *** [src/drivers/aerocore_rc/CMakeFiles/drivers__aerocore_rc.dir/aerocore_rc.cpp.obj] Error 1
+make[3]: *** Waiting for unfinished jobs....
+[ 42%] [32mBuilding CXX object src/drivers/pwm_input/CMakeFiles/drivers__pwm_input.dir/pwm_input.cpp.obj[0m
+/home/jessica/src/Firmware/src/drivers/pwm_input/pwm_input.cpp:95:2: error: #error PWMIN defines are needed in board_config.h for this board
+ #error PWMIN defines are needed in board_config.h for this board
+  ^
+compilation terminated due to -Wfatal-errors.
+make[3]: *** [src/drivers/pwm_input/CMakeFiles/drivers__pwm_input.dir/pwm_input.cpp.obj] Error 1
+make[2]: *** [src/drivers/pwm_input/CMakeFiles/drivers__pwm_input.dir/all] Error 2
+make[2]: *** [src/drivers/aerocore_rc/CMakeFiles/drivers__aerocore_rc.dir/all] Error 2
+make[1]: *** [all] Error 2
+make: *** [aerocore_default] Error 2
+]0;jessica@mcwiljl-ll1: ~/src/Firmwarejessica@mcwiljl-ll1:~/src/Firmware$ [K]0;jessica@mcwiljl-ll1: ~/src/Firmwarejessica@mcwiljl-ll1:~/src/Firmware$ exit
+exit
+
+Script done on Mon 27 Jun 2016 12:11:35 PM EDT

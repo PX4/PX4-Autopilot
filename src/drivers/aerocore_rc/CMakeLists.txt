@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,17 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+## Converted to CMake June 27, 2016
+#
+# MS5611 driver
+#
 px4_add_module(
-	MODULE drivers__boards__aerocore
-	COMPILE_FLAGS
-		-Os
+	MODULE drivers__aerocore_rc
+	MAIN aerocore_rc
 	SRCS
-		../common/board_name.c
-		aerocore_init.c
-		#aerocore_pwm_servo.c
-		aerocore_spi.c
-		aerocore_led.c
+		aerocore_rc.cpp
+		registers.c
+		controls.c
+		dsm.c
+		aerocore_rc_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

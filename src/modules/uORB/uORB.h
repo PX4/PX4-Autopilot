@@ -246,5 +246,7 @@ typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;
 typedef uint8_t navigation_state_t;
 typedef uint8_t switch_pos_t;
+//Move END_DECLS here to see if that fixes the scope problem
+//__END_DECLS
 
 #endif /* _UORB_UORB_H */
