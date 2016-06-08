@@ -820,6 +820,16 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 */
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 
+ /**
+ * Boolean determining if synthetic sideslip measurements should fused.
+ *
+ * A value of 1 indicates that fusion is active
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_FUSE_BETA, 0);
+
 /**
 
  * Time constant of the velocity output prediction and smoothing filter
