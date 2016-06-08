@@ -1,13 +1,5 @@
-Mixer for SITL plane, using the VTOL airframe for now
+Mixer for SITL plane
 =========================================================
-
-Z:
-
-Z:
-
-Z:
-
-Z:
 
 # mixer for the elevons
 M: 2
