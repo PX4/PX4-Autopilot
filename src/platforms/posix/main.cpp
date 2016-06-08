@@ -128,7 +128,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		// Do nothing
 
 	} else {
-		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
 }
@@ -335,8 +335,8 @@ int main(int argc, char **argv)
 					}
 				}
 
-				process_line(mystr, false);
 				cout << endl;
+				process_line(mystr, false);
 				mystr = "";
 				buf_ptr_read = buf_ptr_write;
 
