@@ -557,18 +557,23 @@ void Ekf2::task_main()
 			ev_data.posNED(2) = ev.z;
 			Quaternion q(ev.q);
 			ev_data.quat = q;
+
 			// position measurement error
 			if (ev.pos_err >= 0.001f) {
 				ev_data.posErr = ev.pos_err;
+
 			} else {
 				ev_data.posErr = _default_ev_pos_noise;
 			}
+
 			// angle measurement error
 			if (ev.ang_err >= 0.001f) {
 				ev_data.angErr = ev.ang_err;
+
 			} else {
 				ev_data.angErr = _default_ev_ang_noise;
 			}
+
 			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
 			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
@@ -641,12 +646,14 @@ void Ekf2::task_main()
 			// use estimated velocity for airspeed estimate
 			if (_airspeed_mode.get() == 1) {
 				if (_ekf.local_position_is_valid()) {
-					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] +vel[2] * vel[2]);
+					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
 				}
-			// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed	
+
+				// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed
+
 			} else if (_airspeed_mode.get() == 2) {
 
-			// use the measured airspeed
+				// use the measured airspeed
 			} else {
 				/* Airspeed - take airspeed measurement directly here as no wind is estimated */
 				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
@@ -860,6 +867,7 @@ void Ekf2::task_main()
 			_ekf.copy_mag_decl_deg(&decl_deg);
 			_mag_declination_deg.set(decl_deg);
 		}
+
 		_prev_landed = vehicle_land_detected.landed;
 
 		// publish replay message if in replay mode
