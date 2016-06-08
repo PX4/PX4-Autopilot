@@ -667,12 +667,14 @@ void Ekf2::task_main()
 			// use estimated velocity for airspeed estimate
 			if (_airspeed_mode.get() == 1) {
 				if (_ekf.local_position_is_valid()) {
-					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] +vel[2] * vel[2]);
+					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
 				}
-			// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed	
+
+				// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed
+
 			} else if (_airspeed_mode.get() == 2) {
 
-			// use the measured airspeed
+				// use the measured airspeed
 			} else {
 				/* Airspeed - take airspeed measurement directly here as no wind is estimated */
 				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
