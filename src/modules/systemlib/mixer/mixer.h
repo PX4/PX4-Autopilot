@@ -240,6 +240,111 @@ private:
 	Mixer &operator=(const Mixer &);
 };
 
+
+
+
+/**
+ * Extension of the Mixer class enabling parameter modification
+ */
+class __EXPORT TunableMixer : public Mixer
+{
+public:
+
+    /**
+     * Constructor.
+     *
+     * @param control_cb		Callback invoked when reading controls.
+     */
+    TunableMixer(ControlCallback control_cb, uintptr_t cb_handle);
+    virtual ~TunableMixer() {};
+
+    /**
+     * Get list of Mixer parameters
+     *
+     * @return              A pointer to a constant list of constant strings
+     */
+    const char**    		get_parameter_id_strings(void) {return _parameter_id_table;};
+
+    /**
+     * Get a count of the Mixer parameters
+     *
+     * @return              Count of the mixer parameters
+     */
+    uint16_t        		get_parameter_id_count(void);
+
+    /**
+     * Analyses the mix configuration and updates a bitmask oconstf groups
+     * that are required.
+     *
+     * @param index         The index of the parameter
+     * @return              The float value of the parameter
+     */
+    float       			get_parameter(uint16_t index);
+
+    /**
+     * Analyses the mix configuration and updates a bitmask of groups
+     * that are required.
+     *
+     * @param index         The index of the parameter
+     * @param value         The value of the parameter
+     * @return              0 if set. -1 for error
+     */
+    uint16_t        		set_parameter(uint16_t index, float value);
+
+
+protected:
+    /**
+     * Returns a reference to the indexed parameter for reading or writing
+     *
+     * @param index         The index of the parameter
+     * @return              reference to the indexed parameter
+     */
+    virtual float*          _get_parameter_ref(uint16_t index);
+
+    const char**            _parameter_id_table;
+    const uint16_t          _parameter_count;
+};
+
+
+/**
+ * Mixers for holding intermediate register values for other mixers.
+ * Initializes all registers to zero when run.
+ * Typically the first mixer in the list
+ */
+class __EXPORT MixerRegisters : public Mixer
+{
+public:
+    MixerRegisters();
+    ~MixerRegisters() {};
+
+    /**
+     * Factory method.
+     *
+     * Given a pointer to a buffer containing a text description of the mixer,
+     * returns a pointer to a new instance of the mixer.
+     *
+     * @param buf			Buffer containing a text description of
+     *				the mixer.
+     * @param buflen		Length of the buffer in bytes, adjusted
+     *				to reflect the bytes consumed.
+     * @return			A new MixerRegisters instance, or nullptr
+     *				if the text format is bad.
+     */
+    static MixerRegisters	*from_text(const char *buf, unsigned &buflen);
+
+    virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+    virtual void			groups_required(uint32_t &groups);
+
+    /**
+     * Get register index from name
+     *
+     * @param name			The name of the register to be found. -1 if not found.
+     */
+    int16_t                 index_from_identifier(char *id);
+};
+
+
+
 /**
  * Group of mixers, built up from single mixers and processed
  * in order when mixing.
@@ -265,7 +370,7 @@ public:
 	 */
 	void				reset();
 
-	/**
+    /**_intermediates
 	 * Count the mixers in the group.
 	 */
 	unsigned			count();
@@ -283,7 +388,7 @@ public:
 	 *
 	 * The null mixer definition has the form:
 	 *
-	 *   Z:
+     *   Z:_intermediates
 	 *
 	 * Simple Mixer
 	 * ............
@@ -295,7 +400,7 @@ public:
 	 *
 	 * The definition continues with <control count> entries describing the control
 	 * inputs and their scaling, in the form:
-	 *
+     *_intermediates
 	 *   S: <group> <index> <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
 	 *
 	 * Multirotor Mixer
@@ -309,16 +414,27 @@ public:
 	 * @param buflen		The length of the buffer, updated to reflect
 	 *				bytes as they are consumed.
 	 * @return			Zero on successful load, nonzero otherwise.
+     *
+     * Intermedi_intermediatesate Registers Mixer
+     * ............
+     *
+     * Initializes a set of registers that other mixers can use as input or output.
+     * Sets all registers to zero when mix is run. Use this as the first mixer only.
+     *
+     * I:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
+    MixerRegisters      *_intermediates; /**< reference to mixer containing intermediate registers if used */
 
 	/* do not allow to copy due to pointer data members */
 	MixerGroup(const MixerGroup &);
 	MixerGroup operator=(const MixerGroup &);
 };
+
+
 
 /**
  * Null mixer; returns zero.
@@ -349,6 +465,10 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 };
+
+
+
+
 
 /**
  * Simple summing mixer.

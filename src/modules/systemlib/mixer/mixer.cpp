@@ -53,6 +53,7 @@
 #include <ctype.h>
 #include <systemlib/err.h>
 
+#include "mixerRegisters.h"
 #include "mixer.h"
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
@@ -204,3 +205,78 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 
 	return nm;
 }
+
+
+
+/****************************************************************************/
+//MixerRegisters
+
+MixerRegisters::MixerRegisters() :
+    Mixer(nullptr, 0)
+{
+}
+
+unsigned
+MixerRegisters::mix(float *outputs, unsigned space, uint16_t *status_reg)
+{
+    if (space > 0) {
+        *outputs = 0.0f;
+        return 1;
+    }
+
+    return 0;
+}
+
+void
+MixerRegisters::groups_required(uint32_t &groups)
+{
+
+}
+
+MixerRegisters *
+MixerRegisters::from_text(const char *buf, unsigned &buflen)
+{
+    MixerRegisters *nm = nullptr;
+
+    /* enforce that the mixer ends with space or a new line */
+    for (int i = buflen - 1; i >= 0; i--) {
+        if (buf[i] == '\0') {
+            continue;
+        }
+
+        /* require a space or newline at the end of the buffer, fail on printable chars */
+        if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
+            /* found a line ending or space, so no split symbols / numbers. good. */
+            break;
+
+        } else {
+            return nm;
+        }
+
+    }
+
+    if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
+        nm = new MixerRegisters;
+        buflen -= 2;
+    }
+
+    return nm;
+}
+
+int16_t
+MixerRegisters::index_from_identifier(char *id)
+{
+    for(uint16_t index=0; index < MIXER_REGISTER_COUNT; index++) {
+        if(strcmp(id, MIXER_REGISTERS[index])==0){
+            return index;
+        }
+    }
+    return -1;
+}
+
+
+/****************************************************************************/
+
+
+
+

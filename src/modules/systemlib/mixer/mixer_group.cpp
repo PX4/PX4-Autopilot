@@ -160,10 +160,24 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			m = NullMixer::from_text(p, resid);
 			break;
 
-		case 'M':
-			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
-			break;
+        case 'M':
+            m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
+            break;
 
+        case 'I':
+            if(_intermediates == NULL){
+                _intermediates = MixerRegisters::from_text(p, resid);
+                m = _intermediates;
+            }
+            break;
+/*        case 'C':
+            m = ControlMixer::from_text(_control_cb, _cb_handle, _intermediates, p, resid);
+            break;
+
+        case 'A':
+            m = ActuatorMixer::from_text(_intermediates, p, resid);
+            break;
+*/
 		case 'R':
 			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
