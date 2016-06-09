@@ -373,8 +373,10 @@ int main(int argc, char **argv)
 				}
 
 			default:	// any other input
-				cout << c;
-				mystr += c;
+				if (c > 3) {
+					cout << c;
+					mystr += c;
+				}
 				break;
 			}
 		}
