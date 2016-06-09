@@ -377,6 +377,7 @@ int main(int argc, char **argv)
 					cout << c;
 					mystr += c;
 				}
+
 				break;
 			}
 		}
