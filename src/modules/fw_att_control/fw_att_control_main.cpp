@@ -209,6 +209,9 @@ private:
 		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
 		float man_roll_max;				/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
+		float man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
+		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
+		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
 
 		float flaps_scale;				/**< Scale factor for flaps */
 		float flaperon_scale;			/**< Scale factor for flaperons */
@@ -257,6 +260,9 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+		param_t man_roll_scale;
+		param_t man_pitch_scale;
+		param_t man_yaw_scale;
 
 		param_t flaps_scale;
 		param_t flaperon_scale;
@@ -444,6 +450,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
+	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
+	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
 
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
 	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
@@ -532,6 +541,9 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+	param_get(_parameter_handles.man_roll_scale, &(_parameters.man_roll_scale));
+	param_get(_parameter_handles.man_pitch_scale, &(_parameters.man_pitch_scale));
+	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
@@ -1243,9 +1255,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
-				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
-				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
+				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _parameters.man_roll_scale + _parameters.trim_roll;
+				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _parameters.man_pitch_scale +
+						_parameters.trim_pitch;
+				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
