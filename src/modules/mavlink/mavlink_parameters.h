@@ -84,6 +84,7 @@ private:
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
 	void send(const hrt_abstime t);
 

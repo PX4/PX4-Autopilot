@@ -288,7 +288,7 @@ int DfMpu9250Wrapper::start()
 		return ret;
 	}
 
-	PX4_INFO("MPU9250 device id is: %d", m_id.dev_id);
+	PX4_DEBUG("MPU9250 device id is: %d", m_id.dev_id);
 
 	/* Force getting the calibration values. */
 	_update_accel_calibration();
@@ -760,7 +760,7 @@ namespace df_mpu9250_wrapper
 
 DfMpu9250Wrapper *g_dev = nullptr;
 
-int start(enum Rotation rotation);
+int start(bool mag_enabled, enum Rotation rotation);
 int stop();
 int info();
 void usage();

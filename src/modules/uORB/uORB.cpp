@@ -45,10 +45,21 @@ orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 	return uORB::Manager::get_instance()->orb_advertise(meta, data);
 }
 
+orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data, unsigned int queue_size)
+{
+	return uORB::Manager::get_instance()->orb_advertise(meta, data, queue_size);
+}
+
 orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 				 int priority)
 {
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority);
+}
+
+orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
+				       int priority, unsigned int queue_size)
+{
+	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority, queue_size);
 }
 
 int orb_unadvertise(orb_advert_t handle)
@@ -129,8 +140,12 @@ int  orb_priority(int handle, int32_t *priority)
 	return uORB::Manager::get_instance()->orb_priority(handle, priority);
 }
 
-int  orb_set_interval(int handle, unsigned interval)
+int orb_set_interval(int handle, unsigned interval)
 {
 	return uORB::Manager::get_instance()->orb_set_interval(handle, interval);
 }
 
+int orb_get_interval(int handle, unsigned *interval)
+{
+	return uORB::Manager::get_instance()->orb_get_interval(handle, interval);
+}

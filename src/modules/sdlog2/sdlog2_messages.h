@@ -182,6 +182,7 @@ struct log_STAT_s {
 	uint8_t nav_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
+	uint8_t is_rot_wing;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -600,9 +601,6 @@ struct log_RPL6_s {
 	uint64_t time_airs_usec;
 	float indicated_airspeed_m_s;
 	float true_airspeed_m_s;
-	float true_airspeed_unfiltered_m_s;
-	float air_temperature_celsius;
-	float confidence;
 };
 
 /* --- EKF2 REPLAY Part 5 --- */
@@ -668,7 +666,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(DGPS, GPS,	 "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBB",		"MainState,NavState,ArmS,Failsafe"),
+	LOG_FORMAT(STAT, "BBBBB",		"MainState,NavState,ArmS,Failsafe,IsRotWing"),
 	LOG_FORMAT(VTOL, "fBBB",		"Arsp,RwMode,TransMode,Failsafe"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
@@ -712,7 +710,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
 	LOG_FORMAT(RPL5, "Qfffffffff", "Tev,x,y,z,q0,q1,q2,q3,posErr,angErr"),
-	LOG_FORMAT(RPL6, "Qfffff", "Tasp,inAsp,trAsp,ufAsp,tpAsp,confAsp"),
+	LOG_FORMAT(RPL6, "Qff", "Tasp,inAsp,trAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
 	/* system-level messages, ID >= 0x80 */

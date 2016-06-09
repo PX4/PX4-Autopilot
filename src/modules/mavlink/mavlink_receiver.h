@@ -141,7 +141,7 @@ private:
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
-	void handle_message_gps_inject_data(mavlink_message_t *msg);
+	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 

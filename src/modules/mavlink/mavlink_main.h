@@ -164,6 +164,30 @@ public:
 		MAVLINK_MODE_CONFIG
 	};
 
+	enum BROADCAST_MODE {
+		BROADCAST_MODE_OFF = 0,
+		BROADCAST_MODE_ON
+	};
+
+	static const char *mavlink_mode_str(enum MAVLINK_MODE mode) {
+		switch (mode) {
+			case MAVLINK_MODE_NORMAL:
+				return "Normal";
+			case MAVLINK_MODE_CUSTOM:
+				return "Custom";
+			case MAVLINK_MODE_ONBOARD:
+				return "Onboard";
+			case MAVLINK_MODE_OSD:
+				return "OSD";
+			case MAVLINK_MODE_MAGIC:
+				return "Magic";
+			case MAVLINK_MODE_CONFIG:
+				return "Config";
+			default:
+				return "Unknown";
+		}
+	}
+
 	void			set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE	get_mode() { return _mode; }
 
@@ -181,13 +205,15 @@ public:
 
 	void			set_config_link_on(bool on) { _config_link_on = on; }
 
+	bool			broadcast_enabled() { return _broadcast_mode > BROADCAST_MODE_OFF; }
+
 	/**
 	 * Set the boot complete flag on all instances
 	 *
 	 * Setting the flag unblocks parameter transmissions, which are gated
 	 * beforehand to ensure that the system is fully initialized.
 	 */
-	static void		set_boot_complete() { _boot_complete = true; }
+	static void		set_boot_complete();
 
 	/**
 	 * Get the free space in the transmit buffer
@@ -479,7 +505,6 @@ private:
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
 	bool _broadcast_address_not_found_warned;
-	int _sendto_result;
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif
@@ -504,6 +529,7 @@ private:
 
 	bool			_param_initialized;
 	bool			_logging_enabled;
+	uint32_t		_broadcast_mode;
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
@@ -512,6 +538,7 @@ private:
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
+	param_t			_param_broadcast;
 
 	unsigned		_system_type;
 	static bool		_config_link_on;
