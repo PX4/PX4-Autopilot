@@ -293,7 +293,7 @@ https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
 */
 
 
-// scaling correct with OpenTX 2.1.7
+// format correct
 void sPort_send_VFAS(int uart)
 {
 	/* send battery voltage as VFAS */
@@ -302,15 +302,17 @@ void sPort_send_VFAS(int uart)
 }
 
 
-
+//TODO format incorrect
+//See https://github.com/variostudio/FrSkySportTelemetry/blob/master/FrSkySportSensorFlvss.cpp
 void sPort_send_CELLS(int uart)
 {
 	/* TODO: Correct format, see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp#L22 */
+
 	uint32_t voltage_cells = (int)((100 * battery_status->voltage_v) / battery_status->cell_count);
 	sPort_send_data(uart, SMARTPORT_ID_CELLS, voltage_cells);
 }
 
-// verified scaling
+// format correct
 void sPort_send_CUR(int uart)
 {
 	/* send data */
@@ -318,7 +320,7 @@ void sPort_send_CUR(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
-// verified scaling for "custom" altitude option
+// format correct
 // OpenTX uses the initial reading as field elevation and displays
 // the difference (altitude - field)
 void sPort_send_ALT(int uart)
@@ -328,8 +330,7 @@ void sPort_send_ALT(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
-
-// TODO: verify scaling
+// format correct
 void sPort_send_VSPD(int uart, float speed)
 {
 	/* send data for VARIO vertical speed: int16 cm/sec */
@@ -337,7 +338,7 @@ void sPort_send_VSPD(int uart, float speed)
 	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
 }
 
-// verified scaling
+// format correct
 void sPort_send_FUEL(int uart)
 {
 	/* send data */
@@ -345,24 +346,28 @@ void sPort_send_FUEL(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
+//TODO verify format
 void sPort_send_ACCX(int uart)
 {
 	/* send data. opentx expects acc values in g. */
 	sPort_send_data(uart, SMARTPORT_ID_ACCX, roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f * (1 / 9.81f)));
 }
 
+//TODO verify format
 void sPort_send_ACCY(int uart)
 {
 	/* send data. opentx expects acc values in g. */
 	sPort_send_data(uart, SMARTPORT_ID_ACCY, roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f * (1 / 9.81f)));
 }
 
+//TODO verify format
 void sPort_send_ACCZ(int uart)
 {
 	/* send data. opentx expects acc values in g. */
 	sPort_send_data(uart, SMARTPORT_ID_ACCZ, roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f * (1 / 9.81f)));
 }
 
+//TODO verify format
 void sPort_send_GPS_LON(int uart)
 {
 	/* send longitude */
@@ -376,6 +381,7 @@ void sPort_send_GPS_LON(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
 }
 
+//TODO verify format
 void sPort_send_GPS_LAT(int uart)
 {
 	/* send latitude */
@@ -387,6 +393,7 @@ void sPort_send_GPS_LAT(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
 }
 
+//format correct
 void sPort_send_GPS_ALT(int uart)
 {
 	/* send altitude */
@@ -395,11 +402,10 @@ void sPort_send_GPS_ALT(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
 }
 
+//format correct
 void sPort_send_GPS_CRS(int uart)
 {
 	/* send course */
-
-	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	uint32_t iYaw = 100 * global_pos->yaw;
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
@@ -414,20 +420,23 @@ void sPort_send_GPS_CRS(int uart)
 	see https://github.com/opentx/opentx/blob/master/radio/src/telemetry/telemetry.cpp
 */
 
+//TODO verify format
 void sPort_send_GPS_DATE(int uart)
 {
 
 	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
 	struct tm *tm_gps = gmtime(&time_gps);
+
 	uint8_t year = tm_gps->tm_year; //years since 1900
 	uint8_t month = tm_gps->tm_mon; //0-11
 	uint8_t day = tm_gps->tm_mday; //1-31
 
-	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 1;
+	uint32_t frsky_time_ymd = (year << 24) | month << 16 | day << 8 | 0xFF;
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_ymd);
 }
 
+//TODO verify format
 void sPort_send_GPS_TIME(int uart)
 {
 	time_t time_gps = gps_position->time_utc_usec / 1000000ULL; //1000000ULL = Number of microseconds in milliseconds
@@ -442,6 +451,7 @@ void sPort_send_GPS_TIME(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, frsky_time_hms);
 }
 
+//format correct
 void sPort_send_GPS_SPD(int uart)
 {
 	/* send 100 * knots */
@@ -450,8 +460,7 @@ void sPort_send_GPS_SPD(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
 }
 
-// verified scaling
-// sends number of sats and type of gps fix
+
 void sPort_send_GPS_FIX(int uart)
 {
 	/* send data */
