@@ -728,7 +728,7 @@ Navigator::get_cruising_speed()
 float
 Navigator::get_cruising_throttle()
 {
-	/* Return the mission-requested cruise speed, or -1 */
+	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
 	if (_mission_throttle > 0.0f) {
 		return _mission_throttle;
 	} else {
