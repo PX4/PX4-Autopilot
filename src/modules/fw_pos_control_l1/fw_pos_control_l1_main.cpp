@@ -1318,8 +1318,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 		}
 
-		printf("%f \n", (double)mission_throttle);
-
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
 			_att_sp.roll_body = 0.0f;
