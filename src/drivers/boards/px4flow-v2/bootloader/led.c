@@ -43,7 +43,7 @@
 #include "led.h"
 
 #define TMR_BASE        STM32_TIM1_BASE
-#define TMR_FREQUENCY   STM32_TIM18_FREQUENCY
+#define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
 
 void rgb_led(int r, int g , int b, int freqs)

@@ -42,7 +42,7 @@
 
 #include "led.h"
 #define TMR_BASE        STM32_TIM3_BASE
-#define TMR_FREQUENCY   STM32_TIM18_FREQUENCY
+#define TMR_FREQUENCY   STM32_APB1_TIM3_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
 
 
