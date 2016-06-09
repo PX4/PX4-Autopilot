@@ -92,7 +92,7 @@ static void print_prompt()
 	cout.flush();
 }
 
-static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
+static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
 	// command is appargs[0]
 	string command = appargs[0];
@@ -125,7 +125,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
 
-	} else {
+	} else if (!silently_fail) {
 		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 		//if (px4_task_is_running("muorb")) {
 		// sending muorb stop is needed if it is running to exit cleanly
 		vector<string> muorb_stop_cmd = { "muorb", "stop" };
-		run_cmd(muorb_stop_cmd, !daemon_mode);
+		run_cmd(muorb_stop_cmd, !daemon_mode, true);
 	}
 
 	vector<string> shutdown_cmd = { "shutdown" };
