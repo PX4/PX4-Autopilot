@@ -523,13 +523,17 @@ Mission::set_mission_items()
 			/* use current mission item as next position item */
 			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
 			has_next_position_item = true;
-			float altitude = _navigator->get_global_position()->alt;
-			if (pos_sp_triplet->current.valid) {
-				altitude = pos_sp_triplet->current.alt;
+
+			/* hold current altitude when no altitude is given */
+			if (_mission_item.altitude < 0.5f) {
+				float altitude = _navigator->get_global_position()->alt;
+				if (pos_sp_triplet->current.valid) {
+					altitude = pos_sp_triplet->current.alt;
+				}
+				_mission_item.altitude = altitude;
+				_mission_item.altitude_is_relative = false;
 			}
 
-			_mission_item.altitude = altitude;
-			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
