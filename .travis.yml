@@ -55,7 +55,7 @@ script:
     fi
 
 after_success:
-  - make package_firmware && mkdir s3deploy-archive && mv Firmware.zip
+  - make package_firmware && mkdir s3deploy-archive && mv Firmware.zip s3deploy-archive
   - find . -type f -name 'nuttx-*-default.px4' -exec cp "{}" . \;
   - find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
   - mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch
