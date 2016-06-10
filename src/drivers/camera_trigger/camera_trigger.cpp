@@ -472,6 +472,7 @@ CameraTrigger::info()
 	warnx("mode : %i", _mode);
 	warnx("interval : %.2f", (double)_interval);
 	warnx("distance : %.2f", (double)_distance);
+	_camera_interface->info();
 }
 
 static void usage()
