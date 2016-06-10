@@ -144,6 +144,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
+		logger_ptr->print_statistics();
 		delete logger_ptr;
 		logger_ptr = nullptr;
 		return 0;
@@ -211,18 +212,25 @@ void Logger::status()
 
 	} else {
 		PX4_INFO("Running");
-
-		float kibibytes = _writer.get_total_written() / 1024.0f;
-		float mebibytes = kibibytes / 1024.0f;
-		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
-
-		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
-		PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
-			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
-		_high_water = 0;
-		_write_dropouts = 0;
-		_max_dropout_duration = 0.f;
+		print_statistics();
 	}
+}
+void Logger::print_statistics()
+{
+	if (!_enabled) {
+		return;
+	}
+
+	float kibibytes = _writer.get_total_written() / 1024.0f;
+	float mebibytes = kibibytes / 1024.0f;
+	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
+
+	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
+	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
+		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
+	_high_water = 0;
+	_write_dropouts = 0;
+	_max_dropout_duration = 0.f;
 }
 
 void Logger::run_trampoline(int argc, char *argv[])
@@ -296,12 +304,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
-	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
-	warnx("remaining free heap: %d bytes", alloc_info.fordblks);
+	PX4_INFO("largest free chunk: %d bytes", alloc_info.mxordblk);
+	PX4_INFO("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
 
 	if (logger_ptr == nullptr) {
-		PX4_WARN("alloc failed");
+		PX4_ERR("alloc failed");
 
 	} else {
 		logger_ptr->run();
@@ -386,7 +394,7 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
 			fd = add_topic(topics[i]);
-			PX4_INFO("logging topic: %zu, %s", i, topics[i]->o_name);
+			PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
 			break;
 		}
 	}
@@ -475,7 +483,6 @@ int Logger::add_topics_from_file(const char *fname)
 	fp = fopen(fname, "r");
 
 	if (fp == NULL) {
-		warnx("file not found");
 		return -1;
 	}
 
@@ -536,11 +543,12 @@ void Logger::run()
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
 
-	int ntopics = add_topics_from_file("/fs/microsd/etc/logging/logger_topics.txt");
-	warnx("logging %d topics from logger_topics.txt", ntopics);
+	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
 
-	if (ntopics < 1) {
-		warnx("logging default topics");
+	if (ntopics > 0) {
+		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
+
+	} else {
 		add_default_topics();
 	}
 

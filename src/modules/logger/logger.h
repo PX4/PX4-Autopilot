@@ -106,6 +106,7 @@ public:
 	static void usage(const char *reason);
 
 	void status();
+	void print_statistics();
 
 	void set_arm_override(bool override) { _arm_override = override; }
 
