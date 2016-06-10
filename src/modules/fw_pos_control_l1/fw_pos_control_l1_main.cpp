@@ -1314,7 +1314,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		float mission_throttle = _parameters.throttle_cruise;
 
 		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
-			_pos_sp_triplet.current.cruising_throttle > 0.1f) {
+			_pos_sp_triplet.current.cruising_throttle > 0.01f) {
 			mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 		}
 
