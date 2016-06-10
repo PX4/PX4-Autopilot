@@ -31,6 +31,7 @@ find \
     src/modules/muorb \
     src/modules/param \
     src/modules/px4iofirmware \
+    src/modules/replay \
     src/modules/segway \
     src/modules/sensors \
     src/modules/simulator \
