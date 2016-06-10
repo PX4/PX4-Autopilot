@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 
 #include "mixerRegisters.h"
+#include "mixerParameters.h"
 #include "mixer.h"
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
@@ -151,6 +152,91 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 
 	return nullptr;
 }
+
+
+
+/****************************************************************************/
+
+TunableMixer::TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count) :
+    Mixer(control_cb, cb_handle) {
+    _parameter_id_table = parameter_id_table;
+    _parameter_count = parameter_count;
+}
+
+float
+TunableMixer::get_parameter(uint16_t index){
+    return 0.0;
+}
+
+uint16_t
+TunableMixer::set_parameter(uint16_t index, float value){
+    return 0;
+}
+
+
+/****************************************************************************/
+
+
+Mixer_3pt::Mixer_3pt() :
+    TunableMixer(nullptr, 0, MIXER_3PT_PARAMETERS, MIXER_3PT_PARAMETER_COUNT)
+{
+}
+
+unsigned
+Mixer_3pt::mix(float *outputs, unsigned space, uint16_t *status_reg)
+{
+    if (space > 0) {
+        *outputs = 0.0f;
+        return 1;
+    }
+
+    return 0;
+}
+
+void
+Mixer_3pt::groups_required(uint32_t &groups)
+{
+
+}
+
+Mixer_3pt *
+Mixer_3pt::from_text(const char *buf, unsigned &buflen)
+{
+    Mixer_3pt *nm = nullptr;
+
+    /* enforce that the mixer ends with space or a new line */
+    for (int i = buflen - 1; i >= 0; i--) {
+        if (buf[i] == '\0') {
+            continue;
+        }
+
+        /* require a space or newline at the end of the buffer, fail on printable chars */
+        if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
+            /* found a line ending or space, so no split symbols / numbers. good. */
+            break;
+
+        } else {
+            return nm;
+        }
+
+    }
+
+    if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
+        nm = new Mixer_3pt();
+        buflen -= 2;
+    }
+
+    return nm;
+}
+
+
+float*
+Mixer_3pt::_get_parameter_ref(uint16_t index){
+    return NULL;
+}
+
+
+
 
 /****************************************************************************/
 

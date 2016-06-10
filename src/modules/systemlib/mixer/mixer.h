@@ -235,7 +235,7 @@ protected:
 
 private:
 
-	/* do not allow to copy due to pointer data members */
+    /* do not allow to copy due to pointer data members */
 	Mixer(const Mixer &);
 	Mixer &operator=(const Mixer &);
 };
@@ -255,7 +255,7 @@ public:
      *
      * @param control_cb		Callback invoked when reading controls.
      */
-    TunableMixer(ControlCallback control_cb, uintptr_t cb_handle);
+    TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count);
     virtual ~TunableMixer() {};
 
     /**
@@ -270,7 +270,7 @@ public:
      *
      * @return              Count of the mixer parameters
      */
-    uint16_t        		get_parameter_id_count(void);
+    uint16_t        		get_parameter_id_count(void) {return _parameter_count;};
 
     /**
      * Analyses the mix configuration and updates a bitmask oconstf groups
@@ -284,13 +284,12 @@ public:
     /**
      * Analyses the mix configuration and updates a bitmask of groups
      * that are required.
-     *
+     *const
      * @param index         The index of the parameter
      * @param value         The value of the parameter
      * @return              0 if set. -1 for error
      */
     uint16_t        		set_parameter(uint16_t index, float value);
-
 
 protected:
     /**
@@ -302,7 +301,7 @@ protected:
     virtual float*          _get_parameter_ref(uint16_t index);
 
     const char**            _parameter_id_table;
-    const uint16_t          _parameter_count;
+    uint16_t                _parameter_count;
 };
 
 
@@ -469,6 +468,40 @@ public:
 
 
 
+/**
+ * 3 point intermediate mixer.
+ *
+ * Used as a placeholder for output channels that are unassigned in groups.
+ */
+class __EXPORT Mixer_3pt : public TunableMixer
+{
+public:
+    Mixer_3pt();
+    ~Mixer_3pt() {};
+
+    /**
+     * Factory method.
+     *
+     * Given a pointer to a buffer containing a text description of the mixer,
+     * returns a pointer to a new instance of the mixer.
+     *
+     * @param buf			Buffer containing a text description of
+     *				the mixer.
+     * @param buflen		Length of the buffer in bytes, adjusted
+     *				to reflect the bytes consumed.
+     * @return			A new Mixer_3pt instance, or nullptr
+     *				if the text format is bad.
+     */
+    static Mixer_3pt		*from_text(const char *buf, unsigned &buflen);
+
+    virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+    virtual void			groups_required(uint32_t &groups);
+protected:
+    virtual float*          _get_parameter_ref(uint16_t index);
+};
+
+
+
 
 /**
  * Simple summing mixer.
@@ -569,13 +602,13 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
-	/**
-	 * Multi-rotor mixer for pre-defined vehicle geometries.
-	 *
-	 * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
-	 * a set of outputs based on the configured geometry.
-	 */
-	class __EXPORT MultirotorMixer : public Mixer
+/**
+ * Multi-rotor mixer for pre-defined vehicle geometries.
+ *
+ * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
+ * a set of outputs based on the configured geometry.
+ */
+class __EXPORT MultirotorMixer : public Mixer
 {
 public:
 	/**
