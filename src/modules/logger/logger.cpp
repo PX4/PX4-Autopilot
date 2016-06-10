@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include <uORB/uORB.h>
@@ -51,6 +52,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <systemlib/mavlink_log.h>
+#include <replay/definitions.hpp>
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -82,7 +84,6 @@ static int logger_task = -1;
 static pthread_t writer_thread;
 
 
-char *Logger::_replay_file_name = nullptr;
 
 int logger_main(int argc, char *argv[])
 {
@@ -312,6 +313,13 @@ void Logger::run_trampoline(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 
 	} else {
+		//check for replay mode
+		const char *logfile = getenv(px4::replay::ENV_FILENAME);
+
+		if (logfile) {
+			logger_ptr->setReplayFile(logfile);
+		}
+
 		logger_ptr->run();
 	}
 
@@ -351,6 +359,10 @@ Logger::~Logger()
 				break;
 			}
 		} while (logger_task != -1);
+	}
+
+	if (_replay_file_name) {
+		free(_replay_file_name);
 	}
 
 	if (_msg_buffer) {
