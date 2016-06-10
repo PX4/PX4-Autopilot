@@ -43,6 +43,9 @@ private:
 	int _vehicle_status_sub;
 	struct vehicle_status_s _vehicle_status;
 
+	int _vehicle_status_sub;
+	struct vehicle_status_s _vehicle_status;
+
 	param_t _p_pin;
 	const char *_pwm_dev;
 	int _pwm_fd;
