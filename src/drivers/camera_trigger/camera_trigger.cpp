@@ -236,6 +236,8 @@ CameraTrigger::CameraTrigger() :
 
 CameraTrigger::~CameraTrigger()
 {
+	delete(_camera_interface);
+
 	camera_trigger::g_camera_trigger = nullptr;
 }
 
