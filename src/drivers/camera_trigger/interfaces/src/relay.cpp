@@ -34,6 +34,8 @@ CameraInterfaceRelay::CameraInterfaceRelay():
 		pin_list /= 10;
 		i++;
 	}
+
+	setup();
 }
 
 CameraInterfaceRelay::~CameraInterfaceRelay()

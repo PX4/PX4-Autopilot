@@ -19,11 +19,6 @@ public:
 	virtual ~CameraInterface();
 
 	/**
-	 * setup the interface
-	 */
-	virtual void setup() {};
-
-	/**
 	 * trigger the camera
 	 * @param trigger:
 	 */
@@ -50,5 +45,9 @@ public:
 
 protected:
 
+	/**
+	 * setup the interface
+	 */
+	virtual void setup() {};
 
 };

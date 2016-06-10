@@ -31,8 +31,6 @@ public:
 	CameraInterfacePWM();
 	virtual ~CameraInterfacePWM();
 
-	void setup();
-
 	void trigger(bool enable);
 
 	int powerOn();
@@ -40,6 +38,7 @@ public:
 
 	int _pins[6];
 private:
+	void setup();
 
 	int _vehicle_status_sub;
 	struct vehicle_status_s _vehicle_status;
