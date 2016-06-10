@@ -268,6 +268,9 @@ private:
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
+	float _R_circle;					/**< desired radius for circle mode */
+	math::Vector<2> _circle_orig;		/**< local origin of circle in circle mode */
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -336,6 +339,8 @@ private:
 	 * Select between barometric and global (AMSL) altitudes
 	 */
 	void		select_alt(bool global);
+
+	void 		control_circle(float center_x, float center_y, float R, float vel, float vel_sp[2], float *yaw_sp);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -409,7 +414,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
-	control_vel_enabled_prev(false)
+	control_vel_enabled_prev(false),
+	_R_circle(3.0f)
 {
 	// Make the quaternion valid for control state
 	_ctrl_state.q[0] = 1.0f;
@@ -435,6 +441,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_err_d.zero();
 
 	_R.identity();
+
+	_circle_orig.zero();
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -845,6 +853,17 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
+	if (_control_mode.flag_control_position_enabled) {
+		float vel_desired = _manual.y * _params.vel_max(0);
+		_R_circle += _manual.x * 2.0f * dt;
+		_R_circle = math::constrain(_R_circle, 3.0f, 100.0f);
+		control_circle(_circle_orig(0), _circle_orig(1), _R_circle, vel_desired, &req_vel_sp_scaled.data[0], &_att_sp.yaw_body);
+	} else {
+		_R_circle = 3.0f;
+		_circle_orig(0) = _pos(0) + _R_circle * cosf(_yaw);
+		_circle_orig(1) = _pos(1) + _R_circle * sinf(_yaw);
+	}
+
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
 	 * hold is activated for the corresponding axis
@@ -1192,6 +1211,46 @@ void MulticopterPositionControl::control_auto(float dt)
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
 	}
+}
+
+void
+MulticopterPositionControl::control_circle(float center_x, float center_y, float R, float vel, float vel_sp[2], float *yaw_sp)
+{
+	// radial control. D is position of drone, C center of circle
+	// rAB denotes a position vector connecting point A and B
+	// rA denotes a position vector connecting the origin with point A
+	matrix::Vector3f rC(center_x, center_y, 0.0f);
+	matrix::Vector3f rD(_pos(0), _pos(1), 0.0f);
+	matrix::Vector3f rCD = rD - rC;
+
+	matrix::Vector3f radial_error = rCD.unit() * (R - rCD.norm());
+
+	// tangential control, compute demanded velocity vector tangential to circle
+	matrix::Vector3f z(0, 0, 1);
+	matrix::Vector3f rTang = z % rCD;
+
+	// limit centripetal acceleration
+	float maxG = ONE_G / 8;
+
+	// a_centripetal = vel * vel / R
+	// vel = sqrt(a_centripetal * R)
+	float vel_max = sqrtf(maxG * R);
+	if (vel > vel_max) {
+		vel = vel_max;
+	} else if (vel < -vel_max) {
+		vel = -vel_max;
+	}
+
+	rTang.normalize();
+	rTang *= vel;
+
+	// velocity setpoint is combination of radial and tangential velocity setpoints
+	vel_sp[0] = _params.pos_p(0) * radial_error(0) + rTang(0);
+	vel_sp[1] = _params.pos_p(1) * radial_error(1) + rTang(1);
+
+	// choose heading such that drone faces the center of the circle
+	*yaw_sp = atan2f(-rCD(1), -rCD(0));
+
 }
 
 void
