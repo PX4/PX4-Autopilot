@@ -33,6 +33,7 @@ CameraInterfacePWM::CameraInterfacePWM():
 		pin_list /= 10;
 		i++;
 	}
+	setup();
 }
 
 CameraInterfacePWM::~CameraInterfacePWM()

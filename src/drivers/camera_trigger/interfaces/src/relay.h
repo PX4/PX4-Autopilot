@@ -19,8 +19,6 @@ public:
 	CameraInterfaceRelay();
 	virtual ~CameraInterfaceRelay();
 
-	void setup();
-
 	void trigger(bool enable);
 
 	void info();
@@ -29,6 +27,9 @@ public:
 	int _polarity;
 
 private:
+
+	void setup();
+
 	param_t _p_pin;
 	param_t _p_polarity;
 
