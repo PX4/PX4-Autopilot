@@ -426,7 +426,11 @@ CameraTrigger::engage(void *arg)
 	/* set timestamp the instant before the trigger goes off */
 	report.timestamp = hrt_absolute_time();
 
+<<<<<<< HEAD
 	CameraTrigger::trigger(trig, trig->_polarity);
+=======
+	trig->_camera_interface->trigger(true);
+>>>>>>> fb669fc... fixed the triggering function logic
 
 	report.seq = trig->_trigger_seq++;
 
@@ -436,10 +440,16 @@ CameraTrigger::engage(void *arg)
 void
 CameraTrigger::disengage(void *arg)
 {
+<<<<<<< HEAD
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	CameraTrigger::trigger(trig, !(trig->_polarity));
+=======
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	trig->_camera_interface->trigger(false);
+>>>>>>> fb669fc... fixed the triggering function logic
 }
 
 void
