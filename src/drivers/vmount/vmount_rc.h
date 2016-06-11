@@ -46,11 +46,10 @@
 // Public functions
 bool vmount_rc_init(void);
 void vmount_rc_deinit(void);
-void vmount_rc_configure(int roi_mode, bool man_control);
-void vmount_rc_set_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt);
-void vmount_rc_set_manual(float new_pitch, float new_roll, float new_yaw);
-void vmount_rc_point(void);
-float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-			       float alt);
+void vmount_rc_configure(int roi_mode, bool man_control, int normal_mode_new, int locked_mode_new);
+void vmount_rc_set_location(double lat_new, double lon_new, float alt_new);
+void vmount_rc_point(double global_lat, double global_lon, float global_alt);
+void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new);
+float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt);
 
 #endif /* _VMOUNT_RC_H */

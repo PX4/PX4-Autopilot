@@ -127,6 +127,8 @@ static struct {
 	int mnt_mode;
 	int mnt_mav_sysid;
 	int mnt_mav_compid;
+	int mnt_ob_lock_mode;
+	int mnt_ob_norm_mode;
 	int mnt_man_control;
 	int mnt_man_roll;
 	int mnt_man_pitch;
@@ -138,6 +140,8 @@ static struct {
 	param_t mnt_mode;
 	param_t mnt_mav_sysid;
 	param_t mnt_mav_compid;
+	param_t mnt_ob_lock_mode;
+	param_t mnt_ob_norm_mode;
 	param_t mnt_man_control;
 	param_t mnt_man_roll;
 	param_t mnt_man_pitch;
@@ -145,6 +149,7 @@ static struct {
 	param_t mnt_mode_ovr;
 } params_handels;
 
+static bool manual_control_desired;
 
 /**
  * Print command usage information
@@ -203,20 +208,20 @@ static int vmount_thread_main(int argc, char *argv[])
 		err(1, "could not subscribe to uORB topics");
 	}
 
-	polls[0].fd = vehicle_roi_sub;
-	polls[0].events = POLLIN;
-	polls[1].fd = vehicle_global_position_sub;
-	polls[1].events = POLLIN;
-	polls[2].fd = vehicle_attitude_sub;
-	polls[2].events = POLLIN;
-	polls[3].fd = vehicle_command_sub;
-	polls[3].events = POLLIN;
-	polls[4].fd = position_setpoint_triplet_sub;
-	polls[4].events = POLLIN;
-	polls[5].fd = manual_control_setpoint_sub;
-	polls[5].events = POLLIN;
-	polls[6].fd = parameter_update_sub;
-	polls[6].events = POLLIN;
+	polls[0].fd = 		vehicle_roi_sub;
+	polls[0].events = 	POLLIN;
+	polls[1].fd = 		vehicle_global_position_sub;
+	polls[1].events = 	POLLIN;
+	polls[2].fd = 		vehicle_attitude_sub;
+	polls[2].events = 	POLLIN;
+	polls[3].fd = 		vehicle_command_sub;
+	polls[3].events = 	POLLIN;
+	polls[4].fd = 		position_setpoint_triplet_sub;
+	polls[4].events = 	POLLIN;
+	polls[5].fd = 		manual_control_setpoint_sub;
+	polls[5].events = 	POLLIN;
+	polls[6].fd = 		parameter_update_sub;
+	polls[6].events = 	POLLIN;
 
 	thread_running = true;
 
@@ -228,7 +233,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in mavlink mode");
 
-			while (!thread_should_exit || !thread_should_restart) {
+			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 
 				if (vehicle_roi_updated) {
@@ -236,39 +241,47 @@ static int vmount_thread_main(int argc, char *argv[])
 					vmount_mavlink_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
-						if (params.mnt_man_control && manual_control_setpoint_updated) {
-							manual_control_setpoint_updated = false;
-							vmount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
-						}
+						if (params.mnt_man_control) manual_control_desired = true;
+
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-						vmount_mavlink_point_location(
-							vehicle_global_position->lat,
-							vehicle_global_position->lon,
-							vehicle_global_position->alt,
+						manual_control_desired = false;
+						vmount_mavlink_set_location(
 							position_setpoint_triplet->next.lat,
 							position_setpoint_triplet->next.lon,
 							position_setpoint_triplet->next.alt
 						);
 
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+						manual_control_desired = false;
 						//TODO how to do this?
+
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-						vmount_mavlink_point_location(
-							vehicle_global_position->lat,
-							vehicle_global_position->lon,
-							vehicle_global_position->alt,
+						manual_control_desired = false;
+						vmount_mavlink_set_location(
 							vehicle_roi->lat,
 							vehicle_roi->lon,
 							vehicle_roi->alt
 						);
 
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+						manual_control_desired = false;
 						//TODO is this even suported?
 					}
 				}
-			}
+
+				else if (manual_control_desired && manual_control_setpoint_updated)
+				{
+					vmount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+				}
+
+				else if (!manual_control_desired && vehicle_global_position_updated)
+				{
+					vehicle_global_position_updated = false;
+					vmount_mavlink_point(vehicle_global_position->lat, vehicle_global_position->lon, vehicle_global_position->alt);
+				}
 
 			vmount_mavlink_deinit();
+			}
 
 		} else if (vmount_state == RC) {
 			if (!vmount_rc_init()) {
@@ -277,47 +290,51 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in rc mode");
 
-			while (!thread_should_exit || !thread_should_restart) {
+			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
-
 
 				if (vehicle_roi_updated) {
 					vehicle_roi_updated = false;
-					vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
+					vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_ob_norm_mode, params.mnt_ob_lock_mode);
 
 					if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
-						if (params.mnt_man_control && manual_control_setpoint_updated) {
-							manual_control_setpoint_updated = false;
-							vmount_rc_set_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
-						}
+						if (params.mnt_man_control) manual_control_desired = true;
+
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
+						manual_control_desired = false;
 						vmount_rc_set_location(
-							vehicle_global_position->lat,
-							vehicle_global_position->lon,
-							vehicle_global_position->alt,
 							position_setpoint_triplet->next.lat,
 							position_setpoint_triplet->next.lon,
 							position_setpoint_triplet->next.alt
 						);
 
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+						manual_control_desired = false;
 						//TODO how to do this?
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+						manual_control_desired = false;
 						vmount_rc_set_location(
-							vehicle_global_position->lat,
-							vehicle_global_position->lon,
-							vehicle_global_position->alt,
 							vehicle_roi->lat,
 							vehicle_roi->lon,
 							vehicle_roi->alt
 						);
 
 					} else if (vehicle_roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+						manual_control_desired = false;
 						//TODO is this even suported?
 					}
 				}
 
-				vmount_rc_point();
+				else if (manual_control_desired && manual_control_setpoint_updated) {
+					manual_control_setpoint_updated = false;
+					vmount_rc_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+				}
+
+				else if (!manual_control_desired && vehicle_global_position_updated)
+				{
+					vehicle_global_position_updated = false;
+					vmount_rc_point(vehicle_global_position->lat, vehicle_global_position->lon, vehicle_global_position->alt);
+				}
 			}
 
 			vmount_rc_deinit();
@@ -329,7 +346,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in onboard mode");
 
-			while (!thread_should_exit || !thread_should_restart) {
+			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 
 				if(vehicle_attitude_updated)
@@ -404,7 +421,7 @@ static int vmount_thread_main(int argc, char *argv[])
 		{
 			warnx("running mount driver in idle mode");
 
-			while (!thread_should_exit || !thread_should_restart) {
+			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 			}
 		}
@@ -567,6 +584,8 @@ void update_params()
 	param_get(params_handels.mnt_mode, &params.mnt_mode);
 	param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid);
 	param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid);
+	param_get(params_handels.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
+	param_get(params_handels.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
 	param_get(params_handels.mnt_man_control, &params.mnt_man_control);
 	param_get(params_handels.mnt_man_roll, &params.mnt_man_roll);
 	param_get(params_handels.mnt_man_pitch, &params.mnt_mode);
@@ -583,7 +602,7 @@ void update_params()
 	}
 	else if (vmount_state == RC)
 	{
-		vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1));
+		vmount_rc_configure(vehicle_roi->mode, (params.mnt_man_control == 1), params.mnt_ob_norm_mode, params.mnt_ob_lock_mode);
 	}
 	else if(vmount_state == ONBOARD)
 	{
@@ -596,6 +615,8 @@ bool get_params()
 	params_handels.mnt_mode = param_find("MNT_MODE");
 	params_handels.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
 	params_handels.mnt_mav_compid = param_find("MNT_MAV_COMPID");
+	params_handels.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
+	params_handels.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
 	params_handels.mnt_man_control = param_find("MNT_MAN_CONTROL");
 	params_handels.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	params_handels.mnt_man_pitch = param_find("MNT_MAN_PITCH");
@@ -606,6 +627,8 @@ bool get_params()
 	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) ||
 	    !param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) ||
 	    !param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) ||
+		!param_get(params_handels.mnt_ob_lock_mode, &params.mnt_ob_lock_mode) ||
+		!param_get(params_handels.mnt_ob_norm_mode, &params.mnt_ob_norm_mode) ||
 	    !param_get(params_handels.mnt_man_control, &params.mnt_man_control) ||
 	    !param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) ||
 	    !param_get(params_handels.mnt_man_pitch, &params.mnt_man_pitch) ||

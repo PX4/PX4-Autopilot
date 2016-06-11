@@ -47,11 +47,10 @@
 bool vmount_mavlink_init();
 void vmount_mavlink_deinit(void);
 void vmount_mavlink_configure(int roi_mode, bool man_control, int sysid, int compid);
-void vmount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				  float alt);
-void vmount_mavlink_point_manual(float pitch, float roll, float yaw);
-float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				    float alt);
+void vmount_mavlink_set_location(double lat_new, double lon_new, float alt_new);
+void vmount_mavlink_point(double global_lat, double global_lon, float global_alt);
+void vmount_mavlink_point_manual(float pitch_new, float roll_new, float yaw_new);
+float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt);
 
 
 #endif /* _VMOUNT_MAVLINK_H */

@@ -166,7 +166,7 @@ void vmount_onboard_point()
 	actuator_controls->control[0] = pitch;
 	actuator_controls->control[1] = roll;
 	actuator_controls->control[2] = yaw;
-	actuator_controls->control[3] = retracts;
+	actuator_controls->control[4] = retracts;
 
 	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }

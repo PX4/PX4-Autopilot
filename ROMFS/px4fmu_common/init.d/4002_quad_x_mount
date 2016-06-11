@@ -1,0 +1,19 @@
+#!nsh
+#
+# @name Generic Quadrotor X config with mount (e.g. gimbal)
+#
+# @type Quadrotor x
+#
+#
+# @maintainer Leon Mueller <thedevleon>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set AUX_MIXER mount
+
+set PWM_OUT 1234
+
+# Start mount driver
+vmount start

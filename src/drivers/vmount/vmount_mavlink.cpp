@@ -57,6 +57,9 @@ static orb_advert_t vehicle_command_pub;
 
 static int sys_id;
 static int comp_id;
+static double lat;
+static double lon;
+static float alt;
 
 bool vmount_mavlink_init()
 {
@@ -134,34 +137,37 @@ void vmount_mavlink_configure(int roi_mode, bool man_control, int sysid, int com
  */
 
 
-/*
- *
- */
-void vmount_mavlink_point_location(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				  float alt)
+ void vmount_mavlink_set_location(double lat_new, double lon_new, float alt_new)
 {
-	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-	float new_pitch = vmount_mavlink_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
-	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
-
-	vmount_mavlink_point_manual(new_pitch, new_roll, new_yaw);
+	lat = lat_new;
+	lon = lon_new;
+	alt = alt_new;
 }
 
-void vmount_mavlink_point_manual(float pitch, float roll, float yaw)
+void vmount_mavlink_point(double global_lat, double global_lon, float global_alt)
+{
+	float pitch = vmount_mavlink_calculate_pitch(global_lat, global_lon, global_alt);
+	float roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+	float yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
+
+	vmount_mavlink_point_manual(pitch, roll, yaw);
+}
+
+
+void vmount_mavlink_point_manual(float pitch_new, float roll_new, float yaw_new)
 {
 	vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
 	vehicle_command->target_system = sys_id;
 	vehicle_command->target_component = comp_id;
 
-	vehicle_command->param1 = pitch;
-	vehicle_command->param2 = roll;
-	vehicle_command->param3 = yaw;
+	vehicle_command->param1 = pitch_new;
+	vehicle_command->param2 = roll_new;
+	vehicle_command->param3 = yaw_new;
 
 	orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, vehicle_command);
 }
 
-float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				    float alt)
+float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt)
 {
 	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;
 	float y = (lat - global_lat) * 0.01113195;

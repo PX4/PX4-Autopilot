@@ -59,7 +59,6 @@ PARAM_DEFINE_INT32(MNT_MODE, 0);
 * if <0.0f then MODE_RETRACT
 * if =0.0f then don't override
 * if >0.0f then MODE_RC_TARGETING
-* (if for example )
 * @value 0 Disable
 * @value 1 AUX1
 * @value 2 AUX2
@@ -87,6 +86,27 @@ PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
 PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
 
 /**
+* Mixer value for selecting normal mode
+* if required by the gimbal (only in RC mode)
+* @min -1.0
+* @max 1.0
+* @decimal 3
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_OB_NORM_MODE, -1.0f);
+
+/**
+* Mixer value for selecting a locking mode
+* if required for the gimbal (only in RC mode)
+* @min -1.0
+* @max 1.0
+* @decimal 3
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
+
+
+/**
 * Do we want to allow the mount to be controlled when no ROI is set?
 *
 * If set to 1, the mount will be controlled by the rc channels below.
@@ -103,8 +123,10 @@ PARAM_DEFINE_INT32(MNT_MAN_CONTROL, 0);
 * @value 1 AUX1
 * @value 2 AUX2
 * @value 3 AUX3
+* @value 4 AUX4
+* @value 5 AUX5
 * @min 0
-* @max 3
+* @max 5
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAN_ROLL, 0);

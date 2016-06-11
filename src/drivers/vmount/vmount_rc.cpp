@@ -54,14 +54,17 @@
 static struct actuator_controls_s *actuator_controls;
 static orb_advert_t actuator_controls_pub;
 
-static float roll;
-static float pitch;
-static float yaw;
+static double lon;
+static double lat;
+static float alt;
+static float normal_mode;
+static float locked_mode;
+static bool  locked;
 
 bool vmount_rc_init()
 {
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
-	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
 
 	if (!actuator_controls_pub) { return false; }
 
@@ -74,54 +77,59 @@ void vmount_rc_deinit()
 	free(actuator_controls);
 }
 
-void vmount_rc_configure(int roi_mode, bool man_control)
+void vmount_rc_configure(int roi_mode, bool man_control, int normal_mode_new, int locked_mode_new)
 {
+	normal_mode = normal_mode_new;
+	locked_mode = locked_mode_new;
+
 	switch (roi_mode) {
 	case vehicle_roi_s::VEHICLE_ROI_NONE:
-		if (!man_control) {vmount_rc_set_manual(0.0f, 0.0f, 0.0f);}
-
+		locked = false;
+		if (!man_control) {vmount_rc_point_manual(0.0f, 0.0f, 0.0f);}
 		break;
 
 	case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
 	case vehicle_roi_s::VEHICLE_ROI_WPINDEX:
 	case vehicle_roi_s::VEHICLE_ROI_LOCATION:
 	case vehicle_roi_s::VEHICLE_ROI_TARGET:
+		locked = true;
 		break;
 
 	default:
-		vmount_rc_set_manual(0.0f, 0.0f, 0.0f);
+		locked = false;
+		vmount_rc_point_manual(0.0f, 0.0f, 0.0f);
 		break;
 	}
 }
 
-void vmount_rc_set_location(double global_lat, double global_lon, float global_alt, double lat, double lon, float alt)
+void vmount_rc_set_location(double lat_new, double lon_new, float alt_new)
 {
-	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-	float new_pitch = vmount_rc_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
-	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
-
-	vmount_rc_set_manual(new_pitch, new_roll, new_yaw);
+	lat = lat_new;
+	lon = lon_new;
+	alt = alt_new;
 }
 
-void vmount_rc_set_manual(float new_pitch, float new_roll, float new_yaw)
+void vmount_rc_point(double global_lat, double global_lon, float global_alt)
 {
-	pitch = new_pitch;
-	roll = new_roll;
-	yaw = new_yaw;
+	float pitch = vmount_rc_calculate_pitch(global_lat, global_lon, global_alt);
+	float roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+	float yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
+
+	vmount_rc_point_manual(pitch, roll, yaw);
 }
 
-void vmount_rc_point()
+void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new)
 {
 	actuator_controls->timestamp = hrt_absolute_time();
-	actuator_controls->control[0] = pitch;
-	actuator_controls->control[1] = roll;
-	actuator_controls->control[2] = yaw;
+	actuator_controls->control[0] = pitch_new;
+	actuator_controls->control[1] = roll_new;
+	actuator_controls->control[2] = yaw_new;
+	actuator_controls->control[3] = locked ? locked_mode : normal_mode;
 
-	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
 }
 
-float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-			       float alt)
+float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt)
 {
 	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;
 	float y = (lat - global_lat) * 0.01113195;
