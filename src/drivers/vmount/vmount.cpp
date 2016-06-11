@@ -607,7 +607,7 @@ void update_params()
 	param_get(params_handels.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
 	param_get(params_handels.mnt_man_control, &params.mnt_man_control);
 	param_get(params_handels.mnt_man_roll, &params.mnt_man_roll);
-	param_get(params_handels.mnt_man_pitch, &params.mnt_mode);
+	param_get(params_handels.mnt_man_pitch, &params.mnt_man_pitch);
 	param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw);
 	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr);
 
