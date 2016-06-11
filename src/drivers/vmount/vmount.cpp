@@ -233,6 +233,8 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in mavlink mode");
 
+			if (params.mnt_man_control) manual_control_desired = true;
+
 			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 
@@ -290,6 +292,8 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in rc mode");
 
+			if (params.mnt_man_control) manual_control_desired = true;
+
 			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 
@@ -346,6 +350,8 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			warnx("running mount driver in onboard mode");
 
+			if (params.mnt_man_control) manual_control_desired = true;
+
 			while (!thread_should_exit && !thread_should_restart) {
 				vmount_update_topics();
 
@@ -371,36 +377,39 @@ static int vmount_thread_main(int argc, char *argv[])
 
 				}
 
-				if (vehicle_command_updated) {
+				else if (vehicle_command_updated) {
+					vehicle_command_updated = false;
 
 					if(vehicle_command->command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL)
 					{
 						switch ((int)vehicle_command->param7) {
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+							manual_control_desired = false;
 							break;
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-							vmount_onboard_set_manual(vehicle_command->param7, vehicle_command->param1,
+							manual_control_desired = false;
+							vmount_onboard_set_mode(vehicle_command->param7);
+							vmount_onboard_set_manual(vehicle_command->param1,
 										 vehicle_command->param2, vehicle_command->param3);
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-							if (params.mnt_man_control && manual_control_setpoint_updated) {
-								manual_control_setpoint_updated = false;
-								vmount_onboard_set_manual(vehicle_command->param7, get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+							if (params.mnt_man_control) {
+								manual_control_desired = true;
+								vmount_onboard_set_mode(vehicle_command->param7);
 							}
 
 						case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+							manual_control_desired = false;
+							vmount_onboard_set_mode(vehicle_command->param7);
 							vmount_onboard_set_location(
-								vehicle_command->param7,
-								vehicle_global_position->lat,
-								vehicle_global_position->lon,
-								vehicle_global_position->alt,
 								vehicle_command->param1,
 								vehicle_command->param2,
 								vehicle_command->param3);
 
 						default:
+							manual_control_desired = false;
 							break;
 						}
 
@@ -415,7 +424,17 @@ static int vmount_thread_main(int argc, char *argv[])
 						ack_mount_command(vehicle_command->command);
 					}
 				}
-				vmount_onboard_point();
+
+				else if (manual_control_desired && manual_control_setpoint_updated)
+				{
+					manual_control_setpoint_updated = false;
+					vmount_onboard_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
+				}
+				else if (!manual_control_desired && vehicle_global_position_updated)
+				{
+					vehicle_global_position_updated = false;
+					vmount_onboard_point(vehicle_global_position->lat, vehicle_global_position->lon, vehicle_global_position->alt);
+				}
 			}
 		} else if (vmount_state == IDLE)
 		{

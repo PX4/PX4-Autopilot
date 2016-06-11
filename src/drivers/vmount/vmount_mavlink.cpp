@@ -137,7 +137,7 @@ void vmount_mavlink_configure(int roi_mode, bool man_control, int sysid, int com
  */
 
 
- void vmount_mavlink_set_location(double lat_new, double lon_new, float alt_new)
+void vmount_mavlink_set_location(double lat_new, double lon_new, float alt_new)
 {
 	lat = lat_new;
 	lon = lon_new;

@@ -58,19 +58,22 @@ static orb_advert_t actuator_controls_pub;
 static struct vehicle_attitude_s *vehicle_attitude;
 
 static int mount_mode;
-static float roll;
 static float pitch;
+static float roll;
 static float yaw;
 static float retracts;
 static int stab_pitch;
 static int stab_roll;
 static int stab_yaw;
+static double lat;
+static double lon;
+static float alt;
 
 bool vmount_onboard_init()
 {
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
-	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
 
 	if (!actuator_controls_pub) { return false; }
 
@@ -96,12 +99,12 @@ void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_s
 	switch (mount_mode) {
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
 		retracts = -1.0f;
-		vmount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		vmount_onboard_set_manual(0.0f, 0.0f, 0.0f);
 		break;
 
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 		retracts = 0.0f;
-		vmount_onboard_set_manual(mount_mode, 0.0f, 0.0f, 0.0f);
+		vmount_onboard_set_manual(0.0f, 0.0f, 0.0f);
 		break;
 
 	case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
@@ -114,30 +117,18 @@ void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_s
 	}
 }
 
-void vmount_onboard_set_location(int new_mount_mode, double global_lat, double global_lon, float global_alt, double lat,
-				double lon, float alt)
+void vmount_onboard_set_location(double lat_new, double lon_new, float alt_new)
 {
-	float new_roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
-	float new_pitch = vmount_onboard_calculate_pitch(global_lat, global_lon, global_alt, lat, lon, alt);
-	float new_yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
-
-	vmount_onboard_set_manual(new_mount_mode, new_pitch, new_roll, new_yaw);
+	lat = lat_new;
+	lon = lon_new;
+	alt = alt_new;
 }
 
-void vmount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw)
+void vmount_onboard_set_manual(double pitch_new, double roll_new, float yaw_new)
 {
-	/* This will happen if we did an override on the mode and just disabled override.
-	 * The current mount_mode will differ from the one received through the mavlink commands
-	 * so we need to reconfigure.
-	 */
-	if (new_mount_mode != mount_mode) {
-		vmount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
-	}
-
-	mount_mode = new_mount_mode;
-	pitch = new_pitch;
-	roll = new_roll;
-	yaw = new_yaw;
+	pitch = pitch_new;
+	roll = roll_new;
+	yaw = yaw_new;
 }
 
 void vmount_onboard_set_mode(int new_mount_mode)
@@ -145,30 +136,45 @@ void vmount_onboard_set_mode(int new_mount_mode)
 	vmount_onboard_configure(new_mount_mode, stab_roll, stab_pitch, stab_yaw);
 }
 
-void vmount_onboard_point()
+void vmount_onboard_point(double global_lat, double global_lon, float global_alt)
 {
+	if (mount_mode == vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT) {
+		pitch = vmount_onboard_calculate_pitch(global_lat, global_lon, global_alt);
+		roll = 0.0f; // We want a level horizon, so leave roll at 0 degrees.
+		yaw = get_bearing_to_next_waypoint(global_lat, global_lon, lat, lon) * (float)M_RAD_TO_DEG;
+	}
+
+	vmount_onboard_point_manual(pitch, roll, yaw);
+}
+
+void vmount_onboard_point_manual(float pitch_target, float roll_target, float yaw_target)
+{
+	float pitch_new = pitch_target;
+	float roll_new = roll_target;
+	float yaw_new = yaw_target;
+
 	if (mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT &&
 	    mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
 		if (stab_roll) {
-			roll += 1.0f / M_PI_F * -vehicle_attitude->roll;
+			roll_new += 1.0f / M_PI_F * -vehicle_attitude->roll;
 		}
 
 		if (stab_pitch) {
-			pitch += 1.0f / M_PI_F * -vehicle_attitude->pitch;
+			pitch_new += 1.0f / M_PI_F * -vehicle_attitude->pitch;
 		}
 
 		if (stab_yaw) {
-			yaw += 1.0f / M_PI_F * vehicle_attitude->yaw;
+			yaw_new += 1.0f / M_PI_F * vehicle_attitude->yaw;
 		}
 	}
 
 	actuator_controls->timestamp = hrt_absolute_time();
-	actuator_controls->control[0] = pitch;
-	actuator_controls->control[1] = roll;
-	actuator_controls->control[2] = yaw;
+	actuator_controls->control[0] = pitch_new;
+	actuator_controls->control[1] = roll_new;
+	actuator_controls->control[2] = yaw_new;
 	actuator_controls->control[4] = retracts;
 
-	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
 }
 
 void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new)
@@ -176,8 +182,7 @@ void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new)
 	vehicle_attitude = vehicle_attitude_new;
 }
 
-float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
-				    float alt)
+float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt)
 {
 	float x = (lon - global_lon) * cos(M_DEG_TO_RAD * ((global_lat + lat) * 0.00000005)) * 0.01113195;
 	float y = (lat - global_lat) * 0.01113195;

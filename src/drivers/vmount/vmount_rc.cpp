@@ -85,7 +85,9 @@ void vmount_rc_configure(int roi_mode, bool man_control, int normal_mode_new, in
 	switch (roi_mode) {
 	case vehicle_roi_s::VEHICLE_ROI_NONE:
 		locked = false;
+
 		if (!man_control) {vmount_rc_point_manual(0.0f, 0.0f, 0.0f);}
+
 		break;
 
 	case vehicle_roi_s::VEHICLE_ROI_WPNEXT:
@@ -127,6 +129,7 @@ void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new)
 	actuator_controls->control[3] = locked ? locked_mode : normal_mode;
 
 	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
+	warnx("New PITCH: %f ROLL: %f YAW: %f", (double)pitch_new, (double)roll_new, (double)yaw_new);
 }
 
 float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt)
