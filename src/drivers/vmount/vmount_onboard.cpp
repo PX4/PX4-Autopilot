@@ -56,7 +56,6 @@ static struct actuator_controls_s *actuator_controls;
 static orb_advert_t actuator_controls_pub;
 
 static struct vehicle_attitude_s *vehicle_attitude;
-static int vehicle_attitude_sub;
 
 static int mount_mode;
 static float roll;
@@ -72,9 +71,8 @@ bool vmount_onboard_init()
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
 	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
-	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
-	if (!actuator_controls_pub || !vehicle_attitude_sub) { return false; }
+	if (!actuator_controls_pub) { return false; }
 
 	vmount_onboard_configure(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT, 0.0f, 0.0f, 0.0f);
 
@@ -84,7 +82,6 @@ bool vmount_onboard_init()
 void vmount_onboard_deinit()
 {
 	orb_unadvertise(actuator_controls_pub);
-	orb_unsubscribe(vehicle_attitude_sub);
 	free(actuator_controls);
 	free(vehicle_attitude);
 }
@@ -174,14 +171,9 @@ void vmount_onboard_point()
 	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
 
-void vmount_onboard_update_topics()
+void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new)
 {
-	bool updated;
-	orb_check(vehicle_attitude_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
-	}
+	vehicle_attitude = vehicle_attitude_new;
 }
 
 float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,

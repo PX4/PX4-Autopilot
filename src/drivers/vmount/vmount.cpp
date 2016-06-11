@@ -56,6 +56,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/parameter_update.h>
@@ -64,6 +65,7 @@
 
 #include <px4_config.h>
 #include <px4_posix.h>
+#include <poll.h>
 
 /* thread state */
 static volatile bool thread_should_exit = false;
@@ -72,6 +74,9 @@ static volatile bool thread_should_restart = false;
 static int vmount_task;
 typedef enum { IDLE = -1, MAVLINK = 0, RC = 1, ONBOARD = 2 } vmount_state_t;
 static vmount_state_t vmount_state = IDLE;
+
+/* polling */
+px4_pollfd_struct_t polls[7];
 
 /* functions */
 static void usage(void);
@@ -87,6 +92,7 @@ extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 static int vehicle_roi_sub = -1;
 static int vehicle_global_position_sub = -1;
 static int vehicle_command_sub = -1;
+static int vehicle_attitude_sub = -1;
 static int position_setpoint_triplet_sub = -1;
 static int manual_control_setpoint_sub = -1;
 static int parameter_update_sub = -1;
@@ -102,6 +108,9 @@ static bool   vehicle_global_position_updated;
 
 static struct vehicle_command_s *vehicle_command;
 static bool   vehicle_command_updated;
+
+static struct vehicle_attitude_s *vehicle_attitude;
+static bool   vehicle_attitude_updated;
 
 static struct position_setpoint_triplet_s *position_setpoint_triplet;
 static bool   position_setpoint_triplet_updated;
@@ -170,6 +179,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
 	memset(&vehicle_global_position, 0, sizeof(vehicle_global_position));
 	memset(&vehicle_command, 0, sizeof(vehicle_command));
+	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
 	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
 	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
 	memset(&parameter_update, 0, sizeof(parameter_update));
@@ -179,6 +189,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -187,9 +198,25 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	if (!vehicle_roi_sub || !position_setpoint_triplet_sub ||
 	    !manual_control_setpoint_sub || !vehicle_global_position_sub ||
-	    !vehicle_command_sub || !parameter_update_sub || !vehicle_command_ack_pub) {
+	    !vehicle_command_sub || !parameter_update_sub || !vehicle_command_ack_pub ||
+		!vehicle_attitude_sub) {
 		err(1, "could not subscribe to uORB topics");
 	}
+
+	polls[0].fd = vehicle_roi_sub;
+	polls[0].events = POLLIN;
+	polls[1].fd = vehicle_global_position_sub;
+	polls[1].events = POLLIN;
+	polls[2].fd = vehicle_attitude_sub;
+	polls[2].events = POLLIN;
+	polls[3].fd = vehicle_command_sub;
+	polls[3].events = POLLIN;
+	polls[4].fd = position_setpoint_triplet_sub;
+	polls[4].events = POLLIN;
+	polls[5].fd = manual_control_setpoint_sub;
+	polls[5].events = POLLIN;
+	polls[6].fd = parameter_update_sub;
+	polls[6].events = POLLIN;
 
 	thread_running = true;
 
@@ -305,7 +332,11 @@ static int vmount_thread_main(int argc, char *argv[])
 			while (!thread_should_exit || !thread_should_restart) {
 				vmount_update_topics();
 
-				vmount_onboard_update_topics();
+				if(vehicle_attitude_updated)
+				{
+					vmount_onboard_update_attitude(vehicle_attitude);
+					vehicle_attitude_updated = false;
+				}
 
 				if (params.mnt_mode_ovr && manual_control_setpoint_updated) {
 					manual_control_setpoint_updated = false;
@@ -411,7 +442,7 @@ int vmount_main(int argc, char *argv[])
 		thread_should_exit = false;
 		vmount_task = px4_task_spawn_cmd("vmount",
 						SCHED_DEFAULT, //TODO we might want a higher priority?
-						200,
+						SCHED_PRIORITY_DEFAULT + 40,
 						1100,
 						vmount_thread_main,
 						(char *const *)argv);
@@ -476,40 +507,57 @@ int vmount_main(int argc, char *argv[])
 /* Update oURB topics */
 void vmount_update_topics()
 {
-	orb_check(vehicle_roi_sub, &vehicle_roi_updated);
+	/*
+	polls = {
+		{ .fd = vehicle_roi_sub,   .events = POLLIN },
+		{ .fd = vehicle_global_position_sub,   .events = POLLIN },
+		{ .fd = vehicle_attitude_sub,   .events = POLLIN },
+		{ .fd = vehicle_command_sub,   .events = POLLIN },
+		{ .fd = position_setpoint_triplet_sub,   .events = POLLIN },
+		{ .fd = manual_control_setpoint_sub,   .events = POLLIN },
+		{ .fd = parameter_update_sub,   .events = POLLIN },
+	};
+	*/
 
-	if (vehicle_roi_updated) {
+	/* wait for sensor update of 7 file descriptors for 100 ms */
+	int poll_ret = px4_poll(polls, 7, 100);
+
+	//Nothing updated.
+	if(poll_ret == 0) return;
+
+	if (polls[0].revents & POLLIN) {
 		orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, vehicle_roi);
+		vehicle_roi_updated = true;
 	}
 
-	orb_check(vehicle_command_sub, &vehicle_command_updated);
-
-	if (vehicle_command_updated) {
-		orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, vehicle_command);
-	}
-
-	orb_check(position_setpoint_triplet_sub, &position_setpoint_triplet_updated);
-
-	if (position_setpoint_triplet_updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
-	}
-
-	orb_check(manual_control_setpoint_sub, &manual_control_setpoint_updated);
-
-	if (manual_control_setpoint_updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, manual_control_setpoint);
-	}
-
-	orb_check(vehicle_global_position_sub, &vehicle_global_position_updated);
-
-	if (vehicle_global_position_updated) {
+	if (polls[1].revents & POLLIN) {
 		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, vehicle_global_position);
+		vehicle_global_position_updated = true;
 	}
 
-	orb_check(parameter_update_sub, &parameter_update_updated);
+	if (polls[2].revents & POLLIN) {
+		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, vehicle_attitude);
+		vehicle_attitude_updated = true;
+	}
 
-	if (parameter_update_updated) {
+	if (polls[3].revents & POLLIN) {
+		orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, vehicle_command);
+		vehicle_command_updated = true;
+	}
+
+	if (polls[4].revents & POLLIN) {
+		orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, position_setpoint_triplet);
+		position_setpoint_triplet_updated = true;
+	}
+
+	if (polls[5].revents & POLLIN) {
+		orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, manual_control_setpoint);
+		manual_control_setpoint_updated = true;
+	}
+
+	if (polls[6].revents & POLLIN) {
 		orb_copy(ORB_ID(parameter_update), parameter_update_sub, parameter_update);
+		parameter_update_updated = true;
 		update_params();
 	}
 }
@@ -555,13 +603,13 @@ bool get_params()
 	params_handels.mnt_mode_ovr = param_find("MNT_MODE_OVR");
 
 
-	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) |
-	    !param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) |
-	    !param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) |
-	    !param_get(params_handels.mnt_man_control, &params.mnt_man_control) |
-	    !param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) |
-	    !param_get(params_handels.mnt_man_pitch, &params.mnt_mode) |
-	    !param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw) |
+	if (!param_get(params_handels.mnt_mode, &params.mnt_mode) ||
+	    !param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) ||
+	    !param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) ||
+	    !param_get(params_handels.mnt_man_control, &params.mnt_man_control) ||
+	    !param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) ||
+	    !param_get(params_handels.mnt_man_pitch, &params.mnt_man_pitch) ||
+	    !param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw) ||
 		!param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr)) {
 		return false;
 	}

@@ -42,6 +42,7 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 // Public functions
 bool vmount_onboard_init(void);
@@ -52,7 +53,7 @@ void vmount_onboard_set_location(int new_mount_mode, double global_lat, double g
 void vmount_onboard_set_manual(int new_mount_mode, float new_pitch, float new_roll, float new_yaw);
 void vmount_onboard_set_mode(int new_mount_mode);
 void vmount_onboard_point(void);
-void vmount_onboard_update_topics(void);
+void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new);
 float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt, double lat, double lon,
 				    float alt);
 
