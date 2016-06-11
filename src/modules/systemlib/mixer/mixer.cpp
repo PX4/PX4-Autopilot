@@ -155,30 +155,21 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 
 
 
-/****************************************************************************/
+///****************************************************************************/
 
-TunableMixer::TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count) :
-    Mixer(control_cb, cb_handle) {
-    _parameter_id_table = parameter_id_table;
-    _parameter_count = parameter_count;
-}
+//TunableMixer::TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count) :
+//    Mixer(control_cb, cb_handle) {
+//    _parameter_id_table = parameter_id_table;
+//    _parameter_count = parameter_count;
+//}
 
-float
-TunableMixer::get_parameter(uint16_t index){
-    return 0.0;
-}
-
-uint16_t
-TunableMixer::set_parameter(uint16_t index, float value){
-    return 0;
-}
 
 
 /****************************************************************************/
 
 
 Mixer_3pt::Mixer_3pt() :
-    TunableMixer(nullptr, 0, MIXER_3PT_PARAMETERS, MIXER_3PT_PARAMETER_COUNT)
+    Mixer(nullptr, 0)
 {
 }
 
@@ -229,12 +220,68 @@ Mixer_3pt::from_text(const char *buf, unsigned &buflen)
     return nm;
 }
 
-
-float*
-Mixer_3pt::_get_parameter_ref(uint16_t index){
-    return NULL;
+const char**
+Mixer_3pt::get_parameter_id_strings(void) {
+    return MIXER_3PT_PARAMETERS;
 }
 
+uint16_t
+Mixer_3pt::get_parameter_id_count(void) {
+    return MIXER_3PT_PARAMETER_COUNT;
+}
+
+float
+Mixer_3pt::get_parameter(uint16_t index){
+    switch(index){
+    case 0:
+        return _input_points[0];
+        break;
+    case 1:
+        return _input_points[1];
+        break;
+    case 2:
+        return _input_points[2];
+        break;
+    case 3:
+        return _output_points[0];
+        break;
+    case 4:
+        return _output_points[1];
+        break;
+    case 5:
+        return _output_points[2];
+        break;
+    }
+    return 0.0;
+}
+
+int16_t
+Mixer_3pt::set_parameter(uint16_t index, float value){
+    switch(index){
+    case 0:
+        _input_points[0] = value;
+        break;
+    case 1:
+        _input_points[1] = value;
+        break;
+    case 2:
+        _input_points[2] = value;
+        break;
+    case 3:
+        _output_points[0] = value;
+        break;
+    case 4:
+        _output_points[1] = value;
+        break;
+    case 5:
+        _output_points[2] = value;
+        break;
+    default:
+        return -1;
+        break;
+    }
+    return 0;
+}
 
 
 

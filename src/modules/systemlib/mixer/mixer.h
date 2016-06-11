@@ -184,6 +184,37 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+    /**
+     * Get list of Mixer parameters
+     *
+     * @return              A pointer to a constant list of constant strings
+     */
+    virtual const char**    get_parameter_id_strings(void) {return NULL;}
+
+    /**
+     * Get a count of the Mixer parameters
+     *
+     * @return              Count of the mixer parameters
+     */
+    virtual uint16_t        get_parameter_id_count(void) {return 0;}
+
+    /**
+     * gets a mixer parameter
+     *
+     * @param index         The index of the parameter
+     * @return              The float value of the parameter
+     */
+    virtual float       	get_parameter(uint16_t index) {return 0.0;}
+
+    /**
+     * sets a mixer parameter
+     *
+     * @param index         The index of the parameter
+     * @param value         The value of the parameter
+     * @return              0 if set. -1 for error
+     */
+    virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
+
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -240,69 +271,6 @@ private:
 	Mixer &operator=(const Mixer &);
 };
 
-
-
-
-/**
- * Extension of the Mixer class enabling parameter modification
- */
-class __EXPORT TunableMixer : public Mixer
-{
-public:
-
-    /**
-     * Constructor.
-     *
-     * @param control_cb		Callback invoked when reading controls.
-     */
-    TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count);
-    virtual ~TunableMixer() {};
-
-    /**
-     * Get list of Mixer parameters
-     *
-     * @return              A pointer to a constant list of constant strings
-     */
-    const char**    		get_parameter_id_strings(void) {return _parameter_id_table;};
-
-    /**
-     * Get a count of the Mixer parameters
-     *
-     * @return              Count of the mixer parameters
-     */
-    uint16_t        		get_parameter_id_count(void) {return _parameter_count;};
-
-    /**
-     * Analyses the mix configuration and updates a bitmask oconstf groups
-     * that are required.
-     *
-     * @param index         The index of the parameter
-     * @return              The float value of the parameter
-     */
-    float       			get_parameter(uint16_t index);
-
-    /**
-     * Analyses the mix configuration and updates a bitmask of groups
-     * that are required.
-     *const
-     * @param index         The index of the parameter
-     * @param value         The value of the parameter
-     * @return              0 if set. -1 for error
-     */
-    uint16_t        		set_parameter(uint16_t index, float value);
-
-protected:
-    /**
-     * Returns a reference to the indexed parameter for reading or writing
-     *
-     * @param index         The index of the parameter
-     * @return              reference to the indexed parameter
-     */
-    virtual float*          _get_parameter_ref(uint16_t index);
-
-    const char**            _parameter_id_table;
-    uint16_t                _parameter_count;
-};
 
 
 /**
@@ -473,7 +441,7 @@ public:
  *
  * Used as a placeholder for output channels that are unassigned in groups.
  */
-class __EXPORT Mixer_3pt : public TunableMixer
+class __EXPORT Mixer_3pt : public Mixer
 {
 public:
     Mixer_3pt();
@@ -494,10 +462,17 @@ public:
      */
     static Mixer_3pt		*from_text(const char *buf, unsigned &buflen);
 
-    virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
-    virtual void			groups_required(uint32_t &groups);
+    unsigned                mix(float *outputs, unsigned space, uint16_t *status_reg);
+    void                    groups_required(uint32_t &groups);
+
+    const char**    		get_parameter_id_strings(void);
+    uint16_t        		get_parameter_id_count(void);
+    float                   get_parameter(uint16_t index);
+    int16_t                 set_parameter(uint16_t index, float value);
+
 protected:
-    virtual float*          _get_parameter_ref(uint16_t index);
+    float                   _input_points[3] = {-1.0, 0.0, 1.0};
+    float                   _output_points[3] = {-1.0, 0.0, 1.0};
 };
 
 

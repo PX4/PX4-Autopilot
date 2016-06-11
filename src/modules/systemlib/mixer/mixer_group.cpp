@@ -173,7 +173,6 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 
         case '3':
             m = Mixer_3pt::from_text(p, resid);
-
             break;
 /*        case 'C':
             m = ControlMixer::from_text(_control_cb, _cb_handle, _intermediates, p, resid);

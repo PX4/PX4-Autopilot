@@ -44,10 +44,10 @@
 
 const char * MIXER_3PT_PARAMETERS[] = {
     "INPUT_1",
-    "OUTPUT_1",
     "INPUT_2",
-    "OUTPUT_2",
     "INPUT_3",
+    "OUTPUT_1",
+    "OUTPUT_2",
     "OUTPUT_3",
     };
 
