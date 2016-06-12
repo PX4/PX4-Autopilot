@@ -390,9 +390,9 @@ void AttitudeEstimatorQ::task_main()
 
 			// Get best measurement values
 			hrt_abstime curr_time = hrt_absolute_time();
-			_gyro.set(_voter_gyro.get_best_measurements(curr_time, &best_gyro));
-			_accel.set(_voter_accel.get_best_measurements(curr_time, &best_accel));
-			_mag.set(_voter_mag.get_best_measurements(curr_time, &best_mag));
+			_gyro.set(_voter_gyro.get_best(curr_time, &best_gyro));
+			_accel.set(_voter_accel.get_best(curr_time, &best_accel));
+			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
 
 			if (_accel.length() < 0.01f) {
 				warnx("WARNING: degenerate accel!");
@@ -663,9 +663,9 @@ void AttitudeEstimatorQ::task_main()
 			status.timestamp = sensors.timestamp;
 			
 			/* Sensor IDs of currently in-use sensors */
-			status.gyro_id = _voter_gyro.get_best_sensor(hrt_absolute_time());
-			status.accel_id = _voter_accel.get_best_sensor(hrt_absolute_time());
-			status.mag_id = _voter_mag.get_best_sensor(hrt_absolute_time());
+			status.gyro_id = best_gyro;
+			status.accel_id = best_accel;
+			status.mag_id = best_mag;
 			
 			/* Vibration data for currently in-use sensors */
 			status.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
