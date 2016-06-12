@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
@@ -190,8 +191,13 @@ private:
 	math::Vector<3>		_rates_sp_prev;   /**< previous rates setpoint 之前的角速度设定值*/
 	math::Vector<3>		_rates_sp;			/**< angular rates setpoint 角速度设定值*/
 	math::Vector<3>		_rates_int;		/**< angular rates integral error 角速度积分误差*/
+<<<<<<< HEAD
 	float				_thrust_sp;		/**< thrust setpoint 推力设定值*/
 	math::Vector<3>		_att_control;		/**< attitude control vector 姿态控制量-欧拉角*/
+=======
+	float					_thrust_sp;		/**< thrust setpoint 推力设定值*/
+	math::Vector<3>		_att_control;		/**< attitude control vector 姿态控制向量-欧拉角*/
+>>>>>>> e425d673fdd9949d9fde353151b551aeeffc1ce4
 
 	math::Matrix<3, 3>  _I;					/**< identity matrix 单位矩阵*/
 
