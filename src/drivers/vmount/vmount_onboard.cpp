@@ -52,10 +52,10 @@
 
 
 /* uORB topics */
-static struct actuator_controls_s *actuator_controls;
+static struct actuator_controls_s actuator_controls;
 static orb_advert_t actuator_controls_pub;
 
-static struct vehicle_attitude_s *vehicle_attitude;
+static struct vehicle_attitude_s vehicle_attitude;
 
 static int mount_mode;
 static float pitch;
@@ -85,8 +85,8 @@ bool vmount_onboard_init()
 void vmount_onboard_deinit()
 {
 	orb_unadvertise(actuator_controls_pub);
-	free(actuator_controls);
-	free(vehicle_attitude);
+	//free(actuator_controls);
+	//free(vehicle_attitude);
 }
 
 void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw)
@@ -156,28 +156,28 @@ void vmount_onboard_point_manual(float pitch_target, float roll_target, float ya
 	if (mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT &&
 	    mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
 		if (stab_roll) {
-			roll_new += 1.0f / M_PI_F * -vehicle_attitude->roll;
+			roll_new += 1.0f / M_PI_F * -vehicle_attitude.roll;
 		}
 
 		if (stab_pitch) {
-			pitch_new += 1.0f / M_PI_F * -vehicle_attitude->pitch;
+			pitch_new += 1.0f / M_PI_F * -vehicle_attitude.pitch;
 		}
 
 		if (stab_yaw) {
-			yaw_new += 1.0f / M_PI_F * vehicle_attitude->yaw;
+			yaw_new += 1.0f / M_PI_F * vehicle_attitude.yaw;
 		}
 	}
 
-	actuator_controls->timestamp = hrt_absolute_time();
-	actuator_controls->control[0] = pitch_new;
-	actuator_controls->control[1] = roll_new;
-	actuator_controls->control[2] = yaw_new;
-	actuator_controls->control[4] = retracts;
+	actuator_controls.timestamp = hrt_absolute_time();
+	actuator_controls.control[0] = pitch_new;
+	actuator_controls.control[1] = roll_new;
+	actuator_controls.control[2] = yaw_new;
+	actuator_controls.control[4] = retracts;
 
 	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
 }
 
-void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new)
+void vmount_onboard_update_attitude(vehicle_attitude_s vehicle_attitude_new)
 {
 	vehicle_attitude = vehicle_attitude_new;
 }

@@ -53,7 +53,7 @@ void vmount_onboard_set_manual(double pitch_new, double roll_new, float yaw_new)
 void vmount_onboard_set_mode(int new_mount_mode);
 void vmount_onboard_point(double global_lat, double global_lon, float global_alt);
 void vmount_onboard_point_manual(float pitch_target, float roll_target, float yaw_target);
-void vmount_onboard_update_attitude(vehicle_attitude_s *vehicle_attitude_new);
+void vmount_onboard_update_attitude(vehicle_attitude_s vehicle_attitude_new);
 float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt);
 
 #endif /* _VMOUNT_ONBOARD_H */

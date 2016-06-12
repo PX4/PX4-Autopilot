@@ -51,7 +51,7 @@
 
 
 /* uORB advertising */
-static struct actuator_controls_s *actuator_controls;
+static struct actuator_controls_s actuator_controls;
 static orb_advert_t actuator_controls_pub;
 
 static double lon;
@@ -74,7 +74,7 @@ bool vmount_rc_init()
 void vmount_rc_deinit()
 {
 	orb_unadvertise(actuator_controls_pub);
-	free(actuator_controls);
+	//free(&actuator_controls);
 }
 
 void vmount_rc_configure(int roi_mode, bool man_control, int normal_mode_new, int locked_mode_new)
@@ -122,11 +122,11 @@ void vmount_rc_point(double global_lat, double global_lon, float global_alt)
 
 void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new)
 {
-	actuator_controls->timestamp = hrt_absolute_time();
-	actuator_controls->control[0] = pitch_new;
-	actuator_controls->control[1] = roll_new;
-	actuator_controls->control[2] = yaw_new;
-	actuator_controls->control[3] = locked ? locked_mode : normal_mode;
+	actuator_controls.timestamp = hrt_absolute_time();
+	actuator_controls.control[0] = pitch_new;
+	actuator_controls.control[1] = roll_new;
+	actuator_controls.control[2] = yaw_new;
+	actuator_controls.control[3] = locked ? locked_mode : normal_mode;
 
 	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
 }
