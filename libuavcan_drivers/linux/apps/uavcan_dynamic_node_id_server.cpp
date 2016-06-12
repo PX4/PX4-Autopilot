@@ -32,25 +32,15 @@ constexpr int MinUpdateInterval = 100;
 
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
 {
-    auto node = uavcan_linux::makeNode(ifaces);
+    const auto app_id = uavcan_linux::makeApplicationID(uavcan_linux::MachineIDReader().read(),  name,  nid.get());
 
-    node->setNodeID(nid);
-    node->setName(name.c_str());
+    uavcan::protocol::HardwareVersion hwver;
+    std::copy(app_id.begin(), app_id.end(), hwver.unique_id.begin());
+    std::cout << hwver << std::endl;
+
+    auto node = uavcan_linux::makeNode(ifaces, name.c_str(), uavcan::protocol::SoftwareVersion(), hwver, nid);
+
     node->getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-    {
-        const auto app_id = uavcan_linux::makeApplicationID(uavcan_linux::MachineIDReader().read(),  name,  nid.get());
-
-        uavcan::protocol::HardwareVersion hwver;
-        std::copy(app_id.begin(), app_id.end(), hwver.unique_id.begin());
-        std::cout << hwver << std::endl;
-
-        node->setHardwareVersion(hwver);
-    }
-
-    const int start_res = node->start();
-    ENFORCE(0 == start_res);
-
     node->setModeOperational();
 
     return node;

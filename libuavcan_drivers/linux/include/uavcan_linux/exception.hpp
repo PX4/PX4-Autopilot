@@ -36,6 +36,28 @@ public:
 };
 
 /**
+ * This type is thrown when a Libuavcan API method exits with error.
+ * The error code is stored in the exception object and is avialable via @ref getLibuavcanErrorCode().
+ */
+class LibuavcanErrorException : public Exception
+{
+    const std::int16_t error_;
+
+    static std::string makeErrorString(std::int16_t e)
+    {
+        return "Libuavcan error (" + std::to_string(e) + ")";
+    }
+
+public:
+    explicit LibuavcanErrorException(std::int16_t uavcan_error_code) :
+        Exception(makeErrorString(uavcan_error_code)),
+        error_(std::abs(uavcan_error_code))
+    { }
+
+    std::int16_t getLibuavcanErrorCode() const { return error_; }
+};
+
+/**
  * This exception is thrown when all available interfaces become down.
  */
 class AllIfacesDownException : public Exception
