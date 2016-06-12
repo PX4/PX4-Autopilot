@@ -133,6 +133,7 @@
 
 #include <uORB/topics/multirotor_motor_limits.h>
 
+#include "mixerRegisters.h"
 #include "mixer_load.h"
 
 /**
@@ -299,15 +300,35 @@ public:
      */
     static MixerRegisters	*from_text(const char *buf, unsigned &buflen);
 
-    virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
-    virtual void			groups_required(uint32_t &groups);
+    unsigned                mix(float *outputs, unsigned space, uint16_t *status_reg);
+    void                    groups_required(uint32_t &groups);
 
     /**
      * Get register index from name
      *
-     * @param name			The name of the register to be found. -1 if not found.
+     * @param id			The name of the register to be found. -1 if not found.
+     * @return              index of named register
      */
     int16_t                 index_from_identifier(char *id);
+
+    /**
+     * Get register value from index
+     *
+     * @param index			The index of the register to be returned.
+     * @return              value of indexed register.  Return 0.0 if index is invalid.
+     */
+    float                   get_register(uint16_t index);
+
+    /**
+     * Get register value from index
+     *
+     * @param index			The index of the register to be set.
+     * @param value			float value to be set in the register
+     */
+    void                    set_register(uint16_t index, float value);
+
+protected:
+    float                   _registers[MIXER_REGISTER_COUNT] = {0.0};
 };
 
 
@@ -382,7 +403,7 @@ public:
 	 *				bytes as they are consumed.
 	 * @return			Zero on successful load, nonzero otherwise.
      *
-     * Intermedi_intermediatesate Registers Mixer
+     * Intermediate Registers Mixer
      * ............
      *
      * Initializes a set of registers that other mixers can use as input or output.
@@ -439,7 +460,7 @@ public:
 /**
  * 3 point intermediate mixer.
  *
- * Used as a placeholder for output channels that are unassigned in groups.
+ * Mixes to and from the intermediate mixer registers
  */
 class __EXPORT Mixer_3pt : public Mixer
 {

@@ -53,7 +53,6 @@
 #include <ctype.h>
 #include <systemlib/err.h>
 
-#include "mixerRegisters.h"
 #include "mixerParameters.h"
 #include "mixer.h"
 
@@ -153,15 +152,8 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 	return nullptr;
 }
 
+/****************************************************************************/
 
-
-///****************************************************************************/
-
-//TunableMixer::TunableMixer(ControlCallback control_cb, uintptr_t cb_handle, const char** parameter_id_table, const uint16_t parameter_count) :
-//    Mixer(control_cb, cb_handle) {
-//    _parameter_id_table = parameter_id_table;
-//    _parameter_count = parameter_count;
-//}
 
 
 
@@ -352,9 +344,8 @@ MixerRegisters::MixerRegisters() :
 unsigned
 MixerRegisters::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
-    if (space > 0) {
-        *outputs = 0.0f;
-        return 1;
+    for(uint16_t index=0; index<MIXER_REGISTER_COUNT; index++){
+        _registers[index] = 0.0;
     }
 
     return 0;
