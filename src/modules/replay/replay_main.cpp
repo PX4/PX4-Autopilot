@@ -588,35 +588,43 @@ size_t Replay::sizeOfFullType(const std::string &type_name_full)
 	return sizeOfType(type_name) * array_size;
 }
 
-void Replay::task_main()
+bool Replay::readDefinitionsAndApplyParams(std::ifstream &file)
 {
 	// log reader currently assumes little endian
 	int num = 1;
 
 	if (*(char *)&num != 1) {
 		PX4_ERR("Replay only works on little endian!");
-		return;
+		return false;
 	}
 
-	ifstream replay_file(_replay_file, ios::in | ios::binary);
-
-	if (!replay_file.is_open()) {
+	if (!file.is_open()) {
 		PX4_ERR("Failed to open replay file");
-		return;
+		return false;
 	}
 
-	if (!readFileHeader(replay_file)) {
+	if (!readFileHeader(file)) {
 		PX4_ERR("Failed to read file header. Not a valid ULog file");
-		return;
+		return false;
 	}
 
 	//initialize the formats and apply the parameters from the log file
-	if (!readFileDefinitions(replay_file)) {
+	if (!readFileDefinitions(file)) {
 		PX4_ERR("Failed to read ULog definitions section. Broken file?");
-		return;
+		return false;
 	}
 
 	setUserParams(PARAMS_OVERRIDE_FILE);
+	return true;
+}
+
+void Replay::task_main()
+{
+	ifstream replay_file(_replay_file, ios::in | ios::binary);
+
+	if (!readDefinitionsAndApplyParams(replay_file)) {
+		return;
+	}
 
 	_replay_start_time = hrt_absolute_time();
 
@@ -759,20 +767,23 @@ void Replay::task_main_trampoline(int argc, char *argv[])
 	replay::control_task = -1;
 }
 
-int Replay::start(bool quiet)
+int Replay::start(bool quiet, bool apply_params_only)
 {
 	ASSERT(replay::control_task == -1);
+	int ret = PX4_OK;
 
 	//check for logfile env variable
 	const char *logfile = getenv(replay::ENV_FILENAME);
 
 	if (logfile) {
-		PX4_INFO("using replay log file: %s", logfile);
-		setupReplayFile(logfile);
+		if (!isSetup()) {
+			PX4_INFO("using replay log file: %s", logfile);
+			setupReplayFile(logfile);
+		}
 
 	} else {
 		if (quiet) {
-			return OK;
+			return PX4_OK;
 
 		} else {
 			PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
@@ -780,21 +791,40 @@ int Replay::start(bool quiet)
 		}
 	}
 
-	/* start the task */
-	replay::control_task = px4_task_spawn_cmd("replay",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MAX - 5,
-			       4000,
-			       (px4_main_t)&Replay::task_main_trampoline,
-			       nullptr);
+	if (apply_params_only) {
+		Replay *r = new Replay();
 
-	if (replay::control_task < 0) {
-		replay::control_task = -1;
-		PX4_ERR("task start failed");
-		return -errno;
+		if (r == nullptr) {
+			PX4_ERR("alloc failed");
+			return -ENOMEM;
+		}
+
+		ifstream replay_file(_replay_file, ios::in | ios::binary);
+
+		if (!r->readDefinitionsAndApplyParams(replay_file)) {
+			ret = -1;
+		}
+
+		delete(r);
+
+	} else {
+
+		/* start the task */
+		replay::control_task = px4_task_spawn_cmd("replay",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       4000,
+				       (px4_main_t)&Replay::task_main_trampoline,
+				       nullptr);
+
+		if (replay::control_task < 0) {
+			replay::control_task = -1;
+			PX4_ERR("task start failed");
+			return -errno;
+		}
 	}
 
-	return OK;
+	return ret;
 }
 
 } //namespace px4
@@ -804,12 +834,13 @@ using namespace px4;
 int replay_main(int argc, char *argv[])
 {
 	if (argc < 1) {
-		PX4_WARN("usage: replay {trystart|start|stop|status}");
+		PX4_WARN("usage: replay {tryapplyparams|trystart|start|stop|status}");
 		return 1;
 	}
 
 	bool do_start = false;
 	bool quiet = false;
+	bool apply_params_only = false;
 
 	if (!strcmp(argv[1], "start")) {
 		do_start = true;
@@ -817,6 +848,11 @@ int replay_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "trystart")) {
 		do_start = true;
 		quiet = true;
+
+	} else if (!strcmp(argv[1], "tryapplyparams")) {
+		do_start = true;
+		quiet = true;
+		apply_params_only = true;
 	}
 
 	if (do_start) {
@@ -825,7 +861,7 @@ int replay_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != replay::instance->start(quiet)) {
+		if (PX4_OK != replay::instance->start(quiet, apply_params_only)) {
 			PX4_ERR("start failed");
 			return 1;
 		}
