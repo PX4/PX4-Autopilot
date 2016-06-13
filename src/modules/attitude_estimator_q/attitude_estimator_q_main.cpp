@@ -655,28 +655,28 @@ void AttitudeEstimatorQ::task_main()
 			/* publish to control state topic */
 			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
 		}
-		
+
 		{
-		
+
 			struct sensor_status_s status = {};
-			
+
 			status.timestamp = sensors.timestamp;
-			
+
 			/* Sensor IDs of currently in-use sensors */
 			status.gyro_id = best_gyro;
 			status.accel_id = best_accel;
 			status.mag_id = best_mag;
-			
+
 			/* Vibration data for currently in-use sensors */
 			status.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
 			status.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
 			status.mag_vibration = _voter_mag.get_vibration_factor(hrt_absolute_time());
-			
+
 			/* the instance count is not used here */
 			int status_inst;
 			/* Publish to sensors status topic */
 			orb_publish_auto(ORB_ID(sensor_status), &_imu_status_pub, &status, &status_inst, ORB_PRIO_DEFAULT);
-			
+
 		}
 
 		{
