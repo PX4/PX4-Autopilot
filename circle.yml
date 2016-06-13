@@ -19,5 +19,6 @@ test:
     - echo $UID
     - ls -lsa $HOME
     - ccache -s
-    - docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
+    #- docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
+    - docker run --rm -v `pwd`:`pwd`:rw -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
 
