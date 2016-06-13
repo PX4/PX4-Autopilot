@@ -77,7 +77,7 @@ set(config_module_list
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
-	#modules/gpio_led
+	modules/gpio_led
 	modules/uavcan
 	modules/land_detector
 

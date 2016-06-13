@@ -15,7 +15,7 @@ set PWM_OUT 1234
 
 set AUX_MIXER mount
 set PWM_AUX_RATE 50
-set PWM_AUX_OUT 12345
+set PWM_AUX_OUT 123456
 
 # Start mount driver
 vmount start

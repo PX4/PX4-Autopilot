@@ -64,7 +64,7 @@ static bool  locked;
 bool vmount_rc_init()
 {
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
-	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
 
 	if (!actuator_controls_pub) { return false; }
 
@@ -128,7 +128,7 @@ void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new)
 	actuator_controls.control[2] = yaw_new;
 	actuator_controls.control[3] = locked ? locked_mode : normal_mode;
 
-	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
 
 float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt)

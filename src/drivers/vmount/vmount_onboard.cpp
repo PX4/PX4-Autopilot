@@ -73,7 +73,7 @@ bool vmount_onboard_init()
 {
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
-	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
+	actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
 
 	if (!actuator_controls_pub) { return false; }
 
@@ -174,7 +174,7 @@ void vmount_onboard_point_manual(float pitch_target, float roll_target, float ya
 	actuator_controls.control[2] = yaw_new;
 	actuator_controls.control[4] = retracts;
 
-	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
+	orb_publish(ORB_ID(actuator_controls_3), actuator_controls_pub, &actuator_controls);
 }
 
 void vmount_onboard_update_attitude(vehicle_attitude_s vehicle_attitude_new)
