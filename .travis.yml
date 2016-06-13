@@ -49,7 +49,9 @@ env:
 script:
   - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make check VECTORCONTROL=1";
+         docker run -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache --user=$UID --name travis-ci -d px4io/px4-dev-base tail -f /dev/null
+      && docker cp ${TRAVIS_BUILD_DIR} travis-ci:/Firmware/
+      && docker exec -it travis-ci /bin/bash -c "cd /Firmware/; ccache -z; make check VECTORCONTROL=1; ccache -s";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
