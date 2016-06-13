@@ -63,8 +63,10 @@ public:
 
 	/// Start task.
 	/// @param quiet silently fail if no log file found
+	/// @param apply_params_only if true, only apply parameters from definitions section of the file
+	///                          and user-overridden parameters, then exit w/o replaying.
 	/// @return		OK on success.
-	static int		start(bool quiet);
+	static int		start(bool quiet, bool apply_params_only);
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 
@@ -115,6 +117,13 @@ private:
 	///file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
 	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
+
+	/**
+	 * Read the file header and definitions sections. Apply the parameters from this section
+	 * and apply user-defined overridden parameters.
+	 * @return true on success
+	 */
+	bool readDefinitionsAndApplyParams(std::ifstream &file);
 
 	/**
 	 * Read and handle additional messages starting at current file position, while position < end_position.
