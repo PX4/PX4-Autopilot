@@ -17,6 +17,7 @@ test:
   override:
     - whoami
     - echo $UID
-    - ls -ls $HOME
+    - ls -lsa $HOME
+    - ccache -s
     - docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
 
