@@ -7,33 +7,47 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 static const int 		REQ_SONAR_INIT_COUNT = 10;
-static const uint32_t 	SONAR_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t 	SONAR_TIMEOUT =   5000000; // 2.0 s
+static const float  	SONAR_MAX_INIT_STD =   0.3f; // meters
 
 void BlockLocalPositionEstimator::sonarInit()
 {
 	// measure
 	Vector<float, n_y_sonar> y;
 
+	if (_sonarStats.getCount() == 0) {
+		_time_init_sonar = _timeStamp;
+	}
+
 	if (sonarMeasure(y) != OK) {
-		_sonarStats.reset();
 		return;
 	}
 
 	// if finished
 	if (_sonarStats.getCount() > REQ_SONAR_INIT_COUNT) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
-					     "mean %d cm std %d cm",
-					     int(100 * _sonarStats.getMean()(0)),
-					     int(100 * _sonarStats.getStdDev()(0)));
-		_sonarInitialized = true;
-		_sonarFault = FAULT_NONE;
+		if (_sonarStats.getStdDev()(0) > SONAR_MAX_INIT_STD) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init std > min");
+			_sonarStats.reset();
+
+		} else if ((_timeStamp - _time_init_sonar) > SONAR_TIMEOUT) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init timeout ");
+			_sonarStats.reset();
+
+		} else {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
+						     "mean %d cm std %d cm",
+						     int(100 * _sonarStats.getMean()(0)),
+						     int(100 * _sonarStats.getStdDev()(0)));
+			_sonarInitialized = true;
+			_sonarFault = FAULT_NONE;
+		}
 	}
 }
 
 int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	// measure
-	float d = _sub_sonar->get().current_distance + _sonar_z_offset.get();
+	float d = _sub_sonar->get().current_distance;
 	float eps = 0.01f;
 	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
@@ -47,7 +61,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_sonarStats.update(Scalarf(d));
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = d *
+	y(0) = (d + _sonar_z_offset.get()) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 	return OK;
