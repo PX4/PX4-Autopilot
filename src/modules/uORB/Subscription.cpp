@@ -67,6 +67,7 @@
 #include "topics/vehicle_vicon_position.h"
 #include "topics/vehicle_velocity_meas_inertial.h"
 #include "topics/vehicle_velocity_est_inertial.h"
+#include "topics/vehicle_omega_ff_setpoint.h"
 
 #include <px4_defines.h>
 

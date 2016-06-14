@@ -121,6 +121,7 @@ set(msg_file_names
 	vehicle_velocity_meas_inertial.msg
 	vehicle_velocity_est_inertial.msg
 	vehicle_velocity_meas_est_body.msg
+	vehicle_omega_ff_setpoint.msg
 	)
 
 # Get absolute paths
