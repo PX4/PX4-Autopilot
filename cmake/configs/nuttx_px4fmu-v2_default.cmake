@@ -88,6 +88,8 @@ set(config_module_list
 	modules/position_estimator_inav
 	modules/local_position_estimator
 
+	#modules/av_estimator
+
 	#
 	# Vehicle Control
 	#
@@ -95,12 +97,12 @@ set(config_module_list
 	modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control
+	#modules/vtol_att_control
 
 	#
 	# Logging
 	#
-	modules/logger
+	#modules/logger
 	modules/sdlog2
 
 	#
