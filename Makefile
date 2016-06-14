@@ -278,7 +278,7 @@ checks_last: \
 	check_format \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
-quick_check: check_px4fmu-v2_default check_px4fmu-v4_default checks_last
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -300,7 +300,7 @@ ifeq ($(VECTORCONTROL),1)
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-unittest: posix_sitl_test
+unittest:
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
