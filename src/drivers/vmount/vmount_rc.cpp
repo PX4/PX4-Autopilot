@@ -68,6 +68,10 @@ bool vmount_rc_init()
 
 	if (!actuator_controls_pub) { return false; }
 
+	locked = false;
+	normal_mode = -1.0f;
+	locked_mode = 0.0f;
+
 	return true;
 }
 
@@ -126,7 +130,16 @@ void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new)
 	actuator_controls.control[0] = pitch_new;
 	actuator_controls.control[1] = roll_new;
 	actuator_controls.control[2] = yaw_new;
-	actuator_controls.control[3] = locked ? locked_mode : normal_mode;
+	actuator_controls.control[3] = (locked) ? locked_mode : normal_mode;
+
+	/** for debugging purposes
+	warnx("actuator_controls_2 values:\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
+		 (double)actuator_controls.control[0],
+		 (double)actuator_controls.control[1],
+		 (double)actuator_controls.control[2],
+	     (double)actuator_controls.control[3],
+	     (double)actuator_controls.control[4]);
+	**/
 
 	orb_publish(ORB_ID(actuator_controls_2), actuator_controls_pub, &actuator_controls);
 }

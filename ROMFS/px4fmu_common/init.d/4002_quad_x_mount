@@ -13,9 +13,9 @@ sh /etc/init.d/rc.mc_defaults
 set MIXER quad_x
 set PWM_OUT 1234
 
-set AUX_MIXER mount
-set PWM_AUX_RATE 50
+set MIXER_AUX mount
 set PWM_AUX_OUT 123456
+set PWM_AUX_RATE 50
 
 # Start mount driver
 vmount start
