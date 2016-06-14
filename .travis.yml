@@ -59,6 +59,10 @@ after_success:
   - find . -type f -name 'nuttx-*-default.px4' -exec cp "{}" . \;
   - find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
   - mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch/
+# only deploy GCC 4.8 builds on master/beta/stable
+  - if [[ "$GCC_VER" == "4.8" && ( "$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == "beta" || "$TRAVIS_BRANCH" == "stable" ) ]]; then
+      export PX4_S3_DEPLOY=1
+    fi
 
 deploy:
 # deploy *.px4 to S3 px4-travis/Firmware/$TRAVIS_BRANCH
@@ -72,10 +76,8 @@ deploy:
     acl: public_read
     skip_cleanup: true
     on:
-      branch: master
-      branch: beta
-      branch: stable
-      condition: $GCC_VER = 4.8
+      all_branches: true
+      condition: $PX4_S3_DEPLOY = 1
 
 # deploy Firmware.zip to S3 px4-travis/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
   - provider: s3
@@ -88,10 +90,8 @@ deploy:
     acl: public_read
     skip_cleanup: true
     on:
-      branch: master
-      branch: beta
-      branch: stable
-      condition: $GCC_VER = 4.8
+      all_branches: true
+      condition: $PX4_S3_DEPLOY = 1
 
 # on tags deploy Firmware.zip to Github releases
   - provider: releases
