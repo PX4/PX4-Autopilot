@@ -223,8 +223,8 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.PHONY: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 
 gazebo_build:
 	@mkdir -p build_gazebo
@@ -292,6 +292,14 @@ unittest: posix_sitl_test
 	
 test_onboard_sitl:
 	@HEADLESS=1 make posix_sitl_test gazebo_iris
+
+
+# QGroundControl flashable firmware
+qgc_firmware: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_mindpx-v2_default \
+	check_px4fmu-v4_default_and_uavcan
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
