@@ -25,8 +25,8 @@ then
 	param set MC_YAWRATE_I 0.25
 	param set MC_YAWRATE_D 0.0
 
-	param set BAT_V_SCALING 0.00989
-	param set BAT_C_SCALING 0.0124
+	param set BAT_V_DIV 12.27559
+	param set BAT_A_PER_V 15.39103
 fi
 
 set MIXER quad_w

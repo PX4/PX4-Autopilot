@@ -536,7 +536,7 @@ void Ekf2::task_main()
 
 		// only set airspeed data if condition for airspeed fusion are met
 		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing
-				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s;
+				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s && _arspFusionThreshold.get() >= 0.1f;
 
 		if (fuse_airspeed) {
 			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
