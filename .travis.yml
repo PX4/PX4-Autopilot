@@ -11,11 +11,11 @@ matrix:
       env: GCC_VER=4.8
       services:
         - docker
-    #- os: linux
-    #  sudo: required
-    #  env: GCC_VER=4.9
-    #  services:
-    #    - docker
+    - os: linux
+      sudo: required
+      env: GCC_VER=4.9
+      services:
+        - docker
     - os: osx
       osx_image: xcode7
       sudo: true
@@ -27,7 +27,9 @@ cache:
 before_install:
   - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         docker pull px4io/px4-dev-base;
+         if [ "$GCC_VER" = "4.8" ]; then DOCKER_REPO=px4-dev-base ; fi
+      && if [ "$GCC_VER" = "4.9" ]; then DOCKER_REPO=px4-dev-nuttx-gcc4.9 ; fi
+      && docker pull ${DOCKER_REPO};
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
