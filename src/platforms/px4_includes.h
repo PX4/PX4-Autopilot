@@ -94,11 +94,11 @@
 #include <platforms/nuttx/px4_messages/px4_offboard_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_force_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_camera_trigger.h>
-/*#include <platforms/nuttx/px4_messages/px4_vehicle_vicon_position.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_vicon_position.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_velocity_meas_inertial.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_velocity_est_inertial.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_gps_position.h>
-#include <platforms/nuttx/px4_messages/px4_vehicle_velocity_meas_est_body.h>*/
+#include <platforms/nuttx/px4_messages/px4_vehicle_velocity_meas_est_body.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>

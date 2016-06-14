@@ -88,7 +88,7 @@ set(config_module_list
 	modules/position_estimator_inav
 	modules/local_position_estimator
 
-	#modules/av_estimator
+	modules/av_estimator
 
 	#
 	# Vehicle Control
