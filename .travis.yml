@@ -51,7 +51,7 @@ env:
 script:
   - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         docker run --user=root --name travis-ci -d px4io/px4-dev-base tail -f /dev/null
+         docker run --user=root --name travis-ci -d ${DOCKER_REPO} tail -f /dev/null
       && docker cp ${TRAVIS_BUILD_DIR} travis-ci:/Firmware/
       && docker exec --user=root -it travis-ci /bin/bash -c "cd /Firmware/; ccache -z; make check VECTORCONTROL=1; ccache -s";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
