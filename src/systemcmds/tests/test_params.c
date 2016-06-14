@@ -59,52 +59,52 @@ test_param(int argc, char *argv[])
 	p = param_find("TEST_PARAMS");
 
 	if (p == PARAM_INVALID) {
-		warnx("test parameter not found");
+		px4_warnx("test parameter not found");
 		return 1;
 	}
 
 	if (param_reset(p) != OK) {
-		warnx("failed param reset");
+		px4_warnx("failed param reset");
 		return 1;
 	}
 
 	param_type_t t = param_type(p);
 
 	if (t != PARAM_TYPE_INT32) {
-		warnx("test parameter type mismatch (got %u)", (unsigned)t);
+		px4_warnx("test parameter type mismatch (got %u)", (unsigned)t);
 		return 1;
 	}
 
 	int32_t	val = -1;
 
 	if (param_get(p, &val) != OK) {
-		warnx("failed to read test parameter");
+		px4_warnx("failed to read test parameter");
 		return 1;
 	}
 
 	if (val != PARAM_MAGIC1) {
-		warnx("parameter value mismatch");
+		px4_warnx("parameter value mismatch");
 		return 1;
 	}
 
 	val = PARAM_MAGIC2;
 
 	if (param_set(p, &val) != OK) {
-		warnx("failed to write test parameter");
+		px4_warnx("failed to write test parameter");
 		return 1;
 	}
 
 	if (param_get(p, &val) != OK) {
-		warnx("failed to re-read test parameter");
+		px4_warnx("failed to re-read test parameter");
 		return 1;
 	}
 
 	if ((uint32_t)val != PARAM_MAGIC2) {
-		warnx("parameter value mismatch after write");
+		px4_warnx("parameter value mismatch after write");
 		return 1;
 	}
 
-	warnx("parameter test PASS");
+	px4_warnx("parameter test PASS");
 
 	return 0;
 }

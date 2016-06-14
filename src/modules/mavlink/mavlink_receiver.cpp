@@ -341,7 +341,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote");
+			px4_warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
@@ -358,7 +358,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				px4_warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -418,7 +418,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote");
+			px4_warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
@@ -435,7 +435,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				px4_warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -1399,10 +1399,10 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 
 		if (px4_clock_settime(CLOCK_REALTIME, &tv)) {
-			warn("failed setting clock");
+			px4_warn("failed setting clock");
 
 		} else {
-			warnx("[timesync] UTC time synced.");
+			px4_warnx("[timesync] UTC time synced.");
 		}
 	}
 
@@ -1437,7 +1437,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
 			_time_offset = offset_ns;
-			warnx("[timesync] Hard setting offset.");
+			px4_warnx("[timesync] Hard setting offset.");
 
 		} else {
 			smooth_time_offset(offset_ns);

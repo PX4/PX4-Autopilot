@@ -92,7 +92,7 @@ LaunchDetectionResult LaunchDetector::getLaunchDetected()
 			/* None of the active launchmethods has detected a launch, check all launchmethods */
 			for (unsigned i = 0; i < (sizeof(launchMethods) / sizeof(launchMethods[0])); i++) {
 				if (launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
-					warnx("selecting launchmethod %d", i);
+					px4_warnx("selecting launchmethod %d", i);
 					activeLaunchDetectionMethodIndex = i; // from now on only check this method
 					return launchMethods[i]->getLaunchDetected();
 				}

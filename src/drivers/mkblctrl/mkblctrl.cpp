@@ -285,7 +285,7 @@ MK::init(unsigned motors)
 	ret = I2C::init();
 
 	if (ret != OK) {
-		warnx("I2C init failed");
+		px4_warnx("I2C init failed");
 		return ret;
 	}
 
@@ -1235,7 +1235,7 @@ mk_start(unsigned motors, const char *device_path)
 	}
 
 	if (OK == g_mk->init(motors)) {
-		warnx("[mkblctrl] scanning i2c3...\n");
+		px4_warnx("[mkblctrl] scanning i2c3...\n");
 		ret = g_mk->mk_check_for_blctrl(8, false, false);
 
 		if (ret > 0) {
@@ -1254,7 +1254,7 @@ mk_start(unsigned motors, const char *device_path)
 	}
 
 	if (OK == g_mk->init(motors)) {
-		warnx("[mkblctrl] scanning i2c1...\n");
+		px4_warnx("[mkblctrl] scanning i2c1...\n");
 		ret = g_mk->mk_check_for_blctrl(8, false, false);
 
 		if (ret > 0) {
@@ -1308,11 +1308,11 @@ mkblctrl_main(int argc, char *argv[])
 					}
 
 				} else {
-					errx(1, "only + or x for frametype supported !");
+					px4_errx(1, "only + or x for frametype supported !");
 				}
 
 			} else {
-				errx(1, "missing argument for mkmode (-mkmode)");
+				px4_errx(1, "missing argument for mkmode (-mkmode)");
 				return 1;
 			}
 		}
@@ -1341,7 +1341,7 @@ mkblctrl_main(int argc, char *argv[])
 				//newMode = true;
 
 			} else {
-				errx(1, "missing the devicename (-d)");
+				px4_errx(1, "missing the devicename (-d)");
 				return 1;
 			}
 		}
@@ -1352,12 +1352,12 @@ mkblctrl_main(int argc, char *argv[])
 				rc_min_value = strtoul(argv[i + 1], &ep, 0);
 
 				if (*ep != '\0') {
-					errx(1, "bad pwm val (-rc_min)");
+					px4_errx(1, "bad pwm val (-rc_min)");
 					return 1;
 				}
 
 			} else {
-				errx(1, "missing value (-rc_min)");
+				px4_errx(1, "missing value (-rc_min)");
 				return 1;
 			}
 		}
@@ -1368,12 +1368,12 @@ mkblctrl_main(int argc, char *argv[])
 				rc_max_value = strtoul(argv[i + 1], &ep, 0);
 
 				if (*ep != '\0') {
-					errx(1, "bad pwm val (-rc_max)");
+					px4_errx(1, "bad pwm val (-rc_max)");
 					return 1;
 				}
 
 			} else {
-				errx(1, "missing value (-rc_max)");
+				px4_errx(1, "missing value (-rc_max)");
 				return 1;
 			}
 		}
@@ -1402,7 +1402,7 @@ mkblctrl_main(int argc, char *argv[])
 	if (!motortest) {
 		if (g_mk == nullptr) {
 			if (mk_start(motorcount, devicepath) != OK) {
-				errx(1, "failed to start the MK-BLCtrl driver");
+				px4_errx(1, "failed to start the MK-BLCtrl driver");
 			}
 
 			/* parameter set ? */
@@ -1414,12 +1414,12 @@ mkblctrl_main(int argc, char *argv[])
 			exit(0);
 
 		} else {
-			errx(1, "MK-BLCtrl driver already running");
+			px4_errx(1, "MK-BLCtrl driver already running");
 		}
 
 	} else {
 		if (g_mk == nullptr) {
-			errx(1, "MK-BLCtrl driver not running. You have to start it first.");
+			px4_errx(1, "MK-BLCtrl driver not running. You have to start it first.");
 
 		} else {
 			g_mk->set_motor_test(motortest);

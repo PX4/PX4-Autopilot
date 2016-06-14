@@ -131,7 +131,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		warnx("PASS: decoder: int1");
+		px4_warnx("PASS: decoder: int1");
 		return 1;
 	}
 
@@ -146,7 +146,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		warnx("PASS: decoder: int2");
+		px4_warnx("PASS: decoder: int2");
 		return 1;
 	}
 
@@ -161,7 +161,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		warnx("PASS: decoder: double1");
+		px4_warnx("PASS: decoder: double1");
 		return 1;
 	}
 
@@ -200,7 +200,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		warnx("PASS: decoder: string1");
+		px4_warnx("PASS: decoder: string1");
 		return 1;
 	}
 

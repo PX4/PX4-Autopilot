@@ -305,7 +305,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort with timeout */
 		if (hrt_absolute_time() > detection_deadline) {
 			result = calibrate_return_error;
-			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
+			px4_warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
 			calibration_log_critical(worker_data->mavlink_log_pub, "Failed: This calibration requires rotation.");
 			break;
 		}

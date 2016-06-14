@@ -72,10 +72,10 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		warnx("%s\n", reason);
+		px4_warnx("%s\n", reason);
 	}
 
-	warnx("usage: daemon {start|stop|status} [-p <additional params>]\n\n");
+	px4_warnx("usage: daemon {start|stop|status} [-p <additional params>]\n\n");
 }
 
 /**
@@ -96,7 +96,7 @@ int px4_daemon_app_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("daemon already running\n");
+			px4_warnx("daemon already running\n");
 			/* this is not an error */
 			return 0;
 		}
@@ -118,10 +118,10 @@ int px4_daemon_app_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("\trunning\n");
+			px4_warnx("\trunning\n");
 
 		} else {
-			warnx("\tnot started\n");
+			px4_warnx("\tnot started\n");
 		}
 
 		return 0;
@@ -134,16 +134,16 @@ int px4_daemon_app_main(int argc, char *argv[])
 int px4_daemon_thread_main(int argc, char *argv[])
 {
 
-	warnx("[daemon] starting\n");
+	px4_warnx("[daemon] starting\n");
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
-		warnx("Hello daemon!\n");
+		px4_warnx("Hello daemon!\n");
 		sleep(10);
 	}
 
-	warnx("[daemon] exiting.\n");
+	px4_warnx("[daemon] exiting.\n");
 
 	thread_running = false;
 

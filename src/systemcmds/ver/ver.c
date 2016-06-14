@@ -141,7 +141,7 @@ int ver_main(int argc, char *argv[])
 					return ret;
 
 				} else {
-					warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					px4_warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
 					return 1;
 				}
 			}
@@ -218,7 +218,7 @@ int ver_main(int argc, char *argv[])
 
 
 			if (ret == 1) {
-				warn("unknown command.\n");
+				px4_warn("unknown command.\n");
 				return 1;
 			}
 

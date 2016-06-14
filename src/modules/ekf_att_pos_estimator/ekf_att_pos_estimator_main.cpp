@@ -583,7 +583,7 @@ void AttitudePositionEstimatorEKF::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("POLL ERR %d, %d", pret, errno);
+			px4_warn("POLL ERR %d, %d", pret, errno);
 			continue;
 		}
 
@@ -1255,7 +1255,7 @@ int AttitudePositionEstimatorEKF::start()
 					     nullptr);
 
 	if (_estimator_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 

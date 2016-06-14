@@ -837,7 +837,7 @@ MulticopterAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("mc att ctrl: poll error %d, %d", pret, errno);
+			px4_warn("mc att ctrl: poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
@@ -1008,7 +1008,7 @@ MulticopterAttitudeControl::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 
@@ -1018,28 +1018,28 @@ MulticopterAttitudeControl::start()
 int mc_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: mc_att_control {start|stop|status}");
+		px4_warnx("usage: mc_att_control {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (mc_att_control::g_control != nullptr) {
-			warnx("already running");
+			px4_warnx("already running");
 			return 1;
 		}
 
 		mc_att_control::g_control = new MulticopterAttitudeControl;
 
 		if (mc_att_control::g_control == nullptr) {
-			warnx("alloc failed");
+			px4_warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != mc_att_control::g_control->start()) {
 			delete mc_att_control::g_control;
 			mc_att_control::g_control = nullptr;
-			warnx("start failed");
+			px4_warnx("start failed");
 			return 1;
 		}
 
@@ -1048,7 +1048,7 @@ int mc_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (mc_att_control::g_control == nullptr) {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 
@@ -1059,15 +1059,15 @@ int mc_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_att_control::g_control) {
-			warnx("running");
+			px4_warnx("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

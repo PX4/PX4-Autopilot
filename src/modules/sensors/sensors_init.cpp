@@ -125,7 +125,7 @@ accel_init()
 	DevMgr::getHandle(ACCEL0_DEVICE_PATH, h_accel);
 
 	if (!h_accel.isValid()) {
-		warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
+		px4_warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
 		return ERROR;
 
 	} else {
@@ -147,7 +147,7 @@ gyro_init()
 	DevMgr::getHandle(GYRO0_DEVICE_PATH, h_gyro);
 
 	if (!h_gyro.isValid()) {
-		warnx("FATAL: no gyro found: %s (%d)", GYRO0_DEVICE_PATH, h_gyro.getError());
+		px4_warnx("FATAL: no gyro found: %s (%d)", GYRO0_DEVICE_PATH, h_gyro.getError());
 		return ERROR;
 
 	}
@@ -170,7 +170,7 @@ mag_init()
 	DevMgr::getHandle(MAG0_DEVICE_PATH, h_mag);
 
 	if (!h_mag.isValid()) {
-		warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
+		px4_warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
 		return ERROR;
 	}
 
@@ -192,7 +192,7 @@ mag_init()
 			h_mag.ioctl(SENSORIOCSPOLLRATE, 100);
 
 		} else {
-			warnx("FATAL: mag sampling rate could not be set");
+			px4_warnx("FATAL: mag sampling rate could not be set");
 			return ERROR;
 		}
 	}
@@ -207,7 +207,7 @@ baro_init()
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
 	if (!h_baro.isValid()) {
-		warnx("FATAL: No barometer found: %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+		px4_warnx("FATAL: No barometer found: %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
 	}
 

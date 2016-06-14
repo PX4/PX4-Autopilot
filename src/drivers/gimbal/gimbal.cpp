@@ -315,7 +315,7 @@ Gimbal::cycle()
 		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report);
 
 		if (_actuator_controls_2_topic == nullptr) {
-			warnx("advert err");
+			px4_warnx("advert err");
 		}
 
 		_mount_mode = vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT;
@@ -566,7 +566,7 @@ void
 start()
 {
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	/* create the driver */
@@ -589,7 +589,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -602,7 +602,7 @@ void stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	exit(0);
@@ -619,10 +619,10 @@ test()
 	int fd = open(GIMBAL_DEVICE_PATH, O_RDONLY);
 
 	if (ioctl(fd, GIMBALIOCATTCOMPENSATE, 1) < 0) {
-		err(1, "failed enabling compensation");
+		px4_err(1, "failed enabling compensation");
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -634,11 +634,11 @@ reset()
 	int fd = open(GIMBAL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	// if (ioctl(fd, GIMBALIOCATTCOMPENSATE, 1) < 0) {
-	// 	err(1, "failed enabling compensation");
+	// 	px4_err(1, "failed enabling compensation");
 	// }
 
 	exit(0);
@@ -651,7 +651,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -700,5 +700,5 @@ gimbal_main(int argc, char *argv[])
 		gimbal::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'stop', 'reset', 'test' or 'info'");
+	px4_errx(1, "unrecognized command, try 'start', 'stop', 'reset', 'test' or 'info'");
 }

@@ -651,7 +651,7 @@ LSM303D::init()
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
-		warnx("SPI init failed");
+		px4_warnx("SPI init failed");
 		goto out;
 	}
 
@@ -674,7 +674,7 @@ LSM303D::init()
 	ret = _mag->init();
 
 	if (ret != OK) {
-		warnx("MAG init failed");
+		px4_warnx("MAG init failed");
 		goto out;
 	}
 
@@ -690,7 +690,7 @@ LSM303D::init()
 					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic == nullptr) {
-		warnx("ADVERT ERR");
+		px4_warnx("ADVERT ERR");
 	}
 
 
@@ -705,7 +705,7 @@ LSM303D::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT ERR");
+		px4_warnx("ADVERT ERR");
 	}
 
 out:
@@ -1961,7 +1961,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	int fd, fd_mag;
 
 	if (g_dev != nullptr) {
-		errx(0, "already started");
+		px4_errx(0, "already started");
 	}
 
 	/* create the driver */
@@ -1969,7 +1969,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
 		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
-		errx(0, "External SPI not available");
+		px4_errx(0, "External SPI not available");
 #endif
 
 	} else {
@@ -1977,7 +1977,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	}
 
 	if (g_dev == nullptr) {
-		warnx("failed instantiating LSM303D obj");
+		px4_warnx("failed instantiating LSM303D obj");
 		goto fail;
 	}
 
@@ -2020,7 +2020,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -2040,31 +2040,31 @@ test()
 	fd_accel = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd_accel < 0) {
-		err(1, "%s open failed", LSM303D_DEVICE_PATH_ACCEL);
+		px4_err(1, "%s open failed", LSM303D_DEVICE_PATH_ACCEL);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd_accel, &accel_report, sizeof(accel_report));
 
 	if (sz != sizeof(accel_report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
 
-	warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
-	warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
-	warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
-	warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
-	warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
-	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
+	px4_warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
+	px4_warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
+	px4_warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
+	px4_warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
+	px4_warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
+	px4_warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
-	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
+	px4_warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
 
 	if (ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
-		warnx("accel antialias filter bandwidth: fail");
+		px4_warnx("accel antialias filter bandwidth: fail");
 
 	} else {
-		warnx("accel antialias filter bandwidth: %d Hz", ret);
+		px4_warnx("accel antialias filter bandwidth: %d Hz", ret);
 	}
 
 	int fd_mag = -1;
@@ -2074,41 +2074,41 @@ test()
 	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd_mag < 0) {
-		err(1, "%s open failed", LSM303D_DEVICE_PATH_MAG);
+		px4_err(1, "%s open failed", LSM303D_DEVICE_PATH_MAG);
 	}
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd_mag, MAGIOCGEXTERNAL, 0)) < 0) {
-		errx(1, "failed to get if mag is onboard or external");
+		px4_errx(1, "failed to get if mag is onboard or external");
 	}
 
-	warnx("mag device active: %s", ret ? "external" : "onboard");
+	px4_warnx("mag device active: %s", ret ? "external" : "onboard");
 
 	/* do a simple demand read */
 	sz = read(fd_mag, &m_report, sizeof(m_report));
 
 	if (sz != sizeof(m_report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("mag x: \t% 9.5f\tga", (double)m_report.x);
-	warnx("mag y: \t% 9.5f\tga", (double)m_report.y);
-	warnx("mag z: \t% 9.5f\tga", (double)m_report.z);
-	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
-	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
-	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-	warnx("mag range: %8.4f ga", (double)m_report.range_ga);
+	px4_warnx("mag x: \t% 9.5f\tga", (double)m_report.x);
+	px4_warnx("mag y: \t% 9.5f\tga", (double)m_report.y);
+	px4_warnx("mag z: \t% 9.5f\tga", (double)m_report.z);
+	px4_warnx("mag x: \t%d\traw", (int)m_report.x_raw);
+	px4_warnx("mag y: \t%d\traw", (int)m_report.y_raw);
+	px4_warnx("mag z: \t%d\traw", (int)m_report.z_raw);
+	px4_warnx("mag range: %8.4f ga", (double)m_report.range_ga);
 
 	/* reset to default polling */
 	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "reset to default polling");
+		px4_err(1, "reset to default polling");
 	}
 
 	close(fd_accel);
 	close(fd_mag);
 
 	reset();
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -2120,15 +2120,15 @@ reset()
 	int fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "accel pollrate reset failed");
+		px4_err(1, "accel pollrate reset failed");
 	}
 
 	close(fd);
@@ -2136,12 +2136,12 @@ reset()
 	fd = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("mag could not be opened, external mag might be used");
+		px4_warnx("mag could not be opened, external mag might be used");
 
 	} else {
 		/* no need to reset the mag as well, the reset() is the same */
 		if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			err(1, "mag pollrate reset failed");
+			px4_err(1, "mag pollrate reset failed");
 		}
 	}
 
@@ -2157,7 +2157,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running\n");
+		px4_errx(1, "driver not running\n");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -2173,7 +2173,7 @@ void
 regdump()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running\n");
+		px4_errx(1, "driver not running\n");
 	}
 
 	printf("regdump @ %p\n", g_dev);
@@ -2189,7 +2189,7 @@ void
 test_error()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running\n");
+		px4_errx(1, "driver not running\n");
 	}
 
 	g_dev->test_error();
@@ -2200,10 +2200,10 @@ test_error()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -R rotation");
+	px4_warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	px4_warnx("options:");
+	px4_warnx("    -X    (external bus)");
+	px4_warnx("    -R rotation");
 }
 
 } // namespace
@@ -2282,5 +2282,5 @@ lsm303d_main(int argc, char *argv[])
 		lsm303d::test_error();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	px4_errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }

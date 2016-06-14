@@ -250,7 +250,7 @@ Geofence::valid()
 
 	// Otherwise
 	if ((_vertices_count < 4) || (_vertices_count > fence_s::GEOFENCE_MAX_VERTICES)) {
-		warnx("Fence must have at least 3 sides and not more than %d", fence_s::GEOFENCE_MAX_VERTICES - 1);
+		px4_warnx("Fence must have at least 3 sides and not more than %d", fence_s::GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
 
@@ -367,11 +367,11 @@ Geofence::loadFromFile(const char *filename)
 				float lat_d, lat_m, lat_s, lon_d, lon_m, lon_s;
 
 				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6) {
-					warnx("Scanf to parse DMS geofence vertex failed.");
+					px4_warnx("Scanf to parse DMS geofence vertex failed.");
 					goto error;
 				}
 
-//				warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
+//				px4_warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
 
 				vertex.lat = lat_d + lat_m / 60.0f + lat_s / 3600.0f;
 				vertex.lon = lon_d + lon_m / 60.0f + lon_s / 3600.0f;
@@ -379,7 +379,7 @@ Geofence::loadFromFile(const char *filename)
 			} else {
 				/* Handle decimal degree format */
 				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2) {
-					warnx("Scanf to parse geofence vertex failed.");
+					px4_warnx("Scanf to parse geofence vertex failed.");
 					goto error;
 				}
 			}
@@ -388,7 +388,7 @@ Geofence::loadFromFile(const char *filename)
 				goto error;
 			}
 
-			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter, (double)vertex.lat, (double)vertex.lon);
+			px4_warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter, (double)vertex.lat, (double)vertex.lon);
 
 			pointCounter++;
 
@@ -398,7 +398,7 @@ Geofence::loadFromFile(const char *filename)
 				goto error;
 			}
 
-			warnx("Geofence: alt min: %.4f, alt_max: %.4f", (double)_altitude_min, (double)_altitude_max);
+			px4_warnx("Geofence: alt min: %.4f, alt_max: %.4f", (double)_altitude_min, (double)_altitude_max);
 			gotVertical = true;
 		}
 	}
@@ -406,12 +406,12 @@ Geofence::loadFromFile(const char *filename)
 	/* Check if import was successful */
 	if (gotVertical && pointCounter > 0) {
 		_vertices_count = pointCounter;
-		warnx("Geofence: imported successfully");
+		px4_warnx("Geofence: imported successfully");
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported");
 		rc = OK;
 
 	} else {
-		warnx("Geofence: import error");
+		px4_warnx("Geofence: import error");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence import error");
 	}
 

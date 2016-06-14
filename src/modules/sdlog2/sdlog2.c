@@ -451,7 +451,7 @@ int create_log_dir()
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if ((mkdir_ret != OK) && (errno != EEXIST)) {
-			warn("failed creating new dir: %s", log_dir);
+			px4_warn("failed creating new dir: %s", log_dir);
 			return -1;
 		}
 
@@ -469,7 +469,7 @@ int create_log_dir()
 				break;
 
 			} else if (errno != EEXIST) {
-				warn("failed creating new dir: %s", log_dir);
+				px4_warn("failed creating new dir: %s", log_dir);
 				return -1;
 			}
 
@@ -665,7 +665,7 @@ static void *logwriter_thread(void *arg)
 
 			if (n < 0) {
 				main_thread_should_exit = true;
-				warn("error writing log file");
+				px4_warn("error writing log file");
 				break;
 			}
 
@@ -1112,7 +1112,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret != 0 && errno != EEXIST) {
-		warn("ERR: failed creating log dir: %s", log_root);
+		px4_warn("ERR: failed creating log dir: %s", log_root);
 		return 1;
 	}
 

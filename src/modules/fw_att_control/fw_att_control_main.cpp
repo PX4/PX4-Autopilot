@@ -733,7 +733,7 @@ FixedwingAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			px4_warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -1149,7 +1149,7 @@ FixedwingAttitudeControl::task_main()
 						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("roll_u %.4f", (double)roll_u);
+							px4_warnx("roll_u %.4f", (double)roll_u);
 						}
 					}
 
@@ -1161,7 +1161,7 @@ FixedwingAttitudeControl::task_main()
 						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
+							px4_warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 							      " airspeed %.4f, airspeed_scaling %.4f,"
 							      " roll_sp %.4f, pitch_sp %.4f,"
 							      " _roll_ctrl.get_desired_rate() %.4f,"
@@ -1197,7 +1197,7 @@ FixedwingAttitudeControl::task_main()
 						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("yaw_u %.4f", (double)yaw_u);
+							px4_warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
 
@@ -1210,7 +1210,7 @@ FixedwingAttitudeControl::task_main()
 
 					if (!PX4_ISFINITE(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("throttle_sp %.4f", (double)throttle_sp);
+							px4_warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
 					}
 
@@ -1218,7 +1218,7 @@ FixedwingAttitudeControl::task_main()
 					perf_count(_nonfinite_input_perf);
 
 					if (_debug && loop_counter % 10 == 0) {
-						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
+						px4_warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
 				}
 
@@ -1287,7 +1287,7 @@ FixedwingAttitudeControl::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exiting.\n");
+	px4_warnx("exiting.\n");
 
 	_control_task = -1;
 	_task_running = false;
@@ -1307,7 +1307,7 @@ FixedwingAttitudeControl::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 
@@ -1317,28 +1317,28 @@ FixedwingAttitudeControl::start()
 int fw_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: fw_att_control {start|stop|status}");
+		px4_warnx("usage: fw_att_control {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (att_control::g_control != nullptr) {
-			warnx("already running");
+			px4_warnx("already running");
 			return 1;
 		}
 
 		att_control::g_control = new FixedwingAttitudeControl;
 
 		if (att_control::g_control == nullptr) {
-			warnx("alloc failed");
+			px4_warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != att_control::g_control->start()) {
 			delete att_control::g_control;
 			att_control::g_control = nullptr;
-			warn("start failed");
+			px4_warn("start failed");
 			return 1;
 		}
 
@@ -1360,7 +1360,7 @@ int fw_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (att_control::g_control == nullptr) {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 
@@ -1371,15 +1371,15 @@ int fw_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (att_control::g_control) {
-			warnx("running");
+			px4_warnx("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

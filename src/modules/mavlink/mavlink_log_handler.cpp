@@ -56,7 +56,7 @@ static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
 //#define MAVLINK_LOG_HANDLER_VERBOSE
 
 #ifdef MAVLINK_LOG_HANDLER_VERBOSE
-#define PX4LOG_WARN(fmt, ...) warnx(fmt, ##__VA_ARGS__)
+#define PX4LOG_WARN(fmt, ...) px4_warnx(fmt, ##__VA_ARGS__)
 #else
 #define PX4LOG_WARN(fmt, ...)
 #endif

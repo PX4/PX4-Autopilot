@@ -57,7 +57,7 @@ int UavcanGnssBridge::init()
 	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 
 	if (res < 0) {
-		warnx("GNSS fix sub failed %i", res);
+		px4_warnx("GNSS fix sub failed %i", res);
 		return res;
 	}
 
@@ -86,7 +86,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	// This bridge does not support redundant GNSS receivers yet.
 	if (_receiver_node_id < 0) {
 		_receiver_node_id = msg.getSrcNodeID().get();
-		warnx("GNSS receiver node ID: %d", _receiver_node_id);
+		px4_warnx("GNSS receiver node ID: %d", _receiver_node_id);
 
 	} else {
 		if (_receiver_node_id != msg.getSrcNodeID().get()) {

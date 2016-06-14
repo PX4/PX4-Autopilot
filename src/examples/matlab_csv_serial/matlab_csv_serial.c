@@ -97,7 +97,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 		if (thread_running) {
-			warnx("already running\n");
+			px4_warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
@@ -119,10 +119,10 @@ int matlab_csv_serial_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("running");
+			px4_warnx("running");
 
 		} else {
-			warnx("stopped");
+			px4_warnx("stopped");
 		}
 
 		exit(0);
@@ -136,19 +136,19 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 {
 
 	if (argc < 2) {
-		errx(1, "need a serial port name as argument");
+		px4_errx(1, "need a serial port name as argument");
 	}
 
 	const char *uart_name = argv[1];
 
-	warnx("opening port %s", uart_name);
+	px4_warnx("opening port %s", uart_name);
 
 	int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
 
 	unsigned speed = 921600;
 
 	if (serial_fd < 0) {
-		err(1, "failed to open port: %s", uart_name);
+		px4_err(1, "failed to open port: %s", uart_name);
 	}
 
 	/* Try to set baud rate */
@@ -157,7 +157,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+		px4_warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		close(serial_fd);
 		return -1;
 	}
@@ -170,7 +170,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+			px4_warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			close(serial_fd);
 			return -1;
 		}
@@ -178,7 +178,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	}
 
 	if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
+		px4_warnx("ERR SET CONF %s\n", uart_name);
 		close(serial_fd);
 		return -1;
 	}
@@ -212,7 +212,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 		} else if (ret == 0) {
 			/* no return value, ignore */
-			warnx("no sensor data");
+			px4_warnx("no sensor data");
 
 		} else {
 
@@ -232,7 +232,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("exiting");
+	px4_warnx("exiting");
 	thread_running = false;
 
 	fflush(stdout);

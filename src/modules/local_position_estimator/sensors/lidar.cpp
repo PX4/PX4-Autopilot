@@ -34,7 +34,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 {
 	// measure
 	float d = _sub_lidar->get().current_distance + _lidar_z_offset.get();
-	warnx("d %10.2g, lidar z offset %10.2g\n", double(d), double(_lidar_z_offset.get()));
+	px4_warnx("d %10.2g, lidar z offset %10.2g\n", double(d), double(_lidar_z_offset.get()));
 	float eps = 0.01f;
 	float min_dist = _sub_lidar->get().min_distance + eps;
 	float max_dist = _sub_lidar->get().max_distance - eps;

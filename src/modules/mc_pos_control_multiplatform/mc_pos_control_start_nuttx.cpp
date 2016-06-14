@@ -61,7 +61,7 @@ int mc_pos_control_m_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (mc_pos_control_thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -85,15 +85,15 @@ int mc_pos_control_m_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_pos_control_thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		return 0;
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

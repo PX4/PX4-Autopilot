@@ -357,7 +357,7 @@ uORB::DeviceNode::publish
 
 	if (ch != nullptr) {
 		if (ch->send_message(meta->o_name, meta->o_size, (uint8_t *)data) != 0) {
-			warnx("[uORB::DeviceNode::publish(%d)]: Error Sending [%s] topic data over comm_channel",
+			px4_warnx("[uORB::DeviceNode::publish(%d)]: Error Sending [%s] topic data over comm_channel",
 			      __LINE__, meta->o_name);
 			return ERROR;
 		}
@@ -591,7 +591,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		warnx("[uORB::DeviceNode::process_received_message(%d)]Error:[%s] Received DataLength[%d] != ExpectedLen[%d]",
+		px4_warnx("[uORB::DeviceNode::process_received_message(%d)]Error:[%s] Received DataLength[%d] != ExpectedLen[%d]",
 		      __LINE__, _meta->o_name, (int)length, (int)_meta->o_size);
 		return ERROR;
 	}

@@ -1027,7 +1027,7 @@ pwm_out_sim_main(int argc, char *argv[])
 		ret = g_pwm_sim->init();
 
 		if (ret != OK) {
-			warnx("failed to start the pwm_out_sim driver");
+			px4_warnx("failed to start the pwm_out_sim driver");
 			delete g_pwm_sim;
 			g_pwm_sim = nullptr;
 		}

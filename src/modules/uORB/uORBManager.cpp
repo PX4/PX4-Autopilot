@@ -105,7 +105,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	fd = node_open(PUBSUB, meta, data, true, instance, priority);
 
 	if (fd == ERROR) {
-		warnx("node_open as advertiser failed.");
+		px4_warnx("node_open as advertiser failed.");
 		return nullptr;
 	}
 
@@ -123,7 +123,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	px4_close(fd);
 
 	if (result == ERROR) {
-		warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
+		px4_warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
 		return nullptr;
 	}
 
@@ -131,7 +131,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	result = orb_publish(meta, advertiser, data);
 
 	if (result == ERROR) {
-		warnx("orb_publish failed");
+		px4_warnx("orb_publish failed");
 		return nullptr;
 	}
 
@@ -384,7 +384,7 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 int16_t uORB::Manager::process_remove_subscription(
 	const char *messageName)
 {
-	warnx("[posix-uORB::Manager::process_remove_subscription(%d)] Enter: name: %s",
+	px4_warnx("[posix-uORB::Manager::process_remove_subscription(%d)] Enter: name: %s",
 	      __LINE__, messageName);
 	int16_t rc = -1;
 	_remote_subscriber_topics.erase(messageName);

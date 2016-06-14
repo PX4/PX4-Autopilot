@@ -85,7 +85,7 @@ param_main(int argc, char *argv[])
 
 			} else {
 				if (param_save_default()) {
-					warnx("Param export failed.");
+					px4_warnx("Param export failed.");
 					return 1;
 
 				} else {
@@ -120,7 +120,7 @@ param_main(int argc, char *argv[])
 				param_set_default_file(NULL);
 			}
 
-			warnx("selected parameter default file %s", param_get_default_file());
+			px4_warnx("selected parameter default file %s", param_get_default_file());
 			return 0;
 		}
 
@@ -145,7 +145,7 @@ param_main(int argc, char *argv[])
 				return do_set(argv[2], argv[3], false);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
+				px4_warnx("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
 				return 1;
 			}
 		}
@@ -155,7 +155,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				px4_warnx("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 				return 1;
 			}
 		}
@@ -165,7 +165,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
+				px4_warnx("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
 				return 1;
 			}
 		}
@@ -193,7 +193,7 @@ param_main(int argc, char *argv[])
 				return do_show_index(argv[2], true);
 
 			} else {
-				warnx("no index provided");
+				px4_warnx("no index provided");
 				return 1;
 			}
 		}
@@ -203,13 +203,13 @@ param_main(int argc, char *argv[])
 				return do_show_index(argv[2], false);
 
 			} else {
-				warnx("no index provided");
+				px4_warnx("no index provided");
 				return 1;
 			}
 		}
 	}
 
-	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'greater', 'select', 'save', or 'reset' ");
+	px4_warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'greater', 'select', 'save', or 'reset' ");
 	return 1;
 }
 
@@ -220,7 +220,7 @@ do_save(const char *param_file_name)
 	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
-		warn("opening '%s' failed", param_file_name);
+		px4_warn("opening '%s' failed", param_file_name);
 		return 1;
 	}
 
@@ -231,7 +231,7 @@ do_save(const char *param_file_name)
 #ifndef __PX4_QURT
 		(void)unlink(param_file_name);
 #endif
-		warnx("error exporting to '%s'", param_file_name);
+		px4_warnx("error exporting to '%s'", param_file_name);
 		return 1;
 	}
 
@@ -244,7 +244,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open failed '%s'", param_file_name);
+		px4_warn("open failed '%s'", param_file_name);
 		return 1;
 	}
 
@@ -252,7 +252,7 @@ do_load(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		warnx("error importing from '%s'", param_file_name);
+		px4_warnx("error importing from '%s'", param_file_name);
 		return 1;
 	}
 
@@ -265,7 +265,7 @@ do_import(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s'", param_file_name);
+		px4_warn("open '%s'", param_file_name);
 		return 1;
 	}
 
@@ -273,7 +273,7 @@ do_import(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		warnx("error importing from '%s'", param_file_name);
+		px4_warnx("error importing from '%s'", param_file_name);
 		return 1;
 	}
 
@@ -307,7 +307,7 @@ do_show_index(const char *index, bool used_index)
 	}
 
 	if (param == PARAM_INVALID) {
-		warnx("param not found for index %u", i);
+		px4_warnx("param not found for index %u", i);
 		return 1;
 	}
 
@@ -361,7 +361,7 @@ do_show_print(void *arg, param_t param)
 
 			} else if (*ss == '*') {
 				if (*(ss + 1) != '\0') {
-					warnx("* symbol only allowed at end of search string.");
+					px4_warnx("* symbol only allowed at end of search string.");
 					// FIXME - should exit
 					return;
 				}
@@ -427,7 +427,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found - fail silenty in scripts as it prevents booting */
-		warnx("Error: Parameter %s not found.", name);
+		px4_warnx("Error: Parameter %s not found.", name);
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
@@ -479,12 +479,12 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		break;
 
 	default:
-		warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		px4_warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
 		return 1;
 	}
 
 	if (param_save_default()) {
-		warnx("Param export failed.");
+		px4_warnx("Param export failed.");
 		return 1;
 
 	} else {
@@ -502,7 +502,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found */
-		warnx("Error: Parameter %s not found.", name);
+		px4_warnx("Error: Parameter %s not found.", name);
 		return 1;
 	}
 
@@ -554,7 +554,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 		break;
 
 	default:
-		warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		px4_warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
 		return 1;
 	}
 
@@ -578,7 +578,7 @@ do_reset(const char *excludes[], int num_excludes)
 	}
 
 	if (param_save_default()) {
-		warnx("Param export failed.");
+		px4_warnx("Param export failed.");
 		return 1;
 	}
 
@@ -605,7 +605,7 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
 
 	if (param_save_default()) {
-		warnx("Param export failed.");
+		px4_warnx("Param export failed.");
 		return 1;
 
 	}

@@ -244,7 +244,7 @@ void FollowTarget::on_active()
 			}
 		}
 
-//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
+//		px4_warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
 //				(double) _step_vel(0),
 //				(double) _step_vel(1),
 //				(double) _current_vel(0),

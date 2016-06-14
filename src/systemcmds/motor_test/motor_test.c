@@ -82,10 +82,10 @@ void motor_test(unsigned channel, float value)
 static void usage(const char *reason)
 {
 	if (reason != NULL) {
-		warnx("%s", reason);
+		px4_warnx("%s", reason);
 	}
 
-	errx(1,
+	px4_errx(1,
 	     "usage:\n"
 	     "motor_test\n"
 	     "    -m <channel>            Motor to test (0..7)\n"

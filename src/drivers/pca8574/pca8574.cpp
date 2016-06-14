@@ -379,10 +379,10 @@ PCA8574::get(uint8_t &vals)
 void
 pca8574_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'val 0 1'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	warnx("    -a addr (0x%x)", ADDR);
+	px4_warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'val 0 1'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
+	px4_warnx("    -a addr (0x%x)", ADDR);
 }
 
 int
@@ -422,7 +422,7 @@ pca8574_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_pca8574 != nullptr) {
-			errx(1, "already started");
+			px4_errx(1, "already started");
 		}
 
 		if (i2cdevice == -1) {
@@ -438,7 +438,7 @@ pca8574_main(int argc, char *argv[])
 			if (g_pca8574 == nullptr) {
 				// fall back to default bus
 				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					errx(1, "init failed");
+					px4_errx(1, "init failed");
 				}
 
 				i2cdevice = PX4_I2C_BUS_LED;
@@ -449,13 +449,13 @@ pca8574_main(int argc, char *argv[])
 			g_pca8574 = new PCA8574(i2cdevice, pca8574adr);
 
 			if (g_pca8574 == nullptr) {
-				errx(1, "new failed");
+				px4_errx(1, "new failed");
 			}
 
 			if (OK != g_pca8574->init()) {
 				delete g_pca8574;
 				g_pca8574 = nullptr;
-				errx(1, "init failed");
+				px4_errx(1, "init failed");
 			}
 		}
 
@@ -464,7 +464,7 @@ pca8574_main(int argc, char *argv[])
 
 	// need the driver past this point
 	if (g_pca8574 == nullptr) {
-		warnx("not started, run pca8574 start");
+		px4_warnx("not started, run pca8574 start");
 		exit(1);
 	}
 
@@ -472,7 +472,7 @@ pca8574_main(int argc, char *argv[])
 		fd = open(PCA8574_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_TEST_OUT);
@@ -490,7 +490,7 @@ pca8574_main(int argc, char *argv[])
 		fd = open(PCA8574_DEVICE_PATH, 0);
 
 		if (fd < 0) {
-			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_OFF);
@@ -502,7 +502,7 @@ pca8574_main(int argc, char *argv[])
 		fd = open(PCA8574_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_OFF);
@@ -528,20 +528,20 @@ pca8574_main(int argc, char *argv[])
 			exit(0);
 
 		} else {
-			warnx("stop failed.");
+			px4_warnx("stop failed.");
 			exit(1);
 		}
 	}
 
 	if (!strcmp(verb, "val")) {
 		if (argc < 4) {
-			errx(1, "Usage: pca8574 val <channel> <0 or 1>");
+			px4_errx(1, "Usage: pca8574 val <channel> <0 or 1>");
 		}
 
 		fd = open(PCA8574_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
 		unsigned channel = strtol(argv[2], NULL, 0);

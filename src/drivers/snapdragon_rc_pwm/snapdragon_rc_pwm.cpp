@@ -321,7 +321,7 @@ int initialise_uart()
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERR SET BAUD %s: %d\n", _device, termios_state);
+		px4_warnx("ERR SET BAUD %s: %d\n", _device, termios_state);
 		::close(_uart_fd);
 		return -1;
 	}
@@ -386,7 +386,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return;
 	}
 

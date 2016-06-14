@@ -262,7 +262,7 @@ int
 MS5611::init()
 {
 	int ret;
-	warnx("MS5611::init");
+	px4_warnx("MS5611::init");
 
 	ret = VDev::init();
 
@@ -293,7 +293,7 @@ MS5611::init()
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
-			warnx("temp measure failed");
+			px4_warnx("temp measure failed");
 			break;
 		}
 
@@ -301,14 +301,14 @@ MS5611::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			warnx("temp collect failed");
+			px4_warnx("temp collect failed");
 			break;
 		}
 
 		/* now do a pressure measurement */
 		if (OK != measure()) {
 			ret = -EIO;
-			warnx("pressure collect failed");
+			px4_warnx("pressure collect failed");
 			break;
 		}
 
@@ -316,7 +316,7 @@ MS5611::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			warnx("pressure collect failed");
+			px4_warnx("pressure collect failed");
 			break;
 		}
 
@@ -329,7 +329,7 @@ MS5611::init()
 						  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == nullptr) {
-			warnx("failed to create sensor_baro publication");
+			px4_warnx("failed to create sensor_baro publication");
 		}
 
 		//warnx("sensor_baro publication %ld", _baro_topic);
@@ -910,7 +910,7 @@ bool
 start_bus(struct ms5611_bus_option &bus)
 {
 	if (bus.dev != nullptr) {
-		warnx("bus option already started");
+		px4_warnx("bus option already started");
 		return false;
 	}
 
@@ -919,7 +919,7 @@ start_bus(struct ms5611_bus_option &bus)
 
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		px4_warnx("no device on bus %u", (unsigned)bus.busid);
 		return false;
 	}
 
@@ -928,7 +928,7 @@ start_bus(struct ms5611_bus_option &bus)
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
-		warnx("bus init failed %p", bus.dev);
+		px4_warnx("bus init failed %p", bus.dev);
 		return false;
 	}
 
@@ -936,13 +936,13 @@ start_bus(struct ms5611_bus_option &bus)
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (fd == -1) {
-		warnx("can't open baro device");
+		px4_warnx("can't open baro device");
 		return false;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		px4_close(fd);
-		warnx("failed setting default poll rate");
+		px4_warnx("failed setting default poll rate");
 		return false;
 	}
 
@@ -978,7 +978,7 @@ start(enum MS5611_BUS busid)
 	}
 
 	if (!started) {
-		warnx("driver start failed");
+		px4_warnx("driver start failed");
 		return 1;
 	}
 
@@ -1029,7 +1029,7 @@ test(enum MS5611_BUS busid)
 	fd = px4_open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open failed (try 'ms5611 start' if the driver is not running)");
+		px4_warn("open failed (try 'ms5611 start' if the driver is not running)");
 		return 1;
 	}
 
@@ -1037,25 +1037,25 @@ test(enum MS5611_BUS busid)
 	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warn("immediate read failed");
+		px4_warn("immediate read failed");
 		return 1;
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", (long long)report.timestamp);
+	px4_warnx("single read");
+	px4_warnx("pressure:    %10.4f", (double)report.pressure);
+	px4_warnx("altitude:    %11.4f", (double)report.altitude);
+	px4_warnx("temperature: %8.4f", (double)report.temperature);
+	px4_warnx("time:        %lld", (long long)report.timestamp);
 
 	/* set the queue depth to 10 */
 	if (OK != px4_ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		warnx("failed to set queue depth");
+		px4_warnx("failed to set queue depth");
 		return 1;
 	}
 
 	/* start the sensor polling at 2Hz */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		warnx("failed to set 2Hz poll rate");
+		px4_warnx("failed to set 2Hz poll rate");
 		return 1;
 	}
 
@@ -1069,26 +1069,26 @@ test(enum MS5611_BUS busid)
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
+			px4_warnx("timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("periodic read failed");
+			px4_warn("periodic read failed");
 			return 1;
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
-		warnx("temperature: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", (long long)report.timestamp);
+		px4_warnx("periodic read %u", i);
+		px4_warnx("pressure:    %10.4f", (double)report.pressure);
+		px4_warnx("altitude:    %11.4f", (double)report.altitude);
+		px4_warnx("temperature: %8.4f", (double)report.temperature);
+		px4_warnx("time:        %lld", (long long)report.timestamp);
 	}
 
 	close(fd);
-	warnx("PASS");
+	px4_warnx("PASS");
 	return 0;
 }
 
@@ -1109,17 +1109,17 @@ reset(enum MS5611_BUS busid)
 	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		warn("failed ");
+		px4_warn("failed ");
 		return 1;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		warn("driver reset failed");
+		px4_warn("driver reset failed");
 		return 1;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warn("driver poll restart failed");
+		px4_warn("driver poll restart failed");
 		return 1;
 	}
 
@@ -1136,7 +1136,7 @@ info()
 		struct ms5611_bus_option &bus = bus_options[i];
 
 		if (bus.dev != nullptr) {
-			warnx("%s", bus.devpath);
+			px4_warnx("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
@@ -1167,13 +1167,13 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 	fd = px4_open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open failed (try 'ms5611 start' if the driver is not running)");
+		px4_warn("open failed (try 'ms5611 start' if the driver is not running)");
 		return 1;
 	}
 
 	/* start the sensor polling at max */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
-		warnx("failed to set poll rate");
+		px4_warnx("failed to set poll rate");
 		return 1;
 	}
 
@@ -1191,7 +1191,7 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 		ret = poll(&fds, 1, 1000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
+			px4_warnx("timed out waiting for sensor data");
 			return 1;
 		}
 
@@ -1199,7 +1199,7 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("sensor read failed");
+			px4_warn("sensor read failed");
 			return 1;
 		}
 
@@ -1215,17 +1215,17 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 	const float g  = 9.80665f;	/* gravity constant in m/s/s */
 	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-	warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
+	px4_warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
 
 	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
 
-	warnx("calculated MSL pressure %10.4fkPa", (double)p1);
+	px4_warnx("calculated MSL pressure %10.4fkPa", (double)p1);
 
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
 	if (px4_ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
-		warn("BAROIOCSMSLPRESSURE");
+		px4_warn("BAROIOCSMSLPRESSURE");
 		return 1;
 	}
 
@@ -1236,11 +1236,11 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
-	warnx("options:");
-	warnx("    -X    (external I2C bus)");
-	warnx("    -I    (intternal I2C bus)");
-	warnx("    -S    (Simulation bus)");
+	px4_warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	px4_warnx("options:");
+	px4_warnx("    -X    (external I2C bus)");
+	px4_warnx("    -I    (intternal I2C bus)");
+	px4_warnx("    -S    (Simulation bus)");
 }
 
 } // namespace
@@ -1327,7 +1327,7 @@ ms5611_main(int argc, char *argv[])
 
 	} else {
 		ms5611::usage();
-		warnx("unrecognised command, try 'start', 'test', 'reset' or 'info'");
+		px4_warnx("unrecognised command, try 'start', 'test', 'reset' or 'info'");
 		return 1;
 	}
 

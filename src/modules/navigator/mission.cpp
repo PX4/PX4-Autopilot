@@ -258,7 +258,7 @@ Mission::update_offboard_mission()
 	bool failed = true;
 
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
-		warnx("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id, _offboard_mission.count, _offboard_mission.current_seq);
+		px4_warnx("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id, _offboard_mission.count, _offboard_mission.current_seq);
 		/* determine current index */
 		if (_offboard_mission.current_seq >= 0 && _offboard_mission.current_seq < (int)_offboard_mission.count) {
 			_current_offboard_mission_index = _offboard_mission.current_seq;
@@ -302,7 +302,7 @@ Mission::update_offboard_mission()
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
 
-		warnx("mission check failed");
+		px4_warnx("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -1048,7 +1048,7 @@ Mission::save_offboard_mission_state()
 			/* navigator may modify only sequence, write modified state only if it changed */
 			if (mission_state.current_seq != _current_offboard_mission_index) {
 				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
-					warnx("ERROR: can't save mission state");
+					px4_warnx("ERROR: can't save mission state");
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
 				}
 			}
@@ -1060,12 +1060,12 @@ Mission::save_offboard_mission_state()
 		mission_state.count = _offboard_mission.count;
 		mission_state.current_seq = _current_offboard_mission_index;
 
-		warnx("ERROR: invalid mission state");
+		px4_warnx("ERROR: invalid mission state");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: invalid mission state");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
-			warnx("ERROR: can't save mission state");
+			px4_warnx("ERROR: can't save mission state");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
 		}
 	}

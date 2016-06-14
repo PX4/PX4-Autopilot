@@ -71,7 +71,7 @@ void PublicationBase::update(void *data)
 	if (_handle != nullptr) {
 		int ret = orb_publish(getMeta(), getHandle(), data);
 
-		if (ret != PX4_OK) { warnx("publish fail"); }
+		if (ret != PX4_OK) { px4_warnx("publish fail"); }
 
 	} else {
 		orb_advert_t handle;
@@ -89,7 +89,7 @@ void PublicationBase::update(void *data)
 			setHandle(handle);
 
 		} else {
-			warnx("advert fail");
+			px4_warnx("advert fail");
 		}
 	}
 }

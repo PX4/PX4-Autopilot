@@ -209,7 +209,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	}
 
 	/* welcome user (warnx prints a line, including an appended\n, with variable arguments */
-	warnx("[example fixedwing control] started");
+	px4_warnx("[example fixedwing control] started");
 
 	/* initialize parameters, first the handles, then the values */
 	parameters_init(&ph);
@@ -306,7 +306,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 			 * Poll error, this will not really happen in practice,
 			 * but its good design practice to make output an error message.
 			 */
-			warnx("poll error");
+			px4_warnx("poll error");
 
 		} else if (ret == 0) {
 			/* no return value = nothing changed for 500 ms, ignore */
@@ -369,7 +369,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
-						warnx("published");
+						px4_warnx("published");
 					}
 				}
 			}

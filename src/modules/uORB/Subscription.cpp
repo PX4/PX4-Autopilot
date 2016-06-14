@@ -84,7 +84,7 @@ SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 		_handle =  orb_subscribe(getMeta());
 	}
 
-	if (_handle < 0) { warnx("sub failed"); }
+	if (_handle < 0) { px4_warnx("sub failed"); }
 
 	if (interval > 0) {
 		orb_set_interval(getHandle(), interval);
@@ -96,7 +96,7 @@ bool SubscriptionBase::updated()
 	bool isUpdated = false;
 	int ret = orb_check(_handle, &isUpdated);
 
-	if (ret != PX4_OK) { warnx("orb check failed"); }
+	if (ret != PX4_OK) { px4_warnx("orb check failed"); }
 
 	return isUpdated;
 }
@@ -106,7 +106,7 @@ void SubscriptionBase::update(void *data)
 	if (updated()) {
 		int ret = orb_copy(_meta, _handle, data);
 
-		if (ret != PX4_OK) { warnx("orb copy failed"); }
+		if (ret != PX4_OK) { px4_warnx("orb copy failed"); }
 	}
 }
 
@@ -114,7 +114,7 @@ SubscriptionBase::~SubscriptionBase()
 {
 	int ret = orb_unsubscribe(_handle);
 
-	if (ret != PX4_OK) { warnx("orb unsubscribe failed"); }
+	if (ret != PX4_OK) { px4_warnx("orb unsubscribe failed"); }
 }
 
 template <class T>

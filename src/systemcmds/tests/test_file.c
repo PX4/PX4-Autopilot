@@ -77,7 +77,7 @@ int check_user_abort(int fd)
 		case 0x1b: // esc
 		case 'c':
 		case 'q': {
-				warnx("Test aborted.");
+				px4_warnx("Test aborted.");
 				fsync(fd);
 				close(fd);
 				return OK;
@@ -99,7 +99,7 @@ test_file(int argc, char *argv[])
 	struct stat buffer;
 
 	if (stat(PX4_ROOTFSDIR "/fs/microsd/", &buffer)) {
-		warnx("no microSD card mounted, aborting file test");
+		px4_warnx("no microSD card mounted, aborting file test");
 		return 1;
 	}
 
@@ -113,7 +113,7 @@ test_file(int argc, char *argv[])
 		for (unsigned a = 0; a < alignments; a++) {
 
 			printf("\n");
-			warnx("----- alignment test: %u bytes -----", a);
+			px4_warnx("----- alignment test: %u bytes -----", a);
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
@@ -128,7 +128,7 @@ test_file(int argc, char *argv[])
 
 			int fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-			warnx("testing unaligned writes - please wait..");
+			px4_warnx("testing unaligned writes - please wait..");
 
 			start = hrt_absolute_time();
 
@@ -136,10 +136,10 @@ test_file(int argc, char *argv[])
 				int wret = write(fd, write_buf + a, chunk_sizes[c]);
 
 				if (wret != chunk_sizes[c]) {
-					warn("WRITE ERROR!");
+					px4_warn("WRITE ERROR!");
 
 					if ((0x3 & (uintptr_t)(write_buf + a))) {
-						warnx("memory is unaligned, align shift: %d", a);
+						px4_warnx("memory is unaligned, align shift: %d", a);
 					}
 
 					return 1;
@@ -155,7 +155,7 @@ test_file(int argc, char *argv[])
 
 			end = hrt_absolute_time();
 
-			warnx("write took %" PRIu64 " us", (end - start));
+			px4_warnx("write took %" PRIu64 " us", (end - start));
 
 			px4_close(fd);
 			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
@@ -165,7 +165,7 @@ test_file(int argc, char *argv[])
 				int rret = read(fd, read_buf, chunk_sizes[c]);
 
 				if (rret != chunk_sizes[c]) {
-					warnx("READ ERROR!");
+					px4_warnx("READ ERROR!");
 					return 1;
 				}
 
@@ -174,14 +174,14 @@ test_file(int argc, char *argv[])
 
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 					if (read_buf[j] != write_buf[j + a]) {
-						warnx("COMPARISON ERROR: byte %d, align shift: %d", j, a);
+						px4_warnx("COMPARISON ERROR: byte %d, align shift: %d", j, a);
 						compare_ok = false;
 						break;
 					}
 				}
 
 				if (!compare_ok) {
-					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+					px4_warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
 
@@ -199,13 +199,13 @@ test_file(int argc, char *argv[])
 			int ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
 			fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
+			px4_warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
 			for (unsigned i = 0; i < iterations; i++) {
 				int wret = write(fd, write_buf, chunk_sizes[c]);
 
 				if (wret != chunk_sizes[c]) {
-					warnx("WRITE ERROR!");
+					px4_warnx("WRITE ERROR!");
 					return 1;
 				}
 
@@ -217,7 +217,7 @@ test_file(int argc, char *argv[])
 
 			fsync(fd);
 
-			warnx("reading data aligned..");
+			px4_warnx("reading data aligned..");
 
 			px4_close(fd);
 			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
@@ -229,13 +229,13 @@ test_file(int argc, char *argv[])
 				int rret = read(fd, read_buf, chunk_sizes[c]);
 
 				if (rret != chunk_sizes[c]) {
-					warnx("READ ERROR!");
+					px4_warnx("READ ERROR!");
 					return 1;
 				}
 
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 					if (read_buf[j] != write_buf[j]) {
-						warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
+						px4_warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
 						align_read_ok = false;
 						break;
 					}
@@ -246,15 +246,15 @@ test_file(int argc, char *argv[])
 				}
 
 				if (!align_read_ok) {
-					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+					px4_warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
 
 			}
 
-			warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
+			px4_warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
 
-			warnx("reading data unaligned..");
+			px4_warnx("reading data unaligned..");
 
 			close(fd);
 			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
@@ -269,14 +269,14 @@ test_file(int argc, char *argv[])
 				int rret = read(fd, read_buf + a, chunk_sizes[c]);
 
 				if (rret != chunk_sizes[c]) {
-					warnx("READ ERROR!");
+					px4_warnx("READ ERROR!");
 					return 1;
 				}
 
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 
 					if ((read_buf + a)[j] != write_buf[j]) {
-						warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a],
+						px4_warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a],
 						      (unsigned int)write_buf[j]);
 						unalign_read_ok = false;
 						unalign_read_err_count++;
@@ -292,7 +292,7 @@ test_file(int argc, char *argv[])
 				}
 
 				if (!unalign_read_ok) {
-					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+					px4_warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
 
@@ -302,7 +302,7 @@ test_file(int argc, char *argv[])
 			close(fd);
 
 			if (ret) {
-				warnx("UNLINKING FILE FAILED");
+				px4_warnx("UNLINKING FILE FAILED");
 				return 1;
 			}
 		}
@@ -321,11 +321,11 @@ test_file(int argc, char *argv[])
 
 		closedir(d);
 
-		warnx("directory listing ok (FS mounted and readable)");
+		px4_warnx("directory listing ok (FS mounted and readable)");
 
 	} else {
 		/* failed opening dir */
-		warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
+		px4_warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
 		return 1;
 	}
 

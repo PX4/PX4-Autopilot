@@ -129,7 +129,7 @@ RCLoss::set_rcl_item()
 		/* Request flight termination from the commander */
 		_navigator->get_mission_result()->flight_termination = true;
 		_navigator->set_mission_result_updated();
-		warnx("rc not recovered: request flight termination");
+		px4_warnx("rc not recovered: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
 		pos_sp_triplet->next.valid = false;
@@ -154,11 +154,11 @@ RCLoss::advance_rcl()
 	switch (_rcl_state) {
 	case RCL_STATE_NONE:
 		if (_param_loitertime.get() > 0.0f) {
-			warnx("RC loss, OBC mode, loiter");
+			px4_warnx("RC loss, OBC mode, loiter");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, loitering");
 			_rcl_state = RCL_STATE_LOITER;
 		} else {
-			warnx("RC loss, OBC mode, slip loiter, terminate");
+			px4_warnx("RC loss, OBC mode, slip loiter, terminate");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, terminating");
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
@@ -168,14 +168,14 @@ RCLoss::advance_rcl()
 		break;
 	case RCL_STATE_LOITER:
 		_rcl_state = RCL_STATE_TERMINATE;
-		warnx("time is up, no RC regain, terminating");
+		px4_warnx("time is up, no RC regain, terminating");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC not regained, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();
 		break;
 	case RCL_STATE_TERMINATE:
-		warnx("rcl end");
+		px4_warnx("rcl end");
 		_rcl_state = RCL_STATE_END;
 		break;
 	default:

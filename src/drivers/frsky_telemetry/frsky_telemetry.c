@@ -88,14 +88,14 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	const int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart < 0) {
-		err(1, "Error opening port: %s", uart_name);
+		px4_err(1, "Error opening port: %s", uart_name);
 	}
 
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
 
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
+		px4_warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
@@ -110,13 +110,13 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	static const speed_t speed = B9600;
 
 	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
-		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		px4_warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, uart_config)) < 0) {
-		warnx("ERR: %s (tcsetattr)\n", uart_name);
+		px4_warnx("ERR: %s (tcsetattr)\n", uart_name);
 		close(uart);
 		return -1;
 	}
@@ -182,8 +182,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
 
 	if (uart < 0) {
-		warnx("could not open %s", device_name);
-		err(1, "could not open %s", device_name);
+		px4_warnx("could not open %s", device_name);
+		px4_err(1, "could not open %s", device_name);
 	}
 
 	/* poll descriptor */
@@ -270,7 +270,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	if (frsky_state == SPORT) {
 		/* Subscribe to topics */
 		if (!sPort_init()) {
-			err(1, "could not allocate memory");
+			px4_err(1, "could not allocate memory");
 		}
 
 		PX4_INFO("sending FrSky SmartPort telemetry");
@@ -278,7 +278,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		struct sensor_baro_s *sensor_baro = malloc(sizeof(struct sensor_baro_s));
 
 		if (sensor_baro == NULL) {
-			err(1, "could not allocate memory");
+			px4_err(1, "could not allocate memory");
 		}
 
 		static float filtered_alt = NAN;
@@ -507,7 +507,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		/* Subscribe to topics */
 		if (!frsky_init()) {
-			err(1, "could not allocate memory");
+			px4_err(1, "could not allocate memory");
 		}
 
 		struct adc_linkquality host_frame;
@@ -524,7 +524,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			/* the RSSI value could be useful */
 			if (false && new_input) {
-				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
+				px4_warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
 				      host_frame.ad1, host_frame.ad2, host_frame.linkq);
 			}
 
@@ -572,7 +572,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 int frsky_telemetry_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("missing command");
+		px4_warnx("missing command");
 		usage();
 	}
 
@@ -580,7 +580,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running) {
-			errx(0, "frsky_telemetry already running");
+			px4_errx(0, "frsky_telemetry already running");
 		}
 
 		thread_should_exit = false;
@@ -602,17 +602,17 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (!thread_running) {
-			errx(0, "frsky_telemetry already stopped");
+			px4_errx(0, "frsky_telemetry already stopped");
 		}
 
 		thread_should_exit = true;
 
 		while (thread_running) {
 			usleep(1000000);
-			warnx(".");
+			px4_warnx(".");
 		}
 
-		warnx("terminated.");
+		px4_warnx("terminated.");
 		exit(0);
 	}
 
@@ -620,25 +620,25 @@ int frsky_telemetry_main(int argc, char *argv[])
 		if (thread_running) {
 			switch (frsky_state) {
 			case SCANNING:
-				errx(0, "running: SCANNING");
+				px4_errx(0, "running: SCANNING");
 				break;
 
 			case SPORT:
-				errx(0, "running: SPORT");
+				px4_errx(0, "running: SPORT");
 				break;
 
 			case DTYPE:
-				errx(0, "running: DTYPE");
+				px4_errx(0, "running: DTYPE");
 				break;
 
 			}
 
 		} else {
-			errx(1, "not running");
+			px4_errx(1, "not running");
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	usage();
 	/* not getting here */
 	return 0;

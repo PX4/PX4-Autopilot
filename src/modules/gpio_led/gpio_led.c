@@ -82,7 +82,7 @@ int gpio_led_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		errx(1, "usage: gpio_led {start|stop} [-p <1|2|a1|a2|r1|r2>]\n"
+		px4_errx(1, "usage: gpio_led {start|stop} [-p <1|2|a1|a2|r1|r2>]\n"
 		     "\t-p\tUse pin:\n"
 		     "\t\t1\tPX4FMU GPIO_EXT1 (default)\n"
 		     "\t\t2\tPX4FMU GPIO_EXT2\n"
@@ -94,7 +94,7 @@ int gpio_led_main(int argc, char *argv[])
 #endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
 	|| defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-		errx(1, "usage: gpio_led {start|stop} [-p <n>]\n"
+		px4_errx(1, "usage: gpio_led {start|stop} [-p <n>]\n"
 		     "\t-p <n>\tUse specified AUX OUT pin number (default: 1)"
 		    );
 #endif
@@ -103,7 +103,7 @@ int gpio_led_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "start")) {
 			if (gpio_led_started) {
-				errx(1, "already running");
+				px4_errx(1, "already running");
 			}
 
 			bool use_io = false;
@@ -155,7 +155,7 @@ int gpio_led_main(int argc, char *argv[])
 						pin_name = "PX4IO RELAY2";
 
 					} else {
-						errx(1, "unsupported pin: %s", argv[3]);
+						px4_errx(1, "unsupported pin: %s", argv[3]);
 					}
 
 #endif
@@ -169,7 +169,7 @@ int gpio_led_main(int argc, char *argv[])
 						snprintf(pin_name, sizeof(pin_name), "AUX OUT %d", n);
 
 					} else {
-						errx(1, "unsupported pin: %s", argv[3]);
+						px4_errx(1, "unsupported pin: %s", argv[3]);
 					}
 
 #endif
@@ -183,26 +183,26 @@ int gpio_led_main(int argc, char *argv[])
 			int ret = work_queue(LPWORK, &(gpio_led_data->work), gpio_led_start, gpio_led_data, 0);
 
 			if (ret != 0) {
-				errx(1, "failed to queue work: %d", ret);
+				px4_errx(1, "failed to queue work: %d", ret);
 
 			} else {
 				gpio_led_started = true;
-				warnx("start, using pin: %s", pin_name);
+				px4_warnx("start, using pin: %s", pin_name);
 				exit(0);
 			}
 
 		} else if (!strcmp(argv[1], "stop")) {
 			if (gpio_led_started) {
 				gpio_led_started = false;
-				warnx("stop");
+				px4_warnx("stop");
 				exit(0);
 
 			} else {
-				errx(1, "not running");
+				px4_errx(1, "not running");
 			}
 
 		} else {
-			errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
+			px4_errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
 		}
 	}
 }

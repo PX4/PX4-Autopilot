@@ -977,14 +977,14 @@ play_tune(unsigned tune)
 	fd = open(TONEALARM0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		err(1, TONEALARM0_DEVICE_PATH);
+		px4_err(1, TONEALARM0_DEVICE_PATH);
 	}
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
 
 	if (ret != 0) {
-		err(1, "TONE_SET_ALARM");
+		px4_err(1, "TONE_SET_ALARM");
 	}
 
 	exit(0);
@@ -998,7 +998,7 @@ play_string(const char *str, bool free_buffer)
 	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		err(1, TONEALARM0_DEVICE_PATH);
+		px4_err(1, TONEALARM0_DEVICE_PATH);
 	}
 
 	ret = write(fd, str, strlen(str) + 1);
@@ -1009,7 +1009,7 @@ play_string(const char *str, bool free_buffer)
 	}
 
 	if (ret < 0) {
-		err(1, "play tune");
+		px4_err(1, "play tune");
 	}
 
 	exit(0);
@@ -1027,12 +1027,12 @@ tone_alarm_main(int argc, char *argv[])
 		g_dev = new ToneAlarm;
 
 		if (g_dev == nullptr) {
-			errx(1, "couldn't allocate the ToneAlarm driver");
+			px4_errx(1, "couldn't allocate the ToneAlarm driver");
 		}
 
 		if (g_dev->init() != OK) {
 			delete g_dev;
-			errx(1, "ToneAlarm init failed");
+			px4_errx(1, "ToneAlarm init failed");
 		}
 	}
 
@@ -1064,7 +1064,7 @@ tone_alarm_main(int argc, char *argv[])
 			char *buffer;
 
 			if (fd == nullptr) {
-				errx(1, "couldn't open '%s'", argv1);
+				px4_errx(1, "couldn't open '%s'", argv1);
 			}
 
 			fseek(fd, 0, SEEK_END);
@@ -1073,7 +1073,7 @@ tone_alarm_main(int argc, char *argv[])
 			buffer = (char *)malloc(sz + 1);
 
 			if (buffer == nullptr) {
-				errx(1, "not enough memory memory");
+				px4_errx(1, "not enough memory memory");
 			}
 
 			fread(buffer, sz, 1, fd);
@@ -1091,5 +1091,5 @@ tone_alarm_main(int argc, char *argv[])
 
 	}
 
-	errx(1, "unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
+	px4_errx(1, "unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
 }

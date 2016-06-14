@@ -102,7 +102,7 @@ int local_position_estimator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -120,11 +120,11 @@ int local_position_estimator_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (thread_running) {
-			warnx("stop");
+			px4_warnx("stop");
 			thread_should_exit = true;
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		return 0;
@@ -132,10 +132,10 @@ int local_position_estimator_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		return 0;
@@ -148,7 +148,7 @@ int local_position_estimator_main(int argc, char *argv[])
 int local_position_estimator_thread_main(int argc, char *argv[])
 {
 
-	warnx("starting");
+	px4_warnx("starting");
 
 	using namespace control;
 
@@ -160,7 +160,7 @@ int local_position_estimator_thread_main(int argc, char *argv[])
 		est.update();
 	}
 
-	warnx("exiting.");
+	px4_warnx("exiting.");
 
 	thread_running = false;
 

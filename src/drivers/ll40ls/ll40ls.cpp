@@ -100,14 +100,14 @@ LidarLite *get_dev(const bool use_i2c, const int bus)
 		g_dev = static_cast<LidarLite *>(bus == PX4_I2C_BUS_EXPANSION ? g_dev_ext : g_dev_int);
 
 		if (g_dev == nullptr) {
-			errx(1, "i2c driver not running");
+			px4_errx(1, "i2c driver not running");
 		}
 
 	} else {
 		g_dev = static_cast<LidarLite *>(g_dev_pwm);
 
 		if (g_dev == nullptr) {
-			errx(1, "pwm driver not running");
+			px4_errx(1, "pwm driver not running");
 		}
 	}
 
@@ -120,14 +120,14 @@ LidarLite *get_dev(const bool use_i2c, const int bus)
 void start(const bool use_i2c, const int bus)
 {
 	if (g_dev_int != nullptr || g_dev_ext != nullptr || g_dev_pwm != nullptr) {
-		errx(1, "driver already started");
+		px4_errx(1, "driver already started");
 	}
 
 	if (use_i2c) {
 		/* create the driver, attempt expansion bus first */
 		if (bus == -1 || bus == PX4_I2C_BUS_EXPANSION) {
 			if (g_dev_ext != nullptr) {
-				errx(0, "already started external");
+				px4_errx(0, "already started external");
 			}
 
 			g_dev_ext = new LidarLiteI2C(PX4_I2C_BUS_EXPANSION, LL40LS_DEVICE_PATH_EXT);
@@ -147,7 +147,7 @@ void start(const bool use_i2c, const int bus)
 		/* if this failed, attempt onboard sensor */
 		if (bus == -1 || bus == PX4_I2C_BUS_ONBOARD) {
 			if (g_dev_int != nullptr) {
-				errx(0, "already started internal");
+				px4_errx(0, "already started internal");
 			}
 
 			g_dev_int = new LidarLiteI2C(PX4_I2C_BUS_ONBOARD, LL40LS_DEVICE_PATH_INT);
@@ -206,14 +206,14 @@ void start(const bool use_i2c, const int bus)
 		if (g_dev_pwm != nullptr && OK != g_dev_pwm->init()) {
 			delete g_dev_pwm;
 			g_dev_pwm = nullptr;
-			warnx("failed to init PWM");
+			px4_warnx("failed to init PWM");
 		}
 
 		if (g_dev_pwm != nullptr) {
 			int fd = open(LL40LS_DEVICE_PATH_PWM, O_RDONLY);
 
 			if (fd == -1) {
-				warnx("fd nothing");
+				px4_warnx("fd nothing");
 				goto fail;
 			}
 
@@ -221,7 +221,7 @@ void start(const bool use_i2c, const int bus)
 			close(fd);
 
 			if (ret < 0) {
-				warnx("pollrate fail");
+				px4_warnx("pollrate fail");
 				goto fail;
 			}
 		}
@@ -250,7 +250,7 @@ fail:
 		g_dev_pwm = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -306,23 +306,23 @@ test(const bool use_i2c, const int bus)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed, is the driver running?", path);
+		px4_err(1, "%s open failed, is the driver running?", path);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %lld", report.timestamp);
+	px4_warnx("single read");
+	px4_warnx("measurement: %0.2f m", (double)report.current_distance);
+	px4_warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		px4_errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5 times and report each value */
@@ -335,29 +335,29 @@ test(const bool use_i2c, const int bus)
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			px4_errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			px4_err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
+		px4_warnx("periodic read %u", i);
+		px4_warnx("valid %u", (float)report.current_distance > report.min_distance
 		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement: %0.3f m", (double)report.current_distance);
-		warnx("time:        %lld", report.timestamp);
+		px4_warnx("measurement: %0.3f m", (double)report.current_distance);
+		px4_warnx("time:        %lld", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		px4_errx(1, "failed to set default poll rate");
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -379,15 +379,15 @@ reset(const bool use_i2c, const int bus)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -420,11 +420,11 @@ regdump(const bool use_i2c, const int bus)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump' [i2c|pwm]");
-	warnx("options for I2C:");
-	warnx("    -X only external bus");
+	px4_warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump' [i2c|pwm]");
+	px4_warnx("options for I2C:");
+	px4_warnx("    -X only external bus");
 #ifdef PX4_I2C_BUS_ONBOARD
-	warnx("    -I only internal bus");
+	px4_warnx("    -I only internal bus");
 #endif
 }
 
@@ -469,7 +469,7 @@ ll40ls_main(int argc, char *argv[])
 			use_i2c = true;
 
 		} else {
-			warnx("unknown protocol, choose pwm or i2c");
+			px4_warnx("unknown protocol, choose pwm or i2c");
 			ll40ls::usage();
 			exit(0);
 		}
@@ -515,7 +515,7 @@ ll40ls_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	px4_warnx("unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 	ll40ls::usage();
 	exit(0);
 }

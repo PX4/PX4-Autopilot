@@ -94,7 +94,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 		}
 
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			px4_warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -113,7 +113,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 		FILE *f = fopen(fname, "w");
 
 		if (f == NULL) {
-			warnx("Error opening file!\n");
+			px4_warnx("Error opening file!\n");
 			return uORB::ERROR;
 		}
 
@@ -126,7 +126,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 	delete[] timings;
 
-	warnx("mean: %8.4f us", static_cast<double>(latency_integral / maxruns));
+	px4_warnx("mean: %8.4f us", static_cast<double>(latency_integral / maxruns));
 
 	pubsubtest_passed = true;
 

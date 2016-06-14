@@ -100,7 +100,7 @@ int segway_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -123,10 +123,10 @@ int segway_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		exit(0);
@@ -139,7 +139,7 @@ int segway_main(int argc, char *argv[])
 int segway_thread_main(int argc, char *argv[])
 {
 
-	warnx("starting");
+	px4_warnx("starting");
 
 	using namespace control;
 
@@ -151,7 +151,7 @@ int segway_thread_main(int argc, char *argv[])
 		autopilot.update();
 	}
 
-	warnx("exiting.");
+	px4_warnx("exiting.");
 
 	thread_running = false;
 

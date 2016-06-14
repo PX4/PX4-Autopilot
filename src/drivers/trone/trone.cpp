@@ -745,7 +745,7 @@ start()
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	/* create the driver */
@@ -780,7 +780,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -793,7 +793,7 @@ void stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	exit(0);
@@ -814,23 +814,23 @@ test()
 	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'trone start' if the driver is not running", TRONE_DEVICE_PATH);
+		px4_err(1, "%s open failed (try 'trone start' if the driver is not running", TRONE_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %llu", report.timestamp);
+	px4_warnx("single read");
+	px4_warnx("measurement: %0.2f m", (double)report.current_distance);
+	px4_warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		px4_errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 50x and report each value */
@@ -843,27 +843,27 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			px4_errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			px4_err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %llu", report.timestamp);
+		px4_warnx("periodic read %u", i);
+		px4_warnx("measurement: %0.3f", (double)report.current_distance);
+		px4_warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		px4_errx(1, "failed to set default poll rate");
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -875,15 +875,15 @@ reset()
 	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -896,7 +896,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -945,5 +945,5 @@ trone_main(int argc, char *argv[])
 		trone::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	px4_errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

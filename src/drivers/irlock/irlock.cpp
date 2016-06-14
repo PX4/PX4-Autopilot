@@ -192,16 +192,16 @@ int IRLOCK::probe()
 int IRLOCK::info()
 {
 	if (g_irlock == nullptr) {
-		errx(1, "irlock device driver is not running");
+		px4_errx(1, "irlock device driver is not running");
 	}
 
 	/** display reports in queue **/
 	if (_sensor_ok) {
 		_reports->print_info("report queue: ");
-		warnx("read errors:%lu", (unsigned long)_read_failures);
+		px4_warnx("read errors:%lu", (unsigned long)_read_failures);
 
 	} else {
-		warnx("sensor is not healthy");
+		px4_warnx("sensor is not healthy");
 	}
 
 	return OK;
@@ -212,16 +212,16 @@ int IRLOCK::test()
 {
 	/** exit immediately if driver not running **/
 	if (g_irlock == nullptr) {
-		errx(1, "irlock device driver is not running");
+		px4_errx(1, "irlock device driver is not running");
 	}
 
 	/** exit immediately if sensor is not healty **/
 	if (!_sensor_ok) {
-		errx(1, "sensor is not healthy");
+		px4_errx(1, "sensor is not healthy");
 	}
 
 	/** instructions to user **/
-	warnx("searching for object for 10 seconds");
+	px4_warnx("searching for object for 10 seconds");
 
 	/** read from sensor for 10 seconds **/
 	struct irlock_s obj_report;
@@ -232,7 +232,7 @@ int IRLOCK::test()
 		/** output all objects found **/
 		while (_reports->count() > 0) {
 			_reports->get(&obj_report);
-			warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
+			px4_warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
 			      (int)obj_report.target_num,
 			      (double)obj_report.angle_x,
 			      (double)obj_report.angle_y,
@@ -399,9 +399,9 @@ int IRLOCK::read_device_block(struct irlock_s *block)
 
 void irlock_usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", IRLOCK_I2C_BUS);
+	px4_warnx("missing command: try 'start', 'stop', 'info', 'test'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", IRLOCK_I2C_BUS);
 }
 
 int irlock_main(int argc, char *argv[])
@@ -423,14 +423,14 @@ int irlock_main(int argc, char *argv[])
 	/** start driver **/
 	if (!strcmp(command, "start")) {
 		if (g_irlock != nullptr) {
-			errx(1, "driver has already been started");
+			px4_errx(1, "driver has already been started");
 		}
 
 		/** instantiate global instance **/
 		g_irlock = new IRLOCK(i2cdevice, IRLOCK_I2C_ADDRESS);
 
 		if (g_irlock == nullptr) {
-			errx(1, "failed to allocated memory for driver");
+			px4_errx(1, "failed to allocated memory for driver");
 		}
 
 		/** initialise global instance **/
@@ -438,7 +438,7 @@ int irlock_main(int argc, char *argv[])
 			IRLOCK *tmp_irlock = g_irlock;
 			g_irlock = nullptr;
 			delete tmp_irlock;
-			errx(1, "failed to initialize device, stopping driver");
+			px4_errx(1, "failed to initialize device, stopping driver");
 		}
 
 		exit(0);
@@ -446,7 +446,7 @@ int irlock_main(int argc, char *argv[])
 
 	/** need the driver past this point **/
 	if (g_irlock == nullptr) {
-		warnx("not started");
+		px4_warnx("not started");
 		irlock_usage();
 		exit(1);
 	}
@@ -456,7 +456,7 @@ int irlock_main(int argc, char *argv[])
 		IRLOCK *tmp_irlock = g_irlock;
 		g_irlock = nullptr;
 		delete tmp_irlock;
-		warnx("irlock stopped");
+		px4_warnx("irlock stopped");
 		exit(OK);
 	}
 

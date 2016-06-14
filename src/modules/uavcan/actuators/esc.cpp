@@ -52,11 +52,11 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 
 	if (_perfcnt_invalid_input == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
+		px4_errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
 	}
 
 	if (_perfcnt_scaling_error == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
+		px4_errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
 	}
 }
 
@@ -72,7 +72,7 @@ int UavcanEscController::init()
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
 	if (res < 0) {
-		warnx("ESC status sub failed %i", res);
+		px4_warnx("ESC status sub failed %i", res);
 		return res;
 	}
 

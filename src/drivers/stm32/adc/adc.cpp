@@ -432,7 +432,7 @@ test(void)
 	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "can't open ADC device");
+		px4_err(1, "can't open ADC device");
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
@@ -440,7 +440,7 @@ test(void)
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0) {
-			errx(1, "read error");
+			px4_errx(1, "read error");
 		}
 
 		unsigned channels = count / sizeof(data[0]);
@@ -465,12 +465,12 @@ adc_main(int argc, char *argv[])
 		g_adc = new ADC(ADC_CHANNELS);
 
 		if (g_adc == nullptr) {
-			errx(1, "couldn't allocate the ADC driver");
+			px4_errx(1, "couldn't allocate the ADC driver");
 		}
 
 		if (g_adc->init() != OK) {
 			delete g_adc;
-			errx(1, "ADC init failed");
+			px4_errx(1, "ADC init failed");
 		}
 	}
 

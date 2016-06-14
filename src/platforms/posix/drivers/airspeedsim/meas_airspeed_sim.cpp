@@ -487,7 +487,7 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
+			px4_warnx("timed out");
 		}
 
 		/* now go get it */

@@ -210,7 +210,7 @@ RGBLED_PWM::info()
 		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
-		warnx("failed to read led");
+		px4_warnx("failed to read led");
 	}
 
 	return ret;
@@ -430,7 +430,7 @@ RGBLED_PWM::set_color(rgbled_color_t color)
 		break;
 
 	default:
-		warnx("color unknown");
+		px4_warnx("color unknown");
 		break;
 	}
 }
@@ -495,7 +495,7 @@ RGBLED_PWM::set_mode(rgbled_mode_t mode)
 			break;
 
 		default:
-			warnx("mode unknown");
+			px4_warnx("mode unknown");
 			break;
 		}
 
@@ -562,7 +562,7 @@ RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 void
 rgbled_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
+	px4_warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
 }
 
 int
@@ -597,20 +597,20 @@ rgbled_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr) {
-			errx(1, "already started");
+			px4_errx(1, "already started");
 		}
 
 		if (g_rgbled == nullptr) {
 			g_rgbled = new RGBLED_PWM();
 
 			if (g_rgbled == nullptr) {
-				errx(1, "new failed");
+				px4_errx(1, "new failed");
 			}
 
 			if (OK != g_rgbled->init()) {
 				delete g_rgbled;
 				g_rgbled = nullptr;
-				errx(1, "init failed");
+				px4_errx(1, "init failed");
 			}
 		}
 
@@ -619,7 +619,7 @@ rgbled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
-		warnx("not started");
+		px4_warnx("not started");
 		rgbled_usage();
 		exit(1);
 	}
@@ -628,7 +628,7 @@ rgbled_main(int argc, char *argv[])
 		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
@@ -651,7 +651,7 @@ rgbled_main(int argc, char *argv[])
 		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
@@ -669,13 +669,13 @@ rgbled_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "rgb")) {
 		if (argc < 5) {
-			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
+			px4_errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 
 		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_rgbset_t v;

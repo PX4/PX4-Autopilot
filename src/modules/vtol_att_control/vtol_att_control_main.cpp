@@ -682,7 +682,7 @@ void VtolAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			px4_warn("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
@@ -822,7 +822,7 @@ void VtolAttitudeControl::task_main()
 		}
 	}
 
-	warnx("exit");
+	px4_warnx("exit");
 	_control_task = -1;
 	return;
 }

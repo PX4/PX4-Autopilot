@@ -166,7 +166,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running\n");
+			px4_warnx("already running\n");
 			/* this is not an error */
 			return 0;
 		}
@@ -188,11 +188,11 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("running");
+			px4_warnx("running");
 			return 0;
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 			return 1;
 		}
 
@@ -355,7 +355,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
 			if (!control_mode.flag_system_hil_enabled) {
-				warnx("WARNING: Not getting sensor data - sensor app running?");
+				px4_warnx("WARNING: Not getting sensor data - sensor app running?");
 			}
 
 		} else {
@@ -597,7 +597,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					if (last_data > 0 && raw.timestamp - last_data > 30000) {
-						warnx("sensor data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
+						px4_warnx("sensor data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
 					}
 
 					last_data = raw.timestamp;
@@ -640,7 +640,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 
 					} else {
-						warnx("ERR: NaN estimate!");
+						px4_warnx("ERR: NaN estimate!");
 					}
 
 					perf_end(ekf_loop_perf);

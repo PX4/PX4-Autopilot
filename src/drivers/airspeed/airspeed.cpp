@@ -153,7 +153,7 @@ Airspeed::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub == nullptr) {
-			warnx("uORB started?");
+			px4_warnx("uORB started?");
 		}
 	}
 
@@ -410,7 +410,7 @@ Airspeed::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	warnx("poll interval:  %u ticks", _measure_ticks);
+	px4_warnx("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
 }
 

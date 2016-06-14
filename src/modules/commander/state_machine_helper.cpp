@@ -486,7 +486,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 						int sensfd = ::open(devname, 0);
 
 						if (sensfd < 0) {
-							warn("failed opening device %s", devname);
+							px4_warn("failed opening device %s", devname);
 							continue;
 						}
 
@@ -525,7 +525,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					int sensfd = px4_open(devname, 0);
 
 					if (sensfd < 0) {
-						warn("failed opening device %s", devname);
+						px4_warn("failed opening device %s", devname);
 							continue;
 					}
 
@@ -548,7 +548,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					DevMgr::getHandle(df_dev_path, h);
 
 					if (!h.isValid()) {
-						warn("failed opening device %s", df_dev_path);
+						px4_warn("failed opening device %s", df_dev_path);
 						continue;
 					}
 
@@ -569,7 +569,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			break;
 
 		default:
-			warnx("Unknown HIL state");
+			px4_warnx("Unknown HIL state");
 			break;
 		}
 	}

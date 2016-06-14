@@ -193,7 +193,7 @@ BMI160::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		px4_warnx("ADVERT FAIL");
 	}
 
 
@@ -205,7 +205,7 @@ BMI160::init()
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		px4_warnx("ADVERT FAIL");
 	}
 
 out:
@@ -670,12 +670,12 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_DEFAULT:
 				if (BMI160_GYRO_DEFAULT_RATE > BMI160_ACCEL_DEFAULT_RATE) {
 					return ioctl(filp, SENSORIOCSPOLLRATE, BMI160_GYRO_DEFAULT_RATE);
-					warnx("GYROOOOOOOOO");
+					px4_warnx("GYROOOOOOOOO");
 
 				} else {
 					return ioctl(filp, SENSORIOCSPOLLRATE,
 						     BMI160_ACCEL_DEFAULT_RATE); //Polling at the highest frequency. We may get duplicate values on the sensors
-					warnx("ACCELLLLLLLLLLLL");
+					px4_warnx("ACCELLLLLLLLLLLL");
 				}
 
 			/* adjust to a legal polling interval in Hz */

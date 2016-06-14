@@ -55,20 +55,20 @@ extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
 int mc_att_control_m_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: mc_att_control_m {start|stop|status}");
+		px4_warnx("usage: mc_att_control_m {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (mc_att_control_thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			return 0;
 		}
 
 		mc_att_control_task_should_exit = false;
-		warnx("ok now btak running");
+		px4_warnx("ok now btak running");
 		mc_att_control_daemon_task = px4_task_spawn_cmd("mc_att_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
@@ -86,15 +86,15 @@ int mc_att_control_m_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_att_control_thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		return 0;
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

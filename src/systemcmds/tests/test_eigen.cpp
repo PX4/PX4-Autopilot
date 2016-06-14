@@ -183,7 +183,7 @@ math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q)
 int test_eigen(int argc, char *argv[])
 {
 	int rc = 0;
-	warnx("Testing Eigen math...");
+	px4_warnx("Testing Eigen math...");
 
 	{
 		Eigen::Vector2f v;

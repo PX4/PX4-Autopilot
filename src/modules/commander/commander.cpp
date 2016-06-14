@@ -309,7 +309,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -339,7 +339,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 
 		if (!thread_running) {
-			warnx("commander already stopped");
+			px4_warnx("commander already stopped");
 			return 0;
 		}
 
@@ -347,17 +347,17 @@ int commander_main(int argc, char *argv[])
 
 		while (thread_running) {
 			usleep(200000);
-			warnx(".");
+			px4_warnx(".");
 		}
 
-		warnx("terminated.");
+		px4_warnx("terminated.");
 
 		return 0;
 	}
 
 	/* commands needing the app to run below */
 	if (!thread_running) {
-		warnx("\tcommander not started");
+		px4_warnx("\tcommander not started");
 		return 1;
 	}
 
@@ -382,39 +382,39 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "airspeed")) {
 				calib_ret = do_airspeed_calibration(&mavlink_log_pub);
 			} else {
-				warnx("argument %s unsupported.", argv[2]);
+				px4_warnx("argument %s unsupported.", argv[2]);
 			}
 
 			if (calib_ret) {
-				warnx("calibration failed, exiting.");
+				px4_warnx("calibration failed, exiting.");
 				return 1;
 			} else {
 				return 0;
 			}
 		} else {
-			warnx("missing argument");
+			px4_warnx("missing argument");
 		}
 	}
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
 		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery);
-		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
+		px4_warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
 		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery);
-		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
+		px4_warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "arm")) {
 		if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "command line")) {
-			warnx("arming failed");
+			px4_warnx("arming failed");
 		}
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		if (TRANSITION_DENIED == arm_disarm(false, &mavlink_log_pub, "command line")) {
-			warnx("rejected disarm");
+			px4_warnx("rejected disarm");
 		}
 		return 0;
 	}
@@ -444,11 +444,11 @@ int commander_main(int argc, char *argv[])
 				(void)orb_unadvertise(h);
 
 			} else {
-				warnx("arming failed");
+				px4_warnx("arming failed");
 			}
 
 		} else {
-			warnx("rejecting takeoff, no position lock yet. Please retry..");
+			px4_warnx("rejecting takeoff, no position lock yet. Please retry..");
 		}
 
 		return 0;
@@ -503,16 +503,16 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "auto:land")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 			} else {
-				warnx("argument %s unsupported.", argv[2]);
+				px4_warnx("argument %s unsupported.", argv[2]);
 			}
 
 			if (TRANSITION_DENIED == main_state_transition(&status, new_main_state, main_state_prev,  &status_flags, &internal_state)) {
-				warnx("mode change failed");
+				px4_warnx("mode change failed");
 			}
 			return 0;
 
 		} else {
-			warnx("missing argument");
+			px4_warnx("missing argument");
 		}
 	}
 
@@ -552,17 +552,17 @@ void usage(const char *reason)
 
 void print_status()
 {
-	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
-	warnx("safety: USB enabled: %s, power state valid: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
+	px4_warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
+	px4_warnx("safety: USB enabled: %s, power state valid: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
 	      (status_flags.condition_power_input_valid) ? " [OK]" : "[NO]");
-	warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
-	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
-	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
-	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
+	px4_warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
+	px4_warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
+	px4_warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
+	px4_warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
 
 #ifdef __PX4_POSIX
-	warnx("main state: %d", internal_state.main_state);
-	warnx("nav state: %d", status.nav_state);
+	px4_warnx("main state: %d", internal_state.main_state);
+	px4_warnx("nav state: %d", status.nav_state);
 #endif
 
 	/* read all relevant states */
@@ -609,7 +609,7 @@ void print_status()
 	px4_close(state_sub);
 
 
-	warnx("arming: %s", armed_str);
+	px4_warnx("arming: %s", armed_str);
 }
 
 static orb_advert_t status_pub;
@@ -899,12 +899,12 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd->param1 > 1.5f) {
 				armed_local->lockdown = true;
-				warnx("forcing lockdown (motors off)");
+				px4_warnx("forcing lockdown (motors off)");
 
 			} else if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
 				armed_local->force_failsafe = true;
-				warnx("forcing failsafe (termination)");
+				px4_warnx("forcing failsafe (termination)");
 
 				/* param2 is currently used for other failsafe modes */
 				status_local->engine_failure_cmd = false;
@@ -915,38 +915,38 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				if ((int)cmd->param2 <= 0) {
 					/* reset all commanded failure modes */
-					warnx("reset all non-flighttermination failsafe commands");
+					px4_warnx("reset all non-flighttermination failsafe commands");
 
 				} else if ((int)cmd->param2 == 1) {
 					/* trigger engine failure mode */
 					status_local->engine_failure_cmd = true;
-					warnx("engine failure mode commanded");
+					px4_warnx("engine failure mode commanded");
 
 				} else if ((int)cmd->param2 == 2) {
 					/* trigger data link loss mode */
 					status_flags.data_link_lost_cmd = true;
-					warnx("data link loss mode commanded");
+					px4_warnx("data link loss mode commanded");
 
 				} else if ((int)cmd->param2 == 3) {
 					/* trigger gps loss mode */
 					status_flags.gps_failure_cmd = true;
-					warnx("GPS loss mode commanded");
+					px4_warnx("GPS loss mode commanded");
 
 				} else if ((int)cmd->param2 == 4) {
 					/* trigger rc loss mode */
 					status_flags.rc_signal_lost_cmd = true;
-					warnx("RC loss mode commanded");
+					px4_warnx("RC loss mode commanded");
 
 				} else if ((int)cmd->param2 == 5) {
 					/* trigger vtol transition failure mode */
 					status_flags.vtol_transition_failure_cmd = true;
-					warnx("vtol transition failure mode commanded");
+					px4_warnx("vtol transition failure mode commanded");
 				}
 
 			} else {
 				armed_local->force_failsafe = false;
 				armed_local->lockdown = false;
-				warnx("disabling failsafe and lockdown");
+				px4_warnx("disabling failsafe and lockdown");
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1297,8 +1297,8 @@ int commander_thread_main(int argc, char *argv[])
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
 	if (status_pub == nullptr) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
-		warnx("exiting.");
+		px4_warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		px4_warnx("exiting.");
 		px4_task_exit(ERROR);
 	}
 
@@ -1335,7 +1335,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			const char *missionfail = "reading mission state failed";
-			warnx("%s", missionfail);
+			px4_warnx("%s", missionfail);
 			mavlink_log_critical(&mavlink_log_pub, missionfail);
 
 			/* initialize mission state in dataman */
@@ -1590,7 +1590,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* update parameters */
 			if (!armed.armed) {
 				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
-					warnx("failed getting new system type");
+					px4_warnx("failed getting new system type");
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
@@ -2231,7 +2231,7 @@ int commander_thread_main(int argc, char *argv[])
 							break;
 						}
 						case (geofence_result_s::GF_ACTION_TERMINATE) : {
-							warnx("Flight termination because of geofence");
+							px4_warnx("Flight termination because of geofence");
 							mavlink_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
 							armed.force_failsafe = true;
 							status_changed = true;
@@ -2302,11 +2302,11 @@ int commander_thread_main(int argc, char *argv[])
 			if (!mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);
-				warnx("mission fail");
+				px4_warnx("mission fail");
 			} else if (mission_result.warning) {
 				/* the mission has a warning */
 				tune_mission_fail(true);
-				warnx("mission warning");
+				px4_warnx("mission warning");
 			} else {
 				/* the mission is valid */
 				tune_mission_ok(true);
@@ -2649,7 +2649,7 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					warnx("Flight termination because of RC signal loss and GPS failure");
+					px4_warnx("Flight termination because of RC signal loss and GPS failure");
 					flight_termination_printed = true;
 				}
 
@@ -2818,7 +2818,7 @@ int commander_thread_main(int argc, char *argv[])
 	ret = pthread_join(commander_low_prio_thread, NULL);
 
 	if (ret) {
-		warn("join failed: %d", ret);
+		px4_warn("join failed: %d", ret);
 	}
 
 	rgbled_set_mode(RGBLED_MODE_OFF);
@@ -3007,7 +3007,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 
 	/* RTL switch overrides main switch */
 	if (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		warnx("RTL switch changed and ON!");
+		px4_warnx("RTL switch changed and ON!");
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
@@ -3029,7 +3029,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
 		if (sp_man.mode_slot >= sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0])) {
-			warnx("m slot overflow");
+			px4_warnx("m slot overflow");
 			return TRANSITION_DENIED;
 		}
 
@@ -3617,7 +3617,7 @@ void *commander_low_prio_loop(void *arg)
 			}
 		} else if (pret < 0) {
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("commander: poll error %d, %d", pret, errno);
+			px4_warn("commander: poll error %d, %d", pret, errno);
 			continue;
 		} else {
 

@@ -313,9 +313,9 @@ BMA180::init()
 	/* disable writing to chip config */
 	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
 
-	if (set_range(4)) { warnx("Failed setting range"); }
+	if (set_range(4)) { px4_warnx("Failed setting range"); }
 
-	if (set_lowpass(75)) { warnx("Failed setting lowpass"); }
+	if (set_lowpass(75)) { px4_warnx("Failed setting lowpass"); }
 
 	if (read_reg(ADDR_CHIP_ID) == CHIP_ID) {
 		ret = OK;
@@ -786,7 +786,7 @@ start()
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	/* create the driver */
@@ -819,7 +819,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -838,36 +838,36 @@ test()
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'bma180 start' if the driver is not running)",
+		px4_err(1, "%s open failed (try 'bma180 start' if the driver is not running)",
 		    ACCEL_DEVICE_PATH);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
+		px4_err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
-		err(1, "immediate acc read failed");
+		px4_err(1, "immediate acc read failed");
 	}
 
-	warnx("single read");
-	warnx("time:     %lld", a_report.timestamp);
-	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+	px4_warnx("single read");
+	px4_warnx("time:     %lld", a_report.timestamp);
+	px4_warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	px4_warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	px4_warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	px4_warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	px4_warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	px4_warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+	px4_warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 	      (double)(a_report.range_m_s2 / 9.81f));
 
 	/* XXX add poll-rate tests here too */
 
 	reset();
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -879,15 +879,15 @@ reset()
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -900,7 +900,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "BMA180: driver not running");
+		px4_errx(1, "BMA180: driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -944,5 +944,5 @@ bma180_main(int argc, char *argv[])
 		bma180::info();
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	px4_errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }

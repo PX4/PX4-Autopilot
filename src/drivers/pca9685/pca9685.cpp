@@ -242,15 +242,15 @@ PCA9685::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			switch ((IOX_MODE)arg) {
 			case IOX_MODE_OFF:
-				warnx("shutting down");
+				px4_warnx("shutting down");
 				break;
 
 			case IOX_MODE_ON:
-				warnx("starting");
+				px4_warnx("starting");
 				break;
 
 			case IOX_MODE_TEST_OUT:
-				warnx("test starting");
+				px4_warnx("test starting");
 				break;
 
 			default:
@@ -284,10 +284,10 @@ PCA9685::info()
 	int ret = OK;
 
 	if (is_running()) {
-		warnx("Driver is running, mode: %u", _mode);
+		px4_warnx("Driver is running, mode: %u", _mode);
 
 	} else {
-		warnx("Driver started but not running");
+		px4_warnx("Driver started but not running");
 	}
 
 	return ret;
@@ -504,7 +504,7 @@ fail_read:
 
 int PCA9685::reset(void)
 {
-	warnx("resetting");
+	px4_warnx("resetting");
 	return write8(PCA9685_MODE1, 0x0);
 }
 
@@ -529,10 +529,10 @@ PCA9685::write8(uint8_t addr, uint8_t value)
 void
 pca9685_usage()
 {
-	warnx("missing command: try 'start', 'test', 'stop', 'info'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
-	warnx("    -a addr (0x%x)", ADDR);
+	px4_warnx("missing command: try 'start', 'test', 'stop', 'info'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
+	px4_warnx("    -a addr (0x%x)", ADDR);
 }
 
 int
@@ -572,7 +572,7 @@ pca9685_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_pca9685 != nullptr) {
-			errx(1, "already started");
+			px4_errx(1, "already started");
 		}
 
 		if (i2cdevice == -1) {
@@ -586,7 +586,7 @@ pca9685_main(int argc, char *argv[])
 			}
 
 			if (g_pca9685 == nullptr) {
-				errx(1, "init failed");
+				px4_errx(1, "init failed");
 			}
 		}
 
@@ -594,20 +594,20 @@ pca9685_main(int argc, char *argv[])
 			g_pca9685 = new PCA9685(i2cdevice, i2caddr);
 
 			if (g_pca9685 == nullptr) {
-				errx(1, "new failed");
+				px4_errx(1, "new failed");
 			}
 
 			if (OK != g_pca9685->init()) {
 				delete g_pca9685;
 				g_pca9685 = nullptr;
-				errx(1, "init failed");
+				px4_errx(1, "init failed");
 			}
 		}
 
 		fd = open(PCA9685_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_ON);
@@ -619,7 +619,7 @@ pca9685_main(int argc, char *argv[])
 
 	// need the driver past this point
 	if (g_pca9685 == nullptr) {
-		warnx("not started, run pca9685 start");
+		px4_warnx("not started, run pca9685 start");
 		exit(1);
 	}
 
@@ -638,7 +638,7 @@ pca9685_main(int argc, char *argv[])
 		fd = open(PCA9685_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_TEST_OUT);
@@ -651,7 +651,7 @@ pca9685_main(int argc, char *argv[])
 		fd = open(PCA9685_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
+			px4_errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_OFF);
@@ -674,11 +674,11 @@ pca9685_main(int argc, char *argv[])
 		if (!g_pca9685->is_running()) {
 			delete g_pca9685;
 			g_pca9685 = nullptr;
-			warnx("stopped, exiting");
+			px4_warnx("stopped, exiting");
 			exit(0);
 
 		} else {
-			warnx("stop failed.");
+			px4_warnx("stop failed.");
 			exit(1);
 		}
 	}

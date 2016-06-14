@@ -54,7 +54,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	fp = fopen(fname, "r");
 
 	if (fp == NULL) {
-		warnx("file not found");
+		px4_warnx("file not found");
 		return -1;
 	}
 
@@ -100,7 +100,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
+			px4_warnx("line too long");
 			fclose(fp);
 			return -1;
 		}

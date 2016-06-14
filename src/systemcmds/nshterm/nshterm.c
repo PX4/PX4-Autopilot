@@ -120,7 +120,7 @@ nshterm_main(int argc, char *argv[])
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(fd, &uart_config)) < 0) {
-		warnx("ERR get config %s: %d\n", argv[1], termios_state);
+		px4_warnx("ERR get config %s: %d\n", argv[1], termios_state);
 		close(fd);
 		return -1;
 	}
@@ -129,7 +129,7 @@ nshterm_main(int argc, char *argv[])
 	uart_config.c_oflag |= (ONLCR | OPOST);
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR set config %s\n", argv[1]);
+		px4_warnx("ERR set config %s\n", argv[1]);
 		close(fd);
 		return -1;
 	}

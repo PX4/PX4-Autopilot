@@ -39,7 +39,7 @@ extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
 
 static void usage()
 {
-	warnx("Usage: muorb 'start', 'stop', 'status'");
+	px4_warnx("Usage: muorb 'start', 'stop', 'status'");
 }
 
 
