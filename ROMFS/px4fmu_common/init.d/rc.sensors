@@ -3,7 +3,7 @@
 # Standard startup script for PX4FMU v1, v2, v3, v4 onboard sensor drivers.
 #
 
-if ver hwcmp PX4FMU_V1
+if [ $BOARD == PX4FMU_V1 ]
 then
 	if ms5611 start
 	then
@@ -28,7 +28,7 @@ if adc start
 then
 fi
 
-if ver hwcmp PX4FMU_V2
+if [ $BOARD == PX4FMU_V2 ]
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
@@ -94,7 +94,7 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V4
+if [ $BOARD == PX4FMU_V4 ]
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
@@ -121,7 +121,7 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V1
+if [ $BOARD == PX4FMU_V1 ]
 then
 	# FMUv1
 	if mpu6000 start
@@ -154,7 +154,7 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2
+if [ $BOARD == MINDPX_V2 ]
 then
 	if mpu6500 start
 	then
