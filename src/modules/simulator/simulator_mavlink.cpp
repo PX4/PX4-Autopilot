@@ -711,7 +711,7 @@ int openUart(const char *uart_name, int baud)
 	case 921600: speed = B921600; break;
 
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
+		px4_warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
 		      baud);
 		return -EINVAL;
 	}
@@ -732,7 +732,7 @@ int openUart(const char *uart_name, int baud)
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+		px4_warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		::close(uart_fd);
 		return -1;
 	}
@@ -745,7 +745,7 @@ int openUart(const char *uart_name, int baud)
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+			px4_warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			::close(uart_fd);
 			return -1;
 		}
@@ -756,7 +756,7 @@ int openUart(const char *uart_name, int baud)
 	cfmakeraw(&uart_config);
 
 	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
+		px4_warnx("ERR SET CONF %s\n", uart_name);
 		::close(uart_fd);
 		return -1;
 	}

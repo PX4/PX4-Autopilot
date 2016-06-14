@@ -354,7 +354,7 @@ bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v)
 			state = HEADER;
 
 			if (sbuf[i] != 0x7E) {
-//				warnx("host packet error: %x", sbuf[i]);
+//				px4_warnx("host packet error: %x", sbuf[i]);
 
 			} else {
 				data_ready = true;

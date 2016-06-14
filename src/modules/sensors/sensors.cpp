@@ -741,7 +741,7 @@ Sensors::parameters_update()
 		if (!PX4_ISFINITE(tmpScaleFactor) ||
 		    (tmpRevFactor < 0.000001f) ||
 		    (tmpRevFactor > 0.2f)) {
-			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
+			px4_warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
 			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
@@ -753,66 +753,66 @@ Sensors::parameters_update()
 
 	/* handle wrong values */
 	if (!rc_valid) {
-		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
+		px4_warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 	}
 
 	const char *paramerr = "FAIL PARM LOAD";
 
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_rattitude_sw, &(_parameters.rc_map_rattitude_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_posctl_sw, &(_parameters.rc_map_posctl_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_acro_sw, &(_parameters.rc_map_acro_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_offboard_sw, &(_parameters.rc_map_offboard_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_kill_sw, &(_parameters.rc_map_kill_sw)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 	}
 
 	param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1));
@@ -889,7 +889,7 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
@@ -898,7 +898,7 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
@@ -906,12 +906,12 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 
 	}
 
 	if (param_get(_parameter_handles.battery_v_div, &(_parameters.battery_v_div)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 		_parameters.battery_v_div = 0.0f;
 
 	} else if (_parameters.battery_v_div < 0.0f) {
@@ -931,7 +931,7 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
-		warnx("%s", paramerr);
+		px4_warnx("%s", paramerr);
 		_parameters.battery_a_per_v = 0.0f;
 
 	} else if (_parameters.battery_a_per_v < 0.0f) {
@@ -972,14 +972,14 @@ Sensors::parameters_update()
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
-		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+		px4_warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
 
 	} else {
 		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 
 		if (baroret) {
-			warnx("qnh could not be set");
+			px4_warnx("qnh could not be set");
 			return ERROR;
 		}
 	}
@@ -997,7 +997,7 @@ Sensors::adc_init()
 	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
 	if (!_h_adc.isValid()) {
-		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+		px4_warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
 		return ERROR;
 	}
 
@@ -1288,14 +1288,14 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
+						px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 
 					} else {
 						/* apply new scaling and offsets */
 						config_ok = apply_gyro_calibration(h, &gscale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
+							px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
 						}
 					}
 
@@ -1356,14 +1356,14 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &ascale.z_scale));
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
+						px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 
 					} else {
 						/* apply new scaling and offsets */
 						config_ok = apply_accel_calibration(h, &ascale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
+							px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
 						}
 					}
 
@@ -1489,7 +1489,7 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
+						px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 
 					} else {
 
@@ -1497,7 +1497,7 @@ Sensors::parameter_update_poll(bool forced)
 						config_ok = apply_mag_calibration(h, &mscale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
+							px4_warnx(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
 						}
 					}
 
@@ -1521,14 +1521,14 @@ Sensors::parameter_update_poll(bool forced)
 			};
 
 			if (OK != px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
-				warn("WARNING: failed to set scale / offsets for airspeed sensor");
+				px4_warn("WARNING: failed to set scale / offsets for airspeed sensor");
 			}
 
 			px4_close(fd);
 		}
 
 		/* do not output this for now, as its covered in preflight checks */
-		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		// px4_warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 		_battery.updateParams();
 	}
 }
@@ -1624,10 +1624,10 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 		}
 
-		warnx("rc to parameter map updated");
+		px4_warnx("rc to parameter map updated");
 
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
-			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
+			px4_warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 			      i,
 			      &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
 			      (double)_rc_parameter_map.scale[i],
@@ -2087,7 +2087,7 @@ Sensors::task_main()
 #endif
 
 	if (ret) {
-		warnx("sensor initialization failed");
+		px4_warnx("sensor initialization failed");
 		_sensors_task = -1;
 
 		DevMgr::releaseHandle(_h_adc);
@@ -2216,21 +2216,21 @@ Sensors::task_main()
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
-			warnx("gyro has timed out");
+			px4_warnx("gyro has timed out");
 
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
 			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
 				fds[0].fd = _gyro_sub[2];
 
 				if (!_hil_enabled) {
-					warnx("failing over to third gyro");
+					px4_warnx("failing over to third gyro");
 				}
 
 			} else if (_gyro_sub[1] >= 0) {
 				fds[0].fd = _gyro_sub[1];
 
 				if (!_hil_enabled) {
-					warnx("failing over to second gyro");
+					px4_warnx("failing over to second gyro");
 				}
 			}
 		}
@@ -2278,7 +2278,7 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exiting.");
+	px4_warnx("exiting.");
 	_sensors_task = -1;
 	px4_task_exit(ret);
 }
@@ -2311,28 +2311,28 @@ Sensors::start()
 int sensors_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: sensors {start|stop|status}");
+		px4_warnx("usage: sensors {start|stop|status}");
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr) {
-			warnx("already running");
+			px4_warnx("already running");
 			return 0;
 		}
 
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr) {
-			warnx("alloc failed");
+			px4_warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
 			sensors::g_sensors = nullptr;
-			warnx("start failed");
+			px4_warnx("start failed");
 			return 1;
 		}
 
@@ -2341,7 +2341,7 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (sensors::g_sensors == nullptr) {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 
@@ -2352,15 +2352,15 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (sensors::g_sensors) {
-			warnx("is running");
+			px4_warnx("is running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

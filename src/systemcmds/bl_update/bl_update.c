@@ -62,7 +62,7 @@ int
 bl_update_main(int argc, char *argv[])
 {
 	if (argc != 2) {
-		errx(1, "missing firmware filename or command");
+		px4_errx(1, "missing firmware filename or command");
 	}
 
 	if (!strcmp(argv[1], "setopt")) {
@@ -72,28 +72,28 @@ bl_update_main(int argc, char *argv[])
 	int fd = open(argv[1], O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "open %s", argv[1]);
+		px4_err(1, "open %s", argv[1]);
 	}
 
 	struct stat s;
 
 	if (stat(argv[1], &s) != 0) {
-		err(1, "stat %s", argv[1]);
+		px4_err(1, "stat %s", argv[1]);
 	}
 
 	/* sanity-check file size */
 	if (s.st_size > BL_FILE_SIZE_LIMIT) {
-		errx(1, "%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
+		px4_errx(1, "%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
 	}
 
 	uint8_t *buf = malloc(s.st_size);
 
 	if (buf == NULL) {
-		errx(1, "failed to allocate %u bytes for firmware buffer", s.st_size);
+		px4_errx(1, "failed to allocate %u bytes for firmware buffer", s.st_size);
 	}
 
 	if (read(fd, buf, s.st_size) != s.st_size) {
-		err(1, "firmware read error");
+		px4_err(1, "firmware read error");
 	}
 
 	close(fd);
@@ -105,10 +105,10 @@ bl_update_main(int argc, char *argv[])
 	    (hdr[1] < 0x08000000) ||			/* entrypoint not below flash */
 	    ((hdr[1] - 0x08000000) > 16384)) {		/* entrypoint not outside bootloader */
 		free(buf);
-		errx(1, "not a bootloader image");
+		px4_errx(1, "not a bootloader image");
 	}
 
-	warnx("image validated, erasing bootloader...");
+	px4_warnx("image validated, erasing bootloader...");
 	usleep(10000);
 
 	/* prevent other tasks from running while we do this */
@@ -125,7 +125,7 @@ bl_update_main(int argc, char *argv[])
 
 	/* check the control register */
 	if (*cr & 0x80000000) {
-		warnx("WARNING: flash unlock failed, flash aborted");
+		px4_warnx("WARNING: flash unlock failed, flash aborted");
 		goto flash_end;
 	}
 
@@ -138,19 +138,19 @@ bl_update_main(int argc, char *argv[])
 	}
 
 	if (*sr & 0xf2) {
-		warnx("WARNING: erase error 0x%02x", *sr);
+		px4_warnx("WARNING: erase error 0x%02x", *sr);
 		goto flash_end;
 	}
 
 	/* verify the erase */
 	for (int i = 0; i < s.st_size; i++) {
 		if (base[i] != 0xff) {
-			warnx("WARNING: erase failed at %d - retry update, DO NOT reboot", i);
+			px4_warnx("WARNING: erase failed at %d - retry update, DO NOT reboot", i);
 			goto flash_end;
 		}
 	}
 
-	warnx("flashing...");
+	px4_warnx("flashing...");
 
 	/* now program the bootloader - speed is not critical so use x8 mode */
 	for (int i = 0; i < s.st_size; i++) {
@@ -164,7 +164,7 @@ bl_update_main(int argc, char *argv[])
 		}
 
 		if (*sr & 0xf2) {
-			warnx("WARNING: program error 0x%02x", *sr);
+			px4_warnx("WARNING: program error 0x%02x", *sr);
 			goto flash_end;
 		}
 	}
@@ -172,17 +172,17 @@ bl_update_main(int argc, char *argv[])
 	/* re-lock the flash control register */
 	*cr = 0x80000000;
 
-	warnx("verifying...");
+	px4_warnx("verifying...");
 
 	/* now run a verify pass */
 	for (int i = 0; i < s.st_size; i++) {
 		if (base[i] != buf[i]) {
-			warnx("WARNING: verify failed at %u - retry update, DO NOT reboot", i);
+			px4_warnx("WARNING: verify failed at %u - retry update, DO NOT reboot", i);
 			goto flash_end;
 		}
 	}
 
-	warnx("bootloader update complete");
+	px4_warnx("bootloader update complete");
 
 flash_end:
 	/* unlock the scheduler */
@@ -201,7 +201,7 @@ setopt(void)
 	const uint16_t opt_bits = (0 << 2);		/* BOR = 0, setting for 2.7-3.6V operation */
 
 	if ((*optcr & opt_mask) == opt_bits) {
-		errx(0, "option bits are already set as required");
+		px4_errx(0, "option bits are already set as required");
 	}
 
 	/* unlock the control register */
@@ -210,7 +210,7 @@ setopt(void)
 	*optkeyr = 0x4c5d6e7fU;
 
 	if (*optcr & 1) {
-		errx(1, "option control register unlock failed");
+		px4_errx(1, "option control register unlock failed");
 	}
 
 	/* program the new option value */
@@ -219,9 +219,9 @@ setopt(void)
 	usleep(1000);
 
 	if ((*optcr & opt_mask) == opt_bits) {
-		errx(0, "option bits set");
+		px4_errx(0, "option bits set");
 	}
 
-	errx(1, "option bits setting failed; readback 0x%04x", *optcr);
+	px4_errx(1, "option bits setting failed; readback 0x%04x", *optcr);
 
 }

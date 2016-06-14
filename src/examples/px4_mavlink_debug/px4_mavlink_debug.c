@@ -65,7 +65,7 @@ int px4_mavlink_debug_main(int argc, char *argv[])
 		dbg.value = value_counter;
 		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
-		warnx("sent one more value..");
+		px4_warnx("sent one more value..");
 
 		value_counter++;
 		usleep(500000);

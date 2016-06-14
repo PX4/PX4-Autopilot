@@ -215,7 +215,7 @@ SF0X::SF0X(const char *port) :
 	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
-		warnx("FAIL: laser fd");
+		px4_warnx("FAIL: laser fd");
 	}
 
 	struct termios uart_config;
@@ -235,15 +235,15 @@ SF0X::SF0X(const char *port) :
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d ISPD", termios_state);
+		px4_warnx("ERR CFG: %d ISPD", termios_state);
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d OSPD\n", termios_state);
+		px4_warnx("ERR CFG: %d OSPD\n", termios_state);
 	}
 
 	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR baud %d ATTR", termios_state);
+		px4_warnx("ERR baud %d ATTR", termios_state);
 	}
 
 	// disable debug() calls
@@ -289,7 +289,7 @@ SF0X::init()
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 		if (_reports == nullptr) {
-			warnx("mem err");
+			px4_warnx("mem err");
 			ret = -1;
 			break;
 		}
@@ -779,7 +779,7 @@ start(const char *port)
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	/* create the driver */
@@ -797,7 +797,7 @@ start(const char *port)
 	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("device open fail");
+		px4_warnx("device open fail");
 		goto fail;
 	}
 
@@ -814,7 +814,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 /**
@@ -827,7 +827,7 @@ void stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	exit(0);
@@ -847,23 +847,23 @@ test()
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		px4_err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement:  %0.2f m", (double)report.current_distance);
-	warnx("time: %llu", report.timestamp);
+	px4_warnx("single read");
+	px4_warnx("measurement:  %0.2f m", (double)report.current_distance);
+	px4_warnx("time: %llu", report.timestamp);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		px4_errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
@@ -876,7 +876,7 @@ test()
 		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
+			px4_warnx("timed out");
 			break;
 		}
 
@@ -884,23 +884,23 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			px4_warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
 			break;
 		}
 
-		warnx("read #%u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
+		px4_warnx("read #%u", i);
+		px4_warnx("valid %u", (float)report.current_distance > report.min_distance
 		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement:  %0.3f m", (double)report.current_distance);
-		warnx("time: %llu", report.timestamp);
+		px4_warnx("measurement:  %0.3f m", (double)report.current_distance);
+		px4_warnx("time: %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "ERR: DEF RATE");
+		px4_errx(1, "ERR: DEF RATE");
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -912,15 +912,15 @@ reset()
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -933,7 +933,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -987,5 +987,5 @@ sf0x_main(int argc, char *argv[])
 		sf0x::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	px4_errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

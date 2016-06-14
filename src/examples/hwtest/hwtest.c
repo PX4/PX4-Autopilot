@@ -53,11 +53,11 @@ __EXPORT int ex_hwtest_main(int argc, char *argv[]);
 
 int ex_hwtest_main(int argc, char *argv[])
 {
-	warnx("DO NOT FORGET TO STOP THE DEFAULT CONTROL APPS!");
-	warnx("(run <commander stop>,)");
-	warnx("(    <mc_att_control stop> and)");
-	warnx("(    <fw_att_control stop> to do so)");
-	warnx("usage: http://px4.io/dev/examples/write_output");
+	px4_warnx("DO NOT FORGET TO STOP THE DEFAULT CONTROL APPS!");
+	px4_warnx("(run <commander stop>,)");
+	px4_warnx("(    <mc_att_control stop> and)");
+	px4_warnx("(    <fw_att_control stop> to do so)");
+	px4_warnx("usage: http://px4.io/dev/examples/write_output");
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
@@ -77,10 +77,10 @@ int ex_hwtest_main(int argc, char *argv[])
 	orb_copy(ORB_ID(actuator_armed), arm_sub_fd, &arm);
 
 	if (arm.ready_to_arm && arm.armed) {
-		warnx("Actuator armed");
+		px4_warnx("Actuator armed");
 
 	} else {
-		errx(1, "Arming actuators failed");
+		px4_errx(1, "Arming actuators failed");
 	}
 
 	hrt_abstime stime;
@@ -120,7 +120,7 @@ int ex_hwtest_main(int argc, char *argv[])
 			usleep(10000);
 		}
 
-		warnx("count %i", count);
+		px4_warnx("count %i", count);
 		count++;
 	}
 

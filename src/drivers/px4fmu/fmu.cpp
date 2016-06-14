@@ -399,7 +399,7 @@ PX4FMU::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* lets not be too verbose */
 	} else if (_class_instance < 0) {
-		warnx("FAILED registering class device");
+		px4_warnx("FAILED registering class device");
 	}
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
@@ -618,7 +618,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
-					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
+					px4_warn("rate group %u mask %x bad overlap %x", group, mask, alt);
 					// not a legal map, bail
 					return -EINVAL;
 				}
@@ -627,13 +627,13 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 				// set it - errors here are unexpected
 				if (alt != 0) {
 					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
-						warn("rate group set alt failed");
+						px4_warn("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
 					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
-						warn("rate group set default failed");
+						px4_warn("rate group set default failed");
 						return -EINVAL;
 					}
 				}
@@ -830,7 +830,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 #ifdef RC_SERIAL_PORT
 void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 {
-//    warnx("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
+//    px4_warnx("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
 	_rc_scan_begin = 0;
 	_rc_scan_state = newState;
 }
@@ -950,7 +950,7 @@ PX4FMU::cycle()
 
 	} else if (ret == 0) {
 		/* timeout: no control data, switch to failsafe values */
-//			warnx("no PWM: failsafe");
+//			px4_warnx("no PWM: failsafe");
 
 	} else {
 
@@ -965,7 +965,7 @@ PX4FMU::cycle()
 					/* main outputs */
 					if (i == 0) {
 //						main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
-//						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
+//						px4_warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
 
 						/* do only correct within the current phase */
 						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
@@ -1982,7 +1982,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		px4_warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2427,18 +2427,18 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 {
 	if (!_armed.armed) {
 //      mavlink_log_info(&_mavlink_log_pub, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		px4_warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
 		if (ret) {
 //            mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
-			warnx("binding failed.");
+			px4_warnx("binding failed.");
 		}
 
 	} else {
 //        mavlink_log_info(&_mavlink_log_pub, "[FMU] system armed, bind request rejected");
-		warnx("[FMU] system armed, bind request rejected");
+		px4_warnx("[FMU] system armed, bind request rejected");
 	}
 }
 
@@ -2626,11 +2626,11 @@ sensor_reset(int ms)
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
-		errx(1, "open fail");
+		px4_errx(1, "open fail");
 	}
 
 	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
-		warnx("sensor rail reset failed");
+		px4_warnx("sensor rail reset failed");
 	}
 
 	close(fd);
@@ -2644,11 +2644,11 @@ peripheral_reset(int ms)
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
-		errx(1, "open fail");
+		px4_errx(1, "open fail");
 	}
 
 	if (ioctl(fd, GPIO_PERIPHERAL_RAIL_RESET, ms) < 0) {
-		warnx("peripheral rail reset failed");
+		px4_warnx("peripheral rail reset failed");
 	}
 
 	close(fd);
@@ -2672,20 +2672,20 @@ test(void)
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
-		errx(1, "open fail");
+		px4_errx(1, "open fail");
 	}
 
-	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0) { err(1, "servo arm failed"); }
+	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0) { px4_err(1, "servo arm failed"); }
 
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) != 0) {
-		err(1, "Unable to get servo count\n");
+		px4_err(1, "Unable to get servo count\n");
 	}
 
 	if (ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
 		fprintf(stdout, "Not in a capture mode\n");
 	}
 
-	warnx("Testing %u servos and %u input captures", (unsigned)servo_count, capture_count);
+	px4_warnx("Testing %u servos and %u input captures", (unsigned)servo_count, capture_count);
 	memset(capture_conf, 0, sizeof(capture_conf));
 
 	if (capture_count != 0) {
@@ -2695,7 +2695,7 @@ test(void)
 
 			/* Save handler */
 			if (ioctl(fd, INPUT_CAP_GET_CALLBACK, (unsigned long)&capture_conf[i].chan.channel) != 0) {
-				err(1, "Unable to get capture callback for chan %u\n", capture_conf[i].chan.channel);
+				px4_err(1, "Unable to get capture callback for chan %u\n", capture_conf[i].chan.channel);
 
 			} else {
 				input_capture_config_t conf = capture_conf[i].chan;
@@ -2706,7 +2706,7 @@ test(void)
 					capture_conf[i].valid = true;
 
 				} else {
-					err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
+					px4_err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
 				}
 			}
 
@@ -2719,7 +2719,7 @@ test(void)
 
 	fds.events = POLLIN;
 
-	warnx("Press CTRL-C or 'c' to abort.");
+	px4_warnx("Press CTRL-C or 'c' to abort.");
 
 	for (;;) {
 		/* sweep all servos between 1000..2000 */
@@ -2733,7 +2733,7 @@ test(void)
 			// use ioctl interface for one direction
 			for (unsigned i = 0; i < servo_count;	i++) {
 				if (ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
-					err(1, "servo %u set failed", i);
+					px4_err(1, "servo %u set failed", i);
 				}
 			}
 
@@ -2742,7 +2742,7 @@ test(void)
 			ret = write(fd, servos, sizeof(servos));
 
 			if (ret != (int)sizeof(servos)) {
-				err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+				px4_err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
 			}
 		}
 
@@ -2768,11 +2768,11 @@ test(void)
 			servo_position_t value;
 
 			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %d", i);
+				px4_err(1, "error reading PWM servo %d", i);
 			}
 
 			if (value != servos[i]) {
-				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+				px4_errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
 			}
 		}
 
@@ -2783,7 +2783,7 @@ test(void)
 					stats.chan_in_edges_out = capture_conf[i].chan.channel;
 
 					if (ioctl(fd, INPUT_CAP_GET_STATS, (unsigned long)&stats) != 0) {
-						err(1, "Unable to get stats for chan %u\n", capture_conf[i].chan.channel);
+						px4_err(1, "Unable to get stats for chan %u\n", capture_conf[i].chan.channel);
 
 					} else {
 						fprintf(stdout, "FMU: Status chan:%u edges: %d last time:%lld last state:%d overflows:%d lantency:%u\n",
@@ -2808,7 +2808,7 @@ test(void)
 			read(0, &c, 1);
 
 			if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("User abort\n");
+				px4_warnx("User abort\n");
 				break;
 			}
 		}
@@ -2820,7 +2820,7 @@ test(void)
 			if (capture_conf[i].valid) {
 				/* Save handler */
 				if (ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&capture_conf[i].chan) != 0) {
-					err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
+					px4_err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
 				}
 			}
 		}
@@ -2836,7 +2836,7 @@ void
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
-		errx(1, "fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
+		px4_errx(1, "fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 	}
 
 	actuator_controls_s ac;
@@ -2852,7 +2852,7 @@ fake(int argc, char *argv[])
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
 	if (handle == nullptr) {
-		errx(1, "advertise failed");
+		px4_errx(1, "advertise failed");
 	}
 
 	actuator_armed_s aa;
@@ -2863,7 +2863,7 @@ fake(int argc, char *argv[])
 	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
 
 	if (handle == nullptr) {
-		errx(1, "advertise failed 2");
+		px4_errx(1, "advertise failed 2");
 	}
 
 	exit(0);
@@ -2887,32 +2887,32 @@ fmu_main(int argc, char *argv[])
 			int ret = fmu_new_i2c_speed(bus, clock_hz);
 
 			if (ret) {
-				errx(ret, "setting I2C clock failed");
+				px4_errx(ret, "setting I2C clock failed");
 			}
 
 			exit(0);
 
 		} else {
-			warnx("i2c cmd args: <bus id> <clock Hz>");
+			px4_warnx("i2c cmd args: <bus id> <clock Hz>");
 		}
 	}
 
 	if (!strcmp(verb, "stop")) {
 		fmu_stop();
-		errx(0, "FMU driver stopped");
+		px4_errx(0, "FMU driver stopped");
 	}
 
 	if (!strcmp(verb, "id")) {
 		uint8_t id[12];
 		(void)get_board_serial(id);
 
-		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
+		px4_errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
 		     (unsigned)id[0], (unsigned)id[1], (unsigned)id[2], (unsigned)id[3], (unsigned)id[4], (unsigned)id[5],
 		     (unsigned)id[6], (unsigned)id[7], (unsigned)id[8], (unsigned)id[9], (unsigned)id[10], (unsigned)id[11]);
 	}
 
 	if (fmu_start() != OK) {
-		errx(1, "failed to start the FMU driver");
+		px4_errx(1, "failed to start the FMU driver");
 	}
 
 	/*
@@ -2976,7 +2976,7 @@ fmu_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "info")) {
 #ifdef RC_SERIAL_PORT
-		warnx("frame drops: %u", sbus_dropped_frames());
+		px4_warnx("frame drops: %u", sbus_dropped_frames());
 #endif
 		return 0;
 	}
@@ -2992,7 +2992,7 @@ fmu_main(int argc, char *argv[])
 
 		} else {
 			sensor_reset(0);
-			warnx("resettet default time");
+			px4_warnx("resettet default time");
 		}
 
 		exit(0);
@@ -3005,7 +3005,7 @@ fmu_main(int argc, char *argv[])
 
 		} else {
 			peripheral_reset(0);
-			warnx("resettet default time");
+			px4_warnx("resettet default time");
 		}
 
 		exit(0);

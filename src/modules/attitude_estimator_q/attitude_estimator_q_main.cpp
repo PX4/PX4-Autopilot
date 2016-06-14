@@ -274,7 +274,7 @@ int AttitudeEstimatorQ::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 
@@ -283,11 +283,11 @@ int AttitudeEstimatorQ::start()
 
 void AttitudeEstimatorQ::print()
 {
-	warnx("gyro status:");
+	px4_warnx("gyro status:");
 	_voter_gyro.print();
-	warnx("accel status:");
+	px4_warnx("accel status:");
 	_voter_accel.print();
-	warnx("mag status:");
+	px4_warnx("mag status:");
 	_voter_mag.print();
 }
 
@@ -390,12 +390,12 @@ void AttitudeEstimatorQ::task_main()
 			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
 
 			if (_accel.length() < 0.01f) {
-				warnx("WARNING: degenerate accel!");
+				px4_warnx("WARNING: degenerate accel!");
 				continue;
 			}
 
 			if (_mag.length() < 0.01f) {
-				warnx("WARNING: degenerate mag!");
+				px4_warnx("WARNING: degenerate mag!");
 				continue;
 			}
 
@@ -840,28 +840,28 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 int attitude_estimator_q_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: attitude_estimator_q {start|stop|status}");
+		px4_warnx("usage: attitude_estimator_q {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (attitude_estimator_q::instance != nullptr) {
-			warnx("already running");
+			px4_warnx("already running");
 			return 1;
 		}
 
 		attitude_estimator_q::instance = new AttitudeEstimatorQ;
 
 		if (attitude_estimator_q::instance == nullptr) {
-			warnx("alloc failed");
+			px4_warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != attitude_estimator_q::instance->start()) {
 			delete attitude_estimator_q::instance;
 			attitude_estimator_q::instance = nullptr;
-			warnx("start failed");
+			px4_warnx("start failed");
 			return 1;
 		}
 
@@ -870,7 +870,7 @@ int attitude_estimator_q_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (attitude_estimator_q::instance == nullptr) {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 
@@ -882,15 +882,15 @@ int attitude_estimator_q_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (attitude_estimator_q::instance) {
 			attitude_estimator_q::instance->print();
-			warnx("running");
+			px4_warnx("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

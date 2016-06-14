@@ -580,7 +580,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("mpu9x50_main task start failed");
+		px4_warn("mpu9x50_main task start failed");
 		return;
 	}
 

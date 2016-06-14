@@ -85,14 +85,14 @@ config_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "expected a device, try '/dev/gyro', '/dev/accel', '/dev/mag'");
+	px4_errx(1, "expected a device, try '/dev/gyro', '/dev/accel', '/dev/mag'");
 }
 
 static void
 do_device(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "no device path provided and command provided.");
+		px4_errx(1, "no device path provided and command provided.");
 	}
 
 	int	fd;
@@ -100,8 +100,8 @@ do_device(int argc, char *argv[])
 	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", argv[0]);
-		errx(1, "FATAL: no device found");
+		px4_warn("%s", argv[0]);
+		px4_errx(1, "FATAL: no device found");
 
 	} else {
 
@@ -113,7 +113,7 @@ do_device(int argc, char *argv[])
 			ret = ioctl(fd, DEVIOCSPUBBLOCK, 1);
 
 			if (ret) {
-				errx(ret, "uORB publications could not be blocked");
+				px4_errx(ret, "uORB publications could not be blocked");
 			}
 
 		} else if (argc == 2 && !strcmp(argv[1], "unblock")) {
@@ -122,11 +122,11 @@ do_device(int argc, char *argv[])
 			ret = ioctl(fd, DEVIOCSPUBBLOCK, 0);
 
 			if (ret) {
-				errx(ret, "uORB publications could not be unblocked");
+				px4_errx(ret, "uORB publications could not be unblocked");
 			}
 
 		} else {
-			errx(1, "no valid command: %s", argv[1]);
+			px4_errx(1, "no valid command: %s", argv[1]);
 		}
 	}
 
@@ -141,8 +141,8 @@ do_gyro(int argc, char *argv[])
 	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", argv[0]);
-		errx(1, "FATAL: no gyro found");
+		px4_warn("%s", argv[0]);
+		px4_errx(1, "FATAL: no gyro found");
 
 	} else {
 
@@ -154,7 +154,7 @@ do_gyro(int argc, char *argv[])
 			ret = ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "sampling rate could not be set");
+				px4_errx(ret, "sampling rate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
@@ -163,7 +163,7 @@ do_gyro(int argc, char *argv[])
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "pollrate could not be set");
+				px4_errx(ret, "pollrate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "range")) {
@@ -172,30 +172,30 @@ do_gyro(int argc, char *argv[])
 			ret = ioctl(fd, GYROIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "range could not be set");
+				px4_errx(ret, "range could not be set");
 			}
 
 		} else if (argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, GYROIOCSELFTEST, 0);
 
 			if (ret) {
-				warnx("gyro self test FAILED! Check calibration:");
+				px4_warnx("gyro self test FAILED! Check calibration:");
 				struct gyro_calibration_s scale;
 				ret = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
-					err(1, "failed getting gyro scale");
+					px4_err(1, "failed getting gyro scale");
 				}
 
-				warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
-				warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
+				px4_warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
+				px4_warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
 
 			} else {
-				warnx("gyro calibration and self test OK");
+				px4_warnx("gyro calibration and self test OK");
 			}
 
 		} else {
-			errx(1, "wrong or no arguments given. Try: \n\n\t'check' for the self test\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 2000' to set measurement range to 2000 dps\n\t");
+			px4_errx(1, "wrong or no arguments given. Try: \n\n\t'check' for the self test\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 2000' to set measurement range to 2000 dps\n\t");
 		}
 
 		int srate = ioctl(fd, GYROIOCGSAMPLERATE, 0);
@@ -206,7 +206,7 @@ do_gyro(int argc, char *argv[])
 
 		param_get(param_find("CAL_GYRO0_ID"), &(calibration_id));
 
-		warnx("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps",
+		px4_warnx("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps",
 		      id, calibration_id, srate, prate, range);
 
 		close(fd);
@@ -223,8 +223,8 @@ do_mag(int argc, char *argv[])
 	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", argv[0]);
-		errx(1, "FATAL: no magnetometer found");
+		px4_warn("%s", argv[0]);
+		px4_errx(1, "FATAL: no magnetometer found");
 
 	} else {
 
@@ -236,7 +236,7 @@ do_mag(int argc, char *argv[])
 			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "sampling rate could not be set");
+				px4_errx(ret, "sampling rate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
@@ -245,7 +245,7 @@ do_mag(int argc, char *argv[])
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "pollrate could not be set");
+				px4_errx(ret, "pollrate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "range")) {
@@ -254,30 +254,30 @@ do_mag(int argc, char *argv[])
 			ret = ioctl(fd, MAGIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "range could not be set");
+				px4_errx(ret, "range could not be set");
 			}
 
 		} else if (argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, MAGIOCSELFTEST, 0);
 
 			if (ret) {
-				warnx("mag self test FAILED! Check calibration:");
+				px4_warnx("mag self test FAILED! Check calibration:");
 				struct mag_calibration_s scale;
 				ret = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
-					err(ret, "failed getting mag scale");
+					px4_err(ret, "failed getting mag scale");
 				}
 
-				warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
-				warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
+				px4_warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
+				px4_warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
 
 			} else {
-				warnx("mag calibration and self test OK");
+				px4_warnx("mag calibration and self test OK");
 			}
 
 		} else {
-			errx(1, "wrong or no arguments given. Try: \n\n\t'check' for the self test\n\t");
+			px4_errx(1, "wrong or no arguments given. Try: \n\n\t'check' for the self test\n\t");
 		}
 
 		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
@@ -288,7 +288,7 @@ do_mag(int argc, char *argv[])
 
 		param_get(param_find("CAL_MAG0_ID"), &(calibration_id));
 
-		warnx("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
+		px4_warnx("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
 		      id, calibration_id, srate, prate, range);
 
 		close(fd);
@@ -305,8 +305,8 @@ do_accel(int argc, char *argv[])
 	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", argv[0]);
-		errx(1, "FATAL: no accelerometer found");
+		px4_warn("%s", argv[0]);
+		px4_errx(1, "FATAL: no accelerometer found");
 
 	} else {
 
@@ -318,7 +318,7 @@ do_accel(int argc, char *argv[])
 			ret = ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "sampling rate could not be set");
+				px4_errx(ret, "sampling rate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
@@ -327,7 +327,7 @@ do_accel(int argc, char *argv[])
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "pollrate could not be set");
+				px4_errx(ret, "pollrate could not be set");
 			}
 
 		} else if (argc == 3 && !strcmp(argv[1], "range")) {
@@ -336,30 +336,30 @@ do_accel(int argc, char *argv[])
 			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret) {
-				errx(ret, "range could not be set");
+				px4_errx(ret, "range could not be set");
 			}
 
 		} else if (argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 
 			if (ret) {
-				warnx("accel self test FAILED! Check calibration:");
+				px4_warnx("accel self test FAILED! Check calibration:");
 				struct accel_calibration_s scale;
 				ret = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
-					err(ret, "failed getting accel scale");
+					px4_err(ret, "failed getting accel scale");
 				}
 
-				warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
-				warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
+				px4_warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_offset, (double)scale.y_offset, (double)scale.z_offset);
+				px4_warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", (double)scale.x_scale, (double)scale.y_scale, (double)scale.z_scale);
 
 			} else {
-				warnx("accel calibration and self test OK");
+				px4_warnx("accel calibration and self test OK");
 			}
 
 		} else {
-			errx(1, "no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 4' to set measurement range to 4 G\n\t");
+			px4_errx(1, "no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 4' to set measurement range to 4 G\n\t");
 		}
 
 		int srate = ioctl(fd, ACCELIOCGSAMPLERATE, 0);
@@ -370,7 +370,7 @@ do_accel(int argc, char *argv[])
 
 		param_get(param_find("CAL_ACC0_ID"), &(calibration_id));
 
-		warnx("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G",
+		px4_warnx("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G",
 		      id, calibration_id, srate, prate, range);
 
 		close(fd);

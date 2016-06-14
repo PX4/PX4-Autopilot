@@ -182,7 +182,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		int save_ret = param_save_default();
 
 		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
+			px4_warn("WARNING: auto-save of params to storage failed");
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
 			goto error_return;
 		}

@@ -219,7 +219,7 @@ int BST::probe()
 	send_packet(dev_info_req, dev_info_reply);
 
 	if (dev_info_reply.type != 0x05) {
-		warnx("no devices found");
+		px4_warnx("no devices found");
 		return -EIO;
 	}
 
@@ -228,12 +228,12 @@ int BST::probe()
 	uint8_t crc_recv = reply_raw[dev_info_reply.length];
 
 	if (crc_recv != crc_calc) {
-		warnx("CRC error: got %02x, should be %02x", (int)crc_recv, (int)crc_calc);
+		px4_warnx("CRC error: got %02x, should be %02x", (int)crc_recv, (int)crc_calc);
 		return -EIO;
 	}
 
 	dev_info_reply.payload.dev_name[dev_info_reply.payload.dev_name_len] = '\0';
-	warnx("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s",
+	px4_warnx("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s",
 	      (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id),
 	      dev_info_reply.payload.dev_name);
 
@@ -361,13 +361,13 @@ using namespace px4::bst;
 int bst_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "missing command\n%s", commandline_usage);
+		px4_errx(1, "missing command\n%s", commandline_usage);
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (g_bst) {
-			warnx("already running");
+			px4_warnx("already running");
 			exit(0);
 		}
 
@@ -383,27 +383,27 @@ int bst_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (!g_bst) {
-			warnx("not running");
+			px4_warnx("not running");
 			exit(0);
 		}
 
 		delete g_bst;
 		g_bst = nullptr;
-		warnx("stopped");
+		px4_warnx("stopped");
 
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (g_bst) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("is not running");
+			px4_warnx("is not running");
 		}
 
 		exit(0);
 	}
 
-	errx(1, "unrecognized command\n%s", commandline_usage);
+	px4_errx(1, "unrecognized command\n%s", commandline_usage);
 }

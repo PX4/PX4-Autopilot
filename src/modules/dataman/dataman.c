@@ -869,7 +869,7 @@ start(void)
 
 	/* start the worker thread with low priority for disk IO */
 	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, 1200, task_main, NULL)) <= 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -1;
 	}
 

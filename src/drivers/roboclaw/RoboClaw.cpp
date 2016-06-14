@@ -80,26 +80,26 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 	// start serial port
 	_uart = open(deviceName, O_RDWR | O_NOCTTY);
 
-	if (_uart < 0) { err(1, "could not open %s", deviceName); }
+	if (_uart < 0) { px4_err(1, "could not open %s", deviceName); }
 
 	int ret = 0;
 	struct termios uart_config;
 	ret = tcgetattr(_uart, &uart_config);
 
-	if (ret < 0) { err(1, "failed to get attr"); }
+	if (ret < 0) { px4_err(1, "failed to get attr"); }
 
 	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
 	ret = cfsetispeed(&uart_config, B38400);
 
-	if (ret < 0) { err(1, "failed to set input speed"); }
+	if (ret < 0) { px4_err(1, "failed to set input speed"); }
 
 	ret = cfsetospeed(&uart_config, B38400);
 
-	if (ret < 0) { err(1, "failed to set output speed"); }
+	if (ret < 0) { px4_err(1, "failed to set output speed"); }
 
 	ret = tcsetattr(_uart, TCSANOW, &uart_config);
 
-	if (ret < 0) { err(1, "failed to set attr"); }
+	if (ret < 0) { px4_err(1, "failed to set attr"); }
 
 	// setup default settings, reset encoders
 	resetEncoders();
@@ -205,7 +205,7 @@ float RoboClaw::getMotorPosition(e_motor motor)
 		return _motor2Position;
 
 	} else {
-		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
+		px4_warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
 		return NAN;
 	}
 }
@@ -219,7 +219,7 @@ float RoboClaw::getMotorSpeed(e_motor motor)
 		return _motor2Speed;
 
 	} else {
-		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
+		px4_warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
 		return NAN;
 	}
 }

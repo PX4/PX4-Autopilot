@@ -304,7 +304,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 			 * Poll error, this will not really happen in practice,
 			 * but its good design practice to make output an error message.
 			 */
-			warnx("poll error");
+			px4_warnx("poll error");
 
 		} else if (ret == 0) {
 			/* no return value = nothing changed for 500 ms, ignore */
@@ -361,14 +361,14 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
-						warnx("published");
+						px4_warnx("published");
 					}
 				}
 			}
 		}
 	}
 
-	warnx("exiting, stopping all motors.");
+	px4_warnx("exiting, stopping all motors.");
 	thread_running = false;
 
 	/* kill all outputs */
@@ -415,7 +415,7 @@ int rover_steering_control_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("running");
+			px4_warnx("running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -438,10 +438,10 @@ int rover_steering_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("running");
+			px4_warnx("running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		exit(0);

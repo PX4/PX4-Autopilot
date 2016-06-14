@@ -55,13 +55,13 @@ extern "C" __EXPORT int publisher_main(int argc, char *argv[]);
 int publisher_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: publisher {start|stop|status}");
+		px4_errx(1, "usage: publisher {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -85,15 +85,15 @@ int publisher_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		exit(0);
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

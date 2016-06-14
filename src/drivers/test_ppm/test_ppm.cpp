@@ -184,7 +184,7 @@ start(unsigned  channels)
 	if (g_test != nullptr)
 		/* if already started, the still command succeeded */
 	{
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	g_test = new TEST_PPM(channels);
@@ -205,7 +205,7 @@ fail:
 		g_test = nullptr;
 	}
 
-	errx(1, "test_ppm  start failed");
+	px4_errx(1, "test_ppm  start failed");
 }
 
 void
@@ -217,7 +217,7 @@ stop()
 
 	} else {
 		/* warn, but not an error */
-		warnx("test_ppm already stopped.");
+		px4_warnx("test_ppm already stopped.");
 	}
 
 	exit(0);
@@ -228,7 +228,7 @@ set(unsigned  ch, unsigned value)
 {
 	if (ch > 18 || ch < 1) {warnx("channel is not valid.");}
 
-	if (value > 2500 || value < 1) { warnx("value is not valid.");}
+	if (value > 2500 || value < 1) { px4_warnx("value is not valid.");}
 
 	g_test->_values[ch] = value;
 	g_test->_gaps[ch] = 2500 - value;
@@ -241,7 +241,7 @@ set(unsigned  ch, unsigned value)
 void
 usage()
 {
-	warnx("missing command: try 'start',  'stop', 'set'\n");
+	px4_warnx("missing command: try 'start',  'stop', 'set'\n");
 }
 
 } // namespace
@@ -273,7 +273,7 @@ test_ppm_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "set")) {
 		if (argc < 4) {
-			errx(1, "Usage: test_ppm  set  <channel> <value>");
+			px4_errx(1, "Usage: test_ppm  set  <channel> <value>");
 		}
 
 		unsigned channel  = strtol(argv[2], NULL, 0);

@@ -378,8 +378,8 @@ Ekf2::~Ekf2()
 
 void Ekf2::print_status()
 {
-	warnx("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
-	warnx("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
+	px4_warnx("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
+	px4_warnx("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
 }
 
 void Ekf2::task_main()

@@ -486,7 +486,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return;
 	}
 

@@ -456,17 +456,17 @@ CameraTrigger::trigger(CameraTrigger *trig, bool trigger)
 void
 CameraTrigger::info()
 {
-	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
-	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
+	px4_warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
+	px4_warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
-	warnx("mode : %i", _mode);
-	warnx("interval : %.2f", (double)_interval);
-	warnx("distance : %.2f", (double)_distance);
+	px4_warnx("mode : %i", _mode);
+	px4_warnx("interval : %.2f", (double)_interval);
+	px4_warnx("distance : %.2f", (double)_distance);
 }
 
 static void usage()
 {
-	errx(1, "usage: camera_trigger {start|stop|info} [-p <n>]\n");
+	px4_errx(1, "usage: camera_trigger {start|stop|info} [-p <n>]\n");
 }
 
 int camera_trigger_main(int argc, char *argv[])
@@ -478,13 +478,13 @@ int camera_trigger_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (camera_trigger::g_camera_trigger != nullptr) {
-			errx(0, "already running");
+			px4_errx(0, "already running");
 		}
 
 		camera_trigger::g_camera_trigger = new CameraTrigger;
 
 		if (camera_trigger::g_camera_trigger == nullptr) {
-			errx(1, "alloc failed");
+			px4_errx(1, "alloc failed");
 		}
 
 		camera_trigger::g_camera_trigger->start();
@@ -493,7 +493,7 @@ int camera_trigger_main(int argc, char *argv[])
 	}
 
 	if (camera_trigger::g_camera_trigger == nullptr) {
-		errx(1, "not running");
+		px4_errx(1, "not running");
 
 	} else if (!strcmp(argv[1], "stop")) {
 		camera_trigger::g_camera_trigger->stop();

@@ -70,10 +70,10 @@ static void
 usage(const char *reason)
 {
 	if (reason != NULL) {
-		warnx("%s", reason);
+		px4_warnx("%s", reason);
 	}
 
-	errx(1,
+	px4_errx(1,
 	     "usage:\n"
 	     "pwm arm|disarm|rate|failsafe|disarmed|min|max|test|steps|info  ...\n"
 	     "\n"
@@ -138,7 +138,7 @@ pwm_main(int argc, char *argv[])
 
 		case 'd':
 			if (NULL == strstr(optarg, "/dev/")) {
-				warnx("device %s not valid", optarg);
+				px4_warnx("device %s not valid", optarg);
 				usage(NULL);
 			}
 
@@ -170,7 +170,7 @@ pwm_main(int argc, char *argv[])
 
 			alt_channel_groups |= (1 << group);
 			alt_channels_set = true;
-			warnx("alt channels set, group: %d", group);
+			px4_warnx("alt channels set, group: %d", group);
 			break;
 
 		case 'm':
@@ -241,7 +241,7 @@ pwm_main(int argc, char *argv[])
 	}
 
 	if (print_verbose && set_mask > 0) {
-		warnx("Channels: ");
+		px4_warnx("Channels: ");
 		printf("    ");
 
 		for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
@@ -257,7 +257,7 @@ pwm_main(int argc, char *argv[])
 	int fd = open(dev, 0);
 
 	if (fd < 0) {
-		err(1, "can't open %s", dev);
+		px4_err(1, "can't open %s", dev);
 	}
 
 	/* get the number of servo channels */
@@ -265,7 +265,7 @@ pwm_main(int argc, char *argv[])
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 
 	if (ret != OK) {
-		err(1, "PWM_SERVO_GET_COUNT");
+		px4_err(1, "PWM_SERVO_GET_COUNT");
 	}
 
 	if (!strcmp(argv[1], "arm")) {
@@ -273,18 +273,18 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_SET_ARM_OK");
+			px4_err(1, "PWM_SERVO_SET_ARM_OK");
 		}
 
 		/* tell IO that the system is armed (it will output values if safety is off) */
 		ret = ioctl(fd, PWM_SERVO_ARM, 0);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_ARM");
+			px4_err(1, "PWM_SERVO_ARM");
 		}
 
 		if (print_verbose) {
-			warnx("Outputs armed");
+			px4_warnx("Outputs armed");
 		}
 
 		exit(0);
@@ -294,11 +294,11 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_DISARM, 0);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_DISARM");
+			px4_err(1, "PWM_SERVO_DISARM");
 		}
 
 		if (print_verbose) {
-			warnx("Outputs disarmed");
+			px4_warnx("Outputs disarmed");
 		}
 
 		exit(0);
@@ -310,7 +310,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+				px4_err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
 			}
 		}
 
@@ -319,7 +319,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_SELECT_UPDATE_RATE, set_mask);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				px4_err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
 			}
 		}
 
@@ -334,7 +334,7 @@ pwm_main(int argc, char *argv[])
 					ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
 
 					if (ret != OK) {
-						err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
+						px4_err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
 					}
 
 					mask |= group_mask;
@@ -344,7 +344,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_SELECT_UPDATE_RATE, mask);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				px4_err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
 			}
 		}
 
@@ -370,7 +370,7 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&pwm_values);
 
 		if (ret != OK) {
-			errx(ret, "failed get min values");
+			px4_errx(ret, "failed get min values");
 		}
 
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -378,7 +378,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: min PWM: %d", i + 1, pwm_value);
+					px4_warnx("Channel %d: min PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -391,7 +391,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting min values");
+				px4_errx(ret, "failed setting min values");
 			}
 		}
 
@@ -417,7 +417,7 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&pwm_values);
 
 		if (ret != OK) {
-			errx(ret, "failed get max values");
+			px4_errx(ret, "failed get max values");
 		}
 
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -425,7 +425,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: max PWM: %d", i + 1, pwm_value);
+					px4_warnx("Channel %d: max PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -438,7 +438,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting max values");
+				px4_errx(ret, "failed setting max values");
 			}
 		}
 
@@ -451,7 +451,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_value == 0) {
-			warnx("reading disarmed value of zero, disabling disarmed PWM");
+			px4_warnx("reading disarmed value of zero, disabling disarmed PWM");
 		}
 
 		struct pwm_output_values pwm_values;
@@ -464,7 +464,7 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&pwm_values);
 
 		if (ret != OK) {
-			errx(ret, "failed get disarmed values");
+			px4_errx(ret, "failed get disarmed values");
 		}
 
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -472,7 +472,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("chan %d: disarmed PWM: %d", i + 1, pwm_value);
+					px4_warnx("chan %d: disarmed PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -485,7 +485,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting disarmed values");
+				px4_errx(ret, "failed setting disarmed values");
 			}
 		}
 
@@ -511,7 +511,7 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
 
 		if (ret != OK) {
-			errx(ret, "failed get failsafe values");
+			px4_errx(ret, "failed get failsafe values");
 		}
 
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -519,7 +519,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: failsafe PWM: %d", i + 1, pwm_value);
+					px4_warnx("Channel %d: failsafe PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -532,7 +532,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "BAD input VAL");
+				px4_errx(ret, "BAD input VAL");
 			}
 		}
 
@@ -557,7 +557,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_GET(%d)", i);
+				px4_err(1, "PWM_SERVO_GET(%d)", i);
 			}
 		}
 
@@ -568,7 +568,7 @@ pwm_main(int argc, char *argv[])
 		fds.fd = 0; /* stdin */
 		fds.events = POLLIN;
 
-		warnx("Press CTRL-C or 'c' to abort.");
+		px4_warnx("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
 			for (unsigned i = 0; i < servo_count; i++) {
@@ -576,7 +576,7 @@ pwm_main(int argc, char *argv[])
 					ret = ioctl(fd, PWM_SERVO_SET(i), pwm_value);
 
 					if (ret != OK) {
-						err(1, "PWM_SERVO_SET(%d)", i);
+						px4_err(1, "PWM_SERVO_SET(%d)", i);
 					}
 				}
 			}
@@ -596,12 +596,12 @@ pwm_main(int argc, char *argv[])
 							ret = ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
 
 							if (ret != OK) {
-								err(1, "PWM_SERVO_SET(%d)", i);
+								px4_err(1, "PWM_SERVO_SET(%d)", i);
 							}
 						}
 					}
 
-					warnx("User abort\n");
+					px4_warnx("User abort\n");
 					exit(0);
 				}
 			}
@@ -626,7 +626,7 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_GET(%d)", i);
+				px4_err(1, "PWM_SERVO_GET(%d)", i);
 			}
 		}
 
@@ -637,7 +637,7 @@ pwm_main(int argc, char *argv[])
 		fds.fd = 0; /* stdin */
 		fds.events = POLLIN;
 
-		warnx("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
+		px4_warnx("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
 		sleep(5);
 
 		unsigned off = 900;
@@ -653,7 +653,7 @@ pwm_main(int argc, char *argv[])
 		     steps_timing_index < sizeof(steps_timings_us) / sizeof(steps_timings_us[0]);
 		     steps_timing_index++) {
 
-			warnx("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
+			px4_warnx("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
 
 			while (1) {
 				for (unsigned i = 0; i < servo_count; i++) {
@@ -675,7 +675,7 @@ pwm_main(int argc, char *argv[])
 						ret = ioctl(fd, PWM_SERVO_SET(i), val);
 
 						if (ret != OK) {
-							err(1, "PWM_SERVO_SET(%d)", i);
+							px4_err(1, "PWM_SERVO_SET(%d)", i);
 						}
 					}
 				}
@@ -695,12 +695,12 @@ pwm_main(int argc, char *argv[])
 								ret = ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
 
 								if (ret != OK) {
-									err(1, "PWM_SERVO_SET(%d)", i);
+									px4_err(1, "PWM_SERVO_SET(%d)", i);
 								}
 							}
 						}
 
-						warnx("User abort\n");
+						px4_warnx("User abort\n");
 						exit(0);
 					}
 				}
@@ -741,19 +741,19 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_DEFAULT_UPDATE_RATE, (unsigned long)&info_default_rate);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_DEFAULT_UPDATE_RATE");
+			px4_err(1, "PWM_SERVO_GET_DEFAULT_UPDATE_RATE");
 		}
 
 		ret = ioctl(fd, PWM_SERVO_GET_UPDATE_RATE, (unsigned long)&info_alt_rate);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_UPDATE_RATE");
+			px4_err(1, "PWM_SERVO_GET_UPDATE_RATE");
 		}
 
 		ret = ioctl(fd, PWM_SERVO_GET_SELECT_UPDATE_RATE, (unsigned long)&info_alt_rate_mask);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_SELECT_UPDATE_RATE");
+			px4_err(1, "PWM_SERVO_GET_SELECT_UPDATE_RATE");
 		}
 
 		struct pwm_output_values failsafe_pwm;
@@ -767,25 +767,25 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (unsigned long)&failsafe_pwm);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_FAILSAFE_PWM");
+			px4_err(1, "PWM_SERVO_GET_FAILSAFE_PWM");
 		}
 
 		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (unsigned long)&disarmed_pwm);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_DISARMED_PWM");
+			px4_err(1, "PWM_SERVO_GET_DISARMED_PWM");
 		}
 
 		ret = ioctl(fd, PWM_SERVO_GET_MIN_PWM, (unsigned long)&min_pwm);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_MIN_PWM");
+			px4_err(1, "PWM_SERVO_GET_MIN_PWM");
 		}
 
 		ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, (unsigned long)&max_pwm);
 
 		if (ret != OK) {
-			err(1, "PWM_SERVO_GET_MAX_PWM");
+			px4_err(1, "PWM_SERVO_GET_MAX_PWM");
 		}
 
 		/* print current servo values */
@@ -841,7 +841,7 @@ pwm_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "forcefail")) {
 
 		if (argc < 3) {
-			errx(1, "arg missing [on|off]");
+			px4_errx(1, "arg missing [on|off]");
 
 		} else {
 
@@ -855,7 +855,7 @@ pwm_main(int argc, char *argv[])
 			}
 
 			if (ret != OK) {
-				warnx("FAILED setting forcefail %s", argv[2]);
+				px4_warnx("FAILED setting forcefail %s", argv[2]);
 			}
 		}
 
@@ -864,7 +864,7 @@ pwm_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "terminatefail")) {
 
 		if (argc < 3) {
-			errx(1, "arg missing [on|off]");
+			px4_errx(1, "arg missing [on|off]");
 
 		} else {
 
@@ -878,7 +878,7 @@ pwm_main(int argc, char *argv[])
 			}
 
 			if (ret != OK) {
-				warnx("FAILED setting termination failsafe %s", argv[2]);
+				px4_warnx("FAILED setting termination failsafe %s", argv[2]);
 			}
 		}
 

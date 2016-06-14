@@ -221,7 +221,7 @@ RGBLED::info()
 		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
-		warnx("failed to read led");
+		px4_warnx("failed to read led");
 	}
 
 	return ret;
@@ -458,7 +458,7 @@ RGBLED::set_color(rgbled_color_t color)
 		break;
 
 	default:
-		warnx("color unknown");
+		px4_warnx("color unknown");
 		break;
 	}
 }
@@ -523,7 +523,7 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 
 		default:
-			warnx("mode unknown");
+			px4_warnx("mode unknown");
 			break;
 		}
 
@@ -618,10 +618,10 @@ RGBLED::update_params()
 void
 rgbled_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	warnx("    -a addr (0x%x)", ADDR);
+	px4_warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
+	px4_warnx("    -a addr (0x%x)", ADDR);
 }
 
 int
@@ -664,7 +664,7 @@ rgbled_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr) {
-			warnx("already started");
+			px4_warnx("already started");
 			return 1;
 		}
 
@@ -681,7 +681,7 @@ rgbled_main(int argc, char *argv[])
 			if (g_rgbled == nullptr) {
 				// fall back to default bus
 				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					warnx("no RGB led on bus #%d", i2cdevice);
+					px4_warnx("no RGB led on bus #%d", i2cdevice);
 					return 1;
 				}
 
@@ -693,14 +693,14 @@ rgbled_main(int argc, char *argv[])
 			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
 
 			if (g_rgbled == nullptr) {
-				warnx("new failed");
+				px4_warnx("new failed");
 				return 1;
 			}
 
 			if (OK != g_rgbled->init()) {
 				delete g_rgbled;
 				g_rgbled = nullptr;
-				warnx("no RGB led on bus #%d", i2cdevice);
+				px4_warnx("no RGB led on bus #%d", i2cdevice);
 				return 1;
 			}
 		}
@@ -710,7 +710,7 @@ rgbled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
-		warnx("not started");
+		px4_warnx("not started");
 		rgbled_usage();
 		return 1;
 	}
@@ -719,7 +719,7 @@ rgbled_main(int argc, char *argv[])
 		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			px4_warnx("Unable to open " RGBLED0_DEVICE_PATH);
 			return 1;
 		}
 
@@ -743,7 +743,7 @@ rgbled_main(int argc, char *argv[])
 		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			px4_warnx("Unable to open " RGBLED0_DEVICE_PATH);
 			return 1;
 		}
 
@@ -762,14 +762,14 @@ rgbled_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "rgb")) {
 		if (argc < 5) {
-			warnx("Usage: rgbled rgb <red> <green> <blue>");
+			px4_warnx("Usage: rgbled rgb <red> <green> <blue>");
 			return 1;
 		}
 
 		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			px4_warnx("Unable to open " RGBLED0_DEVICE_PATH);
 			return 1;
 		}
 

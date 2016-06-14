@@ -1102,7 +1102,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
+		px4_warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
 		ret = 1;
 		goto out;
 	}
@@ -1110,25 +1110,25 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
 	 * the chained if statement above. */
 	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
-		warnx("FAILED: MAGIOCSRANGE 2.5 Ga");
+		px4_warnx("FAILED: MAGIOCSRANGE 2.5 Ga");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
-		warnx("FAILED: MAGIOCEXSTRAP 1");
+		px4_warnx("FAILED: MAGIOCEXSTRAP 1");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCGSCALE 1");
+		px4_warn("FAILED: MAGIOCGSCALE 1");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("FAILED: MAGIOCSSCALE 1");
+		px4_warn("FAILED: MAGIOCSSCALE 1");
 		ret = 1;
 		goto out;
 	}
@@ -1143,7 +1143,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		ret = ::poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warn("ERROR: TIMEOUT 1");
+			px4_warn("ERROR: TIMEOUT 1");
 			goto out;
 		}
 
@@ -1151,7 +1151,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		sz = ::read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("ERROR: READ 1");
+			px4_warn("ERROR: READ 1");
 			ret = -EIO;
 			goto out;
 		}
@@ -1167,7 +1167,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		ret = ::poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warn("ERROR: TIMEOUT 2");
+			px4_warn("ERROR: TIMEOUT 2");
 			goto out;
 		}
 
@@ -1175,7 +1175,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		sz = ::read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("ERROR: READ 2");
+			px4_warn("ERROR: READ 2");
 			ret = -EIO;
 			goto out;
 		}
@@ -1216,23 +1216,23 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCSSCALE 2");
+		px4_warn("FAILED: MAGIOCSSCALE 2");
 	}
 
 	/* set back to normal mode */
 	/* Set to 1.9 Gauss */
 	if (OK != ::ioctl(fd, MAGIOCSRANGE, 2)) {
-		warnx("FAILED: MAGIOCSRANGE 1.9 Ga");
+		px4_warnx("FAILED: MAGIOCSRANGE 1.9 Ga");
 	}
 
 	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		warnx("FAILED: MAGIOCEXSTRAP 0");
+		px4_warnx("FAILED: MAGIOCEXSTRAP 0");
 	}
 
 	if (ret == OK) {
 		if (check_scale()) {
 			/* failed */
-			warnx("FAILED: SCALE");
+			px4_warnx("FAILED: SCALE");
 			ret = ERROR;
 		}
 
@@ -1283,7 +1283,7 @@ int HMC5883::check_calibration()
 	bool scale_valid  = (check_scale() == OK);
 
 	if (_calibrated != (offset_valid && scale_valid)) {
-		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
+		px4_warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
 		      (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
 	}
@@ -1479,14 +1479,14 @@ bool
 start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 {
 	if (bus.dev != nullptr) {
-		errx(1, "bus option already started");
+		px4_errx(1, "bus option already started");
 	}
 
 	device::Device *interface = bus.interface_constructor(bus.busnum);
 
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		px4_warnx("no device on bus %u", (unsigned)bus.busid);
 		return false;
 	}
 
@@ -1506,7 +1506,7 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
-		errx(1, "Failed to setup poll rate");
+		px4_errx(1, "Failed to setup poll rate");
 	}
 
 	close(fd);
@@ -1557,7 +1557,7 @@ struct hmc5883_bus_option &find_bus(enum HMC5883_BUS busid)
 		}
 	}
 
-	errx(1, "bus %u not started", (unsigned)busid);
+	px4_errx(1, "bus %u not started", (unsigned)busid);
 }
 
 
@@ -1578,35 +1578,35 @@ test(enum HMC5883_BUS busid)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'hmc5883 start')", path);
+		px4_err(1, "%s open failed (try 'hmc5883 start')", path);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	warnx("time:        %lld", report.timestamp);
+	px4_warnx("single read");
+	px4_warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+	px4_warnx("time:        %lld", report.timestamp);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
-		errx(1, "failed to get if mag is onboard or external");
+		px4_errx(1, "failed to get if mag is onboard or external");
 	}
 
-	warnx("device active: %s", ret ? "external" : "onboard");
+	px4_warnx("device active: %s", ret ? "external" : "onboard");
 
 	/* set the queue depth to 5 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
+		px4_errx(1, "failed to set queue depth");
 	}
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		px4_errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
@@ -1619,22 +1619,22 @@ test(enum HMC5883_BUS busid)
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			px4_errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			px4_err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		warnx("time:        %lld", report.timestamp);
+		px4_warnx("periodic read %u", i);
+		px4_warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+		px4_warnx("time:        %lld", report.timestamp);
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 
@@ -1688,11 +1688,11 @@ int calibrate(enum HMC5883_BUS busid)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", path);
+		px4_err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", path);
 	}
 
 	if (OK != (ret = ioctl(fd, MAGIOCCALIBRATE, fd))) {
-		warnx("failed to enable sensor calibration mode");
+		px4_warnx("failed to enable sensor calibration mode");
 	}
 
 	close(fd);
@@ -1712,15 +1712,15 @@ reset(enum HMC5883_BUS busid)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -1739,11 +1739,11 @@ temp_enable(enum HMC5883_BUS busid, bool enable)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0) {
-		err(1, "set temperature compensation failed");
+		px4_err(1, "set temperature compensation failed");
 	}
 
 	close(fd);
@@ -1758,7 +1758,7 @@ info(enum HMC5883_BUS busid)
 {
 	struct hmc5883_bus_option &bus = find_bus(busid);
 
-	warnx("running on bus: %u (%s)\n", (unsigned)bus.busid, bus.devpath);
+	px4_warnx("running on bus: %u (%s)\n", (unsigned)bus.busid, bus.devpath);
 	bus.dev->print_info();
 	exit(0);
 }
@@ -1766,13 +1766,13 @@ info(enum HMC5883_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'info', 'calibrate'");
-	warnx("options:");
-	warnx("    -R rotation");
-	warnx("    -C calibrate on start");
-	warnx("    -X only external bus");
+	px4_warnx("missing command: try 'start', 'info', 'test', 'reset', 'info', 'calibrate'");
+	px4_warnx("options:");
+	px4_warnx("    -R rotation");
+	px4_warnx("    -C calibrate on start");
+	px4_warnx("    -X only external bus");
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
-	warnx("    -I only internal bus");
+	px4_warnx("    -I only internal bus");
 #endif
 }
 
@@ -1830,7 +1830,7 @@ hmc5883_main(int argc, char *argv[])
 		hmc5883::start(busid, rotation);
 
 		if (calibrate && hmc5883::calibrate(busid) != 0) {
-			errx(1, "calibration failed");
+			px4_errx(1, "calibration failed");
 		}
 
 		if (temp_compensation) {
@@ -1879,12 +1879,12 @@ hmc5883_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "calibrate")) {
 		if (hmc5883::calibrate(busid) == 0) {
-			errx(0, "calibration successful");
+			px4_errx(0, "calibration successful");
 
 		} else {
-			errx(1, "calibration failed");
+			px4_errx(1, "calibration failed");
 		}
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
+	px4_errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
 }

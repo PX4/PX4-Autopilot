@@ -108,7 +108,7 @@ recv_req_id(int uart, uint8_t *id)
 		read(uart, id, sizeof(*id));
 
 	} else {
-		warnx("UART timeout on TX/RX port");
+		px4_warnx("UART timeout on TX/RX port");
 		return ERROR;
 	}
 
@@ -148,7 +148,7 @@ send_data(int uart, uint8_t *buffer, size_t size)
 int
 hott_telemetry_thread_main(int argc, char *argv[])
 {
-	warnx("starting");
+	px4_warnx("starting");
 
 	thread_running = true;
 
@@ -162,7 +162,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 			} else {
 				thread_running = false;
-				errx(1, "missing parameter to -d\n%s", commandline_usage);
+				px4_errx(1, "missing parameter to -d\n%s", commandline_usage);
 			}
 		}
 	}
@@ -171,7 +171,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	const int uart = open_uart(device);
 
 	if (uart < 0) {
-		errx(1, "Failed opening HoTT UART, exiting.");
+		px4_errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
 	}
 
@@ -187,7 +187,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 		if (recv_req_id(uart, &id) == OK) {
 			if (!connected) {
 				connected = true;
-				warnx("OK");
+				px4_warnx("OK");
 			}
 
 			switch (id) {
@@ -211,11 +211,11 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 		} else {
 			connected = false;
-			warnx("syncing");
+			px4_warnx("syncing");
 		}
 	}
 
-	warnx("exiting");
+	px4_warnx("exiting");
 
 	close(uart);
 
@@ -231,13 +231,13 @@ int
 hott_telemetry_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "missing command\n%s", commandline_usage);
+		px4_errx(1, "missing command\n%s", commandline_usage);
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			px4_warnx("already running");
 			exit(0);
 		}
 
@@ -258,14 +258,14 @@ hott_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("is running");
+			px4_warnx("is running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		exit(0);
 	}
 
-	errx(1, "unrecognized command\n%s", commandline_usage);
+	px4_errx(1, "unrecognized command\n%s", commandline_usage);
 }

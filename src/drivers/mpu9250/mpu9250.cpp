@@ -410,7 +410,7 @@ MPU9250::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		px4_warnx("ADVERT FAIL");
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
@@ -421,7 +421,7 @@ MPU9250::init()
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		px4_warnx("ADVERT FAIL");
 	}
 
 out:

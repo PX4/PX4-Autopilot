@@ -53,7 +53,6 @@ set(SRCS
 
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
-		err.c
 		printload.c
 		param/param.c
 		up_cxxinitialize.c

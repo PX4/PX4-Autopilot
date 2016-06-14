@@ -220,9 +220,9 @@ void TECS::_update_speed_demand(void)
 
 //	_TAS_dem_last = _TAS_dem;
 
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
+//	px4_warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
 //			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state, _badDescent, _underspeed, velRateMin);
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f,  _badDescent %u , _underspeed %u",
+//	px4_warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f,  _badDescent %u , _underspeed %u",
 //			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state,  _badDescent , _underspeed);
 }
 
@@ -410,7 +410,7 @@ void TECS::_detect_bad_descent(void)
 //
 //	if ((!_underspeed && (_STE_error > 200.0f) && (STEdot < 0.0f) && (_throttle_dem >= _THRmaxf * 0.9f)) || (_badDescent && !_underspeed && (_STE_error > 0.0f))) {
 //
-//		warnx("bad descent detected: _STE_error %.1f, STEdot %.1f, _throttle_dem %.1f", _STE_error, STEdot, _throttle_dem);
+//		px4_warnx("bad descent detected: _STE_error %.1f, STEdot %.1f, _throttle_dem %.1f", _STE_error, STEdot, _throttle_dem);
 //		_badDescent = true;
 //
 //	} else {

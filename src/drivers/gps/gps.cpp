@@ -1067,7 +1067,7 @@ void
 test()
 {
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**

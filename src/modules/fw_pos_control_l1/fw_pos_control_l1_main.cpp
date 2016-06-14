@@ -760,7 +760,7 @@ FixedwingPositionControl::parameters_update()
 	    _parameters.airspeed_min > 100.0f ||
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
-		warnx("error: airspeed parameters invalid");
+		px4_warnx("error: airspeed parameters invalid");
 		return 1;
 	}
 
@@ -907,7 +907,7 @@ FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 	l1_control::g_control = new FixedwingPositionControl();
 
 	if (l1_control::g_control == nullptr) {
-		warnx("OUT OF MEM");
+		px4_warnx("OUT OF MEM");
 		return;
 	}
 
@@ -1415,7 +1415,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
 				}
 
-//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
+//					px4_warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
 				_l1_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 
@@ -2079,7 +2079,7 @@ FixedwingPositionControl::task_main()
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update()) {
 		/* parameter setup went wrong, abort */
-		warnx("aborting startup due to errors.");
+		px4_warnx("aborting startup due to errors.");
 		_task_should_exit = true;
 	}
 
@@ -2106,7 +2106,7 @@ FixedwingPositionControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			px4_warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2198,7 +2198,7 @@ FixedwingPositionControl::task_main()
 
 	_task_running = false;
 
-	warnx("exiting.\n");
+	px4_warnx("exiting.\n");
 
 	_control_task = -1;
 }
@@ -2374,7 +2374,7 @@ FixedwingPositionControl::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 
@@ -2384,19 +2384,19 @@ FixedwingPositionControl::start()
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: fw_pos_control_l1 {start|stop|status}");
+		px4_warnx("usage: fw_pos_control_l1 {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (l1_control::g_control != nullptr) {
-			warnx("already running");
+			px4_warnx("already running");
 			return 1;
 		}
 
 		if (OK != FixedwingPositionControl::start()) {
-			warn("start failed");
+			px4_warn("start failed");
 			return 1;
 		}
 
@@ -2414,7 +2414,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (l1_control::g_control == nullptr) {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 
@@ -2425,15 +2425,15 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (l1_control::g_control) {
-			warnx("running");
+			px4_warnx("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			px4_warnx("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	px4_warnx("unrecognized command");
 	return 1;
 }

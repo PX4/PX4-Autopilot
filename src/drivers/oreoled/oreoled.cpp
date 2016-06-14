@@ -664,25 +664,25 @@ OREOLED::bootloader_inapp_checksum(int led_num)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_PARAM_APP_CHECKSUM &&
 		    reply[5] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl app checksum OK from LED %i", boot_cmd.led_num);
-			warnx("bl app checksum msb: 0x%x", reply[3]);
-			warnx("bl app checksum lsb: 0x%x", reply[4]);
+			px4_warnx("bl app checksum OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app checksum msb: 0x%x", reply[3]);
+			px4_warnx("bl app checksum lsb: 0x%x", reply[4]);
 			ret = ((reply[3] << 8) | reply[4]);
 			break;
 
 		} else {
-			warnx("bl app checksum FAIL from LED %i", boot_cmd.led_num);
-			warnx("bl app checksum response  ADDR: 0x%x", reply[1]);
-			warnx("bl app checksum response   CMD: 0x%x", reply[2]);
-			warnx("bl app checksum response VER H: 0x%x", reply[3]);
-			warnx("bl app checksum response VER L: 0x%x", reply[4]);
-			warnx("bl app checksum response   XOR: 0x%x", reply[5]);
+			px4_warnx("bl app checksum FAIL from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app checksum response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl app checksum response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl app checksum response VER H: 0x%x", reply[3]);
+			px4_warnx("bl app checksum response VER L: 0x%x", reply[4]);
+			px4_warnx("bl app checksum response   XOR: 0x%x", reply[5]);
 
 			if (retry > 1) {
-				warnx("bl app checksum retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl app checksum retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl app checksum failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl app checksum failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -724,22 +724,22 @@ OREOLED::bootloader_ping(int led_num)
 		    reply[2] == OREOLED_BOOT_CMD_PING &&
 		    reply[3] == OREOLED_BOOT_CMD_PING_NONCE &&
 		    reply[4] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl ping OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl ping OK from LED %i", boot_cmd.led_num);
 			ret = OK;
 			break;
 
 		} else {
-			warnx("bl ping FAIL from LED %i", boot_cmd.led_num);
-			warnx("bl ping response  ADDR: 0x%x", reply[1]);
-			warnx("bl ping response   CMD: 0x%x", reply[2]);
-			warnx("bl ping response NONCE: 0x%x", reply[3]);
-			warnx("bl ping response   XOR: 0x%x", reply[4]);
+			px4_warnx("bl ping FAIL from LED %i", boot_cmd.led_num);
+			px4_warnx("bl ping response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl ping response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl ping response NONCE: 0x%x", reply[3]);
+			px4_warnx("bl ping response   XOR: 0x%x", reply[4]);
 
 			if (retry > 1) {
-				warnx("bl ping retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl ping retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl ping failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl ping failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -781,21 +781,21 @@ OREOLED::bootloader_version(int led_num)
 		    reply[2] == OREOLED_BOOT_CMD_BL_VER &&
 		    reply[3] == OREOLED_BOOT_SUPPORTED_VER &&
 		    reply[4] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl ver from LED %i = %i", boot_cmd.led_num, reply[3]);
+			px4_warnx("bl ver from LED %i = %i", boot_cmd.led_num, reply[3]);
 			ret = reply[3];
 			break;
 
 		} else {
-			warnx("bl ver response  ADDR: 0x%x", reply[1]);
-			warnx("bl ver response   CMD: 0x%x", reply[2]);
-			warnx("bl ver response   VER: 0x%x", reply[3]);
-			warnx("bl ver response   XOR: 0x%x", reply[4]);
+			px4_warnx("bl ver response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl ver response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl ver response   VER: 0x%x", reply[3]);
+			px4_warnx("bl ver response   XOR: 0x%x", reply[4]);
 
 			if (retry > 1) {
-				warnx("bl ver retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl ver retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl ver failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl ver failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -836,25 +836,25 @@ OREOLED::bootloader_app_version(int led_num)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_BOOT_CMD_APP_VER &&
 		    reply[5] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl app version OK from LED %i", boot_cmd.led_num);
-			warnx("bl app version msb: 0x%x", reply[3]);
-			warnx("bl app version lsb: 0x%x", reply[4]);
+			px4_warnx("bl app version OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app version msb: 0x%x", reply[3]);
+			px4_warnx("bl app version lsb: 0x%x", reply[4]);
 			ret = ((reply[3] << 8) | reply[4]);
 			break;
 
 		} else {
-			warnx("bl app version FAIL from LED %i", boot_cmd.led_num);
-			warnx("bl app version response  ADDR: 0x%x", reply[1]);
-			warnx("bl app version response   CMD: 0x%x", reply[2]);
-			warnx("bl app version response VER H: 0x%x", reply[3]);
-			warnx("bl app version response VER L: 0x%x", reply[4]);
-			warnx("bl app version response   XOR: 0x%x", reply[5]);
+			px4_warnx("bl app version FAIL from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app version response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl app version response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl app version response VER H: 0x%x", reply[3]);
+			px4_warnx("bl app version response VER L: 0x%x", reply[4]);
+			px4_warnx("bl app version response   XOR: 0x%x", reply[5]);
 
 			if (retry > 1) {
-				warnx("bl app version retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl app version retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl app version failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl app version failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -895,25 +895,25 @@ OREOLED::bootloader_app_checksum(int led_num)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_BOOT_CMD_APP_CRC &&
 		    reply[5] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl app checksum OK from LED %i", boot_cmd.led_num);
-			warnx("bl app checksum msb: 0x%x", reply[3]);
-			warnx("bl app checksum lsb: 0x%x", reply[4]);
+			px4_warnx("bl app checksum OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app checksum msb: 0x%x", reply[3]);
+			px4_warnx("bl app checksum lsb: 0x%x", reply[4]);
 			ret = ((reply[3] << 8) | reply[4]);
 			break;
 
 		} else {
-			warnx("bl app checksum FAIL from LED %i", boot_cmd.led_num);
-			warnx("bl app checksum response  ADDR: 0x%x", reply[1]);
-			warnx("bl app checksum response   CMD: 0x%x", reply[2]);
-			warnx("bl app checksum response VER H: 0x%x", reply[3]);
-			warnx("bl app checksum response VER L: 0x%x", reply[4]);
-			warnx("bl app checksum response   XOR: 0x%x", reply[5]);
+			px4_warnx("bl app checksum FAIL from LED %i", boot_cmd.led_num);
+			px4_warnx("bl app checksum response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl app checksum response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl app checksum response VER H: 0x%x", reply[3]);
+			px4_warnx("bl app checksum response VER L: 0x%x", reply[4]);
+			px4_warnx("bl app checksum response   XOR: 0x%x", reply[5]);
 
 			if (retry > 1) {
-				warnx("bl app checksum retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl app checksum retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl app checksum failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl app checksum failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -956,21 +956,21 @@ OREOLED::bootloader_set_colour(int led_num, uint8_t red, uint8_t green)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_BOOT_CMD_SET_COLOUR &&
 		    reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl set colour OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl set colour OK from LED %i", boot_cmd.led_num);
 			ret = OK;
 			break;
 
 		} else {
-			warnx("bl set colour FAIL from LED %i", boot_cmd.led_num);
-			warnx("bl set colour response  ADDR: 0x%x", reply[1]);
-			warnx("bl set colour response   CMD: 0x%x", reply[2]);
-			warnx("bl set colour response   XOR: 0x%x", reply[3]);
+			px4_warnx("bl set colour FAIL from LED %i", boot_cmd.led_num);
+			px4_warnx("bl set colour response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl set colour response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl set colour response   XOR: 0x%x", reply[3]);
 
 			if (retry > 1) {
-				warnx("bl app colour retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl app colour retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl app colour failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl app colour failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -1064,20 +1064,20 @@ OREOLED::bootloader_flash(int led_num)
 			if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 			    reply[2] == OREOLED_BOOT_CMD_WRITE_FLASH_A &&
 			    reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-				warnx("bl flash %ia OK for LED %i", page_idx, boot_cmd.led_num);
+				px4_warnx("bl flash %ia OK for LED %i", page_idx, boot_cmd.led_num);
 				break;
 
 			} else {
-				warnx("bl flash %ia FAIL for LED %i", page_idx, boot_cmd.led_num);
-				warnx("bl flash %ia response ADDR: 0x%x", page_idx, reply[1]);
-				warnx("bl flash %ia response  CMD: 0x%x", page_idx, reply[2]);
-				warnx("bl flash %ia response  XOR: 0x%x", page_idx, reply[3]);
+				px4_warnx("bl flash %ia FAIL for LED %i", page_idx, boot_cmd.led_num);
+				px4_warnx("bl flash %ia response ADDR: 0x%x", page_idx, reply[1]);
+				px4_warnx("bl flash %ia response  CMD: 0x%x", page_idx, reply[2]);
+				px4_warnx("bl flash %ia response  XOR: 0x%x", page_idx, reply[3]);
 
 				if (retry > 1) {
-					warnx("bl flash %ia retrying LED %i", page_idx, boot_cmd.led_num);
+					px4_warnx("bl flash %ia retrying LED %i", page_idx, boot_cmd.led_num);
 
 				} else {
-					warnx("bl flash %ia failed on LED %i", page_idx, boot_cmd.led_num);
+					px4_warnx("bl flash %ia failed on LED %i", page_idx, boot_cmd.led_num);
 					delete[] buf;
 					return -1;
 				}
@@ -1104,20 +1104,20 @@ OREOLED::bootloader_flash(int led_num)
 			if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 			    reply[2] == OREOLED_BOOT_CMD_WRITE_FLASH_B &&
 			    reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-				warnx("bl flash %ib OK for LED %i", page_idx, boot_cmd.led_num);
+				px4_warnx("bl flash %ib OK for LED %i", page_idx, boot_cmd.led_num);
 				break;
 
 			} else {
-				warnx("bl flash %ib FAIL for LED %i", page_idx, boot_cmd.led_num);
-				warnx("bl flash %ib response ADDR: 0x%x", page_idx, reply[1]);
-				warnx("bl flash %ib response  CMD: 0x%x", page_idx, reply[2]);
-				warnx("bl flash %ib response  XOR: 0x%x", page_idx, reply[3]);
+				px4_warnx("bl flash %ib FAIL for LED %i", page_idx, boot_cmd.led_num);
+				px4_warnx("bl flash %ib response ADDR: 0x%x", page_idx, reply[1]);
+				px4_warnx("bl flash %ib response  CMD: 0x%x", page_idx, reply[2]);
+				px4_warnx("bl flash %ib response  XOR: 0x%x", page_idx, reply[3]);
 
 				if (retry > 1) {
-					warnx("bl flash %ib retrying LED %i", page_idx, boot_cmd.led_num);
+					px4_warnx("bl flash %ib retrying LED %i", page_idx, boot_cmd.led_num);
 
 				} else {
-					errx(1, "bl flash %ib failed on LED %i", page_idx, boot_cmd.led_num);
+					px4_errx(1, "bl flash %ib failed on LED %i", page_idx, boot_cmd.led_num);
 					delete[] buf;
 					return -1;
 				}
@@ -1161,19 +1161,19 @@ OREOLED::bootloader_flash(int led_num)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_BOOT_CMD_FINALISE_FLASH &&
 		    reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl finalise OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl finalise OK from LED %i", boot_cmd.led_num);
 			break;
 
 		} else {
-			warnx("bl finalise response  ADDR: 0x%x", reply[1]);
-			warnx("bl finalise response   CMD: 0x%x", reply[2]);
-			warnx("bl finalise response   XOR: 0x%x", reply[3]);
+			px4_warnx("bl finalise response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl finalise response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl finalise response   XOR: 0x%x", reply[3]);
 
 			if (retry > 1) {
-				warnx("bl finalise retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl finalise retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl finalise failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl finalise failed on LED %i", boot_cmd.led_num);
 				delete[] buf;
 				return -1;
 			}
@@ -1221,7 +1221,7 @@ OREOLED::bootloader_boot(int led_num)
 		if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 		    reply[2] == OREOLED_BOOT_CMD_BOOT_APP &&
 		    reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl boot OK from LED %i", boot_cmd.led_num);
+			px4_warnx("bl boot OK from LED %i", boot_cmd.led_num);
 			/* decrement the inboot counter so we don't get confused */
 			_in_boot[led_num] = false;
 			_num_inboot--;
@@ -1231,19 +1231,19 @@ OREOLED::bootloader_boot(int led_num)
 		} else if (reply[1] == OREOLED_BASE_I2C_ADDR + boot_cmd.led_num &&
 			   reply[2] == OREOLED_BOOT_CMD_BOOT_NONCE &&
 			   reply[3] == boot_cmd.buff[boot_cmd.num_bytes - 1]) {
-			warnx("bl boot error from LED %i: no app", boot_cmd.led_num);
+			px4_warnx("bl boot error from LED %i: no app", boot_cmd.led_num);
 			break;
 
 		} else {
-			warnx("bl boot response  ADDR: 0x%x", reply[1]);
-			warnx("bl boot response   CMD: 0x%x", reply[2]);
-			warnx("bl boot response   XOR: 0x%x", reply[3]);
+			px4_warnx("bl boot response  ADDR: 0x%x", reply[1]);
+			px4_warnx("bl boot response   CMD: 0x%x", reply[2]);
+			px4_warnx("bl boot response   XOR: 0x%x", reply[3]);
 
 			if (retry > 1) {
-				warnx("bl boot retrying LED %i", boot_cmd.led_num);
+				px4_warnx("bl boot retrying LED %i", boot_cmd.led_num);
 
 			} else {
-				warnx("bl boot failed on LED %i", boot_cmd.led_num);
+				px4_warnx("bl boot failed on LED %i", boot_cmd.led_num);
 				break;
 			}
 		}
@@ -1316,8 +1316,8 @@ OREOLED::bootloader_fw_checksum(void)
 
 		delete[] buf;
 
-		warnx("fw length = %i", fw_length);
-		warnx("fw checksum = %i", app_checksum);
+		px4_warnx("fw length = %i", fw_length);
+		px4_warnx("fw checksum = %i", app_checksum);
 
 		/* Store the checksum so it's only calculated once */
 		_fw_checksum = app_checksum;
@@ -1426,7 +1426,7 @@ OREOLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 		for (uint8_t i = 0; i < OREOLED_NUM_LEDS; i++) {
 			/* add command to queue for all healthy leds */
 			if (_healthy[i]) {
-				warnx("sending a reset... to %i", i);
+				px4_warnx("sending a reset... to %i", i);
 				new_cmd.led_num = i;
 				_cmd_queue->force(&new_cmd);
 				ret = OK;
@@ -1599,11 +1599,11 @@ OREOLED::is_ready()
 void
 oreoled_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'reset', 'rgb 30 40 50', 'macro 4', 'gencall', 'bytes <lednum> 7 9 6'");
-	warnx("bootloader commands: try 'blping', 'blver', 'blappver', 'blappcrc', 'blcolour <red> <green>', 'blflash', 'blboot'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	warnx("    -a addr (0x%x)", OREOLED_BASE_I2C_ADDR);
+	px4_warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'reset', 'rgb 30 40 50', 'macro 4', 'gencall', 'bytes <lednum> 7 9 6'");
+	px4_warnx("bootloader commands: try 'blping', 'blver', 'blappver', 'blappcrc', 'blcolour <red> <green>', 'blflash', 'blboot'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
+	px4_warnx("    -a addr (0x%x)", OREOLED_BASE_I2C_ADDR);
 }
 
 int
@@ -1643,7 +1643,7 @@ oreoled_main(int argc, char *argv[])
 	/* start driver */
 	if (!strcmp(verb, "start")) {
 		if (g_oreoled != nullptr) {
-			errx(1, "already started");
+			px4_errx(1, "already started");
 		}
 
 		/* by default use LED bus */
@@ -1656,11 +1656,11 @@ oreoled_main(int argc, char *argv[])
 		bool alwaysupdate = false;
 
 		if (argc > 2 && !strcmp(argv[2], "autoupdate")) {
-			warnx("autoupdate enabled");
+			px4_warnx("autoupdate enabled");
 			autoupdate = true;
 
 		} else if (argc > 2 && !strcmp(argv[2], "alwaysupdate")) {
-			warnx("alwaysupdate enabled");
+			px4_warnx("alwaysupdate enabled");
 			alwaysupdate = true;
 		}
 
@@ -1669,14 +1669,14 @@ oreoled_main(int argc, char *argv[])
 
 		/* check if object was created */
 		if (g_oreoled == nullptr) {
-			errx(1, "failed to allocated memory for driver");
+			px4_errx(1, "failed to allocated memory for driver");
 		}
 
 		/* check object was created successfully */
 		if (g_oreoled->init() != OK) {
 			delete g_oreoled;
 			g_oreoled = nullptr;
-			errx(1, "failed to start driver");
+			px4_errx(1, "failed to start driver");
 		}
 
 		/* wait for up to 20 seconds for the driver become ready */
@@ -1693,7 +1693,7 @@ oreoled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_oreoled == nullptr) {
-		warnx("not started");
+		px4_warnx("not started");
 		oreoled_usage();
 		exit(1);
 	}
@@ -1702,7 +1702,7 @@ oreoled_main(int argc, char *argv[])
 		int fd = open(OREOLED0_DEVICE_PATH, O_RDWR);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		/* structure to hold desired colour */
@@ -1714,7 +1714,7 @@ oreoled_main(int argc, char *argv[])
 		for (uint8_t i = 0; i < 30; i++) {
 			/* red */
 			if ((ret = ioctl(fd, OREOLED_SET_RGB, (unsigned long)&rgb_set_red)) != OK) {
-				errx(1, " failed to update rgb");
+				px4_errx(1, " failed to update rgb");
 			}
 
 			/* sleep for 0.05 seconds */
@@ -1722,7 +1722,7 @@ oreoled_main(int argc, char *argv[])
 
 			/* blue */
 			if ((ret = ioctl(fd, OREOLED_SET_RGB, (unsigned long)&rgb_set_blue)) != OK) {
-				errx(1, " failed to update rgb");
+				px4_errx(1, " failed to update rgb");
 			}
 
 			/* sleep for 0.05 seconds */
@@ -1731,7 +1731,7 @@ oreoled_main(int argc, char *argv[])
 
 		/* turn off LED */
 		if ((ret = ioctl(fd, OREOLED_SET_RGB, (unsigned long)&rgb_set_off)) != OK) {
-			errx(1, " failed to turn off led");
+			px4_errx(1, " failed to turn off led");
 		}
 
 		close(fd);
@@ -1748,7 +1748,7 @@ oreoled_main(int argc, char *argv[])
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		/* turn off LED */
@@ -1771,13 +1771,13 @@ oreoled_main(int argc, char *argv[])
 	/* send rgb request to all LEDS */
 	if (!strcmp(verb, "rgb")) {
 		if (argc < 5) {
-			errx(1, "Usage: oreoled rgb <red> <green> <blue>");
+			px4_errx(1, "Usage: oreoled rgb <red> <green> <blue>");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		uint8_t red = (uint8_t)strtol(argv[2], NULL, 0);
@@ -1786,7 +1786,7 @@ oreoled_main(int argc, char *argv[])
 		oreoled_rgbset_t rgb_set = {OREOLED_ALL_INSTANCES, OREOLED_PATTERN_SOLID, red, green, blue};
 
 		if ((ret = ioctl(fd, OREOLED_SET_RGB, (unsigned long)&rgb_set)) != OK) {
-			errx(1, "failed to set rgb");
+			px4_errx(1, "failed to set rgb");
 		}
 
 		close(fd);
@@ -1796,27 +1796,27 @@ oreoled_main(int argc, char *argv[])
 	/* send macro request to all LEDS */
 	if (!strcmp(verb, "macro")) {
 		if (argc < 3) {
-			errx(1, "Usage: oreoled macro <macro_num>");
+			px4_errx(1, "Usage: oreoled macro <macro_num>");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		uint8_t macro = (uint8_t)strtol(argv[2], NULL, 0);
 
 		/* sanity check macro number */
 		if (macro > OREOLED_PARAM_MACRO_ENUM_COUNT) {
-			errx(1, "invalid macro number %d", (int)macro);
+			px4_errx(1, "invalid macro number %d", (int)macro);
 			exit(ret);
 		}
 
 		oreoled_macrorun_t macro_run = {OREOLED_ALL_INSTANCES, (enum oreoled_macro)macro};
 
 		if ((ret = ioctl(fd, OREOLED_RUN_MACRO, (unsigned long)&macro_run)) != OK) {
-			errx(1, "failed to run macro");
+			px4_errx(1, "failed to run macro");
 		}
 
 		close(fd);
@@ -1826,17 +1826,17 @@ oreoled_main(int argc, char *argv[])
 	/* send reset request to all LEDS */
 	if (!strcmp(verb, "reset")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled reset");
+			px4_errx(1, "Usage: oreoled reset");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_SEND_RESET, 0)) != OK) {
-			errx(1, "failed to run macro");
+			px4_errx(1, "failed to run macro");
 		}
 
 		close(fd);
@@ -1846,17 +1846,17 @@ oreoled_main(int argc, char *argv[])
 	/* attempt to flash all LEDS in bootloader mode*/
 	if (!strcmp(verb, "blflash")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blflash");
+			px4_errx(1, "Usage: oreoled blflash");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_FLASH, 0)) != OK) {
-			errx(1, "failed to run flash");
+			px4_errx(1, "failed to run flash");
 		}
 
 		close(fd);
@@ -1866,17 +1866,17 @@ oreoled_main(int argc, char *argv[])
 	/* send bootloader boot request to all LEDS */
 	if (!strcmp(verb, "blboot")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blboot");
+			px4_errx(1, "Usage: oreoled blboot");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_BOOT_APP, 0)) != OK) {
-			errx(1, "failed to run boot");
+			px4_errx(1, "failed to run boot");
 		}
 
 		close(fd);
@@ -1886,17 +1886,17 @@ oreoled_main(int argc, char *argv[])
 	/* send bootloader ping all LEDs */
 	if (!strcmp(verb, "blping")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blping");
+			px4_errx(1, "Usage: oreoled blping");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_PING, 0)) != OK) {
-			errx(1, "failed to run blping");
+			px4_errx(1, "failed to run blping");
 		}
 
 		close(fd);
@@ -1906,17 +1906,17 @@ oreoled_main(int argc, char *argv[])
 	/* ask all LEDs for their bootloader version */
 	if (!strcmp(verb, "blver")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blver");
+			px4_errx(1, "Usage: oreoled blver");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_VER, 0)) != OK) {
-			errx(1, "failed to get bootloader version");
+			px4_errx(1, "failed to get bootloader version");
 		}
 
 		close(fd);
@@ -1926,17 +1926,17 @@ oreoled_main(int argc, char *argv[])
 	/* ask all LEDs for their application version */
 	if (!strcmp(verb, "blappver")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blappver");
+			px4_errx(1, "Usage: oreoled blappver");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_APP_VER, 0)) != OK) {
-			errx(1, "failed to get boot app version");
+			px4_errx(1, "failed to get boot app version");
 		}
 
 		close(fd);
@@ -1946,17 +1946,17 @@ oreoled_main(int argc, char *argv[])
 	/* ask all LEDs for their application crc */
 	if (!strcmp(verb, "blappcrc")) {
 		if (argc < 2) {
-			errx(1, "Usage: oreoled blappcrc");
+			px4_errx(1, "Usage: oreoled blappcrc");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		if ((ret = ioctl(fd, OREOLED_BL_APP_CRC, 0)) != OK) {
-			errx(1, "failed to get boot app crc");
+			px4_errx(1, "failed to get boot app crc");
 		}
 
 		close(fd);
@@ -1966,13 +1966,13 @@ oreoled_main(int argc, char *argv[])
 	/* set the default bootloader LED colour on all LEDs */
 	if (!strcmp(verb, "blcolour")) {
 		if (argc < 4) {
-			errx(1, "Usage: oreoled blcolour <red> <green>");
+			px4_errx(1, "Usage: oreoled blcolour <red> <green>");
 		}
 
 		int fd = open(OREOLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
+			px4_errx(1, "Unable to open " OREOLED0_DEVICE_PATH);
 		}
 
 		uint8_t red = (uint8_t)strtol(argv[2], NULL, 0);
@@ -1980,7 +1980,7 @@ oreoled_main(int argc, char *argv[])
 		oreoled_rgbset_t rgb_set = {OREOLED_ALL_INSTANCES, OREOLED_PATTERN_SOLID, red, green, 0};
 
 		if ((ret = ioctl(fd, OREOLED_BL_SET_COLOUR, (unsigned long)&rgb_set)) != OK) {
-			errx(1, "failed to set boot startup colours");
+			px4_errx(1, "failed to set boot startup colours");
 		}
 
 		close(fd);
@@ -1990,14 +1990,14 @@ oreoled_main(int argc, char *argv[])
 	/* send general hardware call to all LEDS */
 	if (!strcmp(verb, "gencall")) {
 		ret = g_oreoled->send_general_call();
-		warnx("sent general call");
+		px4_warnx("sent general call");
 		exit(ret);
 	}
 
 	/* send a string of bytes to an LED using send_bytes function */
 	if (!strcmp(verb, "bytes")) {
 		if (argc < 3) {
-			errx(1, "Usage: oreoled bytes <led_num> <byte1> <byte2> <byte3> ...");
+			px4_errx(1, "Usage: oreoled bytes <led_num> <byte1> <byte2> <byte3> ...");
 		}
 
 		/* structure to be sent */
@@ -2005,14 +2005,14 @@ oreoled_main(int argc, char *argv[])
 
 		/* maximum of 20 bytes can be sent */
 		if (argc > 20 + 3) {
-			errx(1, "Max of 20 bytes can be sent");
+			px4_errx(1, "Max of 20 bytes can be sent");
 		}
 
 		/* check led num */
 		sendb.led_num = (uint8_t)strtol(argv[optind + 1], NULL, 0);
 
 		if (sendb.led_num > 3) {
-			errx(1, "led number must be between 0 ~ 3");
+			px4_errx(1, "led number must be between 0 ~ 3");
 		}
 
 		/* get bytes */
@@ -2025,10 +2025,10 @@ oreoled_main(int argc, char *argv[])
 
 		/* send bytes */
 		if ((ret = g_oreoled->send_cmd(sendb)) != OK) {
-			errx(1, "failed to send command");
+			px4_errx(1, "failed to send command");
 
 		} else {
-			warnx("sent %d bytes", (int)sendb.num_bytes);
+			px4_warnx("sent %d bytes", (int)sendb.num_bytes);
 		}
 
 		exit(ret);

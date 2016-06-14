@@ -183,7 +183,7 @@ extern "C" {
 			    strcmp(argv[2], "-t") == 0) {
 
 				if (g_sim_task >= 0) {
-					warnx("Simulator already started");
+					px4_warnx("Simulator already started");
 					return 0;
 				}
 

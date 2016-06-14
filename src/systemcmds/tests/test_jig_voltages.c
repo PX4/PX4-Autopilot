@@ -93,7 +93,7 @@ int test_jig_voltages(int argc, char *argv[])
 	int ret = OK;
 
 	if (fd < 0) {
-		warnx("can't open ADC device");
+		px4_warnx("can't open ADC device");
 		return 1;
 	}
 
@@ -104,7 +104,7 @@ int test_jig_voltages(int argc, char *argv[])
 
 	if (count < 0) {
 		close(fd);
-		warnx("can't read from ADC driver. Forgot 'adc start' command?");
+		px4_warnx("can't read from ADC driver. Forgot 'adc start' command?");
 		return 1;
 	}
 
@@ -116,7 +116,7 @@ int test_jig_voltages(int argc, char *argv[])
 
 	printf("\n");
 
-	warnx("\t ADC operational.\n");
+	px4_warnx("\t ADC operational.\n");
 
 	/* Expected values */
 	int16_t expected_min[] = {2800, 2800, 1800,  800};
@@ -125,7 +125,7 @@ int test_jig_voltages(int argc, char *argv[])
 
 	if (channels < 4) {
 		close(fd);
-		warnx("not all four test channels available, aborting.");
+		px4_warnx("not all four test channels available, aborting.");
 		return 1;
 
 	} else {

@@ -117,14 +117,14 @@ accel(int argc, char *argv[], const char *path)
 	}
 
 	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
-		warnx("ACCEL acceleration values out of range!");
+		px4_warnx("ACCEL acceleration values out of range!");
 		return ERROR;
 	}
 
 	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
 
 	if (len < 8.0f || len > 12.0f) {
-		warnx("ACCEL scale error!");
+		px4_warnx("ACCEL scale error!");
 		return ERROR;
 	}
 
@@ -169,7 +169,7 @@ gyro(int argc, char *argv[], const char *path)
 	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
 
 	if (len > 0.3f) {
-		warnx("GYRO scale error!");
+		px4_warnx("GYRO scale error!");
 		return ERROR;
 	}
 
@@ -214,7 +214,7 @@ mag(int argc, char *argv[], const char *path)
 	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
 
 	if (len < 0.25f || len > 3.0f) {
-		warnx("MAG scale error!");
+		px4_warnx("MAG scale error!");
 		return ERROR;
 	}
 

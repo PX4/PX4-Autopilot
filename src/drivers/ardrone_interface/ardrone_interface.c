@@ -89,10 +89,10 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		warnx("%s\n", reason);
+		px4_warnx("%s\n", reason);
 	}
 
-	warnx("usage: {start|stop|status} [-d <UART>]\n\n");
+	px4_warnx("usage: {start|stop|status} [-d <UART>]\n\n");
 	exit(1);
 }
 
@@ -113,7 +113,7 @@ int ardrone_interface_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running\n");
+			px4_warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
@@ -135,10 +135,10 @@ int ardrone_interface_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("running");
+			px4_warnx("running");
 
 		} else {
-			warnx("not started");
+			px4_warnx("not started");
 		}
 
 		exit(0);
@@ -163,7 +163,7 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		warnx("ERR: TCGETATTR %s: %d", uart_name, termios_state);
+		px4_warnx("ERR: TCGETATTR %s: %d", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
@@ -176,14 +176,14 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERR: cfsetispeed %s: %d", uart_name, termios_state);
+		px4_warnx("ERR: cfsetispeed %s: %d", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR: tcsetattr: %s", uart_name);
+		px4_warnx("ERR: tcsetattr: %s", uart_name);
 		close(uart);
 		return -1;
 	}
@@ -220,12 +220,12 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 				} else {
 					thread_running = false;
-					errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
+					px4_errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
 				}
 
 			} else {
 				thread_running = false;
-				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+				px4_errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
 			}
 		}
 
@@ -235,7 +235,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 			} else {
 				thread_running = false;
-				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+				px4_errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
 			}
 		}
 	}
@@ -243,7 +243,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	struct termios uart_config_original;
 
 	if (motor_test_mode) {
-		warnx("setting 10 %% thrust.\n");
+		px4_warnx("setting 10 %% thrust.\n");
 	}
 
 	/* Led animation */
@@ -268,7 +268,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	gpios = ar_multiplexing_init();
 
 	if (ardrone_write < 0) {
-		warnx("No UART, exiting.");
+		px4_warnx("No UART, exiting.");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -276,7 +276,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	/* initialize motors */
 	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
-		warnx("motor init fail");
+		px4_warnx("motor init fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -297,7 +297,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	gpios = ar_multiplexing_init();
 
 	if (ardrone_write < 0) {
-		warnx("write fail");
+		px4_warnx("write fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -305,7 +305,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	/* initialize motors */
 	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
-		warnx("motor init fail");
+		px4_warnx("motor init fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -382,7 +382,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	int termios_state;
 
 	if ((termios_state = tcsetattr(ardrone_write, TCSANOW, &uart_config_original)) < 0) {
-		warnx("ERR: tcsetattr");
+		px4_warnx("ERR: tcsetattr");
 	}
 
 	/* close uarts */

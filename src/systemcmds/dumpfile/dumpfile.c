@@ -55,7 +55,7 @@ int
 dumpfile_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: dumpfile <filename>");
+		px4_errx(1, "usage: dumpfile <filename>");
 	}
 
 	/* open input file */
@@ -88,7 +88,7 @@ dumpfile_main(int argc, char *argv[])
 	tc.c_oflag &= ~ONLCR;
 
 	if (tcsetattr(out, TCSANOW, &tc) < 0) {
-		warnx("ERROR setting stdout attributes");
+		px4_warnx("ERROR setting stdout attributes");
 		exit(1);
 	}
 
@@ -98,7 +98,7 @@ dumpfile_main(int argc, char *argv[])
 	/* dump file */
 	while ((nread = fread(buf, 1, sizeof(buf), f)) > 0) {
 		if (write(out, buf, nread) <= 0) {
-			warnx("error dumping file");
+			px4_warnx("error dumping file");
 			break;
 		}
 	}
@@ -108,7 +108,7 @@ dumpfile_main(int argc, char *argv[])
 
 	/* restore old terminal attributes */
 	if (tcsetattr(out, TCSANOW, &tc_old) < 0) {
-		warnx("ERROR restoring stdout attributes");
+		px4_warnx("ERROR restoring stdout attributes");
 		exit(1);
 	}
 

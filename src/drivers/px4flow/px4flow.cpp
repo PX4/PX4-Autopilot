@@ -686,7 +686,7 @@ start()
 
 	/* entry check: */
 	if (start_in_progress) {
-		warnx("start already in progress");
+		px4_warnx("start already in progress");
 		return 1;
 	}
 
@@ -694,11 +694,11 @@ start()
 
 	if (g_dev != nullptr) {
 		start_in_progress = false;
-		warnx("already started");
+		px4_warnx("already started");
 		return 1;
 	}
 
-	warnx("scanning I2C buses for device..");
+	px4_warnx("scanning I2C buses for device..");
 
 	int retry_nr = 0;
 
@@ -718,7 +718,7 @@ start()
 
 		while (*cur_bus != -1) {
 			/* create the driver */
-			/* warnx("trying bus %d", *cur_bus); */
+			/* px4_warnx("trying bus %d", *cur_bus); */
 			g_dev = new PX4FLOW(*cur_bus);
 
 			if (g_dev == nullptr) {
@@ -766,7 +766,7 @@ start()
 
 		if (retry_nr < START_RETRY_COUNT) {
 			/* lets not be too verbose */
-			// warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
+			// px4_warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
 			usleep(START_RETRY_TIMEOUT * 1000);
 			retry_nr++;
 
@@ -795,7 +795,7 @@ stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	exit(0);
@@ -816,7 +816,7 @@ test()
 	int fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW0_DEVICE_PATH);
+		px4_err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW0_DEVICE_PATH);
 	}
 
 
@@ -824,18 +824,18 @@ test()
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warnx("immediate read failed");
+		px4_warnx("immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-	warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-	warnx("framecount_integral: %u",
+	px4_warnx("single read");
+	px4_warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
+	px4_warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
+	px4_warnx("framecount_integral: %u",
 	      f_integral.frame_count_since_last_readout);
 
 	/* start the sensor polling at 10Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
-		errx(1, "failed to set 10Hz poll rate");
+		px4_errx(1, "failed to set 10Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
@@ -848,38 +848,38 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			px4_errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			px4_err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
+		px4_warnx("periodic read %u", i);
 
-		warnx("framecount_total: %u", f.frame_count);
-		warnx("framecount_integral: %u",
+		px4_warnx("framecount_total: %u", f.frame_count);
+		px4_warnx("framecount_integral: %u",
 		      f_integral.frame_count_since_last_readout);
-		warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-		warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-		warnx("gyro_x_rate_integral: %i", f_integral.gyro_x_rate_integral);
-		warnx("gyro_y_rate_integral: %i", f_integral.gyro_y_rate_integral);
-		warnx("gyro_z_rate_integral: %i", f_integral.gyro_z_rate_integral);
-		warnx("integration_timespan [us]: %u", f_integral.integration_timespan);
-		warnx("ground_distance: %0.2f m",
+		px4_warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
+		px4_warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
+		px4_warnx("gyro_x_rate_integral: %i", f_integral.gyro_x_rate_integral);
+		px4_warnx("gyro_y_rate_integral: %i", f_integral.gyro_y_rate_integral);
+		px4_warnx("gyro_z_rate_integral: %i", f_integral.gyro_z_rate_integral);
+		px4_warnx("integration_timespan [us]: %u", f_integral.integration_timespan);
+		px4_warnx("ground_distance: %0.2f m",
 		      (double) f_integral.ground_distance / 1000);
-		warnx("time since last sonar update [us]: %i",
+		px4_warnx("time since last sonar update [us]: %i",
 		      f_integral.sonar_timestamp);
-		warnx("quality integration average : %i", f_integral.qual);
-		warnx("quality : %i", f.qual);
+		px4_warnx("quality integration average : %i", f_integral.qual);
+		px4_warnx("quality : %i", f.qual);
 
 
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -891,15 +891,15 @@ reset()
 	int fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -912,7 +912,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -961,5 +961,5 @@ px4flow_main(int argc, char *argv[])
 		px4flow::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	px4_errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

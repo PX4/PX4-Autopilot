@@ -321,7 +321,7 @@ BlinkM::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		warnx("I2C init failed");
+		px4_warnx("I2C init failed");
 		return ret;
 	}
 
@@ -1006,10 +1006,10 @@ void blinkm_usage();
 
 void blinkm_usage()
 {
-	warnx("missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}");
-	warnx("options:");
-	warnx("\t-b --bus i2cbus (3)");
-	warnx("\t-a --blinkmaddr blinkmaddr (9)");
+	px4_warnx("missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}");
+	px4_warnx("options:");
+	px4_warnx("\t-b --bus i2cbus (3)");
+	px4_warnx("\t-a --blinkmaddr blinkmaddr (9)");
 }
 
 int
@@ -1043,21 +1043,21 @@ blinkm_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 		if (g_blinkm != nullptr) {
-			warnx("already started");
+			px4_warnx("already started");
 			return 1;
 		}
 
 		g_blinkm = new BlinkM(i2cdevice, blinkmadr);
 
 		if (g_blinkm == nullptr) {
-			warnx("new failed");
+			px4_warnx("new failed");
 			return 1;
 		}
 
 		if (OK != g_blinkm->init()) {
 			delete g_blinkm;
 			g_blinkm = nullptr;
-			warnx("init failed");
+			px4_warnx("init failed");
 			return 1;
 		}
 
@@ -1095,7 +1095,7 @@ blinkm_main(int argc, char *argv[])
 	int fd = px4_open(BLINKM0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("can't open BlinkM device");
+		px4_warn("can't open BlinkM device");
 		return 1;
 	}
 

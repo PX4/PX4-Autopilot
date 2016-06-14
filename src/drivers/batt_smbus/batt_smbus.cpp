@@ -360,7 +360,7 @@ BATT_SMBUS::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		errx(1, "failed to init I2C");
+		px4_errx(1, "failed to init I2C");
 		return ret;
 
 	} else {
@@ -423,7 +423,7 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)status.voltage_v, (double)status.current_a,
+				px4_warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)status.voltage_v, (double)status.current_a,
 				      (double)status.discharged_mah, (int)_batt_capacity, (int)status.is_powering_off);
 			}
 		}
@@ -447,7 +447,7 @@ BATT_SMBUS::search()
 		set_address(i);
 
 		if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
-			warnx("battery found at 0x%x", (int)i);
+			px4_warnx("battery found at 0x%x", (int)i);
 			found_slave = true;
 		}
 
@@ -460,10 +460,10 @@ BATT_SMBUS::search()
 
 	// display completion message
 	if (found_slave) {
-		warnx("Done.");
+		px4_warnx("Done.");
 
 	} else {
-		warnx("No smart batteries found.");
+		px4_warnx("No smart batteries found.");
 	}
 
 	return OK;
@@ -591,7 +591,7 @@ BATT_SMBUS::cycle()
 
 	// exit without rescheduling if we have failed to find a battery after 10 seconds
 	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_US)) {
-		warnx("did not find smart battery");
+		px4_warnx("did not find smart battery");
 		return;
 	}
 
@@ -633,7 +633,7 @@ BATT_SMBUS::cycle()
 
 	// If necessary, check if the battery is a 3DR Solo Battery
 	if (perform_solo_battry_check) {
-		warnx("Checking solo battery");
+		px4_warnx("Checking solo battery");
 		check_if_solo_battery();
 	}
 
@@ -689,7 +689,7 @@ BATT_SMBUS::cycle()
 
 					// warn only once
 					if (_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
-						warnx("system is shutting down NOW...");
+						px4_warnx("system is shutting down NOW...");
 					}
 
 				} else if (pressed) {
@@ -713,7 +713,7 @@ BATT_SMBUS::cycle()
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
 
 			if (_batt_topic == nullptr) {
-				errx(1, "ADVERT FAIL");
+				px4_errx(1, "ADVERT FAIL");
 			}
 		}
 
@@ -934,10 +934,10 @@ BATT_SMBUS::check_if_solo_battery()
 void
 batt_smbus_usage()
 {
-	warnx("missing command: try 'start', 'test', 'stop', 'search', 'man_name', 'man_date', 'dev_name', 'serial_num', 'dev_chem',  'sbs_info'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
-	warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
+	px4_warnx("missing command: try 'start', 'test', 'stop', 'search', 'man_name', 'man_date', 'dev_name', 'serial_num', 'dev_chem',  'sbs_info'");
+	px4_warnx("options:");
+	px4_warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
+	px4_warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
 }
 
 int
@@ -947,11 +947,11 @@ manufacturer_name()
 	uint8_t len = g_batt_smbus->manufacturer_name(man_name, sizeof(man_name));
 
 	if (len > 0) {
-		warnx("The manufacturer name: %s", man_name);
+		px4_warnx("The manufacturer name: %s", man_name);
 		return OK;
 
 	} else {
-		warnx("Unable to read manufacturer name.");
+		px4_warnx("Unable to read manufacturer name.");
 	}
 
 	return -1;
@@ -967,11 +967,11 @@ manufacture_date()
 		uint16_t year = ((man_date >> 9) & 0xFF) + 1980;
 		uint8_t month = (man_date >> 5) & 0xF;
 		uint8_t day = man_date & 0x1F;
-		warnx("The manufacturer date is: %d which is %4d-%02d-%02d", man_date, year, month, day);
+		px4_warnx("The manufacturer date is: %d which is %4d-%02d-%02d", man_date, year, month, day);
 		return OK;
 
 	} else {
-		warnx("Unable to read the manufacturer date.");
+		px4_warnx("Unable to read the manufacturer date.");
 	}
 
 	return -1;
@@ -984,11 +984,11 @@ device_name()
 	uint8_t len = g_batt_smbus->device_name(device_name, sizeof(device_name));
 
 	if (len > 0) {
-		warnx("The device name: %s", device_name);
+		px4_warnx("The device name: %s", device_name);
 		return OK;
 
 	} else {
-		warnx("Unable to read device name.");
+		px4_warnx("Unable to read device name.");
 	}
 
 	return -1;
@@ -998,7 +998,7 @@ int
 serial_number()
 {
 	uint16_t serial_num = g_batt_smbus->serial_number();
-	warnx("The serial number: 0x%04x (%d in decimal)", serial_num, serial_num);
+	px4_warnx("The serial number: 0x%04x (%d in decimal)", serial_num, serial_num);
 
 	return OK;
 }
@@ -1010,11 +1010,11 @@ device_chemistry()
 	uint8_t len = g_batt_smbus->device_chemistry(device_chemistry, sizeof(device_chemistry));
 
 	if (len > 0) {
-		warnx("The device chemistry: %s", device_chemistry);
+		px4_warnx("The device chemistry: %s", device_chemistry);
 		return OK;
 
 	} else {
-		warnx("Unable to read device chemistry.");
+		px4_warnx("Unable to read device chemistry.");
 	}
 
 	return -1;
@@ -1024,10 +1024,10 @@ int
 solo_battery_check()
 {
 	if (g_batt_smbus->is_solo_battery()) {
-		warnx("The battery corresponds to a 3DR Solo Battery");
+		px4_warnx("The battery corresponds to a 3DR Solo Battery");
 
 	} else {
-		warnx("The battery does not correspond to a 3DR Solo Battery");
+		px4_warnx("The battery does not correspond to a 3DR Solo Battery");
 	}
 
 	return OK;
@@ -1067,20 +1067,20 @@ batt_smbus_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_batt_smbus != nullptr) {
-			errx(1, "already started");
+			px4_errx(1, "already started");
 
 		} else {
 			// create new global object
 			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr);
 
 			if (g_batt_smbus == nullptr) {
-				errx(1, "new failed");
+				px4_errx(1, "new failed");
 			}
 
 			if (OK != g_batt_smbus->init()) {
 				delete g_batt_smbus;
 				g_batt_smbus = nullptr;
-				errx(1, "init failed");
+				px4_errx(1, "init failed");
 			}
 		}
 
@@ -1089,7 +1089,7 @@ batt_smbus_main(int argc, char *argv[])
 
 	// need the driver past this point
 	if (g_batt_smbus == nullptr) {
-		warnx("not started");
+		px4_warnx("not started");
 		batt_smbus_usage();
 		exit(1);
 	}

@@ -79,7 +79,7 @@ __EXPORT void led_on(int led)
 		break;
 
 	default:
-		warnx("LED ID not recognized\n");
+		px4_warnx("LED ID not recognized\n");
 	}
 }
 
@@ -95,7 +95,7 @@ __EXPORT void led_off(int led)
 		break;
 
 	default:
-		warnx("LED ID not recognized\n");
+		px4_warnx("LED ID not recognized\n");
 	}
 }
 
@@ -123,6 +123,6 @@ __EXPORT void led_toggle(int led)
 		break;
 
 	default:
-		warnx("LED ID not recognized\n");
+		px4_warnx("LED ID not recognized\n");
 	}
 }

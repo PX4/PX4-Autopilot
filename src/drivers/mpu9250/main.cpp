@@ -119,7 +119,7 @@ start(bool external_bus, enum Rotation rotation)
 	if (*g_dev_ptr != nullptr)
 		/* if already started, the still command succeeded */
 	{
-		errx(0, "already started");
+		px4_errx(0, "already started");
 	}
 
 	/* create the driver */
@@ -127,7 +127,7 @@ start(bool external_bus, enum Rotation rotation)
 #ifdef PX4_SPI_BUS_EXT
 		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
 #else
-		errx(0, "External SPI not available");
+		px4_errx(0, "External SPI not available");
 #endif
 
 	} else {
@@ -163,7 +163,7 @@ fail:
 		*g_dev_ptr = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	px4_errx(1, "driver start failed");
 }
 
 void
@@ -177,7 +177,7 @@ stop(bool external_bus)
 
 	} else {
 		/* warn, but not an error */
-		warnx("already stopped.");
+		px4_warnx("already stopped.");
 	}
 
 	exit(0);
@@ -203,87 +203,87 @@ test(bool external_bus)
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'm start')", path_accel);
+		px4_err(1, "%s open failed (try 'm start')", path_accel);
 	}
 
 	/* get the driver */
 	int fd_gyro = open(path_gyro, O_RDONLY);
 
 	if (fd_gyro < 0) {
-		err(1, "%s open failed", path_gyro);
+		px4_err(1, "%s open failed", path_gyro);
 	}
 
 	/* get the driver */
 	int fd_mag = open(path_mag, O_RDONLY);
 
 	if (fd_mag < 0) {
-		err(1, "%s open failed", path_mag);
+		px4_err(1, "%s open failed", path_mag);
 	}
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
+		px4_err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(a_report));
-		err(1, "immediate acc read failed");
+		px4_warnx("ret: %d, expected: %d", sz, sizeof(a_report));
+		px4_err(1, "immediate acc read failed");
 	}
 
-	warnx("single read");
-	warnx("time:     %lld", a_report.timestamp);
-	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+	px4_warnx("single read");
+	px4_warnx("time:     %lld", a_report.timestamp);
+	px4_warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	px4_warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	px4_warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	px4_warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	px4_warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	px4_warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+	px4_warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 	      (double)(a_report.range_m_s2 / MPU9250_ONE_G));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
 
 	if (sz != sizeof(g_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(g_report));
-		err(1, "immediate gyro read failed");
+		px4_warnx("ret: %d, expected: %d", sz, sizeof(g_report));
+		px4_err(1, "immediate gyro read failed");
 	}
 
-	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
-	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
-	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
-	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
-	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
-	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
-	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
+	px4_warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
+	px4_warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
+	px4_warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
+	px4_warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
+	px4_warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
+	px4_warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
+	px4_warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
-	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+	px4_warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+	px4_warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 	/* do a simple demand read */
 	sz = read(fd_mag, &m_report, sizeof(m_report));
 
 	if (sz != sizeof(m_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(m_report));
-		err(1, "immediate mag read failed");
+		px4_warnx("ret: %d, expected: %d", sz, sizeof(m_report));
+		px4_err(1, "immediate mag read failed");
 	}
 
-	warnx("mag x: \t% 9.5f\trad/s", (double)m_report.x);
-	warnx("mag y: \t% 9.5f\trad/s", (double)m_report.y);
-	warnx("mag z: \t% 9.5f\trad/s", (double)m_report.z);
-	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
-	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
-	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-	warnx("mag range: %8.4f Ga", (double)m_report.range_ga);
-	warnx("mag temp:  %8.4f\tdeg celsius", (double)m_report.temperature);
+	px4_warnx("mag x: \t% 9.5f\trad/s", (double)m_report.x);
+	px4_warnx("mag y: \t% 9.5f\trad/s", (double)m_report.y);
+	px4_warnx("mag z: \t% 9.5f\trad/s", (double)m_report.z);
+	px4_warnx("mag x: \t%d\traw", (int)m_report.x_raw);
+	px4_warnx("mag y: \t%d\traw", (int)m_report.y_raw);
+	px4_warnx("mag z: \t%d\traw", (int)m_report.z_raw);
+	px4_warnx("mag range: %8.4f Ga", (double)m_report.range_ga);
+	px4_warnx("mag temp:  %8.4f\tdeg celsius", (double)m_report.temperature);
 
 	/* reset to default polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "reset to default polling");
+		px4_err(1, "reset to default polling");
 	}
 
 	close(fd);
@@ -293,7 +293,7 @@ test(bool external_bus)
 	/* XXX add poll-rate tests here too */
 
 	reset(external_bus);
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -306,15 +306,15 @@ reset(bool external_bus)
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	close(fd);
@@ -331,7 +331,7 @@ info(bool external_bus)
 	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	(*g_dev_ptr)->print_info();
@@ -348,7 +348,7 @@ regdump(bool external_bus)
 	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	(*g_dev_ptr)->print_registers();
@@ -365,7 +365,7 @@ testerror(bool external_bus)
 	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	(*g_dev_ptr)->test_error();
@@ -376,10 +376,10 @@ testerror(bool external_bus)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -R rotation");
+	px4_warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
+	px4_warnx("options:");
+	px4_warnx("    -X    (external bus)");
+	px4_warnx("    -R rotation");
 }
 
 } // namespace

@@ -291,7 +291,7 @@ start(int i2c_bus)
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		px4_errx(1, "already started");
 	}
 
 	/* create the driver */
@@ -325,7 +325,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "no ETS airspeed sensor connected");
+	px4_errx(1, "no ETS airspeed sensor connected");
 }
 
 /**
@@ -339,7 +339,7 @@ stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	exit(0);
@@ -360,22 +360,22 @@ test()
 	int fd = open(ETS_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'ets_airspeed start' if the driver is not running", ETS_PATH);
+		px4_err(1, "%s open failed (try 'ets_airspeed start' if the driver is not running", ETS_PATH);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		px4_err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
+	px4_warnx("single read");
+	px4_warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		px4_errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
@@ -388,26 +388,26 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			px4_errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			px4_err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
+		px4_warnx("periodic read %u", i);
+		px4_warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
 	}
 
 	/* reset the sensor polling to its default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default rate");
+		px4_errx(1, "failed to set default rate");
 	}
 
-	errx(0, "PASS");
+	px4_errx(0, "PASS");
 }
 
 /**
@@ -419,15 +419,15 @@ reset()
 	int fd = open(ETS_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		px4_err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		px4_err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		px4_err(1, "driver poll restart failed");
 	}
 
 	exit(0);
@@ -440,7 +440,7 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		px4_errx(1, "driver not running");
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -455,11 +455,11 @@ info()
 static void
 ets_airspeed_usage()
 {
-	warnx("usage: ets_airspeed command [options]");
-	warnx("options:");
-	warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
-	warnx("command:");
-	warnx("\tstart|stop|reset|test|info");
+	px4_warnx("usage: ets_airspeed command [options]");
+	px4_warnx("options:");
+	px4_warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	px4_warnx("command:");
+	px4_warnx("\tstart|stop|reset|test|info");
 }
 
 int

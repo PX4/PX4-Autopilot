@@ -150,7 +150,7 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 		
 #ifdef MAVLINK_FTP_DEBUG
-		warnx("FTP: received ftp protocol message target_system: %d", ftp_request.target_system);
+		px4_warnx("FTP: received ftp protocol message target_system: %d", ftp_request.target_system);
 #endif
 		
 		if (ftp_request.target_system == _getServerSystemId()) {
@@ -283,7 +283,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 	
 #ifdef MAVLINK_FTP_DEBUG
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
-	warnx("FTP: %s seq_number: %d", payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
+	px4_warnx("FTP: %s seq_number: %d", payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 #endif
 	
 	ftp_req->target_network = 0;
@@ -311,7 +311,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 
 	if (dp == nullptr) {
 #ifdef MAVLINK_FTP_UNIT_TEST
-		warnx("File open failed");
+		px4_warnx("File open failed");
 #else
 		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
 		_mavlink->send_statustext_critical(dirPath);
@@ -321,7 +321,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	warnx("FTP: list %s offset %d", dirPath, payload->offset);
+	px4_warnx("FTP: list %s offset %d", dirPath, payload->offset);
 #endif
 
 	struct dirent entry, *result = nullptr;
@@ -333,7 +333,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 		// read the directory entry
 		if (readdir_r(dp, &entry, &result)) {
 #ifdef MAVLINK_FTP_UNIT_TEST
-		warnx("readdir_r failed");
+		px4_warnx("readdir_r failed");
 #else
 			_mavlink->send_statustext_critical("FTP: list readdir_r failure");
 			_mavlink->send_statustext_critical(dirPath);
@@ -434,14 +434,14 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workOpen(PayloadHeader* payload, int oflag)
 {
 	if (_session_info.fd >= 0) {
-		warnx("FTP: Open failed - out of sessions\n");
+		px4_warnx("FTP: Open failed - out of sessions\n");
 		return kErrNoSessionsAvailable;
 	}
 
 	char *filename = _data_as_cstring(payload);
 	
 #ifdef MAVLINK_FTP_DEBUG
-	warnx("FTP: open '%s'", filename);
+	px4_warnx("FTP: open '%s'", filename);
 #endif
 
 	uint32_t fileSize = 0;
@@ -480,23 +480,23 @@ MavlinkFTP::_workRead(PayloadHeader* payload)
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	warnx("FTP: read offset:%d", payload->offset);
+	px4_warnx("FTP: read offset:%d", payload->offset);
 #endif
 	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 	if (payload->offset >= _session_info.file_size) {
-		warnx("request past EOF");
+		px4_warnx("request past EOF");
 		return kErrEOF;
 	}
 		
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
-		warnx("seek fail");
+		px4_warnx("seek fail");
 		return kErrFailErrno;
 	}
 
 	int bytes_read = ::read(_session_info.fd, &payload->data[0], kMaxDataLength);
 	if (bytes_read < 0) {
 		// Negative return indicates error other than eof
-		warnx("read fail %d", bytes_read);
+		px4_warnx("read fail %d", bytes_read);
 		return kErrFailErrno;
 	}
 
@@ -514,7 +514,7 @@ MavlinkFTP::_workBurst(PayloadHeader* payload, uint8_t target_system_id)
 	}
 	
 #ifdef MAVLINK_FTP_DEBUG
-	warnx("FTP: burst offset:%d", payload->offset);
+	px4_warnx("FTP: burst offset:%d", payload->offset);
 #endif
 	// Setup for streaming sends
 	_session_info.stream_download = true;
@@ -536,14 +536,14 @@ MavlinkFTP::_workWrite(PayloadHeader* payload)
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
-		warnx("seek fail");
+		px4_warnx("seek fail");
 		return kErrFailErrno;
 	}
 
 	int bytes_written = ::write(_session_info.fd, &payload->data[0], payload->size);
 	if (bytes_written < 0) {
 		// Negative return indicates error other than eof
-		warnx("write fail %d", bytes_written);
+		px4_warnx("write fail %d", bytes_written);
 		return kErrFailErrno;
 	}
 
@@ -817,14 +817,14 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 			break;
 		}
 		else if (bytes_read < 0) {
-			warnx("cp: read");
+			px4_warnx("cp: read");
 			op_errno = errno;
 			break;
 		}
 
 		bytes_written = ::write(dst_fd, buff, bytes_read);
 		if (bytes_written != bytes_read) {
-			warnx("cp: short write");
+			px4_warnx("cp: short write");
 			op_errno = errno;
 			break;
 		}
@@ -850,7 +850,7 @@ void MavlinkFTP::send(const hrt_abstime t)
 	// Skip send if not enough room
 	unsigned max_bytes_to_send = _mavlink->get_free_tx_buf();
 #ifdef MAVLINK_FTP_DEBUG
-    warnx("MavlinkFTP::send max_bytes_to_send(%d) get_free_tx_buf(%d)", max_bytes_to_send, _mavlink->get_free_tx_buf());
+    px4_warnx("MavlinkFTP::send max_bytes_to_send(%d) get_free_tx_buf(%d)", max_bytes_to_send, _mavlink->get_free_tx_buf());
 #endif
 	if (max_bytes_to_send < get_size()) {
 		return;
@@ -876,13 +876,13 @@ void MavlinkFTP::send(const hrt_abstime t)
 		_session_info.stream_seq_number++;
 
 #ifdef MAVLINK_FTP_DEBUG
-		warnx("stream send: offset %d", _session_info.stream_offset);
+		px4_warnx("stream send: offset %d", _session_info.stream_offset);
 #endif
 		// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 		if (_session_info.stream_offset >= _session_info.file_size) {
 			error_code = kErrEOF;
 #ifdef MAVLINK_FTP_DEBUG
-			warnx("stream download: sending Nak EOF");
+			px4_warnx("stream download: sending Nak EOF");
 #endif
 		}
 		
@@ -890,7 +890,7 @@ void MavlinkFTP::send(const hrt_abstime t)
 			if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 				error_code = kErrFailErrno;
 #ifdef MAVLINK_FTP_DEBUG
-				warnx("stream download: seek fail");
+				px4_warnx("stream download: seek fail");
 #endif
 			}
 		}
@@ -901,7 +901,7 @@ void MavlinkFTP::send(const hrt_abstime t)
 				// Negative return indicates error other than eof
 				error_code = kErrFailErrno;
 #ifdef MAVLINK_FTP_DEBUG
-				warnx("stream download: read fail");
+				px4_warnx("stream download: read fail");
 #endif
 			} else {
 				payload->size = bytes_read;

@@ -567,17 +567,17 @@ static int pwmin_tim_isr(int irq, void *context)
 static void pwmin_start()
 {
 	if (g_dev != nullptr) {
-		errx(1, "driver already started");
+		px4_errx(1, "driver already started");
 	}
 
 	g_dev = new PWMIN();
 
 	if (g_dev == nullptr) {
-		errx(1, "driver allocation failed");
+		px4_errx(1, "driver allocation failed");
 	}
 
 	if (g_dev->init() != OK) {
-		errx(1, "driver init failed");
+		px4_errx(1, "driver init failed");
 	}
 
 	exit(0);
@@ -591,7 +591,7 @@ static void pwmin_test(void)
 	int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
 
 	if (fd == -1) {
-		errx(1, "Failed to open device");
+		px4_errx(1, "Failed to open device");
 	}
 
 	uint64_t start_time = hrt_absolute_time();
@@ -626,11 +626,11 @@ static void pwmin_reset(void)
 	int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
 
 	if (fd == -1) {
-		errx(1, "Failed to open device");
+		px4_errx(1, "Failed to open device");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) != OK) {
-		errx(1, "reset failed");
+		px4_errx(1, "reset failed");
 	}
 
 	close(fd);
@@ -687,6 +687,6 @@ int pwm_input_main(int argc, char *argv[])
 		pwmin_reset();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
+	px4_errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
 	return 0;
 }

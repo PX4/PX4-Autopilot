@@ -782,11 +782,11 @@ PX4IO::init()
 		int32_t comp_id;
 
 		if (param_get(sys_id_param, &sys_id)) {
-			errx(1, "PRM SYSID");
+			px4_errx(1, "PRM SYSID");
 		}
 
 		if (param_get(comp_id_param, &comp_id)) {
-			errx(1, "PRM CMPID");
+			px4_errx(1, "PRM CMPID");
 		}
 
 		cmd.target_system = sys_id;
@@ -948,7 +948,7 @@ PX4IO::task_main()
 	    (_t_vehicle_control_mode < 0) ||
 	    (_t_param < 0) ||
 	    (_t_vehicle_command < 0)) {
-		warnx("subscription(s) failed");
+		px4_warnx("subscription(s) failed");
 		goto out;
 	}
 
@@ -993,7 +993,7 @@ PX4IO::task_main()
 
 		/* this would be bad... */
 		if (ret < 0) {
-			warnx("poll error %d", errno);
+			px4_warnx("poll error %d", errno);
 			continue;
 		}
 
@@ -2064,7 +2064,7 @@ PX4IO::print_debug()
 				if (count > 0) {
 					/* enforce null termination */
 					buf[count] = '\0';
-					warnx("IO CONSOLE: %s", buf);
+					px4_warnx("IO CONSOLE: %s", buf);
 				}
 
 			} while (count > 0);
@@ -2142,7 +2142,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			/* print mixer chunk */
 			if (debuglevel > 5 || ret) {
 
-				warnx("fmu sent: \"%s\"", msg->text);
+				px4_warnx("fmu sent: \"%s\"", msg->text);
 
 				/* read IO's output */
 				print_debug();
@@ -3026,12 +3026,12 @@ PX4IO::set_update_rate(int rate)
 
 	if (interval_ms < UPDATE_INTERVAL_MIN) {
 		interval_ms = UPDATE_INTERVAL_MIN;
-		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+		px4_warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
 	}
 
 	if (interval_ms > 100) {
 		interval_ms = 100;
-		warnx("update rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+		px4_warnx("update rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
 	}
 
 	_update_interval = interval_ms;
@@ -3075,13 +3075,13 @@ get_interface()
 		goto got;
 	}
 
-	errx(1, "cannot alloc interface");
+	px4_errx(1, "cannot alloc interface");
 
 got:
 
 	if (interface->init() != OK) {
 		delete interface;
-		errx(1, "interface init failed");
+		px4_errx(1, "interface init failed");
 	}
 
 	return interface;
@@ -3091,7 +3091,7 @@ void
 start(int argc, char *argv[])
 {
 	if (g_dev != nullptr) {
-		errx(0, "already loaded");
+		px4_errx(0, "already loaded");
 	}
 
 	/* allocate the interface */
@@ -3102,7 +3102,7 @@ start(int argc, char *argv[])
 
 	if (g_dev == nullptr) {
 		delete interface;
-		errx(1, "driver alloc failed");
+		px4_errx(1, "driver alloc failed");
 	}
 
 	bool rc_handling_disabled = false;
@@ -3114,14 +3114,14 @@ start(int argc, char *argv[])
 			rc_handling_disabled = true;
 
 		} else {
-			warnx("unknown argument: %s", argv[1]);
+			px4_warnx("unknown argument: %s", argv[1]);
 		}
 	}
 
 	if (OK != g_dev->init(rc_handling_disabled)) {
 		delete g_dev;
 		g_dev = nullptr;
-		errx(1, "driver init failed");
+		px4_errx(1, "driver init failed");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
@@ -3142,7 +3142,7 @@ void
 detect(int argc, char *argv[])
 {
 	if (g_dev != nullptr) {
-		errx(0, "already loaded");
+		px4_errx(0, "already loaded");
 	}
 
 	/* allocate the interface */
@@ -3152,7 +3152,7 @@ detect(int argc, char *argv[])
 	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr) {
-		errx(1, "driver alloc failed");
+		px4_errx(1, "driver alloc failed");
 	}
 
 	int ret = g_dev->detect();
@@ -3182,7 +3182,7 @@ checkcrc(int argc, char *argv[])
 		(void)new PX4IO(interface);
 
 		if (g_dev == nullptr) {
-			errx(1, "driver alloc failed");
+			px4_errx(1, "driver alloc failed");
 		}
 
 	} else {
@@ -3194,14 +3194,14 @@ checkcrc(int argc, char *argv[])
 	  check IO CRC against CRC of a file
 	 */
 	if (argc < 2) {
-		warnx("usage: px4io checkcrc filename");
+		px4_warnx("usage: px4io checkcrc filename");
 		exit(1);
 	}
 
 	int fd = open(argv[1], O_RDONLY);
 
 	if (fd == -1) {
-		warnx("open of %s failed: %d", argv[1], errno);
+		px4_warnx("open of %s failed: %d", argv[1], errno);
 		exit(1);
 	}
 
@@ -3235,11 +3235,11 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		warn("check CRC failed: %d", ret);
+		px4_warn("check CRC failed: %d", ret);
 		exit(1);
 	}
 
-	warnx("CRCs match");
+	px4_warnx("CRCs match");
 	exit(0);
 }
 
@@ -3249,19 +3249,19 @@ bind(int argc, char *argv[])
 	int pulses;
 
 	if (g_dev == nullptr) {
-		errx(1, "px4io must be started first");
+		px4_errx(1, "px4io must be started first");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 	if (!g_dev->get_dsm_vcc_ctl()) {
-		errx(1, "DSM bind feature not enabled");
+		px4_errx(1, "DSM bind feature not enabled");
 	}
 
 #endif
 
 	if (argc < 3) {
-		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
+		px4_errx(0, "needs argument, use dsm2, dsmx or dsmx8");
 	}
 
 	if (!strcmp(argv[2], "dsm2")) {
@@ -3274,7 +3274,7 @@ bind(int argc, char *argv[])
 		pulses = DSMX8_BIND_PULSES;
 
 	} else {
-		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
+		px4_errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
 	}
 
 	// Test for custom pulse parameter
@@ -3283,11 +3283,11 @@ bind(int argc, char *argv[])
 	}
 
 	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		errx(1, "system must not be armed");
+		px4_errx(1, "system must not be armed");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+	px4_warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
 #endif
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
@@ -3307,22 +3307,22 @@ test(void)
 	fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		err(1, "failed to open device");
+		px4_err(1, "failed to open device");
 	}
 
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count)) {
-		err(1, "failed to get servo count");
+		px4_err(1, "failed to get servo count");
 	}
 
 	/* tell IO that its ok to disable its safety with the switch */
 	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 
 	if (ret != OK) {
-		err(1, "PWM_SERVO_SET_ARM_OK");
+		px4_err(1, "PWM_SERVO_SET_ARM_OK");
 	}
 
 	if (ioctl(fd, PWM_SERVO_ARM, 0)) {
-		err(1, "failed to arm servos");
+		px4_err(1, "failed to arm servos");
 	}
 
 	struct pollfd fds;
@@ -3331,7 +3331,7 @@ test(void)
 
 	fds.events = POLLIN;
 
-	warnx("Press CTRL-C or 'c' to abort.");
+	px4_warnx("Press CTRL-C or 'c' to abort.");
 
 	for (;;) {
 
@@ -3345,7 +3345,7 @@ test(void)
 		ret = write(fd, servos, sizeof(servos));
 
 		if (ret != (int)sizeof(servos)) {
-			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+			px4_err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
 		}
 
 		if (direction > 0) {
@@ -3370,11 +3370,11 @@ test(void)
 			servo_position_t value;
 
 			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %d", i);
+				px4_err(1, "error reading PWM servo %d", i);
 			}
 
 			if (value != servos[i]) {
-				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+				px4_errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
 			}
 		}
 
@@ -3387,7 +3387,7 @@ test(void)
 			read(0, &c, 1);
 
 			if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("User abort\n");
+				px4_warnx("User abort\n");
 				exit(0);
 			}
 		}
@@ -3409,7 +3409,7 @@ monitor(void)
 		fds[0].events = POLLIN;
 
 		if (poll(fds, 1, 2000) < 0) {
-			errx(1, "poll fail");
+			px4_errx(1, "poll fail");
 		}
 
 		if (fds[0].revents == POLLIN) {
@@ -3431,7 +3431,7 @@ monitor(void)
 			printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
 
 		} else {
-			errx(1, "driver not loaded, exiting");
+			px4_errx(1, "driver not loaded, exiting");
 		}
 	}
 }
@@ -3447,10 +3447,10 @@ if_test(unsigned mode)
 		delete interface;
 
 	} else {
-		errx(1, "interface not loaded, exiting");
+		px4_errx(1, "interface not loaded, exiting");
 	}
 
-	errx(0, "test returned %d", result);
+	px4_errx(0, "test returned %d", result);
 }
 
 void
@@ -3460,8 +3460,8 @@ lockdown(int argc, char *argv[])
 
 		if (argc > 2 && !strcmp(argv[2], "disable")) {
 
-			warnx("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
-			warnx("Press 'y' to enable, any other key to abort.");
+			px4_warnx("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
+			px4_warnx("Press 'y' to enable, any other key to abort.");
 
 			/* check if user wants to abort */
 			char c;
@@ -3493,20 +3493,20 @@ lockdown(int argc, char *argv[])
 			}
 
 			if (hrt_elapsed_time(&start) > timeout) {
-				errx(1, "TIMEOUT! ABORTED WITHOUT CHANGES.");
+				px4_errx(1, "TIMEOUT! ABORTED WITHOUT CHANGES.");
 			}
 
 			(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
 
-			warnx("WARNING: ACTUATORS ARE NOW LIVE IN HIL!");
+			px4_warnx("WARNING: ACTUATORS ARE NOW LIVE IN HIL!");
 
 		} else {
 			(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
-			warnx("ACTUATORS ARE NOW SAFE IN HIL.");
+			px4_warnx("ACTUATORS ARE NOW SAFE IN HIL.");
 		}
 
 	} else {
-		errx(1, "driver not loaded, exiting");
+		px4_errx(1, "driver not loaded, exiting");
 	}
 
 	exit(0);
@@ -3537,7 +3537,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "update")) {
 
 		if (g_dev != nullptr) {
-			warnx("loaded, detaching first");
+			px4_warnx("loaded, detaching first");
 			/* stop the driver */
 			delete g_dev;
 			g_dev = nullptr;
@@ -3576,20 +3576,20 @@ px4io_main(int argc, char *argv[])
 			break;
 
 		case -ENOENT:
-			errx(1, "PX4IO firmware file not found");
+			px4_errx(1, "PX4IO firmware file not found");
 
 		case -EEXIST:
 		case -EIO:
-			errx(1, "error updating PX4IO - check that bootloader mode is enabled");
+			px4_errx(1, "error updating PX4IO - check that bootloader mode is enabled");
 
 		case -EINVAL:
-			errx(1, "verify failed - retry the update");
+			px4_errx(1, "verify failed - retry the update");
 
 		case -ETIMEDOUT:
-			errx(1, "timed out waiting for bootloader - power-cycle and try again");
+			px4_errx(1, "timed out waiting for bootloader - power-cycle and try again");
 
 		default:
-			errx(1, "unexpected error %d", ret);
+			px4_errx(1, "unexpected error %d", ret);
 		}
 
 		return ret;
@@ -3597,7 +3597,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "iftest")) {
 		if (g_dev != nullptr) {
-			errx(1, "can't iftest when started");
+			px4_errx(1, "can't iftest when started");
 		}
 
 		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
@@ -3609,12 +3609,12 @@ px4io_main(int argc, char *argv[])
 		  the user to hold the safety switch down
 		 */
 		if (argc <= 3) {
-			warnx("usage: px4io forceupdate MAGIC filename");
+			px4_warnx("usage: px4io forceupdate MAGIC filename");
 			exit(1);
 		}
 
 		if (g_dev == nullptr) {
-			warnx("px4io is not started, still attempting upgrade");
+			px4_warnx("px4io is not started, still attempting upgrade");
 
 			/* allocate the interface */
 			device::Device *interface = get_interface();
@@ -3624,7 +3624,7 @@ px4io_main(int argc, char *argv[])
 
 			if (g_dev == nullptr) {
 				delete interface;
-				errx(1, "driver alloc failed");
+				px4_errx(1, "driver alloc failed");
 			}
 		}
 
@@ -3632,7 +3632,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
 
 		if (ret != OK) {
-			warnx("reboot failed - %d", ret);
+			px4_warnx("reboot failed - %d", ret);
 			exit(1);
 		}
 
@@ -3653,7 +3653,7 @@ px4io_main(int argc, char *argv[])
 	/* commands below here require a started driver */
 
 	if (g_dev == nullptr) {
-		errx(1, "not started");
+		px4_errx(1, "not started");
 	}
 
 	if (!strcmp(argv[1], "limit")) {
@@ -3665,11 +3665,11 @@ px4io_main(int argc, char *argv[])
 				g_dev->set_update_rate(limitrate);
 
 			} else {
-				errx(1, "invalid rate: %d", limitrate);
+				px4_errx(1, "invalid rate: %d", limitrate);
 			}
 
 		} else {
-			errx(1, "missing argument (50 - 500 Hz)");
+			px4_errx(1, "missing argument (50 - 500 Hz)");
 			return 1;
 		}
 
@@ -3681,7 +3681,7 @@ px4io_main(int argc, char *argv[])
 			g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
 
 		} else {
-			errx(1, "missing argument (apm_per_volt, amp_offset)");
+			px4_errx(1, "missing argument (apm_per_volt, amp_offset)");
 			return 1;
 		}
 
@@ -3692,7 +3692,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
 
 		if (ret != OK) {
-			warnx("failed to disable safety");
+			px4_warnx("failed to disable safety");
 			exit(1);
 		}
 
@@ -3703,7 +3703,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
 
 		if (ret != OK) {
-			warnx("failed to enable safety");
+			px4_warnx("failed to enable safety");
 			exit(1);
 		}
 
@@ -3732,7 +3732,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 
-		warnx("loaded");
+		px4_warnx("loaded");
 		g_dev->print_status(true);
 
 		exit(0);
@@ -3740,12 +3740,12 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "debug")) {
 		if (argc <= 2) {
-			warnx("usage: px4io debug LEVEL");
+			px4_warnx("usage: px4io debug LEVEL");
 			exit(1);
 		}
 
 		if (g_dev == nullptr) {
-			warnx("not started");
+			px4_warnx("not started");
 			exit(1);
 		}
 
@@ -3756,11 +3756,11 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
-			warnx("SET_DEBUG failed: %d", ret);
+			px4_warnx("SET_DEBUG failed: %d", ret);
 			exit(1);
 		}
 
-		warnx("SET_DEBUG %u OK", (unsigned)level);
+		px4_warnx("SET_DEBUG %u OK", (unsigned)level);
 		exit(0);
 	}
 
@@ -3769,7 +3769,7 @@ px4io_main(int argc, char *argv[])
 	    !strcmp(argv[1], "rx_dsm_11bit") ||
 	    !strcmp(argv[1], "rx_sbus") ||
 	    !strcmp(argv[1], "rx_ppm")) {
-		errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
+		px4_errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
 	}
 
 	if (!strcmp(argv[1], "test")) {
@@ -3795,7 +3795,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
 		if (ret != 0) {
-			errx(ret, "S.BUS v1 failed");
+			px4_errx(ret, "S.BUS v1 failed");
 		}
 
 		exit(0);
@@ -3808,7 +3808,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
 
 		if (ret != 0) {
-			errx(ret, "S.BUS v2 failed");
+			px4_errx(ret, "S.BUS v2 failed");
 		}
 
 		exit(0);
@@ -3821,7 +3821,7 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, RC_INPUT_ENABLE_RSSI_ANALOG, 1);
 
 		if (ret != 0) {
-			errx(ret, "RSSI analog failed");
+			px4_errx(ret, "RSSI analog failed");
 		}
 
 		exit(0);
@@ -3834,14 +3834,14 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, RC_INPUT_ENABLE_RSSI_PWM, 1);
 
 		if (ret != 0) {
-			errx(ret, "RSSI PWM failed");
+			px4_errx(ret, "RSSI PWM failed");
 		}
 
 		exit(0);
 	}
 
 out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
+	px4_errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
 	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm'");
 }

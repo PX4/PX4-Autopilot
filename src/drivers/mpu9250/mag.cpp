@@ -229,7 +229,7 @@ MPU9250_mag::init()
 //			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_mag_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		px4_warnx("ADVERT FAIL");
 	}
 
 out:

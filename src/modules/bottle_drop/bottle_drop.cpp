@@ -229,7 +229,7 @@ BottleDrop::start()
 					nullptr);
 
 	if (_main_task < 0) {
-		warn("task start failed");
+		px4_warn("task start failed");
 		return -errno;
 	}
 
@@ -240,7 +240,7 @@ BottleDrop::start()
 void
 BottleDrop::status()
 {
-	warnx("drop state: %d", _drop_state);
+	px4_warnx("drop state: %d", _drop_state);
 }
 
 void
@@ -253,7 +253,7 @@ BottleDrop::open_bay()
 		_doors_opened = hrt_absolute_time();
 	}
 
-	warnx("open doors");
+	px4_warnx("open doors");
 
 	actuators_publish();
 
@@ -289,7 +289,7 @@ BottleDrop::drop()
 
 	while (hrt_elapsed_time(&_doors_opened) < 500 * 1000 && hrt_elapsed_time(&starttime) < 2000000) {
 		usleep(50000);
-		warnx("delayed by door!");
+		px4_warnx("delayed by door!");
 	}
 
 	_actuators.control[2] = 1.0f;
@@ -297,7 +297,7 @@ BottleDrop::drop()
 	_drop_time = hrt_absolute_time();
 	actuators_publish();
 
-	warnx("dropping now");
+	px4_warnx("dropping now");
 
 	// Give it time to drop
 	usleep(1000 * 1000);
@@ -309,7 +309,7 @@ BottleDrop::lock_release()
 	_actuators.control[2] = -1.0f;
 	actuators_publish();
 
-	warnx("closing release");
+	px4_warnx("closing release");
 }
 
 int
@@ -446,7 +446,7 @@ BottleDrop::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			px4_warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -614,11 +614,11 @@ BottleDrop::task_main()
 					const ssize_t len = sizeof(struct mission_item_s);
 
 					if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
-						warnx("ERROR: could not save onboard WP");
+						px4_warnx("ERROR: could not save onboard WP");
 					}
 
 					if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 1, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_e, len) != len) {
-						warnx("ERROR: could not save onboard WP");
+						px4_warnx("ERROR: could not save onboard WP");
 					}
 
 					_onboard_mission.count = 2;
@@ -726,7 +726,7 @@ BottleDrop::task_main()
 		}
 	}
 
-	warnx("exiting.");
+	px4_warnx("exiting.");
 
 	_main_task = -1;
 	_exit(0);
@@ -776,7 +776,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		default:
 			_drop_approval = false;
-			warnx("param1 val unknown");
+			px4_warnx("param1 val unknown");
 			break;
 		}
 
@@ -869,7 +869,7 @@ BottleDrop::task_main_trampoline(int argc, char *argv[])
 
 static void usage()
 {
-	errx(1, "usage: bottle_drop {start|stop|status}");
+	px4_errx(1, "usage: bottle_drop {start|stop|status}");
 }
 
 int bottle_drop_main(int argc, char *argv[])
@@ -881,26 +881,26 @@ int bottle_drop_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (bottle_drop::g_bottle_drop != nullptr) {
-			errx(1, "already running");
+			px4_errx(1, "already running");
 		}
 
 		bottle_drop::g_bottle_drop = new BottleDrop;
 
 		if (bottle_drop::g_bottle_drop == nullptr) {
-			errx(1, "alloc failed");
+			px4_errx(1, "alloc failed");
 		}
 
 		if (OK != bottle_drop::g_bottle_drop->start()) {
 			delete bottle_drop::g_bottle_drop;
 			bottle_drop::g_bottle_drop = nullptr;
-			err(1, "start failed");
+			px4_err(1, "start failed");
 		}
 
 		return 0;
 	}
 
 	if (bottle_drop::g_bottle_drop == nullptr) {
-		errx(1, "not running");
+		px4_errx(1, "not running");
 	}
 
 	if (!strcmp(argv[1], "stop")) {

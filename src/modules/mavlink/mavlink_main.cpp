@@ -290,7 +290,7 @@ Mavlink::Mavlink() :
 #endif
 
 	default:
-		warnx("instance ID is out of range");
+		px4_warnx("instance ID is out of range");
 		px4_task_exit(1);
 		break;
 	}
@@ -411,7 +411,7 @@ Mavlink::destroy_all_instances()
 
 	unsigned iterations = 0;
 
-	warnx("waiting for instances to stop");
+	px4_warnx("waiting for instances to stop");
 
 	while (next_inst != nullptr) {
 		inst_to_del = next_inst;
@@ -427,7 +427,7 @@ Mavlink::destroy_all_instances()
 			iterations++;
 
 			if (iterations > 1000) {
-				warnx("ERROR: Couldn't stop all mavlink instances.");
+				px4_warnx("ERROR: Couldn't stop all mavlink instances.");
 				return ERROR;
 			}
 		}
@@ -442,7 +442,7 @@ Mavlink::destroy_all_instances()
 	}
 
 	printf("\n");
-	warnx("all instances stopped");
+	px4_warnx("all instances stopped");
 	return OK;
 }
 
@@ -673,7 +673,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	case 921600: speed = B921600; break;
 
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
+		px4_warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
 		      baud);
 		return -EINVAL;
 	}
@@ -731,7 +731,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+		px4_warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		::close(_uart_fd);
 		return -1;
 	}
@@ -747,7 +747,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+			px4_warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			::close(_uart_fd);
 			return -1;
 		}
@@ -765,7 +765,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 #endif
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
+		px4_warnx("ERR SET CONF %s\n", uart_name);
 		::close(_uart_fd);
 		return -1;
 	}
@@ -785,7 +785,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* setup output flow control */
 		if (enable_flow_control(true)) {
-			warnx("hardware flow control not supported");
+			px4_warnx("hardware flow control not supported");
 		}
 
 	} else {
@@ -873,7 +873,7 @@ Mavlink::get_free_tx_buf()
 			if (_last_write_try_time != 0 &&
 			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
 			    _last_write_success_time != _last_write_try_time) {
-				warnx("Disabling hardware flow control");
+				px4_warnx("Disabling hardware flow control");
 				enable_flow_control(false);
 			}
 		}
@@ -1365,7 +1365,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	/* if we reach here, the stream list does not contain the stream */
-	warnx("stream %s not found", stream_name);
+	px4_warnx("stream %s not found", stream_name);
 
 	return ERROR;
 }
@@ -1665,7 +1665,7 @@ Mavlink::task_main(int argc, char *argv[])
 			_baudrate = strtoul(myoptarg, NULL, 10);
 
 			if (_baudrate < 9600 || _baudrate > 921600) {
-				warnx("invalid baud rate '%s'", myoptarg);
+				px4_warnx("invalid baud rate '%s'", myoptarg);
 				err_flag = true;
 			}
 
@@ -1675,7 +1675,7 @@ Mavlink::task_main(int argc, char *argv[])
 			_datarate = strtoul(myoptarg, NULL, 10);
 
 			if (_datarate < 10 || _datarate > MAX_DATA_RATE) {
-				warnx("invalid data rate '%s'", myoptarg);
+				px4_warnx("invalid data rate '%s'", myoptarg);
 				err_flag = true;
 			}
 
@@ -1693,7 +1693,7 @@ Mavlink::task_main(int argc, char *argv[])
 				_network_port = temp_int_arg;
 				set_protocol(UDP);
 			} else {
-				warnx("invalid data udp_port '%s'", myoptarg);
+				px4_warnx("invalid data udp_port '%s'", myoptarg);
 				err_flag = true;
 			}
 			break;
@@ -1701,11 +1701,11 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'o':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
-				warnx("set remote port %d", temp_int_arg);
+				px4_warnx("set remote port %d", temp_int_arg);
 				_remote_port = temp_int_arg;
 				set_protocol(UDP);
 			} else {
-				warnx("invalid remote udp_port '%s'", myoptarg);
+				px4_warnx("invalid remote udp_port '%s'", myoptarg);
 				err_flag = true;
 			}
 			break;
@@ -1715,7 +1715,7 @@ Mavlink::task_main(int argc, char *argv[])
 			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
 				_src_addr_initialized = true;
 			} else {
-				warnx("invalid partner ip '%s'", myoptarg);
+				px4_warnx("invalid partner ip '%s'", myoptarg);
 				err_flag = true;
 			}
 			break;
@@ -1723,7 +1723,7 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'u':
 		case 'o':
 		case 't':
-			warnx("UDP options not supported on this platform");
+			px4_warnx("UDP options not supported on this platform");
 			err_flag = true;
 			break;
 #endif
@@ -1795,7 +1795,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	if (get_protocol() == SERIAL) {
 		if (Mavlink::instance_exists(_device_name, this)) {
-			warnx("%s already running", _device_name);
+			px4_warnx("%s already running", _device_name);
 			return ERROR;
 		}
 
@@ -1809,7 +1809,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
 
 		if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
-			warn("could not open %s", _device_name);
+			px4_warn("could not open %s", _device_name);
 			return ERROR;
 		} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 			/* the config link is optional */
@@ -1818,7 +1818,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	} else if (get_protocol() == UDP) {
 		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
-			warnx("port %d already occupied", _network_port);
+			px4_warnx("port %d already occupied", _network_port);
 			return ERROR;
 		}
 
@@ -1836,7 +1836,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 * marker ring buffer approach.
 		 */
 		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
-			warnx("msg buf:");
+			px4_warnx("msg buf:");
 			return 1;
 		}
 
@@ -2268,7 +2268,7 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
 
-	warnx("exiting channel %i", (int)_channel);
+	px4_warnx("exiting channel %i", (int)_channel);
 
 	return OK;
 }
@@ -2284,7 +2284,7 @@ int Mavlink::start_helper(int argc, char *argv[])
 
 		/* out of memory */
 		res = -ENOMEM;
-		warnx("OUT OF MEM");
+		px4_warnx("OUT OF MEM");
 
 	} else {
 		/* this will actually only return once MAVLink exits */
@@ -2304,7 +2304,7 @@ Mavlink::start(int argc, char *argv[])
 	int ic = Mavlink::instance_count();
 
 	if (ic == Mavlink::MAVLINK_MAX_INSTANCES) {
-		warnx("Maximum MAVLink instance count of %d reached.",
+		px4_warnx("Maximum MAVLink instance count of %d reached.",
 			(int)Mavlink::MAVLINK_MAX_INSTANCES);
 		return 1;
 	}
@@ -2465,7 +2465,7 @@ Mavlink::stream_command(int argc, char *argv[])
 		} else if (provided_network_port && !provided_device) {
 			inst = get_instance_for_network_port(network_port);
 		} else if (provided_device && provided_network_port) {
-			warnx("please provide either a device name or a network port");
+			px4_warnx("please provide either a device name or a network port");
 			return 1;
 		}
 
@@ -2477,9 +2477,9 @@ Mavlink::stream_command(int argc, char *argv[])
 			// If the link is not running we should complain, but not fall over
 			// because this is so easy to get wrong and not fatal. Warning is sufficient.
 			if (provided_device) {
-				warnx("mavlink for device %s is not running", device_name);
+				px4_warnx("mavlink for device %s is not running", device_name);
 			} else {
-				warnx("mavlink for network on port %hu is not running", network_port);
+				px4_warnx("mavlink for network on port %hu is not running", network_port);
 			}
 
 			return 1;

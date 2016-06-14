@@ -213,13 +213,13 @@ int test_mixer(int argc, char *argv[])
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
-				warnx("active servo < min");
+				px4_warnx("active servo < min");
 				return 1;
 			}
 
 		} else {
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
-				warnx("throttle output != 0 (this check assumed the IO pass mixer!)");
+				px4_warnx("throttle output != 0 (this check assumed the IO pass mixer!)");
 				return 1;
 			}
 		}

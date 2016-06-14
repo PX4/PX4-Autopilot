@@ -114,7 +114,7 @@ GpsFailure::on_active()
 				//_navigator->get_control_mode()->flag_control_position_enabled, elapsed * 1e-6, (double)_param_openlooploiter_thrust.get());
 		if (elapsed > _param_loitertime.get() * 1e6f) {
 			/* no recovery, adavance the state machine */
-			warnx("gps not recovered, switch to next state");
+			px4_warnx("gps not recovered, switch to next state");
 			advance_gpsf();
 		}
 		break;
@@ -143,7 +143,7 @@ GpsFailure::set_gpsf_item()
 		/* Request flight termination from the commander */
 		_navigator->get_mission_result()->flight_termination = true;
 		_navigator->set_mission_result_updated();
-		warnx("gps fail: request flight termination");
+		px4_warnx("gps fail: request flight termination");
 	}
 	default:
 		break;
@@ -161,17 +161,17 @@ GpsFailure::advance_gpsf()
 	switch (_gpsf_state) {
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
-		warnx("gpsf loiter");
+		px4_warnx("gpsf loiter");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "GPS failed: open loop loiter");
 		break;
 	case GPSF_STATE_LOITER:
 		_gpsf_state = GPSF_STATE_TERMINATE;
-		warnx("gpsf terminate");
+		px4_warnx("gpsf terminate");
 		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no gps recovery, termination");
-		warnx("mavlink sent");
+		px4_warnx("mavlink sent");
 		break;
 	case GPSF_STATE_TERMINATE:
-		warnx("gpsf end");
+		px4_warnx("gpsf end");
 		_gpsf_state = GPSF_STATE_END;
 	default:
 		break;

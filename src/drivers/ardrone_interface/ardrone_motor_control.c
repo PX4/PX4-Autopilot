@@ -112,20 +112,20 @@ int ar_multiplexing_init()
 	fd = open(PX4FMU_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("GPIO: open fail");
+		px4_warn("GPIO: open fail");
 		return fd;
 	}
 
 	/* deactivate all outputs */
 	if (ioctl(fd, GPIO_SET, motor_gpios)) {
-		warn("GPIO: clearing pins fail");
+		px4_warn("GPIO: clearing pins fail");
 		close(fd);
 		return -1;
 	}
 
 	/* configure all motor select GPIOs as outputs */
 	if (ioctl(fd, GPIO_SET_OUTPUT, motor_gpios) != 0) {
-		warn("GPIO: output set fail");
+		px4_warn("GPIO: output set fail");
 		close(fd);
 		return -1;
 	}
@@ -301,7 +301,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
 
 	if (errcounter != 0) {
-		warnx("Failed %d times", -errcounter);
+		px4_warnx("Failed %d times", -errcounter);
 		fflush(stdout);
 	}
 

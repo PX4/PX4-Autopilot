@@ -158,7 +158,7 @@ DataLinkLoss::set_dll_item()
 		_navigator->get_mission_result()->flight_termination = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();
-		warnx("not switched to manual: request flight termination");
+		px4_warnx("not switched to manual: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
 		pos_sp_triplet->next.valid = false;
@@ -185,7 +185,7 @@ DataLinkLoss::advance_dll()
 		/* Check the number of data link losses. If above home fly home directly */
 		/* if number of data link losses limit is not reached fly to comms hold wp */
 		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
-			warnx("%d data link losses, limit is %d, fly to airfield home",
+			px4_warnx("%d data link losses, limit is %d, fly to airfield home",
 					_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
 			_navigator->get_mission_result()->stay_in_failsafe = true;
@@ -194,19 +194,19 @@ DataLinkLoss::advance_dll()
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		} else {
 			if (!_param_skipcommshold.get()) {
-				warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
+				px4_warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to comms hold");
 				_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 			} else {
 				/* comms hold wp not active, fly to airfield home directly */
-				warnx("Skipping comms hold wp. Flying directly to airfield home");
+				px4_warnx("Skipping comms hold wp. Flying directly to airfield home");
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to airfield home, comms hold skipped");
 				_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 			}
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
-		warnx("fly to airfield home");
+		px4_warnx("fly to airfield home");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
@@ -215,14 +215,14 @@ DataLinkLoss::advance_dll()
 		break;
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
 		_dll_state = DLL_STATE_TERMINATE;
-		warnx("time is up, state should have been changed manually by now");
+		px4_warnx("time is up, state should have been changed manually by now");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no manual control, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();
 		break;
 	case DLL_STATE_TERMINATE:
-		warnx("dll end");
+		px4_warnx("dll end");
 		_dll_state = DLL_STATE_END;
 		break;
 

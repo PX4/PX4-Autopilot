@@ -78,7 +78,7 @@ int test_ppm_loopback(int argc, char *argv[])
 	result = ioctl(servo_fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 
 	if (result != OK) {
-		warnx("PWM_SERVO_GET_COUNT");
+		px4_warnx("PWM_SERVO_GET_COUNT");
 		return ERROR;
 	}
 
@@ -96,11 +96,11 @@ int test_ppm_loopback(int argc, char *argv[])
 	// /* tell safety that its ok to disable it with the switch */
 	// result = ioctl(servo_fd, PWM_SERVO_SET_ARM_OK, 0);
 	// if (result != OK)
-	// 	warnx("FAIL: PWM_SERVO_SET_ARM_OK");
+	// 	px4_warnx("FAIL: PWM_SERVO_SET_ARM_OK");
 	//  tell output device that the system is armed (it will output values if safety is off)
 	// result = ioctl(servo_fd, PWM_SERVO_ARM, 0);
 	// if (result != OK)
-	// 	warnx("FAIL: PWM_SERVO_ARM");
+	// 	px4_warnx("FAIL: PWM_SERVO_ARM");
 
 	int pwm_values[] = {1200, 1300, 1900, 1700, 1500, 1250, 1800, 1400};
 
@@ -113,11 +113,11 @@ int test_ppm_loopback(int argc, char *argv[])
 			return ERROR;
 
 		} else {
-			warnx("channel %d set to %d", i, pwm_values[i]);
+			px4_warnx("channel %d set to %d", i, pwm_values[i]);
 		}
 	}
 
-	warnx("servo count: %d", servo_count);
+	px4_warnx("servo count: %d", servo_count);
 
 	struct pwm_output_values pwm_out = {.values = {0}, .channel_count = 0};
 
@@ -153,7 +153,7 @@ int test_ppm_loopback(int argc, char *argv[])
 		// result = read(ppm_fd, &rc, sizeof(rc));
 
 		// if (result != sizeof(rc)) {
-		// 	warnx("Error reading RC output");
+		// 	px4_warnx("Error reading RC output");
 		// 	(void)close(servo_fd);
 		// 	(void)close(ppm_fd);
 		// 	return ERROR;
@@ -162,18 +162,18 @@ int test_ppm_loopback(int argc, char *argv[])
 		/* go and check values */
 		for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
 			if (abs(rc_input.values[i] - pwm_values[i]) > 10) {
-				warnx("comparison fail: RC: %d, expected: %d", rc_input.values[i], pwm_values[i]);
+				px4_warnx("comparison fail: RC: %d, expected: %d", rc_input.values[i], pwm_values[i]);
 				(void)close(servo_fd);
 				return ERROR;
 			}
 		}
 
 	} else {
-		warnx("failed reading RC input data");
+		px4_warnx("failed reading RC input data");
 		return ERROR;
 	}
 
-	warnx("PPM LOOPBACK TEST PASSED SUCCESSFULLY!");
+	px4_warnx("PPM LOOPBACK TEST PASSED SUCCESSFULLY!");
 
 	return 0;
 }
