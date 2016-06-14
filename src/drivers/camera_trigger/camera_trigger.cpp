@@ -73,7 +73,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	CameraTrigger();
+	CameraTrigger(camera_interface_mode_t camera_interface_mode);
 
 	/**
 	 * Destructor, also kills task.
@@ -137,14 +137,8 @@ private:
 	param_t _p_distance;
 	param_t _p_pin;
 
-	static constexpr uint32_t _gpios[6] = {
-		GPIO_GPIO0_OUTPUT,
-		GPIO_GPIO1_OUTPUT,
-		GPIO_GPIO2_OUTPUT,
-		GPIO_GPIO3_OUTPUT,
-		GPIO_GPIO4_OUTPUT,
-		GPIO_GPIO5_OUTPUT
-	};
+	camera_interface_mode_t _camera_interface_mode;
+	CameraInterface *_camera_interface;  ///< instance of camera interface
 
 	/**
 	 * Vehicle command handler
@@ -172,8 +166,7 @@ namespace camera_trigger
 CameraTrigger	*g_camera_trigger;
 }
 
-CameraTrigger::CameraTrigger() :
-	_pins{},
+CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 	_engagecall {},
 	_disengagecall {},
 	_gpio_fd(-1),
@@ -188,7 +181,9 @@ CameraTrigger::CameraTrigger() :
 	_valid_position(false),
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
-	_trigger_pub(nullptr)
+	_trigger_pub(nullptr),
+	_camera_interface_mode(camera_interface_mode),
+	_camera_interface(nullptr)
 {
 	memset(&_work, 0, sizeof(_work));
 
@@ -428,11 +423,7 @@ CameraTrigger::engage(void *arg)
 	/* set timestamp the instant before the trigger goes off */
 	report.timestamp = hrt_absolute_time();
 
-<<<<<<< HEAD
-	CameraTrigger::trigger(trig, trig->_polarity);
-=======
 	trig->_camera_interface->trigger(true);
->>>>>>> fb669fc... fixed the triggering function logic
 
 	report.seq = trig->_trigger_seq++;
 
@@ -442,16 +433,9 @@ CameraTrigger::engage(void *arg)
 void
 CameraTrigger::disengage(void *arg)
 {
-<<<<<<< HEAD
-
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
-
-	CameraTrigger::trigger(trig, !(trig->_polarity));
-=======
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);
->>>>>>> fb669fc... fixed the triggering function logic
 }
 
 void
@@ -472,14 +456,15 @@ CameraTrigger::info()
 	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 	warnx("mode : %i", _mode);
-	warnx("interval : %.2f", (double)_interval);
-	warnx("distance : %.2f", (double)_distance);
+	warnx("interval : %.2f [ms]", (double)_interval);
+	warnx("distance : %.2f [m]", (double)_distance);
+	warnx("activation time : %.2f [ms]", (double)_activation_time);
 	_camera_interface->info();
 }
 
 static void usage()
 {
-	errx(1, "usage: camera_trigger {start|stop|info} [-p <n>]\n");
+	errx(1, "usage: camera_trigger {start {--relay|--pwm}|stop|info}\n");
 }
 
 int camera_trigger_main(int argc, char *argv[])
@@ -494,7 +479,22 @@ int camera_trigger_main(int argc, char *argv[])
 			errx(0, "already running");
 		}
 
-		camera_trigger::g_camera_trigger = new CameraTrigger;
+		if (argc >= 3) {
+			if (!strcmp(argv[2], "--relay")) {
+				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_RELAY);
+
+			} else if (!strcmp(argv[2], "--pwm")) {
+				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_PWM);
+
+			} else {
+				usage();
+				return 0;
+			}
+
+		} else {
+			camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_RELAY);
+			warnx("started with default camera interface mode : relay");
+		}
 
 		if (camera_trigger::g_camera_trigger == nullptr) {
 			errx(1, "alloc failed");
