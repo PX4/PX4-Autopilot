@@ -49,7 +49,9 @@ make -j8
 sudo make install
 ```
 
-For cross-compiling the procedure is similar.
+For cross-compiling the procedure is similar (assuming that you have the toolchain file,
+`Toolchain-stm32-cortex-m4.cmake` in this example).
+If you're using Make, please refer to the [documentation](http://uavcan.org/Implementations/Libuavcan).
 
 ```bash
 mkdir build
