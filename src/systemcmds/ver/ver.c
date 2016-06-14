@@ -135,7 +135,7 @@ int ver_main(int argc, char *argv[])
 					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
 
 					if (ret == 0) {
-						printf("ver hwcmp match: %s\n", HW_ARCH);
+						PX4_INFO("match: %s", HW_ARCH);
 					}
 
 					return ret;

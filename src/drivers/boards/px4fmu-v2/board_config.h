@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -270,6 +270,9 @@ __BEGIN_DECLS
 		{GPIO_VDD_5V_HIPOWER_OC, 0,                       0}, \
 		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
 
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -317,6 +320,8 @@ extern void board_peripheral_reset(int ms);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

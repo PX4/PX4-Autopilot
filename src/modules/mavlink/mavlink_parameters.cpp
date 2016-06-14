@@ -57,6 +57,15 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkSt
 	_uavcan_parameter_value_sub(-1)
 {
 }
+MavlinkParametersManager::~MavlinkParametersManager()
+{
+	if (_uavcan_parameter_value_sub >= 0) {
+		orb_unsubscribe(_uavcan_parameter_value_sub);
+	}
+	if (_uavcan_parameter_request_pub) {
+		orb_unadvertise(_uavcan_parameter_request_pub);
+	}
+}
 
 unsigned
 MavlinkParametersManager::get_size()

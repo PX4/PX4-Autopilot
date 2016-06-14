@@ -215,12 +215,25 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 					(double)(task_load * 100.f),
 					(double)(sched_load * 100.f),
 					(double)(idle * 100.f));
+#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
+				uint16_t dma_total;
+				uint16_t dma_used;
+				uint16_t dma_peak_used;
+
+				if (board_get_dma_usage(&dma_total, &dma_used, &dma_peak_used) >= 0) {
+					dprintf(fd, "%sDMA Memory: %d total, %d used %d peak\n",
+						clear_line,
+						dma_total,
+						dma_used,
+						dma_peak_used);
+				}
+
+#endif
 				dprintf(fd, "%sUptime: %.3fs total, %.3fs idle\n%s\n",
 					clear_line,
 					(double)curr_time_us / 1000000.d,
 					(double)idle_time_us / 1000000.d,
 					clear_line);
-
 				/* header for task list */
 				dprintf(fd, "%s%4s %*-s %8s %6s %11s %10s %-6s\n",
 					clear_line,

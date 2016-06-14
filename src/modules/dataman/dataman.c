@@ -715,6 +715,11 @@ task_main(int argc, char *argv[])
 	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
 
 	if (g_task_fd >= 0) {
+
+#ifndef __PX4_POSIX
+		// XXX on Mac OS and Linux the file is not a multiple of the sector sizes
+		// this might need further inspection.
+
 		/* File exists, check its size */
 		int file_size = lseek(g_task_fd, 0, SEEK_END);
 
@@ -722,54 +727,47 @@ task_main(int argc, char *argv[])
 			PX4_WARN("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
 			PX4_WARN("Size: %u, sector size: %d", file_size, k_sector_size);
 			close(g_task_fd);
-#ifndef __PX4_POSIX
-			// XXX on Mac OS and Linux the file is not a multiple of the sector sizes
-			// this might need further inspection
 			unlink(k_data_manager_device_path);
+		}
+
+#else
+		close(g_task_fd);
 #endif
 
-		} else {
-			close(g_task_fd);
-		}
 	}
 
 	/* Open or create the data manager file */
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
 
 	if (g_task_fd < 0) {
-		warnx("Could not open data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not open data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
 
 	if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
-		warnx("Could not seek data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
 
 	fsync(g_task_fd);
 
-	printf("dataman: ");
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
 
+	const char *restart_type_str = "Unkown restart";
+
 	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
-			printf("Power on restart");
+			restart_type_str = "Power on restart";
 			_restart(DM_INIT_REASON_POWER_ON);
 
 		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
-			printf("In flight restart");
+			restart_type_str = "In flight restart";
 			_restart(DM_INIT_REASON_IN_FLIGHT);
-
-		} else {
-			printf("Unknown restart");
 		}
-
-	} else {
-		printf("Unknown restart");
 	}
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
@@ -777,7 +775,8 @@ task_main(int argc, char *argv[])
 	/* worker thread is shutting down but still processing requests */
 	g_fd = g_task_fd;
 
-	printf(", data manager file '%s' size is %d bytes\n", k_data_manager_device_path, max_offset);
+	PX4_INFO("%s, data manager file '%s' size is %d bytes",
+		 restart_type_str, k_data_manager_device_path, max_offset);
 
 	/* Tell startup that the worker thread has completed its initialization */
 	px4_sem_post(&g_init_sema);
@@ -885,11 +884,11 @@ static void
 status(void)
 {
 	/* display usage statistics */
-	warnx("Writes   %d", g_func_counts[dm_write_func]);
-	warnx("Reads    %d", g_func_counts[dm_read_func]);
-	warnx("Clears   %d", g_func_counts[dm_clear_func]);
-	warnx("Restarts %d", g_func_counts[dm_restart_func]);
-	warnx("Max Q lengths work %d, free %d", g_work_q.max_size, g_free_q.max_size);
+	PX4_INFO("Writes   %d", g_func_counts[dm_write_func]);
+	PX4_INFO("Reads    %d", g_func_counts[dm_read_func]);
+	PX4_INFO("Clears   %d", g_func_counts[dm_clear_func]);
+	PX4_INFO("Restarts %d", g_func_counts[dm_restart_func]);
+	PX4_INFO("Max Q lengths work %d, free %d", g_work_q.max_size, g_free_q.max_size);
 }
 
 static void
@@ -903,7 +902,7 @@ stop(void)
 static void
 usage(void)
 {
-	warnx("usage: dataman {start [-f datafile]|stop|status|poweronrestart|inflightrestart}");
+	PX4_INFO("usage: dataman {start [-f datafile]|stop|status|poweronrestart|inflightrestart}");
 }
 
 int
@@ -917,13 +916,13 @@ dataman_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (g_fd >= 0) {
-			warnx("dataman already running");
+			PX4_WARN("dataman already running");
 			return -1;
 		}
 
 		if (argc == 4 && strcmp(argv[2], "-f") == 0) {
 			k_data_manager_device_path = strdup(argv[3]);
-			warnx("dataman file set to: %s\n", k_data_manager_device_path);
+			PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
 
 		} else {
 			k_data_manager_device_path = strdup(default_device_path);
@@ -932,7 +931,7 @@ dataman_main(int argc, char *argv[])
 		start();
 
 		if (g_fd < 0) {
-			warnx("dataman start failed");
+			PX4_ERR("dataman start failed");
 			free(k_data_manager_device_path);
 			k_data_manager_device_path = NULL;
 			return -1;
@@ -943,7 +942,7 @@ dataman_main(int argc, char *argv[])
 
 	/* Worker thread should be running for all other commands */
 	if (g_fd < 0) {
-		warnx("dataman worker thread not running");
+		PX4_WARN("dataman worker thread not running");
 		usage();
 		return -1;
 	}

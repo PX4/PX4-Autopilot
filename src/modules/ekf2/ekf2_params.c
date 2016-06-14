@@ -782,6 +782,17 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Y, 0.0f);
  */
 PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 
+ /**
+ * Airspeed fusion threshold. A value of zero will deactivate airspeed fusion. Any other positive
+ * value will determine the minimum airspeed which will still be fused.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @unit m/s
+ * @decimal 1
+ */
+ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
+
 /**
 
  * Time constant of the velocity output prediction and smoothing filter

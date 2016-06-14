@@ -1161,7 +1161,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (!strcmp(argv[2],"-hil")) {
 			startup_in_hil = true;
 		} else {
-			PX4_ERR("Argument %s not supported, abort.", argv[2]);	
+			PX4_ERR("Argument %s not supported, abort.", argv[2]);
 			thread_should_exit = true;
 		}
 	}
@@ -1950,43 +1950,38 @@ int commander_thread_main(int argc, char *argv[])
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
-		static bool check_for_disarming = false;
 		orb_check(land_detector_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
-		}
 
-		if ((updated && status_flags.condition_local_altitude_valid) || check_for_disarming) {
 			if (was_landed != land_detector.landed) {
-				if (land_detector.landed && armed.armed) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "LANDING DETECTED");
+				if (land_detector.landed) {
+					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 				} else {
-					mavlink_and_console_log_info(&mavlink_log_pub, "TAKEOFF DETECTED");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
 				}
 			}
 
 			if (was_falling != land_detector.freefall) {
 				if (land_detector.freefall) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "FREEFALL DETECTED");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
 				}
 			}
 
 			if (disarm_when_landed > 0) {
 				if (land_detector.landed) {
-					if (!check_for_disarming && _inair_last_time > 0) {
-						_inair_last_time = land_detector.timestamp;
-						check_for_disarming = true;
-					}
-
-					if (_inair_last_time > 0 && ((hrt_absolute_time() - _inair_last_time) > (hrt_abstime)disarm_when_landed * 1000 * 1000)) {
+					if (_inair_last_time > 0 &&
+					    (hrt_elapsed_time(&_inair_last_time) > (hrt_abstime)disarm_when_landed * 1000 * 1000)) {
 						arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 						_inair_last_time = 0;
-						check_for_disarming = false;
 					}
 				} else {
 					_inair_last_time = land_detector.timestamp;
 				}
 			}
+
+			was_landed = land_detector.landed;
+			was_falling = land_detector.freefall;
 		}
 
 		if (!rtl_on) {
@@ -2678,8 +2673,6 @@ int commander_thread_main(int argc, char *argv[])
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
 		}
 
-		was_landed = land_detector.landed;
-		was_falling = land_detector.freefall;
 		was_armed = armed.armed;
 
 		/* print new state */
@@ -3613,7 +3606,7 @@ void *commander_low_prio_loop(void *arg)
 					if (ret != OK) {
 						mavlink_and_console_log_critical(&mavlink_log_pub, "settings auto save error");
 					} else {
-						PX4_INFO("commander: settings saved.");
+						PX4_DEBUG("commander: settings saved.");
 					}
 
 					need_param_autosave = false;

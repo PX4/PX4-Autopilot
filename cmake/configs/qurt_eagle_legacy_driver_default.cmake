@@ -16,6 +16,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexa
 
 add_definitions(
    -D__USING_SNAPDRAGON_LEGACY_DRIVER
+   -D__PX4_QURT
+   -D__PX4_QURT_EAGLE
    )
 
 set(config_module_list
@@ -26,8 +28,6 @@ set(config_module_list
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
-	platforms/posix/drivers/df_hmc5883_wrapper
-	platforms/posix/drivers/df_trone_wrapper
 
 	#
 	# System commands
@@ -37,7 +37,6 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	#modules/attitude_estimator_ekf
 	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
@@ -72,7 +71,6 @@ set(config_module_list
 	#
 	platforms/qurt/fc_addon/rc_receiver
 	platforms/qurt/fc_addon/uart_esc
-	#platforms/qurt/fc_addon/mpu_spi
 
 	#
 	# Libraries
@@ -105,6 +103,4 @@ set(config_module_list
 set(config_df_driver_list
 	mpu9250
 	bmp280
-	hmc5883
-	trone
 	)

@@ -50,8 +50,8 @@ attitude_estimator_q start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ../../../../ROMFS/px4fmu_common/mixers/quad_w.main.mix
-mavlink start -u 14556 -r 2000000 -t 127.0.0.1
-mavlink start -u 14557 -r 2000000 -m onboard -o 14540 -t 127.0.0.1
+mavlink start -u 14556 -r 2000000
+mavlink start -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 80 -s LOCAL_POSITION_NED_COV -u 14556
 mavlink stream -r 80 -s GLOBAL_POSITION_INT -u 14556
@@ -61,9 +61,9 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-mavlink boot_complete
 sdlog2 start -r 100 -e -t -a
 
 # start LPE at end, when we know it is ok to init sensors
 sleep 5
 local_position_estimator start
+mavlink boot_complete

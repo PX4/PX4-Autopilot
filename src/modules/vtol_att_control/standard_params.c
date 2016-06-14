@@ -72,3 +72,15 @@ PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
+
+
+/**
+ * QuadChute
+ *
+ * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
+ * the vehicle will transition back to MC mode and enter failsafe RTL
+ * @min 0.0
+ * @max 200.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);

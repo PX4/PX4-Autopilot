@@ -67,8 +67,8 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
-typedef enum { IDLE, SPORT, DTYPE } frsky_state_t;
-static frsky_state_t frsky_state = IDLE;
+typedef enum { SCANNING, SPORT, DTYPE } frsky_state_t;
+static frsky_state_t frsky_state = SCANNING;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -77,6 +77,7 @@ static void usage(void);
 static int frsky_telemetry_thread_main(int argc, char *argv[]);
 __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
+#define DEBUG
 
 /**
  * Opens the UART device and sets all required serial parameters.
@@ -106,7 +107,7 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	uart_config->c_oflag &= ~OPOST;
 
 	/* Set baud rate */
-	static const speed_t speed = B57600;
+	static const speed_t speed = B9600;
 
 	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
 		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
@@ -175,7 +176,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		}
 	}
 
-	/* Open UART assuming SmartPort telemetry */
+	/* Open UART assuming D type telemetry */
 	struct termios uart_config_original;
 	struct termios uart_config;
 	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
@@ -194,9 +195,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Main thread loop */
 	char sbuf[20];
-	frsky_state = IDLE;
+	frsky_state = SCANNING;
+	frsky_state_t baudRate = DTYPE;
 
-	while (!thread_should_exit && frsky_state == IDLE) {
+	while (!thread_should_exit && frsky_state == SCANNING) {
 		/* 2 byte polling frames indicate SmartPort telemetry
 		 * 11 byte packets indicate D type telemetry
 		 */
@@ -204,18 +206,64 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		if (status > 0) {
 			/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2
-			 * allow a little time to receive the entire packet
+			 * Wait long enough for 11 bytes at 9600 baud
 			 */
-			usleep(5000);
-			status = read(uart, &sbuf[0], sizeof(sbuf));
-		}
+			usleep(12000);
+			int nbytes = read(uart, &sbuf[0], sizeof(sbuf));
+			PX4_DEBUG("frsky input: %d bytes: %x %x, speed: %d", nbytes, sbuf[0], sbuf[1], baudRate);
 
-		/* received some data; check size of packet */
-		if (status > 0 && status < 3) {
-			frsky_state = SPORT;
+			// look for valid header byte
+			if (nbytes > 10) {
+				if (baudRate == DTYPE) {
+					// see if we got a valid D-type hostframe
+					struct adc_linkquality host_frame;
 
-		} else if (status > 0) {
-			frsky_state = DTYPE;
+					if (frsky_parse_host((uint8_t *)&sbuf[0], nbytes, &host_frame)) {
+						frsky_state = baudRate;
+						break;
+					}
+
+				} else {
+					// check for alternating S.port start bytes
+					int index = 0;
+
+					while (index < 2 && sbuf[index] != 0x7E) { index++; }
+
+					if (index < 2) {
+
+						int success = 1;
+
+						for (int i = index + 2; i < nbytes; i += 2) {
+							if (sbuf[i] != 0x7E) { success = 0; break; }
+						}
+
+						if (success) {
+							frsky_state = baudRate;
+							break;
+						}
+					}
+				}
+
+			}
+
+			// alternate between S.port and D-type baud rates
+			if (baudRate == SPORT) {
+				PX4_DEBUG("setting baud rate to %d", 9600);
+				set_uart_speed(uart, &uart_config, B9600);
+				baudRate = DTYPE;
+
+			} else {
+				PX4_DEBUG("setting baud rate to %d", 57600);
+				set_uart_speed(uart, &uart_config, B57600);
+				baudRate = SPORT;
+
+			}
+
+			// wait a second
+			usleep(1000000);
+			// flush buffer
+			read(uart, &sbuf[0], sizeof(sbuf));
+
 		}
 	}
 
@@ -225,7 +273,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			err(1, "could not allocate memory");
 		}
 
-		warnx("sending FrSky SmartPort telemetry");
+		PX4_INFO("sending FrSky SmartPort telemetry");
 
 		struct sensor_baro_s *sensor_baro = malloc(sizeof(struct sensor_baro_s));
 
@@ -434,7 +482,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			}
 		}
 
-		warnx("freeing sPort memory");
+		PX4_DEBUG("freeing sPort memory");
 		sPort_deinit();
 		free(sensor_baro);
 
@@ -442,11 +490,11 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	} else if (frsky_state == DTYPE) {
 		/* detected D type telemetry: reconfigure UART */
-		warnx("sending FrSky D type telemetry");
+		PX4_INFO("sending FrSky D type telemetry");
 		int status = set_uart_speed(uart, &uart_config, B9600);
 
 		if (status < 0) {
-			warnx("error setting speed for %s, quitting", device_name);
+			PX4_DEBUG("error setting speed for %s, quitting", device_name);
 			/* Reset the UART flags to original state */
 			tcsetattr(uart, TCSANOW, &uart_config_original);
 			close(uart);
@@ -463,8 +511,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		}
 
 		struct adc_linkquality host_frame;
-
-//		uint8_t dbuf[45];
 
 		/* send D8 mode telemetry */
 		while (!thread_should_exit) {
@@ -506,7 +552,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 //		/* TODO: flush the input buffer if in full duplex mode */
 //		read(uart, &sbuf[0], sizeof(sbuf));
-		warnx("freeing frsky memory");
+		PX4_DEBUG("freeing frsky memory");
 		frsky_deinit();
 
 	}
@@ -573,8 +619,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			switch (frsky_state) {
-			case IDLE:
-				errx(0, "running: IDLE");
+			case SCANNING:
+				errx(0, "running: SCANNING");
 				break;
 
 			case SPORT:

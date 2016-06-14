@@ -166,6 +166,15 @@ function(px4_os_add_flags)
                 mavlink/include/mavlink
                 )
 
+# Use the pthread instead of lpthread if the firmware is build for the parrot
+# bebop. This resolves some linker errors in DriverFramework, when building a 
+# static target.
+if ("${BOARD}" STREQUAL "bebop")
+  set(PX4_PTHREAD_BUILD "-pthread")
+else()
+  set(PX4_PTHREAD_BUILD "-lpthread")
+endif()
+
 if(UNIX AND APPLE)
         set(added_definitions
 		-D__PX4_POSIX
@@ -177,7 +186,7 @@ if(UNIX AND APPLE)
                 )
 
         set(added_exe_linker_flags
-		-lpthread
+          ${PX4_PTHREAD_BUILD}
 		)
 
 else()
@@ -192,7 +201,7 @@ else()
                 )
 
         set(added_exe_linker_flags
-		-lpthread -lrt
+		      ${PX4_PTHREAD_BUILD} -lrt
 		)
 
 endif()
