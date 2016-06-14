@@ -370,7 +370,7 @@ CONFIG_EXAMPLES_NSH=y
 #
 # CONFIG_APPS_DIR - Identifies the relative path to the directory
 #   that builds the application to link with NuttX.  Default: ../apps
-# CONFIG_DEBUG - enables built-in debug options
+# CONFIG_DEBUG_FEATURES - enables built-in debug options
 # CONFIG_DEBUG_VERBOSE - enables verbose debug output
 # CONFIG_DEBUG_SYMBOLS - build without optimization and with
 #   debug symbols (needed for use with a debugger).
@@ -466,7 +466,7 @@ CONFIG_ARCH_HAVE_STACKCHECK=y
 CONFIG_STACK_COLORATION=y
 CONFIG_ARCH_HAVE_HEAPCHECK=y
 CONFIG_MSEC_PWER_TICK=1
-CONFIG_DEBUG=n
+CONFIG_DEBUG_FEATURES=n
 CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=y
 CONFIG_HAVE_CXX=y

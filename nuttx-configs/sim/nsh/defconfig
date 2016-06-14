@@ -38,7 +38,7 @@ CONFIG_HOST_LINUX=y
 #
 # Debug Options
 #
-# CONFIG_DEBUG is not set
+# CONFIG_DEBUG_FEATURES is not set
 CONFIG_DEBUG_SYMBOLS=y
 
 #
