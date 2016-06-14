@@ -44,83 +44,74 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
-#include <px4_time.h>
-#include <px4_tasks.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <systemlib/err.h>
-#include <systemlib/circuit_breaker.h>
-#include <systemlib/mavlink_log.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <math.h>
-#include <poll.h>
-#include <float.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/subsystem_info.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/safety.h>
-#include <uORB/topics/system_power.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
-#include <uORB/topics/geofence_result.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/input_rc.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/cpuload.h>
-
-#include <drivers/drv_led.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_tone_alarm.h>
-
-#include <systemlib/param/param.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/err.h>
-#include <systemlib/rc_check.h>
-#include <geo/geo.h>
-#include <systemlib/state_table.h>
-#include <dataman/dataman.h>
-#include <navigator/navigation.h>
-
-#include "px4_custom_mode.h"
-#include "commander_helper.h"
-#include "state_machine_helper.h"
-#include "calibration_routines.h"
+/* commander module headers */
 #include "accelerometer_calibration.h"
+#include "airspeed_calibration.h"
+#include "baro_calibration.h"
+#include "calibration_routines.h"
+#include "commander_helper.h"
+#include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
-#include "baro_calibration.h"
-#include "rc_calibration.h"
-#include "airspeed_calibration.h"
-#include "esc_calibration.h"
 #include "PreflightCheck.h"
+#include "px4_custom_mode.h"
+#include "rc_calibration.h"
+#include "state_machine_helper.h"
+
+/* PX4 headers */
+#include <dataman/dataman.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
+#include <drivers/drv_tone_alarm.h>
+#include <geo/geo.h>
+#include <navigator/navigation.h>
+#include <px4_config.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <systemlib/circuit_breaker.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <systemlib/param/param.h>
+#include <systemlib/rc_check.h>
+#include <systemlib/state_table.h>
+#include <systemlib/systemlib.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/cpuload.h>
+#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/geofence_result.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/input_rc.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/safety.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/system_power.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
+#include <v2.0/common/mavlink.h>
+
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
@@ -269,9 +260,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 /**
  * check whether autostart ID is in the reserved range for HIL setups
  */
-bool is_hil_setup(int id);
-
-bool is_hil_setup(int id) {
+static bool is_hil_setup(int id) {
 	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
 }
 
