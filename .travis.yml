@@ -61,7 +61,7 @@ after_success:
   - mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch/
 # only deploy GCC 4.8 builds on master/beta/stable
   - if [[ "$GCC_VER" == "4.8" && ( "$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == "beta" || "$TRAVIS_BRANCH" == "stable" ) ]]; then
-      export PX4_S3_DEPLOY=1
+      export PX4_S3_DEPLOY=1;
     fi
 
 deploy:
