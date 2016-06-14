@@ -60,7 +60,6 @@
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
-//#include <debug.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <math.h>
@@ -123,12 +122,6 @@
 #include "esc_calibration.h"
 #include "PreflightCheck.h"
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
 /* Decouple update interval and hysteresis counters, all depends on intervals */
@@ -153,19 +146,6 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
-
-enum MAV_MODE_FLAG {
-	MAV_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
-	MAV_MODE_FLAG_TEST_ENABLED = 2, /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
-	MAV_MODE_FLAG_AUTO_ENABLED = 4, /* 0b00000100 autonomous mode enabled, system finds its own goal positions. Guided flag can be set or not, depends on the actual implementation. | */
-	MAV_MODE_FLAG_GUIDED_ENABLED = 8, /* 0b00001000 guided mode enabled, system flies MISSIONs / mission items. | */
-	MAV_MODE_FLAG_STABILIZE_ENABLED = 16, /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
-	MAV_MODE_FLAG_HIL_ENABLED = 32, /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
-	MAV_MODE_FLAG_MANUAL_INPUT_ENABLED = 64, /* 0b01000000 remote control input is enabled. | */
-	MAV_MODE_FLAG_SAFETY_ARMED = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
-	MAV_MODE_FLAG_ENUM_END = 129, /*  | */
-};
-
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = 0;
@@ -267,9 +247,6 @@ void print_reject_mode(struct vehicle_status_s *current_status, const char *msg)
 void print_reject_arm(const char *msg);
 
 void print_status();
-
-transition_result_t check_navigation_state_machine(struct vehicle_status_s *status,
-		struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
@@ -745,7 +722,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state);
 							break;
-						case PX4_CUSTOM_SUB_MODE_FOLLOW_TARGET:
+						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET, main_state_prev, &status_flags, &internal_state);
 							break;
 
@@ -1208,15 +1185,6 @@ int commander_thread_main(int argc, char *argv[])
 	// main_states_str[commander_state_s::MAIN_STATE_ACRO]			= "ACRO";
 	// main_states_str[commander_state_s::MAIN_STATE_STAB]			= "STAB";
 	// main_states_str[commander_state_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
-
-	// const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
-	// arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY]			= "STANDBY";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_ARMED]			= "ARMED";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_ARMED_ERROR]		= "ARMED_ERROR";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY_ERROR]		= "STANDBY_ERROR";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_REBOOT]			= "REBOOT";
-	// arming_states_str[vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
 
 	// const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
