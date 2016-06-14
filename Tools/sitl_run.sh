@@ -64,10 +64,7 @@ SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
-	cd $src_path/Tools/jMAVSim
-	ant create_run_jar copy_res
-	cd out/production
-	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
+	./Tools/jmavsim_run.sh &
 	SIM_PID=`echo $!`
 	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
@@ -135,6 +132,7 @@ fi
 
 if [ "$program" == "jmavsim" ]
 then
+	pkill -9 -P $SIM_PID
 	kill -9 $SIM_PID
 elif [ "$program" == "gazebo" ]
 then
