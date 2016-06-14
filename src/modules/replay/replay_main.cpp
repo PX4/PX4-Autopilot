@@ -316,7 +316,7 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 				timestamp_found = true;
 
 				if (type_name_full != "uint64_t") {
-					PX4_ERR("Unsupported timestamp type %s, ignoring the topic %s", type_name_full,
+					PX4_ERR("Unsupported timestamp type %s, ignoring the topic %s", type_name_full.c_str(),
 						orb_meta->o_name);
 					return true;
 				}
