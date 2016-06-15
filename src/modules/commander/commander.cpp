@@ -2167,7 +2167,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (!map_projection_global_initialized()
 		    && (gps_position.eph < eph_threshold)
 		    && (gps_position.epv < epv_threshold)
-		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp_position) < 1e6) {
+		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
 			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
 						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
@@ -2189,7 +2189,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
 				/* handle the case where gps was regained */
 				if (status_flags.gps_failure && !gpsIsNoisy) {
 					status_flags.gps_failure = false;

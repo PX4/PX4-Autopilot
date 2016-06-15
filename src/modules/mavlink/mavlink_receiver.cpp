@@ -1784,7 +1784,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.timestamp_time = timestamp;
 	hil_gps.time_utc_usec = gps.time_usec;
 
-	hil_gps.timestamp_position = timestamp;
+	hil_gps.timestamp = timestamp;
 	hil_gps.lat = gps.lat;
 	hil_gps.lon = gps.lon;
 	hil_gps.alt = gps.alt;

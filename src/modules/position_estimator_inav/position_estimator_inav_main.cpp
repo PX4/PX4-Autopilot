@@ -944,7 +944,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on GPS topic */
-		if (gps_valid && (t > (gps.timestamp_position + gps_topic_timeout))) {
+		if (gps_valid && (t > (gps.timestamp + gps_topic_timeout))) {
 			gps_valid = false;
 			warnx("GPS timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] GPS timeout");

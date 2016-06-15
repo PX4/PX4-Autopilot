@@ -687,7 +687,7 @@ GPS::task_main()
 	while (!_task_should_exit) {
 
 		if (_fake_gps) {
-			_report_gps_pos.timestamp_position = hrt_absolute_time();
+			_report_gps_pos.timestamp = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;
@@ -757,7 +757,7 @@ GPS::task_main()
 					_report_gps_pos.timestamp_time = hrt_absolute_time();
 
 					/* reset the timestamps for data, because we have no data yet */
-					_report_gps_pos.timestamp_position = 0;
+					_report_gps_pos.timestamp = 0;
 					_report_gps_pos.timestamp_variance = 0;
 					_report_gps_pos.timestamp_velocity = 0;
 
@@ -960,9 +960,9 @@ GPS::print_info()
 		 _report_gps_pos.noise_per_ms,
 		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
-	if (_report_gps_pos.timestamp_position != 0) {
+	if (_report_gps_pos.timestamp != 0) {
 		PX4_WARN("position lock: %d, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
+			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp) / 1000.0);
 		PX4_WARN("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		PX4_WARN("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
 			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);

@@ -517,7 +517,7 @@ void Ekf2::task_main()
 		// read gps data if available
 		if (gps_updated) {
 			struct gps_message gps_msg = {};
-			gps_msg.time_usec = gps.timestamp_position;
+			gps_msg.time_usec = gps.timestamp;
 			gps_msg.lat = gps.lat;
 			gps_msg.lon = gps.lon;
 			gps_msg.alt = gps.alt;
@@ -535,7 +535,7 @@ void Ekf2::task_main()
 			//TODO add gdop to gps topic
 			gps_msg.gdop = 0.0f;
 
-			_ekf.setGpsData(gps.timestamp_position, &gps_msg);
+			_ekf.setGpsData(gps.timestamp, &gps_msg);
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
@@ -909,7 +909,7 @@ void Ekf2::task_main()
 
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
-				replay.time_usec = gps.timestamp_position;
+				replay.time_usec = gps.timestamp;
 				replay.time_usec_vel = gps.timestamp_velocity;
 				replay.lat = gps.lat;
 				replay.lon = gps.lon;
