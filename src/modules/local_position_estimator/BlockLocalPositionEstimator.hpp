@@ -318,6 +318,7 @@ private:
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
 	uint64_t _time_last_sonar;
+	uint64_t _time_init_sonar;
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
 

@@ -113,6 +113,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_gps(0),
 	_time_last_lidar(0),
 	_time_last_sonar(0),
+	_time_init_sonar(0),
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
 
