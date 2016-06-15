@@ -525,7 +525,7 @@ void Ekf2::task_main()
 			gps_msg.eph = gps.eph;
 			gps_msg.epv = gps.epv;
 			gps_msg.sacc = gps.s_variance_m_s;
-			gps_msg.time_usec_vel = gps.timestamp_velocity;
+			gps_msg.time_usec_vel = gps.timestamp;
 			gps_msg.vel_m_s = gps.vel_m_s;
 			gps_msg.vel_ned[0] = gps.vel_n_m_s;
 			gps_msg.vel_ned[1] = gps.vel_e_m_s;
@@ -910,7 +910,7 @@ void Ekf2::task_main()
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
 				replay.time_usec = gps.timestamp;
-				replay.time_usec_vel = gps.timestamp_velocity;
+				replay.time_usec_vel = gps.timestamp;
 				replay.lat = gps.lat;
 				replay.lon = gps.lon;
 				replay.alt = gps.alt;

@@ -109,8 +109,6 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.lon = msg.longitude_deg_1e8 / 10;
 	report.alt = msg.height_msl_mm;
 
-	report.timestamp_variance = report.timestamp;
-
 
 	// Check if the msg contains valid covariance information
 	const bool valid_position_covariance = !msg.position_covariance.empty();
@@ -163,7 +161,6 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	report.fix_type = msg.status;
 
-	report.timestamp_velocity = report.timestamp;
 	report.vel_n_m_s = msg.ned_velocity[0];
 	report.vel_e_m_s = msg.ned_velocity[1];
 	report.vel_d_m_s = msg.ned_velocity[2];
