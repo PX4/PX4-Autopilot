@@ -441,6 +441,29 @@ int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "transition")) {
+
+		vehicle_command_s cmd = {};
+		cmd.target_system = status.system_id;
+		cmd.target_component = status.component_id;
+
+		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		/* transition to the other mode */
+		cmd.param1 = (status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		/* param 2-3 unused */
+		cmd.param2 = NAN;
+		cmd.param3 = NAN;
+		cmd.param4 = NAN;
+		cmd.param5 = NAN;
+		cmd.param6 = NAN;
+		cmd.param7 = NAN;
+
+		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		(void)orb_unadvertise(h);
+
+		return 0;
+	}
+
 	if (!strcmp(argv[1], "mode")) {
 		if (argc > 2) {
 			uint8_t new_main_state = commander_state_s::MAIN_STATE_MAX;
@@ -513,7 +536,7 @@ void usage(const char *reason)
 		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|mode}\n");
+	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
 }
 
 void print_status()
