@@ -443,7 +443,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		// Set up height correctly
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-		initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
+		initReferencePosition(_gps.timestamp, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -816,7 +816,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	_ekf->InitialiseFilter(initVelNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
-	initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
+	initReferencePosition(_gps.timestamp, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 #if 0
 	PX4_INFO("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
@@ -1055,7 +1055,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	if (!_local_pos.xy_global ||
 	    !_local_pos.v_xy_valid ||
-	    _gps.timestamp_position == 0 ||
+	    _gps.timestamp == 0 ||
 	    (dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
 
 		_global_pos.eph = EPH_LARGE_VALUE;
@@ -1571,7 +1571,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		if (_gpsIsGood) {
 
 			//Calculate time since last good GPS fix
-			const float dtLastGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+			const float dtLastGoodGPS = static_cast<float>(_gps.timestamp - _previousGPSTimestamp) / 1e6f;
 
 			//Stop dead-reckoning mode
 			if (_global_pos.dead_reckoning) {
@@ -1630,7 +1630,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 			// PX4_INFO("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
 
-			_previousGPSTimestamp = _gps.timestamp_position;
+			_previousGPSTimestamp = _gps.timestamp;
 
 		}
 	}
