@@ -2783,6 +2783,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 #endif
 		break;
 
+	case GPIO_SET_HEATER_DUTY_CYCLE:
+		/* set heater duty cycle as a percentage */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_HEATER_DUTY_CYCLE, arg);
+		break;
+
 	case MIXERIOCGETOUTPUTCOUNT:
 		*(unsigned *)arg = _max_actuators;
 		break;

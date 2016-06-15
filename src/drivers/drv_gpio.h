@@ -200,4 +200,7 @@
 /** configure the board GPIOs in (arg) as outputs, initially high */
 #define GPIO_SET_OUTPUT_HIGH	GPIOC(16)
 
+/** set the duty cycle as an integer percentage on the IMU heater pin if available */
+#define GPIO_SET_HEATER_DUTY_CYCLE	GPIOC(17)
+
 #endif /* _DRV_GPIO_H */
