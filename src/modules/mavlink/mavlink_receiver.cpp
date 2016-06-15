@@ -150,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 
 MavlinkReceiver::~MavlinkReceiver()
 {
+	orb_unsubscribe(_control_mode_sub);
 }
 
 void
@@ -2078,7 +2079,7 @@ MavlinkReceiver::receive_thread(void *arg)
 					srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
 					srcaddr_last->sin_port = srcaddr.sin_port;
 					_mavlink->set_client_source_initialized();
-					warnx("changing partner IP to: %s", inet_ntoa(srcaddr.sin_addr));
+					PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
 				}
 			}
 

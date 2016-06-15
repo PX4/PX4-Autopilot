@@ -223,8 +223,8 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests package_firmware clean submodulesclean distclean
+.PHONY: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 
 gazebo_build:
 	@mkdir -p build_gazebo
@@ -287,14 +287,19 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 unittest: posix_sitl_test
-	@export CC=clang
-	@export CXX=clang++
-	@export ASAN_OPTIONS=symbolize=1
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 	
 test_onboard_sitl:
 	@HEADLESS=1 make posix_sitl_test gazebo_iris
+
+
+# QGroundControl flashable firmware
+qgc_firmware: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_mindpx-v2_default \
+	check_px4fmu-v4_default_and_uavcan
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
@@ -304,18 +309,18 @@ clean:
 	@(cd NuttX/nuttx && make clean)
 
 submodulesclean:
-	@git submodule sync
+	@git submodule sync --recursive
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean
-	@git clean -ff -x -d
+	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
 	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
-	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

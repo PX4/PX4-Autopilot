@@ -56,17 +56,17 @@ int qshell_entry(int argc, char **argv)
 {
 	//px4::init(argc, argv, "qshell");
 
-	PX4_INFO("qshell entry.....");
+	PX4_DEBUG("qshell entry.....");
 	QShell qshell;
 	qshell.main();
 
-	PX4_INFO("goodbye");
+	PX4_DEBUG("goodbye");
 	return 0;
 }
 
 static void usage()
 {
-	PX4_DEBUG("usage: qshell {start|stop|status}");
+	PX4_INFO("usage: qshell {start|stop|status}");
 }
 int qshell_main(int argc, char *argv[])
 {
@@ -78,12 +78,12 @@ int qshell_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (QShell::appState.isRunning()) {
-			PX4_DEBUG("already running");
+			PX4_INFO("already running");
 			/* this is not an error */
 			return 0;
 		}
 
-		PX4_INFO("before starting the qshell_entry task");
+		PX4_DEBUG("before starting the qshell_entry task");
 
 		daemon_task = px4_task_spawn_cmd("qshell",
 						 SCHED_DEFAULT,
@@ -102,10 +102,10 @@ int qshell_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (QShell::appState.isRunning()) {
-			PX4_DEBUG("is running");
+			PX4_INFO("is running");
 
 		} else {
-			PX4_DEBUG("not started");
+			PX4_INFO("not started");
 		}
 
 		return 0;

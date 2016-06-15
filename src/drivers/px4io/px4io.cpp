@@ -894,7 +894,7 @@ PX4IO::init()
 	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
-		DEVICE_LOG("default PWM output device");
+		PX4_INFO("default PWM output device");
 		_primary_pwm_device = true;
 	}
 

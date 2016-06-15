@@ -122,16 +122,21 @@ MavlinkMissionManager::init_offboard_mission()
 	mission_s mission_state;
 	if (!_dataman_init) {
 		_dataman_init = true;
-		if (dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) == sizeof(mission_s)) {
+		int ret = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) == sizeof(mission_s);
+		if (ret > 0) {
 			_dataman_id = mission_state.dataman_id;
 			_count = mission_state.count;
 			_current_seq = mission_state.current_seq;
 
-		} else {
+		} else if (ret == 0) {
 			_dataman_id = 0;
 			_count = 0;
 			_current_seq = 0;
-			warnx("offboard mission init failed");
+		} else {
+			PX4_WARN("offboard mission init failed");
+			_dataman_id = 0;
+			_count = 0;
+			_current_seq = 0;
 		}
 	}
 	_my_dataman_id = _dataman_id;
@@ -579,7 +584,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
-			
+
 			if(_transfer_in_progress)
 			{
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
@@ -788,7 +793,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[5] = mavlink_mission_item->y;
 		mission_item->params[6] = mavlink_mission_item->z;
 		break;
-			
+
 	default:
 		return MAV_MISSION_UNSUPPORTED_FRAME;
 	}

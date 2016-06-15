@@ -75,7 +75,7 @@ usage(const char *reason)
 
 	errx(1,
 	     "usage:\n"
-	     "pwm arm|disarm|rate|failsafe|disarmed|min|max|test|info  ...\n"
+	     "pwm arm|disarm|rate|failsafe|disarmed|min|max|test|steps|info  ...\n"
 	     "\n"
 	     "arm\t\t\t\tArm output\n"
 	     "disarm\t\t\t\tDisarm output\n"
@@ -100,6 +100,9 @@ usage(const char *reason)
 	     "\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 	     "\t[-a]\t\t\tConfigure all outputs\n"
 	     "\t-p <pwm value>\t\tPWM value\n"
+	     "\n"
+	     "steps ...\t\t\tRun 5 steps\n"
+	     "\t[-c <channels>]\t\t(e.g. 1234)\n"
 	     "\n"
 	     "info\t\t\t\tPrint information\n"
 	     "\n"
@@ -663,7 +666,7 @@ pwm_main(int argc, char *argv[])
 
 						} else if (phase == 1) {
 							/* ramp - depending how steep it is this ramp will look instantaneous on the output */
-							val = idle + (full - idle) * (phase_maxcount / (float)phase_counter);
+							val = idle + (full - idle) * ((float)phase_counter / phase_maxcount);
 
 						} else {
 							val = off;

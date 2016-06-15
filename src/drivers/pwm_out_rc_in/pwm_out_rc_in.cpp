@@ -168,7 +168,7 @@ int initialize_mixer(const char *mixer_filename)
 		}
 
 	} else {
-		PX4_WARN("Unable to open mixer config file, try default mixer");
+		PX4_WARN("No mixer config file found, using default mixer.");
 
 		/* Mixer file loading failed, fall back to default mixer configuration for
 		* QUAD_X airframe. */
@@ -186,7 +186,6 @@ int initialize_mixer(const char *mixer_filename)
 			return -1;
 		}
 
-		PX4_INFO("Successfully initialized default quad x mixer.");
 		return 0;
 	}
 }

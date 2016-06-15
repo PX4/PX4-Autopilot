@@ -90,8 +90,8 @@
 #include "mavlink_main.h"
 
 static uint16_t cm_uint16_from_m_float(float m);
-static void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
-				   uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
+								   uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 uint16_t
 cm_uint16_from_m_float(float m)
@@ -106,8 +106,8 @@ cm_uint16_from_m_float(float m)
 	return (uint16_t)(m * 100.0f);
 }
 
-void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
-			    uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
+void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
+							uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	*mavlink_state = 0;
 	*mavlink_base_mode = 0;
@@ -305,7 +305,6 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
-	MavlinkOrbSubscription *_pos_sp_triplet_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamHeartbeat(MavlinkStreamHeartbeat &);
@@ -313,14 +312,12 @@ private:
 
 protected:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
-		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
-		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
 		if (!_status_sub->update(&status)) {
@@ -328,15 +325,10 @@ protected:
 			memset(&status, 0, sizeof(status));
 		}
 
-		if (!_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
-			/* if topic update failed fill it with defaults */
-			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
-		}
-
 		uint8_t base_mode = 0;
 		uint32_t custom_mode = 0;
 		uint8_t system_status = 0;
-		get_mavlink_mode_state(&status, &pos_sp_triplet, &system_status, &base_mode, &custom_mode);
+		get_mavlink_mode_state(&status, &system_status, &base_mode, &custom_mode);
 
 		mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
 			base_mode, custom_mode, system_status);
@@ -1948,9 +1940,6 @@ private:
 	MavlinkOrbSubscription *_status_sub;
 	uint64_t _status_time;
 
-	MavlinkOrbSubscription *_pos_sp_triplet_sub;
-	uint64_t _pos_sp_triplet_time;
-
 	MavlinkOrbSubscription *_act_sub;
 	uint64_t _act_time;
 
@@ -1962,8 +1951,6 @@ protected:
 	explicit MavlinkStreamHILControls(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_status_time(0),
-		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
-		_pos_sp_triplet_time(0),
 		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs))),
 		_act_time(0)
 	{}
@@ -1971,11 +1958,9 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
-		struct position_setpoint_triplet_s pos_sp_triplet;
 		struct actuator_outputs_s act;
 
 		bool updated = _act_sub->update(&_act_time, &act);
-		updated |= _pos_sp_triplet_sub->update(&_pos_sp_triplet_time, &pos_sp_triplet);
 		updated |= _status_sub->update(&_status_time, &status);
 
 		if (updated && (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
@@ -1983,7 +1968,7 @@ protected:
 			uint8_t mavlink_state;
 			uint8_t mavlink_base_mode;
 			uint32_t mavlink_custom_mode;
-			get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+			get_mavlink_mode_state(&status, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			float out[8];
 

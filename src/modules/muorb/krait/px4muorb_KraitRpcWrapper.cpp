@@ -219,7 +219,7 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 
 	int diff = (time_dsp - time_appsproc);
 
-	PX4_INFO("time_dsp: %llu us, time appsproc: %llu us, diff: %d us", time_dsp, time_appsproc, diff);
+	PX4_DEBUG("time_dsp: %llu us, time appsproc: %llu us, diff: %d us", time_dsp, time_appsproc, diff);
 
 	_Initialized = true;
 	return rc;

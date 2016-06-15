@@ -80,6 +80,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -143,6 +144,7 @@ private:
 	int 	_ev_pos_sub = -1;
 	int	_actuator_armed_sub = -1;
 	int	_vehicle_land_detected_sub = -1;
+	int _status_sub = -1;
 
 	bool	_prev_landed = true;	// landed status from the previous frame
 
@@ -255,6 +257,10 @@ private:
 	control::BlockParamFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
 	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
 	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
+	// control of airspeed and sideslip fusion
+	control::BlockParamFloat
+	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
+	// the minimum airspeed which will still be fused
 
 	// output predictor filter time constants
 	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
@@ -355,6 +361,7 @@ Ekf2::Ekf2():
 	_ev_pos_x(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0)),
 	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
 	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
+	_arspFusionThreshold(this, "EKF2_ARSP_THR", false),
 	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
@@ -386,6 +393,7 @@ void Ekf2::task_main()
 	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
 	_ev_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = _sensors_sub;
@@ -406,6 +414,7 @@ void Ekf2::task_main()
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
 	vision_position_estimate_s ev = {};
+	vehicle_status_s _vehicle_status = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -440,9 +449,17 @@ void Ekf2::task_main()
 		bool range_finder_updated = false;
 		bool vehicle_land_detected_updated = false;
 		bool vision_position_updated = false;
+		bool vehicle_status_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
+
+		orb_check(_status_sub, &vehicle_status_updated);
+
+		if (vehicle_status_updated) {
+			orb_copy(ORB_ID(vehicle_status), _status_sub, &_vehicle_status);
+		}
+
 		orb_check(_gps_sub, &gps_updated);
 
 		if (gps_updated) {
@@ -517,10 +534,12 @@ void Ekf2::task_main()
 			_ekf.setGpsData(gps.timestamp_position, &gps_msg);
 		}
 
-		// read airspeed data if available
-		float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+		// only set airspeed data if condition for airspeed fusion are met
+		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing
+				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s && _arspFusionThreshold.get() >= 0.1f;
 
-		if (airspeed_updated && airspeed.true_airspeed_m_s > 7.0f) {
+		if (fuse_airspeed) {
+			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
@@ -553,18 +572,23 @@ void Ekf2::task_main()
 			ev_data.posNED(2) = ev.z;
 			Quaternion q(ev.q);
 			ev_data.quat = q;
+
 			// position measurement error
 			if (ev.pos_err >= 0.001f) {
 				ev_data.posErr = ev.pos_err;
+
 			} else {
 				ev_data.posErr = _default_ev_pos_noise;
 			}
+
 			// angle measurement error
 			if (ev.ang_err >= 0.001f) {
 				ev_data.angErr = ev.ang_err;
+
 			} else {
 				ev_data.angErr = _default_ev_ang_noise;
 			}
+
 			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
 			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
 		}
@@ -845,6 +869,7 @@ void Ekf2::task_main()
 			_ekf.copy_mag_decl_deg(&decl_deg);
 			_mag_declination_deg.set(decl_deg);
 		}
+
 		_prev_landed = vehicle_land_detected.landed;
 
 		// publish replay message if in replay mode
@@ -911,9 +936,6 @@ void Ekf2::task_main()
 				replay.asp_timestamp = airspeed.timestamp;
 				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
 				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
-				replay.true_airspeed_unfiltered_m_s = airspeed.true_airspeed_unfiltered_m_s;
-				replay.air_temperature_celsius = airspeed.air_temperature_celsius;
-				replay.confidence = airspeed.confidence;
 
 			} else {
 				replay.asp_timestamp = 0;
