@@ -218,3 +218,24 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	/* nothing more in the buffer for us now */
 	return ret;
 }
+
+
+
+int MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen){
+    Mixer*  pmixer = _first;
+    signed   mix_count = 0;
+
+    while(pmixer != NULL){
+        if(mix_count == index){
+            if(pmixer->get_mixer_id(buf, buflen) > 0)
+                return 0;
+            else{
+                strcpy(buf, "NONAME");
+                return 0;
+            }
+        }
+        pmixer=pmixer->_next;
+        mix_count++;
+    }
+    return -1;
+}

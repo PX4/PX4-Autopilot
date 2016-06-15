@@ -60,6 +60,7 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname);
+static int  mixer_list(const char *devname);
 
 int
 mixer_main(int argc, char *argv[])
@@ -69,20 +70,33 @@ mixer_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "load")) {
-		if (argc < 4) {
-			usage("missing device or filename");
-			return 1;
-		}
+    if (!strcmp(argv[1], "load")) {
+        if (argc < 4) {
+            usage("missing device or filename");
+            return 1;
+        }
 
-		int ret = load(argv[2], argv[3]);
+        int ret = load(argv[2], argv[3]);
 
-		if (ret != 0) {
-			warnx("failed to load mixer");
-			return 1;
-		}
+        if (ret != 0) {
+            warnx("failed to load mixer");
+            return 1;
+        }
 
-	} else {
+    } else 	if (!strcmp(argv[1], "list")) {
+        if (argc < 3) {
+            usage("missing device");
+            return 1;
+        }
+
+        int ret = mixer_list(argv[2]);
+
+        if (ret != 0) {
+            warnx("failed to list mixers");
+            return 1;
+        }
+
+    } else {
 		usage("Unknown command");
 		return 1;
 	}
@@ -98,7 +112,10 @@ usage(const char *reason)
 	}
 
 	PX4_INFO("usage:");
-	PX4_INFO("  mixer load <device> <filename>");
+    PX4_INFO("  mixer load <device> <filename>");
+    PX4_INFO("  mixer list <device>");
+//    PX4_INFO("  mixer getparam <mixer_id> <param_id>");
+//    PX4_INFO("  mixer setparam <mixer_id> <param_id> <value>");
 }
 
 static int
@@ -137,4 +154,49 @@ load(const char *devname, const char *fname)
 	}
 
 	return 0;
+}
+
+
+static int
+mixer_list(const char *devname)
+{
+    int dev;
+
+    /* open the device */
+    if ((dev = px4_open(devname, 0)) < 0) {
+        warnx("can't open %s\n", devname);
+        return 1;
+    }
+
+    unsigned mix_count;
+
+    mixer_id_e id;
+
+    /* Get the mixer count */
+    int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+
+    if (ret < 0) {
+        warnx("can't get mixer count for:%s", devname);
+        return 1;
+    }
+
+    PX4_INFO("List of mixers:");
+
+    printf("Mixer count : %u \n", mix_count);
+
+    for(int index=0; index < mix_count; index++){
+        printf("mixer index %u : ", index);
+        id.index = index;
+        /* Get the mixer name at index*/
+        ret = px4_ioctl(dev, MIXERIONAME, (unsigned long)&id);
+        printf(id.id);
+        printf("\n");
+    }
+
+    if (ret < 0) {
+        warnx("can't get mixer id for:%s", devname);
+        return 1;
+    }
+
+    return 0;
 }

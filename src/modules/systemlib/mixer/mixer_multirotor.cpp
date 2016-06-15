@@ -346,7 +346,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 			} else {
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
+                           roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
 			}
 
 			if (status_reg != NULL) {
@@ -375,3 +375,9 @@ MultirotorMixer::groups_required(uint32_t &groups)
 	groups |= (1 << 0);
 }
 
+signed
+MultirotorMixer::get_mixer_id(char* buff, unsigned maxlen) {
+    if(maxlen < 16) return -1;
+    strcpy(buff, "MULTI");
+    return 5;
+}

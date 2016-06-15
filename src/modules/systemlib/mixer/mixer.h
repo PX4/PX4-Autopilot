@@ -185,6 +185,16 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+
+    /**
+     * Get mixer name
+     *
+     * @param buff          char buffer in which name will be copied.
+     * @param maxlen		Maximum length of the name
+     * @return              name length if sucessful, -1 if failed or unsupported
+     */
+    virtual signed          get_mixer_id(char* buff, unsigned maxlen) {return -1;}
+
     /**
      * Get list of Mixer parameters
      *
@@ -413,6 +423,16 @@ public:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
+    /**
+     * Get a the identifier name of a mixer
+     *
+     * @param index     index of the mixer to get the id from
+     * @param buf       buffer to put mixer names in
+     * @param buflen    buffer length available
+     * @return			Zero on success, nonzero otherwise.
+     */
+    int                 mixer_id(unsigned index, char *buf, const unsigned buflen);
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
     MixerRegisters      *_intermediates; /**< reference to mixer containing intermediate registers if used */
@@ -562,6 +582,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+    signed                  get_mixer_id(char* buff, unsigned maxlen);
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -666,6 +687,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+    signed                  get_mixer_id(char* buff, unsigned maxlen);
 
 private:
 	float				_roll_scale;

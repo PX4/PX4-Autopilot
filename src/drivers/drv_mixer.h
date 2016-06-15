@@ -96,6 +96,16 @@ struct mixer_simple_s {
 
 #define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
 
+
+/** 3 point mix */
+struct mixer_3pt_s {
+    uint8_t			control_group;	/**< group from which the input reads */
+    uint8_t			control_index;	/**< index within the control group */
+    float   _input[3];
+    float   _output[3];
+};
+
+
 /**
  * add a simple mixer in (struct mixer_simple_s *)arg
  */
@@ -115,5 +125,18 @@ struct mixer_simple_s {
  * - get/set output scale, for tuning center/limit values.
  * - save/serialise for saving tuned mixers.
  */
+
+union mixer_id_e {
+    unsigned index;
+    char     id[32];
+};
+
+#define   MIXERIONAME                   _MIXERIOC(10)
+
+#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
+//#define MIXERIOGETPARAM		_MIXERIOC(11)
+//#define MIXERIOSETPARAM		_MIXERIOC(12)
+//#define MIXERIOCGETINPUTCOUNT	_MIXERIOC(13)
+//#define MIXERIOCGETMIXERPARAMBYID _MIXERIOC(14)
 
 #endif /* _DRV_ACCEL_H */
