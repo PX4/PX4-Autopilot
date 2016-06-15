@@ -126,7 +126,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
  * @max 3
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.0f);
+PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
 
 /**
  * Enables GPS data, also forces alt init with GPS
@@ -264,7 +264,7 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
  * @max 1
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_PN_P, 0.0f);
 
 /**
  * Velocity propagation noise density
@@ -275,7 +275,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
  * @max 1
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_PN_V, 0.0f);
 
 /**
  * Accel bias propagation noise density
@@ -289,7 +289,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
 
 /**
- * Terrain random walk noise density
+ * Terrain random walk noise density, hilly/outdoor (1e-1), flat/Indoor (1e-3)
  *
  * @group Local Position Estimator
  * @unit m/s/sqrt(Hz)
@@ -297,7 +297,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
  * @max 1
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_PN_T, 1e-3f);
+PARAM_DEFINE_FLOAT(LPE_PN_T, 1e-1f);
 
 /**
  * Flow gyro high pass filter cut off frequency
