@@ -1376,8 +1376,28 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 		LL_FOREACH(_mavlink->get_streams(), stream) {
 			if (req.req_stream_id == stream->get_id()) {
 				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
+                // if the command here was to unsubscribe then the stream will be deleted
+                // in which case we cannot continue this LL_FOREACH loop.  We have to return.
+                // Besides there shouldn't be more than one stream with the same id, right?
+				return;
 			}
 		}
+
+        // If we get here then the stream may have been deleted, in which case we need to recreate it.
+        // todo: we could simplify this code by adding a get_id_static (get_name_static) so that
+		// we could do both subscribe and unsubscribe using the streams_list.
+        for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+            MavlinkStream *new_instance = streams_list[i]->new_instance(_mavlink);
+            bool found = false;
+            if (req.req_stream_id == new_instance->get_id()) {
+                _mavlink->configure_stream_threadsafe(new_instance->get_name(), rate);
+                found = true;
+            }
+            delete new_instance;
+            if (found) {
+                break;
+            }
+        }
 	}
 }
 
