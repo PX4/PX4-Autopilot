@@ -414,7 +414,10 @@ PWMSim::task_main()
 			_current_update_rate = _update_rate;
 		}
 
+		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
+			usleep(1000 * 1000);
+
 			PX4_DEBUG("no valid fds");
 			continue;
 		}
