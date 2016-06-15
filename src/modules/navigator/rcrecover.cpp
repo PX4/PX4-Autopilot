@@ -39,7 +39,7 @@ RCRecover::~RCRecover()
 
 void RCRecover::on_inactive()
 {
-	_navigator->get_tracker().set_recent_path_enabled(true);
+	_navigator->get_tracker().set_recent_path_tracking_enabled(true);
 	
 	// reset RCRecover state only if setpoint moved (why?)
 	if (!_navigator->get_can_loiter_at_sp())
@@ -48,7 +48,7 @@ void RCRecover::on_inactive()
 
 void RCRecover::on_activation()
 {
-	_navigator->get_tracker().set_recent_path_enabled(false);
+	_navigator->get_tracker().set_recent_path_tracking_enabled(false);
 	
 	/* reset starting point so we override what the triplet contained from the previous navigation state */
 	_start_lock = false;

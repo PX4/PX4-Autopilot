@@ -712,6 +712,7 @@ Navigator::status()
 	}
 	
 	_tracker.dump_recent_path();
+	_tracker.dump_full_path();
 }
 
 void
