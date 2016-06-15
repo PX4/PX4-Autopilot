@@ -243,6 +243,11 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_SBUS_RATE			19	/* frame rate of SBUS1 output in Hz */
 #define PX4IO_P_SETUP_IGNORE_SAFETY		20	/* bitmask of surfaces to ignore the safety status */
 
+#define PX4IO_HEATER_DISABLE			65535
+#define PX4IO_HEATER_MIN			0
+#define PX4IO_HEATER_MAX			100
+#define PX4IO_P_SETUP_HEATER_DUTY_CYCLE		21	/**< control the heater pin, setting duty cycle */
+
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
 #define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */

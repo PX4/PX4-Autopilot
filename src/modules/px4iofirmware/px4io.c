@@ -229,6 +229,44 @@ calculate_fw_crc(void)
 	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
+
+/*
+  control the IMU heater. On the Pixhawk2 this uses the same pin as the blue LED on Pixhawk2
+ */
+static void
+control_IMU_heater(uint16_t duty_cycle)
+{
+	if (duty_cycle == 0) {
+		LED_BLUE(false);
+	} else {
+		uint8_t cycle = ((hrt_absolute_time() / 10000UL) % 100U);
+		LED_BLUE(!(cycle >= duty_cycle));
+	}
+}
+
+
+/*
+  blink blue LED at 4Hz in normal operation. When in
+  override blink 4x faster so the user can clearly see
+  that override is happening. This helps when
+  pre-flight testing the override system
+*/
+static void
+control_heartbeat_LED(void)
+{
+	uint32_t heartbeat_period_us = 250 * 1000UL;
+	static uint64_t last_heartbeat_time = 0;
+	
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+		heartbeat_period_us /= 4;
+	}
+	
+	if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+		last_heartbeat_time = hrt_absolute_time();
+		heartbeat_blink();
+	}
+}
+
 int
 user_start(int argc, char *argv[])
 {
@@ -346,7 +384,6 @@ user_start(int argc, char *argv[])
 	 */
 
 	uint64_t last_debug_time = 0;
-	uint64_t last_heartbeat_time = 0;
 
 	for (;;) {
 
@@ -371,23 +408,6 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-		/*
-		  blink blue LED at 4Hz in normal operation. When in
-		  override blink 4x faster so the user can clearly see
-		  that override is happening. This helps when
-		  pre-flight testing the override system
-		 */
-		uint32_t heartbeat_period_us = 250 * 1000UL;
-
-		if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
-			heartbeat_period_us /= 4;
-		}
-
-		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
-			last_heartbeat_time = hrt_absolute_time();
-			heartbeat_blink();
-		}
-
 		ring_blink();
 
 		check_reboot();
@@ -407,6 +427,12 @@ user_start(int argc, char *argv[])
 				  (unsigned)r_setup_features,
 				  (unsigned)mallinfo().mxordblk);
 			last_debug_time = hrt_absolute_time();
+		}
+
+		if (r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE] <= PX4IO_HEATER_MAX) {
+			control_IMU_heater(r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE]);
+		} else {
+			control_heartbeat_LED();
 		}
 	}
 }
