@@ -355,6 +355,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
+        } else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+            set_message_interval((int)cmd_mavlink.param1, cmd_mavlink.param2);
+
+        } else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+            get_message_interval((int)cmd_mavlink.param1);
+
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
@@ -1368,17 +1374,75 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 	mavlink_request_data_stream_t req;
 	mavlink_msg_request_data_stream_decode(msg, &req);
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid
-	    && req.req_message_rate != 0) {
-		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+    PX4_WARN("REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead");
 
-		MavlinkStream *stream;
-		LL_FOREACH(_mavlink->get_streams(), stream) {
-			if (req.req_stream_id == stream->get_id()) {
-				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
-			}
-		}
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid &&
+	        req.req_stream_id != 0)
+	{
+	    // compute interval in microseconds.
+        float interval = 0;
+	    int rate = req.req_message_rate;
+	    if (req.start_stop == 0 || rate == 0) {
+	        rate = -1;
+	    }
+	    else if (rate > 0) {
+	        interval = 1000000.0f / rate;
+	    }
+
+	    // todo: note it is kind of bogus to interpret the req_stream_id as a message id
+	    // but this is how it was.  MAVLINK defines separate MAV_DATA_STREAM ids which bundle
+	    // messages into groups, but that is all deprecated now anyway, and this code was
+	    // previously interpreting the req_stream_id as a message id, so we'll leave it that way.
+	    set_message_interval(req.req_stream_id, interval);
 	}
+}
+
+void
+MavlinkReceiver::set_message_interval(int msgId, float interval)
+{
+    // configure_stream wants a rate (msgs/second), so convert here.
+    float rate = 0;
+    if (interval < 0) {
+        // stop the stream.
+        rate = 0;
+    }
+    else if (interval > 0) {
+        rate = 1000000.0f / interval;
+    }
+    else {
+        // note: mavlink spec says rate == 0 is requesting a default rate but our streams
+        // don't publish a default rate so for now let's pick a default rate of zero.
+    }
+
+    // The interval between two messages is in microseconds.
+    // Set to -1 to disable and 0 to request default rate
+    if (msgId != 0)
+    {
+        for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+            const StreamListItem* item = streams_list[i];
+            if (msgId == item->get_id()) {
+                _mavlink->configure_stream_threadsafe(item->get_name(), rate);
+                break;
+            }
+        }
+    }
+}
+
+void
+MavlinkReceiver::get_message_interval(int msgId)
+{
+    unsigned interval = 0;
+
+    MavlinkStream *stream;
+    LL_FOREACH(_mavlink->get_streams(), stream) {
+        if (stream->get_id() == msgId) {
+            interval = stream->get_interval();
+            break;
+        }
+    }
+
+    // send back this value...
+    mavlink_msg_message_interval_send(_mavlink->get_channel(), msgId, interval);
 }
 
 void
