@@ -382,6 +382,49 @@ static inline NodePtr makeNode(const std::shared_ptr<uavcan::ICanDriver>& can_dr
 }
 
 /**
+ * This function extends the other two overloads in such a way that it instantiates and initializes
+ * the node immediately; if initialization fails, it throws.
+ *
+ * If NodeID is not provided, it will not be initialized, and therefore the node will be started in
+ * listen-only (i.e. silent) mode. The node can be switched to normal (i.e. non-silent) mode at any
+ * later time by calling setNodeID() explicitly. Read the Node class docs for more info.
+ *
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
+ *
+ * @throws uavcan_linux::Exception, uavcan_linux::LibuavcanErrorException.
+ */
+template <typename DriverType>
+static inline NodePtr makeNode(const DriverType& driver,
+                               const uavcan::NodeStatusProvider::NodeName& name,
+                               const uavcan::protocol::SoftwareVersion& software_version,
+                               const uavcan::protocol::HardwareVersion& hardware_version,
+                               const uavcan::NodeID node_id = uavcan::NodeID(),
+                               const uavcan::TransferPriority node_status_transfer_priority =
+                                   uavcan::TransferPriority::Default,
+                               ClockAdjustmentMode clock_adjustment_mode =
+                                   SystemClock::detectPreferredClockAdjustmentMode())
+{
+    NodePtr node = makeNode(driver, clock_adjustment_mode);
+
+    node->setName(name);
+    node->setSoftwareVersion(software_version);
+    node->setHardwareVersion(hardware_version);
+
+    if (node_id.isValid())
+    {
+        node->setNodeID(node_id);
+    }
+
+    const auto res = node->start(node_status_transfer_priority);
+    if (res < 0)
+    {
+        throw LibuavcanErrorException(res);
+    }
+
+    return node;
+}
+
+/**
  * Use this function to create a sub-node instance with default SocketCAN driver.
  * It accepts the list of interface names to use for the new node, e.g. "can1", "vcan2", "slcan0".
  * Clock adjustment mode will be detected automatically unless provided explicitly.
@@ -406,6 +449,25 @@ static inline SubNodePtr makeSubNode(const std::shared_ptr<uavcan::ICanDriver>& 
 {
     DriverPackPtr dp(new DriverPack(clock_adjustment_mode, can_driver));
     return SubNodePtr(new SubNode(dp));
+}
+
+/**
+ * This function extends the other two overloads in such a way that it instantiates the node
+ * and sets its Node ID immediately.
+ *
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
+ *
+ * @throws uavcan_linux::Exception, uavcan_linux::LibuavcanErrorException.
+ */
+template <typename DriverType>
+static inline SubNodePtr makeSubNode(const DriverType& driver,
+                                     const uavcan::NodeID node_id,
+                                     ClockAdjustmentMode clock_adjustment_mode =
+                                         SystemClock::detectPreferredClockAdjustmentMode())
+{
+    SubNodePtr sub_node = makeSubNode(driver, clock_adjustment_mode);
+    sub_node->setNodeID(node_id);
+    return sub_node;
 }
 
 }

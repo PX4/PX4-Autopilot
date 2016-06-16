@@ -392,16 +392,9 @@ static uavcan_linux::NodePtr initMainNode(const std::vector<std::string>& ifaces
 {
     std::cout << "Initializing main node" << std::endl;
 
-    auto node = uavcan_linux::makeNode(ifaces);
-
-    node->setNodeID(nid);
-    node->setName(name.c_str());
-
+    auto node = uavcan_linux::makeNode(ifaces, name.c_str(),
+                                       uavcan::protocol::SoftwareVersion(), uavcan::protocol::HardwareVersion(), nid);
     node->getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-    const int start_res = node->start();
-    ENFORCE(0 == start_res);
-
     node->setModeOperational();
     return node;
 }
@@ -414,8 +407,8 @@ static uavcan_linux::SubNodePtr initSubNode(unsigned num_ifaces, uavcan::INode& 
     typedef VirtualCanDriver<QueuePoolSize> Driver;
 
     std::shared_ptr<Driver> driver(new Driver(num_ifaces));
-    auto node = uavcan_linux::makeSubNode(driver);
-    node->setNodeID(main_node.getNodeID());
+
+    auto node = uavcan_linux::makeSubNode(driver, main_node.getNodeID());
 
     main_node.getDispatcher().installRxFrameListener(driver.get());
 

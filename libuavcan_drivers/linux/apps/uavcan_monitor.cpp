@@ -137,9 +137,8 @@ public:
 
 static uavcan_linux::NodePtr initNodeInPassiveMode(const std::vector<std::string>& ifaces, const std::string& node_name)
 {
-    auto node = uavcan_linux::makeNode(ifaces);
-    node->setName(node_name.c_str());
-    ENFORCE(0 == node->start());
+    auto node = uavcan_linux::makeNode(ifaces, node_name.c_str(),
+                                       uavcan::protocol::SoftwareVersion(), uavcan::protocol::HardwareVersion());
     node->setModeOperational();
     return node;
 }

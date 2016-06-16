@@ -74,10 +74,9 @@ public:
 
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
 {
-    auto node = uavcan_linux::makeNode(ifaces);
-    node->setNodeID(nid);
-    node->setName(name.c_str());
-    ENFORCE(0 == node->start());  // This node doesn't check its network compatibility
+    auto node = uavcan_linux::makeNode(ifaces, name.c_str(),
+                                       uavcan::protocol::SoftwareVersion(), uavcan::protocol::HardwareVersion(),
+                                       nid);
     node->setModeOperational();
     return node;
 }
