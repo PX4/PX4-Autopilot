@@ -462,8 +462,6 @@ static inline SubNodePtr makeSubNode(const std::shared_ptr<uavcan::ICanDriver>& 
 template <typename DriverType>
 static inline SubNodePtr makeSubNode(const DriverType& driver,
                                      const uavcan::NodeID node_id,
-                                     const uavcan::TransferPriority node_status_transfer_priority =
-                                         uavcan::TransferPriority::Default,
                                      ClockAdjustmentMode clock_adjustment_mode =
                                          SystemClock::detectPreferredClockAdjustmentMode())
 {
