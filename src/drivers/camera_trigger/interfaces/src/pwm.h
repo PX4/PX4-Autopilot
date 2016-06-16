@@ -36,6 +36,8 @@ public:
 	int powerOn();
 	int powerOff();
 
+	void info();
+
 	int _pins[6];
 private:
 	void setup();
