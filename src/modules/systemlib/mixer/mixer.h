@@ -451,6 +451,17 @@ public:
      */
     float get_mixer_param(unsigned mix_index, unsigned param_index);
 
+    /**
+     * Set the value of a mixer parameter
+     *
+     * @param mix_index     index of the mixer to get the param from
+     * @param param_index   index of the parameter to get the value from
+     * @param value         value to set indexed parameter to
+     * @return              Zero on success, -1 on failure.
+     */
+    int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
+
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
     MixerRegisters      *_intermediates; /**< reference to mixer containing intermediate registers if used */

@@ -846,6 +846,16 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
         break;
     }
 
+    case MIXERIOSETPARAM:{
+        if (_mixers == nullptr) {
+            ret = -EINVAL;
+        }
+        mixer_param_s *param = (mixer_param_s *)arg;
+        ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+        break;
+    }
+
+
 	default:
 		ret = -ENOTTY;
 		break;

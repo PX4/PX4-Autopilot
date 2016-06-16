@@ -167,8 +167,13 @@ struct mixer_param_s {
 #define   MIXERIOGETPARAM		_MIXERIOC(13)
 
 
-//#define MIXERIOSETPARAM		_MIXERIOC(12)
-//#define MIXERIOCGETINPUTCOUNT	_MIXERIOC(13)
-//#define MIXERIOCGETMIXERPARAMBYID _MIXERIOC(14)
+/**
+ * Set the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return 0 if success, -1 if fail.  Fail can indicate out of range.
+ * If failed then real value MAY be set in the mixer_param_s struct.
+ */
+#define MIXERIOSETPARAM		_MIXERIOC(14)
+
 
 #endif /* _DRV_ACCEL_H */

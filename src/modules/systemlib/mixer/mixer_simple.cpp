@@ -406,5 +406,26 @@ SimpleMixer::get_parameter(uint16_t index){
 
 int16_t
 SimpleMixer::set_parameter(uint16_t index, float value){
-    return -1;
+    switch(index){
+    case 0:
+        _info->output_scaler.positive_scale = value;
+        break;
+    case 1:
+        _info->output_scaler.negative_scale = value;
+        break;
+    case 2:
+        _info->output_scaler.offset = value;
+        break;
+    case 3:
+        _info->output_scaler.min_output = value;
+        break;
+    case 4:
+        _info->output_scaler.max_output = value;
+        break;
+    default:
+        return -1;
+        break;
+    }
+
+    return 0;
 }
