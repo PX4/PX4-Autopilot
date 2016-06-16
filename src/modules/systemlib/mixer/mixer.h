@@ -433,6 +433,15 @@ public:
      */
     int                 mixer_id(unsigned index, char *buf, const unsigned buflen);
 
+    /**
+     * Get a the parameter identifiers of a mixer
+     *
+     * @param mix_index index of the mixer to get the params from
+     * @param params     count of parameters
+     * @return			reference to list of parameter identifiers. NULL if unsupported.
+     */
+    char** get_mixer_param_ids(unsigned mix_index, unsigned *params);
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
     MixerRegisters      *_intermediates; /**< reference to mixer containing intermediate registers if used */
@@ -582,7 +591,10 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+
     signed                  get_mixer_id(char* buff, unsigned maxlen);
+    const char**    		get_parameter_id_strings(void);
+    uint16_t        		get_parameter_id_count(void);
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.

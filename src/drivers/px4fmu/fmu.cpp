@@ -2074,7 +2074,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	default:
+    default:
 		ret = -ENOTTY;
 		break;
 	}

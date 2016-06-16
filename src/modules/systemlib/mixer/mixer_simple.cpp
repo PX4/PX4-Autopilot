@@ -54,6 +54,18 @@
 
 #include "mixer.h"
 
+
+const char * MIXER_SIMPLE_PARAMETERS[] = {
+    "SCALE_POS",
+    "SCALE_NEG",
+    "OFFSET",
+    "OUTPUT_MIN",
+    "OUTPUT_MAX",
+    };
+
+const uint16_t MIXER_SIMPLE_PARAMETER_COUNT = 5;
+
+
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
@@ -356,5 +368,16 @@ SimpleMixer::get_mixer_id(char* buff, unsigned maxlen) {
     if(maxlen < 16) return -1;
     strcpy(buff, "SIMPLE");
     return 6;
+}
+
+
+const char**
+SimpleMixer::get_parameter_id_strings(void) {
+    return MIXER_SIMPLE_PARAMETERS;
+}
+
+uint16_t
+SimpleMixer::get_parameter_id_count(void) {
+    return MIXER_SIMPLE_PARAMETER_COUNT;
 }
 

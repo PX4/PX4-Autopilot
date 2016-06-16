@@ -222,20 +222,38 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 
 
 int MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen){
-    Mixer*  pmixer = _first;
+    Mixer   *mixer = _first;
     signed   mix_count = 0;
 
-    while(pmixer != NULL){
+    while(mixer != NULL){
         if(mix_count == index){
-            if(pmixer->get_mixer_id(buf, buflen) > 0)
+            if(mixer->get_mixer_id(buf, buflen) > 0)
                 return 0;
             else{
                 strcpy(buf, "NONAME");
                 return 0;
             }
         }
-        pmixer=pmixer->_next;
+        mixer=mixer->_next;
         mix_count++;
     }
     return -1;
+}
+
+char**
+MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
+{
+    Mixer	*mixer = _first;
+    unsigned index = 0;
+
+    while ((mixer != nullptr)) {
+        if(mix_index == index){
+            *params = mixer->get_parameter_id_count();
+            return (char**) mixer->get_parameter_id_strings();
+        }
+        mixer = mixer->_next;
+        index++;
+    }
+
+    return NULL;
 }

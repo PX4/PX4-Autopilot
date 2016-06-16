@@ -126,6 +126,11 @@ struct mixer_3pt_s {
  * - save/serialise for saving tuned mixers.
  */
 
+
+/**
+ * Get the identification name of a mixer in (struct mixer_id_e *)arg
+ * set the mixer index and the string will be returned
+ */
 union mixer_id_e {
     unsigned index;
     char     id[32];
@@ -133,8 +138,22 @@ union mixer_id_e {
 
 #define   MIXERIONAME                   _MIXERIOC(10)
 
+/**
+ * Get the count of mixers in the group as (unsigned *)arg
+ */
 #define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
-//#define MIXERIOGETPARAM		_MIXERIOC(11)
+
+/**
+ * Get the parameter identifiers for a mixer at index (mixer_param_id_s *)arg
+ * set the the mixer index in the struct
+ */
+struct mixer_param_id_s {
+    unsigned        mix_index;
+    unsigned        id_count;
+    char            **ids;
+};
+#define   MIXERIOGETPARAMIDS		_MIXERIOC(12)
+
 //#define MIXERIOSETPARAM		_MIXERIOC(12)
 //#define MIXERIOCGETINPUTCOUNT	_MIXERIOC(13)
 //#define MIXERIOCGETMIXERPARAMBYID _MIXERIOC(14)

@@ -61,6 +61,7 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
+static int  param_list(const char *devname, int mix_index);
 
 int
 mixer_main(int argc, char *argv[])
@@ -96,6 +97,19 @@ mixer_main(int argc, char *argv[])
             return 1;
         }
 
+    }  else if (!strcmp(argv[1], "params")) {
+        if (argc < 4) {
+            usage("missing device or mixer index");
+            return 1;
+        }
+
+        int ret = param_list(argv[2], strtoul(argv[3], NULL, 0) );
+
+        if (ret != 0) {
+            warnx("failed to list parameters");
+            return 1;
+        }
+
     } else {
 		usage("Unknown command");
 		return 1;
@@ -114,6 +128,7 @@ usage(const char *reason)
 	PX4_INFO("usage:");
     PX4_INFO("  mixer load <device> <filename>");
     PX4_INFO("  mixer list <device>");
+    PX4_INFO("  mixer params <device> <mixer_index>");
 //    PX4_INFO("  mixer getparam <mixer_id> <param_id>");
 //    PX4_INFO("  mixer setparam <mixer_id> <param_id> <value>");
 }
@@ -190,6 +205,58 @@ mixer_list(const char *devname)
         /* Get the mixer name at index*/
         ret = px4_ioctl(dev, MIXERIONAME, (unsigned long)&id);
         printf(id.id);
+        printf("\n");
+    }
+
+    if (ret < 0) {
+        warnx("can't get mixer id for:%s", devname);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+static int
+param_list(const char *devname, int mix_index)
+{
+    int dev;
+
+    /* open the device */
+    if ((dev = px4_open(devname, 0)) < 0) {
+        warnx("can't open %s\n", devname);
+        return 1;
+    }
+
+    unsigned mix_count;
+    /* Get the mixer count */
+    int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+
+    if (ret < 0) {
+        warnx("can't get mixer count for:%s", devname);
+        return 1;
+    }
+
+    mixer_param_id_s param_ids;
+    param_ids.mix_index = mix_index;
+    /* Get the mixer paramer identifiers*/
+    ret = px4_ioctl(dev, MIXERIOGETPARAMIDS, (unsigned long)&param_ids);
+
+    if (ret < 0) {
+        warnx("can't get mixer :%s parameters for mixer %u", devname, mix_index);
+        return 1;
+    }
+
+    if (param_ids.id_count == 0) {
+        printf("mixer:%u  parameter list empty\n", mix_index);
+        return 0;
+    }
+
+    for(int index=0; index < param_ids.id_count; index++){
+        printf("mixer:%u  param index:%u  ", mix_index, index);
+        param_ids.mix_index = index;
+        /* Get the mixer paramer identifiers*/
+        printf(param_ids.ids[index]);
         printf("\n");
     }
 
