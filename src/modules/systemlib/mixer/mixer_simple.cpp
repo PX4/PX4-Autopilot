@@ -381,3 +381,30 @@ SimpleMixer::get_parameter_id_count(void) {
     return MIXER_SIMPLE_PARAMETER_COUNT;
 }
 
+float
+SimpleMixer::get_parameter(uint16_t index){
+    switch(index){
+    case 0:
+        return this->_info->output_scaler.positive_scale;
+        break;
+    case 1:
+        return this->_info->output_scaler.negative_scale;
+        break;
+    case 2:
+        return this->_info->output_scaler.offset;
+        break;
+    case 3:
+        return this->_info->output_scaler.min_output;
+        break;
+    case 4:
+        return this->_info->output_scaler.max_output;
+        break;
+    }
+
+    return 0.0;
+}
+
+int16_t
+SimpleMixer::set_parameter(uint16_t index, float value){
+    return -1;
+}

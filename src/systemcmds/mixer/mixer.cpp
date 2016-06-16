@@ -228,19 +228,19 @@ param_list(const char *devname, int mix_index)
         return 1;
     }
 
-    unsigned mix_count;
-    /* Get the mixer count */
-    int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+//    unsigned mix_count;
+//    /* Get the mixer count */
+//    int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 
-    if (ret < 0) {
-        warnx("can't get mixer count for:%s", devname);
-        return 1;
-    }
+//    if (ret < 0) {
+//        warnx("can't get mixer count for:%s", devname);
+//        return 1;
+//    }
 
     mixer_param_id_s param_ids;
     param_ids.mix_index = mix_index;
     /* Get the mixer paramer identifiers*/
-    ret = px4_ioctl(dev, MIXERIOGETPARAMIDS, (unsigned long)&param_ids);
+    int ret = px4_ioctl(dev, MIXERIOGETPARAMIDS, (unsigned long)&param_ids);
 
     if (ret < 0) {
         warnx("can't get mixer :%s parameters for mixer %u", devname, mix_index);
@@ -252,12 +252,12 @@ param_list(const char *devname, int mix_index)
         return 0;
     }
 
+    mixer_param_s param;
     for(int index=0; index < param_ids.id_count; index++){
-        printf("mixer:%u  param index:%u  ", mix_index, index);
-        param_ids.mix_index = index;
-        /* Get the mixer paramer identifiers*/
-        printf(param_ids.ids[index]);
-        printf("\n");
+        param.mix_index = mix_index;
+        param.param_index = index;
+        ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
+        printf("mixer:%u  param:%u id:%s value:%.2f\n", mix_index, index, param_ids.ids[index], (double) param.value);
     }
 
     if (ret < 0) {

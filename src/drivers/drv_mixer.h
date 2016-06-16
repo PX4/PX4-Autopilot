@@ -154,6 +154,19 @@ struct mixer_param_id_s {
 };
 #define   MIXERIOGETPARAMIDS		_MIXERIOC(12)
 
+/**
+ * Get the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return the value in the struct
+ */
+struct mixer_param_s {
+    unsigned        mix_index;
+    unsigned        param_index;
+    float           value;
+};
+#define   MIXERIOGETPARAM		_MIXERIOC(13)
+
+
 //#define MIXERIOSETPARAM		_MIXERIOC(12)
 //#define MIXERIOCGETINPUTCOUNT	_MIXERIOC(13)
 //#define MIXERIOCGETMIXERPARAMBYID _MIXERIOC(14)

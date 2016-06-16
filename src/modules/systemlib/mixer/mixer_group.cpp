@@ -257,3 +257,20 @@ MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
 
     return NULL;
 }
+
+
+float
+MixerGroup::get_mixer_param(unsigned mix_index, unsigned param_index){
+    Mixer	*mixer = _first;
+    unsigned index = 0;
+
+    while ((mixer != nullptr)) {
+        if(mix_index == index){
+            return mixer->get_parameter(param_index);
+        }
+        mixer = mixer->_next;
+        index++;
+    }
+    return 0.0;
+}
+

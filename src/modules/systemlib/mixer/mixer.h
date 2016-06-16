@@ -424,7 +424,7 @@ public:
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
     /**
-     * Get a the identifier name of a mixer
+     * Get the identifier name of a mixer
      *
      * @param index     index of the mixer to get the id from
      * @param buf       buffer to put mixer names in
@@ -441,6 +441,15 @@ public:
      * @return			reference to list of parameter identifiers. NULL if unsupported.
      */
     char** get_mixer_param_ids(unsigned mix_index, unsigned *params);
+
+    /**
+     * Get the value of a mixer parameter
+     *
+     * @param mix_index     index of the mixer to get the param from
+     * @param param_index   index of the parameter to get the value from
+     * @return              Value of the parameter. Return 0.0 if index out of range.
+     */
+    float get_mixer_param(unsigned mix_index, unsigned param_index);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -595,7 +604,8 @@ public:
     signed                  get_mixer_id(char* buff, unsigned maxlen);
     const char**    		get_parameter_id_strings(void);
     uint16_t        		get_parameter_id_count(void);
-
+    float                   get_parameter(uint16_t index);
+    int16_t                 set_parameter(uint16_t index, float value);
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
