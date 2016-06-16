@@ -145,6 +145,13 @@ private:
 
 	void *receive_thread(void *arg);
 
+    /**
+     * Set the interval at which the given message stream is published.
+     * The rate is the number of messages per second.
+     */
+	void set_message_interval(int msgId, float rate);
+	void get_message_interval(int msgId);
+
 	/**
 	 * Convert remote timestamp to local hrt time (usec)
 	 * Use timesync if available, monotonic boot time otherwise
