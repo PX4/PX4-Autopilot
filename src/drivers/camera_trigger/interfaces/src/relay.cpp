@@ -45,8 +45,8 @@ CameraInterfaceRelay::~CameraInterfaceRelay()
 void CameraInterfaceRelay::setup()
 {
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-		stm32_configgpio(_gpios[_pins[i]]);
-		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);
+		px4_arch_configgpio(_gpios[_pins[i]]);
+		px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
 	}
 }
 
@@ -56,7 +56,7 @@ void CameraInterfaceRelay::trigger(bool enable)
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 			if (_pins[i] >= 0) {
 				// ACTIVE_LOW == 1
-				stm32_gpiowrite(_gpios[_pins[i]], _polarity);
+				px4_arch_gpiowrite(_gpios[_pins[i]], _polarity);
 			}
 		}
 
@@ -64,7 +64,7 @@ void CameraInterfaceRelay::trigger(bool enable)
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 			if (_pins[i] >= 0) {
 				// ACTIVE_LOW == 1
-				stm32_gpiowrite(_gpios[_pins[i]], !_polarity);
+				px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
 			}
 		}
 	}

@@ -36,7 +36,11 @@
  *
  * External camera-IMU synchronisation and triggering via FMU auxiliary pins.
  *
+ * Support for camera manipulation via PWM signal over servo pins.
+ *
  * @author Mohammed Kabir <mhkabir98@gmail.com>
+ * @author Kelly Steich <kelly.steich@wingtra.com>
+ * @author Andreas Bircher <andreas@wingtra.com>
  */
 
 #include <stdio.h>
@@ -63,9 +67,18 @@
 #include <drivers/drv_hrt.h>
 #include <board_config.h>
 
+#include "interfaces/src/pwm.h"
+#include "interfaces/src/relay.h"
+
 #define TRIGGER_PIN_DEFAULT 1
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
+
+typedef enum {
+	CAMERA_INTERFACE_MODE_NONE = 0,
+	CAMERA_INTERFACE_MODE_RELAY,
+	CAMERA_INTERFACE_MODE_PWM
+} camera_interface_mode_t;
 
 class CameraTrigger
 {
@@ -105,8 +118,6 @@ public:
 	 */
 	void		info();
 
-	int			_pins[6];
-
 private:
 
 	struct hrt_call		_engagecall;
@@ -115,7 +126,6 @@ private:
 
 	int 			_gpio_fd;
 
-	int 			_polarity;
 	int				_mode;
 	float 			_activation_time;
 	float  			_interval;
@@ -130,7 +140,6 @@ private:
 
 	orb_advert_t		_trigger_pub;
 
-	param_t _p_polarity;
 	param_t _p_mode;
 	param_t _p_activation_time;
 	param_t _p_interval;
@@ -153,12 +162,9 @@ private:
 	 */
 	static void	disengage(void *arg);
 
-	static void trigger(CameraTrigger *trig, bool trigger);
-
 };
 
 struct work_s CameraTrigger::_work;
-constexpr uint32_t CameraTrigger::_gpios[6];
 
 namespace camera_trigger
 {
@@ -170,7 +176,6 @@ CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 	_engagecall {},
 	_disengagecall {},
 	_gpio_fd(-1),
-	_polarity(0),
 	_mode(0),
 	_activation_time(0.5f /* ms */),
 	_interval(100.0f /* ms */),
@@ -185,44 +190,38 @@ CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 	_camera_interface_mode(camera_interface_mode),
 	_camera_interface(nullptr)
 {
+	//Initiate Camera interface basedon camera_interface_mode
+	if (_camera_interface != nullptr) {
+		delete(_camera_interface);
+		/* set to zero to ensure parser is not used while not instantiated */
+		_camera_interface = nullptr;
+	}
+
+	switch (_camera_interface_mode) {
+	case CAMERA_INTERFACE_MODE_RELAY:
+		_camera_interface = new CameraInterfaceRelay;
+		break;
+
+	case CAMERA_INTERFACE_MODE_PWM:
+		_camera_interface = new CameraInterfacePWM;
+		break;
+
+	default:
+		break;
+	}
+
 	memset(&_work, 0, sizeof(_work));
 
 	// Parameters
-	_p_polarity = param_find("TRIG_POLARITY");
 	_p_interval = param_find("TRIG_INTERVAL");
 	_p_distance = param_find("TRIG_DISTANCE");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
-	_p_pin = param_find("TRIG_PINS");
 
-	param_get(_p_polarity, &_polarity);
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, &_mode);
-	int pin_list;
-	param_get(_p_pin, &pin_list);
-
-	// Set all pins as invalid
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-		_pins[i] = -1;
-	}
-
-	// Convert number to individual channels
-	unsigned i = 0;
-	int single_pin;
-
-	while ((single_pin = pin_list % 10)) {
-
-		_pins[i] = single_pin - 1;
-
-		if (_pins[i] < 0 || _pins[i] >= static_cast<int>(sizeof(_gpios) / sizeof(_gpios[0]))) {
-			_pins[i] = -1;
-		}
-
-		pin_list /= 10;
-		i++;
-	}
 
 	struct camera_trigger_s	camera_trigger = {};
 
@@ -278,12 +277,6 @@ CameraTrigger::shootOnce()
 void
 CameraTrigger::start()
 {
-
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-		px4_arch_configgpio(_gpios[_pins[i]]);
-		px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
-	}
-
 	// enable immediate if configured that way
 	if (_mode == 2) {
 		control(true);
@@ -439,22 +432,9 @@ CameraTrigger::disengage(void *arg)
 }
 
 void
-CameraTrigger::trigger(CameraTrigger *trig, bool trigger)
-{
-	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
-		if (trig->_pins[i] >= 0) {
-			// ACTIVE_LOW == 1
-			px4_arch_gpiowrite(trig->_gpios[trig->_pins[i]], trigger);
-		}
-	}
-}
-
-void
 CameraTrigger::info()
 {
 	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
-	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
-	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 	warnx("mode : %i", _mode);
 	warnx("interval : %.2f [ms]", (double)_interval);
 	warnx("distance : %.2f [m]", (double)_distance);

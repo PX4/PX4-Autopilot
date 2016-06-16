@@ -1,7 +1,8 @@
 #include <px4.h>
 #include <sys/ioctl.h>
-#include <lib/helpfuncs/helpfuncs.h>
+#include <lib/mathlib/mathlib.h>
 
+#include "drivers/drv_pwm_output.h"
 #include "pwm.h"
 
 // PWM levels of the interface to seagull MAP converter to
@@ -41,6 +42,7 @@ CameraInterfacePWM::CameraInterfacePWM():
 		pin_list /= 10;
 		i++;
 	}
+
 	setup();
 }
 
@@ -118,7 +120,7 @@ int CameraInterfacePWM::powerOff()
 	return 0;
 }
 
-void CameraInterfaceRelay::info()
+void CameraInterfacePWM::info()
 {
 	warnx("PWM - camera triggering, pins 1-3 : %d,%d,%d", _pins[0], _pins[1], _pins[2]);
 }
