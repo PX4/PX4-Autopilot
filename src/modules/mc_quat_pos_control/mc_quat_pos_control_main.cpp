@@ -278,7 +278,7 @@ private:
 	float 		des_yaw = 0.0f;
 
 	uint64_t 	old_meas_time;
-	float 		d_meas, home_lat, home_lon, home_alt;
+	float 		d_meas, home_lat = 0.0f, home_lon = 0.0f, home_alt = 0.0f;
 	float 		dt_pos_est;
 
 	bool 		initialise_home = false; 					/**< GPS home initialisation based on 20 gps coordinates */
@@ -305,6 +305,8 @@ private:
 
 	orb_advert_t 		_omega_pub;// = -1;
 	struct 		vehicle_omega_ff_setpoint_s 	omega_d;
+
+	int _veh_gps_pos_sub = -1;
 
 
 	struct map_projection_reference_s _ref_pos;
@@ -444,6 +446,16 @@ private:
 	 * Check for changes in vehicle estimated velocity
 	*/
 	void 		vehicle_velocity_estimated_poll();
+
+	/**
+	 * Check for changes in vehicle GPS data
+	*/
+	void 		vehicle_gps_position_poll();
+
+	/**
+	 * Check for changes in vehicle attitude
+	*/
+	void 		vehicle_attitude_poll();
 
 	/**
 	  * Poll vehicle IMU for feedforward term
@@ -753,6 +765,56 @@ MulticopterQuatPositionControl::vehicle_velocity_estimated_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_velocity_est_inertial), _v_vel_est_sub, &_v_vel_est);
 	}
+}
+
+/**
+  * Poll for getting GPS data
+*/
+void
+MulticopterQuatPositionControl::vehicle_gps_position_poll()
+{
+	/* check if there is a new velocity estimated */
+	bool updated;
+	orb_check(_veh_gps_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_gps_position), _veh_gps_pos_sub, &_veh_gps_pos);
+		//printf("sat %u %d %d\n",_veh_gps_pos.timestamp_time,_veh_gps_pos.fix_type, _veh_gps_pos.satellites_used);
+	}
+}
+
+/**
+  * Poll for getting vehicle attitude
+*/
+void
+MulticopterQuatPositionControl::vehicle_attitude_poll()
+{
+	/* check if there is a new velocity estimated */
+	bool updated;
+	orb_check(_att_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	}
+}
+
+/**
+  * Do polling
+*/
+void
+MulticopterQuatPositionControl::poll_subscriptions()
+{
+	/* poll estimated velocity for gps pos control mode */
+	vehicle_velocity_estimated_poll();
+
+	/* Poll GPS data */
+	vehicle_gps_position_poll();
+
+	/* Poll IMU for feedforward */
+	vehicle_imu_poll();
+
+	/* Poll vehicle attitude */
+	vehicle_attitude_poll();
 }
 
 /**
@@ -1192,8 +1254,8 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	qd[1] = -qd[1];
 	qd[3] = -qd[3];
 
-	printf("atd %3.3f %3.3f %3.3f\n", double(qd[1]), double(qd[2]), double(qd[3]));
-	printf("posd %3.3f %3.3f %3.3f %3.3f\n", double(err_xyz(0)), double(err_xyz(1)), double(err_xyz(2)), double(des_yaw));
+	//printf("atd %3.3f %3.3f %3.3f\n", double(qd[1]), double(qd[2]), double(qd[3]));
+	//printf("posd %3.3f %3.3f %3.3f %3.3f\n", double(err_xyz(0)), double(err_xyz(1)), double(err_xyz(2)), double(des_yaw));
 
 	thrust = (_params.mg + err_xyz(2));
 
@@ -1284,7 +1346,7 @@ MulticopterQuatPositionControl::map_projection(void)
 		output(1) = 0.0;
 		output(2) = 0.0;
 	}
-//printf("lat %3.3f %3.3f\n",double(_veh_home.lat),double(gps_poslat));
+	printf("lat %3.3f %3.3f\n",double(_veh_home.lat),double(gps_poslat));
 	return output;
 }
 
@@ -1307,6 +1369,8 @@ MulticopterQuatPositionControl::task_main()
 
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
+	_veh_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
 
 	parameters_update(true);
 
@@ -1314,8 +1378,8 @@ MulticopterQuatPositionControl::task_main()
 	_arming.armed = false;
 
 	/* get an initial update for all sensor and status data */
-	//poll_subscriptions();
-
+	poll_subscriptions();
+	vehicle_gps_position_poll();
 
 	hrt_abstime t_prev = 0;
 
@@ -1329,12 +1393,13 @@ MulticopterQuatPositionControl::task_main()
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
 
-	fds[0].fd = _local_pos_sub;
+	fds[0].fd = _att_sub;
 	fds[0].events = POLLIN;
 
 	memset(&veh_local_pos, 0, sizeof(veh_local_pos));
 
 	while (!_task_should_exit) {
+
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
@@ -1348,8 +1413,10 @@ MulticopterQuatPositionControl::task_main()
 			warn("poll error %d, %d", pret, errno);
 			continue;
 		}
-
-		//poll_subscriptions();
+		/* run controller on attitude changes */
+		//if (fds[0].revents & POLLIN) {
+		/* Do polling */
+		poll_subscriptions(); // This should go outside of that loop
 
 		parameters_update(false);
 
@@ -1366,11 +1433,7 @@ MulticopterQuatPositionControl::task_main()
 		}
 		old_auto = _control_mode.flag_control_auto_enabled;
 	
-		/* poll estimated velocity for gps pos control mode */
-	vehicle_velocity_estimated_poll();
-
-	/* poll IMU for feedforward */
-	vehicle_imu_poll();
+		
 
 	/* Do GPS pos control */
 	if (_veh_gps_pos.fix_type >= 3 && _v_vel_est.timestamp != _v_est_time_old)// && initialise_home)// && _v_vel_est.body_valid)
@@ -1381,7 +1444,7 @@ MulticopterQuatPositionControl::task_main()
 		veh_vel_body(2) = _v_vel_est.inertial_bvz;
 
 		dt_pos_est = (_v_vel_est.timestamp - _v_est_time_old)*0.000001f;
-		//printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
+		printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
 
 		/* GPS Position estimation */
 
@@ -1457,23 +1520,26 @@ MulticopterQuatPositionControl::task_main()
 
 		_v_est_time_old = _v_vel_est.timestamp;
 	}
-		
+	usleep(5000);	
+//printf("sat %lu %d %3.3f, %3.5f, %3.3f\n",_veh_gps_pos.timestamp_position, _veh_gps_pos.fix_type, (double)_veh_gps_pos.lat*1e-7, (double)_veh_gps_pos.lat*1e-7, double(_veh_gps_pos.alt*1e-3));
 
+//printf("sat %3.3f, %3.5f, %3.3f\n", double(_veh_gps_pos.lat*1e-7), double(_veh_gps_pos.lon*1e-7), double(_veh_gps_pos.alt*1e-3));
 	/* GPS is only valid when the fix is >=3D which requires a minim of 3 satellites. Do position control and  */ 
 	if (_veh_gps_pos.timestamp_time != gps_old_time && _veh_gps_pos.fix_type >= 3 && _veh_gps_pos.satellites_used > 4)
 	{
+printf("I am computing gps\n");
 		/* Handle home position and publish */
 		if(!initialise_home)
 		{
-			if (home_count > 1)
-			{
+			//if (home_count > 1)
+			//{
 				home_lat += _veh_gps_pos.lat;
 				home_lon += _veh_gps_pos.lon;
 				home_alt += _veh_gps_pos.alt;
-			}			
+			//}			
 				
 			home_count++;
-			//printf("xy c %3.3f %3.3f %u\n",double(_veh_gps_pos->data().lat), double(_veh_gps_pos->data().lon), home_count);
+			//printf("xy c %3.3f %3.3f %u\n",double(_veh_gps_pos.lat), double(_veh_gps_pos.lon), home_count);
 		}
 
 
@@ -1481,9 +1547,9 @@ MulticopterQuatPositionControl::task_main()
 		{
 			
 			initialise_home = true;
-			_veh_home.lat = home_lat/(home_count-2);
-			_veh_home.lon = home_lon/(home_count-2);
-			_veh_home.alt = home_alt/(home_count-2);
+			_veh_home.lat = home_lat/(home_count-2*0);
+			_veh_home.lon = home_lon/(home_count-2*0);
+			_veh_home.alt = home_alt/(home_count-2*0);
 
 			if (home_position_pub == 0) {
 				//home_position_pub->publish(_veh_home);
@@ -1498,7 +1564,7 @@ MulticopterQuatPositionControl::task_main()
 			_veh_home.lon = (double)_veh_home.lon*1e-7*M_DEG_TO_RAD;
 			_veh_home.alt = (double)_veh_home.alt*0.001;
 		}	
-
+printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.lon), double(_veh_home.alt), double(M_DEG_TO_RAD));
 		vel_pub = _veh_gps_pos.vel_ned_valid;
 		gps_vel_setup();
 		quat_traj_control();
@@ -1521,8 +1587,8 @@ MulticopterQuatPositionControl::task_main()
 				//_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
 			}
 		} 
-		//float dtttss = (_veh_gps_pos->data().timestamp_time -gps_old_time )*0.000001f;
-		//printf("dt freq %3.3f %3.3f\n",double(dtttss),double(1/dtttss));
+		float dtttss = (_veh_gps_pos.timestamp_time -gps_old_time )*0.000001f;
+		printf("dt gps freq %3.3f %3.3f\n",double(dtttss),double(1/dtttss));
 		gps_old_time 	= _veh_gps_pos.timestamp_time;
 
 		old_meas_time 	= get_time_micros();
@@ -1585,15 +1651,15 @@ MulticopterQuatPositionControl::task_main()
 	{
 		_veh_vel.body_valid 			= false;
 		_veh_vel.inertial_valid 		= false;
-		_vicon_pos.valid 				= false;
-		vel_updated 							= true;
-		vel_pub 								= true;
+		_vicon_pos.valid 			= false;
+		vel_updated 				= true;
+		vel_pub 				= true;
 	} else if (d_meas > 1.5f){
 		_veh_vel.body_valid 			= false;
 		_veh_vel.inertial_valid 		= false;
-		_vicon_pos.valid 				= false;
-		vel_updated 							= false;
-		vel_pub 								= false;
+		_vicon_pos.valid 			= false;
+		vel_updated 				= false;
+		vel_pub 				= false;
 	}
 
 

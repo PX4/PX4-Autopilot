@@ -703,7 +703,7 @@ MulticopterQuaternionControl::control_attitude(float dt)
 		}
 	}
 	/********************* End calculation of the desired quaternion ************************/
-	//printf("thr stp %3.3f %3.3f\n",double(_thrust_sp), double(q_d[2]));
+	printf("thr stp %3.3f %3.3f %3.3f %3.3f\n",double(_thrust_sp), double(q_d[2]), double( _params.man_pitch_max), double(_manual_control_sp.x));
 
 	/* publish the attitude setpoint if needed */
 	if (publish_att_sp) {
@@ -902,13 +902,14 @@ MulticopterQuaternionControl::task_main()
 			}
 
 			/* Testing servo control */
-			servos[5] += dt*1000;
+			servos[5] += dt*500;
 			if (servos[5] > 2000)
 				servos[5] = pwm_value;
-			ret = write(fdt, servos, sizeof(servos));
+			//ret = write(fdt, servos, sizeof(servos));
+			ret = ioctl(fdt, PWM_SERVO_SET(5), servos[5]);
 
 			if (ret != (int)sizeof(servos)) {
-				printf("error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+				//printf("error writing PWM servo data, wrote %u got %d\n", sizeof(servos), ret);
 			}
 			/* End testing */
 

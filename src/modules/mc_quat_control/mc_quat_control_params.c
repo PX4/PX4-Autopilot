@@ -106,7 +106,7 @@ PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_P, 0.1f);
  * @max 90.0
  * @group Quadrotor Quaternion Control
  */
-//PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
 
 /**
  * Max manual pitch
@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_P, 0.1f);
  * @max 90.0
  * @group Quadrotor Quaternion Control
  */
-//PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
 
 /**
  * Max manual yaw rate
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_P, 0.1f);
  * @min 0.0
  * @group Quadrotor Quaternion Control
  */
-//PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
 
 /**
  * Max acro roll rate

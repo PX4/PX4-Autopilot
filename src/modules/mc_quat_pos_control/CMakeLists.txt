@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE modules__mc_quat_pos_control
 	MAIN mc_quat_pos_control
 	COMPILE_FLAGS -Os
-	STACK_MAIN 3200
+	STACK_MAIN 2200
 	SRCS
 		mc_quat_pos_control_main.cpp
 	DEPENDS
