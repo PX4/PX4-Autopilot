@@ -1346,7 +1346,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		}
 	}
 
-	if (interval == 0) {
+	if (interval <= 0) {
 		/* stream was not active and is requested to be disabled, do nothing */
 		return OK;
 	}
