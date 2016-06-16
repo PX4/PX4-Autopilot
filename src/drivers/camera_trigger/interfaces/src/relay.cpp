@@ -72,6 +72,6 @@ void CameraInterfaceRelay::trigger(bool enable)
 
 void CameraInterfaceRelay::info()
 {
-	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
+	warnx("Relay - camera triggering, pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 }

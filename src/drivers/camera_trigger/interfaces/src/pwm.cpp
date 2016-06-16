@@ -117,3 +117,8 @@ int CameraInterfacePWM::powerOff()
 
 	return 0;
 }
+
+void CameraInterfaceRelay::info()
+{
+	warnx("PWM - camera triggering, pins 1-3 : %d,%d,%d", _pins[0], _pins[1], _pins[2]);
+}

@@ -482,9 +482,11 @@ int camera_trigger_main(int argc, char *argv[])
 		if (argc >= 3) {
 			if (!strcmp(argv[2], "--relay")) {
 				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_RELAY);
+				warnx("started with camera interface mode : relay");
 
 			} else if (!strcmp(argv[2], "--pwm")) {
 				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_PWM);
+				warnx("started with camera interface mode : pwm");
 
 			} else {
 				usage();
