@@ -537,7 +537,7 @@ then
 			# Get FMU driver out of the way
 			set MIXER_AUX none
 			set AUX_MODE none
-			camera_trigger start
+			camera_trigger start --pwm
 		fi
 	fi
 
@@ -606,7 +606,7 @@ then
 		# Try to get an USB console
 		nshterm /dev/ttyACM0 &
 	else
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+		mavlink start -r 80000 -d /dev/ttyACM0 -m config -x
 	fi
 
 	#

@@ -4,9 +4,17 @@
 
 #include "pwm.h"
 
+// PWM levels of the interface to seagull MAP converter to
+// Multiport (http://www.seagulluav.com/manuals/Seagull_MAP2-Manual.pdf)
+#define PWM_CAMERA_DISARMED			90 // TODO(birchera): check here value
+#define PWM_CAMERA_ON				1100
+#define PWM_CAMERA_AUTOFOCUS_SHOOT	1300
+#define PWM_CAMERA_NEUTRAL			1500
+#define PWM_CAMERA_INSTANT_SHOOT	1700
+#define PWM_CAMERA_OFF				1900
+
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface(),
-	_vehicle_status_sub(-1),
 	_camera_is_on(false)
 {
 	_p_pin = param_find("TRIG_PINS");
@@ -42,59 +50,37 @@ CameraInterfacePWM::~CameraInterfacePWM()
 
 void CameraInterfacePWM::setup()
 {
-	_pwm_dev = PWM_DEVICE_PATH;  // Used for direct pwm output without mixer
-	_pwm_fd = open(_pwm_dev, 0);  // open pwm device
-
-	if (_pwm_fd < 0) {
-		err(1, "can't open %s", _pwm_dev);
-	}
-
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 		if (_pins[i] >= 0) {
-			px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_DISARMED, 1000,
-					2000)); // TODO(birchera): use return value to make sure everything is fine
+			// TODO(birchera): use return value to make sure everything is fine
+			up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
 		}
 	}
 }
 
 void CameraInterfacePWM::trigger(bool enable)
 {
-	// Check if armed, otherwise don't send high PWM values
-	if (_vehicle_status_sub < 0) {
-		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	// This only starts working upon prearming
+
+	if (!_camera_is_on) {
+		// Turn camera on and give time to start up
+		powerOn();
+		return;
 	}
 
-	orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-	if (_vehicle_status.arming_state != _vehicle_status.ARMING_STATE_ARMED
-	    || !_vehicle_status.no_pwm) {
+	if (enable) {
+		// Set all valid pins to shoot level
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 			if (_pins[i] >= 0) {
-				px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_DISARMED, 1000, 2000));
+				up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_INSTANT_SHOOT, 1000, 2000));
 			}
 		}
 
 	} else {
-		if (!_camera_is_on) {
-			// Turn camera on and give time to start up
-			powerOn();
-			return;
-		}
-
-		if (trig) {
-			// Set all valid pins to shoot level
-			for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-				if (_pins[i] >= 0) {
-					px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_INSTANT_SHOOT, 1000, 2000));
-				}
-			}
-
-		} else {
-			// Set all valid pins back to neutral level
-			for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-				if (_pins[i] >= 0) {
-					px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-				}
+		// Set all valid pins back to neutral level
+		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+			if (_pins[i] >= 0) {
+				up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
 			}
 		}
 	}
@@ -102,62 +88,32 @@ void CameraInterfacePWM::trigger(bool enable)
 
 int CameraInterfacePWM::powerOn()
 {
-	// Check if armed, otherwise don't send high PWM values
-	if (_vehicle_status_sub < 0) {
-		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	// This only starts working upon prearming
+
+	// Set all valid pins to turn on level
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+		if (_pins[i] >= 0) {
+			up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_ON, 1000, 2000));
+		}
 	}
 
-	orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-	if (_vehicle_status.arming_state != _vehicle_status.ARMING_STATE_ARMED
-	    || !_vehicle_status.no_pwm) {
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-			if (_pins[i] >= 0) {
-				px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_DISARMED, 1000, 2000));
-			}
-		}
-
-	} else {
-		// Set all valid pins to turn on level
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-			if (_pins[i] >= 0) {
-				px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_ON, 1000, 2000));
-			}
-		}
-
-		_camera_is_on = true;
-	}
+	_camera_is_on = true;
 
 	return 0;
 }
 
 int CameraInterfacePWM::powerOff()
 {
-	// Check if armed, otherwise don't send high PWM values
-	if (_vehicle_status_sub < 0) {
-		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	// This only starts working upon prearming
+
+	// Set all valid pins to turn off level
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+		if (_pins[i] >= 0) {
+			up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_OFF, 1000, 2000));
+		}
 	}
 
-	orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-	if (_vehicle_status.arming_state != _vehicle_status.ARMING_STATE_ARMED
-	    || !_vehicle_status.no_pwm) {
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-			if (_pins[i] >= 0) {
-				px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_DISARMED, 1000, 2000));
-			}
-		}
-
-	} else {
-		// Set all valid pins to turn off level
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
-			if (_pins[i] >= 0) {
-				px4_ioctl(_pwm_fd, PWM_CAMERA_SET(_pins[i]), math::constrain(PWM_CAMERA_OFF, 1000, 2000));
-			}
-		}
-
-		_camera_is_on = false;
-	}
+	_camera_is_on = false;
 
 	return 0;
 }
