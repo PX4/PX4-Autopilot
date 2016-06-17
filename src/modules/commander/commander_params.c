@@ -369,7 +369,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 
 /**
- * Fift flightmode slot (1640-1800)
+ * Fifth flightmode slot (1640-1800)
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
