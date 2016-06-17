@@ -77,7 +77,7 @@ const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
 
-void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
+void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg, unsigned index)
 {
 	// reset state
 	memset(&actuator_msg, 0, sizeof(actuator_msg));
@@ -90,7 +90,7 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 
 	for (unsigned i = 0; i < (sizeof(out) / sizeof(out[0])); i++) {
 		// scale PWM out 900..2100 us to -1..1 */
-		out[i] = (_actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+		out[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 		if (!PX4_ISFINITE(out[i])) {
 			out[i] = -1.0f;
@@ -107,14 +107,21 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	actuator_msg.aux4 = out[7];
 	actuator_msg.mode = mode_flag_custom;
 	actuator_msg.mode |= (armed) ? mode_flag_armed : 0;
-	actuator_msg.nav_mode = 0;
+	actuator_msg.nav_mode = index; // XXX this indicates the output group in our use of the message
 }
 
 void Simulator::send_controls()
 {
-	mavlink_hil_controls_t msg;
-	pack_actuator_message(msg);
-	send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
+	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+
+		if (_actuator_outputs_sub[i] < 0 || _actuators[i].timestamp == 0) {
+			continue;
+		}
+
+		mavlink_hil_controls_t msg;
+		pack_actuator_message(msg, i);
+		send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
+	}
 }
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
@@ -341,10 +348,14 @@ void Simulator::poll_topics()
 {
 	// copy new actuator data if available
 	bool updated;
-	orb_check(_actuator_outputs_sub, &updated);
 
-	if (updated) {
-		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuators);
+	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+
+		orb_check(_actuator_outputs_sub[i], &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub[i], &_actuators[i]);
+		}
 	}
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -363,7 +374,7 @@ void *Simulator::sending_trampoline(void *)
 void Simulator::send()
 {
 	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub;
+	fds[0].fd = _actuator_outputs_sub[0];
 	fds[0].events = POLLIN;
 
 
@@ -554,7 +565,9 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	(void)hrt_reset();
 
 	// subscribe to topics
-	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
+	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+		_actuator_outputs_sub[i] = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
+	}
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
