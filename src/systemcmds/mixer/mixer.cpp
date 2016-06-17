@@ -63,6 +63,8 @@ static int	load(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
 static int  mixer_param_list(const char *devname, int mix_index);
 static int  mixer_param_set(const char *devname, int mix_index, int param_index, float value);
+static int  mixer_show_config(const char *devname);
+
 
 int
 mixer_main(int argc, char *argv[])
@@ -127,7 +129,20 @@ mixer_main(int argc, char *argv[])
             return 1;
         }
 
-    } else {
+    } else if (!strcmp(argv[1], "config")) {
+        if (argc < 2) {
+            warnx("missing device: usage 'mixer config <device>'");
+            return 1;
+        }
+
+        int ret = mixer_show_config(argv[2]);
+
+        if (ret != 0) {
+            warnx("failed to show config");
+            return 1;
+        }
+    }
+    else {
 		usage("Unknown command");
 		return 1;
 	}
@@ -147,6 +162,7 @@ usage(const char *reason)
     PX4_INFO("  mixer list <device>");
     PX4_INFO("  mixer params <device> <mixer_index>");
     PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
+    PX4_INFO("  mixer config <device>");
 }
 
 static int
@@ -185,6 +201,29 @@ load(const char *devname, const char *fname)
 	}
 
 	return 0;
+}
+
+static int  mixer_show_config(const char *devname){
+    int dev;
+
+    /* open the device */
+    if ((dev = px4_open(devname, 0)) < 0) {
+        warnx("can't open %s\n", devname);
+        return 1;
+    }
+
+    char buf[2048];
+
+    /* Pass the buffer to the device */
+    int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
+    if (ret == 0) {
+        printf(buf);
+    }
+    else {
+        warnx("Could not generate mixer config for %s\n", devname);
+        return 1;
+    }
+    return 0;
 }
 
 
@@ -264,7 +303,7 @@ mixer_param_list(const char *devname, int mix_index)
         param.mix_index = mix_index;
         param.param_index = index;
         ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
-        printf("mixer:%u  param:%u id:%s value:%.2f\n", mix_index, index, param_ids.ids[index], (double) param.value);
+        printf("mixer:%u  param:%u id:%s value:%f\n", mix_index, index, param_ids.ids[index], (double) param.value);
     }
 
     if (ret < 0) {
@@ -294,11 +333,11 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
 
     int ret = px4_ioctl(dev, MIXERIOSETPARAM, (unsigned long)&param);
     if(ret == 0){
-        printf("mixer:%u  param:%u id:%s value:%.2f set success\n", mix_index, param_index, (double) param.value);
+        printf("mixer:%u  param:%u id:%s value:%f set success\n", mix_index, param_index, (double) param.value);
         return 0;
     }
     else {
-        warnx("fail to set mixer:%u  param:%u id:%s value:%.2f\n", mix_index, param_index, (double) value);
+        warnx("fail to set mixer:%u  param:%u id:%s value:%f\n", mix_index, param_index, (double) value);
         return -1;
     }
 }

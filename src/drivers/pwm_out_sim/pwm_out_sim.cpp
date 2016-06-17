@@ -855,6 +855,16 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
         break;
     }
 
+    case MIXERIOGETCONFIG:{
+        if (_mixers == nullptr) {
+            ret = -EINVAL;
+        }
+        char *buf = (char *)arg;
+
+        unsigned buflen = 1022;
+        ret = _mixers->save_to_buf(buf, buflen);
+        break;
+    }
 
 	default:
 		ret = -ENOTTY;

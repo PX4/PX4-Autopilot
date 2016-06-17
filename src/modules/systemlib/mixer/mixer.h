@@ -185,6 +185,14 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+    /**
+     * Writes a description of the mixer configuration which can be read with from_text
+     *
+     * @param buf   		The buffer to write the description to.
+     * @param buflen   		The buffer size available.  Modfied to buffer length used.
+     * @return              0 if succeeded. Otherwise non zero.
+     */
+    virtual int             to_text(char* buf, unsigned &buflen) {return -1;}
 
     /**
      * Get mixer name
@@ -421,7 +429,19 @@ public:
      *
      * I:
 	 */
-	int				load_from_buf(const char *buf, unsigned &buflen);
+    int                 load_from_buf(const char *buf, unsigned &buflen);
+
+    /**
+     * Generates text in bufferdescribing the mixer settings compatible
+     * with load_from_buf
+     *
+     * @param buf			The mixer configuration buffer.
+     * @param buflen		The length of the buffer, updated to reflect
+     *                      the bytes written
+     * @return              Zero on successful save, nonzero otherwise.
+     *
+     */
+    int                 save_to_buf(char *buf, unsigned &buflen);
 
     /**
      * Get the identifier name of a mixer
@@ -611,6 +631,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+    int                     to_text(char* buf, unsigned &buflen);
 
     signed                  get_mixer_id(char* buff, unsigned maxlen);
     const char**    		get_parameter_id_strings(void);
@@ -677,8 +698,9 @@ public:
 	 *
 	 * @param control_cb		Callback invoked to read inputs.
 	 * @param cb_handle		Passed to control_cb.
-	 * @param geometry		The selected geometry.
-	 * @param roll_scale		Scaling factor applied to roll inputs
+     * @param geometry		The selected geometry.
+     * @param geomname		The name of the geometry for serialization.
+     * @param roll_scale		Scaling factor applied to roll inputs
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
@@ -691,6 +713,7 @@ public:
 	MultirotorMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
 			MultirotorGeometry geometry,
+            char* geomname,
 			float roll_scale,
 			float pitch_scale,
 			float yaw_scale,
@@ -720,7 +743,13 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+    int                     to_text(char* buf, unsigned &buflen);
+
     signed                  get_mixer_id(char* buff, unsigned maxlen);
+    const char**    		get_parameter_id_strings(void);
+    uint16_t        		get_parameter_id_count(void);
+    float                   get_parameter(uint16_t index);
+    int16_t                 set_parameter(uint16_t index, float value);
 
 private:
 	float				_roll_scale;
@@ -733,6 +762,8 @@ private:
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+    char                _geomname[8];
 
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);

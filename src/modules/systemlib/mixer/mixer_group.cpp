@@ -219,9 +219,31 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	return ret;
 }
 
+int
+MixerGroup::save_to_buf(char *buf, unsigned &buflen){
+    Mixer       *mixer = _first;
+    char*       bufpos = buf;
+    unsigned    remaining = buflen;
+    unsigned    len;
+
+    while(mixer != NULL){
+        /* len is remaining buffer length but modified
+         * to the actual bytes written to the buffer */
+        len = remaining;
+        if (mixer->to_text(bufpos, len) == 0) {
+            bufpos += len;
+            remaining -= len;
+        }
+        else
+            return -1;
+        mixer=mixer->_next;
+    }
+    return 0;
+}
 
 
-int MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen){
+int
+MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen){
     Mixer   *mixer = _first;
     signed   mix_count = 0;
 

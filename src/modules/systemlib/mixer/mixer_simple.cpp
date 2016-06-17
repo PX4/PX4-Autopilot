@@ -224,6 +224,53 @@ out:
 	return sm;
 }
 
+int
+SimpleMixer::to_text(char* buf, unsigned &buflen){
+    char* bufpos = buf;
+    unsigned remaining = buflen;
+
+    int written = snprintf(bufpos, remaining, "M: %u\n", _info->control_count);
+    bufpos += written;
+    remaining -= written;
+    if(remaining < 1)
+        return -1;
+
+    mixer_scaler_s *scaler = &_info->output_scaler;
+    written = snprintf(bufpos, remaining, "O: %d %d %d %d %d\n",
+                       (int) (scaler->negative_scale * 10000.0f),
+                       (int) (scaler->positive_scale * 10000.0f),
+                       (int) (scaler->offset * 10000.0f),
+                       (int) (scaler->min_output * 10000.0f),
+                       (int) (scaler->max_output * 10000.0f)
+                       );
+    bufpos += written;
+    remaining -= written;
+    if(remaining < 1)
+        return -1;
+
+
+    for (unsigned i = 0; i < _info->control_count; i++) {
+
+        scaler = &_info->controls[i].scaler;
+
+        written = snprintf(bufpos, remaining, "S: %u %u %d %d %d %d %d\n",
+                           _info->controls[i].control_group,
+                           _info->controls[i].control_index,
+                           (int) (scaler->negative_scale * 10000.0f),
+                           (int) (scaler->positive_scale * 10000.0f),
+                           (int) (scaler->offset * 10000.0f),
+                           (int) (scaler->min_output * 10000.0f),
+                           (int) (scaler->max_output * 10000.0f)
+                           );
+        bufpos += written;
+        remaining -= written;
+        if(remaining < 1)
+            return -1;
+    }
+    buflen = bufpos-buf;
+    return 0;
+}
+
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
 		       uint16_t mid, uint16_t max)

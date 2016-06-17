@@ -173,7 +173,14 @@ struct mixer_param_s {
  * return 0 if success, -1 if fail.  Fail can indicate out of range.
  * If failed then real value MAY be set in the mixer_param_s struct.
  */
-#define MIXERIOSETPARAM		_MIXERIOC(14)
+#define MIXERIOSETPARAM                 _MIXERIOC(14)
+
+
+/**
+ * Get mixer configuration text for serialization
+ */
+#define MIXERIOGETCONFIG               _MIXERIOC(15)
+
 
 
 #endif /* _DRV_ACCEL_H */
