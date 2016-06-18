@@ -254,7 +254,8 @@ private:
 		_vehicle_status{}
 #endif
 	{
-		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
+		{
 			_actuator_outputs_sub[i] = -1;
 		}
 	}
