@@ -56,8 +56,8 @@
 
 
 const char * MIXER_SIMPLE_PARAMETERS[] = {
-    "SCALE_POS",
     "SCALE_NEG",
+    "SCALE_POS",
     "OFFSET",
     "OUTPUT_MIN",
     "OUTPUT_MAX",
@@ -432,10 +432,10 @@ float
 SimpleMixer::get_parameter(uint16_t index){
     switch(index){
     case 0:
-        return this->_info->output_scaler.positive_scale;
+        return this->_info->output_scaler.negative_scale;
         break;
     case 1:
-        return this->_info->output_scaler.negative_scale;
+        return this->_info->output_scaler.positive_scale;
         break;
     case 2:
         return this->_info->output_scaler.offset;
@@ -455,10 +455,10 @@ int16_t
 SimpleMixer::set_parameter(uint16_t index, float value){
     switch(index){
     case 0:
-        _info->output_scaler.positive_scale = value;
+        _info->output_scaler.negative_scale = value;
         break;
     case 1:
-        _info->output_scaler.negative_scale = value;
+        _info->output_scaler.positive_scale = value;
         break;
     case 2:
         _info->output_scaler.offset = value;
