@@ -260,9 +260,12 @@ save(const char *devname, const char *fname)
     /* Write the buffer to the file*/
     ssize_t wr_len = write(fd, buf, strlen(buf));
 
-    if(wr_len != buflen)
+    if(wr_len != buflen) {
         warnx("not able to fully write to file %s", fname);
-
+    }
+    else {
+        PX4_INFO("Wrote mixer %s to file %s\n", devname, fname);
+    }
     fsync(fd);
     close(fd);
 
