@@ -240,8 +240,6 @@ save(const char *devname, const char *fname)
         return 1;
     }
 
-//    FILE		*fp;
-
     /* Create the mixer definition file */
 #ifdef __PX4_NUTTX
     int fd = open(fname, O_CREAT | O_WRONLY | O_DSYNC);
@@ -266,6 +264,7 @@ save(const char *devname, const char *fname)
     else {
         PX4_INFO("Wrote mixer %s to file %s\n", devname, fname);
     }
+
     fsync(fd);
     close(fd);
 
