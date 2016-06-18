@@ -53,7 +53,6 @@
 #include <ctype.h>
 #include <systemlib/err.h>
 
-#include "mixerParameters.h"
 #include "mixer.h"
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
@@ -153,125 +152,6 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 }
 
 
-/****************************************************************************/
-
-
-Mixer_3pt::Mixer_3pt() :
-    Mixer(nullptr, 0)
-{
-}
-
-unsigned
-Mixer_3pt::mix(float *outputs, unsigned space, uint16_t *status_reg)
-{
-    if (space > 0) {
-        *outputs = 0.0f;
-        return 1;
-    }
-
-    return 0;
-}
-
-void
-Mixer_3pt::groups_required(uint32_t &groups)
-{
-
-}
-
-Mixer_3pt *
-Mixer_3pt::from_text(const char *buf, unsigned &buflen)
-{
-    Mixer_3pt *nm = nullptr;
-
-    /* enforce that the mixer ends with space or a new line */
-    for (int i = buflen - 1; i >= 0; i--) {
-        if (buf[i] == '\0') {
-            continue;
-        }
-
-        /* require a space or newline at the end of the buffer, fail on printable chars */
-        if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-            /* found a line ending or space, so no split symbols / numbers. good. */
-            break;
-
-        } else {
-            return nm;
-        }
-
-    }
-
-    if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
-        nm = new Mixer_3pt();
-        buflen -= 2;
-    }
-
-    return nm;
-}
-
-const char**
-Mixer_3pt::get_parameter_id_strings(void) {
-    return MIXER_3PT_PARAMETERS;
-}
-
-uint16_t
-Mixer_3pt::get_parameter_id_count(void) {
-    return MIXER_3PT_PARAMETER_COUNT;
-}
-
-float
-Mixer_3pt::get_parameter(uint16_t index){
-    switch(index){
-    case 0:
-        return _input_points[0];
-        break;
-    case 1:
-        return _input_points[1];
-        break;
-    case 2:
-        return _input_points[2];
-        break;
-    case 3:
-        return _output_points[0];
-        break;
-    case 4:
-        return _output_points[1];
-        break;
-    case 5:
-        return _output_points[2];
-        break;
-    }
-    return 0.0;
-}
-
-int16_t
-Mixer_3pt::set_parameter(uint16_t index, float value){
-    switch(index){
-    case 0:
-        _input_points[0] = value;
-        break;
-    case 1:
-        _input_points[1] = value;
-        break;
-    case 2:
-        _input_points[2] = value;
-        break;
-    case 3:
-        _output_points[0] = value;
-        break;
-    case 4:
-        _output_points[1] = value;
-        break;
-    case 5:
-        _output_points[2] = value;
-        break;
-    default:
-        return -1;
-        break;
-    }
-    return 0;
-}
-
-
 
 /****************************************************************************/
 
@@ -327,72 +207,6 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 	return nm;
 }
 
-
-
-/****************************************************************************/
-//MixerRegisters
-
-MixerRegisters::MixerRegisters() :
-    Mixer(nullptr, 0)
-{
-}
-
-unsigned
-MixerRegisters::mix(float *outputs, unsigned space, uint16_t *status_reg)
-{
-    for(uint16_t index=0; index<MIXER_REGISTER_COUNT; index++){
-        _registers[index] = 0.0;
-    }
-
-    return 0;
-}
-
-void
-MixerRegisters::groups_required(uint32_t &groups)
-{
-
-}
-
-MixerRegisters *
-MixerRegisters::from_text(const char *buf, unsigned &buflen)
-{
-    MixerRegisters *nm = nullptr;
-
-    /* enforce that the mixer ends with space or a new line */
-    for (int i = buflen - 1; i >= 0; i--) {
-        if (buf[i] == '\0') {
-            continue;
-        }
-
-        /* require a space or newline at the end of the buffer, fail on printable chars */
-        if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-            /* found a line ending or space, so no split symbols / numbers. good. */
-            break;
-
-        } else {
-            return nm;
-        }
-
-    }
-
-    if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
-        nm = new MixerRegisters;
-        buflen -= 2;
-    }
-
-    return nm;
-}
-
-int16_t
-MixerRegisters::index_from_identifier(char *id)
-{
-    for(uint16_t index=0; index < MIXER_REGISTER_COUNT; index++) {
-        if(strcmp(id, MIXER_REGISTERS[index])==0){
-            return index;
-        }
-    }
-    return -1;
-}
 
 
 /****************************************************************************/

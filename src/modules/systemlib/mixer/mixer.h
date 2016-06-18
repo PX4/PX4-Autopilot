@@ -133,7 +133,6 @@
 
 #include <uORB/topics/multirotor_motor_limits.h>
 
-#include "mixerRegisters.h"
 #include "mixer_load.h"
 
 /**
@@ -292,64 +291,6 @@ private:
 
 
 
-/**
- * Mixers for holding intermediate register values for other mixers.
- * Initializes all registers to zero when run.
- * Typically the first mixer in the list
- */
-class __EXPORT MixerRegisters : public Mixer
-{
-public:
-    MixerRegisters();
-    ~MixerRegisters() {};
-
-    /**
-     * Factory method.
-     *
-     * Given a pointer to a buffer containing a text description of the mixer,
-     * returns a pointer to a new instance of the mixer.
-     *
-     * @param buf			Buffer containing a text description of
-     *				the mixer.
-     * @param buflen		Length of the buffer in bytes, adjusted
-     *				to reflect the bytes consumed.
-     * @return			A new MixerRegisters instance, or nullptr
-     *				if the text format is bad.
-     */
-    static MixerRegisters	*from_text(const char *buf, unsigned &buflen);
-
-    unsigned                mix(float *outputs, unsigned space, uint16_t *status_reg);
-    void                    groups_required(uint32_t &groups);
-
-    /**
-     * Get register index from name
-     *
-     * @param id			The name of the register to be found. -1 if not found.
-     * @return              index of named register
-     */
-    int16_t                 index_from_identifier(char *id);
-
-    /**
-     * Get register value from index
-     *
-     * @param index			The index of the register to be returned.
-     * @return              value of indexed register.  Return 0.0 if index is invalid.
-     */
-    float                   get_register(uint16_t index);
-
-    /**
-     * Get register value from index
-     *
-     * @param index			The index of the register to be set.
-     * @param value			float value to be set in the register
-     */
-    void                    set_register(uint16_t index, float value);
-
-protected:
-    float                   _registers[MIXER_REGISTER_COUNT] = {0.0};
-};
-
-
 
 /**
  * Group of mixers, built up from single mixers and processed
@@ -484,7 +425,6 @@ public:
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
-    MixerRegisters      *_intermediates; /**< reference to mixer containing intermediate registers if used */
 
 	/* do not allow to copy due to pointer data members */
 	MixerGroup(const MixerGroup &);
@@ -522,49 +462,6 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 };
-
-
-
-
-/**
- * 3 point intermediate mixer.
- *
- * Mixes to and from the intermediate mixer registers
- */
-class __EXPORT Mixer_3pt : public Mixer
-{
-public:
-    Mixer_3pt();
-    ~Mixer_3pt() {};
-
-    /**
-     * Factory method.
-     *
-     * Given a pointer to a buffer containing a text description of the mixer,
-     * returns a pointer to a new instance of the mixer.
-     *
-     * @param buf			Buffer containing a text description of
-     *				the mixer.
-     * @param buflen		Length of the buffer in bytes, adjusted
-     *				to reflect the bytes consumed.
-     * @return			A new Mixer_3pt instance, or nullptr
-     *				if the text format is bad.
-     */
-    static Mixer_3pt		*from_text(const char *buf, unsigned &buflen);
-
-    unsigned                mix(float *outputs, unsigned space, uint16_t *status_reg);
-    void                    groups_required(uint32_t &groups);
-
-    const char**    		get_parameter_id_strings(void);
-    uint16_t        		get_parameter_id_count(void);
-    float                   get_parameter(uint16_t index);
-    int16_t                 set_parameter(uint16_t index, float value);
-
-protected:
-    float                   _input_points[3] = {-1.0, 0.0, 1.0};
-    float                   _output_points[3] = {-1.0, 0.0, 1.0};
-};
-
 
 
 

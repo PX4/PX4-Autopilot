@@ -54,7 +54,6 @@
 
 #include "mixer.h"
 
-
 const char * MIXER_SIMPLE_PARAMETERS[] = {
     "SCALE_NEG",
     "SCALE_POS",
