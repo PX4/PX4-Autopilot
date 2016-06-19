@@ -31,6 +31,7 @@ echo "Connection successfully established"
 sleep 1
 
 adb shell mount -o remount,rw /
+adb shell touch /home/root/parameters
 
 ../Tools/adb_upload.sh $@
 
