@@ -185,8 +185,8 @@ int DfMS5607Wrapper::_publish(struct baro_sensor_data &data)
 	if (!(m_pub_blocked)) {
 
 		if (_baro_topic == nullptr) {
-		  _baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
-		                                    &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
+			_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
+							  &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
 
 		} else {
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &baro_report);
