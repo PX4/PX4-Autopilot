@@ -528,7 +528,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
-    int                     to_text(char* buf, unsigned &buflen);
+    virtual int             to_text(char* buf, unsigned &buflen);
 
     signed                  get_mixer_id(char* buff, unsigned maxlen);
     const char**    		get_parameter_id_strings(void);
@@ -640,7 +640,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
-    int                     to_text(char* buf, unsigned &buflen);
+    virtual int             to_text(char* buf, unsigned &buflen);
 
     signed                  get_mixer_id(char* buff, unsigned maxlen);
     const char**    		get_parameter_id_strings(void);
