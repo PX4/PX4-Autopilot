@@ -42,9 +42,15 @@
 #include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
+#include "systemlib/param/param.h"
+#include <shmem.h>
 
 __BEGIN_DECLS
 extern int dspal_main(int argc, char *argv[]);
+extern struct shmem_info *shmem_info_p;
+extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
+extern void release_shmem_lock(const char *caller_file_name, int caller_line_number);
+extern void init_shared_memory(void);
 __END_DECLS
 
 int px4muorb_orb_initialize()
@@ -73,6 +79,78 @@ int px4muorb_set_absolute_time_offset(int32_t time_diff_us)
 int px4muorb_get_absolute_time(uint64_t *time_us)
 {
 	*time_us = hrt_absolute_time();
+	return 0;
+}
+
+/*update value and param's change bit in shared memory*/
+int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes)
+{
+	unsigned int byte_changed, bit_changed;
+	union param_value_u *param_value = (union param_value_u *)value;
+
+	if(!shmem_info_p) {
+		init_shared_memory();
+	}
+
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
+		PX4_INFO("Could not get shmem lock\n");
+		return -1;
+	}
+
+	shmem_info_p->params_val[param] = *param_value;
+
+	byte_changed = param / 8;
+	bit_changed = 1 << param % 8;
+	shmem_info_p->krait_changed_index[byte_changed] |= bit_changed;
+
+	release_shmem_lock(__FILE__, __LINE__);
+
+	return 0;
+}
+
+int px4muorb_param_update_index_from_shmem(unsigned char *data, int data_len_in_bytes)
+{
+	unsigned int i;
+
+	if(!shmem_info_p)
+		return -1;
+
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
+		PX4_INFO("Could not get shmem lock\n");
+		return -1;
+	}
+
+	for (i = 0; i < data_len_in_bytes; i++) {
+		data[i] = shmem_info_p->adsp_changed_index[i];
+	}
+
+	release_shmem_lock(__FILE__, __LINE__);
+
+	return 0;
+}
+
+int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes)
+{
+	unsigned int byte_changed, bit_changed;
+	union param_value_u *param_value = (union param_value_u *)value;
+
+	if(!shmem_info_p)
+		return -1;
+
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
+		PX4_INFO("Could not get shmem lock\n");
+		return -1;
+	}
+
+	*param_value = shmem_info_p->params_val[param];
+
+	/*also clear the index since we are holding the lock*/
+	byte_changed = param / 8;
+	bit_changed = 1 << param % 8;
+	shmem_info_p->adsp_changed_index[byte_changed] &= ~bit_changed;
+
+	release_shmem_lock(__FILE__, __LINE__);
+
 	return 0;
 }
 
