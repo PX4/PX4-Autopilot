@@ -4,7 +4,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linu
 
 add_definitions(
   -D__PX4_POSIX_BEBOP
-  -D__BEBOP
+  -D__LINUX
 	)
 
 set(CMAKE_PROGRAM_PATH
