@@ -339,7 +339,7 @@ GPSSIM::task_main()
 			//Make sure to clear any stale data in case driver is reset
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 			_report_gps_pos.timestamp = hrt_absolute_time();
-			_report_gps_pos.timestamp_time = hrt_absolute_time();
+			_report_gps_pos.timestamp_time_relative = 0;
 
 			if (!(m_pub_blocked)) {
 				if (_report_gps_pos_pub != nullptr) {
