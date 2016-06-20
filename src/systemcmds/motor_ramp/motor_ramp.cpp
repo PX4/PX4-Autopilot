@@ -148,6 +148,9 @@ int motor_ramp_main(int argc, char *argv[])
 		if (strcmp(argv[3], "-s") == 0) {
 			_sine_output = true;
 		}
+
+	} else {
+		_sine_output = false;
 	}
 
 	if (!(_ramp_time > 0)) {
@@ -311,10 +314,10 @@ int motor_ramp_thread_main(int argc, char *argv[])
 				} else {
 					// sine outpout with period T = _ramp_time and magnitude between [0,1]
 					// phase shift makes sure that it starts at zero when timer is zero
-					output = 0.5f * (1.0f + sinf(M_TWOPI_F * timer / (_ramp_time * 1e6f) - M_PI_2_F));
+					output = 0.5f * (1.0f + sinf(M_TWOPI_F * timer / _ramp_time - M_PI_2_F));
 				}
 
-				if ((output > 1.0f && !_sine_output) || (timer > 3.0f * _ramp_time * 1e6f && _sine_output)) {
+				if ((output > 1.0f && !_sine_output) || (timer > 3.0f * _ramp_time && _sine_output)) {
 					// for ramp mode we set output to 1, for sine mode we just leave it as is
 					output = _sine_output ? output : 1.0f;
 					start = hrt_absolute_time();
