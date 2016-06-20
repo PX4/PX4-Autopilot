@@ -101,16 +101,16 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		PX4_ERR("[motor_ramp] %s", reason);
+		PX4_ERR("%s", reason);
 	}
 
-	PX4_WARN("[motor_ramp]\n\nWARNING: motors will ramp up to full speed!\n");
-	PX4_WARN("[motor_ramp] usage: motor_ramp <min_pwm> <ramp_time> <-s>");
-	PX4_WARN("[motor_ramp] setting option <-s> will enable sinus output with period <ramp_time>");
-	PX4_WARN("[motor_ramp] example:");
-	PX4_WARN("[motor_ramp] nsh> sdlog2 on");
-	PX4_WARN("[motor_ramp] nsh> mc_att_control stop");
-	PX4_WARN("[motor_ramp] nsh> motor_ramp 1100 0.5\n");
+	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n");
+	PX4_WARN("Usage: motor_ramp <min_pwm> <ramp_time> <-s>");
+	PX4_WARN("Setting option <-s> will enable sinus output with period <ramp_time>");
+	PX4_WARN("Example:");
+	PX4_WARN("nsh> sdlog2 on");
+	PX4_WARN("nsh> mc_att_control stop");
+	PX4_WARN("nsh> motor_ramp 1100 0.5\n");
 }
 
 /**
@@ -189,7 +189,7 @@ int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
 	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {
-		PX4_ERR("[motor_ramp] failed setting min values");
+		PX4_ERR("failed setting min values");
 		return 1;
 	}
 
@@ -218,25 +218,25 @@ int prepare(int fd, unsigned long *max_channels)
 {
 	/* get number of channels available on the device */
 	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)max_channels) != OK) {
-		PX4_ERR("[motor_ramp] PWM_SERVO_GET_COUNT");
+		PX4_ERR("PWM_SERVO_GET_COUNT");
 		return 1;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
 	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != OK) {
-		PX4_ERR("[motor_ramp] PWM_SERVO_SET_ARM_OK");
+		PX4_ERR("PWM_SERVO_SET_ARM_OK");
 		return 1;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
 	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
-		PX4_ERR("[motor_ramp] PWM_SERVO_ARM");
+		PX4_ERR("PWM_SERVO_ARM");
 		return 1;
 	}
 
 	/* tell IO to switch off safety without using the safety switch */
 	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != OK) {
-		PX4_ERR("[motor_ramp] PWM_SERVO_SET_FORCE_SAFETY_OFF");
+		PX4_ERR("PWM_SERVO_SET_FORCE_SAFETY_OFF");
 		return 1;
 	}
 
@@ -245,7 +245,7 @@ int prepare(int fd, unsigned long *max_channels)
 
 int motor_ramp_thread_main(int argc, char *argv[])
 {
-	PX4_WARN("[motor_ramp] starting");
+	PX4_WARN("starting");
 
 	_thread_running = true;
 
@@ -255,14 +255,14 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
-		PX4_ERR("[motor_ramp] can't open %s", dev);
+		PX4_ERR("can't open %s", dev);
 	}
 
 	if (prepare(fd, &max_channels) != OK) {
 		_thread_should_exit = true;
 	}
 
-	PX4_WARN("[motor_ramp] max chan: %lu", max_channels);
+	PX4_WARN("max chan: %lu", max_channels);
 
 	set_out(fd, max_channels, 0.0f);
 
@@ -287,7 +287,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		switch (ramp_state) {
 		case RAMP_INIT: {
-				PX4_WARN("[motor_ramp] setting pwm min: %d", _min_pwm);
+				PX4_WARN("setting pwm min: %d", _min_pwm);
 				set_min_pwm(fd, max_channels, _min_pwm);
 				ramp_state = RAMP_MIN;
 				break;
@@ -295,7 +295,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("[motor_ramp] starting %s: %.2f sec", _sine_output ? "sine" : "ramp", (double)_ramp_time);
+					PX4_WARN("starting %s: %.2f sec", _sine_output ? "sine" : "ramp", (double)_ramp_time);
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
@@ -319,7 +319,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 					output = _sine_output ? output : 1.0f;
 					start = hrt_absolute_time();
 					ramp_state = RAMP_WAIT;
-					PX4_WARN("[motor_ramp] %s finished, waiting", _sine_output ? "sine" : "ramp");
+					PX4_WARN("%s finished, waiting", _sine_output ? "sine" : "ramp");
 				}
 
 				set_out(fd, max_channels, output);
@@ -348,7 +348,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		px4_close(fd);
 	}
 
-	PX4_WARN("[motor_ramp] exiting");
+	PX4_WARN("exiting");
 
 	_thread_running = false;
 
