@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,13 +104,13 @@ usage(const char *reason)
 		PX4_ERR("%s", reason);
 	}
 
-	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n");
-	PX4_WARN("Usage: motor_ramp <min_pwm> <ramp_time> <-s>");
-	PX4_WARN("Setting option <-s> will enable sinus output with period <ramp_time>");
-	PX4_WARN("Example:");
-	PX4_WARN("nsh> sdlog2 on");
-	PX4_WARN("nsh> mc_att_control stop");
-	PX4_WARN("nsh> motor_ramp 1100 0.5\n");
+	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n\n"
+		"Usage: motor_ramp <min_pwm> <ramp_time> <-s>\n"
+		"Setting option <-s> will enable sinus output with period <ramp_time>\n\n"
+		"Example:\n"
+		"nsh> sdlog2 on\n"
+		"nsh> mc_att_control stop\n"
+		"nsh> motor_ramp 1100 0.5\n");
 }
 
 /**
@@ -219,6 +219,27 @@ int set_out(int fd, unsigned long max_channels, float output)
 
 int prepare(int fd, unsigned long *max_channels)
 {
+	/* make sure no other source is publishing control values now */
+	struct actuator_controls_s actuators;
+	int act_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+
+	/* clear changed flag */
+	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
+
+	/* wait 50 ms */
+	usleep(50000);
+
+	/* now expect nothing changed on that topic */
+	bool orb_updated;
+	orb_check(act_sub, &orb_updated);
+
+	if (orb_updated) {
+		PX4_ERR("ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
+			"\tmc_att_control stop\n"
+			"\tfw_att_control stop\n");
+		return 1;
+	}
+
 	/* get number of channels available on the device */
 	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)max_channels) != OK) {
 		PX4_ERR("PWM_SERVO_GET_COUNT");
@@ -248,8 +269,6 @@ int prepare(int fd, unsigned long *max_channels)
 
 int motor_ramp_thread_main(int argc, char *argv[])
 {
-	PX4_WARN("starting");
-
 	_thread_running = true;
 
 	char *dev = PWM_OUTPUT0_DEVICE_PATH;
@@ -265,8 +284,6 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		_thread_should_exit = true;
 	}
 
-	PX4_WARN("max chan: %lu", max_channels);
-
 	set_out(fd, max_channels, 0.0f);
 
 	float dt = 0.01f; // prevent division with 0
@@ -278,6 +295,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	float output = 0.0f;
 
 	while (!_thread_should_exit) {
+
 		if (last_run > 0) {
 			dt = hrt_elapsed_time(&last_run) * 1e-6;
 
@@ -350,8 +368,6 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		px4_close(fd);
 	}
-
-	PX4_WARN("exiting");
 
 	_thread_running = false;
 
