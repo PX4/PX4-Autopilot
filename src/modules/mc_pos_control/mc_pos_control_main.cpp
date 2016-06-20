@@ -819,49 +819,72 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
-	if (_control_mode.flag_control_altitude_enabled) {
-		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
-	}
-
-	if (_control_mode.flag_control_position_enabled) {
-		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp(0) = _manual.x;
-		req_vel_sp(1) = _manual.y;
-	}
-
-	if (_control_mode.flag_control_altitude_enabled) {
-		/* reset alt setpoint to current altitude if needed */
-		reset_alt_sp();
+	if (_posctrl_sub_mode != MODE_CIRCLE) {
+		// reset the radius used for circle mode to invalid
+		_R_circle = -1.0f;
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
+		if (_posctrl_sub_mode == MODE_POS_CTRL) {
+			// standard position control, user commands desired velocities
+			// otherwise drone will hold position
+
+			if (_control_mode.flag_control_position_enabled) {
+				/* set horizontal velocity setpoint with roll/pitch stick */
+				req_vel_sp(0) = _manual.x;
+				req_vel_sp(1) = _manual.y;
+			}
+
+			/* limit velocity setpoint */
+			float req_hor_vel_sp_norm = sqrtf(req_vel_sp(0) * req_vel_sp(0) + req_vel_sp(1) * req_vel_sp(1));
+
+			if (req_hor_vel_sp_norm > 1.0f) {
+				req_vel_sp(0) = req_vel_sp(0) / req_hor_vel_sp_norm;
+				req_vel_sp(1) = req_vel_sp(1) / req_hor_vel_sp_norm;
+			}
+
+			/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
+			math::Matrix<3, 3> R_yaw_sp;
+			R_yaw_sp.from_euler(0.0f, 0.0f, _yaw);
+			req_vel_sp_scaled(0) = req_vel_sp(0) * _params.vel_cruise(0);
+			req_vel_sp_scaled(1) = req_vel_sp(1) * _params.vel_cruise(1);
+			req_vel_sp_scaled = R_yaw_sp * req_vel_sp_scaled;
+
+		} else if (_posctrl_sub_mode == MODE_CIRCLE) {
+			// vehicle flies along circle facing the center
+			// user can change command velocity and modify radius
+
+			if (_R_circle < 0.0f) {
+				// just switched into circle mode, set circle radius and origin
+				// if circle mode was activated via command then the radius was already set above
+				_R_circle = 3.0f;
+				_circle_orig(0) = _pos(0) + _R_circle * cosf(_yaw);
+				_circle_orig(1) = _pos(1) + _R_circle * sinf(_yaw);
+			}
+
+			// desired velocity along the circle
+			float vel_desired = _manual.y * _params.vel_cruise(0);
+
+			// user can change radius with pitch stick
+			_R_circle += _manual.x * 2.0f * dt;
+			_R_circle = math::constrain(_R_circle, 3.0f, 100.0f);
+			control_circle(_circle_orig(0), _circle_orig(1), _R_circle, vel_desired, &req_vel_sp_scaled.data[0], &_att_sp.yaw_body);
+			req_vel_sp(0) = _params.vel_cruise(0) > FLT_EPSILON ? req_vel_sp_scaled(0) / _params.vel_cruise(0) : 0.0f;
+			req_vel_sp(1) = _params.vel_cruise(1) > FLT_EPSILON ? req_vel_sp_scaled(1) / _params.vel_cruise(1) : 0.0f;
+		}
 	}
 
-	/* limit velocity setpoint */
-	float req_vel_sp_norm = req_vel_sp.length();
+	// altitude control, common for all alitude controlled modes
+	if (_control_mode.flag_control_altitude_enabled) {
+		/* reset alt setpoint to current altitude if needed */
+		reset_alt_sp();
 
-	if (req_vel_sp_norm > 1.0f) {
-		req_vel_sp /= req_vel_sp_norm;
-	}
-
-	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
-	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_cruise); // in NED and scaled to actual velocity
-
-	if (_control_mode.flag_control_position_enabled) {
-		float vel_desired = _manual.y * _params.vel_max(0);
-		_R_circle += _manual.x * 2.0f * dt;
-		_R_circle = math::constrain(_R_circle, 3.0f, 100.0f);
-		control_circle(_circle_orig(0), _circle_orig(1), _R_circle, vel_desired, &req_vel_sp_scaled.data[0], &_att_sp.yaw_body);
-	} else {
-		_R_circle = 3.0f;
-		_circle_orig(0) = _pos(0) + _R_circle * cosf(_yaw);
-		_circle_orig(1) = _pos(1) + _R_circle * sinf(_yaw);
+		/* set vertical velocity setpoint with throttle stick */
+		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
+		req_vel_sp(2) = math::constrain(req_vel_sp(2), -1.0f, 1.0f);
+		req_vel_sp_scaled(2) = req_vel_sp(2) * _params.vel_cruise(2);
 	}
 
 	/*
