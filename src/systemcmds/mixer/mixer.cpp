@@ -285,7 +285,7 @@ static int  mixer_show_config(const char *devname){
     /* Pass the buffer to the device */
     int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
     if (ret == 0) {
-        printf(buf);
+        printf("%s", buf);
     }
     else {
         warnx("Could not generate mixer config for %s\n", devname);
