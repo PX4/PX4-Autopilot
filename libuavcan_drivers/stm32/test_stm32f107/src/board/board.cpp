@@ -37,7 +37,7 @@ void init()
 __attribute__((noreturn))
 void die(int error)
 {
-    lowsyslog("Fatal error %i\n", error);
+    syslog("Fatal error %i\n", error);
     while (1)
     {
         setLed(false);
