@@ -327,7 +327,7 @@ mixer_list(const char *devname)
         id.index = index;
         /* Get the mixer name at index*/
         ret = px4_ioctl(dev, MIXERIONAME, (unsigned long)&id);
-        printf(id.id);
+        printf("%s", id.id);
         printf("\n");
     }
 
