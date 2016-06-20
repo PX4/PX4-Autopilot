@@ -144,6 +144,8 @@ set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 #
 # must come before project to set toolchain
 
+set(nuttx_configure "$ENV{NUTTX_CONFIGURE}")
+
 string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)

@@ -281,7 +281,7 @@ function(px4_nuttx_add_export)
 							COMMAND ${TOUCH} ${stamp}
 							DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
 							COMMENT "Applying ${patch}")
-	    add_custom_target(${patch_name}
+		add_custom_target(${patch_name}
 							DEPENDS ${stamp}
 							__nuttx_copy_${CONFIG})
 		add_dependencies(__nuttx_patch_${CONFIG} ${patch_name})
@@ -299,6 +299,7 @@ function(px4_nuttx_add_export)
 
 	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
+
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
@@ -310,6 +311,19 @@ function(px4_nuttx_add_export)
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}")
+
+	if(${nuttx_configure})
+
+		add_custom_target(
+			reconfigure_nuttx.${CONFIG} ALL
+			DEPENDS ${CMAKE_BINARY_DIR}/${CONFIG}.export
+			COMMAND cd ${nuttx_src}/nuttx
+			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
+			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
+			COMMAND ${CP} .config ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+			USES_TERMINAL
+			COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
+	endif()
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
