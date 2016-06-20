@@ -1161,8 +1161,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_enable_datalink_loss = param_find("NAV_DLL_ACT");
 	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
-	param_t _param_offboard_loss_act = param_find("NAV_OBL_ACT");
-	param_t _param_offboard_loss_rc_act = param_find("NAV_OBL_RC_ACT");
+	param_t _param_offboard_loss_act = param_find("COM_OBL_ACT");
+	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");

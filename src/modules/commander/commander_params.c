@@ -277,6 +277,48 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
+ * Time-out to wait when offboard connection is lost before triggering offboard lost action.
+ * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
+ *
+ * @group Commander
+ * @unit second
+ * @min 0
+ * @max 60
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
+
+/**
+ * Set offboard loss failsafe mode
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Land at current position
+ * @value 1 Loiter
+ * @value 2 Return to Land
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
+
+/**
+ * Set offboard loss failsafe mode when RC is available
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Position control
+ * @value 1 Altitude control
+ * @value 2 Manual
+ * @value 3 Return to Land
+ * @value 4 Land at current position
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
+
+/**
  * First flightmode slot (1000-1160)
  *
  * If the main switch channel is in this range the
@@ -413,15 +455,3 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 12 Follow Me
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
-
-/**
- * Time-out to wait when offboard connection is lost before triggering offboard lost action.
- * See NAV_OBL_ACT and NAV_OBL_RC_ACT to configure action.
- *
- * @group Commander
- * @unit second
- * @min 0
- * @max 60
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
