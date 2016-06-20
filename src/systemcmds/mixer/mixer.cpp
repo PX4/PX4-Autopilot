@@ -357,13 +357,13 @@ mixer_param_list(const char *devname, int mix_index)
     int ret = px4_ioctl(dev, MIXERIOGETPARAMIDS, (unsigned long)&param_ids);
 
     if (ret < 0) {
-        warnx("can't get mixer :%s parameters for mixer %u", devname, mix_index);
+        warnx("can't get mixer :%s parameter identifiers for mixer %u", devname, mix_index);
         return 1;
     }
 
     if (param_ids.id_count == 0) {
         printf("mixer:%u  parameter list empty\n", mix_index);
-        return 0;
+        return 1;
     }
 
     mixer_param_s param;
@@ -401,7 +401,7 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
 
     int ret = px4_ioctl(dev, MIXERIOSETPARAM, (unsigned long)&param);
     if(ret == 0){
-        printf("mixer:%u  param:%u id:%s value:%f set success\n", mix_index, param_index, (double) param.value);
+        printf("mixer:%u param:%u value:%f set success\n", mix_index, param_index, (double) param.value);
         return 0;
     }
     else {

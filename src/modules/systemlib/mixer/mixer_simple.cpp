@@ -228,13 +228,13 @@ SimpleMixer::to_text(char* buf, unsigned &buflen){
     char* bufpos = buf;
     unsigned remaining = buflen;
 
-    int written = snprintf(bufpos, remaining, "M: %u\n", _info->control_count);
+    int written = snprintf(bufpos, remaining, "M: %u\n", _pinfo->control_count);
     bufpos += written;
     remaining -= written;
     if(remaining < 1)
         return -1;
 
-    mixer_scaler_s *scaler = &_info->output_scaler;
+    mixer_scaler_s *scaler = &_pinfo->output_scaler;
     written = snprintf(bufpos, remaining, "O: %d %d %d %d %d\n",
                        (int) (scaler->negative_scale * 10000.0f),
                        (int) (scaler->positive_scale * 10000.0f),
@@ -248,13 +248,13 @@ SimpleMixer::to_text(char* buf, unsigned &buflen){
         return -1;
 
 
-    for (unsigned i = 0; i < _info->control_count; i++) {
+    for (unsigned i = 0; i < _pinfo->control_count; i++) {
 
-        scaler = &_info->controls[i].scaler;
+        scaler = &_pinfo->controls[i].scaler;
 
         written = snprintf(bufpos, remaining, "S: %u %u %d %d %d %d %d\n",
-                           _info->controls[i].control_group,
-                           _info->controls[i].control_index,
+                           _pinfo->controls[i].control_group,
+                           _pinfo->controls[i].control_index,
                            (int) (scaler->negative_scale * 10000.0f),
                            (int) (scaler->positive_scale * 10000.0f),
                            (int) (scaler->offset * 10000.0f),
@@ -431,19 +431,19 @@ float
 SimpleMixer::get_parameter(uint16_t index){
     switch(index){
     case 0:
-        return this->_info->output_scaler.negative_scale;
+        return _pinfo->output_scaler.negative_scale;
         break;
     case 1:
-        return this->_info->output_scaler.positive_scale;
+        return _pinfo->output_scaler.positive_scale;
         break;
     case 2:
-        return this->_info->output_scaler.offset;
+        return _pinfo->output_scaler.offset;
         break;
     case 3:
-        return this->_info->output_scaler.min_output;
+        return _pinfo->output_scaler.min_output;
         break;
     case 4:
-        return this->_info->output_scaler.max_output;
+        return _pinfo->output_scaler.max_output;
         break;
     }
 
@@ -454,19 +454,19 @@ int16_t
 SimpleMixer::set_parameter(uint16_t index, float value){
     switch(index){
     case 0:
-        _info->output_scaler.negative_scale = value;
+        _pinfo->output_scaler.negative_scale = value;
         break;
     case 1:
-        _info->output_scaler.positive_scale = value;
+        _pinfo->output_scaler.positive_scale = value;
         break;
     case 2:
-        _info->output_scaler.offset = value;
+        _pinfo->output_scaler.offset = value;
         break;
     case 3:
-        _info->output_scaler.min_output = value;
+        _pinfo->output_scaler.min_output = value;
         break;
     case 4:
-        _info->output_scaler.max_output = value;
+        _pinfo->output_scaler.max_output = value;
         break;
     default:
         return -1;

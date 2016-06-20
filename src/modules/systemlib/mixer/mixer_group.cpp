@@ -259,6 +259,7 @@ MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
         index++;
     }
 
+    *params = 0;
     return NULL;
 }
 
