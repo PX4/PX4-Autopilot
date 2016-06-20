@@ -105,12 +105,12 @@ usage(const char *reason)
 	}
 
 	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n\n"
-		"Usage: motor_ramp <min_pwm> <ramp_time> <-s>\n"
-		"Setting option <-s> will enable sinus output with period <ramp_time>\n\n"
-		"Example:\n"
-		"nsh> sdlog2 on\n"
-		"nsh> mc_att_control stop\n"
-		"nsh> motor_ramp 1100 0.5\n");
+		 "Usage: motor_ramp <min_pwm> <ramp_time> <-s>\n"
+		 "Setting option <-s> will enable sinus output with period <ramp_time>\n\n"
+		 "Example:\n"
+		 "nsh> sdlog2 on\n"
+		 "nsh> mc_att_control stop\n"
+		 "nsh> motor_ramp 1100 0.5\n");
 }
 
 /**
