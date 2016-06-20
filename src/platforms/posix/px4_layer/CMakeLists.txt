@@ -31,6 +31,11 @@
 #
 ############################################################################
 
+include(hexagon_sdk)
+
+include_directories(${CMAKE_BINARY_DIR}/src/firmware/posix)
+include_directories(${HEXAGON_SDK_INCLUDES})
+
 if("${CONFIG_SHMEM}" STREQUAL "1")
 	list(APPEND SHMEM_SRCS
 		shmem_posix.c

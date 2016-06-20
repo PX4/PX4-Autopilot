@@ -48,13 +48,14 @@
 #include <drivers/drv_hrt.h>
 
 //#define SHMEM_DEBUG
+//#define PARAM_LOCK_DEBUG
 
 int mem_fd;
 unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
 static void *map_memory(off_t target);
 int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-void release_shmem_lock(void);
+void release_shmem_lock(const char *caller_file_name, int caller_line_number);
 void init_shared_memory(void);
 void copy_params_to_shmem(struct param_info_s *);
 void update_to_shmem(param_t param, union param_value_u value);
@@ -91,15 +92,14 @@ static void *map_memory(off_t target)
 
 int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
-	// TODO: don't do this for now
-	return 0;
-
 	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
 	unsigned int i = 0;
 
+#ifdef PARAM_LOCK_DEBUG
+	PX4_INFO("lock value %d before get from %s, line: %d\n", *(unsigned int*)0xfbfc000, strrchr(caller_file_name, '/'), caller_line_number);
+#endif
+
 	while (!atomic_compare_and_set(lock, 1, 0)) {
-		PX4_INFO("Could not get lock, file name: %s, line number: %d.\n",
-			 caller_file_name, caller_line_number);
 		i++;
 		usleep(1000);
 
@@ -107,6 +107,8 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 	}
 
 	if (i > 100) {
+		PX4_INFO("Could not get lock, file name: %s, line number: %d.\n",
+			 strrchr(caller_file_name, '/'), caller_line_number);
 		return -1;
 
 	} else {
@@ -117,23 +119,38 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 }
 
-void release_shmem_lock(void)
+void release_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
-	// TODO: don't do this either
-	return;
-
 	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
 
 	*lock = 1;
+
+#ifdef PARAM_LOCK_DEBUG
+	PX4_INFO("release lock, file name: %s, line number: %d.\n",
+		 strrchr(caller_file_name, '/'), caller_line_number);
+#endif
+
 	return;
 }
 
 void init_shared_memory(void)
 {
 	//PX4_INFO("Value at lock address is %d\n", *(unsigned int*)0xfbfc000);
+	int i;
+
+	if(shmem_info_p)
+		return;
 
 	virt_addr = map_memory(MAP_ADDRESS);
 	shmem_info_p = (struct shmem_info *)virt_addr;
+
+	//init lock as 1
+	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
+	*lock = 1;
+
+	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
+		shmem_info_p->krait_changed_index[i] = 0;
+	}
 
 	//PX4_INFO("adsp memory mapped\n");
 }
@@ -175,7 +192,7 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 		krait_changed_index[i] = 0;
 	}
 
-	release_shmem_lock();
+	release_shmem_lock(__FILE__, __LINE__);
 	//PX4_INFO("Released lock\n");
 
 }
@@ -217,20 +234,19 @@ void update_to_shmem(param_t param, union param_value_u value)
 
 #endif
 
-	release_shmem_lock();
+	release_shmem_lock(__FILE__, __LINE__);
 
 }
 
 void update_index_from_shmem(void)
 {
 	unsigned int i;
+	param_t params[MAX_SHMEM_PARAMS / 8 + 1];
 
 	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		PX4_ERR("Could not get shmem lock\n");
 		return;
 	}
-
-	PX4_DEBUG("Updating index from shmem\n");
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
 		// Check if any param has been changed.
@@ -243,15 +259,21 @@ void update_index_from_shmem(void)
 
 			// Update our krait_changed_index as well.
 			krait_changed_index[i] = shmem_info_p->krait_changed_index[i];
-
-			// FIXME: this is a hack but it gets the param so that it gets added
-			// to the local list param_values in param_shmem.c.
-			int32_t dummy;
-			param_get(param_to_get, &dummy);
+			params[i] = param_to_get;
+		} else {
+			params[i] = 0xFFFF;
 		}
 	}
+	release_shmem_lock(__FILE__, __LINE__);
 
-	release_shmem_lock();
+	// FIXME: this is a hack but it gets the param so that it gets added
+	// to the local list param_values in param_shmem.c.
+	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
+		if(params[i] != 0xFFFF){
+			int32_t dummy;
+			param_get(params[i], &dummy);
+		}
+	}
 }
 
 
@@ -271,7 +293,7 @@ static void update_value_from_shmem(param_t param, union param_value_u *value)
 	bit_changed = 1 << param % 8;
 	shmem_info_p->krait_changed_index[byte_changed] &= ~bit_changed;
 
-	release_shmem_lock();
+	release_shmem_lock(__FILE__, __LINE__);
 
 #ifdef SHMEM_DEBUG
 

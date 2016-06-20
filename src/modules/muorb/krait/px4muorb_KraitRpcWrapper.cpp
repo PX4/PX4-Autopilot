@@ -38,6 +38,7 @@
 #include <rpcmem.h>
 #include "px4muorb.h"
 #include "px4_log.h"
+#include <shmem.h>
 
 using namespace px4muorb;
 
@@ -62,6 +63,8 @@ static const uint32_t _MAX_TOPIC_DATA_BUFFER_SIZE = 1024;
 static const uint32_t _MAX_TOPICS = 64;
 static const uint32_t _MAX_BULK_TRANSFER_BUFFER_SIZE = _MAX_TOPIC_DATA_BUFFER_SIZE * _MAX_TOPICS;
 static uint8_t *_BulkTransferBuffer = 0;
+
+unsigned char *adsp_changed_index = 0;
 
 // The DSP timer can be read from this file.
 #define DSP_TIMER_FILE "/sys/kernel/boot_adsp/qdsp_qtimer"
@@ -195,6 +198,17 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 		PX4_DEBUG("%s rpcmem_alloc passed for data_buffer", __FUNCTION__);
 	}
 
+	adsp_changed_index = (uint8_t *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID,
+					       MUORB_KRAIT_FASTRPC_MEM_FLAGS, PARAM_BUFFER_SIZE * sizeof(uint8_t));
+
+	rc = (adsp_changed_index != NULL) ? true : false;
+
+	if (!rc) {
+		PX4_ERR("%s rpcmem_alloc failed! for adsp_changed_index", __FUNCTION__);
+	} else {
+		memset(adsp_changed_index, 0, PARAM_BUFFER_SIZE * sizeof(uint8_t));
+	}
+
 	int32_t time_diff_us;
 
 	if (calc_timer_diff_to_dsp_us(&time_diff_us) != 0) {
@@ -240,6 +254,11 @@ bool px4muorb::KraitRpcWrapper::Terminate()
 	if (_DataBuffer != NULL) {
 		rpcmem_free(_DataBuffer);
 		_DataBuffer = 0;
+	}
+
+	if(adsp_changed_index != NULL) {
+		rpcmem_free(adsp_changed_index);
+		adsp_changed_index = 0;
 	}
 
 	_Initialized = false;
