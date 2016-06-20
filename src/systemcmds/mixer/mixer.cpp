@@ -136,7 +136,7 @@ mixer_main(int argc, char *argv[])
         int ret = mixer_param_set(  argv[2],
                                     strtoul(argv[3], NULL, 0),
                                     strtoul(argv[4], NULL, 0),
-                                    strtof(argv[5], 0) );
+                                    ((float) strtod(argv[5], 0)) );
 
         if (ret != 0) {
             warnx("failed to list parameters");
@@ -405,7 +405,7 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
         return 0;
     }
     else {
-        warnx("fail to set mixer:%u  param:%u id:%s value:%f\n", mix_index, param_index, (double) value);
+        warnx("fail to set mixer parameter");
         return -1;
     }
 }
