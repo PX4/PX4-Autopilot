@@ -318,7 +318,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 	case 1:		/* XXX magic number - test operation */
 		switch (arg) {
 		case 0:
-			lowsyslog(LOG_INFO, "test 0\n");
+			syslog(LOG_INFO, "test 0\n");
 
 			/* kill DMA, this is a PIO test */
 			stm32_dmastop(_tx_dma);
@@ -345,7 +345,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 					}
 
 					if (count >= 5000) {
-						lowsyslog(LOG_INFO, "==== test 1 : %u failures ====\n", fails);
+						syslog(LOG_INFO, "==== test 1 : %u failures ====\n", fails);
 						perf_print_counter(_pc_txns);
 						perf_print_counter(_pc_dmasetup);
 						perf_print_counter(_pc_retries);
@@ -364,7 +364,7 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 			}
 
 		case 2:
-			lowsyslog(LOG_INFO, "test 2\n");
+			syslog(LOG_INFO, "test 2\n");
 			return 0;
 		}
 
@@ -604,7 +604,7 @@ PX4IO_serial::_wait_complete()
 		}
 
 		/* we might? see this for EINTR */
-		lowsyslog(LOG_ERR, "unexpected ret %d/%d\n", ret, errno);
+		syslog(LOG_ERR, "unexpected ret %d/%d\n", ret, errno);
 	}
 
 	/* reset DMA status */

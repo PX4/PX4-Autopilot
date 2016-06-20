@@ -209,7 +209,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 		buf[0] = (offset >> 8) & 0xff;
 
 		while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) {
-			fvdbg("erase stall\n");
+			fwarn("erase stall\n");
 			usleep(10000);
 		}
 	}
@@ -243,16 +243,16 @@ void at24c_test(void)
 
 		if (result == ERROR) {
 			if (errors++ > 2) {
-				vdbg("too many errors\n");
+				syslog(LOG_INFO, "too many errors\n");
 				return;
 			}
 
 		} else if (result != 1) {
-			vdbg("unexpected %u\n", result);
+			syslog(LOG_INFO, "unexpected %u\n", result);
 		}
 
 		if ((count % 100) == 0) {
-			vdbg("test %u errors %u\n", count, errors);
+			syslog(LOG_INFO, "test %u errors %u\n", count, errors);
 		}
 	}
 }
@@ -292,7 +292,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 #endif
 	blocksleft  = nblocks;
 
-	fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
 	if (startblock >= priv->npages) {
 		return 0;
@@ -320,7 +320,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 				break;
 			}
 
-			fvdbg("read stall");
+			finfo("read stall");
 			usleep(1000);
 
 			/* We should normally only be here on the first read after
@@ -387,7 +387,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		nblocks = priv->npages - startblock;
 	}
 
-	fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
 	while (blocksleft-- > 0) {
 		uint16_t offset = startblock * priv->pagesize;
@@ -407,7 +407,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 				break;
 			}
 
-			fvdbg("write stall");
+			finfo("write stall");
 			usleep(1000);
 
 			/* We expect to see a number of retries per write cycle as we
@@ -439,7 +439,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	int ret = -EINVAL; /* Assume good command with bad parameters */
 
-	fvdbg("cmd: %d \n", cmd);
+	finfo("cmd: %d \n", cmd);
 
 	switch (cmd) {
 	case MTDIOC_GEOMETRY: {
@@ -478,7 +478,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 #endif
 				ret               = OK;
 
-				fvdbg("blocksize: %d erasesize: %d neraseblocks: %d\n",
+				finfo("blocksize: %d erasesize: %d neraseblocks: %d\n",
 				      geo->blocksize, geo->erasesize, geo->neraseblocks);
 			}
 		}
@@ -515,7 +515,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 {
 	FAR struct at24c_dev_s *priv;
 
-	fvdbg("dev: %p\n", dev);
+	finfo("dev: %p\n", dev);
 
 	/* Allocate a state structure (we allocate the structure instead of using
 	 * a fixed, static allocation so that we can handle multiple FLASH devices.
@@ -575,7 +575,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 
 	/* Return the implementation-specific state structure as the MTD device */
 
-	fvdbg("Return %p\n", priv);
+	finfo("Return %p\n", priv);
 	return (FAR struct mtd_dev_s *)priv;
 }
 

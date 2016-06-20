@@ -70,6 +70,12 @@
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
+#ifdef CONFIG_DEBUG_HRT
+#  define hrtinfo _info
+#else
+#  define hrtinfo(x...)
+#endif
+
 #ifdef HRT_TIMER
 
 /* HRT configuration */
@@ -865,7 +871,7 @@ hrt_call_enter(struct hrt_call *entry)
 
 	if ((call == NULL) || (entry->deadline < call->deadline)) {
 		sq_addfirst(&entry->link, &callout_queue);
-		//lldbg("call enter at head, reschedule\n");
+		hrtinfo("call enter at head, reschedule\n");
 		/* we changed the next deadline, reschedule the timer event */
 		hrt_call_reschedule();
 
@@ -874,14 +880,14 @@ hrt_call_enter(struct hrt_call *entry)
 			next = (struct hrt_call *)sq_next(&call->link);
 
 			if ((next == NULL) || (entry->deadline < next->deadline)) {
-				//lldbg("call enter after head\n");
+				hrtinfo("call enter after head\n");
 				sq_addafter(&call->link, &entry->link, &callout_queue);
 				break;
 			}
 		} while ((call = next) != NULL);
 	}
 
-	//lldbg("scheduled\n");
+	hrtinfo("scheduled\n");
 }
 
 static void
@@ -905,7 +911,7 @@ hrt_call_invoke(void)
 		}
 
 		sq_rem(&call->link, &callout_queue);
-		//lldbg("call pop\n");
+		hrtinfo("call pop\n");
 
 		/* save the intended deadline for periodic calls */
 		deadline = call->deadline;
@@ -915,7 +921,7 @@ hrt_call_invoke(void)
 
 		/* invoke the callout (if there is one) */
 		if (call->callout) {
-			//lldbg("call %p: %p(%p)\n", call, call->callout, call->arg);
+			hrtinfo("call %p: %p(%p)\n", call, call->callout, call->arg);
 			call->callout(call->arg);
 		}
 
@@ -958,19 +964,20 @@ hrt_call_reschedule()
 	 * hrt_absolute_time runs at least once per timer period.
 	 */
 	if (next != NULL) {
-		//lldbg("entry in queue\n");
+		hrtinfo("entry in queue\n");
+
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
-			//lldbg("pre-expired\n");
+			hrtinfo("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
 			deadline = now + HRT_INTERVAL_MIN;
 
 		} else if (next->deadline < deadline) {
-			//lldbg("due soon\n");
+			hrtinfo("due soon\n");
 			deadline = next->deadline;
 		}
 	}
 
-	//lldbg("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
+	hrtinfo("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
 
 	/* set the new compare value and remember it for latency tracking */
 	rCCR_HRT = latency_baseline = deadline & 0xffff;

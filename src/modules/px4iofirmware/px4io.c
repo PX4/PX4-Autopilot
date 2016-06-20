@@ -266,7 +266,7 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* print some startup info */
-	lowsyslog(LOG_INFO, "\nPX4IO: starting\n");
+	syslog(LOG_INFO, "\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -308,7 +308,7 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
@@ -328,7 +328,7 @@ user_start(int argc, char *argv[])
 	 */
 	if (minfo.mxordblk < 600) {
 
-		lowsyslog(LOG_ERR, "ERR: not enough MEM");
+		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
 
 		while (true) {
