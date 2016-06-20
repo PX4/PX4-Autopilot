@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -138,6 +139,7 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int 	_vehicle_command_sub;	/**< vehicle command subscription */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -156,6 +158,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+	struct vehicle_command_s 					_vehicle_command;	/**< vehicle_command */
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -270,6 +273,13 @@ private:
 
 	float _R_circle;					/**< desired radius for circle mode */
 	math::Vector<2> _circle_orig;		/**< local origin of circle in circle mode */
+	bool _was_pos_ctrl_mode;			/**< previous iteration was in position control mode */
+
+	// position control sub-modes
+	enum MAN_CTRL_MODE {
+		MODE_POS_CTRL = 0,
+		MODE_CIRCLE,
+	} _posctrl_sub_mode;
 
 	/**
 	 * Update our local parameter cache.
@@ -375,6 +385,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+	_vehicle_command_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -392,6 +403,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_global_vel_sp{},
+	_vehicle_command{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_vel_x_deriv(this, "VELD"),
@@ -415,7 +427,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
-	_R_circle(3.0f)
+	_R_circle(3.0f),
+	_was_pos_ctrl_mode(false)
 {
 	// Make the quaternion valid for control state
 	_ctrl_state.q[0] = 1.0f;
@@ -701,6 +714,23 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
+
+	orb_check(_vehicle_command_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
+
+		// update sub-mode for position control mode
+		if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE) {
+			if ((int)_vehicle_command.param1 == 0) {
+				_posctrl_sub_mode = MODE_POS_CTRL;
+			} else if ((int)_vehicle_command.param1 == 1) {
+				_posctrl_sub_mode = MODE_CIRCLE;
+
+				// XXX Need to pass circle origin and radius here
+			}
+		}
+	}
 }
 
 float
@@ -816,6 +846,7 @@ MulticopterPositionControl::limit_pos_sp_offset()
 void
 MulticopterPositionControl::control_manual(float dt)
 {
+	math::Vector<3> req_vel_sp_scaled;	// desired velocity setpoint in global NED frame in m/s
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
@@ -1295,6 +1326,7 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 
 	parameters_update(true);
@@ -1369,6 +1401,16 @@ MulticopterPositionControl::task_main()
 				_reset_alt_sp = true;
 			}
 		}
+
+		bool in_pos_control_mode = _control_mode.flag_control_manual_enabled &&
+				_control_mode.flag_control_position_enabled;
+
+		// by default position control mode should always start in
+		// manual position control submode
+		if (!_was_pos_ctrl_mode && in_pos_control_mode) {
+			_posctrl_sub_mode = MODE_POS_CTRL;
+		}
+		_was_pos_ctrl_mode = in_pos_control_mode;
 
 		//Update previous arming state
 		was_armed = _control_mode.flag_armed;
