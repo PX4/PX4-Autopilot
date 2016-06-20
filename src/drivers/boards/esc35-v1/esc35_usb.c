@@ -98,6 +98,6 @@ int stm32_usbpullup(FAR struct usbdev_s *dev, bool enable)
 
 __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
-	ulldbg("resume: %d\n", resume);
+	uinfo("resume: %d\n", resume);
 }
 
