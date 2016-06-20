@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 include(CMakeForceCompiler)
-CMAKE_FORCE_C_COMPILER(clang Clang)
-CMAKE_FORCE_CXX_COMPILER(clang++ Clang)
+#CMAKE_FORCE_C_COMPILER(clang Clang)
+#CMAKE_FORCE_CXX_COMPILER(clang++ Clang)
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 	add_compile_options(-Qunused-arguments )
@@ -28,6 +28,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -Wno-unused-but-set-variable")
 
 set(GTEST_DIR ${CMAKE_SOURCE_DIR}/googletest)
 add_subdirectory(${GTEST_DIR})

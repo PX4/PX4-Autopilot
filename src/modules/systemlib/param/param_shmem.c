@@ -878,7 +878,7 @@ exit:
 	}
 
 	if (res == OK) {
-		PX4_INFO("saving params completed successfully");
+		PX4_DEBUG("saving params completed successfully");
 	}
 
 	return res;
@@ -938,7 +938,7 @@ param_load_default_no_notify(void)
 
 	close(fd_load);
 
-	PX4_INFO("param loading done");
+	PX4_DEBUG("param loading done");
 
 	if (result != 0) {
 		PX4_WARN("error reading parameters from '%s'", param_get_default_file());

@@ -317,6 +317,8 @@ private:
 		float battery_voltage_scaling;
 		float battery_current_scaling;
 		float battery_current_offset;
+		float battery_v_div;
+		float battery_a_per_v;
 
 		float baro_qnh;
 
@@ -377,6 +379,8 @@ private:
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
 		param_t battery_current_offset;
+		param_t battery_v_div;
+		param_t battery_a_per_v;
 
 		param_t board_rotation;
 
@@ -644,9 +648,11 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 
-	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
-	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
-	_parameter_handles.battery_current_offset = param_find("BAT_C_OFFSET");
+	_parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
+	_parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
+	_parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
+	_parameter_handles.battery_v_div = param_find("BAT_V_DIV");
+	_parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -887,18 +893,7 @@ Sensors::parameters_update()
 
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-		_parameters.battery_voltage_scaling = 0.011f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
-		_parameters.battery_voltage_scaling = 0.0082f;
-#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
-		_parameters.battery_voltage_scaling = 0.0063f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
-		_parameters.battery_voltage_scaling = 0.00459340659f;
-#else
-		/* ensure a missing default trips a low voltage lockdown */
-		_parameters.battery_voltage_scaling = 0.00001f;
-#endif
+		_parameters.battery_voltage_scaling = (3.3f / 4096);
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -907,27 +902,50 @@ Sensors::parameters_update()
 
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-		/* current scaling for ACSP4 */
-		_parameters.battery_current_scaling = 0.0293f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
-		/* current scaling for 3DR power brick */
-		_parameters.battery_current_scaling = 0.0124f;
-#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
-		_parameters.battery_current_scaling = 0.0124f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
-		_parameters.battery_current_scaling = 0.0124f;
-#else
-		/* ensure a missing default leads to an unrealistic current value */
-		_parameters.battery_current_scaling = 0.00001f;
-#endif
+		_parameters.battery_current_scaling = (3.3f / 4096);
 	}
 
 	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
 		warnx("%s", paramerr);
 
-	} else if (_parameters.battery_current_offset < 0.0f) {
-		_parameters.battery_current_offset = 0.0f;
+	}
+
+	if (param_get(_parameter_handles.battery_v_div, &(_parameters.battery_v_div)) != OK) {
+		warnx("%s", paramerr);
+		_parameters.battery_v_div = 0.0f;
+
+	} else if (_parameters.battery_v_div < 0.0f) {
+		/* apply scaling according to defaults if set to default */
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+		_parameters.battery_v_div = 13.653333333f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
+		_parameters.battery_v_div = 10.177939394f;
+#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
+		_parameters.battery_v_div = 7.8196363636f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
+		_parameters.battery_v_div = 5.7013919372f;
+#else
+		/* ensure a missing default trips a low voltage lockdown */
+		_parameters.battery_v_div = 0.0f;
+#endif
+	}
+
+	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
+		warnx("%s", paramerr);
+		_parameters.battery_a_per_v = 0.0f;
+
+	} else if (_parameters.battery_a_per_v < 0.0f) {
+		/* apply scaling according to defaults if set to default */
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+		/* current scaling for ACSP4 */
+		_parameters.battery_a_per_v = 36.367515152f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
+		/* current scaling for 3DR power brick */
+		_parameters.battery_a_per_v = 15.391030303f;
+#else
+		/* ensure a missing default leads to an unrealistic current value */
+		_parameters.battery_a_per_v = 0.0f;
+#endif
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1655,14 +1673,15 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
-					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
+					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
 
 					if (bat_voltage_v > 0.5f) {
 						updated_battery = true;
 					}
 
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+					bat_current_a = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
+							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
@@ -2273,7 +2292,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2000,
+					   2200,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

@@ -1231,12 +1231,12 @@ MulticopterPositionControl::task_main()
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
-		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		/* wait for up to 20ms for data */
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
-			continue;
+			// Go through the loop anyway to copy manual input at 50 Hz.
 		}
 
 		/* this is undesirable but not much we can do */

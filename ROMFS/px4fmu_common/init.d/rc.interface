@@ -45,10 +45,10 @@ then
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "[i] Mixer: $MIXER_FILE on $OUTPUT_DEV"
+		echo "INFO  [init] Mixer: $MIXER_FILE on $OUTPUT_DEV"
 	else
-		echo "[i] Error loading mixer: $MIXER_FILE"
-		echo "ERROR: Could not load mixer: $MIXER_FILE" >> $LOG_FILE
+		echo "ERROR [init] Error loading mixer: $MIXER_FILE"
+		echo "ERROR:[init] Could not load mixer: $MIXER_FILE" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 
@@ -56,8 +56,8 @@ then
 else
 	if [ $MIXER != skip ]
 	then
-		echo "[i] Mixer not defined"
-		echo "ERROR: Mixer not defined" >> $LOG_FILE
+		echo "ERROR [init] Mixer not defined"
+		echo "ERROR [init] Mixer not defined" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 fi
@@ -137,10 +137,10 @@ then
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then
-					echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+					echo "INFO  [init] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
 				else
-					echo "[i] Error loading mixer: $MIXER_AUX_FILE"
-					echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+					echo "ERROR [init] Error loading mixer: $MIXER_AUX_FILE"
+					echo "ERROR [init] Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
 				fi
 			else
 				set PWM_AUX_OUT none

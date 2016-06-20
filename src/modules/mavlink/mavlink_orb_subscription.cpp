@@ -58,7 +58,7 @@ MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instanc
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
 {
-	close(_fd);
+	orb_unsubscribe(_fd);
 }
 
 orb_id_t

@@ -338,7 +338,7 @@ void task_main(int argc, char *argv[])
 
 				if (_armed.armed) {
 					_outputs.noutputs = mixer->mix(&_outputs.output[0],
-								       actuator_controls_0_s::NUM_ACTUATOR_CONTROLS,
+								       actuator_controls_s::NUM_ACTUATOR_CONTROLS,
 								       NULL);
 
 					// Make sure we support only up to UART_ESC_MAX_MOTORS motors

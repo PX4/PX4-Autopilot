@@ -118,11 +118,6 @@ DfISL29501Wrapper::~DfISL29501Wrapper()
 
 int DfISL29501Wrapper::start()
 {
-
-	struct distance_sensor_s d;
-	_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-					   &_orb_class_instance, ORB_PRIO_DEFAULT);
-
 	int ret;
 	ret = ISL29501::init();
 
@@ -156,10 +151,6 @@ int DfISL29501Wrapper::stop()
 
 int DfISL29501Wrapper::_publish(struct range_sensor_data &data)
 {
-	if (!_range_topic) {
-		return 1;
-	}
-
 	struct distance_sensor_s d;
 
 	memset(&d, 0, sizeof(d));
@@ -178,7 +169,13 @@ int DfISL29501Wrapper::_publish(struct range_sensor_data &data)
 
 	d.covariance = 0.0f;
 
-	orb_publish(ORB_ID(distance_sensor), _range_topic, &d);
+	if (_range_topic == nullptr) {
+		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+						   &_orb_class_instance, ORB_PRIO_DEFAULT);
+
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _range_topic, &d);
+	}
 
 	/* Notify anyone waiting for data. */
 	DevMgr::updateNotify(*this);

@@ -196,6 +196,10 @@ static pthread_attr_t logwriter_attr;
 
 static perf_counter_t perf_write;
 
+/* Keep track if we've already created a folder named sessXXX because
+ * we don't want to create yet another one. */
+static bool sess_folder_created = false;
+
 /**
  * Log buffer writing thread. Open and close file here.
  */
@@ -452,13 +456,16 @@ int create_log_dir()
 		}
 
 	} else {
-		/* look for the next dir that does not exist */
-		while (dir_number <= MAX_NO_LOGFOLDER) {
+		/* Look for the next dir that does not exist.
+		 * However, if we've already crated a sessXXX folder in this session
+		 * let's re-use it. */
+		while (dir_number <= MAX_NO_LOGFOLDER && !sess_folder_created) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			sprintf(log_dir, "%s/sess%03u", log_root, dir_number);
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
+				sess_folder_created = true;
 				break;
 
 			} else if (errno != EEXIST) {
@@ -1110,7 +1117,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	/* initialize log buffer with specified size */
-	PX4_WARN("log buffer size: %i bytes", log_buffer_size);
+	PX4_DEBUG("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
 		PX4_WARN("can't allocate log buffer, exiting");
@@ -1517,6 +1524,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
+			log_msg.body.log_STAT.is_rot_wing = (uint8_t)buf_status.is_rotary_wing;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
@@ -1600,10 +1608,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.msg_type = LOG_RPL6_MSG;
 					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
 					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
-					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
-					log_msg.body.log_RPL6.true_airspeed_unfiltered_m_s = buf.replay.true_airspeed_unfiltered_m_s;
-					log_msg.body.log_RPL6.air_temperature_celsius = buf.replay.air_temperature_celsius;
-					log_msg.body.log_RPL6.confidence = buf.replay.confidence;
+					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;;
 					LOGBUFFER_WRITE_AND_COUNT(RPL6);
 				}
 

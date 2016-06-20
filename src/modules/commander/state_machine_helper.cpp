@@ -588,7 +588,8 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
  */
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   const bool data_link_loss_enabled, const bool mission_finished,
-		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed, const bool rc_loss_enabled)
+		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed, const bool rc_loss_enabled,
+		   const int offb_loss_act, const int offb_loss_rc_act)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
@@ -847,17 +848,75 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
 			status->failsafe = true;
 
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
+				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
+						&& status_flags->condition_home_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+				} else if (offb_loss_rc_act == 0 && status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
+				} else if (offb_loss_rc_act == 1 && status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+				} else if (offb_loss_rc_act == 2) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+
+				} else if (offb_loss_rc_act == 4 && status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+				} else if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
+
+			} else {
+				if (status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
+				} else if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
+			}
+
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
 			status->failsafe = true;
 
-			if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
+				if (offb_loss_act == 2 && status_flags->condition_global_position_valid
+						&& status_flags->condition_home_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+				} else if (offb_loss_act == 1 && status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+				} else if (offb_loss_act == 0 && status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+				} else if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
+
 			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				if (status_flags->condition_global_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+				} else if (status_flags->condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
 			}
+
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 		}
@@ -886,7 +945,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 				checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
 				!status_flags->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
 
-	if (!status_flags->cb_usb && status_flags->usb_connected && prearm) {
+	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;
 		if (reportFailures) {
 			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
