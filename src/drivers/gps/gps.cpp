@@ -752,10 +752,9 @@ GPS::task_main()
 					 * no valid position lock
 					 */
 
-					_report_gps_pos.timestamp_time = hrt_absolute_time();
-
 					/* reset the timestamp for data, because we have no data yet */
 					_report_gps_pos.timestamp = 0;
+					_report_gps_pos.timestamp_time_relative = 0;
 
 					/* set a massive variance */
 					_report_gps_pos.eph = 10000.0f;

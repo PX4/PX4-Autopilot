@@ -1781,7 +1781,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	struct vehicle_gps_position_s hil_gps;
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
-	hil_gps.timestamp_time = timestamp;
+	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
 
 	hil_gps.timestamp = timestamp;
