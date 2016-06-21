@@ -51,7 +51,6 @@ struct gps_message {
 	float eph;                  // GPS horizontal position accuracy in m
 	float epv;                  // GPS vertical position accuracy in m
 	float sacc;                 // GPS speed accuracy in m/s
-	uint64_t time_usec_vel;     // Timestamp for velocity informations
 	float vel_m_s;              // GPS ground speed (m/s)
 	float vel_ned[3];           // GPS ground speed NED
 	bool vel_ned_valid;         // GPS ground speed is valid
