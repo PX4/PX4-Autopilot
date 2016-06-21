@@ -60,12 +60,13 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname);
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 static int	save(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
 static int  mixer_param_list(const char *devname, int mix_index);
 static int  mixer_param_set(const char *devname, int mix_index, int param_index, float value);
 static int  mixer_show_config(const char *devname);
-
+#endif
 
 int
 mixer_main(int argc, char *argv[])
@@ -87,6 +88,8 @@ mixer_main(int argc, char *argv[])
 			warnx("failed to load mixer");
 			return 1;
 		}
+
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 
 	} else if (!strcmp(argv[1], "save")) {
 		if (argc < 4) {
@@ -156,6 +159,8 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
+#endif
+
 	} else {
 		usage("Unknown command");
 		return 1;
@@ -173,11 +178,13 @@ usage(const char *reason)
 
 	PX4_INFO("usage:");
 	PX4_INFO("  mixer load <device> <filename>");
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	PX4_INFO("  mixer save <device> <filename>");
 	PX4_INFO("  mixer list <device>");
 	PX4_INFO("  mixer params <device> <mixer_index>");
 	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
 	PX4_INFO("  mixer config <device>");
+#endif
 }
 
 static int
@@ -218,6 +225,7 @@ load(const char *devname, const char *fname)
 	return 0;
 }
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 static int
 save(const char *devname, const char *fname)
 {
@@ -416,3 +424,4 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
 		return -1;
 	}
 }
+#endif
