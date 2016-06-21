@@ -813,9 +813,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd->source_system == status_local->system_id && cmd->source_component == status_local->component_id) {
 					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
-				}
-				else {
 
+				} else {
 					// Refuse to arm if preflight checks have failed
 					if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON && !status_flags.condition_system_sensors_initialized) {
 						mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Preflight checks have failed.");
@@ -1014,6 +1013,13 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				res = main_state_transition(status_local, main_state_pre_offboard, main_state_prev, &status_flags, &internal_state);
 				status_flags.offboard_control_set_by_command = false;
 			}
+
+			if (res == TRANSITION_DENIED) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
 		}
 		break;
 
@@ -1021,19 +1027,24 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state)) {
 				mavlink_and_console_log_info(&mavlink_log_pub, "Taking off");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 			} else {
 				mavlink_and_console_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
 		}
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 				mavlink_and_console_log_info(&mavlink_log_pub, "Landing at current position");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 			} else {
 				mavlink_and_console_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
 		}
