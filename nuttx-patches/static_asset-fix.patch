@@ -1,0 +1,13 @@
+diff --git NuttX/nuttx/include/assert.h NuttX/nuttx/include/assert.h
+index e616914..9f1f75c 100644
+--- NuttX/nuttx/include/assert.h
++++ NuttX/nuttx/include/assert.h
+@@ -93,7 +93,7 @@
+  * static_assert macro simply expands to the _Static_assert keyword.
+  */
+ 
+-#define static_assert _Static_assert
++//#define static_assert _Static_assert
+ 
+ /****************************************************************************
+  * Included Files
