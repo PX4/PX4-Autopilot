@@ -60,33 +60,36 @@ void update_index_from_shmem(void);
 uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 extern unsigned char *adsp_changed_index;
 
-struct param_wbuf_s {
+struct param_wbuf_s
+{
 	param_t param;
 	union param_value_u val;
 	bool unsaved;
 };
 
-
 /*update value and param's change bit in shared memory*/
 void update_to_shmem(param_t param, union param_value_u value)
 {
-	if(px4muorb_param_update_to_shmem(param, (unsigned char*)&value, sizeof(value)))
+	if (px4muorb_param_update_to_shmem(param, (unsigned char*) &value,
+			sizeof(value)))
 		PX4_ERR("krait update param %u failed", param);
 }
 
 void update_index_from_shmem(void)
 {
-	if(!adsp_changed_index) {
+	if (!adsp_changed_index) {
 		PX4_ERR("%s no param buffer", __FUNCTION__);
 		return;
 	}
 
-	px4muorb_param_update_index_from_shmem(adsp_changed_index, PARAM_BUFFER_SIZE);
+	px4muorb_param_update_index_from_shmem(adsp_changed_index,
+			PARAM_BUFFER_SIZE);
 }
 
 static void update_value_from_shmem(param_t param, union param_value_u *value)
 {
-	if(px4muorb_param_update_value_from_shmem(param, (unsigned char*)value, sizeof(union param_value_u)))
+	if (px4muorb_param_update_value_from_shmem(param, (unsigned char*) value,
+			sizeof(union param_value_u)))
 		PX4_ERR("%s get param failed", __FUNCTION__);
 }
 
@@ -95,7 +98,7 @@ int update_from_shmem(param_t param, union param_value_u *value)
 	unsigned int byte_changed, bit_changed;
 	unsigned int retval = 0;
 
-	if(!adsp_changed_index) {
+	if (!adsp_changed_index) {
 		PX4_ERR("%s no param buffer", __FUNCTION__);
 		return 0;
 	}
@@ -103,7 +106,7 @@ int update_from_shmem(param_t param, union param_value_u *value)
 	update_from_shmem_current_time = hrt_absolute_time();
 
 	if ((update_from_shmem_current_time - update_from_shmem_prev_time)
-	    > 1000000) { //update every 1 second
+			> 1000000) { //update every 1 second
 		update_from_shmem_prev_time = update_from_shmem_current_time;
 		update_index_from_shmem();
 	}
@@ -119,7 +122,8 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	//else {PX4_INFO("no change to param %s", param_name(param));}
 
-	PX4_DEBUG("%s %d bit on adsp index[%d]", (retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
+	PX4_DEBUG("%s %d bit on adsp index[%d]",
+			(retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
 
 	return retval;
 }
