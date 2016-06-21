@@ -169,7 +169,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
 	report.vel_ned_valid = true;
 
-	report.timestamp_time = report.timestamp;
+	report.timestamp_time_relative = 0;
 	report.time_utc_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
 
 	report.satellites_used = msg.sats_used;
