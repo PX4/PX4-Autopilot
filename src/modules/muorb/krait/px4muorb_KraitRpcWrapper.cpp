@@ -278,6 +278,16 @@ bool px4muorb::KraitRpcWrapper::Terminate()
 	return true;
 }
 
+int32_t px4muorb::KraitRpcWrapper::TopicAdvertised(const char *topic)
+{
+	return ((_Initialized) ? px4muorb_topic_advertised(topic) : -1);
+}
+
+int32_t px4muorb::KraitRpcWrapper::TopicUnadvertised(const char *topic)
+{
+	return ((_Initialized) ? px4muorb_topic_unadvertised(topic) : -1);
+}
+
 int32_t px4muorb::KraitRpcWrapper::AddSubscriber(const char *topic)
 {
 	return ((_Initialized) ? px4muorb_add_subscriber(topic) : -1);

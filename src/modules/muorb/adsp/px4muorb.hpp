@@ -49,6 +49,10 @@ extern "C" {
 
 	int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes) __EXPORT;
 
+	int px4muorb_topic_advertised(const char *name) __EXPORT;
+
+	int px4muorb_topic_unadvertised(const char *name) __EXPORT;
+
 	int px4muorb_add_subscriber(const char *name) __EXPORT;
 
 	int px4muorb_remove_subscriber(const char *name) __EXPORT;

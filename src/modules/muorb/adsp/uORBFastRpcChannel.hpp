@@ -58,6 +58,33 @@ public:
 	}
 
 	/**
+	 * @brief Interface to notify the remote entity of a topic being advertised.
+	 *
+	 * @param messageName
+	 * 	This represents the uORB message name(aka topic); This message name should be
+	 * 	globally unique.
+	 * @return
+	 * 	0 = success; This means the messages is successfully sent to the receiver
+	 * 		Note: This does not mean that the receiver as received it.
+	 *  otherwise = failure.
+	 */
+	virtual int16_t topic_advertised(const char *messageName);
+
+	/**
+	 * @brief Interface to notify the remote entity of a topic being unadvertised
+	 * and is no longer publishing messages.
+	 *
+	 * @param messageName
+	 * 	This represents the uORB message name(aka topic); This message name should be
+	 * 	globally unique.
+	 * @return
+	 * 	0 = success; This means the messages is successfully sent to the receiver
+	 * 		Note: This does not mean that the receiver as received it.
+	 *  otherwise = failure.
+	 */
+	//virtual int16_t topic_unadvertised(const char *messageName);
+
+	/**
 	 * @brief Interface to notify the remote entity of interest of a
 	 * subscription for a message.
 	 *
@@ -155,10 +182,11 @@ private: // data members
 	static const int32_t _CONTROL_MSG_TYPE_ADD_SUBSCRIBER = 1;
 	static const int32_t _CONTROL_MSG_TYPE_REMOVE_SUBSCRIBER = 2;
 	static const int32_t _DATA_MSG_TYPE = 3;
+	static const int32_t _CONTROL_MSG_TYPE_ADVERTISE = 4;
 
 	static const int32_t _PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES = 2;
 	static const int32_t _PACKET_FIELD_DATA_LEN_IN_BYTES = 2;
-	static const int32_t _PACKET_HEADER_SIZE =
+	static const int32_t _PACKET_HEADER_SIZE = 1 + //first byte is the MSG Type
 		_PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES + _PACKET_FIELD_DATA_LEN_IN_BYTES;
 
 	struct FastRpcDataMsg {
@@ -174,6 +202,7 @@ private: // data members
 	};
 
 	struct BulkTransferHeader {
+		uint16_t _MsgType;
 		uint16_t _MsgNameLen;
 		uint16_t _DataLen;
 	};
@@ -261,8 +290,8 @@ private://class members.
 	int32_t DataQSize();
 	int32_t ControlQSize();
 
-	int32_t get_data_msg_size_at(int32_t index);
-	int32_t copy_data_to_buffer(int32_t src_index, uint8_t *dst_buffer, int32_t offset, int32_t dst_buffer_len);
+	int32_t get_msg_size_at(bool isData, int32_t index);
+	int32_t copy_msg_to_buffer(bool isData, int32_t src_index, uint8_t *dst_buffer, int32_t offset, int32_t dst_buffer_len);
 
 	std::set<std::string> _RemoteSubscribers;
 };

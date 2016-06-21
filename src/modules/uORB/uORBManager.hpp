@@ -410,12 +410,27 @@ private: // data members
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;
+	ORBSet _remote_topics;
 
 	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
 
 private: //class methods
 	Manager();
 	~Manager();
+
+	/**
+	 * Interface to process a received topic from remote.
+	 * @param topic_name
+	 * 	This represents the uORB message Name (topic); This message Name should be
+	 * 	globally unique.
+	 * @param isAdvertisement
+	 * 	Represents if the topic has been advertised or is no longer avialable.
+	 * @return
+	 *  0 = success; This means the messages is successfully handled in the
+	 *  	handler.
+	 *  otherwise = failure.
+	 */
+	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement);
 
 	/**
 	   * Interface to process a received AddSubscription from remote.

@@ -131,11 +131,15 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ERROR;
 	}
 
-#ifdef __PX4_NUTTX
+#if __PX4_NUTTX
 	struct stat buffer;
 	return stat(path, &buffer);
 #else
-	return px4_access(path, F_OK);
+	ret = px4_access(path, F_OK);
+	if (ret == -1 && meta != nullptr && _remote_topics.size() > 0) {
+		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end());
+	}
+	return ret;
 #endif
 }
 
@@ -196,6 +200,9 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
 		return nullptr;
 	}
+
+	//For remote systems call over and inform them
+	uORB::DeviceNode::topic_advertised(meta, priority);
 
 	/* the advertiser must perform an initial publish to initialise the object */
 	result = orb_publish(meta, advertiser, data);
@@ -431,6 +438,23 @@ void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator(void)
 {
 	return _comm_channel;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
+{
+	warnx("[posix-uORB::Manager::process_remote_topic(%d)] name: %s, isAdver: %d",
+	      __LINE__, topic_name, isAdvertisement);
+	int16_t rc = 0;
+
+	if (isAdvertisement) {
+		_remote_topics.insert(topic_name);
+	} else {
+		_remote_topics.erase(topic_name);
+	}
+
+	return rc;
 }
 
 //-----------------------------------------------------------------------------
