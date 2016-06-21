@@ -2279,6 +2279,33 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
+	for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		if (_gyro_sub[i] >= 0) {
+			orb_unsubscribe(_gyro_sub[i]);
+		}
+
+		if (_accel_sub[i] >= 0) {
+			orb_unsubscribe(_accel_sub[i]);
+		}
+
+		if (_mag_sub[i] >= 0) {
+			orb_unsubscribe(_mag_sub[i]);
+		}
+
+		if (_baro_sub[i] >= 0) {
+			orb_unsubscribe(_baro_sub[i]);
+		}
+	}
+
+	orb_unsubscribe(_rc_sub);
+	orb_unsubscribe(_diff_pres_sub);
+	orb_unsubscribe(_vcontrol_mode_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_rc_parameter_map_sub);
+	orb_unsubscribe(_manual_control_sub);
+	orb_unsubscribe(_actuator_ctrl_0_sub);
+	orb_unadvertise(_sensor_pub);
+
 	warnx("exiting.");
 	_sensors_task = -1;
 	px4_task_exit(ret);
