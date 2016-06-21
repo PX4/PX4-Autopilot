@@ -268,7 +268,7 @@ MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
 }
 
 MIXER_TYPES
-MixerGroup::get_mixer_type(unsigned mix_index) {
+MixerGroup::get_mixer_type_from_index(unsigned mix_index) {
     Mixer	*mixer = _first;
     unsigned index = 0;
     MIXER_TYPES mix_type;

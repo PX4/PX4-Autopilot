@@ -403,12 +403,12 @@ public:
     const char* const*  get_mixer_param_ids(unsigned mix_index, unsigned *params);
 
     /**
-     * Get the type of a mixer
+     * Get the type of a mixer from its index
      *
      * @param mix_index index of the mixer to get the params from
      * @return			The type of the mixer.
      */
-    MIXER_TYPES         get_mixer_type(unsigned mix_index);
+    MIXER_TYPES         get_mixer_type_from_index(unsigned mix_index);
 
     /**
      * Get the value of a mixer parameter
