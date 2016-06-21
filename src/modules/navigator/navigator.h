@@ -178,6 +178,19 @@ public:
 	 */
 	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
 
+
+	/**
+	 * Get the target throttle
+	 *
+	 * @return the desired throttle for this mission
+	 */
+	float		get_cruising_throttle();
+
+	/**
+	 * Set the target throttle
+	 */
+	void		set_cruising_throttle(float throttle=-1.0f) { _mission_throttle = throttle; }
+
 	/**
 	 * Get the acceptance radius given the mission item preset radius
 	 *
@@ -277,8 +290,10 @@ private:
 	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
+	control::BlockParamFloat _param_cruising_throttle_plane;
 
 	float _mission_cruising_speed;
+	float _mission_throttle;
 
 	/**
 	 * Retrieve global position
