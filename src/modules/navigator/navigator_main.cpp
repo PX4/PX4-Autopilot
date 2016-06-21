@@ -347,9 +347,10 @@ Navigator::task_main()
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
+		} else {
+			/* success, global pos was available */
+			global_pos_available_once = true;
 		}
-
-		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 

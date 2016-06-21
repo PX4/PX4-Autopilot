@@ -360,7 +360,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-			set_message_interval((int)cmd_mavlink.param1, cmd_mavlink.param2);
+			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 			get_message_interval((int)cmd_mavlink.param1);
@@ -1375,35 +1375,16 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
-	mavlink_request_data_stream_t req;
-	mavlink_msg_request_data_stream_decode(msg, &req);
-
-	PX4_WARN("REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead");
-
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid &&
-	    req.req_stream_id != 0) {
-		// compute interval in microseconds.
-		float interval = 0;
-		int rate = req.req_message_rate;
-
-		if (req.start_stop == 0 || rate == 0) {
-			rate = -1;
-
-		} else if (rate > 0) {
-			interval = 1000000.0f / rate;
-		}
-
-		// todo: note it is kind of bogus to interpret the req_stream_id as a message id
-		// but this is how it was.  MAVLINK defines separate MAV_DATA_STREAM ids which bundle
-		// messages into groups, but that is all deprecated now anyway, and this code was
-		// previously interpreting the req_stream_id as a message id, so we'll leave it that way.
-		set_message_interval(req.req_stream_id, interval);
-	}
+	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
 }
 
 void
-MavlinkReceiver::set_message_interval(int msgId, float interval)
+MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 {
+	if (data_rate > 0) {
+		_mavlink->set_data_rate(data_rate);
+	}
+
 	// configure_stream wants a rate (msgs/second), so convert here.
 	float rate = 0;
 
