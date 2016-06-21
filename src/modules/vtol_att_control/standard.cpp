@@ -187,7 +187,8 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params_standard.airspeed_mode == 2 || _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
+			if (((_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED ||
+				_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
 			    can_transition_on_ground()) {
@@ -250,7 +251,7 @@ void Standard::update_transition_state()
 			_mc_throttle_weight = weight;
 
 		// time based blending when no airspeed sensor is set
-		} else if (_params_standard.airspeed_mode == 2 &&
+		} else if (_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED &&
 				  (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
 				  ) {
 			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_time_min * 1000000.0f));

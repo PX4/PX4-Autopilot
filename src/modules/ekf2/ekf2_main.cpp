@@ -665,23 +665,23 @@ void Ekf2::task_main()
 			ctrl_state.airspeed_valid = false;
 
 			// use estimated velocity for airspeed estimate
-			if (_airspeed_mode.get() == 1) {
-				if (_ekf.local_position_is_valid()) {
-					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
-				}
-
-				// do nothing, airspeed has been declared as non-valid above, controllers will handle this assuming always trim airspeed
-
-			} else if (_airspeed_mode.get() == 2) {
-
-				// use the measured airspeed
-			} else {
-				/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+			if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
+				// use measured airspeed
 				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
 				    && airspeed.timestamp > 0) {
 					ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
 					ctrl_state.airspeed_valid = true;
 				}
+			}
+			if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+				if (_ekf.local_position_is_valid()) {
+					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+					ctrl_state.airspeed_valid = true;
+				}
+
+			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
+				// do nothing, airspeed has been declared as non-valid above, controllers
+				// will handle this assuming always trim airspeed
 			}
 
 			// publish control state data
