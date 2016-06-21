@@ -360,7 +360,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-			set_message_interval((int)cmd_mavlink.param1, cmd_mavlink.param2);
+			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 			get_message_interval((int)cmd_mavlink.param1);
@@ -1402,8 +1402,12 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::set_message_interval(int msgId, float interval)
+MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 {
+	if (data_rate > 0) {
+		_mavlink->set_data_rate(data_rate);
+	}
+
 	// configure_stream wants a rate (msgs/second), so convert here.
 	float rate = 0;
 
