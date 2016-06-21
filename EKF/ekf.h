@@ -124,6 +124,9 @@ public:
 	// get the accerometer bias in m/s/s
 	void get_accel_bias(float bias[3]);
 
+	// get the gyroscope bias in rad/s
+	void get_gyro_bias(float bias[3]);
+
 	// get GPS check status
 	void get_gps_check_status(uint16_t *_gps_check_fail_status);
 

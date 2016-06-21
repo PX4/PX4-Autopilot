@@ -201,6 +201,7 @@ public:
 	}
 
 	virtual void get_accel_bias(float bias[3]) = 0;
+	virtual void get_gyro_bias(float bias[3]) = 0;
 
 	// get EKF mode status
 	void get_control_mode(uint16_t *val)

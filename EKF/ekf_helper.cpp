@@ -681,6 +681,16 @@ void Ekf::get_accel_bias(float bias[3])
 	memcpy(bias, temp, 3 * sizeof(float));
 }
 
+// get the gyroscope bias in rad/s
+void Ekf::get_gyro_bias(float bias[3])
+{
+	float temp[3];
+	temp[0] = _state.gyro_bias(0) /_dt_ekf_avg;
+	temp[1] = _state.gyro_bias(1) /_dt_ekf_avg;
+	temp[2] = _state.gyro_bias(2) /_dt_ekf_avg;
+	memcpy(bias, temp, 3 * sizeof(float));
+}
+
 // get the diagonal elements of the covariance matrix
 void Ekf::get_covariances(float *covariances)
 {
