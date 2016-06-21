@@ -69,8 +69,19 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/sd_bench
-	systemcmds/tests
 	systemcmds/motor_ramp
+
+	#
+	# Testing
+	#
+	drivers/sf0x/sf0x_tests
+	drivers/test_ppm
+	modules/commander/commander_tests
+	modules/controllib_test
+	modules/mavlink/mavlink_tests
+	modules/unit_test
+	modules/uORB/uORB_tests
+	systemcmds/tests
 
 	#
 	# General system control

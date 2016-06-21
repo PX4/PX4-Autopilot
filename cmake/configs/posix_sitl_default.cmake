@@ -81,14 +81,15 @@ set(config_module_list
 	#
 	# Testing
 	#
+	drivers/sf0x/sf0x_tests
+	lib/rc/rc_tests
 	modules/commander/commander_tests
 	modules/controllib_test
-	#modules/mavlink/mavlink_tests  #TODO: fix mavlink_tests
+	#modules/mavlink/mavlink_tests #TODO: fix mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
-	lib/rc/rc_tests
-	drivers/sf0x/sf0x_tests
+
 	)
 
 set(config_extra_builtin_cmds
