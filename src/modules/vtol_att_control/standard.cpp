@@ -249,6 +249,18 @@ void Standard::update_transition_state()
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
 
+		// time based blending when no airspeed sensor is set
+		} else if (_params_standard.airspeed_mode == 2 &&
+				  (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
+				  ) {
+			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_time_min * 1000000.0f));
+			printf("weight: %f \n", (double)weight);
+			_mc_roll_weight = weight;
+			_mc_pitch_weight = weight;
+			_mc_yaw_weight = weight;
+			_mc_throttle_weight = weight;
+
+
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
