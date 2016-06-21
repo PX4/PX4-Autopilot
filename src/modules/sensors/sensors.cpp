@@ -2115,17 +2115,14 @@ Sensors::task_main()
 
 	unsigned bcount_prev = _baro_count;
 
-	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-					&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub, raw.gyro_priority, raw.gyro_errcount);
 
-	_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
-				       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
+	_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub, raw.magnetometer_priority, raw.magnetometer_errcount);
 
-	_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
-					 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
+	_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub, raw.accelerometer_priority,
+					 raw.accelerometer_errcount);
 
-	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
-					&raw.baro_priority[0], &raw.baro_errcount[0]);
+	_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub, raw.baro_priority, raw.baro_errcount);
 
 	if (gcount_prev != _gyro_count ||
 	    mcount_prev != _mag_count ||
@@ -2184,7 +2181,7 @@ Sensors::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
+		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 50);
 
 		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
@@ -2194,8 +2191,8 @@ Sensors::task_main()
 			 * then attempt to subscribe once again
 			 */
 			if (_gyro_count == 0) {
-				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-								&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub,
+								raw.gyro_priority, raw.gyro_errcount);
 				fds[0].fd = _gyro_sub[0];
 			}
 
@@ -2253,17 +2250,17 @@ Sensors::task_main()
 		 * when not adding sensors poll for param updates
 		 */
 		if (!_armed && hrt_elapsed_time(&_last_config_update) > 500 * 1000) {
-			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-							&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub,
+							raw.gyro_priority, raw.gyro_errcount);
 
-			_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
-						       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
+			_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub,
+						       raw.magnetometer_priority, raw.magnetometer_errcount);
 
-			_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
-							 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
+			_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub,
+							 raw.accelerometer_priority, raw.accelerometer_errcount);
 
-			_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
-							&raw.baro_priority[0], &raw.baro_errcount[0]);
+			_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub,
+							raw.baro_priority, raw.baro_errcount);
 
 			_last_config_update = hrt_absolute_time();
 
