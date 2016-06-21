@@ -3,6 +3,11 @@
 
 language: cpp
 
+env:
+  global:
+    # build thiemar/vectorcontrol.git and include in px4fmu-v4
+    - VECTORCONTROL=1
+
 matrix:
   fast_finish: true
   include:
@@ -48,7 +53,7 @@ env:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check VECTORCONTROL=1";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make qgc_firmware";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
