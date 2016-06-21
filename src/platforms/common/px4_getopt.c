@@ -168,9 +168,11 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 
 		if (takesarg) {
 			*myoptarg = argv[*myoptind];
+
 			if (!*myoptarg) { //Error: option takes an argument, but there is no more argument
 				return -1;
 			}
+
 			*myoptind += 1;
 		}
 
