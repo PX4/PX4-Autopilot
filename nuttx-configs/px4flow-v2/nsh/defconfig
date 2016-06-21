@@ -739,7 +739,7 @@ CONFIG_USART3_2STOP=0
 # System Logging
 #
 # CONFIG_RAMLOG is not set
-# CONFIG_SYSLOG_CONSOLE is not set
+# CONFIG_CONSOLE_SYSLOG is not set
 
 #
 # Networking Support

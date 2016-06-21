@@ -768,7 +768,7 @@ CONFIG_USART1_2STOP=0
 # CONFIG_SYSLOG_INTBUFFER is not set
 # CONFIG_SYSLOG is not set
 # CONFIG_SYSLOG_TIMESTAMP is not set
-# CONFIG_SYSLOG_CONSOLE is not set
+# CONFIG_CONSOLE_SYSLOG is not set
 
 #
 # Networking Support

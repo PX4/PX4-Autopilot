@@ -761,7 +761,7 @@ CONFIG_CDCACM_PRODUCTSTR="AUAV ESC35"
 # System Logging
 #
 # CONFIG_RAMLOG is not set
-# CONFIG_SYSLOG_CONSOLE is not set
+# CONFIG_CONSOLE_SYSLOG is not set
 
 #
 # Networking Support

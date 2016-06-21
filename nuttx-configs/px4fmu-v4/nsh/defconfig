@@ -1069,7 +1069,7 @@ CONFIG_CDCACM_PRODUCTSTR="PX4 FMU v4.x"
 # System Logging
 #
 # CONFIG_RAMLOG is not set
-# CONFIG_SYSLOG_CONSOLE is not set
+# CONFIG_CONSOLE_SYSLOG is not set
 
 #
 # Networking Support
