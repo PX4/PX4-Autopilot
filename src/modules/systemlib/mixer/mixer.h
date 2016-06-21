@@ -135,6 +135,9 @@
 
 #include "mixer_load.h"
 
+#include "mixer_types.h"
+
+
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
@@ -184,6 +187,7 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     /**
      * Writes a description of the mixer configuration which can be read with from_text
      *
@@ -205,16 +209,9 @@ public:
     /**
      * Get list of Mixer parameters
      *
-     * @return              A pointer to a constant list of constant strings
+     * @return              A type enumeration for this mixer
      */
-    virtual const char**    get_parameter_id_strings(void) {return NULL;}
-
-    /**
-     * Get a count of the Mixer parameters
-     *
-     * @return              Count of the mixer parameters
-     */
-    virtual uint16_t        get_parameter_id_count(void) {return 0;}
+    virtual MIXER_TYPES     get_mixer_type(void) {return MIXER_TYPE_NONE;}
 
     /**
      * gets a mixer parameter
@@ -232,6 +229,7 @@ public:
      * @return              0 if set. -1 for error
      */
     virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
+#endif
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -372,6 +370,7 @@ public:
 	 */
     int                 load_from_buf(const char *buf, unsigned &buflen);
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     /**
      * Generates text in bufferdescribing the mixer settings compatible
      * with load_from_buf
@@ -401,7 +400,15 @@ public:
      * @param params     count of parameters
      * @return			reference to list of parameter identifiers. NULL if unsupported.
      */
-    char** get_mixer_param_ids(unsigned mix_index, unsigned *params);
+    const char* const*  get_mixer_param_ids(unsigned mix_index, unsigned *params);
+
+    /**
+     * Get the type of a mixer
+     *
+     * @param mix_index index of the mixer to get the params from
+     * @return			The type of the mixer.
+     */
+    MIXER_TYPES         get_mixer_type(unsigned mix_index);
 
     /**
      * Get the value of a mixer parameter
@@ -421,7 +428,7 @@ public:
      * @return              Zero on success, -1 on failure.
      */
     int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
-
+#endif
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -528,14 +535,15 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
-    virtual int             to_text(char* buf, unsigned &buflen);
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+    int                     to_text(char* buf, unsigned &buflen);
     signed                  get_mixer_id(char* buff, unsigned maxlen);
-    const char**    		get_parameter_id_strings(void);
-    uint16_t        		get_parameter_id_count(void);
+    MIXER_TYPES             get_mixer_type(void);
     float                   get_parameter(uint16_t index);
     int16_t                 set_parameter(uint16_t index, float value);
-	/**
+#endif
+    /**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
 	 * Note that this function will call control_cb, but only cares about
@@ -607,14 +615,24 @@ public:
 	 *				tuned to ensure that rotors never stall at the
 	 * 				low end of their control range.
 	 */
-	MultirotorMixer(ControlCallback control_cb,
-			uintptr_t cb_handle,
-			MultirotorGeometry geometry,
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+    MultirotorMixer(ControlCallback control_cb,
+            uintptr_t cb_handle,
+            MultirotorGeometry geometry,
             char* geomname,
-			float roll_scale,
-			float pitch_scale,
-			float yaw_scale,
-			float idle_speed);
+            float roll_scale,
+            float pitch_scale,
+            float yaw_scale,
+            float idle_speed);
+#else
+    MultirotorMixer(ControlCallback control_cb,
+            uintptr_t cb_handle,
+            MultirotorGeometry geometry,
+            float roll_scale,
+            float pitch_scale,
+            float yaw_scale,
+            float idle_speed);
+#endif
 	~MultirotorMixer();
 
 	/**
@@ -640,13 +658,14 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
-    virtual int             to_text(char* buf, unsigned &buflen);
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+    int                     to_text(char* buf, unsigned &buflen);
     signed                  get_mixer_id(char* buff, unsigned maxlen);
-    const char**    		get_parameter_id_strings(void);
-    uint16_t        		get_parameter_id_count(void);
+    MIXER_TYPES             get_mixer_type(void);
     float                   get_parameter(uint16_t index);
     int16_t                 set_parameter(uint16_t index, float value);
+#endif
 
 private:
 	float				_roll_scale;
@@ -660,8 +679,9 @@ private:
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     char                _geomname[8];
-
+#endif
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);
 	MultirotorMixer operator=(const MultirotorMixer &);

@@ -54,16 +54,6 @@
 
 #include "mixer.h"
 
-const char * MIXER_SIMPLE_PARAMETERS[] = {
-    "SCALE_NEG",
-    "SCALE_POS",
-    "OFFSET",
-    "OUTPUT_MIN",
-    "OUTPUT_MAX",
-    };
-
-const uint16_t MIXER_SIMPLE_PARAMETER_COUNT = 5;
-
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -223,6 +213,7 @@ out:
 	return sm;
 }
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 int
 SimpleMixer::to_text(char* buf, unsigned &buflen){
     char* bufpos = buf;
@@ -269,6 +260,7 @@ SimpleMixer::to_text(char* buf, unsigned &buflen){
     buflen = bufpos-buf;
     return 0;
 }
+#endif
 
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
@@ -409,6 +401,7 @@ SimpleMixer::check()
 	return 0;
 }
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 signed
 SimpleMixer::get_mixer_id(char* buff, unsigned maxlen) {
     if(maxlen < 16) return -1;
@@ -416,15 +409,9 @@ SimpleMixer::get_mixer_id(char* buff, unsigned maxlen) {
     return 6;
 }
 
-
-const char**
-SimpleMixer::get_parameter_id_strings(void) {
-    return MIXER_SIMPLE_PARAMETERS;
-}
-
-uint16_t
-SimpleMixer::get_parameter_id_count(void) {
-    return MIXER_SIMPLE_PARAMETER_COUNT;
+MIXER_TYPES
+SimpleMixer::get_mixer_type(void) {
+    return MIXER_TYPE_SIMPLE;
 }
 
 float
@@ -475,3 +462,4 @@ SimpleMixer::set_parameter(uint16_t index, float value){
 
     return 0;
 }
+#endif

@@ -806,7 +806,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     case MIXERIONAME: {
         if (_mixers == nullptr) {
             ret = -EINVAL;
@@ -831,7 +831,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
             ret = -EINVAL;
         }
         mixer_param_id_s *param_ids = (mixer_param_id_s *)arg;
-        param_ids->ids = _mixers->get_mixer_param_ids(param_ids->mix_index, &param_ids->id_count);
+        param_ids->ids = (char**) _mixers->get_mixer_param_ids(param_ids->mix_index, &param_ids->id_count);
 
         break;
     }
@@ -864,6 +864,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
         ret = _mixers->save_to_buf(buf, buflen);
         break;
     }
+#endif
 
 	default:
 		ret = -ENOTTY;

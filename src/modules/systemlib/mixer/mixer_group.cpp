@@ -52,6 +52,7 @@
 #include <unistd.h>
 
 #include "mixer.h"
+#include "mixer_parameters.h"
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -201,6 +202,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	return ret;
 }
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 int
 MixerGroup::save_to_buf(char *buf, unsigned &buflen){
     Mixer       *mixer = _first;
@@ -244,16 +246,18 @@ MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen){
     return -1;
 }
 
-char**
+const char* const*
 MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
 {
     Mixer	*mixer = _first;
     unsigned index = 0;
+    MIXER_TYPES mix_type;
 
     while ((mixer != nullptr)) {
         if(mix_index == index){
-            *params = mixer->get_parameter_id_count();
-            return (char**) mixer->get_parameter_id_strings();
+            mix_type = mixer->get_mixer_type();
+            *params = MIXER_PARAMETER_COUNTS[mix_type];
+            return MIXER_PARAMETER_TABLE[mix_type];
         }
         mixer = mixer->_next;
         index++;
@@ -261,6 +265,24 @@ MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
 
     *params = 0;
     return NULL;
+}
+
+MIXER_TYPES
+MixerGroup::get_mixer_type(unsigned mix_index) {
+    Mixer	*mixer = _first;
+    unsigned index = 0;
+    MIXER_TYPES mix_type;
+
+    while ((mixer != nullptr)) {
+        if(mix_index == index){
+            mix_type = mixer->get_mixer_type();
+            return mix_type;
+        }
+        mixer = mixer->_next;
+        index++;
+    }
+
+    return MIXER_TYPE_NONE;
 }
 
 
@@ -294,3 +316,4 @@ MixerGroup::set_mixer_param(unsigned mix_index, unsigned param_index, float valu
     }
     return -1;
 }
+#endif
