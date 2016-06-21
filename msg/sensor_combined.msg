@@ -23,7 +23,6 @@ uint32 SENSOR_PRIO_MAX = 255
 # Actual data, this is specific to the type of data which is stored in this struct
 # A line containing L0GME will be added by the Python logging code generator to the logged dataset.
 #
-# NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes Change with consideration only
 
 uint64[3] gyro_timestamp			# Gyro timestamps
 int16[9] gyro_raw			# Raw sensor values of angular velocity
@@ -62,12 +61,3 @@ uint64[3] baro_timestamp		# Barometer timestamp
 uint32[3] baro_priority			# Sensor priority
 uint32[3] baro_errcount			# Error count in communication
 
-float32[10] adc_voltage_v		# ADC voltages of ADC Chan 10/11/12/13 or -1
-uint16[10] adc_mapping		# Channel indices of each of these values
-float32 mcu_temp_celcius			# Internal temperature measurement of MCU
-
-float32[3] differential_pressure_pa			# Airspeed sensor differential pressure
-uint64[3] differential_pressure_timestamp	# Last measurement timestamp
-float32[3] differential_pressure_filtered_pa	# Low pass filtered airspeed sensor differential pressure reading
-uint32[3] differential_pressure_priority			# Sensor priority
-uint32[3] differential_pressure_errcount			# Error count in communication

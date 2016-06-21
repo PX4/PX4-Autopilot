@@ -1705,10 +1705,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_timestamp[0] = timestamp;
 		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
-		hil_sensors.adc_voltage_v[0] = 0.0f;
-		hil_sensors.adc_voltage_v[1] = 0.0f;
-		hil_sensors.adc_voltage_v[2] = 0.0f;
-
 		hil_sensors.magnetometer_raw[0] = imu.xmag * 1000.0f;
 		hil_sensors.magnetometer_raw[1] = imu.ymag * 1000.0f;
 		hil_sensors.magnetometer_raw[2] = imu.zmag * 1000.0f;
@@ -1725,10 +1721,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
 		hil_sensors.baro_temp_celcius[0] = imu.temperature;
 		hil_sensors.baro_timestamp[0] = timestamp;
-
-		hil_sensors.differential_pressure_pa[0] = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_filtered_pa[0] = hil_sensors.differential_pressure_pa[0];
-		hil_sensors.differential_pressure_timestamp[0] = timestamp;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
