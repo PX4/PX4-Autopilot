@@ -615,16 +615,6 @@ public:
 	 *				tuned to ensure that rotors never stall at the
 	 * 				low end of their control range.
 	 */
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-    MultirotorMixer(ControlCallback control_cb,
-            uintptr_t cb_handle,
-            MultirotorGeometry geometry,
-            char* geomname,
-            float roll_scale,
-            float pitch_scale,
-            float yaw_scale,
-            float idle_speed);
-#else
     MultirotorMixer(ControlCallback control_cb,
             uintptr_t cb_handle,
             MultirotorGeometry geometry,
@@ -632,7 +622,6 @@ public:
             float pitch_scale,
             float yaw_scale,
             float idle_speed);
-#endif
 	~MultirotorMixer();
 
 	/**
@@ -679,9 +668,8 @@ private:
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-    char                _geomname[8];
-#endif
+    MultirotorGeometry  _geometry;
+
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);
 	MultirotorMixer operator=(const MultirotorMixer &);
