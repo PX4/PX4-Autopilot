@@ -1374,7 +1374,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime accelerometer_timestamp[3] = {0, 0, 0};
 	hrt_abstime magnetometer_timestamp[3] = {0, 0, 0};
 	hrt_abstime barometer_timestamp[3] = {0, 0, 0};
-	hrt_abstime differential_pressure_timestamp[3] = {0, 0, 0};
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1659,11 +1658,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 					write_SENS = true;
 				}
 
-				if (buf.sensor.differential_pressure_timestamp[i] != differential_pressure_timestamp[i]) {
-					differential_pressure_timestamp[i] = buf.sensor.differential_pressure_timestamp[i];
-					write_SENS = true;
-				}
-
 				if (write_IMU) {
 					switch (i) {
 						case 0:
@@ -1708,8 +1702,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar[i];
 					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter[i];
 					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius[i];
-					log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa[i];
-					log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa[i];
+					log_msg.body.log_SENS.diff_pres = 0;
+					log_msg.body.log_SENS.diff_pres_filtered = 0;
 					LOGBUFFER_WRITE_AND_COUNT(SENS);
 				}
 			}

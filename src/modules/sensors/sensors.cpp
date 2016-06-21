@@ -1154,10 +1154,6 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	if (updated) {
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
-		raw.differential_pressure_pa[0] = _diff_pres.differential_pressure_raw_pa;
-		raw.differential_pressure_timestamp[0] = _diff_pres.timestamp;
-		raw.differential_pressure_filtered_pa[0] = _diff_pres.differential_pressure_filtered_pa;
-
 		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
 						(raw.baro_temp_celcius[0] - PCB_TEMP_ESTIMATE_DEG);
 
@@ -1671,11 +1667,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-				/* Save raw voltage values */
-				if (i < (sizeof(raw.adc_voltage_v) / sizeof(raw.adc_voltage_v[0]))) {
-					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
-					raw.adc_mapping[i] = buf_adc[i].am_channel;
-				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -2145,10 +2136,6 @@ Sensors::task_main()
 	 * do advertisements
 	 */
 	raw.timestamp = hrt_absolute_time();
-	raw.adc_voltage_v[0] = 0.0f;
-	raw.adc_voltage_v[1] = 0.0f;
-	raw.adc_voltage_v[2] = 0.0f;
-	raw.adc_voltage_v[3] = 0.0f;
 
 	_battery.reset(&_battery_status);
 
