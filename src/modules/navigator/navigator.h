@@ -189,7 +189,7 @@ public:
 	/**
 	 * Set the target throttle
 	 */
-	void		set_cruising_throttle(float percent=-1.0f) { _mission_throttle = percent; }
+	void		set_cruising_throttle(float throttle=-1.0f) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
