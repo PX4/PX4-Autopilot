@@ -50,7 +50,6 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/differential_pressure.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
