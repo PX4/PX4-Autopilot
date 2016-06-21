@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
 include_directories(${CMAKE_BINARY_DIR}/src/firmware/posix)
