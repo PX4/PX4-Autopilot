@@ -1,12 +1,6 @@
 uorb start
 param load
 param set MAV_TYPE 2
-param set MC_PITCHRATE_P 0.15
-param set MC_PITCH_P 7
-param set MC_ROLL_P 7
-param set MC_ROLLRATE_P 0.15
-param set MC_YAW_P 2.8
-param set MC_YAWRATE_P 0.35
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
 dataman start
@@ -36,6 +30,12 @@ param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set MIS_TAKEOFF_ALT 2.5
+param set MC_ROLLRATE_P 0.3
+param set MC_PITCHRATE_P 0.3
+param set MC_PITCH_P 7
+param set MC_ROLL_P 7
+param set MC_ROLLRATE_I 0.1
+param set MC_PITCHRATE_I 0.1
 param set MPC_HOLD_MAX_Z 2.0
 param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_MAX 2.0

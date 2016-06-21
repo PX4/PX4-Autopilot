@@ -441,6 +441,29 @@ int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "transition")) {
+
+		vehicle_command_s cmd = {};
+		cmd.target_system = status.system_id;
+		cmd.target_component = status.component_id;
+
+		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		/* transition to the other mode */
+		cmd.param1 = (status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		/* param 2-3 unused */
+		cmd.param2 = NAN;
+		cmd.param3 = NAN;
+		cmd.param4 = NAN;
+		cmd.param5 = NAN;
+		cmd.param6 = NAN;
+		cmd.param7 = NAN;
+
+		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		(void)orb_unadvertise(h);
+
+		return 0;
+	}
+
 	if (!strcmp(argv[1], "mode")) {
 		if (argc > 2) {
 			uint8_t new_main_state = commander_state_s::MAIN_STATE_MAX;
@@ -513,7 +536,7 @@ void usage(const char *reason)
 		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|mode}\n");
+	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
 }
 
 void print_status()
@@ -1138,6 +1161,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_enable_datalink_loss = param_find("NAV_DLL_ACT");
 	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
+	param_t _param_offboard_loss_act = param_find("COM_OBL_ACT");
+	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
@@ -1153,6 +1178,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
+	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1233,6 +1259,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
+	status_flags.offboard_control_loss_timeout = false;
 
 	status_flags.condition_system_prearm_error_reported = false;
 	status_flags.condition_system_hotplug_timeout = false;
@@ -1492,6 +1519,9 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
+	float offboard_loss_timeout = 0.0f;
+	int32_t offboard_loss_act = 0;
+	int32_t offboard_loss_rc_act = 0;
 
 	int32_t geofence_action = 0;
 
@@ -1586,6 +1616,9 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_low_bat_act, &low_bat_action);
+			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
+			param_get(_param_offboard_loss_act, &offboard_loss_act);
+			param_get(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -1628,6 +1661,7 @@ int commander_thread_main(int argc, char *argv[])
 		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
 			if (status_flags.offboard_control_signal_lost) {
 				status_flags.offboard_control_signal_lost = false;
+				status_flags.offboard_control_loss_timeout = false;
 				status_changed = true;
 			}
 
@@ -1635,6 +1669,23 @@ int commander_thread_main(int argc, char *argv[])
 			if (!status_flags.offboard_control_signal_lost) {
 				status_flags.offboard_control_signal_lost = true;
 				status_changed = true;
+			}
+
+			/* check timer if offboard was there but now lost */
+			if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
+				if (offboard_loss_timeout < FLT_EPSILON) {
+					/* execute loss action immediately */
+					status_flags.offboard_control_loss_timeout = true;
+
+				} else {
+					/* wait for timeout if set */
+					status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
+						OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f < hrt_absolute_time();
+				}
+
+				if (status_flags.offboard_control_loss_timeout) {
+					status_changed = true;
+				}
 			}
 		}
 
@@ -2646,7 +2697,9 @@ int commander_thread_main(int argc, char *argv[])
 						       mission_result.stay_in_failsafe,
 						       &status_flags,
 						       land_detector.landed,
-						       (rc_loss_enabled > 0));
+						       (rc_loss_enabled > 0),
+						       offboard_loss_act,
+						       offboard_loss_rc_act);
 
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;

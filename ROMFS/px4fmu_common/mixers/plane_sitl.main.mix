@@ -1,26 +1,36 @@
-Mixer for SITL plane, using the VTOL airframe for now
+Mixer for SITL plane
 =========================================================
 
 Z:
 
 Z:
 
-Z:
-
-Z:
-
-# mixer for the elevons
-M: 2
-O:      10000  10000   0 -10000  10000
-S: 0 0  5000   5000    0 -10000  10000
-S: 0 1 -5000 -5000     0 -10000  10000
-
-M: 2
+# mixer for the rudder
+M: 1
 O:       10000   10000   0 -10000  10000
-S: 0 0   5000    5000    0 -10000  10000
-S: 0 1   5000    5000    0 -10000  10000
+S: 0 2   10000   10000    0 -10000  10000
+
+# mixer for the flaps
+M: 1
+O:       10000   10000   0 -10000  10000
+S: 0 4   10000   10000    0 -10000  10000
 
 # mixer for the pusher/puller throttle
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 3      0  20000 -10000 -10000  10000
+
+# mixer for the left aileron
+M: 1
+O:      10000  10000   0 -10000  10000
+S: 0 0  -10000  -10000    0 -10000  10000
+
+# mixer for the right aileron
+M: 1
+O:      10000  10000   0 -10000  10000
+S: 0 0  10000  10000    0 -10000  10000
+
+# mixer for the elevator
+M: 1
+O:       10000   10000   0 -10000  10000
+S: 0 1   10000   10000    0 -10000  10000
