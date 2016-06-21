@@ -699,6 +699,12 @@ PX4IO::init()
 		// be due to mismatched firmware versions and we want
 		// the startup script to be able to load a new IO
 		// firmware
+
+		// If IO has already safety off it won't accept going into bootloader mode,
+		// therefore we need to set safety on first.
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
+
+		// Now the reboot into bootloader mode should succeed.
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
 		return -1;
 	}
