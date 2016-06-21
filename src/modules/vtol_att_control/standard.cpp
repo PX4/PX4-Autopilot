@@ -254,7 +254,6 @@ void Standard::update_transition_state()
 				  (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
 				  ) {
 			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_time_min * 1000000.0f));
-			printf("weight: %f \n", (double)weight);
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
