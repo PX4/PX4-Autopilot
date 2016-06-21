@@ -525,12 +525,6 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 	_armed(false),
-
-	/* subscriptions */
-	_gyro_sub{ -1, -1, -1},
-	_accel_sub{ -1, -1, -1},
-	_mag_sub{ -1, -1, -1},
-	_baro_sub{ -1, -1, -1},
 	_gyro_count(0),
 	_accel_count(0),
 	_mag_count(0),
