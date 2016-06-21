@@ -98,7 +98,6 @@ add_library(px4_platform
 			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
 			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
 			${PX4_SRC}/platforms/posix/px4_layer/px4_sem.cpp
-			${PX4_SRC}/platforms/posix/px4_layer/shmem_posix.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_addlast.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_rem.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_remfirst.c
