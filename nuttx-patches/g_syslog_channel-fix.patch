@@ -1,0 +1,13 @@
+diff --git NuttX/nuttx/drivers/syslog/syslog.h NuttX/nuttx/drivers/syslog/syslog.h
+index 5068767..5a014d1 100644
+--- NuttX/nuttx/drivers/syslog/syslog.h
++++ NuttX/nuttx/drivers/syslog/syslog.h
+@@ -69,7 +69,7 @@ extern "C"
+ /* This is the current syslog channel in use */
+ 
+ struct syslog_channel_s; /* Forward reference */
+-FAR const struct syslog_channel_s *g_syslog_channel;
++EXTERN FAR const struct syslog_channel_s *g_syslog_channel;
+ 
+ /****************************************************************************
+  * Public Function Prototypes
