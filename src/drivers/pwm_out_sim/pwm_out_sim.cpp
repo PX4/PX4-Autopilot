@@ -770,7 +770,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				_mixers->add_mixer(mixer);
 				_mixers->groups_required(_groups_required);
-            }
+			}
 
 			break;
 		}
@@ -807,63 +807,71 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-    case MIXERIONAME: {
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        mixer_id_e *id = (mixer_id_e *)arg;
-        ret = _mixers->mixer_id( (unsigned) id->index, id->id, (unsigned) sizeof(mixer_id_e));
-        break;
-    }
 
-    case MIXERIOCGETMIXERCOUNT:{
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        unsigned *count = (unsigned *)arg;
-        *count = _mixers->count();
+	case MIXERIONAME: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-        break;
-    }
+			mixer_id_e *id = (mixer_id_e *)arg;
+			ret = _mixers->mixer_id((unsigned) id->index, id->id, (unsigned) sizeof(mixer_id_e));
+			break;
+		}
 
-    case MIXERIOGETPARAMIDS:{
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        mixer_param_id_s *param_ids = (mixer_param_id_s *)arg;
-        param_ids->ids = (char**) _mixers->get_mixer_param_ids(param_ids->mix_index, &param_ids->id_count);
+	case MIXERIOCGETMIXERCOUNT: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-        break;
-    }
+			unsigned *count = (unsigned *)arg;
+			*count = _mixers->count();
 
-    case MIXERIOGETPARAM:{
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        mixer_param_s *param = (mixer_param_s *)arg;
-        param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
-        break;
-    }
+			break;
+		}
 
-    case MIXERIOSETPARAM:{
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        mixer_param_s *param = (mixer_param_s *)arg;
-        ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
-        break;
-    }
+	case MIXERIOGETPARAMIDS: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-    case MIXERIOGETCONFIG:{
-        if (_mixers == nullptr) {
-            ret = -EINVAL;
-        }
-        char *buf = (char *)arg;
+			mixer_param_id_s *param_ids = (mixer_param_id_s *)arg;
+			param_ids->ids = (char **) _mixers->get_mixer_param_ids(param_ids->mix_index, &param_ids->id_count);
 
-        unsigned buflen = 1022;
-        ret = _mixers->save_to_buf(buf, buflen);
-        break;
-    }
+			break;
+		}
+
+	case MIXERIOGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
+			break;
+		}
+
+	case MIXERIOSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+			break;
+		}
+
+	case MIXERIOGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			char *buf = (char *)arg;
+
+			unsigned buflen = 1022;
+			ret = _mixers->save_to_buf(buf, buflen);
+			break;
+		}
+
 #endif
 
 	default:

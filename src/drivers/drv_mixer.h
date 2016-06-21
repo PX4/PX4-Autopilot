@@ -99,10 +99,10 @@ struct mixer_simple_s {
 
 /** 3 point mix */
 struct mixer_3pt_s {
-    uint8_t			control_group;	/**< group from which the input reads */
-    uint8_t			control_index;	/**< index within the control group */
-    float   _input[3];
-    float   _output[3];
+	uint8_t			control_group;	/**< group from which the input reads */
+	uint8_t			control_index;	/**< index within the control group */
+	float   _input[3];
+	float   _output[3];
 };
 
 
@@ -132,8 +132,8 @@ struct mixer_3pt_s {
  * set the mixer index and the string will be returned
  */
 union mixer_id_e {
-    unsigned index;
-    char     id[32];
+	unsigned index;
+	char     id[32];
 };
 
 #define   MIXERIONAME                   _MIXERIOC(10)
@@ -148,9 +148,9 @@ union mixer_id_e {
  * set the the mixer index in the struct
  */
 struct mixer_param_id_s {
-    unsigned        mix_index;
-    unsigned        id_count;
-    char            **ids;
+	unsigned        mix_index;
+	unsigned        id_count;
+	char            **ids;
 };
 #define   MIXERIOGETPARAMIDS		_MIXERIOC(12)
 
@@ -160,9 +160,9 @@ struct mixer_param_id_s {
  * return the value in the struct
  */
 struct mixer_param_s {
-    unsigned        mix_index;
-    unsigned        param_index;
-    float           value;
+	unsigned        mix_index;
+	unsigned        param_index;
+	float           value;
 };
 #define   MIXERIOGETPARAM		_MIXERIOC(13)
 

@@ -80,21 +80,21 @@ float constrain(float val, float min, float max)
 
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
-                 uintptr_t cb_handle,
-                 MultirotorGeometry geometry,
-                 float roll_scale,
-                 float pitch_scale,
-                 float yaw_scale,
-                 float idle_speed) :
-    Mixer(control_cb, cb_handle),
-    _roll_scale(roll_scale),
-    _pitch_scale(pitch_scale),
-    _yaw_scale(yaw_scale),
-    _idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-    _limits_pub(),
-    _rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
-    _rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
-    _geometry(geometry)
+				 uintptr_t cb_handle,
+				 MultirotorGeometry geometry,
+				 float roll_scale,
+				 float pitch_scale,
+				 float yaw_scale,
+				 float idle_speed) :
+	Mixer(control_cb, cb_handle),
+	_roll_scale(roll_scale),
+	_pitch_scale(pitch_scale),
+	_yaw_scale(yaw_scale),
+	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_limits_pub(),
+	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
+	_geometry(geometry)
 {
 }
 
@@ -107,7 +107,7 @@ MultirotorMixer *
 MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
 {
 	MultirotorGeometry geometry;
-    char geomname[8];
+	char geomname[8];
 	int s[4];
 	int used;
 
@@ -185,7 +185,8 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		geometry = MultirotorGeometry::OCTA_COX;
 
 #if 0
-geometry
+		geometry
+
 	} else if (!strcmp(geomname, "8cw")) {
 		geometry = MultirotorGeometry::OCTA_COX_WIDE;
 #endif
@@ -203,87 +204,103 @@ geometry
 
 	debug("adding multirotor mixer '%s'", geomname);
 
-    return new MultirotorMixer(
-               control_cb,
-               cb_handle,
-               geometry,
-               s[0] / 10000.0f,
-               s[1] / 10000.0f,
-               s[2] / 10000.0f,
-               s[3] / 10000.0f);
+	return new MultirotorMixer(
+		       control_cb,
+		       cb_handle,
+		       geometry,
+		       s[0] / 10000.0f,
+		       s[1] / 10000.0f,
+		       s[2] / 10000.0f,
+		       s[3] / 10000.0f);
 }
 
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 int
-MultirotorMixer::to_text(char* buf, unsigned &buflen){
+MultirotorMixer::to_text(char *buf, unsigned &buflen)
+{
 
-    char geomname[8];
+	char geomname[8];
 
-    switch(_geometry){
-    case MultirotorGeometry::QUAD_PLUS:
-        strcpy(geomname, "4+");
-        break;
-    case MultirotorGeometry::QUAD_X:
-        strcpy(geomname, "4x");
-        break;
-    case MultirotorGeometry::QUAD_H:
-        strcpy(geomname, "4");
-        break;
-    case MultirotorGeometry::QUAD_V:
-        strcpy(geomname, "4v");
-        break;
-    case MultirotorGeometry::QUAD_WIDE:
-        strcpy(geomname, "4w");
-        break;
+	switch (_geometry) {
+	case MultirotorGeometry::QUAD_PLUS:
+		strcpy(geomname, "4+");
+		break;
 
-    case MultirotorGeometry::QUAD_DEADCAT:
-        strcpy(geomname, "4dc");
-        break;
-    case MultirotorGeometry::HEX_PLUS:
-        strcpy(geomname, "6+");
-        break;
-    case MultirotorGeometry::HEX_X:
-        strcpy(geomname, "6x");
-        break;
-    case MultirotorGeometry::HEX_COX:
-        strcpy(geomname, "6c");
-        break;
+	case MultirotorGeometry::QUAD_X:
+		strcpy(geomname, "4x");
+		break;
 
-    case MultirotorGeometry::OCTA_PLUS:
-        strcpy(geomname, "8+");
-        break;
-    case MultirotorGeometry::OCTA_X:
-        strcpy(geomname, "8x");
-        break;
-    case MultirotorGeometry::OCTA_COX:
-        strcpy(geomname, "8c");
-        break;
-    case MultirotorGeometry::OCTA_COX_WIDE:
-        strcpy(geomname, "8cw");
-        break;
+	case MultirotorGeometry::QUAD_H:
+		strcpy(geomname, "4");
+		break;
 
-    case MultirotorGeometry::TWIN_ENGINE:
-        strcpy(geomname, "2-");
-        break;
-    case MultirotorGeometry::TRI_Y:
-        strcpy(geomname, "3y");
-        break;
-    default:
-        return -1;
-        break;
-    }
+	case MultirotorGeometry::QUAD_V:
+		strcpy(geomname, "4v");
+		break;
 
-    int written = snprintf(buf, buflen, "R: %s %d %d %d %d\n",
-                           geomname,
-                           (int) (_roll_scale * 10000.0f),
-                           (int) (_pitch_scale * 10000.0f),
-                           (int) (_yaw_scale * 10000.0f),
-                           (int) (_idle_speed * 1000.0f)
-                           );
-    if(written >= buflen-1)
-        return -1;
-    buflen = written;
-    return 0;
+	case MultirotorGeometry::QUAD_WIDE:
+		strcpy(geomname, "4w");
+		break;
+
+	case MultirotorGeometry::QUAD_DEADCAT:
+		strcpy(geomname, "4dc");
+		break;
+
+	case MultirotorGeometry::HEX_PLUS:
+		strcpy(geomname, "6+");
+		break;
+
+	case MultirotorGeometry::HEX_X:
+		strcpy(geomname, "6x");
+		break;
+
+	case MultirotorGeometry::HEX_COX:
+		strcpy(geomname, "6c");
+		break;
+
+	case MultirotorGeometry::OCTA_PLUS:
+		strcpy(geomname, "8+");
+		break;
+
+	case MultirotorGeometry::OCTA_X:
+		strcpy(geomname, "8x");
+		break;
+
+	case MultirotorGeometry::OCTA_COX:
+		strcpy(geomname, "8c");
+		break;
+
+	case MultirotorGeometry::OCTA_COX_WIDE:
+		strcpy(geomname, "8cw");
+		break;
+
+	case MultirotorGeometry::TWIN_ENGINE:
+		strcpy(geomname, "2-");
+		break;
+
+	case MultirotorGeometry::TRI_Y:
+		strcpy(geomname, "3y");
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+
+	int written = snprintf(buf, buflen, "R: %s %d %d %d %d\n",
+			       geomname,
+			       (int)(_roll_scale * 10000.0f),
+			       (int)(_pitch_scale * 10000.0f),
+			       (int)(_yaw_scale * 10000.0f),
+			       (int)(_idle_speed * 1000.0f)
+			      );
+
+	if (written >= buflen - 1) {
+		return -1;
+	}
+
+	buflen = written;
+	return 0;
 }
 #endif
 
@@ -424,7 +441,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 			} else {
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-                           roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
+					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
 			}
 
 			if (status_reg != NULL) {
@@ -455,57 +472,68 @@ MultirotorMixer::groups_required(uint32_t &groups)
 
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 signed
-MultirotorMixer::get_mixer_id(char* buff, unsigned maxlen) {
-    snprintf(buff, maxlen, "MULTIROTOR");
-    return 5;
+MultirotorMixer::get_mixer_id(char *buff, unsigned maxlen)
+{
+	snprintf(buff, maxlen, "MULTIROTOR");
+	return 5;
 }
 
 MIXER_TYPES
-MultirotorMixer::get_mixer_type(void) {
-    return MIXER_TYPE_MULTIROTOR;
+MultirotorMixer::get_mixer_type(void)
+{
+	return MIXER_TYPE_MULTIROTOR;
 }
 
 
 float
-MultirotorMixer::get_parameter(uint16_t index){
-    switch(index){
-    case 0:
-        return _roll_scale;
-        break;
-    case 1:
-        return _pitch_scale;
-        break;
-    case 2:
-        return _yaw_scale;
-        break;
-    case 3:
-        return _idle_speed;
-        break;
-    }
+MultirotorMixer::get_parameter(uint16_t index)
+{
+	switch (index) {
+	case 0:
+		return _roll_scale;
+		break;
 
-    return 0.0;
+	case 1:
+		return _pitch_scale;
+		break;
+
+	case 2:
+		return _yaw_scale;
+		break;
+
+	case 3:
+		return _idle_speed;
+		break;
+	}
+
+	return 0.0;
 }
 
 int16_t
-MultirotorMixer::set_parameter(uint16_t index, float value){
-    switch(index){
-    case 0:
-        _roll_scale = value;
-        break;
-    case 1:
-        _pitch_scale = value;
-        break;
-    case 2:
-        _yaw_scale = value;
-        break;
-    case 3:
-        _idle_speed = value;
-        break;
-    default:
-        return -1;
-        break;
-    }
+MultirotorMixer::set_parameter(uint16_t index, float value)
+{
+	switch (index) {
+	case 0:
+		_roll_scale = value;
+		break;
 
-    return 0;
+	case 1:
+		_pitch_scale = value;
+		break;
+
+	case 2:
+		_yaw_scale = value;
+		break;
+
+	case 3:
+		_idle_speed = value;
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+
+	return 0;
 }
 #endif
