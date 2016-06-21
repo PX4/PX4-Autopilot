@@ -359,8 +359,8 @@ struct stateSample {
 	Quaternion  quat_nominal; // quaternion defining the rotaton from earth to body frame
 	Vector3f    vel;	// NED velocity in earth frame in m/s
 	Vector3f    pos;	// NED position in earth frame in m
-	Vector3f    gyro_bias;	// gyro bias estimate in rad/s
-	Vector3f    accel_bias;	// accelerometer bias estimate in m/s
+	Vector3f    gyro_bias;	// delta angle bias estimate in rad
+	Vector3f    accel_bias;	// delta velocity bias estimate in m/s
 	Vector3f    mag_I;	// NED earth magnetic field in gauss
 	Vector3f    mag_B;	// magnetometer bias estimate in body frame in gauss
 	Vector2f    wind_vel;	// wind velocity in m/s
