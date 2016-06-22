@@ -246,7 +246,7 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 
 	/* force the device address and Frequency into the message vector */
 	for (unsigned i = 0; i < msgs; i++) {
-		msgv[msgs].frequency = _bus_clocks[_bus - 1];
+		msgv[i].frequency = _bus_clocks[_bus - 1];
 		msgv[i].addr = _address;
 	}
 
