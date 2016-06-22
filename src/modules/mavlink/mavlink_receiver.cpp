@@ -189,6 +189,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		}
 		break;
 
+	case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE:
+		handle_message_vicon_position_estimate(msg);
+		break;
+
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
 		handle_message_att_pos_mocap(msg);
 		break;
@@ -626,6 +630,55 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 	}
 }
+
+void
+MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
+{
+	mavlink_vicon_position_estimate_t pos;
+	mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+
+	struct vehicle_vicon_position_s vicon_position;
+	memset(&vicon_position, 0, sizeof(vicon_position));
+	
+	vicon_position.timestamp = pos.usec; //hrt_absolute_time(); //
+	vicon_position.x = pos.x;
+	vicon_position.y = pos.y;
+	vicon_position.z = pos.z;
+	vicon_position.roll = pos.roll;
+	vicon_position.pitch = pos.pitch;
+	vicon_position.yaw = pos.yaw;
+	vicon_position.valid = true;
+	
+	if (_vicon_position_pub == nullptr) {
+		_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
+	}
+
+
+	/* Vicon position we take as the local position */
+	struct vehicle_local_position_s local_position;
+	memset(&local_position, 0, sizeof(local_position));
+	local_position.timestamp = hrt_absolute_time();
+	local_position.x = pos.x;
+	local_position.y = pos.y;
+	local_position.z = pos.z;
+	local_position.yaw = pos.yaw;
+	local_position.xy_valid = true;
+	local_position.z_valid = true;
+	local_position.xy_global = true;
+	local_position.z_global = true;
+	local_position.ref_timestamp = hrt_absolute_time();
+	
+	if (_local_pos_pub == nullptr) {
+		_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_position);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &local_position);
+	}
+}
+
 
 void
 MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)

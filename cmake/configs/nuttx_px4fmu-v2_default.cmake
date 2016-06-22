@@ -49,6 +49,8 @@ set(config_module_list
 	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 
+	drivers/irlock
+
 	#
 	# System commands
 	#
