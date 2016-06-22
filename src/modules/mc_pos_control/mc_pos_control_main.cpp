@@ -427,7 +427,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
-	_R_circle(3.0f),
+	_R_circle(-1.0f),
 	_was_pos_ctrl_mode(false)
 {
 	// Make the quaternion valid for control state
@@ -721,14 +721,12 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
 
 		// update sub-mode for position control mode
-		if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE) {
-			if ((int)_vehicle_command.param1 == 0) {
-				_posctrl_sub_mode = MODE_POS_CTRL;
-			} else if ((int)_vehicle_command.param1 == 1) {
-				_posctrl_sub_mode = MODE_CIRCLE;
-
-				// XXX Need to pass circle origin and radius here
-			}
+		if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_STANDARD) {
+			_posctrl_sub_mode = MODE_POS_CTRL;
+		} else if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE) {
+			_posctrl_sub_mode = MODE_CIRCLE;
+			_R_circle = _vehicle_command.param1;
+			map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
 		}
 	}
 }
