@@ -3,17 +3,12 @@
 
 language: cpp
 
-env:
-  global:
-    # build thiemar/vectorcontrol.git and include in px4fmu-v4
-    - VECTORCONTROL=1
-
 matrix:
   fast_finish: true
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base"
+      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base" VECTORCONTROL=1
       services:
         - docker
     - os: linux
