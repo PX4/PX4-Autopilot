@@ -109,7 +109,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	/* SPI select is active low, so write !selected to select the device */
 
 	switch (devid) {
-	case PX4_SPIDEV_LSM_GYRO:
+	case PX4_SPIDEV_GYRO:
 		/* Making sure the other peripherals are not selected */
 		px4_arch_gpiowrite(GPIO_SPI_CS_LSM9DS0_GYRO, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_LSM9DS0_ACCEL_MAG, 1);
@@ -117,7 +117,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		break;
 
-	case PX4_SPIDEV_LSM_ACCEL_MAG:
+	case PX4_SPIDEV_ACCEL_MAG:
 		/* Making sure the other peripherals are not selected */
 		px4_arch_gpiowrite(GPIO_SPI_CS_LSM9DS0_GYRO, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_LSM9DS0_ACCEL_MAG, !selected);

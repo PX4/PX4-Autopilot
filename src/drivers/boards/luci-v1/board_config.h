@@ -118,20 +118,18 @@ __BEGIN_DECLS
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
 #define PX4_SPIDEV_EXT1		2
-#define PX4_SPIDEV_EXT2		3
-#define PX4_SPIDEV_EXT3		4
 
-/* FMUv3 SPI on external bus */
+/* With only 2 external chip selects, not sure how useful these will be... */
 #define PX4_SPIDEV_EXT_MPU		PX4_SPIDEV_EXT0
 #define PX4_SPIDEV_EXT_BARO		PX4_SPIDEV_EXT1
-#define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT2
-#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
+#define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT0
+#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT1
 
-#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT_GYRO
+#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT0
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_LSM_GYRO			1
-#define PX4_SPIDEV_LSM_ACCEL_MAG		2
+#define PX4_SPIDEV_GYRO			1
+#define PX4_SPIDEV_ACCEL_MAG		2
 #define PX4_SPIDEV_BARO			3
 #define PX4_SPIDEV_MPU			4
 

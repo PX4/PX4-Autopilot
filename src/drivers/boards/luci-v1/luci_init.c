@@ -246,8 +246,8 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_LSM_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_LSM_ACCEL_MAG, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
