@@ -86,6 +86,8 @@
 #include <lib/geo/geo.h>
 #include <uORB/topics/vehicle_omega_ff_setpoint.h>
 
+#include <uORB/topics/rc_channels.h>
+
 /**
  * Quadroter quaternion based attitude control app start / stop handling function
  *
@@ -127,6 +129,7 @@ private:
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_armed_sub;				/**< arming status subscription */
 	int 	_omega_d_sub = -1;		/**< Feedforward angular velocity */
+	int _v_rc_sub;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
@@ -142,6 +145,7 @@ private:
 	struct actuator_controls_s			_actuators;			/**< actuator controls */
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
 	struct vehicle_omega_ff_setpoint_s 	_omega_d;	/**< Feedforward angular velocity */
+	struct rc_channels_s _v_rc;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -259,6 +263,8 @@ private:
 	 * Main quaternion control task.
 	 */
 	void		task_main();
+
+	void rc_poll();
 };
 
 namespace mc_quat_control
@@ -286,6 +292,7 @@ MulticopterQuaternionControl::MulticopterQuaternionControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 	_omega_d_sub(-1),
+	_v_rc_sub(-1),
 
 /* publications */
 	_att_sp_pub(nullptr),
@@ -524,6 +531,16 @@ MulticopterQuaternionControl::feedforwad_omega_poll()
 	{
 		orb_copy(ORB_ID(vehicle_omega_ff_setpoint), _omega_d_sub, &_omega_d);
 	}	
+}
+
+void
+MulticopterQuaternionControl::rc_poll()
+{
+	bool updated;
+	orb_check(_v_rc_sub, &updated);
+	{
+		orb_copy(ORB_ID(rc_channels), _v_rc_sub, &_v_rc);
+	}
 }
 
 void
@@ -845,6 +862,7 @@ MulticopterQuaternionControl::task_main()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	_omega_d_sub = orb_subscribe(ORB_ID(vehicle_omega_ff_setpoint));
+	_v_rc_sub =  orb_subscribe(ORB_ID(rc_channels));
 
 
 	/* initialize parameters cache */
@@ -906,6 +924,13 @@ MulticopterQuaternionControl::task_main()
 			if (servos[5] > 2000)
 				servos[5] = pwm_value;
 			//ret = write(fdt, servos, sizeof(servos));
+			if (_v_rc.channels[5] < 0)
+			{
+				servos[5] = pwm_value;
+			} else
+			{
+				servos[5] = 2000;
+			}
 			ret = ioctl(fdt, PWM_SERVO_SET(5), servos[5]);
 
 			if (ret != (int)sizeof(servos)) {
@@ -922,6 +947,8 @@ MulticopterQuaternionControl::task_main()
 			arming_status_poll();
 			vehicle_manual_poll();
 			feedforwad_omega_poll();
+			rc_poll();
+			printf("RC is %3.3f %3.3f\n",double(_v_rc.channels[4]), double(_v_rc.channels[5]));
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
