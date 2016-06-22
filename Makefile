@@ -289,7 +289,9 @@ endif
 unittest: posix_sitl_test
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
-	
+
+tests: posix_sitl_test unittest
+
 test_onboard_sitl:
 	@HEADLESS=1 make posix_sitl_test gazebo_iris
 
@@ -300,6 +302,11 @@ qgc_firmware: \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v4_default_and_uavcan
+
+extra_firmware: \
+	check_px4-stm32f4discovery_default \
+	check_px4fmu-v2_test \
+	check_px4fmu-v2_ekf2
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
