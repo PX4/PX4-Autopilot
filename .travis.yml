@@ -16,8 +16,8 @@ matrix:
       sudo: true
 
 cache:
-  - ccache
-  - pip
+  ccache: true
+  pip: true
   directories:
     - /Library/Caches/Homebrew/
     - /Users/travis/Library/Caches/Homebrew
