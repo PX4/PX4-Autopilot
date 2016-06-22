@@ -137,7 +137,7 @@ function(px4_nuttx_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		foreach(property MAIN STACK_MAIN PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY)
 			get_target_property(${property} ${module} ${property})
 		endforeach()
 		if (MAIN)
@@ -202,7 +202,7 @@ function(px4_nuttx_add_export)
 	    add_dependencies(nuttx_patch nuttx_patch_${patch_name})
 	endforeach()
 
-	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes 
+	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
 	# note: CONFIG will be BOARD in the future evaluation of ${hw_stack_check_${CONFIG}
 	file(STRINGS "${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/nsh/defconfig"
 		hw_stack_check_${CONFIG}
@@ -319,7 +319,7 @@ function(px4_nuttx_add_romfs)
 
 	set(cmake_test ${CMAKE_SOURCE_DIR}/cmake/test/cmake_tester.py)
 
-	
+
 	set(extras)
 	foreach(extra ${EXTRAS})
 		get_filename_component(file_name ${extra} NAME)
@@ -491,6 +491,14 @@ function(px4_os_add_flags)
 			-mfloat-abi=hard
 			)
 	elseif (${BOARD} STREQUAL "mindpx-v2")
+			set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
+			)
+	elseif (${BOARD} STREQUAL "luci-v1")
 			set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
