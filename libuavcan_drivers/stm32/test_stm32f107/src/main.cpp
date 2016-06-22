@@ -39,13 +39,13 @@ void init()
     do
     {
         ::sleep(1);
-        ::syslog("CAN auto bit rate detection...\n");
+        ::lowsyslog("CAN auto bit rate detection...\n");
 
         std::uint32_t bitrate = 0;
         res = can.init([]() { ::usleep(can.getRecommendedListeningDelay().toUSec()); }, bitrate);
         if (res >= 0)
         {
-            ::syslog("CAN inited at %u bps\n", unsigned(bitrate));
+            ::lowsyslog("CAN inited at %u bps\n", unsigned(bitrate));
         }
     }
     while (res < 0);
@@ -68,7 +68,7 @@ class : public chibios_rt::BaseStaticThread<8192>
 
         getNode().setSoftwareVersion(swver);
 
-        syslog("Git commit hash: 0x%08x\n", GIT_HASH);
+        lowsyslog("Git commit hash: 0x%08x\n", GIT_HASH);
 
         /*
          * Hardware version
@@ -82,12 +82,12 @@ class : public chibios_rt::BaseStaticThread<8192>
 
         getNode().setHardwareVersion(hwver);
 
-        syslog("UDID:");
+        lowsyslog("UDID:");
         for (auto b : hwver.unique_id)
         {
-            syslog(" %02x", unsigned(b));
+            lowsyslog(" %02x", unsigned(b));
         }
-        syslog("\n");
+        lowsyslog("\n");
     }
 
     void performDynamicNodeIDAllocation()
@@ -100,17 +100,17 @@ class : public chibios_rt::BaseStaticThread<8192>
             board::die(client_start_res);
         }
 
-        syslog("Waiting for dynamic node ID allocation...\n");
+        lowsyslog("Waiting for dynamic node ID allocation...\n");
         while (!client.isAllocationComplete())
         {
             const int spin_res = getNode().spin(uavcan::MonotonicDuration::fromMSec(100));
             if (spin_res < 0)
             {
-                syslog("Spin failure: %i\n", spin_res);
+                lowsyslog("Spin failure: %i\n", spin_res);
             }
         }
 
-        syslog("Dynamic node ID %d allocated by %d\n",
+        lowsyslog("Dynamic node ID %d allocated by %d\n",
                   int(client.getAllocatedNodeID().get()),
                   int(client.getAllocatorNodeID().get()));
 
@@ -154,24 +154,24 @@ public:
         /*
          * Main loop
          */
-        syslog("UAVCAN node started\n");
+        lowsyslog("UAVCAN node started\n");
         getNode().setModeOperational();
         while (true)
         {
             const int spin_res = getNode().spin(uavcan::MonotonicDuration::fromMSec(5000));
             if (spin_res < 0)
             {
-                syslog("Spin failure: %i\n", spin_res);
+                lowsyslog("Spin failure: %i\n", spin_res);
             }
 
-            syslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
+            lowsyslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
 
-            syslog("Memory usage: free=%u used=%u worst=%u\n",
+            lowsyslog("Memory usage: free=%u used=%u worst=%u\n",
                       getNode().getAllocator().getNumFreeBlocks(),
                       getNode().getAllocator().getNumUsedBlocks(),
                       getNode().getAllocator().getPeakNumUsedBlocks());
 
-            syslog("CAN errors: %lu %lu\n",
+            lowsyslog("CAN errors: %lu %lu\n",
                       static_cast<unsigned long>(can.driver.getIface(0)->getErrorCount()),
                       static_cast<unsigned long>(can.driver.getIface(1)->getErrorCount()));
 
@@ -194,7 +194,7 @@ int main()
 {
     app::init();
 
-    syslog("Starting the UAVCAN thread\n");
+    lowsyslog("Starting the UAVCAN thread\n");
     app::uavcan_node_thread.start(LOWPRIO);
 
     while (true)
@@ -206,7 +206,7 @@ int main()
         }
 
         const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
-        syslog("UTC %lu sec   Rate corr: %fPPM   Jumps: %lu   Locked: %i\n",
+        lowsyslog("UTC %lu sec   Rate corr: %fPPM   Jumps: %lu   Locked: %i\n",
                   static_cast<unsigned long>(utc.toMSec() / 1000),
                   uavcan_stm32::clock::getUtcRateCorrectionPPM(),
                   uavcan_stm32::clock::getUtcJumpCount(),
