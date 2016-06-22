@@ -1,0 +1,21 @@
+diff --git NuttX/nuttx/drivers/syslog/syslog_device.c NuttX/nuttx/drivers/syslog/syslog_device.c
+index 25639e4..4447aa7 100644
+--- NuttX/nuttx/drivers/syslog/syslog_device.c
++++ NuttX/nuttx/drivers/syslog/syslog_device.c
+@@ -54,6 +54,7 @@
+ #include <nuttx/arch.h>
+ #include <nuttx/kmalloc.h>
+ #include <nuttx/fs/fs.h>
++#include <../fs/inode/inode.h>
+ #include <nuttx/syslog/syslog.h>
+ 
+ #include "syslog.h"
+@@ -583,7 +584,7 @@ int syslog_dev_flush(void)
+ 
+   /* Is this a mountpoint? Does it support the sync method? */
+ 
+-  if (inode && inode->u.i_mops->sync)
++  if (INODE_IS_MOUNTPT(inode) && inode->u.i_mops->sync)
+     {
+       /* Yes... synchronize to the stream */
+ 
