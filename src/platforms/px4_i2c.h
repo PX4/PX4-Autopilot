@@ -79,11 +79,11 @@ __END_DECLS
 // NOTE - This is a copy of the NuttX i2c_msg_s structure
 
 typedef struct {
-	  uint32_t frequency;         /* I2C frequency */
-	  uint16_t addr;              /* Slave address (7- or 10-bit) */
-	  uint16_t flags;             /* See I2C_M_* definitions */
-	  FAR uint8_t *buffer;        /* Buffer to be transferred */
-	  ssize_t length;             /* Length of the buffer in bytes */
+	uint32_t frequency;         /* I2C frequency */
+	uint16_t addr;              /* Slave address (7- or 10-bit) */
+	uint16_t flags;             /* See I2C_M_* definitions */
+	uint8_t *buffer;        /* Buffer to be transferred */
+	ssize_t length;             /* Length of the buffer in bytes */
 } px4_i2c_msg_t;
 
 // NOTE - This is a copy of the NuttX i2c_ops_s structure
