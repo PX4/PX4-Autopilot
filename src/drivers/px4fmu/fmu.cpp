@@ -905,9 +905,9 @@ void PX4FMU::setWIFIstate(int32_t wifi_mode, bool armed)
 void PX4FMU::setWIFIFactoryDefaults()
 {
 #ifdef WIFI_FACTORY_DEFAULTS
-	WIFI_FACTORY_DEFAULTS(1);
-	usleep(500);
 	WIFI_FACTORY_DEFAULTS(0);
+	usleep(500);
+	WIFI_FACTORY_DEFAULTS(1);
 #endif
 }
 
