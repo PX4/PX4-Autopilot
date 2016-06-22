@@ -231,7 +231,7 @@ __BEGIN_DECLS
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
+#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 #define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
 #define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)

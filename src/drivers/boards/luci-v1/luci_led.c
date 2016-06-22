@@ -63,7 +63,10 @@
 
 
  static uint32_t g_ledmap[] = {
- 	GPIO_LED_RED,     // Indexed by LED_RED, LED_BLUE
+  GPIO_LED_RED,
+ 	0,
+  0,
+  0
  };
 
  __EXPORT void led_init(void)
