@@ -16,8 +16,9 @@ matrix:
       sudo: true
 
 cache:
-  directories:
-    - $HOME/.ccache
+  - ccache
+  - pip
+  - homebrew
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
@@ -27,7 +28,7 @@ before_install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
-      && brew install cmake ninja genromfs
+      && brew install ccache cmake ninja genromfs
       && sudo easy_install pip
       && sudo pip install empy
       ;
