@@ -77,11 +77,13 @@ __END_DECLS
 #define I2C_M_NORESTART      0x0080          /* message should not begin with (re-)start of transfer */
 
 // NOTE - This is a copy of the NuttX i2c_msg_s structure
+
 typedef struct {
-	uint16_t  addr;                  /* Slave address */
-	uint16_t  flags;                 /* See I2C_M_* definitions */
-	uint8_t  *buffer;
-	int       length;
+	  uint32_t frequency;         /* I2C frequency */
+	  uint16_t addr;              /* Slave address (7- or 10-bit) */
+	  uint16_t flags;             /* See I2C_M_* definitions */
+	  FAR uint8_t *buffer;        /* Buffer to be transferred */
+	  ssize_t length;             /* Length of the buffer in bytes */
 } px4_i2c_msg_t;
 
 // NOTE - This is a copy of the NuttX i2c_ops_s structure
