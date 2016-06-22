@@ -56,7 +56,7 @@ __BEGIN_DECLS
 #define UDID_START		0x1FFF7A10
 
 /* FIXME Luci Revision E2 Error Patches (Remove this after revision E2) */
-#define LUCI_NO_MMCSD // Rev E2's SD Card is unusable, and trying to init mmcsd will cause the FMU to crash.
+#define LUCI_NO_MMCSD /* Rev E2's SD Card is unusable, and trying to init mmcsd will cause the FMU to crash. */
 
 /****************************************************************************************************
  * Definitions
@@ -127,7 +127,7 @@ __BEGIN_DECLS
 
 #define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT0
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
+/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI4 */
 #define PX4_SPIDEV_GYRO			1
 #define PX4_SPIDEV_ACCEL_MAG		2
 #define PX4_SPIDEV_BARO			3
@@ -184,7 +184,7 @@ __BEGIN_DECLS
 #define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN7)
 #define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
 
-/* FIXME 3V3 rail never added in hardware, will be fixed on netxt revision */
+/* FIXME 3V3 rail never added in hardware, will be fixed on next revision */
 #define GPIO_VDD_3V3_SENSORS_EN	(0) /*(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN3)*/
 
 

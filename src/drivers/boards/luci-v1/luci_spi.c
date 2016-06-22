@@ -70,7 +70,7 @@
 
 __EXPORT void stm32_spiinitialize(void)
 {
-#ifdef CONFIG_STM32_SPI1
+#ifdef CONFIG_STM32_SPI4
 	px4_arch_configgpio(GPIO_SPI_CS_LSM9DS0_GYRO);
 	px4_arch_configgpio(GPIO_SPI_CS_LSM9DS0_ACCEL_MAG);
 	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
@@ -96,7 +96,7 @@ __EXPORT void stm32_spiinitialize(void)
 	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
 #endif
 
-#ifdef CONFIG_STM32_SPI4
+#ifdef CONFIG_STM32_SPI1
 	px4_arch_configgpio(GPIO_SPI_CS_EXT0);
 	px4_arch_configgpio(GPIO_SPI_CS_EXT1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_EXT0, 1);
@@ -104,7 +104,7 @@ __EXPORT void stm32_spiinitialize(void)
 #endif
 }
 
-__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -146,7 +146,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
 	return SPI_STATUS_PRESENT;
 }
@@ -166,7 +166,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 }
 #endif
 
-__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -189,7 +189,7 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
 	return SPI_STATUS_PRESENT;
 }

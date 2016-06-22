@@ -234,22 +234,22 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = px4_spibus_initialize(1);
+	spi4 = px4_spibus_initialize(4);
 
-	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
+	if (!spi4) {
+		message("[boot] FAILED to initialize SPI port 4\n");
 		up_ledon(GPIO_LED_RED);
 		return -ENODEV;
 	}
 
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi4, 10000000);
+	SPI_SETBITS(spi4, 8);
+	SPI_SETMODE(spi4, SPIDEV_MODE3);
+	SPI_SELECT(spi4, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi4, PX4_SPIDEV_ACCEL_MAG, false);
+	SPI_SELECT(spi4, PX4_SPIDEV_BARO, false);
+	SPI_SELECT(spi4, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
@@ -271,14 +271,14 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	spi4 = px4_spibus_initialize(4);
+	spi1 = px4_spibus_initialize(1);
 
-	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi4, 10000000);
-	SPI_SETBITS(spi4, 8);
-	SPI_SETMODE(spi4, SPIDEV_MODE3);
-	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
-	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
+	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi1, 10000000);
+	SPI_SETBITS(spi1, 8);
+	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SELECT(spi1, PX4_SPIDEV_EXT0, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_EXT1, false);
 
 #ifndef LUCI_NO_MMCSD
 #ifdef CONFIG_MMCSD
