@@ -3,6 +3,12 @@
 # Nuttx/ Configuration
 #
 
+# The following line is needed because the upstream tools that generates
+# the include/nuttx/include/config.h file adds logic that relies on this
+# and our build flags include -Werror=undef
+#
+CONFIG_NSOCKET_DESCRIPTORS=0
+
 #
 # Build Setup
 #
@@ -1080,7 +1086,10 @@ CONFIG_CDCACM_PRODUCTSTR="PX4 FMU v2.x"
 # CONFIG_RAMLOG is not set
 # CONFIG_SYSLOG_INTBUFFER is not set
 # CONFIG_SYSLOG_TIMESTAMP is not set
-# CONFIG_CONSOLE_SYSLOG is not set
+CONFIG_SYSLOG_SERIAL_CONSOLE=y
+# CONFIG_SYSLOG_CHAR is not set
+CONFIG_SYSLOG_CONSOLE=y
+# CONFIG_SYSLOG_NONE is not set
 
 #
 # Networking Support
@@ -1514,9 +1523,3 @@ CONFIG_READLINE_ECHO=y
 # CONFIG_SYSTEM_VI is not set
 # CONFIG_SYSTEM_ZMODEM is not set
 #
-
-# The following line is needed because the upstream tools that generates
-# the include/nuttx/include/config.h file adds logic that relies on this
-# and our build flags include -Werror=undef
-#
-CONFIG_NSOCKET_DESCRIPTORS=0
