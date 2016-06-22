@@ -338,18 +338,19 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("no GPS - navigator timed out");
 				global_pos_available_once = false;
+				PX4_WARN("navigator: global position timeout");
 			}
-			continue;
+			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
+		} else {
+			/* success, global pos was available */
+			global_pos_available_once = true;
 		}
-
-		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 

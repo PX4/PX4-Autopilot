@@ -291,6 +291,8 @@ private:
 		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
+		float man_roll_max_rad;
+		float rollsp_offset_rad;
 
 		float throttle_land_max;
 
@@ -342,6 +344,8 @@ private:
 		param_t throttle_idle;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
+		param_t man_roll_max_deg;
+		param_t rollsp_offset_deg;
 
 		param_t throttle_land_max;
 
@@ -611,10 +615,12 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
+	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
+	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
 	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
-	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FL_ALT");
+	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_LND_FL_PMIN");
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_LND_FL_PMAX");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
@@ -692,6 +698,12 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
+
+	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
+	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
+	param_get(_parameter_handles.rollsp_offset_deg, &_parameters.rollsp_offset_rad);
+	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_rad);
+
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
 	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
@@ -1941,6 +1953,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
+		// calculate roll setpoint from user input
+		// this is already calculated in fw_att_control_main.cpp but we do it here for the sake of logging
+		if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
+			_att_sp.roll_body = _parameters.rollsp_offset_rad;
+
+		} else {
+			_att_sp.roll_body = (_manual.y * _parameters.man_roll_max_rad)
+						+ _parameters.rollsp_offset_rad;
+		}
+
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
@@ -2366,7 +2388,7 @@ FixedwingPositionControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("fw_pos_control_l1",
+	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
 					   1400,

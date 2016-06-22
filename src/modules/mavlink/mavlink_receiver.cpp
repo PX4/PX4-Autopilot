@@ -167,12 +167,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_long(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_int(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
@@ -187,6 +189,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_set_mode(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
@@ -229,6 +232,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_request_data_stream(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -354,6 +358,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
+		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+			get_message_interval((int)cmd_mavlink.param1);
 
 		} else {
 
@@ -533,7 +543,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 		if (_flow_distance_sensor_pub == nullptr) {
 			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-						   &_orb_class_instance, ORB_PRIO_HIGH);
+						    &_orb_class_instance, ORB_PRIO_HIGH);
 
 		} else {
 			orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
@@ -1365,20 +1375,60 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
-	mavlink_request_data_stream_t req;
-	mavlink_msg_request_data_stream_decode(msg, &req);
+	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
+}
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid
-	    && req.req_message_rate != 0) {
-		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+void
+MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
+{
+	if (data_rate > 0) {
+		_mavlink->set_data_rate(data_rate);
+	}
 
-		MavlinkStream *stream;
-		LL_FOREACH(_mavlink->get_streams(), stream) {
-			if (req.req_stream_id == stream->get_id()) {
-				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
+	// configure_stream wants a rate (msgs/second), so convert here.
+	float rate = 0;
+
+	if (interval < 0) {
+		// stop the stream.
+		rate = 0;
+
+	} else if (interval > 0) {
+		rate = 1000000.0f / interval;
+
+	} else {
+		// note: mavlink spec says rate == 0 is requesting a default rate but our streams
+		// don't publish a default rate so for now let's pick a default rate of zero.
+	}
+
+	// The interval between two messages is in microseconds.
+	// Set to -1 to disable and 0 to request default rate
+	if (msgId != 0) {
+		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+			const StreamListItem *item = streams_list[i];
+
+			if (msgId == item->get_id()) {
+				_mavlink->configure_stream_threadsafe(item->get_name(), rate);
+				break;
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::get_message_interval(int msgId)
+{
+	unsigned interval = 0;
+
+	MavlinkStream *stream;
+	LL_FOREACH(_mavlink->get_streams(), stream) {
+		if (stream->get_id() == msgId) {
+			interval = stream->get_interval();
+			break;
+		}
+	}
+
+	// send back this value...
+	mavlink_msg_message_interval_send(_mavlink->get_channel(), msgId, interval);
 }
 
 void

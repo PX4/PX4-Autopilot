@@ -666,6 +666,7 @@ function(px4_add_common_flags)
 	endif()
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		message(STATUS "address sanitizer enabled")
 		set(max_optimization -Os)
 
 		set(optimization_flags

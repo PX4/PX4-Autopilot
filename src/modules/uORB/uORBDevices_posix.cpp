@@ -136,7 +136,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 		sd->generation = _generation;
 
 		/* set priority */
-		sd->priority = _priority;
+		sd->set_priority(_priority);
 
 		filp->priv = (void *)sd;
 
@@ -169,7 +169,10 @@ uORB::DeviceNode::close(device::file_t *filp)
 		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
-			hrt_cancel(&sd->update_call);
+			if (sd->update_interval) {
+				hrt_cancel(&sd->update_interval->update_call);
+			}
+
 			remove_internal_subscriber();
 			delete sd;
 			sd = nullptr;
@@ -222,13 +225,13 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* set priority */
-	sd->priority = _priority;
+	sd->set_priority(_priority);
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
 	 * we have just collected it.
 	 */
-	sd->update_reported = false;
+	sd->set_update_reported(false);
 
 	unlock();
 
@@ -306,19 +309,45 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		unlock();
 		return PX4_OK;
 
-	case ORBIOCSETINTERVAL:
-		lock();
-		sd->update_interval = arg;
-		sd->last_update = hrt_absolute_time();
-		unlock();
-		return PX4_OK;
+	case ORBIOCSETINTERVAL: {
+			int ret = PX4_OK;
+			lock();
+
+			if (arg == 0) {
+				if (sd->update_interval) {
+					delete(sd->update_interval);
+					sd->update_interval = nullptr;
+				}
+
+			} else {
+				if (sd->update_interval) {
+					sd->update_interval->interval = arg;
+					sd->update_interval->last_update = hrt_absolute_time();
+
+				} else {
+					sd->update_interval = new UpdateIntervalData();
+
+					if (sd->update_interval) {
+						memset(&sd->update_interval->update_call, 0, sizeof(hrt_call));
+						sd->update_interval->interval = arg;
+						sd->update_interval->last_update = hrt_absolute_time();
+
+					} else {
+						ret = -ENOMEM;
+					}
+				}
+			}
+
+			unlock();
+			return ret;
+		}
 
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
 		return PX4_OK;
 
 	case ORBIOCGPRIORITY:
-		*(int *)arg = sd->priority;
+		*(int *)arg = sd->priority();
 		return PX4_OK;
 
 	case ORBIOCSETQUEUESIZE:
@@ -327,7 +356,13 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return update_queue_size(arg);
 
 	case ORBIOCGETINTERVAL:
-		*(unsigned *)arg = sd->update_interval;
+		if (sd->update_interval) {
+			*(unsigned *)arg = sd->update_interval->interval;
+
+		} else {
+			*(unsigned *)arg = 0;
+		}
+
 		return OK;
 
 	default:
@@ -466,7 +501,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		/*
 		 * Handle non-rate-limited subscribers.
 		 */
-		if (sd->update_interval == 0) {
+		if (sd->update_interval == nullptr) {
 			ret = true;
 			break;
 		}
@@ -478,22 +513,22 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * behaviour where checking / polling continues to report an update
 		 * until the topic is read.
 		 */
-		if (sd->update_reported) {
+		if (sd->update_reported()) {
 			ret = true;
 			break;
 		}
 
 		// If we have not yet reached the deadline, then assume that we can ignore any
 		// newly received data.
-		if (sd->last_update + sd->update_interval > hrt_absolute_time()) {
+		if (sd->update_interval->last_update + sd->update_interval->interval > hrt_absolute_time()) {
 			break;
 		}
 
 		/*
 		 * Remember that we have told the subscriber that there is data.
 		 */
-		sd->update_reported = true;
-		sd->last_update = hrt_absolute_time();
+		sd->set_update_reported(true);
+		sd->update_interval->last_update = hrt_absolute_time();
 		ret = true;
 
 		break;
