@@ -20,14 +20,15 @@ cache:
     - $HOME/.ccache
 
 before_install:
-  - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags && git submodule update --quiet --init --recursive
+  - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker pull ${DOCKER_REPO};
+         git fetch --unshallow && git fetch --all --tags
+      && docker pull ${DOCKER_REPO}
+      ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update; brew update
-      && brew install cmake ninja
-      && brew install genromfs
+      && brew install cmake ninja genromfs
       && sudo easy_install pip
       && sudo pip install empy
       ;
