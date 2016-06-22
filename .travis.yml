@@ -12,15 +12,16 @@ matrix:
       services:
         - docker
     - os: osx
-      osx_image: xcode7.3
       sudo: true
+      osx_image: xcode7.3
+      env: CCACHE_CPP2=1
 
 cache:
   ccache: true
   pip: true
   directories:
-    - /Library/Caches/Homebrew/
-    - /Users/travis/Library/Caches/Homebrew
+    - $HOME/.pip/cache/
+    - $HOME/Library/Caches/pip
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
@@ -34,6 +35,7 @@ before_install:
       && brew install ccache cmake ninja genromfs
       && sudo easy_install pip
       && sudo pip install empy
+      && export PATH=/usr/local/opt/ccache/libexec:$PATH
       ;
     fi
 
