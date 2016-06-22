@@ -8,7 +8,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base" VECTORCONTROL=1
+      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base"
       services:
         - docker
     - os: osx
@@ -20,7 +20,6 @@ cache:
     - $HOME/.ccache
 
 before_install:
-  - git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          git fetch --unshallow && git fetch --all --tags
       && docker pull ${DOCKER_REPO}
@@ -44,7 +43,7 @@ env:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
