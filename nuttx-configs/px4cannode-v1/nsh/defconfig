@@ -4,6 +4,13 @@
 #
 
 #
+# The following line is needed because the upstream tools that generates
+# the include/nuttx/include/config.h file adds logic that relies on this
+# and our build flags include -Werror=undef
+#
+CONFIG_NSOCKET_DESCRIPTORS=0
+
+#
 # Build Setup
 #
 # CONFIG_EXPERIMENTAL is not set
@@ -42,10 +49,12 @@ CONFIG_ARCH_MATH_H=y
 #
 # Debug Options
 #
+CONFIG_DEBUG_ALERT=y
 # CONFIG_DEBUG_FEATURES is not set
-CONFIG_ARCH_HAVE_HEAPCHECK=y
 CONFIG_ARCH_HAVE_STACKCHECK=y
 CONFIG_STACK_COLORATION=y
+CONFIG_ARCH_HAVE_HEAPCHECK=y
+# CONFIG_HEAP_COLORATION is not set
 CONFIG_DEBUG_SYMBOLS=y
 CONFIG_ARCH_HAVE_CUSTOMOPT=y
 # CONFIG_DEBUG_NOOPT is not set
@@ -199,6 +208,7 @@ CONFIG_ARCH_CHIP_STM32F103RB=y
 # CONFIG_ARCH_CHIP_STM32F103VE is not set
 # CONFIG_ARCH_CHIP_STM32F103ZE is not set
 # CONFIG_ARCH_CHIP_STM32F105VB is not set
+# CONFIG_ARCH_CHIP_STM32F105RB is not set
 # CONFIG_ARCH_CHIP_STM32F107VC is not set
 # CONFIG_ARCH_CHIP_STM32F205RG is not set
 # CONFIG_ARCH_CHIP_STM32F207IG is not set
@@ -410,6 +420,10 @@ CONFIG_STM32_DISABLE_IDLE_SLEEP_DURING_DEBUG=y
 CONFIG_STM32_FORCEPOWER=y
 # CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is not set
 # CONFIG_STM32_DMACAPABLE is not set
+
+#
+# Timer Configuration
+#
 # CONFIG_STM32_TIM3_PWM is not set
 # CONFIG_STM32_TIM1_CAP is not set
 # CONFIG_STM32_TIM3_CAP is not set
@@ -518,9 +532,7 @@ CONFIG_RAM_SIZE=20480
 #
 # Board Selection
 #
-# CONFIG_ARCH_BOARD_MAPLE is not set
 CONFIG_ARCH_BOARD_PX4CANNODE_V1=y
-# CONFIG_ARCH_BOARD_CUSTOM is not set
 CONFIG_ARCH_BOARD="px4cannode-v1"
 
 #
@@ -696,8 +708,10 @@ CONFIG_ARCH_HAVE_I2CRESET=y
 #
 # LED Support
 #
+# CONFIG_USERLED is not set
 # CONFIG_RGBLED is not set
 # CONFIG_PCA9635PW is not set
+# CONFIG_NCP5623C is not set
 # CONFIG_MMCSD is not set
 # CONFIG_MODEM is not set
 # CONFIG_MTD is not set
@@ -709,6 +723,8 @@ CONFIG_ARCH_HAVE_I2CRESET=y
 # CONFIG_SERCOMM_CONSOLE is not set
 CONFIG_SERIAL=y
 # CONFIG_DEV_LOWCONSOLE is not set
+# CONFIG_SERIAL_REMOVABLE is not set
+CONFIG_SERIAL_CONSOLE=y
 # CONFIG_16550_UART is not set
 # CONFIG_UART_SERIALDRIVER is not set
 # CONFIG_UART0_SERIALDRIVER is not set
@@ -760,14 +776,17 @@ CONFIG_USART1_2STOP=0
 # CONFIG_DRIVERS_WIRELESS is not set
 
 #
-# System Logging Device Options
-#
-
-#
 # System Logging
 #
+# CONFIG_ARCH_SYSLOG is not set
 # CONFIG_RAMLOG is not set
-# CONFIG_CONSOLE_SYSLOG is not set
+# CONFIG_SYSLOG_INTBUFFER is not set
+# CONFIG_SYSLOG_TIMESTAMP is not set
+CONFIG_SYSLOG_SERIAL_CONSOLE=y
+# CONFIG_SYSLOG_CHAR is not set
+CONFIG_SYSLOG_CONSOLE=y
+# CONFIG_SYSLOG_NONE is not set
+# CONFIG_SYSLOG_FILE is not set
 
 #
 # Networking Support
@@ -804,12 +823,6 @@ CONFIG_FS_MQUEUE_MPATH="/var/mqueue"
 # CONFIG_FS_BINFS is not set
 # CONFIG_FS_PROCFS is not set
 # CONFIG_FS_UNIONFS is not set
-
-#
-# System Logging
-#
-# CONFIG_SYSLOG is not set
-# CONFIG_SYSLOG_TIMESTAMP is not set
 
 #
 # Graphics Support
@@ -882,6 +895,7 @@ CONFIG_ARCH_HAVE_TLS=y
 #
 # Non-standard Library Support
 #
+# CONFIG_LIB_CRC64_FAST is not set
 # CONFIG_LIB_KBDCODEC is not set
 # CONFIG_LIB_SLCDCODEC is not set
 
@@ -915,6 +929,7 @@ CONFIG_BUILTIN_PROXY_STACKSIZE=392
 #
 # Examples
 #
+# CONFIG_EXAMPLES_BUTTONS is not set
 # CONFIG_EXAMPLES_CHAT is not set
 # CONFIG_EXAMPLES_CONFIGDATA is not set
 # CONFIG_EXAMPLES_CPUHOG is not set
@@ -925,10 +940,10 @@ CONFIG_BUILTIN_PROXY_STACKSIZE=392
 # CONFIG_EXAMPLES_FTPD is not set
 # CONFIG_EXAMPLES_HELLO is not set
 # CONFIG_EXAMPLES_HELLOXX is not set
-# CONFIG_EXAMPLES_JSON is not set
 # CONFIG_EXAMPLES_HIDKBD is not set
-# CONFIG_EXAMPLES_KEYPADTEST is not set
 # CONFIG_EXAMPLES_IGMP is not set
+# CONFIG_EXAMPLES_JSON is not set
+# CONFIG_EXAMPLES_KEYPADTEST is not set
 # CONFIG_EXAMPLES_MEDIA is not set
 # CONFIG_EXAMPLES_MM is not set
 # CONFIG_EXAMPLES_MODBUS is not set
@@ -936,19 +951,19 @@ CONFIG_BUILTIN_PROXY_STACKSIZE=392
 # CONFIG_EXAMPLES_NRF24L01TERM is not set
 # CONFIG_EXAMPLES_NSH is not set
 CONFIG_EXAMPLES_NULL=y
-# CONFIG_EXAMPLES_NX is not set
-# CONFIG_EXAMPLES_NXTERM is not set
 # CONFIG_EXAMPLES_NXFFS is not set
 # CONFIG_EXAMPLES_NXHELLO is not set
 # CONFIG_EXAMPLES_NXIMAGE is not set
+# CONFIG_EXAMPLES_NX is not set
 # CONFIG_EXAMPLES_NXLINES is not set
+# CONFIG_EXAMPLES_NXTERM is not set
 # CONFIG_EXAMPLES_NXTEXT is not set
 # CONFIG_EXAMPLES_OSTEST is not set
 # CONFIG_EXAMPLES_PCA9635 is not set
 # CONFIG_EXAMPLES_PIPE is not set
 # CONFIG_EXAMPLES_POLL is not set
-# CONFIG_EXAMPLES_PPPD is not set
 # CONFIG_EXAMPLES_POSIXSPAWN is not set
+# CONFIG_EXAMPLES_PPPD is not set
 # CONFIG_EXAMPLES_RGBLED is not set
 # CONFIG_EXAMPLES_RGMP is not set
 # CONFIG_EXAMPLES_SENDMAIL is not set
@@ -962,9 +977,9 @@ CONFIG_EXAMPLES_NULL=y
 # CONFIG_EXAMPLES_TELNETD is not set
 # CONFIG_EXAMPLES_TIFF is not set
 # CONFIG_EXAMPLES_TOUCHSCREEN is not set
-# CONFIG_EXAMPLES_WEBSERVER is not set
 # CONFIG_EXAMPLES_USBTERM is not set
 # CONFIG_EXAMPLES_WATCHDOG is not set
+# CONFIG_EXAMPLES_WEBSERVER is not set
 
 #
 # File System Utilities
@@ -986,8 +1001,8 @@ CONFIG_EXAMPLES_NULL=y
 # Interpreters
 #
 # CONFIG_INTERPRETERS_FICL is not set
-# CONFIG_INTERPRETERS_PCODE is not set
 # CONFIG_INTERPRETERS_MICROPYTHON is not set
+# CONFIG_INTERPRETERS_PCODE is not set
 
 #
 # FreeModBus
@@ -1021,27 +1036,20 @@ CONFIG_EXAMPLES_NULL=y
 #
 # System Libraries and NSH Add-Ons
 #
-# CONFIG_SYSTEM_FREE is not set
 # CONFIG_SYSTEM_CLE is not set
 # CONFIG_SYSTEM_CUTERM is not set
-# CONFIG_SYSTEM_INSTALL is not set
+# CONFIG_SYSTEM_FREE is not set
 # CONFIG_SYSTEM_HEX2BIN is not set
 # CONFIG_SYSTEM_HEXED is not set
+# CONFIG_SYSTEM_INSTALL is not set
 # CONFIG_SYSTEM_RAMTEST is not set
 # CONFIG_READLINE_HAVE_EXTMATCH is not set
 CONFIG_SYSTEM_READLINE=y
 CONFIG_READLINE_ECHO=y
 # CONFIG_READLINE_TABCOMPLETION is not set
 # CONFIG_READLINE_CMD_HISTORY is not set
-# CONFIG_SYSTEM_SUDOKU is not set
-# CONFIG_SYSTEM_VI is not set
 # CONFIG_SYSTEM_STACKMONITOR is not set
+# CONFIG_SYSTEM_SUDOKU is not set
 # CONFIG_SYSTEM_UBLOXMODEM is not set
+# CONFIG_SYSTEM_VI is not set
 # CONFIG_SYSTEM_ZMODEM is not set
-
-#
-# The following line is needed because the upstream tools that generates
-# the include/nuttx/include/config.h file adds logic that relies on this
-# and our build flags include -Werror=undef
-#
-CONFIG_NSOCKET_DESCRIPTORS=0
