@@ -45,14 +45,9 @@
 #include <sys/types.h>
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <arch/board/board.h>
-#include <systemlib/perf_counter.h>
 
 // Not using Eigen at the moment
 #define TESTS_EIGEN_DISABLE
@@ -165,7 +160,7 @@ test_runner(unsigned option)
 	char		*args[2] = {"all", NULL};
 	unsigned int failcount = 0;
 	unsigned int testcount = 0;
-	bool		passed[NTESTS];
+	unsigned		passed[NTESTS];
 
 	printf("\nRunning all tests...\n\n");
 
@@ -186,12 +181,12 @@ test_runner(unsigned option)
 				fprintf(stderr, "  [%s] \t\tFAIL\n", tests[i].name);
 				fflush(stderr);
 				failcount++;
-				passed[i] = false;
+				passed[i] = 0;
 
 			} else {
 				printf("  [%s] \t\tPASS\n", tests[i].name);
 				fflush(stdout);
-				passed[i] = true;
+				passed[i] = 1;
 			}
 
 			for (int j = 0; j < 80; j++) {
@@ -259,19 +254,17 @@ __EXPORT int tests_main(int argc, char *argv[]);
  */
 int tests_main(int argc, char *argv[])
 {
-	unsigned	i;
-
 	if (argc < 2) {
 		printf("tests: missing test name - 'tests help' for a list of tests\n");
 		return 1;
 	}
 
-	for (i = 0; tests[i].name; i++) {
+	for (unsigned i = 0; tests[i].name; i++) {
 		if (!strcmp(tests[i].name, argv[1])) {
 			return tests[i].fn(argc - 1, argv + 1);
 		}
 	}
 
 	printf("tests: no test called '%s' - 'tests help' for a list of tests\n", argv[1]);
-	return ERROR;
+	return 1;
 }
