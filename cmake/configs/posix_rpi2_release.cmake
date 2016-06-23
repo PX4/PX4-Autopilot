@@ -11,6 +11,7 @@ set(CMAKE_PROGRAM_PATH
 # or if it is for the RPi.
 add_definitions(
 	-D__PX4_POSIX_RPI2
+	-D__LINUX
 	)
 
 set(config_module_list
@@ -20,10 +21,12 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_bmp280_wrapper
-	platforms/posix/drivers/df_hmc5883_wrapper
-	platforms/posix/drivers/df_trone_wrapper
-	platforms/posix/drivers/df_isl29501_wrapper
+	#platforms/posix/drivers/df_bmp280_wrapper
+	#platforms/posix/drivers/df_hmc5883_wrapper
+	#platforms/posix/drivers/df_trone_wrapper
+	#platforms/posix/drivers/df_isl29501_wrapper
+	platforms/posix/drivers/df_lsm9ds1_wrapper
+	platforms/posix/drivers/df_ms5611_wrapper
 
 	#
 	# System commands
@@ -102,8 +105,10 @@ set(config_module_list
 
 set(config_df_driver_list
 	mpu9250
-	bmp280
-	hmc5883
+	#bmp280
+	#hmc5883
 	trone
-	isl29501
+	#isl29501
+	lsm9ds1
+	ms5611
 	)
