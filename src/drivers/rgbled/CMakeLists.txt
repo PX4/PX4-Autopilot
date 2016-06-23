@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
+		rgbled_params.c
 		rgbled.cpp
 	DEPENDS
 		platforms__common
