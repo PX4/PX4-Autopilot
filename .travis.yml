@@ -3,6 +3,10 @@
 
 language: cpp
 
+git:
+  depth: 1
+  submodules: false
+
 matrix:
   fast_finish: true
   include:
@@ -14,7 +18,6 @@ matrix:
     - os: osx
       sudo: true
       osx_image: xcode7.3
-      env: CCACHE_CPP2=1
 
 cache:
   ccache: true
@@ -29,7 +32,8 @@ before_install:
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         sudo -H easy_install pip
+         git submodule update --init src/lib/ecl src/lib/DriverFramework src/drivers/gps/devices Tools/genmsg Tools/gencpp src/lib/matrix mavlink/include/mavlink/v1.0 mavlink/include/mavlink/v2.0
+      && sudo -H easy_install pip
       && sudo -H pip install empy
       ;
     fi
@@ -46,7 +50,7 @@ script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
       docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      make check_posix_sitl_default;
+      make -j4 check_posix_sitl_default;
     fi
 
 after_success:
