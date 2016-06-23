@@ -397,7 +397,6 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
 		parseMessage(data, dest_ptr, type);
 		_gps.timestamp = replay_part2.time_pos_usec;
-		_gps.timestamp_velocity = replay_part2.time_vel_usec;
 		_gps.lat = replay_part2.lat;
 		_gps.lon = replay_part2.lon;
 		_gps.fix_type = replay_part2.fix_type;
