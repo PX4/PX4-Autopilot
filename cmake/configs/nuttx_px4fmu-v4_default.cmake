@@ -48,6 +48,7 @@ set(config_module_list
 	drivers/bmp280
 	drivers/bma180
 	drivers/bmi160
+	drivers/tap_esc
 
 	#
 	# System commands
