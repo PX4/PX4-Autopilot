@@ -178,6 +178,26 @@ then
 	fi
 fi
 
+if ver hwcmp LUCI_V1
+then
+	if mpu9250 start
+	then
+	fi
+
+	if lsm303d start
+	then
+	fi
+
+	if l3gd20 start
+	then
+	fi
+
+	# External I2C bus
+	if hmc5883 -C -T -X start
+	then
+	fi
+fi
+
 if meas_airspeed start
 then
 else

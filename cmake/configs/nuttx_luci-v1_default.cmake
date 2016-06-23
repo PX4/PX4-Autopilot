@@ -16,6 +16,8 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/luci-v1
 	drivers/rgbled
+	drivers/lsm303d
+	drivers/l3gd20
 	drivers/mpu9250
 	drivers/hmc5883
 	drivers/ms5611
