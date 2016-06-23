@@ -35,6 +35,9 @@ before_install:
          git submodule update --init src/lib/ecl src/lib/DriverFramework src/drivers/gps/devices Tools/genmsg Tools/gencpp src/lib/matrix mavlink/include/mavlink/v1.0 mavlink/include/mavlink/v2.0
       && sudo -H easy_install pip
       && sudo -H pip install empy
+      && wget https://github.com/ninja-build/ninja/releases/download/v1.7.1/ninja-mac.zip
+      && unzip ninja-mac.zip
+      && sudo mv ninja /usr/local/bin/ninja
       ;
     fi
 
@@ -45,12 +48,13 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
+    - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      make -j4 check_posix_sitl_default;
+      make check_posix_sitl_default;
     fi
 
 after_success:
