@@ -4,7 +4,7 @@
 language: cpp
 
 git:
-  depth: 10
+  depth: 50
   submodules: false
 
 matrix:
@@ -28,7 +28,7 @@ cache:
     - $HOME/Library/Caches/pip
 
 before_install:
-  - git submodule update --init --recursive --quiet --depth 10
+  - git submodule update --init --recursive --quiet --depth 50
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          git fetch --all --tags --unshallow
       && docker pull ${DOCKER_REPO}
