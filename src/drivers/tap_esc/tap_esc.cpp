@@ -45,7 +45,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/input_rc.h>
-#include <uORB/topics/tap_esc_report.h>
+#include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -54,6 +54,10 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 
 #define NAN_VALUE	(0.0f/0.0f)
+
+#ifndef B250000
+#define B250000 250000
+#endif
 
 #define VOLTAGE_SENSOR_HAVE
 
@@ -107,7 +111,7 @@ private:
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	orb_advert_t        _esc_feedback_pub = nullptr;
-	tap_esc_report_s      _esc_feedback;
+	esc_status_s      _esc_feedback;
 
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
@@ -168,7 +172,7 @@ TAP_ESC::TAP_ESC():
 	uartbuf.head = 0;
 	uartbuf.tail = 0;
 	uartbuf.dat_cnt = 0;
-	memset(uartbuf.esc_feedbacck_buf, 0, sizeof(uartbuf.esc_feedbacck_buf));
+	memset(uartbuf.esc_feedback_buf, 0, sizeof(uartbuf.esc_feedback_buf));
 }
 
 TAP_ESC::~TAP_ESC()
@@ -330,7 +334,7 @@ void TAP_ESC::read_data_from_uart()
 
 	if (len > 0 && (uartbuf.dat_cnt + len < 128)) {
 		for (int i = 0; i < len; i++) {
-			uartbuf.esc_feedbacck_buf[uartbuf.tail++] = tmp_serial_buf[i];
+			uartbuf.esc_feedback_buf[uartbuf.tail++] = tmp_serial_buf[i];
 			uartbuf.dat_cnt++;
 
 			if (uartbuf.tail >= 128) {
@@ -349,15 +353,15 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, ESC_FEEDBACK_PAC
 	if (serial_buf->dat_cnt > 0) {
 		for (int i = 0; i < serial_buf->dat_cnt; i++) {
 			switch (state) {
-			case HEAD: if (serial_buf->esc_feedbacck_buf[serial_buf->head] == 0xFE) {
+			case HEAD: if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
 					packetdata->head = 0xFE; //just_keep the format
 					state = LEN;
 				}
 
 				break;
 
-			case LEN:  if (serial_buf->esc_feedbacck_buf[serial_buf->head] < 100) {
-					packetdata->len = serial_buf->esc_feedbacck_buf[serial_buf->head];
+			case LEN:  if (serial_buf->esc_feedback_buf[serial_buf->head] < 100) {
+					packetdata->len = serial_buf->esc_feedback_buf[serial_buf->head];
 					state = ID;
 
 				} else {
@@ -366,8 +370,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, ESC_FEEDBACK_PAC
 
 				break;
 
-			case ID:   if (serial_buf->esc_feedbacck_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
-					packetdata->msg_id = serial_buf->esc_feedbacck_buf[serial_buf->head];
+			case ID:   if (serial_buf->esc_feedback_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
+					packetdata->msg_id = serial_buf->esc_feedback_buf[serial_buf->head];
 					data_index = 0;
 					state = DATA;
 
@@ -377,7 +381,7 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, ESC_FEEDBACK_PAC
 
 				break;
 
-			case DATA: packetdata->data[data_index++] = serial_buf->esc_feedbacck_buf[serial_buf->head];
+			case DATA: packetdata->data[data_index++] = serial_buf->esc_feedback_buf[serial_buf->head];
 
 				if (data_index >= packetdata->len) {
 
@@ -387,8 +391,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, ESC_FEEDBACK_PAC
 
 				break;
 
-			case CRC: if (crc_data_cal == serial_buf->esc_feedbacck_buf[serial_buf->head]) {
-					packetdata->crc_data = serial_buf->esc_feedbacck_buf[serial_buf->head];
+			case CRC: if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
+					packetdata->crc_data = serial_buf->esc_feedback_buf[serial_buf->head];
 
 					if (++serial_buf->head >= 128) {
 						serial_buf->head = 0;
@@ -430,7 +434,7 @@ TAP_ESC::cycle()
 		_current_update_rate = 0;
 		/* advertise the mixed control outputs, insist on the first group output */
 		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-		_esc_feedback_pub = orb_advertise(ORB_ID(tap_esc_report), &_esc_feedback);
+		_esc_feedback_pub = orb_advertise(ORB_ID(esc_report), &_esc_feedback);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_initialized = true;
 	}
@@ -579,26 +583,31 @@ TAP_ESC::cycle()
 
 		}
 
+		const unsigned esc_count = 4;
+
 		float motor_out[TAP_ESC_MAX_MOTOR_NUM];
 		motor_out[0] = _outputs.output[0];
 		motor_out[1] = _outputs.output[1];
 		motor_out[2] = _outputs.output[1];
 		motor_out[3] = 900;
-		send_esc_outputs(motor_out, 4);
+		send_esc_outputs(motor_out, esc_count);
 		read_data_from_uart();
 
 		if (parse_tap_esc_feedback(&uartbuf, &feed_back_packet) == true) {
 			if (feed_back_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				feed_back_data = *(ESC_FEEDBACK_DATA *)feed_back_packet.data;
-				_esc_feedback.esc_rpm[feed_back_data.ESC_ID] = feed_back_data.speed;
-				_esc_feedback.esc_voltage[feed_back_data.ESC_ID] = feed_back_data.voltage;
-				_esc_feedback.esc_state[feed_back_data.ESC_ID] = feed_back_data.ESC_STATUS;
+				_esc_feedback.esc[feed_back_data.ESC_ID].esc_rpm = feed_back_data.speed;
+				_esc_feedback.esc[feed_back_data.ESC_ID].esc_voltage = feed_back_data.voltage;
+				_esc_feedback.esc[feed_back_data.ESC_ID].esc_state = feed_back_data.ESC_STATUS;
 				// printf("vol is %d\n",feed_back_data.voltage );
 				// printf("speed is %d\n",feed_back_data.speed );
-				orb_publish(ORB_ID(tap_esc_report), _esc_feedback_pub, &_esc_feedback);
+
+				_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
+				_esc_feedback.counter++;
+				_esc_feedback.esc_count = esc_count;
+
+				orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
 			}
-
-
 		}
 
 		/* and publish for anyone that cares to see */
@@ -738,7 +747,7 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-namespace tap_esc
+namespace tap_esc_drv
 {
 
 
@@ -970,42 +979,42 @@ int tap_esc_main(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(tap_esc::_device, device, strlen(device));
+			strncpy(tap_esc_drv::_device, device, strlen(device));
 			break;
 		}
 	}
 
 	// Start/load the driver.
 	if (!strcmp(verb, "start")) {
-		if (tap_esc::_is_running) {
+		if (tap_esc_drv::_is_running) {
 			PX4_WARN("tap_esc already running");
 			return 1;
 		}
 
 		// Check on required arguments
 		if (device == nullptr || strlen(device) == 0) {
-			tap_esc::usage();
+			tap_esc_drv::usage();
 			return 1;
 		}
 
-		tap_esc::start();
+		tap_esc_drv::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (!tap_esc::_is_running) {
+		if (!tap_esc_drv::_is_running) {
 			PX4_WARN("tap_esc is not running");
 			return 1;
 		}
 
-		tap_esc::stop();
+		tap_esc_drv::stop();
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("tap_esc is %s", tap_esc::_is_running ? "running" : "not running");
+		PX4_WARN("tap_esc is %s", tap_esc_drv::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
-		tap_esc::usage();
+		tap_esc_drv::usage();
 		return 1;
 	}
 

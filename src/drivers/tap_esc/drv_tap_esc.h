@@ -101,7 +101,7 @@ typedef  struct {
 	uint8_t head;
 	uint8_t tail;
 	uint8_t dat_cnt;
-	uint8_t esc_feedbacck_buf[128];
+	uint8_t esc_feedback_buf[128];
 } ESC_UART_BUF;
 
 #pragma pack(pop)
