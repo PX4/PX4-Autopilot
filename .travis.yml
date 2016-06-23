@@ -29,12 +29,10 @@ before_install:
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         brew tap PX4/homebrew-px4
-      && brew update
-      && brew update
-      && brew install ccache cmake ninja genromfs
-      && sudo easy_install pip
-      && sudo pip install empy
+         brew update
+      && brew install ccache cmake ninja
+      && sudo -H easy_install pip
+      && sudo -H pip install empy
       && export PATH=/usr/local/opt/ccache/libexec:$PATH
       ;
     fi
