@@ -224,6 +224,7 @@ private:
     bool            _vibration_warning; ///< high vibration levels detected
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
+    bool            _was_landed;        ///< indicates if was landed in previous iteration
 
     bool            _newHgtData;
     bool            _newAdsData;

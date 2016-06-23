@@ -216,6 +216,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_vibration_warning(false),
 	_ekf_logging(true),
 	_debug(0),
+	_was_landed(true),
 
 	_newHgtData(false),
 	_newAdsData(false),
@@ -381,8 +382,8 @@ void AttitudePositionEstimatorEKF::vehicle_land_detected_poll()
 
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 
-		// Save params on landed
-		if (!_vehicle_land_detected.landed) {
+		// Save params on landed and previously not landed
+		if (_vehicle_land_detected.landed && !_was_landed) {
 			_mag_offset_x.set(_ekf->magBias.x);
 			_mag_offset_x.commit();
 			_mag_offset_y.set(_ekf->magBias.y);
@@ -390,6 +391,8 @@ void AttitudePositionEstimatorEKF::vehicle_land_detected_poll()
 			_mag_offset_z.set(_ekf->magBias.z);
 			_mag_offset_z.commit();
 		}
+
+		_was_landed = _vehicle_land_detected.landed;
 	}
 }
 
