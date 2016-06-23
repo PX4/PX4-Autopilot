@@ -25,7 +25,8 @@ cache:
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         git fetch --all --tags --unshallow
+         cd ${TRAVIS_BUILD_DIR}
+      && git fetch --unshallow && git fetch --all --tags
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
