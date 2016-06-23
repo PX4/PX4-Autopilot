@@ -319,6 +319,7 @@ private:
 		float battery_current_offset;
 		float battery_v_div;
 		float battery_a_per_v;
+		int32_t battery_source;
 
 		float baro_qnh;
 
@@ -381,6 +382,7 @@ private:
 		param_t battery_current_offset;
 		param_t battery_v_div;
 		param_t battery_a_per_v;
+		param_t battery_source;
 
 		param_t board_rotation;
 
@@ -653,6 +655,7 @@ Sensors::Sensors() :
 	_parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
 	_parameter_handles.battery_v_div = param_find("BAT_V_DIV");
 	_parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
+	_parameter_handles.battery_source = param_find("BAT_SOURCE");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -947,6 +950,8 @@ Sensors::parameters_update()
 		_parameters.battery_a_per_v = 0.0f;
 #endif
 	}
+
+	param_get(_parameter_handles.battery_source, &(_parameters.battery_source));
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
@@ -1718,7 +1723,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-			if (updated_battery) {
+			if (_parameters.battery_source == 0 && updated_battery) {
 				actuator_controls_s ctrl;
 				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
