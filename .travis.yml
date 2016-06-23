@@ -35,8 +35,12 @@ before_install:
       && sudo mv ccache /usr/local/bin
       && chmod +x /usr/local/bin/ccache
       && mkdir -p ~/bin
+      && sudo ln -s /usr/local/bin/ccache ~/bin/c++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/cc
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/g++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/gcc
       && export PATH=~/bin:$PATH
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
       && sudo mv ninja /usr/local/bin
