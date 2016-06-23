@@ -28,7 +28,7 @@ cache:
     - $HOME/Library/Caches/pip
 
 before_install:
-  - git submodule update --init --recursive --quiet --depth 100
+  - git submodule update --init --recursive --quiet --depth 500
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          git fetch --all --tags --unshallow
       && docker pull ${DOCKER_REPO}
