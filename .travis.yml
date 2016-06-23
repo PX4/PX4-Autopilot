@@ -37,7 +37,7 @@ before_install:
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
       && export PATH=~/bin:$PATH
-      && https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
       && sudo mv ninja /usr/local/bin
       ;
     fi
