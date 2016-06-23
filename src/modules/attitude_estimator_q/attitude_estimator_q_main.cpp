@@ -671,6 +671,13 @@ void AttitudeEstimatorQ::task_main()
 			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
 		}
 	}
+
+	orb_unsubscribe(_sensors_sub);
+	orb_unsubscribe(_vision_sub);
+	orb_unsubscribe(_mocap_sub);
+	orb_unsubscribe(_airspeed_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_global_pos_sub);
 }
 
 void AttitudeEstimatorQ::update_parameters(bool force)
