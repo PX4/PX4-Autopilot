@@ -33,12 +33,14 @@ before_install:
       && sudo -H pip install empy
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
       && sudo mv ccache /usr/local/bin
+      && chmod +x /usr/local/bin/ccache
       && mkdir -p ~/bin
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang
       && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
       && export PATH=~/bin:$PATH
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
       && sudo mv ninja /usr/local/bin
+      && chmod +x /usr/local/bin/ninja
       ;
     fi
 
