@@ -672,8 +672,8 @@ void Ekf2::task_main()
 					ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
 					ctrl_state.airspeed_valid = true;
 				}
-			}
-			if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+
+			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
 				if (_ekf.local_position_is_valid()) {
 					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
 					ctrl_state.airspeed_valid = true;
