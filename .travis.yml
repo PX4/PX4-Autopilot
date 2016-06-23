@@ -18,6 +18,7 @@ matrix:
     - os: osx
       sudo: true
       osx_image: xcode7.3
+      env: CCACHE_CPP2=1
 
 cache:
   ccache: true
@@ -27,18 +28,21 @@ cache:
     - $HOME/Library/Caches/pip
 
 before_install:
+  - git submodule update --init --recursive --depth 1
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          git fetch --all --tags --unshallow
-      && git submodule update --init --recursive --quiet
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         git submodule update --init src/lib/ecl src/lib/DriverFramework src/drivers/gps/devices Tools/genmsg Tools/gencpp src/lib/matrix mavlink/include/mavlink/v1.0 mavlink/include/mavlink/v2.0
-      && sudo -H easy_install pip
+         sudo -H easy_install pip
       && sudo -H pip install empy
-      && wget https://github.com/ninja-build/ninja/releases/download/v1.7.1/ninja-mac.zip
-      && unzip ninja-mac.zip
-      && sudo mv ninja /usr/local/bin/ninja
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
+      && sudo mv ccache /usr/local/bin
+      && sudo mkdir -p /usr/lib/ccache
+      && sudo ln -s /usr/local/bin/ccache /usr/lib/ccache/clang
+      && sudo ln -s /usr/local/bin/ccache /usr/lib/ccache/clang++
+      && https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
+      && sudo mv ninja /usr/local/bin
       ;
     fi
 
@@ -52,11 +56,13 @@ env:
     - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
+  - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
       docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
+  - ccache -s
 
 after_success:
   - make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
