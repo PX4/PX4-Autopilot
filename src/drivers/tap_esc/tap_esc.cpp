@@ -155,6 +155,7 @@ TAP_ESC::TAP_ESC():
 	_outputs_pub(nullptr),
 	_control_subs{ -1},
 	_esc_feedback_pub(nullptr),
+	_esc_feedback{},
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -599,12 +600,15 @@ TAP_ESC::cycle()
 				_esc_feedback.esc[feed_back_data.ESC_ID].esc_rpm = feed_back_data.speed;
 				_esc_feedback.esc[feed_back_data.ESC_ID].esc_voltage = feed_back_data.voltage;
 				_esc_feedback.esc[feed_back_data.ESC_ID].esc_state = feed_back_data.ESC_STATUS;
+				_esc_feedback.esc[feed_back_data.ESC_ID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
 				// printf("vol is %d\n",feed_back_data.voltage );
 				// printf("speed is %d\n",feed_back_data.speed );
 
 				_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 				_esc_feedback.counter++;
 				_esc_feedback.esc_count = esc_count;
+
+				_esc_feedback.timestamp = hrt_absolute_time();
 
 				orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
 			}
