@@ -25,15 +25,26 @@ cache:
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-         git fetch --unshallow && git fetch --all --tags
+         git fetch --all --tags --unshallow
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         brew update
-      && brew install ccache cmake ninja
-      && sudo -H easy_install pip
+         sudo -H easy_install pip
       && sudo -H pip install empy
-      && export PATH=/usr/local/opt/ccache/libexec:$PATH
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
+      && sudo mv ccache /usr/local/bin
+      && chmod +x /usr/local/bin/ccache
+      && mkdir -p ~/bin
+      && sudo ln -s /usr/local/bin/ccache ~/bin/c++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/cc
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/g++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/gcc
+      && export PATH=~/bin:$PATH
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
+      && sudo mv ninja /usr/local/bin
+      && chmod +x /usr/local/bin/ninja
       ;
     fi
 
@@ -44,11 +55,12 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
+    - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
   - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
