@@ -29,11 +29,8 @@ before_install:
       && docker pull ${DOCKER_REPO}
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         brew update
-      && brew install ccache cmake ninja
-      && sudo -H easy_install pip
+         sudo -H easy_install pip
       && sudo -H pip install empy
-      && export PATH=/usr/local/opt/ccache/libexec:$PATH
       ;
     fi
 
@@ -46,13 +43,11 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
-  - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
       docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
-  - ccache -s
 
 after_success:
   - make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
