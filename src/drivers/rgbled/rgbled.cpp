@@ -34,10 +34,12 @@
 /**
  * @file rgbled.cpp
  *
- * Driver for the onboard RGB LED controller (TCA62724FMG) connected via I2C.
+ * Driver for the onboard RGB LED controller (TCA62724FMG or PCA9632) connected
+ * via I2C.
  *
  * @author Julian Oes <julian@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Geoff Gardner <geoff@dronesmith.io>
  */
 
 #include <px4_config.h>
@@ -68,7 +70,7 @@
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
 
-#define ADDR			PX4_I2C_OBDEV_LED	/**< I2C adress of TCA62724FMG */
+#define ADDR			PX4_I2C_OBDEV_LED	/**< I2C adress of TCA62724FMG or PCA9632 */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
 #define SUB_ADDR_PWM0		0x81	/**< blue     (without auto-increment) */
 #define SUB_ADDR_PWM1		0x82	/**< green    (without auto-increment) */
@@ -78,11 +80,22 @@
 #define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
 #define SETTING_ENABLE   	0x02	/**< on */
 
+// PCA9632 definitions
+#define PCA9632_AUTOINC	0x80
+#define PCA9632_PWM1_ON 0x02
+#define PCA9632_PWM2_ON 0x08
+#define PCA9632_PWM3_ON 0x20
+#define PCA9632_PWM4_ON 0x80
+
+enum PHY_RGBLED {
+	PHY_RGBLED_TCA62724FMG,
+	PHY_RGBLED_PCA9632
+};
 
 class RGBLED : public device::I2C
 {
 public:
-	RGBLED(int bus, int rgbled);
+	RGBLED(int bus, int rgbled, PHY_RGBLED phy);
 	virtual ~RGBLED();
 
 
@@ -109,6 +122,8 @@ private:
 	int			_counter;
 	int			_param_sub;
 
+	PHY_RGBLED _phydevice;
+
 	void 			set_color(rgbled_color_t ledcolor);
 	void			set_mode(rgbled_mode_t mode);
 	void			set_pattern(rgbled_pattern_t *pattern);
@@ -119,6 +134,17 @@ private:
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+
+	// TCA62724FMG phy
+	int 		tca62724fmg_send_led_enable(bool enable);
+	int 		tca62724fmg_send_led_rgb();
+	int 		tca62724fmg_get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+
+	// PCA9632 phy
+	int 		pca9632_send_led_enable(bool enable);
+	int 		pca9632_send_led_rgb();
+	int 		pca9632_get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+
 	void		update_params();
 };
 
@@ -132,7 +158,7 @@ void rgbled_usage();
 
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
-RGBLED::RGBLED(int bus, int rgbled) :
+RGBLED::RGBLED(int bus, int rgbled, PHY_RGBLED phy) :
 	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
 #ifdef __PX4_NUTTX
 	    , 100000 /* maximum speed supported */
@@ -148,7 +174,8 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	_led_interval(0),
 	_should_run(false),
 	_counter(0),
-	_param_sub(-1)
+	_param_sub(-1),
+	_phydevice(phy)
 {
 	memset(&_work, 0, sizeof(_work));
 	memset(&_pattern, 0, sizeof(_pattern));
@@ -551,6 +578,52 @@ RGBLED::set_pattern(rgbled_pattern_t *pattern)
 int
 RGBLED::send_led_enable(bool enable)
 {
+	switch (_phydevice) {
+		case PHY_RGBLED_TCA62724FMG:
+			return tca62724fmg_send_led_enable(enable);
+		case PHY_RGBLED_PCA9632:
+			return pca9632_send_led_enable(enable);
+	}
+
+	return -1;
+}
+
+/**
+ * Send RGB PWM settings to LED driver according to current color and brightness
+ */
+int
+RGBLED::send_led_rgb()
+{
+	switch (_phydevice) {
+		case PHY_RGBLED_TCA62724FMG:
+			return tca62724fmg_send_led_rgb();
+		case PHY_RGBLED_PCA9632:
+			return pca9632_send_led_rgb();
+	}
+
+	return -1;
+}
+
+int
+RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
+{
+	switch (_phydevice) {
+		case PHY_RGBLED_TCA62724FMG:
+			return tca62724fmg_get(on, powersave, r, g, b);
+		case PHY_RGBLED_PCA9632:
+			return pca9632_get(on, powersave, r, g, b);
+	}
+
+	return -1;
+}
+
+/**
+ * TCA62724FMG Phy
+ */
+
+int
+RGBLED::tca62724fmg_send_led_enable(bool enable)
+{
 	uint8_t settings_byte = 0;
 
 	if (enable) {
@@ -564,11 +637,8 @@ RGBLED::send_led_enable(bool enable)
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
 
-/**
- * Send RGB PWM settings to LED driver according to current color and brightness
- */
 int
-RGBLED::send_led_rgb()
+RGBLED::tca62724fmg_send_led_rgb()
 {
 	/* To scale from 0..255 -> 0..15 shift right by 4 bits */
 	const uint8_t msg[6] = {
@@ -580,7 +650,7 @@ RGBLED::send_led_rgb()
 }
 
 int
-RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
+RGBLED::tca62724fmg_get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 {
 	uint8_t result[2];
 	int ret;
@@ -594,6 +664,82 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 		r = (result[0] & 0x0f) << 4;
 		g = (result[1] & 0xf0);
 		b = (result[1] & 0x0f) << 4;
+	}
+
+	return ret;
+}
+
+/**
+ * PCA9632 Phy
+ */
+
+int
+RGBLED::pca9632_send_led_enable(bool enable)
+{
+	uint8_t val = enable ?
+		(PCA9632_PWM1_ON | PCA9632_PWM2_ON | PCA9632_PWM3_ON)
+		: 0x00;
+
+	const uint8_t msg[14] = {
+		PCA9632_AUTOINC, // set to auto inc for global regs
+		0x00, // No special addresses
+		0x00, // Configure as dim, open drain
+		static_cast<uint8_t>(_r * (_brightness * _max_brightness)),
+		static_cast<uint8_t>(_g * (_brightness * _max_brightness)),
+		static_cast<uint8_t>(_b * (_brightness * _max_brightness)),
+		0x00, // PWM3, Not connected
+		0x00, // Duty cycle
+		0x00, // Frequency when set to blink mode
+		val, // LEDs 0-2 brightness control on
+		0x00, // Subaddresses and all call
+		0x00,
+		0x00,
+		0x00
+	};
+
+	return transfer(msg, sizeof(msg), nullptr, 0);
+}
+
+int
+RGBLED::pca9632_send_led_rgb()
+{
+	// Marshal message to send to the PCA9632
+	const uint8_t msg[14] = {
+		0x80, // set to auto inc for global regs
+		0x00, // No special addresses
+		0x00, // Configure as dim, open drain
+		static_cast<uint8_t>(_r * (_brightness * _max_brightness)),
+		static_cast<uint8_t>(_g * (_brightness * _max_brightness)),
+		static_cast<uint8_t>(_b * (_brightness * _max_brightness)),
+		0x00, // PWM3, Not connected
+		0x00, // Duty cycle
+		0x00, // Frequency when set to blink mode
+		(PCA9632_PWM1_ON | PCA9632_PWM2_ON | PCA9632_PWM3_ON), // LEDs 0-2 brightness control on
+		0x00, // Subaddresses and all call
+		0x00,
+		0x00,
+		0x00
+	};
+
+	return transfer(msg, sizeof(msg), nullptr, 0);
+}
+
+int
+RGBLED::pca9632_get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
+{
+	uint8_t result[13] = { 0 };
+	int ret;
+
+	// set control register to increment all
+	const uint8_t msg[1] = { 0x80 };
+	ret = transfer(msg, sizeof(msg), &result[0], 14);
+
+	if (ret == OK) {
+		on = result[8] & 0xAA;
+		powersave = (bool)(result[8] & 0x66);
+		r = result[2];
+		g = result[3];
+		b = result[4];
 	}
 
 	return ret;
@@ -671,7 +817,11 @@ rgbled_main(int argc, char *argv[])
 		if (i2cdevice == -1) {
 			// try the external bus first
 			i2cdevice = PX4_I2C_BUS_EXPANSION;
-			g_rgbled = new RGBLED(PX4_I2C_BUS_EXPANSION, rgbledadr);
+#if !defined (CONFIG_ARCH_BOARD_LUCI_V1)
+			g_rgbled = new RGBLED(PX4_I2C_BUS_EXPANSION, rgbledadr, PHY_RGBLED_TCA62724FMG);
+#else
+			g_rgbled = new RGBLED(PX4_I2C_BUS_EXPANSION, rgbledadr, PHY_RGBLED_PCA9632);
+#endif
 
 			if (g_rgbled != nullptr && OK != g_rgbled->init()) {
 				delete g_rgbled;
@@ -690,7 +840,11 @@ rgbled_main(int argc, char *argv[])
 		}
 
 		if (g_rgbled == nullptr) {
-			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
+			#if !defined (CONFIG_ARCH_BOARD_LUCI_V1)
+						g_rgbled = new RGBLED(i2cdevice, rgbledadr, PHY_RGBLED_TCA62724FMG);
+			#else
+						g_rgbled = new RGBLED(i2cdevice, rgbledadr, PHY_RGBLED_PCA9632);
+			#endif
 
 			if (g_rgbled == nullptr) {
 				warnx("new failed");
