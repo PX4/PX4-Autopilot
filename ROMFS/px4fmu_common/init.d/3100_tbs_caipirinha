@@ -11,25 +11,28 @@ sh /etc/init.d/rc.fw_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set FW_AIRSPD_MAX 20
-	param set FW_AIRSPD_MIN 12
-	param set FW_AIRSPD_TRIM 16
-	param set FW_R_TC 0.3
-	param set FW_P_TC 0.3
-	param set FW_L1_DAMPING 0.74
-	param set FW_L1_PERIOD 16
-	param set FW_LND_ANG 15
-	param set FW_LND_FLALT 5
+	param set FW_AIRSPD_MAX 25
+	param set FW_AIRSPD_MIN 12.5
+	param set FW_AIRSPD_TRIM 16.5
+	param set FW_R_TC 0.4
+	param set FW_P_TC 0.4
+	param set FW_L1_DAMPING 0.75
+	param set FW_L1_PERIOD 15
+	param set FW_LND_ANG 10
 	param set FW_LND_HHDIST 15
-	param set FW_LND_HVIRT 13
-	param set FW_LND_TLALT 5
+	param set FW_LND_HVIRT 10
+	param set FW_LND_TLALT 10
 	param set FW_THR_LND_MAX 0
-	param set FW_PR_FF 0.35
+	param set FW_PR_FF 0.45
 	param set FW_PR_IMAX 0.4
-	param set FW_PR_P 0.08
-	param set FW_RR_FF 0.6
+	param set FW_PR_P 0.005
+	param set FW_P_LIM_MAX 20
+	param set FW_P_LIM_MIN -30
+	param set FW_P_RMAX_NEG 70
+	param set FW_P_RMAX_POS 70
+	param set FW_RR_FF 0.45
 	param set FW_RR_IMAX 0.2
-	param set FW_RR_P 0.04
+	param set FW_RR_P 0.013
 	param set SYS_COMPANION 157600
 	param set PWM_MAIN_REV0 1
 	param set PWM_MAIN_REV1 1
