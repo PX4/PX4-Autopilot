@@ -257,6 +257,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
+	_parameter_handles.airspeed_mode = param_find("FW_AIRSPD_MODE");
 
 	/* indicate consumers that the current position data is not valid */
 	_gps.eph = 10000.0f;
@@ -324,6 +325,7 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
+	param_get(_parameter_handles.airspeed_mode, &_parameters.airspeed_mode);
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
@@ -917,17 +919,25 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.q[2] = _ekf->states[2];
 	_ctrl_state.q[3] = _ekf->states[3];
 
-	/* Airspeed (Groundspeed - Windspeed) */
-	//_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
-	// the line above was introduced by the control state PR. The airspeed it gives is totally wrong and leads to horrible flight performance in SITL
-	// and in outdoor tests
-	if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-	    && _airspeed.timestamp > 0) {
-		_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-		_ctrl_state.airspeed_valid = true;
+	// use estimated velocity for airspeed estimate
+	if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
+		// use measured airspeed
+		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+		    && _airspeed.timestamp > 0) {
+			_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+			_ctrl_state.airspeed_valid = true;
+		}
 
-	} else {
-		_ctrl_state.airspeed_valid = false;
+	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
+		if (_local_pos.v_xy_valid && _local_pos.v_z_valid) {
+			_ctrl_state.airspeed = sqrtf(_ekf->states[4] * _ekf->states[4]
+				+ _ekf->states[5] * _ekf->states[5] + _ekf->states[6] * _ekf->states[6]);
+			_ctrl_state.airspeed_valid = true;
+		}
+
+	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
+		// do nothing, airspeed has been declared as non-valid above, controllers
+		// will handle this assuming always trim airspeed
 	}
 
 	/* Attitude Rates */
