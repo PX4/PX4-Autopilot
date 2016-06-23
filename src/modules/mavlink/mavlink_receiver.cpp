@@ -258,6 +258,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
 		handle_message_gps_rtcm_data(msg);
 		break;
+	case MAVLINK_MSG_ID_BATTERY_STATUS:
+		handle_message_battery_status(msg);
+		break;
 
 	default:
 		break;
@@ -1151,6 +1154,44 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
+{
+	// external battery measurements
+	mavlink_battery_status_t battery_mavlink;
+	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
+
+	battery_status_s battery_status = {};
+	battery_status.timestamp = hrt_absolute_time();
+
+	float voltage_sum = 0.0f;
+	uint8_t cell_count = 0;
+	for (unsigned i = 0; i < 10;i++) {
+		if (battery_mavlink.voltages[i] < UINT16_MAX) {
+			voltage_sum += (float)(battery_mavlink.voltages[i]) / 1000.0f;
+		} else {
+			cell_count = i;
+			break;
+		}
+	}
+
+	battery_status.voltage_v = voltage_sum;
+	battery_status.voltage_filtered_v  = voltage_sum;
+	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 10000.0f;
+	battery_status.current_filtered_a = battery_status.current_a;
+	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
+	battery_status.cell_count = cell_count;
+	battery_status.connected = true;
+
+	if (_battery_pub == nullptr) {
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+
+	} else {
+		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
 	}
 }
 
