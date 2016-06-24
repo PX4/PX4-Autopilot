@@ -2426,19 +2426,16 @@ void
 PX4FMU::dsm_bind_ioctl(int dsmMode)
 {
 	if (!_armed.armed) {
-//      mavlink_log_info(&_mavlink_log_pub, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		int ret = ioctl(nullptr, DSM_BIND_START,
-				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
+		PX4_INFO("[FMU] binding Spektrum RX");
+		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+		int ret = ioctl(nullptr, DSM_BIND_START, DSMX8_BIND_PULSES);
 
 		if (ret) {
-//            mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
-			warnx("binding failed.");
+			PX4_INFO("binding failed.");
 		}
 
 	} else {
-//        mavlink_log_info(&_mavlink_log_pub, "[FMU] system armed, bind request rejected");
-		warnx("[FMU] system armed, bind request rejected");
+		PX4_INFO("[FMU] system armed, bind request rejected");
 	}
 }
 
