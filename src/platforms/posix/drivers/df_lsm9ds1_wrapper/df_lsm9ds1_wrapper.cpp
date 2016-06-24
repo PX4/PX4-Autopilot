@@ -597,12 +597,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 				    vec_integrated_unused,
 				    integral_dt_unused);
 
-	// If we are not receiving the last sample from the FIFO buffer yet, let's stop here
-	// and wait for more packets.
-	if (!data.is_last_fifo_sample) {
-		return 0;
-	}
-
 	// The driver empties the FIFO buffer at 1kHz, however we only need to publish at 250Hz.
 	// Therefore, only publish every forth time.
 	++_publish_count;
@@ -699,6 +693,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
+
 
 		if (_gyro_topic != nullptr) {
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
