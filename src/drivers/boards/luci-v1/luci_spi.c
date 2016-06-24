@@ -242,7 +242,7 @@ __EXPORT void board_spi_reset(int ms)
 	usleep(100);
 
 	/* reconfigure the SPI pins */
-#ifdef CONFIG_STM32_SPI1
+#ifdef CONFIG_STM32_SPI4
 	px4_arch_configgpio(GPIO_SPI_CS_LSM9DS0_GYRO);
 	px4_arch_configgpio(GPIO_SPI_CS_LSM9DS0_ACCEL_MAG);
 	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
@@ -257,9 +257,9 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 
-	px4_arch_configgpio(GPIO_SPI1_SCK);
-	px4_arch_configgpio(GPIO_SPI1_MISO);
-	px4_arch_configgpio(GPIO_SPI1_MOSI);
+	px4_arch_configgpio(GPIO_SPI4_SCK);
+	px4_arch_configgpio(GPIO_SPI4_MISO);
+	px4_arch_configgpio(GPIO_SPI4_MOSI);
 
 
 #endif
