@@ -109,11 +109,11 @@ private:
 
 	void _update_accel_calibration();
 	void _update_gyro_calibration();
-  	void _update_mag_calibration();
+	void _update_mag_calibration();
 
 	orb_advert_t		    _accel_topic;
 	orb_advert_t		    _gyro_topic;
-  	orb_advert_t        	    _mag_topic;
+	orb_advert_t        	    _mag_topic;
 	orb_advert_t		    _mavlink_log_pub;
 
 	int			    _param_update_sub;
@@ -144,7 +144,7 @@ private:
 		float z_offset;
 		float z_scale;
 	} _mag_calibration;
-  
+
 	math::Matrix<3, 3>	    _rotation_matrix;
 
 	int			    _accel_orb_class_instance;
@@ -174,15 +174,15 @@ DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
 	LSM9DS1(IMU_DEVICE_ACC_GYRO, IMU_DEVICE_MAG),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
-  	_mag_topic(nullptr),
+	_mag_topic(nullptr),
 	_mavlink_log_pub(nullptr),
 	_param_update_sub(-1),
 	_accel_calibration{},
 	_gyro_calibration{},
-  	_mag_calibration{},
+	_mag_calibration{},
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
-  	_mag_orb_class_instance(-1),
+	_mag_orb_class_instance(-1),
 	_accel_int(LSM9DS1_NEVER_AUTOPUBLISH_US, false),
 	_gyro_int(LSM9DS1_NEVER_AUTOPUBLISH_US, true),
 	_publish_count(0),
@@ -195,7 +195,7 @@ DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_publish_perf(perf_alloc(PC_ELAPSED, "lsm9ds1_publish")),
 	_last_accel_range_hit_time(0),
 	_last_accel_range_hit_count(0),
-  	_mag_enabled(mag_enabled)
+	_mag_enabled(mag_enabled)
 {
 	// Set sane default calibration values
 	_accel_calibration.x_scale = 1.0f;
@@ -259,18 +259,18 @@ int DfLsm9ds1Wrapper::start()
 		return -1;
 	}
 
-	  if (_mag_enabled) {
-	    mag_report mag_report = {};
-	    _mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
-					     &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
+	if (_mag_enabled) {
+		mag_report mag_report = {};
+		_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
+						 &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
 
-	    if (_mag_topic == nullptr) {
-	      PX4_ERR("sensor_mag advert fail");
-	      return -1;
-	    }
-	  }
+		if (_mag_topic == nullptr) {
+			PX4_ERR("sensor_mag advert fail");
+			return -1;
+		}
+	}
 
-  /* Subscribe to param update topic. */
+	/* Subscribe to param update topic. */
 	if (_param_update_sub < 0) {
 		_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	}
@@ -295,7 +295,7 @@ int DfLsm9ds1Wrapper::start()
 	/* Force getting the calibration values. */
 	_update_accel_calibration();
 	_update_gyro_calibration();
-  	_update_mag_calibration();
+	_update_mag_calibration();
 
 	return 0;
 }
@@ -625,11 +625,11 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	accel_report accel_report = {};
 	gyro_report gyro_report = {};
-  	mag_report mag_report = {};
+	mag_report mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
-  	mag_report.timestamp = accel_report.timestamp;
-	
+	mag_report.timestamp = accel_report.timestamp;
+
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
 	gyro_report.range_rad_s = -1.0f;
@@ -639,12 +639,13 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
 
-  	if (_mag_enabled) {
-  	    mag_report.scaling = -1.0f;
-    	    mag_report.range_ga = -1.0f;
-    	    mag_report.device_id = m_id.dev_id;
-  	}
- 	// TODO: remove these (or get the values)
+	if (_mag_enabled) {
+		mag_report.scaling = -1.0f;
+		mag_report.range_ga = -1.0f;
+		mag_report.device_id = m_id.dev_id;
+	}
+
+	// TODO: remove these (or get the values)
 	gyro_report.x_raw = NAN;
 	gyro_report.y_raw = NAN;
 	gyro_report.z_raw = NAN;
@@ -653,11 +654,11 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y_raw = NAN;
 	accel_report.z_raw = NAN;
 
-  	if (_mag_enabled) {
-    	    mag_report.x_raw = NAN;
-    	    mag_report.y_raw = NAN;
-    	    mag_report.z_raw = NAN;
-  	}
+	if (_mag_enabled) {
+		mag_report.x_raw = NAN;
+		mag_report.y_raw = NAN;
+		mag_report.z_raw = NAN;
+	}
 
 	math::Vector<3> gyro_val_filt;
 	math::Vector<3> accel_val_filt;
@@ -675,11 +676,11 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y = accel_val_filt(1);
 	accel_report.z = accel_val_filt(2);
 
-  	if (_mag_enabled) {
+	if (_mag_enabled) {
 
 		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
-                            (data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
-                            (data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
+					(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
 
 		mag_val = _rotation_matrix * mag_val;
 
@@ -687,7 +688,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 		mag_report.y = mag_val(1);
 		mag_report.z = mag_val(2);
 	}
-  
+
 	gyro_report.x_integral = gyro_val_integ(0);
 	gyro_report.y_integral = gyro_val_integ(1);
 	gyro_report.z_integral = gyro_val_integ(2);
@@ -707,9 +708,10 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
 
-    		if (_mag_topic != nullptr) {
-      	    		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
-    		}
+		if (_mag_topic != nullptr) {
+			orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
+		}
+
 		/* Notify anyone waiting for data. */
 		DevMgr::updateNotify(*this);
 
@@ -778,7 +780,7 @@ int start(bool mag_enabled, enum Rotation rotation)
 
 	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
-                IMU_DEVICE_MAG, h.getError());
+			    IMU_DEVICE_MAG, h.getError());
 		return -1;
 	}
 
@@ -862,9 +864,9 @@ df_lsm9ds1_wrapper_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-  	if (!strcmp(verb, "start_without_mag")) {
-    		ret = df_lsm9ds1_wrapper::start(false, rotation);
-  	}
+	if (!strcmp(verb, "start_without_mag")) {
+		ret = df_lsm9ds1_wrapper::start(false, rotation);
+	}
 
 	else if (!strcmp(verb, "start")) {
 		ret = df_lsm9ds1_wrapper::start(true, rotation);
