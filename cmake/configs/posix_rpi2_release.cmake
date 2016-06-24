@@ -5,14 +5,14 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linu
 set(CMAKE_PROGRAM_PATH
 	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin"
 	${CMAKE_PROGRAM_PATH}
-	)
+)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
 add_definitions(
 	-D__PX4_POSIX_RPI2
 	-D__LINUX
-	)
+)
 
 set(config_module_list
 	#
@@ -21,12 +21,11 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
-	#platforms/posix/drivers/df_bmp280_wrapper
-	#platforms/posix/drivers/df_hmc5883_wrapper
-	#platforms/posix/drivers/df_trone_wrapper
-	#platforms/posix/drivers/df_isl29501_wrapper
 	platforms/posix/drivers/df_lsm9ds1_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
+	platforms/posix/drivers/df_hmc5883_wrapper
+	platforms/posix/drivers/df_trone_wrapper
+	platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
@@ -100,15 +99,13 @@ set(config_module_list
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
-
-	)
+)
 
 set(config_df_driver_list
 	mpu9250
-	#bmp280
-	#hmc5883
-	trone
-	#isl29501
 	lsm9ds1
 	ms5611
-	)
+	hmc5883
+	trone
+	isl29501
+)
