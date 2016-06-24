@@ -258,6 +258,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
 		handle_message_gps_rtcm_data(msg);
 		break;
+
 	case MAVLINK_MSG_ID_BATTERY_STATUS:
 		handle_message_battery_status(msg);
 		break;
@@ -1169,13 +1170,10 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 
 	float voltage_sum = 0.0f;
 	uint8_t cell_count = 0;
-	for (unsigned i = 0; i < 10;i++) {
-		if (battery_mavlink.voltages[i] < UINT16_MAX) {
-			voltage_sum += (float)(battery_mavlink.voltages[i]) / 1000.0f;
-		} else {
-			cell_count = i;
-			break;
-		}
+
+	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
+		voltage_sum += (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		cell_count++;
 	}
 
 	battery_status.voltage_v = voltage_sum;
