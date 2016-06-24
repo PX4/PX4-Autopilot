@@ -572,12 +572,13 @@ SF10A::start()
 	work_queue(HPWORK, &_work, (worker_t)&SF10A::cycle_trampoline, this, 5);
 
 	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
-	};
+		struct subsystem_info_s info = {};
+		info.present = true;
+		info.enabled = true;
+		info.ok = true;
+		info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
+
+
 	static orb_advert_t pub = nullptr;
 
 	if (pub != nullptr) {
