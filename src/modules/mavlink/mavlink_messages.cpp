@@ -752,16 +752,18 @@ protected:
 			mavlink_highres_imu_t msg;
 
 			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0];
-			msg.yacc = sensor.accelerometer_m_s2[1];
-			msg.zacc = sensor.accelerometer_m_s2[2];
-			msg.xgyro = sensor.gyro_rad_s[0];
-			msg.ygyro = sensor.gyro_rad_s[1];
-			msg.zgyro = sensor.gyro_rad_s[2];
+			float accel_dt = sensor.accelerometer_integral_dt[0] / 1.e6f;
+			msg.xacc = sensor.accelerometer_integral_m_s[0] / accel_dt;
+			msg.yacc = sensor.accelerometer_integral_m_s[1] / accel_dt;
+			msg.zacc = sensor.accelerometer_integral_m_s[2] / accel_dt;
+			float gyro_dt = sensor.gyro_integral_dt[0] / 1.e6f;
+			msg.xgyro = sensor.gyro_integral_rad[0] / gyro_dt;
+			msg.ygyro = sensor.gyro_integral_rad[1] / gyro_dt;
+			msg.zgyro = sensor.gyro_integral_rad[2] / gyro_dt;
 			msg.xmag = sensor.magnetometer_ga[0];
 			msg.ymag = sensor.magnetometer_ga[1];
 			msg.zmag = sensor.magnetometer_ga[2];
-			msg.abs_pressure = sensor.baro_pres_mbar[0];
+			msg.abs_pressure = 0;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = sensor.baro_alt_meter[0];
 			msg.temperature = sensor.baro_temp_celcius[0];

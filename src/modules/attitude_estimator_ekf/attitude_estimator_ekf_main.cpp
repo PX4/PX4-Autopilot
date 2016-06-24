@@ -395,13 +395,19 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
 				}
 
+				float gyro_rad_s[3];
+				float gyro_dt = raw.gyro_integral_dt[0] / 1.e6f;
+				gyro_rad_s[0] = raw.gyro_integral_rad[0] / gyro_dt;
+				gyro_rad_s[1] = raw.gyro_integral_rad[1] / gyro_dt;
+				gyro_rad_s[2] = raw.gyro_integral_rad[2] / gyro_dt;
+
 				if (!initialized) {
 					// XXX disabling init for now
 					initialized = true;
 
-					// gyro_offsets[0] += raw.gyro_rad_s[0];
-					// gyro_offsets[1] += raw.gyro_rad_s[1];
-					// gyro_offsets[2] += raw.gyro_rad_s[2];
+					// gyro_offsets[0] += gyro_rad_s[0];
+					// gyro_offsets[1] += gyro_rad_s[1];
+					// gyro_offsets[2] += gyro_rad_s[2];
 					// offset_count++;
 
 					// if (hrt_absolute_time() - start_time > 3000000LL) {
@@ -427,9 +433,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_last_timestamp[0] = raw.gyro_timestamp[0];
 					}
 
-					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
-					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
-					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
+					z_k[0] =  gyro_rad_s[0] - gyro_offsets[0];
+					z_k[1] =  gyro_rad_s[1] - gyro_offsets[1];
+					z_k[2] =  gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
@@ -470,9 +476,15 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						last_vel_t = 0;
 					}
 
-					z_k[3] = raw.accelerometer_m_s2[0] - acc(0);
-					z_k[4] = raw.accelerometer_m_s2[1] - acc(1);
-					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
+					matrix::Vector3f raw_accel;
+					float accel_dt = raw.accelerometer_integral_dt[0] / 1.e6f;
+					raw_accel(0) = raw.accelerometer_integral_m_s[0] / accel_dt;
+					raw_accel(1) = raw.accelerometer_integral_m_s[1] / accel_dt;
+					raw_accel(2) = raw.accelerometer_integral_m_s[2] / accel_dt;
+
+					z_k[3] = raw_accel(0) - acc(0);
+					z_k[4] = raw_accel(1) - acc(1);
+					z_k[5] = raw_accel(2) - acc(2);
 
 					/* update magnetometer measurements */
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp[0] &&
@@ -616,9 +628,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					att.pitchacc = x_aposteriori[4];
 					att.yawacc = x_aposteriori[5];
 
-					att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
-					att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
-					att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
+					att.g_comp[0] = raw_accel(0) - acc(0);
+					att.g_comp[1] = raw_accel(1) - acc(1);
+					att.g_comp[2] = raw_accel(2) - acc(2);
 
 					/* copy offsets */
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));

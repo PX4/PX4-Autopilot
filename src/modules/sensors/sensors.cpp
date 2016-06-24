@@ -252,6 +252,10 @@ private:
 
 	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 
+	float		_latest_baro_pressure[SENSOR_COUNT_MAX];
+	hrt_abstime	_last_accel_timestamp[SENSOR_COUNT_MAX];
+	hrt_abstime	_last_gyro_timestamp[SENSOR_COUNT_MAX];
+
 	struct {
 		float min[_rc_max_chan_count];
 		float trim[_rc_max_chan_count];
@@ -393,8 +397,7 @@ private:
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
-	int		init_sensor_class(const struct orb_metadata *meta, int *subs,
-					  uint32_t *priorities, uint32_t *errcount);
+	int		init_sensor_class(const struct orb_metadata *meta, int *subs);
 
 	/**
 	 * Update our local parameter cache.
@@ -564,6 +567,9 @@ Sensors::Sensors() :
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
+	memset(&_latest_baro_pressure, 0, sizeof(_latest_baro_pressure));
+	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
+	memset(&_last_gyro_timestamp, 0, sizeof(_last_gyro_timestamp));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -1023,29 +1029,34 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
 
-			math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
-			vect = _board_rotation * vect;
+			if (accel_report.integral_dt != 0) {
+				math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
+				vect_int = _board_rotation * vect_int;
 
-			raw.accelerometer_m_s2[i * 3 + 0] = vect(0);
-			raw.accelerometer_m_s2[i * 3 + 1] = vect(1);
-			raw.accelerometer_m_s2[i * 3 + 2] = vect(2);
+				raw.accelerometer_integral_m_s[i * 3 + 0] = vect_int(0);
+				raw.accelerometer_integral_m_s[i * 3 + 1] = vect_int(1);
+				raw.accelerometer_integral_m_s[i * 3 + 2] = vect_int(2);
 
-			math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
-			vect_int = _board_rotation * vect_int;
+				raw.accelerometer_integral_dt[i] = accel_report.integral_dt;
 
-			raw.accelerometer_integral_m_s[i * 3 + 0] = vect_int(0);
-			raw.accelerometer_integral_m_s[i * 3 + 1] = vect_int(1);
-			raw.accelerometer_integral_m_s[i * 3 + 2] = vect_int(2);
+			} else {
+				//this is undesirable: a driver did not set the integral, so we have to construct it ourselves
+				math::Vector<3> vect_val(accel_report.x, accel_report.y, accel_report.z);
+				vect_val = _board_rotation * vect_val;
 
-			raw.accelerometer_integral_dt[i] = accel_report.integral_dt;
+				if (_last_accel_timestamp[i] == 0) {
+					_last_accel_timestamp[i] = accel_report.timestamp - 1000;
+				}
 
-			raw.accelerometer_raw[i * 3 + 0] = accel_report.x_raw;
-			raw.accelerometer_raw[i * 3 + 1] = accel_report.y_raw;
-			raw.accelerometer_raw[i * 3 + 2] = accel_report.z_raw;
+				raw.accelerometer_integral_dt[i] = accel_report.timestamp - _last_accel_timestamp[i];
+				_last_accel_timestamp[i] = accel_report.timestamp;
+				float dt = raw.accelerometer_integral_dt[i] / 1.e6f;
+				raw.accelerometer_integral_m_s[i * 3 + 0] = vect_val(0) * dt;
+				raw.accelerometer_integral_m_s[i * 3 + 1] = vect_val(1) * dt;
+				raw.accelerometer_integral_m_s[i * 3 + 2] = vect_val(2) * dt;
+			}
 
 			raw.accelerometer_timestamp[i] = accel_report.timestamp;
-			raw.accelerometer_errcount[i] = accel_report.error_count;
-			raw.accelerometer_temp[i] = accel_report.temperature;
 		}
 	}
 }
@@ -1062,34 +1073,38 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
 
-			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
-			vect = _board_rotation * vect;
+			if (gyro_report.integral_dt != 0) {
+				math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
+				vect_int = _board_rotation * vect_int;
 
-			raw.gyro_rad_s[i * 3 + 0] = vect(0);
-			raw.gyro_rad_s[i * 3 + 1] = vect(1);
-			raw.gyro_rad_s[i * 3 + 2] = vect(2);
+				raw.gyro_integral_rad[i * 3 + 0] = vect_int(0);
+				raw.gyro_integral_rad[i * 3 + 1] = vect_int(1);
+				raw.gyro_integral_rad[i * 3 + 2] = vect_int(2);
 
-			math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
-			vect_int = _board_rotation * vect_int;
+				raw.gyro_integral_dt[i] = gyro_report.integral_dt;
+				raw.gyro_timestamp[i] = gyro_report.timestamp;
 
-			raw.gyro_integral_rad[i * 3 + 0] = vect_int(0);
-			raw.gyro_integral_rad[i * 3 + 1] = vect_int(1);
-			raw.gyro_integral_rad[i * 3 + 2] = vect_int(2);
+			} else {
+				//this is undesirable: a driver did not set the integral, so we have to construct it ourselves
+				math::Vector<3> vect_val(gyro_report.x, gyro_report.y, gyro_report.z);
+				vect_val = _board_rotation * vect_val;
 
-			raw.gyro_integral_dt[i] = gyro_report.integral_dt;
+				if (_last_gyro_timestamp[i] == 0) {
+					_last_gyro_timestamp[i] = gyro_report.timestamp - 1000;
+				}
 
-			raw.gyro_raw[i * 3 + 0] = gyro_report.x_raw;
-			raw.gyro_raw[i * 3 + 1] = gyro_report.y_raw;
-			raw.gyro_raw[i * 3 + 2] = gyro_report.z_raw;
+				raw.gyro_integral_dt[i] = gyro_report.timestamp - _last_gyro_timestamp[i];
+				_last_gyro_timestamp[i] = gyro_report.timestamp;
+				float dt = raw.gyro_integral_dt[i] / 1.e6f;
+				raw.gyro_integral_rad[i * 3 + 0] = vect_val(0) * dt;
+				raw.gyro_integral_rad[i * 3 + 1] = vect_val(1) * dt;
+				raw.gyro_integral_rad[i * 3 + 2] = vect_val(2) * dt;
 
-			raw.gyro_timestamp[i] = gyro_report.timestamp;
+			}
 
 			if (i == 0) {
 				raw.timestamp = gyro_report.timestamp;
 			}
-
-			raw.gyro_errcount[i] = gyro_report.error_count;
-			raw.gyro_temp[i] = gyro_report.temperature;
 		}
 	}
 }
@@ -1114,13 +1129,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 			raw.magnetometer_ga[i * 3 + 1] = vect(1);
 			raw.magnetometer_ga[i * 3 + 2] = vect(2);
 
-			raw.magnetometer_raw[i * 3 + 0] = mag_report.x_raw;
-			raw.magnetometer_raw[i * 3 + 1] = mag_report.y_raw;
-			raw.magnetometer_raw[i * 3 + 2] = mag_report.z_raw;
-
 			raw.magnetometer_timestamp[i] = mag_report.timestamp;
-			raw.magnetometer_errcount[i] = mag_report.error_count;
-			raw.magnetometer_temp[i] = mag_report.temperature;
 		}
 	}
 }
@@ -1136,7 +1145,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_baro), _baro_sub[i], &_barometer);
 
-			raw.baro_pres_mbar[i] = _barometer.pressure; // Pressure in mbar
+			_latest_baro_pressure[i] = _barometer.pressure;
 			raw.baro_alt_meter[i] = _barometer.altitude; // Altitude in meters
 			raw.baro_temp_celcius[i] = _barometer.temperature; // Temperature in degrees celcius
 
@@ -1172,12 +1181,13 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
 
+		//FIXME: we just use the baro pressure from the first baro. we should do voting instead.
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
-							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar[0] * 1e2f,
-									raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
+							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + _latest_baro_pressure[0] * 1e2f,
+									_latest_baro_pressure[0] * 1e2f, air_temperature_celsius));
 		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + raw.baro_pres_mbar[0] * 1e2f,
-						   raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
+				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _latest_baro_pressure[0] * 1e2f,
+						   _latest_baro_pressure[0] * 1e2f, air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -2050,8 +2060,7 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 }
 
 int
-Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
-			   uint32_t *priorities, uint32_t *errcount)
+Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs)
 {
 	unsigned group_count = orb_group_count(meta);
 
@@ -2062,7 +2071,6 @@ Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
 	for (unsigned i = 0; i < group_count; i++) {
 		if (subs[i] < 0) {
 			subs[i] = orb_subscribe_multi(meta, i);
-			orb_priority(subs[i], (int32_t *)&priorities[i]);
 		}
 	}
 
@@ -2106,14 +2114,13 @@ Sensors::task_main()
 
 	unsigned bcount_prev = _baro_count;
 
-	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub, raw.gyro_priority, raw.gyro_errcount);
+	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub);
 
-	_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub, raw.magnetometer_priority, raw.magnetometer_errcount);
+	_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub);
 
-	_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub, raw.accelerometer_priority,
-					 raw.accelerometer_errcount);
+	_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub);
 
-	_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub, raw.baro_priority, raw.baro_errcount);
+	_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub);
 
 	if (gcount_prev != _gyro_count ||
 	    mcount_prev != _mag_count ||
@@ -2178,8 +2185,7 @@ Sensors::task_main()
 			 * then attempt to subscribe once again
 			 */
 			if (_gyro_count == 0) {
-				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub,
-								raw.gyro_priority, raw.gyro_errcount);
+				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub);
 				fds[0].fd = _gyro_sub[0];
 			}
 
@@ -2237,17 +2243,13 @@ Sensors::task_main()
 		 * when not adding sensors poll for param updates
 		 */
 		if (!_armed && hrt_elapsed_time(&_last_config_update) > 500 * 1000) {
-			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub,
-							raw.gyro_priority, raw.gyro_errcount);
+			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), _gyro_sub);
 
-			_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub,
-						       raw.magnetometer_priority, raw.magnetometer_errcount);
+			_mag_count = init_sensor_class(ORB_ID(sensor_mag), _mag_sub);
 
-			_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub,
-							 raw.accelerometer_priority, raw.accelerometer_errcount);
+			_accel_count = init_sensor_class(ORB_ID(sensor_accel), _accel_sub);
 
-			_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub,
-							raw.baro_priority, raw.baro_errcount);
+			_baro_count = init_sensor_class(ORB_ID(sensor_baro), _baro_sub);
 
 			_last_config_update = hrt_absolute_time();
 

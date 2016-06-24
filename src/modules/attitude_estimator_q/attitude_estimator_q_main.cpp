@@ -359,30 +359,27 @@ void AttitudeEstimatorQ::task_main()
 				if (sensors.gyro_timestamp[i] > 0) {
 
 					float gyro[3];
+					float gyro_dt = sensors.gyro_integral_dt[i] / 1e6;
+					gyro[0] = sensors.gyro_integral_rad[i * 3 + 0] / gyro_dt;
+					gyro[1] = sensors.gyro_integral_rad[i * 3 + 1] / gyro_dt;
+					gyro[2] = sensors.gyro_integral_rad[i * 3 + 2] / gyro_dt;
 
-					for (unsigned j = 0; j < 3; j++) {
-						if (sensors.gyro_integral_dt[i] > 0) {
-							gyro[j] = (double)sensors.gyro_integral_rad[i * 3 + j] / (sensors.gyro_integral_dt[i] / 1e6);
-
-						} else {
-							/* fall back to angular rate */
-							gyro[j] = sensors.gyro_rad_s[i * 3 + j];
-						}
-					}
-
-					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i], sensors.gyro_priority[i]);
+					//TODO: note: voter will be moved into sensors module
+					//_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i], sensors.gyro_priority[i]);
+					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], 0, 75);
 				}
 
-				/* ignore empty fields */
 				if (sensors.accelerometer_timestamp[i] > 0) {
-					_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3],
-							 sensors.accelerometer_errcount[i], sensors.accelerometer_priority[i]);
+					float acceleration[3];
+					float accel_dt = sensors.accelerometer_integral_dt[i] / 1.e6f;
+					acceleration[0] = sensors.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
+					acceleration[1] = sensors.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
+					acceleration[2] = sensors.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
+					_voter_accel.put(i, sensors.accelerometer_timestamp[i], acceleration, 0, 75);
 				}
 
-				/* ignore empty fields */
 				if (sensors.magnetometer_timestamp[i] > 0) {
-					_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3],
-						       sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
+					_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3], 0, 75);
 				}
 			}
 

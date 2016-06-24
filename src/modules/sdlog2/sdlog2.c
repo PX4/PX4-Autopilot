@@ -1671,18 +1671,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 							break;
 					}
 
-					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad_s[i * 3 + 0];
-					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad_s[i * 3 + 1];
-					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad_s[i * 3 + 2];
-					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[i * 3 + 0];
-					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[i * 3 + 1];
-					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[i * 3 + 2];
+					float gyro_dt = buf.sensor.gyro_integral_dt[i] / 1.e6f;
+					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_integral_rad[i * 3 + 0] / gyro_dt;
+					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_integral_rad[i * 3 + 1] / gyro_dt;
+					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_integral_rad[i * 3 + 2] / gyro_dt;
+					float accel_dt = buf.sensor.accelerometer_integral_dt[i] / 1.e6f;
+					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
+					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
+					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
 					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[i * 3 + 0];
 					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[i * 3 + 1];
 					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[i * 3 + 2];
-					log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp[i];
-					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i];
-					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i];
+					log_msg.body.log_IMU.temp_gyro = 0;
+					log_msg.body.log_IMU.temp_acc = 0;
+					log_msg.body.log_IMU.temp_mag = 0;
 					LOGBUFFER_WRITE_AND_COUNT(IMU);
 				}
 
@@ -1699,7 +1701,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 							break;
 					}
 
-					log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar[i];
+					log_msg.body.log_SENS.baro_pres = 0;
 					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter[i];
 					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius[i];
 					log_msg.body.log_SENS.diff_pres = 0;

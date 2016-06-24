@@ -1230,7 +1230,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
+	math::Vector<3> accel_body;
+	float accel_dt = _sensor_combined.accelerometer_integral_dt[0] / 1.e6f;
+	accel_body(0) = _sensor_combined.accelerometer_integral_m_s[0] / accel_dt;
+	accel_body(1) = _sensor_combined.accelerometer_integral_m_s[1] / accel_dt;
+	accel_body(2) = _sensor_combined.accelerometer_integral_m_s[2] / accel_dt;
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
@@ -1703,7 +1707,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					}
 
 					/* Detect launch */
-					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
+					launchDetector.update(accel_body(0));
 
 					/* update our copy of the launch detection state */
 					launch_detection_state = launchDetector.getLaunchDetected();
