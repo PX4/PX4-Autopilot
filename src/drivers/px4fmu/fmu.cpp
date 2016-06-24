@@ -82,6 +82,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/adc_report.h>
@@ -179,6 +180,7 @@ private:
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
 	struct work_s	_work;
+	int		_vehicle_cmd_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -886,6 +888,7 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 #ifdef RC_SERIAL_PORT
+		_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 		// dsm_init sets some file static variables and returns a file descriptor
 		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
@@ -1111,6 +1114,23 @@ PX4FMU::cycle()
 		}
 	}
 
+#ifdef RC_SERIAL_PORT
+	/* vehicle command */
+	orb_check(_vehicle_cmd_sub, &updated);
+
+	if (updated) {
+		struct vehicle_command_s cmd;
+		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &cmd);
+
+		// Check for a DSM pairing command
+		if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+			dsm_bind_ioctl((int)cmd.param2);
+		}
+
+	}
+
+#endif
+
 	orb_check(_param_sub, &updated);
 
 	if (updated) {
@@ -1119,17 +1139,6 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
-		int32_t dsm_bind_val;
-		param_t dsm_bind_param;
-
-		/* see if bind parameter has been set, and reset it to -1 */
-		param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-		if (dsm_bind_val > -1) {
-			dsm_bind_ioctl(dsm_bind_val);
-			dsm_bind_val = -1;
-			param_set(dsm_bind_param, &dsm_bind_val);
-		}
 	}
 
 	/* update ADC sampling */
