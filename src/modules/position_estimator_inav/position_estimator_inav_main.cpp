@@ -504,17 +504,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (sensor.accelerometer_timestamp[0] != accel_timestamp) {
 					if (att.R_valid) {
-						/* correct accel bias */
-						sensor.accelerometer_m_s2[0] -= acc_bias[0];
-						sensor.accelerometer_m_s2[1] -= acc_bias[1];
-						sensor.accelerometer_m_s2[2] -= acc_bias[2];
+						float sensor_accel[3];
+						float accel_dt = sensor.accelerometer_integral_dt[0] / 1.e6f;
+						sensor_accel[0] = sensor.accelerometer_integral_m_s[0] / accel_dt - acc_bias[0];
+						sensor_accel[1] = sensor.accelerometer_integral_m_s[1] / accel_dt - acc_bias[1];
+						sensor_accel[2] = sensor.accelerometer_integral_m_s[2] / accel_dt - acc_bias[2];
 
 						/* transform acceleration vector from body frame to NED frame */
 						for (int i = 0; i < 3; i++) {
 							acc[i] = 0.0f;
 
 							for (int j = 0; j < 3; j++) {
-								acc[i] += PX4_R(att.R, i, j) * sensor.accelerometer_m_s2[j];
+								acc[i] += PX4_R(att.R, i, j) * sensor_accel[j];
 							}
 						}
 

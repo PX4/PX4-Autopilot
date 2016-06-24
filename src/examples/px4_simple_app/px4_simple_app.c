@@ -101,15 +101,18 @@ int px4_simple_app_main(int argc, char *argv[])
 				struct sensor_combined_s raw;
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
+				float sensor_accel[3];
+				float accel_dt = raw.accelerometer_integral_dt[0] / 1.e6f;
+				sensor_accel[0] = raw.accelerometer_integral_m_s[0] / accel_dt;
+				sensor_accel[1] = raw.accelerometer_integral_m_s[1] / accel_dt;
+				sensor_accel[2] = raw.accelerometer_integral_m_s[2] / accel_dt;
 				PX4_WARN("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)raw.accelerometer_m_s2[0],
-					 (double)raw.accelerometer_m_s2[1],
-					 (double)raw.accelerometer_m_s2[2]);
+					 (double)sensor_accel[0], (double)sensor_accel[1], (double)sensor_accel[2]);
 
 				/* set att and publish this information for other apps */
-				att.roll = raw.accelerometer_m_s2[0];
-				att.pitch = raw.accelerometer_m_s2[1];
-				att.yaw = raw.accelerometer_m_s2[2];
+				att.roll = sensor_accel[0];
+				att.pitch = sensor_accel[1];
+				att.yaw = sensor_accel[2];
 				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
 

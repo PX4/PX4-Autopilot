@@ -1675,49 +1675,29 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		hil_sensors.timestamp = timestamp;
 
-		hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
-		hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
-		hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
-		hil_sensors.gyro_rad_s[0] = imu.xgyro;
-		hil_sensors.gyro_rad_s[1] = imu.ygyro;
-		hil_sensors.gyro_rad_s[2] = imu.zgyro;
 		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
 		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
 		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
-		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_rad_s[0], sizeof(_hil_prev_gyro));
+		_hil_prev_gyro[0] = imu.xgyro;
+		_hil_prev_gyro[1] = imu.ygyro;
+		_hil_prev_gyro[2] = imu.zgyro;
 		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
 		hil_sensors.gyro_timestamp[0] = timestamp;
-		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
 
-		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
-		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
-		hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
-		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
-		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
 		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
 		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
 		hil_sensors.accelerometer_integral_m_s[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]) * dt;
-		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_m_s2[0], sizeof(_hil_prev_accel));
+		_hil_prev_accel[0] = imu.xacc;
+		_hil_prev_accel[1] = imu.yacc;
+		_hil_prev_accel[2] = imu.zacc;
 		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
-		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
-		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
 		hil_sensors.accelerometer_timestamp[0] = timestamp;
-		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
-		hil_sensors.magnetometer_raw[0] = imu.xmag * 1000.0f;
-		hil_sensors.magnetometer_raw[1] = imu.ymag * 1000.0f;
-		hil_sensors.magnetometer_raw[2] = imu.zmag * 1000.0f;
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_range_ga[0] = 32.7f; // int16
-		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
-		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
 		hil_sensors.magnetometer_timestamp[0] = timestamp;
-		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
 
-		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
 		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
 		hil_sensors.baro_temp_celcius[0] = imu.temperature;
 		hil_sensors.baro_timestamp[0] = timestamp;

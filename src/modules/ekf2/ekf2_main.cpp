@@ -614,10 +614,15 @@ void Ekf2::task_main()
 			control_state_s ctrl_state = {};
 			float gyro_bias[3] = {};
 			_ekf.get_gyro_bias(gyro_bias);
+			float gyro_rad_s[3];
+			float gyro_dt = sensors.gyro_integral_dt[0] / 1.e6f;
+			gyro_rad_s[0] = sensors.gyro_integral_rad[0] / gyro_dt - gyro_bias[0];
+			gyro_rad_s[1] = sensors.gyro_integral_rad[1] / gyro_dt - gyro_bias[1];
+			gyro_rad_s[2] = sensors.gyro_integral_rad[2] / gyro_dt - gyro_bias[2];
 			ctrl_state.timestamp = hrt_absolute_time();
-			ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]) - gyro_bias[0];
-			ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]) - gyro_bias[1];
-			ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]) - gyro_bias[2];
+			ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad_s[0]);
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad_s[1]);
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad_s[2]);
 
 			// Velocity in body frame
 			float velocity[3];
@@ -644,7 +649,11 @@ void Ekf2::task_main()
 			ctrl_state.q[3] = q(3);
 
 			// Acceleration data
-			matrix::Vector<float, 3> acceleration = {&sensors.accelerometer_m_s2[0]};
+			matrix::Vector<float, 3> acceleration;
+			float accel_dt = sensors.accelerometer_integral_dt[0] / 1.e6f;
+			acceleration(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
+			acceleration(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
+			acceleration(2) = sensors.accelerometer_integral_m_s[2] / accel_dt;
 
 			float accel_bias[3];
 			_ekf.get_accel_bias(accel_bias);
@@ -705,9 +714,9 @@ void Ekf2::task_main()
 			att.q[3] = q(3);
 			att.q_valid = true;
 
-			att.rollspeed = sensors.gyro_rad_s[0];
-			att.pitchspeed = sensors.gyro_rad_s[1];
-			att.yawspeed = sensors.gyro_rad_s[2];
+			att.rollspeed = gyro_rad_s[0];
+			att.pitchspeed = gyro_rad_s[1];
+			att.yawspeed = gyro_rad_s[2];
 
 			// publish vehicle attitude data
 			if (_att_pub == nullptr) {

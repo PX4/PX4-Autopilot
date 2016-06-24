@@ -204,12 +204,14 @@ void frsky_update_topics()
 void frsky_send_frame1(int uart)
 {
 	/* send formatted frame */
-	frsky_send_data(uart, FRSKY_ID_ACCEL_X,
-			roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f));
-	frsky_send_data(uart, FRSKY_ID_ACCEL_Y,
-			roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f));
-	frsky_send_data(uart, FRSKY_ID_ACCEL_Z,
-			roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f));
+	float acceleration[3];
+	float accel_dt = sensor_combined->accelerometer_integral_dt[0] / 1.e6f;
+	acceleration[0] = sensor_combined->accelerometer_integral_m_s[0] / accel_dt;
+	acceleration[1] = sensor_combined->accelerometer_integral_m_s[1] / accel_dt;
+	acceleration[2] = sensor_combined->accelerometer_integral_m_s[2] / accel_dt;
+	frsky_send_data(uart, FRSKY_ID_ACCEL_X, roundf(acceleration[0] * 1000.0f));
+	frsky_send_data(uart, FRSKY_ID_ACCEL_Y, roundf(acceleration[1] * 1000.0f));
+	frsky_send_data(uart, FRSKY_ID_ACCEL_Z, roundf(acceleration[2] * 1000.0f));
 
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
 			sensor_combined->baro_alt_meter[0]);

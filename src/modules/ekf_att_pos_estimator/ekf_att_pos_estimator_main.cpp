@@ -1384,13 +1384,21 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	// Feed validator with recent sensor data
 
+	//TODO: note, we will move voters into sensors module
 	for (unsigned i = 0; i < (sizeof(_sensor_combined.gyro_timestamp) / sizeof(_sensor_combined.gyro_timestamp[0])); i++) {
-		_voter_gyro.put(i, _sensor_combined.gyro_timestamp[i], &_sensor_combined.gyro_rad_s[i * 3],
-				_sensor_combined.gyro_errcount[i], _sensor_combined.gyro_priority[i]);
-		_voter_accel.put(i, _sensor_combined.accelerometer_timestamp[i], &_sensor_combined.accelerometer_m_s2[i * 3],
-				 _sensor_combined.accelerometer_errcount[i], _sensor_combined.accelerometer_priority[i]);
-		_voter_mag.put(i, _sensor_combined.magnetometer_timestamp[i], &_sensor_combined.magnetometer_ga[i * 3],
-			       _sensor_combined.magnetometer_errcount[i], _sensor_combined.magnetometer_priority[i]);
+		float gyro_rad_s[3];
+		float gyro_dt = _sensor_combined.gyro_integral_dt[i] / 1.e6f;
+		gyro_rad_s[0] = _sensor_combined.gyro_integral_rad[i * 3 + 0] / gyro_dt;
+		gyro_rad_s[1] = _sensor_combined.gyro_integral_rad[i * 3 + 1] / gyro_dt;
+		gyro_rad_s[2] = _sensor_combined.gyro_integral_rad[i * 3 + 2] / gyro_dt;
+		_voter_gyro.put(i, _sensor_combined.gyro_timestamp[i], gyro_rad_s, 0, 75);
+		float acceleration[3];
+		float accel_dt = _sensor_combined.accelerometer_integral_dt[i] / 1.e6f;
+		acceleration[0] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
+		acceleration[1] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
+		acceleration[2] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
+		_voter_accel.put(i, _sensor_combined.accelerometer_timestamp[i], acceleration, 0, 75);
+		_voter_mag.put(i, _sensor_combined.magnetometer_timestamp[i], &_sensor_combined.magnetometer_ga[i * 3], 0, 75);
 	}
 
 	// Get best measurement values
@@ -1399,28 +1407,13 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	if (_gyro_main >= 0) {
 
-		// Use pre-integrated values if possible
-		if (_sensor_combined.gyro_integral_dt[_gyro_main] > 0) {
-			_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 0];
-			_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
-			_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
+		_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 0];
+		_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
+		_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
 
-		} else {
-			float dt_gyro = _sensor_combined.gyro_integral_dt[_gyro_main] / 1e6f;
+		float gyro_dt = _sensor_combined.gyro_integral_dt[_gyro_main] / 1.e6f;
+		_ekf->angRate = _ekf->dAngIMU / gyro_dt;
 
-			if (PX4_ISFINITE(dt_gyro) && (dt_gyro < 0.5f) && (dt_gyro > 0.00001f)) {
-				deltaT = dt_gyro;
-				_ekf->dtIMU = deltaT;
-			}
-
-			_ekf->dAngIMU.x = 0.5f * (_ekf->angRate.x + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0]) * _ekf->dtIMU;
-			_ekf->dAngIMU.y = 0.5f * (_ekf->angRate.y + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1]) * _ekf->dtIMU;
-			_ekf->dAngIMU.z = 0.5f * (_ekf->angRate.z + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2]) * _ekf->dtIMU;
-		}
-
-		_ekf->angRate.x = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0];
-		_ekf->angRate.y = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1];
-		_ekf->angRate.z = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2];
 		perf_count(_perf_gyro);
 	}
 
@@ -1428,21 +1421,13 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	if (_accel_main >= 0 && (_last_accel != _sensor_combined.accelerometer_timestamp[_accel_main])) {
 
-		// Use pre-integrated values if possible
-		if (_sensor_combined.accelerometer_integral_dt[_accel_main] > 0) {
-			_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 0];
-			_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 1];
-			_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 2];
+		_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 0];
+		_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 1];
+		_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 2];
 
-		} else {
-			_ekf->dVelIMU.x = 0.5f * (_ekf->accel.x + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0]) * _ekf->dtIMU;
-			_ekf->dVelIMU.y = 0.5f * (_ekf->accel.y + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1]) * _ekf->dtIMU;
-			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]) * _ekf->dtIMU;
-		}
+		float accel_dt = _sensor_combined.accelerometer_integral_dt[_accel_main] / 1.e6f;
+		_ekf->accel = _ekf->dVelIMU / accel_dt;
 
-		_ekf->accel.x = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0];
-		_ekf->accel.y = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1];
-		_ekf->accel.z = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2];
 		_last_accel = _sensor_combined.accelerometer_timestamp[_accel_main];
 	}
 
@@ -1518,19 +1503,8 @@ void AttitudePositionEstimatorEKF::pollData()
 			 (double)(_sensor_combined.accelerometer_integral_m_s[1]),
 			 (double)(_sensor_combined.accelerometer_integral_m_s[2]));
 
-		PX4_WARN("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
-			 (double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
-			 (double)(_sensor_combined.accelerometer_m_s2[0] * deltaT),
-			 (double)(_sensor_combined.accelerometer_m_s2[1] * deltaT),
-			 (double)(_sensor_combined.accelerometer_m_s2[2] * deltaT));
-
 		PX4_WARN("EKF rate: %8.4f, %8.4f, %8.4f",
 			 (double)_att.rollspeed, (double)_att.pitchspeed, (double)_att.yawspeed);
-
-		PX4_WARN("DRV rate: %8.4f, %8.4f, %8.4f",
-			 (double)_sensor_combined.gyro_rad_s[0],
-			 (double)_sensor_combined.gyro_rad_s[1],
-			 (double)_sensor_combined.gyro_rad_s[2]);
 
 		lastprint = hrt_absolute_time();
 	}
