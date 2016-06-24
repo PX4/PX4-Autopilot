@@ -198,6 +198,11 @@ then
 		set MIXER_AUX none
 	fi
 
+	if ver hwcmp LUCI_V1
+	then
+		set MIXER_AUX none
+	fi
+
 	#
 	# Override parameters from user configuration file
 	#
