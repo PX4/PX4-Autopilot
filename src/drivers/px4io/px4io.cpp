@@ -3266,27 +3266,8 @@ bind(int argc, char *argv[])
 
 #endif
 
-	if (argc < 3) {
-		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
-	}
-
-	if (!strcmp(argv[2], "dsm2")) {
-		pulses = DSM2_BIND_PULSES;
-
-	} else if (!strcmp(argv[2], "dsmx")) {
-		pulses = DSMX_BIND_PULSES;
-
-	} else if (!strcmp(argv[2], "dsmx8")) {
-		pulses = DSMX8_BIND_PULSES;
-
-	} else {
-		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
-	}
-
-	// Test for custom pulse parameter
-	if (argc > 3) {
-		pulses = atoi(argv[3]);
-	}
+	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+	pulses = DSMX8_BIND_PULSES;
 
 	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		errx(1, "system must not be armed");
