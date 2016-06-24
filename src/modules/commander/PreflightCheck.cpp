@@ -366,7 +366,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	else {
 		struct vehicle_gps_position_s gps;
 		if ( (OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
-		    (hrt_elapsed_time(&gps.timestamp_position) > 1000000)) {
+		    (hrt_elapsed_time(&gps.timestamp) > 1000000)) {
 			success = false;
 		}
 	}

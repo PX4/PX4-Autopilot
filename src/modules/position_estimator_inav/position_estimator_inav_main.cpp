@@ -944,7 +944,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on GPS topic */
-		if (gps_valid && (t > (gps.timestamp_position + gps_topic_timeout))) {
+		if (gps_valid && (t > (gps.timestamp + gps_topic_timeout))) {
 			gps_valid = false;
 			warnx("GPS timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] GPS timeout");
@@ -1212,7 +1212,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_gps[0][0], dt, x_est, 0, w_xy_gps_p);
 				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_p);
 
-				if (gps.vel_ned_valid && t < gps.timestamp_velocity + gps_topic_timeout) {
+				if (gps.vel_ned_valid && t < gps.timestamp + gps_topic_timeout) {
 					inertial_filter_correct(corr_gps[0][1], dt, x_est, 1, w_xy_gps_v);
 					inertial_filter_correct(corr_gps[1][1], dt, y_est, 1, w_xy_gps_v);
 				}

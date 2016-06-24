@@ -69,7 +69,6 @@ static int _fd;
 static unsigned char _buf[1024];
 sockaddr_in _srcaddr;
 static socklen_t _addrlen = sizeof(_srcaddr);
-static bool actuators_on = false;
 static hrt_abstime batt_sim_start = 0;
 
 const unsigned mode_flag_armed = 128; // following MAVLink spec
@@ -245,7 +244,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			const float discharge_interval_us = 60 * 1000 * 1000;
 
-			if (!actuators_on || batt_sim_start == 0 || batt_sim_start > now) {
+			bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			if (!armed || batt_sim_start == 0 || batt_sim_start > now) {
 				batt_sim_start = now;
 			}
 
@@ -268,7 +269,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// TODO: don't hard-code throttle.
 			const float throttle = 0.5f;
-			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, actuators_on, &battery_status);
+			_battery.updateBatteryStatus(now, vbatt, ibatt, throttle, armed, &battery_status);
 
 			// publish the battery voltage
 			int batt_multi;

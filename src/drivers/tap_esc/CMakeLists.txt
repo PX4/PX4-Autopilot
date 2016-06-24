@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,19 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(srcs
-	ms5611_spi.cpp
-	ms5611_i2c.cpp
-	ms5611.cpp
-)
-
 px4_add_module(
-	MODULE drivers__ms5611
-	MAIN ms5611
-	STACK_MAIN 1200
+	MODULE drivers__tap_esc
+	MAIN tap_esc
 	COMPILE_FLAGS
 		-Os
-	SRCS ${srcs}
+	SRCS
+		tap_esc.cpp
 	DEPENDS
 		platforms__common
 	)
