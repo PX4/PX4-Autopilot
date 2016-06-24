@@ -1946,8 +1946,7 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
  * DSM binding trigger.
  *
  * @value -1 Inactive
- * @value 0 Start DSM2 bind
- * @value 1 Start DSMX bind
+ * @value 1 Start DSM bind
  * @min -1
  * @max 1
  * @group Radio Calibration
