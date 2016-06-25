@@ -306,6 +306,11 @@ then
 			then
 				set FMU_MODE pwm4
 			fi
+
+			if ver hwcmp PX4FMU_V2
+			then
+				set FMU_MODE pwm4
+			fi
 		fi
 	fi
 
