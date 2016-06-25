@@ -994,58 +994,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 }
 
 void
-Mavlink::resend_message(mavlink_message_t *msg)
-{
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (!should_transmit()) {
-		return;
-	}
-
-	pthread_mutex_lock(&_send_mutex);
-
-	unsigned buf_free = get_free_tx_buf();
-
-	_last_write_try_time = hrt_absolute_time();
-
-	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < packet_len) {
-		/* no enough space in buffer to send */
-		count_txerr();
-		count_txerrbytes(packet_len);
-		pthread_mutex_unlock(&_send_mutex);
-		return;
-	}
-
-	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-
-	/* header and payload */
-	memcpy(&buf[0], &msg->magic, MAVLINK_NUM_HEADER_BYTES + msg->len);
-
-	/* checksum */
-	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
-	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
-
-	if (_uart_fd >= 0) {
-		/* send message to UART */
-		ssize_t ret = ::write(_uart_fd, buf, packet_len);
-
-		if (ret != (int) packet_len) {
-			count_txerr();
-			count_txerrbytes(packet_len);
-
-		} else {
-			_last_write_success_time = _last_write_try_time;
-			count_txbytes(packet_len);
-		}
-	}
-
-	pthread_mutex_unlock(&_send_mutex);
-}
-
-void
 Mavlink::find_broadcast_address()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
