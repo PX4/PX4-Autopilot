@@ -396,7 +396,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				}
 
 				float gyro_rad_s[3];
-				float gyro_dt = raw.gyro_integral_dt[0] / 1.e6f;
+				float gyro_dt = raw.gyro_integral_dt / 1.e6f;
 				gyro_rad_s[0] = raw.gyro_integral_rad[0] / gyro_dt;
 				gyro_rad_s[1] = raw.gyro_integral_rad[1] / gyro_dt;
 				gyro_rad_s[2] = raw.gyro_integral_rad[2] / gyro_dt;
@@ -427,10 +427,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_timestamp[0] != raw.gyro_timestamp[0]) {
+					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
 						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-						sensor_last_timestamp[0] = raw.gyro_timestamp[0];
+						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
 					z_k[0] =  gyro_rad_s[0] - gyro_offsets[0];
@@ -438,10 +438,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[2] =  gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp[0];
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					hrt_abstime vel_t = 0;
@@ -477,7 +477,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					matrix::Vector3f raw_accel;
-					float accel_dt = raw.accelerometer_integral_dt[0] / 1.e6f;
+					float accel_dt = raw.accelerometer_integral_dt / 1.e6f;
 					raw_accel(0) = raw.accelerometer_integral_m_s[0] / accel_dt;
 					raw_accel(1) = raw.accelerometer_integral_m_s[1] / accel_dt;
 					raw_accel(2) = raw.accelerometer_integral_m_s[2] / accel_dt;
@@ -487,14 +487,14 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[5] = raw_accel(2) - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp[0] &&
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
 						/* check that the mag vector is > 0 */
 						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp[0];
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					bool vision_updated = false;

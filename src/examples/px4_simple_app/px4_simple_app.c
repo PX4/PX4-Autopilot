@@ -102,7 +102,7 @@ int px4_simple_app_main(int argc, char *argv[])
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
 				float sensor_accel[3];
-				float accel_dt = raw.accelerometer_integral_dt[0] / 1.e6f;
+				float accel_dt = raw.accelerometer_integral_dt / 1.e6f;
 				sensor_accel[0] = raw.accelerometer_integral_m_s[0] / accel_dt;
 				sensor_accel[1] = raw.accelerometer_integral_m_s[1] / accel_dt;
 				sensor_accel[2] = raw.accelerometer_integral_m_s[2] / accel_dt;

@@ -505,14 +505,14 @@ void Ekf2::task_main()
 		}
 
 		// push imu data into estimator
-		_ekf.setIMUData(now, sensors.gyro_integral_dt[0], sensors.accelerometer_integral_dt[0],
-				&sensors.gyro_integral_rad[0], &sensors.accelerometer_integral_m_s[0]);
+		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt,
+				sensors.gyro_integral_rad, sensors.accelerometer_integral_m_s);
 
 		// read mag data
-		_ekf.setMagData(sensors.magnetometer_timestamp[0], &sensors.magnetometer_ga[0]);
+		_ekf.setMagData(sensors.magnetometer_timestamp, sensors.magnetometer_ga);
 
 		// read baro data
-		_ekf.setBaroData(sensors.baro_timestamp[0], &sensors.baro_alt_meter[0]);
+		_ekf.setBaroData(sensors.baro_timestamp, &sensors.baro_alt_meter);
 
 		// read gps data if available
 		if (gps_updated) {
@@ -615,7 +615,7 @@ void Ekf2::task_main()
 			float gyro_bias[3] = {};
 			_ekf.get_gyro_bias(gyro_bias);
 			float gyro_rad_s[3];
-			float gyro_dt = sensors.gyro_integral_dt[0] / 1.e6f;
+			float gyro_dt = sensors.gyro_integral_dt / 1.e6f;
 			gyro_rad_s[0] = sensors.gyro_integral_rad[0] / gyro_dt - gyro_bias[0];
 			gyro_rad_s[1] = sensors.gyro_integral_rad[1] / gyro_dt - gyro_bias[1];
 			gyro_rad_s[2] = sensors.gyro_integral_rad[2] / gyro_dt - gyro_bias[2];
@@ -650,7 +650,7 @@ void Ekf2::task_main()
 
 			// Acceleration data
 			matrix::Vector<float, 3> acceleration;
-			float accel_dt = sensors.accelerometer_integral_dt[0] / 1.e6f;
+			float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
 			acceleration(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
 			acceleration(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
 			acceleration(2) = sensors.accelerometer_integral_m_s[2] / accel_dt;
@@ -811,7 +811,7 @@ void Ekf2::task_main()
 				// TODO use innovatun consistency check timouts to set this
 				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
-				global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
+				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
 				if (_vehicle_global_position_pub == nullptr) {
 					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
@@ -905,15 +905,15 @@ void Ekf2::task_main()
 		if (publish_replay_message) {
 			struct ekf2_replay_s replay = {};
 			replay.time_ref = now;
-			replay.gyro_integral_dt = sensors.gyro_integral_dt[0];
-			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt[0];
-			replay.magnetometer_timestamp = sensors.magnetometer_timestamp[0];
-			replay.baro_timestamp = sensors.baro_timestamp[0];
-			memcpy(&replay.gyro_integral_rad[0], &sensors.gyro_integral_rad[0], sizeof(replay.gyro_integral_rad));
-			memcpy(&replay.accelerometer_integral_m_s[0], &sensors.accelerometer_integral_m_s[0],
+			replay.gyro_integral_dt = sensors.gyro_integral_dt;
+			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
+			replay.magnetometer_timestamp = sensors.magnetometer_timestamp;
+			replay.baro_timestamp = sensors.baro_timestamp;
+			memcpy(replay.gyro_integral_rad, sensors.gyro_integral_rad, sizeof(replay.gyro_integral_rad));
+			memcpy(replay.accelerometer_integral_m_s, sensors.accelerometer_integral_m_s,
 			       sizeof(replay.accelerometer_integral_m_s));
-			memcpy(&replay.magnetometer_ga[0], &sensors.magnetometer_ga[0], sizeof(replay.magnetometer_ga));
-			replay.baro_alt_meter = sensors.baro_alt_meter[0];
+			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
+			replay.baro_alt_meter = sensors.baro_alt_meter;
 
 			// only write gps data if we had a gps update.
 			if (gps_updated) {

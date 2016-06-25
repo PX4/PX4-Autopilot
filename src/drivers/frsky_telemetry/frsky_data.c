@@ -205,7 +205,7 @@ void frsky_send_frame1(int uart)
 {
 	/* send formatted frame */
 	float acceleration[3];
-	float accel_dt = sensor_combined->accelerometer_integral_dt[0] / 1.e6f;
+	float accel_dt = sensor_combined->accelerometer_integral_dt / 1.e6f;
 	acceleration[0] = sensor_combined->accelerometer_integral_m_s[0] / accel_dt;
 	acceleration[1] = sensor_combined->accelerometer_integral_m_s[1] / accel_dt;
 	acceleration[2] = sensor_combined->accelerometer_integral_m_s[2] / accel_dt;
@@ -214,12 +214,12 @@ void frsky_send_frame1(int uart)
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Z, roundf(acceleration[2] * 1000.0f));
 
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			sensor_combined->baro_alt_meter[0]);
+			sensor_combined->baro_alt_meter);
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(sensor_combined->baro_alt_meter[0]) * 100.0f));
+			roundf(frac(sensor_combined->baro_alt_meter) * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_TEMP1,
-			roundf(sensor_combined->baro_temp_celcius[0]));
+			roundf(sensor_combined->baro_temp_celcius));
 
 	frsky_send_data(uart, FRSKY_ID_VFAS,
 			roundf(battery_status->voltage_v * 10.0f));

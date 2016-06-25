@@ -205,15 +205,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_filter_start_time(0),
 	_last_sensor_timestamp(hrt_absolute_time()),
 	_distance_last_valid(0),
-	_voter_gyro(3),
-	_voter_accel(3),
-	_voter_mag(3),
-	_gyro_main(-1),
-	_accel_main(-1),
-	_mag_main(-1),
 	_data_good(false),
-	_failsafe(false),
-	_vibration_warning(false),
 	_ekf_logging(true),
 	_debug(0),
 	_was_landed(true),
@@ -236,8 +228,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_LP_att_Q(250.0f, 20.0f),
 	_LP_att_R(250.0f, 20.0f)
 {
-	_voter_mag.set_timeout(200000);
-
 	_terrain_estimator = new TerrainEstimator();
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
@@ -620,18 +610,8 @@ void AttitudePositionEstimatorEKF::task_main()
 				/* system is in HIL now, wait for measurements to come in one last round */
 				usleep(60000);
 
-				/* HIL is slow, set permissive timeouts */
-				_voter_gyro.set_timeout(500000);
-				_voter_accel.set_timeout(500000);
-				_voter_mag.set_timeout(500000);
-
 				/* now read all sensor publications to ensure all real sensor data is purged */
 				orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-
-				/* set sensors to de-initialized state */
-				_gyro_main = -1;
-				_accel_main = -1;
-				_mag_main = -1;
 
 				_baro_init = false;
 				_gps_initialized = false;
@@ -664,7 +644,8 @@ void AttitudePositionEstimatorEKF::task_main()
 			 *    We run the filter only once all data has been fetched
 			 **/
 
-			if (_baro_init && (_gyro_main >= 0) && (_accel_main >= 0) && (_mag_main >= 0)) {
+			if (_baro_init && _sensor_combined.accelerometer_timestamp && _sensor_combined.timestamp
+					&& _sensor_combined.magnetometer_timestamp) {
 
 				// maintain filtered baro and gps altitudes to calculate weather offset
 				// baro sample rate is ~70Hz and measurement bandwidth is high
@@ -1343,13 +1324,6 @@ void AttitudePositionEstimatorEKF::print_status()
 		 (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
 		 (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
 		 (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
-
-	PX4_INFO("gyro status:");
-	_voter_gyro.print();
-	PX4_INFO("accel status:");
-	_voter_accel.print();
-	PX4_INFO("mag status:");
-	_voter_mag.print();
 }
 
 void AttitudePositionEstimatorEKF::pollData()
@@ -1382,97 +1356,37 @@ void AttitudePositionEstimatorEKF::pollData()
 	/* fill in last data set */
 	_ekf->dtIMU = deltaT;
 
-	// Feed validator with recent sensor data
+	_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[0];
+	_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[1];
+	_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[2];
 
-	//TODO: note, we will move voters into sensors module
-	for (unsigned i = 0; i < (sizeof(_sensor_combined.gyro_timestamp) / sizeof(_sensor_combined.gyro_timestamp[0])); i++) {
-		float gyro_rad_s[3];
-		float gyro_dt = _sensor_combined.gyro_integral_dt[i] / 1.e6f;
-		gyro_rad_s[0] = _sensor_combined.gyro_integral_rad[i * 3 + 0] / gyro_dt;
-		gyro_rad_s[1] = _sensor_combined.gyro_integral_rad[i * 3 + 1] / gyro_dt;
-		gyro_rad_s[2] = _sensor_combined.gyro_integral_rad[i * 3 + 2] / gyro_dt;
-		_voter_gyro.put(i, _sensor_combined.gyro_timestamp[i], gyro_rad_s, 0, 75);
-		float acceleration[3];
-		float accel_dt = _sensor_combined.accelerometer_integral_dt[i] / 1.e6f;
-		acceleration[0] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
-		acceleration[1] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
-		acceleration[2] = _sensor_combined.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
-		_voter_accel.put(i, _sensor_combined.accelerometer_timestamp[i], acceleration, 0, 75);
-		_voter_mag.put(i, _sensor_combined.magnetometer_timestamp[i], &_sensor_combined.magnetometer_ga[i * 3], 0, 75);
-	}
+	float gyro_dt = _sensor_combined.gyro_integral_dt / 1.e6f;
+	_ekf->angRate = _ekf->dAngIMU / gyro_dt;
 
-	// Get best measurement values
-	hrt_abstime curr_time = hrt_absolute_time();
-	(void)_voter_gyro.get_best(curr_time, &_gyro_main);
+	perf_count(_perf_gyro);
 
-	if (_gyro_main >= 0) {
+	if (_last_accel != _sensor_combined.accelerometer_timestamp) {
 
-		_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 0];
-		_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
-		_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
+		_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[0];
+		_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[1];
+		_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[2];
 
-		float gyro_dt = _sensor_combined.gyro_integral_dt[_gyro_main] / 1.e6f;
-		_ekf->angRate = _ekf->dAngIMU / gyro_dt;
-
-		perf_count(_perf_gyro);
-	}
-
-	(void)_voter_accel.get_best(curr_time, &_accel_main);
-
-	if (_accel_main >= 0 && (_last_accel != _sensor_combined.accelerometer_timestamp[_accel_main])) {
-
-		_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 0];
-		_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 1];
-		_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 2];
-
-		float accel_dt = _sensor_combined.accelerometer_integral_dt[_accel_main] / 1.e6f;
+		float accel_dt = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 		_ekf->accel = _ekf->dVelIMU / accel_dt;
 
-		_last_accel = _sensor_combined.accelerometer_timestamp[_accel_main];
+		_last_accel = _sensor_combined.accelerometer_timestamp;
 	}
 
-	(void)_voter_mag.get_best(curr_time, &_mag_main);
+	Vector3f mag(_sensor_combined.magnetometer_ga[0], _sensor_combined.magnetometer_ga[1],
+			_sensor_combined.magnetometer_ga[2]);
 
-	if (_mag_main >= 0) {
-		Vector3f mag(_sensor_combined.magnetometer_ga[_mag_main * 3 + 0], _sensor_combined.magnetometer_ga[_mag_main * 3 + 1],
-			     _sensor_combined.magnetometer_ga[_mag_main * 3 + 2]);
-
-		/* fail over to the 2nd mag if we know the first is down */
-		if (mag.length() > 0.1f && (_last_mag != _sensor_combined.magnetometer_timestamp[_mag_main])) {
-			_ekf->magData.x = mag.x;
-			_ekf->magData.y = mag.y;
-			_ekf->magData.z = mag.z;
-			_newDataMag = true;
-			_last_mag = _sensor_combined.magnetometer_timestamp[_mag_main];
-			perf_count(_perf_mag);
-		}
-	}
-
-	if (!_failsafe && (_voter_gyro.failover_count() > 0 ||
-			   _voter_accel.failover_count() > 0 ||
-			   _voter_mag.failover_count() > 0)) {
-
-		_failsafe = true;
-		mavlink_and_console_log_emergency(&_mavlink_log_pub, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
-	}
-
-	if (!_vibration_warning && (_voter_gyro.get_vibration_factor(curr_time) > _vibration_warning_threshold ||
-				    _voter_accel.get_vibration_factor(curr_time) > _vibration_warning_threshold ||
-				    _voter_mag.get_vibration_factor(curr_time) > _vibration_warning_threshold)) {
-
-		if (_vibration_warning_timestamp == 0) {
-			_vibration_warning_timestamp = curr_time;
-
-		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
-			_vibration_warning = true;
-			// mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-			// 				 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
-			// 				 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
-			// 				 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
-		}
-
-	} else {
-		_vibration_warning_timestamp = 0;
+	if (mag.length() > 0.1f && _last_mag != _sensor_combined.magnetometer_timestamp) {
+		_ekf->magData.x = mag.x;
+		_ekf->magData.y = mag.y;
+		_ekf->magData.z = mag.z;
+		_newDataMag = true;
+		_last_mag = _sensor_combined.magnetometer_timestamp;
+		perf_count(_perf_mag);
 	}
 
 	_last_sensor_timestamp = _sensor_combined.timestamp;
@@ -1481,8 +1395,8 @@ void AttitudePositionEstimatorEKF::pollData()
 	// leave this in as long as larger improvements are still being made.
 #if 0
 
-	float deltaTIntegral = (_sensor_combined.gyro_integral_dt[0]) / 1e6f;
-	float deltaTIntAcc = (_sensor_combined.accelerometer_integral_dt[0]) / 1e6f;
+	float deltaTIntegral = _sensor_combined.gyro_integral_dt / 1e6f;
+	float deltaTIntAcc = _sensor_combined.accelerometer_integral_dt / 1e6f;
 
 	static unsigned dtoverflow5 = 0;
 	static unsigned dtoverflow10 = 0;

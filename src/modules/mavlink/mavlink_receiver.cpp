@@ -1673,16 +1673,14 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		struct sensor_combined_s hil_sensors = {};
 
-		hil_sensors.timestamp = timestamp;
-
 		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
 		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
 		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
 		_hil_prev_gyro[0] = imu.xgyro;
 		_hil_prev_gyro[1] = imu.ygyro;
 		_hil_prev_gyro[2] = imu.zgyro;
-		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
-		hil_sensors.gyro_timestamp[0] = timestamp;
+		hil_sensors.gyro_integral_dt = dt * 1e6f;
+		hil_sensors.timestamp = timestamp;
 
 		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
 		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
@@ -1690,17 +1688,17 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		_hil_prev_accel[0] = imu.xacc;
 		_hil_prev_accel[1] = imu.yacc;
 		_hil_prev_accel[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
-		hil_sensors.accelerometer_timestamp[0] = timestamp;
+		hil_sensors.accelerometer_integral_dt = dt * 1e6f;
+		hil_sensors.accelerometer_timestamp = timestamp;
 
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_timestamp[0] = timestamp;
+		hil_sensors.magnetometer_timestamp = timestamp;
 
-		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius[0] = imu.temperature;
-		hil_sensors.baro_timestamp[0] = timestamp;
+		hil_sensors.baro_alt_meter = imu.pressure_alt;
+		hil_sensors.baro_temp_celcius = imu.temperature;
+		hil_sensors.baro_timestamp = timestamp;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {

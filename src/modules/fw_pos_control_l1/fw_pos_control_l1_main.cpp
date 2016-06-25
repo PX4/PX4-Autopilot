@@ -1231,7 +1231,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body;
-	float accel_dt = _sensor_combined.accelerometer_integral_dt[0] / 1.e6f;
+	float accel_dt = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 	accel_body(0) = _sensor_combined.accelerometer_integral_m_s[0] / accel_dt;
 	accel_body(1) = _sensor_combined.accelerometer_integral_m_s[1] / accel_dt;
 	accel_body(2) = _sensor_combined.accelerometer_integral_m_s[2] / accel_dt;

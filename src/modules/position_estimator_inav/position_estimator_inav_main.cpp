@@ -425,14 +425,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
+					baro_timestamp = sensor.baro_timestamp;
 					baro_wait_for_sample_time = hrt_absolute_time();
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter[0])) {
-							baro_offset += sensor.baro_alt_meter[0];
+						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
+							baro_offset += sensor.baro_alt_meter;
 							baro_init_cnt++;
 						}
 
@@ -502,10 +502,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_timestamp[0] != accel_timestamp) {
+				if (sensor.accelerometer_timestamp != accel_timestamp) {
 					if (att.R_valid) {
 						float sensor_accel[3];
-						float accel_dt = sensor.accelerometer_integral_dt[0] / 1.e6f;
+						float accel_dt = sensor.accelerometer_integral_dt / 1.e6f;
 						sensor_accel[0] = sensor.accelerometer_integral_m_s[0] / accel_dt - acc_bias[0];
 						sensor_accel[1] = sensor.accelerometer_integral_m_s[1] / accel_dt - acc_bias[1];
 						sensor_accel[2] = sensor.accelerometer_integral_m_s[2] / accel_dt - acc_bias[2];
@@ -525,13 +525,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(acc, 0, sizeof(acc));
 					}
 
-					accel_timestamp = sensor.accelerometer_timestamp[0];
+					accel_timestamp = sensor.accelerometer_timestamp;
 					accel_updates++;
 				}
 
-				if (sensor.baro_timestamp[0] != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter[0] - z_est[0];
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (sensor.baro_timestamp != baro_timestamp) {
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
+					baro_timestamp = sensor.baro_timestamp;
 					baro_updates++;
 				}
 			}
@@ -1363,7 +1363,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.terrain_alt_valid = false;
 				}
 
-				global_pos.pressure_alt = sensor.baro_alt_meter[0];
+				global_pos.pressure_alt = sensor.baro_alt_meter;
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
