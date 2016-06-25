@@ -187,7 +187,7 @@ __EXPORT int nsh_archinitialize(void)
 	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
 	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
-  px4_arch_configgpio(GPIO_VDD_5V_TELEM_OC);
+  px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 
 	/* configure the GPIO pins to outputs and keep them low */
 	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);

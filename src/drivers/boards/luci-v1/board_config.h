@@ -65,84 +65,103 @@ __BEGIN_DECLS
  * Definitions
  ****************************************************************************************************/
 
+/* SPEKTRUM */
+#define SPEKTRUM_SERIAL_DEVICE	"/dev/ttyS5"
+#define GPIO_SPEKTRUM_PWR_EN (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
+
+#define POWER_SPEKTRUM(_s)			px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
+#define GPIO_UART7_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN7)
+#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_UART7_RX)
+
+// NOTE - On PX4 v4, this is a different GPIO, on Luci, they are same.
+#define GPIO_RC_OUT							(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN7)
+#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_RC_OUT)
+#define SPEKTRUM_RX_HIGH(_s)		px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
+
+#define GPIO_SBUS_INV		(0)	/*(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)*/
+#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
+
+
+ /* PPM */
+
+#define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
+#define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
+
+/* Configuration ************************************************************************************/
+
 /* PX4FMU GPIOs ***********************************************************************************/
-
 /* LEDs */
-#define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
-#define GPIO_LED_RED 	GPIO_LED1
 
-/*  Define the Chip Selects */
-#define GPIO_SPI_CS_LSM9DS0_GYRO			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_SPI_CS_LSM9DS0_ACCEL_MAG (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_SPI_CS_MPU9250						(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
-#define GPIO_SPI_CS_MS5611						(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
+//
+// Acitvity LED
+//
+#define GPIO_LED_RED		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
 
-#define GPIO_SPI_CS_FRAM							(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
+/* External interrupts */
+#define GPIO_EXTI_GYRO_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_EXTI_MAG_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_EXTI_ACCEL_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN0)
+#define GPIO_EXTI_MPU_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN4)
 
-#define GPIO_SPI_CS_EXT0							(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_SPI_CS_EXT1							(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
+/* Data ready pins off */
+#define GPIO_GYRO_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_MAG_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_ACCEL_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN0)
+#define GPIO_EXTI_MPU_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTE|GPIO_PIN4)
 
-/*  Define the Ready interrupts */
-#define GPIO_DRDY_LSM9DS0_GYRO				(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_DRDY_LSM9DS0_XM1					(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_DRDY_LSM9DS0_XM2 				(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_DRDY_MPU9250							(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN4)
+/* SPI1 off */
+#define GPIO_SPI1_SCK_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN5)
+#define GPIO_SPI1_MISO_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN6)
+#define GPIO_SPI1_MOSI_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN7)
 
-/*
- *  Define the ability to shut off off the sensor signals
- *  by changing the signals to inputs
- */
+/* SPI1 chip selects off */
+#define GPIO_SPI_CS_GYRO_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_SPI_CS_ACCEL_MAG_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SPI_CS_BARO_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_SPI_CS_MPU_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN2)
 
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
-
-#define GPIO_SPI_CS_OFF_LSM9DS0_GYRO			_PIN_OFF(GPIO_SPI_CS_LSM9DS0_GYRO)
-#define GPIO_SPI_CS_OFF_LSM9DS0_ACCEL_MAG	_PIN_OFF(GPIO_SPI_CS_LSM9DS0_ACCEL_MAG)
-#define GPIO_SPI_CS_OFF_MPU9250						_PIN_OFF(GPIO_SPI_CS_MPU9250)
-#define GPIO_SPI_CS_OFF_MS5611						_PIN_OFF(GPIO_SPI_CS_MS5611)
-
-#define GPIO_SPI_CS_OFF_EXT0							_PIN_OFF(GPIO_SPI_CS_EXT0)
-#define GPIO_SPI_CS_OFF_EXT1							_PIN_OFF(GPIO_SPI_CS_EXT1)
-
-#define GPIO_DRDY_OFF_LSM9DS0_GYRO				_PIN_OFF(GPIO_DRDY_LSM9DS0_GYRO)
-#define GPIO_DRDY_OFF_LSM9DS0_XM1					_PIN_OFF(GPIO_DRDY_LSM9DS0_XM1)
-#define GPIO_DRDY_OFF_LSM9DS0_XM2 				_PIN_OFF(GPIO_DRDY_LSM9DS0_XM2)
-#define GPIO_DRDY_OFF_MPU9250							_PIN_OFF(GPIO_DRDY_MPU9250)
-
-/* SPI1 Off */
-#define GPIO_SPI1_SCK_OFF									_PIN_OFF(GPIO_SPI1_SCK)
-#define GPIO_SPI1_MISO_OFF								_PIN_OFF(GPIO_SPI1_MISO)
-#define GPIO_SPI1_MOSI_OFF								_PIN_OFF(GPIO_SPI1_MOSI)
+/* SPI chip selects */
+#define GPIO_SPI_CS_GYRO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN1)
+#define GPIO_SPI_CS_ACCEL_MAG	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
+#define GPIO_SPI_CS_BARO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_SPI_CS_FRAM	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
+// #define GPIO_SPI_CS_HMC		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN1)
+#define GPIO_SPI_CS_MPU		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_SPI_CS_EXT0	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
+#define GPIO_SPI_CS_EXT1  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
+#define GPIO_SPI_CS_EXT2	0 //(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SPI_CS_EXT3	0 //(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
 
 #define PX4_SPI_BUS_SENSORS	4
 #define PX4_SPI_BUS_RAMTRON	2
-#define PX4_SPI_BUS_EXT			1
-#define PX4_SPI_BUS_BARO		PX4_SPI_BUS_SENSORS
+#define PX4_SPI_BUS_EXT		1
+#define PX4_SPI_BUS_BARO PX4_SPI_BUS_SENSORS
+
+/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
+#define PX4_SPIDEV_GYRO		1
+#define PX4_SPIDEV_ACCEL_MAG	2
+#define PX4_SPIDEV_BARO		3
+#define PX4_SPIDEV_MPU		4
+// #define PX4_SPIDEV_HMC		5
 
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
 #define PX4_SPIDEV_EXT1		2
+#define PX4_SPIDEV_EXT2		3
+#define PX4_SPIDEV_EXT3		4
 
-/* With only 2 external chip selects, not sure how useful these will be... */
+/* FMUv3 SPI on external bus */
 #define PX4_SPIDEV_EXT_MPU		PX4_SPIDEV_EXT0
 #define PX4_SPIDEV_EXT_BARO		PX4_SPIDEV_EXT1
-#define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT0
-#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT1
-
-#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT0
-
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI4 */
-#define PX4_SPIDEV_GYRO			1
-#define PX4_SPIDEV_ACCEL_MAG		2
-#define PX4_SPIDEV_BARO			3
-#define PX4_SPIDEV_MPU			4
+#define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT2
+#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_ONBOARD		2
-#define PX4_I2C_BUS_LED				PX4_I2C_BUS_ONBOARD
+#define PX4_I2C_BUS_ONBOARD	2
+#define PX4_I2C_BUS_LED		PX4_I2C_BUS_ONBOARD
 
-/*
- * Devices on the external bus.
+/* Devices on the onboard bus.
  *
  * Note that these are unshifted addresses.
  */
@@ -150,66 +169,65 @@ __BEGIN_DECLS
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 #define PX4_I2C_OBDEV_LIS3MDL	0x1e
 
-/*
- * ADC channels
- *
- * Luci uses channels 14 and 15 for the external HDI connector.
- */
+ /*
+  * ADC channels
+  *
+  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+  */
 #define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 14) | (1 << 15)
 
 // ADC defines to be used in sensors.cpp to read from a particular channel
 #define ADC_BATTERY_VOLTAGE_CHANNEL		2
 #define ADC_BATTERY_CURRENT_CHANNEL		3
 #define ADC_5V_RAIL_SENSE							4
-#define ADC_EXT_CHANNEL1							14
-#define ADC_EXT_CHANNEL2							15
+#define ADC_SPARE1_CHANNEL							14
+#define ADC_SPARE2_CHANNEL							15
 
-/* User GPIOs
- *
- * GPIO0-5 are the PWM servo outputs.
- */
+
+ /* User GPIOs
+  *
+  * GPIO0-5 are the PWM servo outputs.
+  */
 #define GPIO_GPIO0_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN14)
 #define GPIO_GPIO1_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN13)
 #define GPIO_GPIO2_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_GPIO3_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN9)
 #define GPIO_GPIO4_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN13)
 #define GPIO_GPIO5_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN14)
-
 #define GPIO_GPIO0_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)
 #define GPIO_GPIO1_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN13)
 #define GPIO_GPIO2_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_GPIO3_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
 #define GPIO_GPIO4_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_GPIO5_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+#define GPIO_GPIO5_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN14)
 
 /* Power supply control and monitoring GPIOs */
-#define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN7)
-#define GPIO_VDD_5V_TELEM_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN7)
-#define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
-
-/* FIXME 3V3 rail never added in hardware, will be fixed on next revision */
-#define GPIO_VDD_3V3_SENSORS_EN	(0) /*(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN3)*/
-
+#define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN7)
+#define GPIO_VDD_BRICK_VALID	0 //(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_VDD_SERVO_VALID	0 //(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7)
+#define GPIO_VDD_3V3_SENSORS_EN	0 //(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN7)
+#define GPIO_VDD_5V_PERIPH_OC (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
 
 /* Tone alarm output */
-#define TONE_ALARM_TIMER		2	/* timer 2 */
-#define TONE_ALARM_CHANNEL		1	/* channel 1 */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-#define GPIO_TONE_ALARM			(GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
+#define TONE_ALARM_TIMER	2	/* timer 2 */
+#define TONE_ALARM_CHANNEL	1	/* channel 1 */
+#define GPIO_TONE_ALARM_IDLE 	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_TONE_ALARM		 (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
-/* PWM
- *
- * Six PWM outputs are configured.
- *
- * Pins:
- *
- * CH1 : PE14 : TIM1_CH4
- * CH2 : PE13 : TIM1_CH3
- * CH3 : PE11 : TIM1_CH2
- * CH4 : PE9  : TIM1_CH1
- * CH5 : PD13 : TIM4_CH2
- * CH6 : PD14 : TIM4_CH3
- */
+ /* PWM
+  *
+  * Six PWM outputs are configured.
+  *
+  * Pins:
+  *
+  * CH1 : PE14 : TIM1_CH4
+  * CH2 : PE13 : TIM1_CH3
+  * CH3 : PE11 : TIM1_CH2
+  * CH4 : PE9  : TIM1_CH1
+  * CH5 : PD13 : TIM4_CH2
+  * CH6 : PD14 : TIM4_CH3
+  */
 #define GPIO_TIM1_CH1OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN9)
 #define GPIO_TIM1_CH2OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_TIM1_CH3OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN13)
@@ -228,7 +246,7 @@ __BEGIN_DECLS
 
 /* USB OTG FS
  *
- * PA9  OTG_FS_VBUS VBUS sensing
+ * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
  */
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
@@ -236,48 +254,10 @@ __BEGIN_DECLS
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
-#define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
-#define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
-
-#define RC_SERIAL_PORT		"/dev/ttyS5"
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-#define PWMIN_TIMER			4
+#define PWMIN_TIMER		4
 #define PWMIN_TIMER_CHANNEL	2
-#define GPIO_PWM_IN			GPIO_TIM4_CH2IN_2
-
-/* FIXME - Currently not implemented on Luci, but we'd like to have this on future revisions. */
-#define GPIO_SBUS_INV		(0)	/*(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)*/
-#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
-
-#define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
-
-/* Power switch controls ******************************************************/
-
-#define POWER_SPEKTRUM(_s)			px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
-#define GPIO_UART7_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN7)
-#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_UART7_RX)
-
-// NOTE - On PX4 v4, this is a different GPIO, on Luci, they are same.
-#define GPIO_RC_OUT							(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN7)
-#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)		px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
-
-
-#define	BOARD_NAME "LUCI_V1"
-
-/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
- * system_power interface, and herefore provides the true logic
- * GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
-#define BOARD_ADC_5V_TELEM_OC 	(!px4_arch_gpioread(GPIO_VDD_5V_TELEM_OC))
-
-/* Not supported on this board, but needed for adc driver */
-#define BOARD_ADC_BRICK_VALID (1)
-#define BOARD_ADC_SERVO_VALID (1)
-#define BOARD_ADC_HIPOWER_5V_OC (0)
+#define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
@@ -289,17 +269,20 @@ __BEGIN_DECLS
 		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
 		{0,                      GPIO_VDD_5V_PERIPH_EN,   0}, \
-    {0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
-		{GPIO_VDD_5V_TELEM_OC,   0, 											0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
+		{GPIO_VDD_BRICK_VALID,   0,                       0}, \
+		{GPIO_VDD_SERVO_VALID,   0,                       0}, \
+		{GPIO_VDD_5V_HIPOWER_OC, 0,                       0}, \
 		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
 
-/* This board provides a DMA pool and APIs */
+ #define BOARD_NAME "LUCI_V1"
 
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
+ #define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
+ /****************************************************************************************************
+  * Public Types
+  ****************************************************************************************************/
 
 /****************************************************************************************************
  * Public data
@@ -320,34 +303,33 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-void board_spi_reset(int ms);
+extern void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
+ /****************************************************************************
+  * Name: nsh_archinitialize
+  *
+  * Description:
+  *   Perform architecture specific initialization for NSH.
+  *
+  *   CONFIG_NSH_ARCHINIT=y :
+  *     Called from the NSH library
+  *
+  *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
+  *   CONFIG_NSH_ARCHINIT=n :
+  *     Called from board_initialize().
+  *
+  ****************************************************************************/
 
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
+ #ifdef CONFIG_NSH_LIBRARY
+ int nsh_archinitialize(void);
+ #endif
 
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
+ #include "../common/board_common.h"
 
-#include "../common/board_common.h"
+ #endif /* __ASSEMBLY__ */
 
-#endif /* __ASSEMBLY__ */
-
-__END_DECLS
+ __END_DECLS
