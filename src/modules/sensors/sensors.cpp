@@ -210,7 +210,8 @@ private:
 
 	struct SensorData {
 		SensorData()
-			: subscription_count(0),
+			: last_best_vote(0),
+			  subscription_count(0),
 			  voter(SENSOR_COUNT_MAX),
 			  last_failover_count(0)
 		{
@@ -221,6 +222,7 @@ private:
 
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
+		uint8_t last_best_vote; /**< index of the latest best vote */
 		int subscription_count;
 		DataValidatorGroup voter;
 		unsigned int last_failover_count;
@@ -267,6 +269,9 @@ private:
 	float _last_baro_pressure[SENSOR_COUNT_MAX]; /**< pressure from last baro sensors */
 	float _last_best_baro_pressure; /**< pressure from last best baro */
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	uint64_t _last_accel_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
+	uint64_t _last_mag_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
+	uint64_t _last_baro_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
 
 	hrt_abstime _vibration_warning_timestamp;
 	bool _vibration_warning;
@@ -595,6 +600,9 @@ Sensors::Sensors() :
 	memset(&_parameters, 0, sizeof(_parameters));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
+	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
+	memset(&_last_mag_timestamp, 0, sizeof(_last_mag_timestamp));
+	memset(&_last_baro_timestamp, 0, sizeof(_last_baro_timestamp));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -1088,19 +1096,19 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 				sensor_value = vect_val;
 
-				if (_last_sensor_data[i].accelerometer_timestamp == 0) {
-					_last_sensor_data[i].accelerometer_timestamp = accel_report.timestamp - 1000;
+				if (_last_accel_timestamp[i] == 0) {
+					_last_accel_timestamp[i] = accel_report.timestamp - 1000;
 				}
 
 				_last_sensor_data[i].accelerometer_integral_dt =
-					(uint32_t)(accel_report.timestamp - _last_sensor_data[i].accelerometer_timestamp);
+					(uint32_t)(accel_report.timestamp - _last_accel_timestamp[i]);
 				float dt = _last_sensor_data[i].accelerometer_integral_dt / 1.e6f;
 				_last_sensor_data[i].accelerometer_integral_m_s[0] = vect_val(0) * dt;
 				_last_sensor_data[i].accelerometer_integral_m_s[1] = vect_val(1) * dt;
 				_last_sensor_data[i].accelerometer_integral_m_s[2] = vect_val(2) * dt;
 			}
 
-			_last_sensor_data[i].accelerometer_timestamp = accel_report.timestamp;
+			_last_accel_timestamp[i] = accel_report.timestamp;
 			_accel.voter.put(i, accel_report.timestamp, sensor_value.data,
 					 accel_report.error_count, _accel.priority[i]);
 		}
@@ -1115,7 +1123,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 			raw.accelerometer_integral_m_s[1] = _last_sensor_data[best_index].accelerometer_integral_m_s[1];
 			raw.accelerometer_integral_m_s[2] = _last_sensor_data[best_index].accelerometer_integral_m_s[2];
 			raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
-			raw.accelerometer_timestamp = _last_sensor_data[best_index].accelerometer_timestamp;
+			_accel.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1189,6 +1197,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 			raw.gyro_integral_rad[2] = _last_sensor_data[best_index].gyro_integral_rad[2];
 			raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 			raw.timestamp = _last_sensor_data[best_index].timestamp;
+			_gyro.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1219,7 +1228,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 			_last_sensor_data[i].magnetometer_ga[1] = vect(1);
 			_last_sensor_data[i].magnetometer_ga[2] = vect(2);
 
-			_last_sensor_data[i].magnetometer_timestamp = mag_report.timestamp;
+			_last_mag_timestamp[i] = mag_report.timestamp;
 			_mag.voter.put(i, mag_report.timestamp, vect.data,
 				       mag_report.error_count, _mag.priority[i]);
 		}
@@ -1233,7 +1242,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 			raw.magnetometer_ga[0] = _last_sensor_data[best_index].magnetometer_ga[0];
 			raw.magnetometer_ga[1] = _last_sensor_data[best_index].magnetometer_ga[1];
 			raw.magnetometer_ga[2] = _last_sensor_data[best_index].magnetometer_ga[2];
-			raw.magnetometer_timestamp = _last_sensor_data[best_index].magnetometer_timestamp;
+			_mag.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1263,7 +1272,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 			_last_sensor_data[i].baro_temp_celcius = baro_report.temperature;
 			_last_baro_pressure[i] = baro_report.pressure;
 
-			_last_sensor_data[i].baro_timestamp = baro_report.timestamp;
+			_last_baro_timestamp[i] = baro_report.timestamp;
 			_baro.voter.put(i, baro_report.timestamp, vect.data,
 					baro_report.error_count, _baro.priority[i]);
 		}
@@ -1276,8 +1285,8 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		if (best_index >= 0) {
 			raw.baro_alt_meter = _last_sensor_data[best_index].baro_alt_meter;
 			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
-			raw.baro_timestamp = _last_sensor_data[best_index].baro_timestamp;
 			_last_best_baro_pressure = _last_baro_pressure[best_index];
+			_baro.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -2267,6 +2276,12 @@ Sensors::task_main()
 
 	struct sensor_combined_s raw = {};
 
+	raw.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	raw.magnetometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	raw.baro_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
 	/*
 	 * do subscriptions
 	 */
@@ -2376,6 +2391,20 @@ Sensors::task_main()
 		diff_pres_poll(raw);
 
 		if (_publishing && raw.timestamp > 0) {
+
+			/* construct relative timestamps */
+			if (_last_accel_timestamp[_accel.last_best_vote]) {
+				raw.accelerometer_timestamp_relative = (int32_t)(_last_accel_timestamp[_accel.last_best_vote] - raw.timestamp);
+			}
+
+			if (_last_mag_timestamp[_mag.last_best_vote]) {
+				raw.magnetometer_timestamp_relative = (int32_t)(_last_mag_timestamp[_mag.last_best_vote] - raw.timestamp);
+			}
+
+			if (_last_baro_timestamp[_baro.last_best_vote]) {
+				raw.baro_timestamp_relative = (int32_t)(_last_baro_timestamp[_baro.last_best_vote] - raw.timestamp);
+			}
+
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 
 			check_failover(_accel, "Accel");

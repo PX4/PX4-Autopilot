@@ -5,18 +5,20 @@
 # change with board revisions and sensor updates.
 #
 
+int32 RELATIVE_TIMESTAMP_INVALID = 2147483647 # (0x7fffffff) If one of the relative timestamp is set to this value, it means the associated sensor values are invalid
+
 # gyro timstamp is equal to the timestamp of the message
 float32[3] gyro_integral_rad		# delta angle in the NED body frame in rad in the integration time frame
 uint32 gyro_integral_dt			# delta time for gyro integral in us
 
-uint64 accelerometer_timestamp	# Accelerometer timestamp
+int32 accelerometer_timestamp_relative	# timestamp + accelerometer_timestamp_relative = Accelerometer timestamp
 float32[3] accelerometer_integral_m_s		# velocity in NED body frame, in m/s^2
 uint32 accelerometer_integral_dt		# delta time for accel integral in us
 
-uint64 magnetometer_timestamp	# Magnetometer timestamp
+int32 magnetometer_timestamp_relative	# timestamp + magnetometer_timestamp_relative = Magnetometer timestamp
 float32[3] magnetometer_ga		# Magnetic field in NED body frame, in Gauss
 
-uint64 baro_timestamp		# Barometer timestamp
+int32 baro_timestamp_relative		# timestamp + baro_timestamp_relative = Barometer timestamp
 float32 baro_alt_meter			# Altitude, already temp. comp.
 float32 baro_temp_celcius		# Temperature in degrees celsius
 

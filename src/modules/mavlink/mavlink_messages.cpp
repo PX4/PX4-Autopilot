@@ -724,10 +724,10 @@ protected:
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp) {
+			if (_accel_timestamp != sensor.timestamp + sensor.accelerometer_timestamp_relative) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp;
+				_accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 			}
 
 			if (_gyro_timestamp != sensor.timestamp) {
@@ -736,16 +736,16 @@ protected:
 				_gyro_timestamp = sensor.timestamp;
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp) {
+			if (_mag_timestamp != sensor.timestamp + sensor.magnetometer_timestamp_relative) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp;
+				_mag_timestamp = sensor.timestamp + sensor.magnetometer_timestamp_relative;
 			}
 
-			if (_baro_timestamp != sensor.baro_timestamp) {
+			if (_baro_timestamp != sensor.timestamp + sensor.baro_timestamp_relative) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-				_baro_timestamp = sensor.baro_timestamp;
+				_baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 			}
 			_differential_pressure_sub->update(&_differential_pressure_time, &differential_pressure);
 

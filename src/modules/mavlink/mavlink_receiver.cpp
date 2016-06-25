@@ -1689,16 +1689,16 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		_hil_prev_accel[1] = imu.yacc;
 		_hil_prev_accel[2] = imu.zacc;
 		hil_sensors.accelerometer_integral_dt = dt * 1e6f;
-		hil_sensors.accelerometer_timestamp = timestamp;
+		hil_sensors.accelerometer_timestamp_relative = 0;
 
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_timestamp = timestamp;
+		hil_sensors.magnetometer_timestamp_relative = 0;
 
 		hil_sensors.baro_alt_meter = imu.pressure_alt;
 		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp = timestamp;
+		hil_sensors.baro_timestamp_relative = 0;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
