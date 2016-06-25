@@ -68,7 +68,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	if (attitude->R_valid) {
 		matrix::Matrix<float, 3, 3> R_att(attitude->R);
 		matrix::Vector<float, 3> a;
-		float accel_dt = sensor->accelerometer_integral_dt[0] / 1.e6f;
+		float accel_dt = sensor->accelerometer_integral_dt / 1.e6f;
 		a(0) = sensor->accelerometer_integral_m_s[0] / accel_dt;
 		a(1) = sensor->accelerometer_integral_m_s[1] / accel_dt;
 		a(2) = sensor->accelerometer_integral_m_s[2] / accel_dt;

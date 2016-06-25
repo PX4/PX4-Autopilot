@@ -67,7 +67,6 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/geo/geo.h>
-#include <lib/ecl/validation/data_validator_group.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -139,7 +138,6 @@ private:
 		param_t	mag_decl_auto;
 		param_t	acc_comp;
 		param_t	bias_max;
-		param_t vibe_thresh;
 		param_t	ext_hdg_mode;
 		param_t airspeed_mode;
 	}		_params_handles;		/**< handles for interesting parameters */
@@ -152,8 +150,6 @@ private:
 	bool		_mag_decl_auto = false;
 	bool		_acc_comp = false;
 	float		_bias_max = 0.0f;
-	float		_vibration_warning_threshold = 2.0f;
-	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
 	int 	_airspeed_mode = 0;
 
@@ -177,10 +173,6 @@ private:
 	Vector<3>	_vel_prev;
 	Vector<3>	_pos_acc;
 
-	DataValidatorGroup _voter_gyro;
-	DataValidatorGroup _voter_accel;
-	DataValidatorGroup _voter_mag;
-
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
 	math::LowPassFilter2p _lp_pitch_rate;
@@ -190,8 +182,6 @@ private:
 
 	bool		_inited = false;
 	bool		_data_good = false;
-	bool		_failsafe = false;
-	bool		_vibration_warning = false;
 	bool		_ext_hdg_good = false;
 
 	orb_advert_t	_mavlink_log_pub = nullptr;
@@ -215,15 +205,10 @@ private:
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_vel_prev(0, 0, 0),
 	_pos_acc(0, 0, 0),
-	_voter_gyro(3),
-	_voter_accel(3),
-	_voter_mag(3),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f)
 {
-	_voter_mag.set_timeout(200000);
-
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
 	_params_handles.w_ext_hdg	= param_find("ATT_W_EXT_HDG");
@@ -232,7 +217,6 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_params_handles.mag_decl_auto	= param_find("ATT_MAG_DECL_A");
 	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
 	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
-	_params_handles.vibe_thresh	= param_find("ATT_VIBE_THRESH");
 	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 }
@@ -286,12 +270,6 @@ int AttitudeEstimatorQ::start()
 
 void AttitudeEstimatorQ::print()
 {
-	warnx("gyro status:");
-	_voter_gyro.print();
-	warnx("accel status:");
-	_voter_accel.print();
-	warnx("mag status:");
-	_voter_mag.print();
 }
 
 void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
@@ -346,129 +324,40 @@ void AttitudeEstimatorQ::task_main()
 		// Update sensors
 		sensor_combined_s sensors;
 
-		int best_gyro = 0;
-		int best_accel = 0;
-		int best_mag = 0;
-
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
 
-			for (unsigned i = 0; i < (sizeof(sensors.gyro_timestamp) / sizeof(sensors.gyro_timestamp[0])); i++) {
+			if (sensors.timestamp > 0) {
+				float gyro_dt = sensors.gyro_integral_dt / 1e6;
+				_gyro(0) = sensors.gyro_integral_rad[0] / gyro_dt;
+				_gyro(1) = sensors.gyro_integral_rad[1] / gyro_dt;
+				_gyro(2) = sensors.gyro_integral_rad[2] / gyro_dt;
+			}
 
-				/* ignore empty fields */
-				if (sensors.gyro_timestamp[i] > 0) {
+			if (sensors.accelerometer_timestamp > 0) {
+				float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
+				_accel(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
+				_accel(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
+				_accel(2) = sensors.accelerometer_integral_m_s[2] / accel_dt;
 
-					float gyro[3];
-					float gyro_dt = sensors.gyro_integral_dt[i] / 1e6;
-					gyro[0] = sensors.gyro_integral_rad[i * 3 + 0] / gyro_dt;
-					gyro[1] = sensors.gyro_integral_rad[i * 3 + 1] / gyro_dt;
-					gyro[2] = sensors.gyro_integral_rad[i * 3 + 2] / gyro_dt;
-
-					//TODO: note: voter will be moved into sensors module
-					//_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i], sensors.gyro_priority[i]);
-					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], 0, 75);
-				}
-
-				if (sensors.accelerometer_timestamp[i] > 0) {
-					float acceleration[3];
-					float accel_dt = sensors.accelerometer_integral_dt[i] / 1.e6f;
-					acceleration[0] = sensors.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
-					acceleration[1] = sensors.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
-					acceleration[2] = sensors.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
-					_voter_accel.put(i, sensors.accelerometer_timestamp[i], acceleration, 0, 75);
-				}
-
-				if (sensors.magnetometer_timestamp[i] > 0) {
-					_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3], 0, 75);
+				if (_accel.length() < 0.01f) {
+					warnx("WARNING: degenerate accel!");
+					continue;
 				}
 			}
 
-			// Get best measurement values
-			hrt_abstime curr_time = hrt_absolute_time();
-			_gyro.set(_voter_gyro.get_best(curr_time, &best_gyro));
-			_accel.set(_voter_accel.get_best(curr_time, &best_accel));
-			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
+			if (sensors.magnetometer_timestamp > 0) {
+				_mag(0) = sensors.magnetometer_ga[0];
+				_mag(1) = sensors.magnetometer_ga[1];
+				_mag(2) = sensors.magnetometer_ga[2];
 
-			if (_accel.length() < 0.01f) {
-				warnx("WARNING: degenerate accel!");
-				continue;
-			}
-
-			if (_mag.length() < 0.01f) {
-				warnx("WARNING: degenerate mag!");
-				continue;
+				if (_mag.length() < 0.01f) {
+					warnx("WARNING: degenerate mag!");
+					continue;
+				}
 			}
 
 			_data_good = true;
-
-			if (!_failsafe) {
-				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
-
-#ifdef __PX4_POSIX
-				perf_end(_perf_accel);
-				perf_end(_perf_mpu);
-				perf_end(_perf_mag);
-#endif
-
-				if (_voter_gyro.failover_count() > 0) {
-					_failsafe = true;
-					flags = _voter_gyro.failover_state();
-					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Gyro #%i failure :%s%s%s%s%s!",
-									  _voter_gyro.failover_index(),
-									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
-				}
-
-				if (_voter_accel.failover_count() > 0) {
-					_failsafe = true;
-					flags = _voter_accel.failover_state();
-					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Accel #%i failure :%s%s%s%s%s!",
-									  _voter_accel.failover_index(),
-									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
-				}
-
-				if (_voter_mag.failover_count() > 0) {
-					_failsafe = true;
-					flags = _voter_mag.failover_state();
-					mavlink_and_console_log_emergency(&_mavlink_log_pub, "Mag #%i failure :%s%s%s%s%s!",
-									  _voter_mag.failover_index(),
-									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
-				}
-
-				if (_failsafe) {
-					mavlink_and_console_log_emergency(&_mavlink_log_pub, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
-				}
-			}
-
-			if (!_vibration_warning && (_voter_gyro.get_vibration_factor(curr_time) > _vibration_warning_threshold ||
-						    _voter_accel.get_vibration_factor(curr_time) > _vibration_warning_threshold ||
-						    _voter_mag.get_vibration_factor(curr_time) > _vibration_warning_threshold)) {
-
-				if (_vibration_warning_timestamp == 0) {
-					_vibration_warning_timestamp = curr_time;
-
-				} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
-					_vibration_warning = true;
-					// mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-					// 				 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
-					// 				 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
-					// 				 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
-				}
-
-			} else {
-				_vibration_warning_timestamp = 0;
-			}
 		}
 
 		// Update vision and motion capture heading
@@ -596,10 +485,6 @@ void AttitudeEstimatorQ::task_main()
 		memcpy(&att.q[0], _q.data, sizeof(att.q));
 		att.q_valid = true;
 
-		att.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
-		att.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
-		att.mag_vibration = _voter_mag.get_vibration_factor(hrt_absolute_time());
-
 		/* the instance count is not used here */
 		int att_inst;
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
@@ -656,12 +541,9 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		{
-			struct estimator_status_s est = {};
+			//struct estimator_status_s est = {};
 
-			est.timestamp = sensors.timestamp;
-			est.vibe[0] = _voter_accel.get_vibration_offset(est.timestamp, 0);
-			est.vibe[1] = _voter_accel.get_vibration_offset(est.timestamp, 1);
-			est.vibe[2] = _voter_accel.get_vibration_offset(est.timestamp, 2);
+			//est.timestamp = sensors.timestamp;
 
 			/* the instance count is not used here */
 			//int est_inst;
@@ -671,6 +553,12 @@ void AttitudeEstimatorQ::task_main()
 			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
 		}
 	}
+
+#ifdef __PX4_POSIX
+	perf_end(_perf_accel);
+	perf_end(_perf_mpu);
+	perf_end(_perf_mag);
+#endif
 
 	orb_unsubscribe(_sensors_sub);
 	orb_unsubscribe(_vision_sub);
@@ -706,7 +594,6 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		param_get(_params_handles.acc_comp, &acc_comp_int);
 		_acc_comp = acc_comp_int != 0;
 		param_get(_params_handles.bias_max, &_bias_max);
-		param_get(_params_handles.vibe_thresh, &_vibration_warning_threshold);
 		param_get(_params_handles.ext_hdg_mode, &_ext_hdg_mode);
 		param_get(_params_handles.airspeed_mode, &_airspeed_mode);
 	}

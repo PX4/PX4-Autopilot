@@ -744,7 +744,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().terrain_alt = _altHome - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
-		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter[0];
+		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.update();
 	}
 }
@@ -845,7 +845,7 @@ void BlockLocalPositionEstimator::predict()
 	if (integrate && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
 		Vector3f a;
-		float accel_dt = _sub_sensor.get().accelerometer_integral_dt[0] / 1.e6f;
+		float accel_dt = _sub_sensor.get().accelerometer_integral_dt / 1.e6f;
 		a(0) = _sub_sensor.get().accelerometer_integral_m_s[0] / accel_dt;
 		a(1) = _sub_sensor.get().accelerometer_integral_m_s[1] / accel_dt;
 		a(2) = _sub_sensor.get().accelerometer_integral_m_s[2] / accel_dt;

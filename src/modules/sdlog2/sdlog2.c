@@ -1370,10 +1370,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_cond_init(&logbuffer_cond, NULL);
 
 	/* track changes in sensor_combined topic */
-	hrt_abstime gyro_timestamp[3] = {0, 0, 0};
-	hrt_abstime accelerometer_timestamp[3] = {0, 0, 0};
-	hrt_abstime magnetometer_timestamp[3] = {0, 0, 0};
-	hrt_abstime barometer_timestamp[3] = {0, 0, 0};
+	hrt_abstime gyro_timestamp = 0;
+	hrt_abstime accelerometer_timestamp = 0;
+	hrt_abstime magnetometer_timestamp = 0;
+	hrt_abstime barometer_timestamp = 0;
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1634,80 +1634,58 @@ int sdlog2_thread_main(int argc, char *argv[])
 			// but we need to copy it again because we are re-using the buffer.
 			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 
-			for (unsigned i = 0; i < 3; i++) {
-				bool write_IMU = false;
-				bool write_SENS = false;
+			bool write_IMU = false;
+			bool write_SENS = false;
 
-				if (buf.sensor.gyro_timestamp[i] != gyro_timestamp[i]) {
-					gyro_timestamp[i] = buf.sensor.gyro_timestamp[i];
-					write_IMU = true;
-				}
+			if (buf.sensor.timestamp != gyro_timestamp) {
+				gyro_timestamp = buf.sensor.timestamp;
+				write_IMU = true;
+			}
 
-				if (buf.sensor.accelerometer_timestamp[i] != accelerometer_timestamp[i]) {
-					accelerometer_timestamp[i] = buf.sensor.accelerometer_timestamp[i];
-					write_IMU = true;
-				}
+			if (buf.sensor.accelerometer_timestamp != accelerometer_timestamp) {
+				accelerometer_timestamp = buf.sensor.accelerometer_timestamp;
+				write_IMU = true;
+			}
 
-				if (buf.sensor.magnetometer_timestamp[i] != magnetometer_timestamp[i]) {
-					magnetometer_timestamp[i] = buf.sensor.magnetometer_timestamp[i];
-					write_IMU = true;
-				}
+			if (buf.sensor.magnetometer_timestamp != magnetometer_timestamp) {
+				magnetometer_timestamp = buf.sensor.magnetometer_timestamp;
+				write_IMU = true;
+			}
 
-				if (buf.sensor.baro_timestamp[i] != barometer_timestamp[i]) {
-					barometer_timestamp[i] = buf.sensor.baro_timestamp[i];
-					write_SENS = true;
-				}
+			if (buf.sensor.baro_timestamp != barometer_timestamp) {
+				barometer_timestamp = buf.sensor.baro_timestamp;
+				write_SENS = true;
+			}
 
-				if (write_IMU) {
-					switch (i) {
-						case 0:
-							log_msg.msg_type = LOG_IMU_MSG;
-							break;
-						case 1:
-							log_msg.msg_type = LOG_IMU1_MSG;
-							break;
-						case 2:
-							log_msg.msg_type = LOG_IMU2_MSG;
-							break;
-					}
+			if (write_IMU) {
+				log_msg.msg_type = LOG_IMU_MSG;
 
-					float gyro_dt = buf.sensor.gyro_integral_dt[i] / 1.e6f;
-					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_integral_rad[i * 3 + 0] / gyro_dt;
-					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_integral_rad[i * 3 + 1] / gyro_dt;
-					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_integral_rad[i * 3 + 2] / gyro_dt;
-					float accel_dt = buf.sensor.accelerometer_integral_dt[i] / 1.e6f;
-					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_integral_m_s[i * 3 + 0] / accel_dt;
-					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_integral_m_s[i * 3 + 1] / accel_dt;
-					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_integral_m_s[i * 3 + 2] / accel_dt;
-					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[i * 3 + 0];
-					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[i * 3 + 1];
-					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[i * 3 + 2];
-					log_msg.body.log_IMU.temp_gyro = 0;
-					log_msg.body.log_IMU.temp_acc = 0;
-					log_msg.body.log_IMU.temp_mag = 0;
-					LOGBUFFER_WRITE_AND_COUNT(IMU);
-				}
+				float gyro_dt = buf.sensor.gyro_integral_dt / 1.e6f;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_integral_rad[0] / gyro_dt;
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_integral_rad[1] / gyro_dt;
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_integral_rad[2] / gyro_dt;
+				float accel_dt = buf.sensor.accelerometer_integral_dt / 1.e6f;
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_integral_m_s[0] / accel_dt;
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_integral_m_s[1] / accel_dt;
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_integral_m_s[2] / accel_dt;
+				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
+				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
+				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+				log_msg.body.log_IMU.temp_gyro = 0;
+				log_msg.body.log_IMU.temp_acc = 0;
+				log_msg.body.log_IMU.temp_mag = 0;
+				LOGBUFFER_WRITE_AND_COUNT(IMU);
+			}
 
-				if (write_SENS) {
-					switch (i) {
-						case 0:
-							log_msg.msg_type = LOG_SENS_MSG;
-							break;
-						case 1:
-							log_msg.msg_type = LOG_AIR1_MSG;
-							break;
-						case 2:
-							continue;
-							break;
-					}
+			if (write_SENS) {
+				log_msg.msg_type = LOG_SENS_MSG;
 
-					log_msg.body.log_SENS.baro_pres = 0;
-					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter[i];
-					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius[i];
-					log_msg.body.log_SENS.diff_pres = 0;
-					log_msg.body.log_SENS.diff_pres_filtered = 0;
-					LOGBUFFER_WRITE_AND_COUNT(SENS);
-				}
+				log_msg.body.log_SENS.baro_pres = 0;
+				log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
+				log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
+				log_msg.body.log_SENS.diff_pres = 0;
+				log_msg.body.log_SENS.diff_pres_filtered = 0;
+				LOGBUFFER_WRITE_AND_COUNT(SENS);
 			}
 
 			/* --- VTOL VEHICLE STATUS --- */

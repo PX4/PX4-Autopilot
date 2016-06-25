@@ -377,10 +377,10 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		uint8_t *dest_ptr = (uint8_t *)&replay_part1.time_ref;
 		parseMessage(data, dest_ptr, type);
 		_sensors.timestamp = replay_part1.time_ref;
-		_sensors.gyro_integral_dt[0] = replay_part1.gyro_integral_dt;
-		_sensors.accelerometer_integral_dt[0] = replay_part1.accelerometer_integral_dt;
-		_sensors.magnetometer_timestamp[0] = replay_part1.magnetometer_timestamp;
-		_sensors.baro_timestamp[0] = replay_part1.baro_timestamp;
+		_sensors.gyro_integral_dt = replay_part1.gyro_integral_dt;
+		_sensors.accelerometer_integral_dt = replay_part1.accelerometer_integral_dt;
+		_sensors.magnetometer_timestamp = replay_part1.magnetometer_timestamp;
+		_sensors.baro_timestamp = replay_part1.baro_timestamp;
 		_sensors.gyro_integral_rad[0] = replay_part1.gyro_integral_x_rad;
 		_sensors.gyro_integral_rad[1] = replay_part1.gyro_integral_y_rad;
 		_sensors.gyro_integral_rad[2] = replay_part1.gyro_integral_z_rad;
@@ -390,7 +390,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_sensors.magnetometer_ga[0] = replay_part1.magnetometer_x_ga;
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;
-		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
+		_sensors.baro_alt_meter = replay_part1.baro_alt_meter;
 		_part1_counter_ref = _message_counter;
 
 	} else if (type == LOG_RPL2_MSG) {

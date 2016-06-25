@@ -724,39 +724,39 @@ protected:
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp[0]) {
+			if (_accel_timestamp != sensor.accelerometer_timestamp) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp[0];
+				_accel_timestamp = sensor.accelerometer_timestamp;
 			}
 
-			if (_gyro_timestamp != sensor.gyro_timestamp[0]) {
+			if (_gyro_timestamp != sensor.timestamp) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				_gyro_timestamp = sensor.gyro_timestamp[0];
+				_gyro_timestamp = sensor.timestamp;
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp[0]) {
+			if (_mag_timestamp != sensor.magnetometer_timestamp) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp[0];
+				_mag_timestamp = sensor.magnetometer_timestamp;
 			}
 
-			if (_baro_timestamp != sensor.baro_timestamp[0]) {
+			if (_baro_timestamp != sensor.baro_timestamp) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-				_baro_timestamp = sensor.baro_timestamp[0];
+				_baro_timestamp = sensor.baro_timestamp;
 			}
 			_differential_pressure_sub->update(&_differential_pressure_time, &differential_pressure);
 
 			mavlink_highres_imu_t msg;
 
 			msg.time_usec = sensor.timestamp;
-			float accel_dt = sensor.accelerometer_integral_dt[0] / 1.e6f;
+			float accel_dt = sensor.accelerometer_integral_dt / 1.e6f;
 			msg.xacc = sensor.accelerometer_integral_m_s[0] / accel_dt;
 			msg.yacc = sensor.accelerometer_integral_m_s[1] / accel_dt;
 			msg.zacc = sensor.accelerometer_integral_m_s[2] / accel_dt;
-			float gyro_dt = sensor.gyro_integral_dt[0] / 1.e6f;
+			float gyro_dt = sensor.gyro_integral_dt / 1.e6f;
 			msg.xgyro = sensor.gyro_integral_rad[0] / gyro_dt;
 			msg.ygyro = sensor.gyro_integral_rad[1] / gyro_dt;
 			msg.zgyro = sensor.gyro_integral_rad[2] / gyro_dt;
@@ -765,8 +765,8 @@ protected:
 			msg.zmag = sensor.magnetometer_ga[2];
 			msg.abs_pressure = 0;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
-			msg.pressure_alt = sensor.baro_alt_meter[0];
-			msg.temperature = sensor.baro_temp_celcius[0];
+			msg.pressure_alt = sensor.baro_alt_meter;
+			msg.temperature = sensor.baro_temp_celcius;
 			msg.fields_updated = fields_updated;
 
 			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
@@ -1014,7 +1014,7 @@ protected:
 				/* fall back to baro altitude */
 				sensor_combined_s sensor;
 				(void)_sensor_sub->update(&_sensor_time, &sensor);
-				msg.alt = sensor.baro_alt_meter[0];
+				msg.alt = sensor.baro_alt_meter;
 			}
 			msg.climb = -pos.vel_d;
 
@@ -3121,7 +3121,7 @@ protected:
 
 			msg.time_usec = hrt_absolute_time();
 
-			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : NAN;
+			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter : NAN;
 			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
 			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
 			msg.altitude_relative = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
