@@ -509,10 +509,18 @@ void Ekf2::task_main()
 				sensors.gyro_integral_rad, sensors.accelerometer_integral_m_s);
 
 		// read mag data
-		_ekf.setMagData(sensors.magnetometer_timestamp, sensors.magnetometer_ga);
+		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
+			_ekf.setMagData(0, sensors.magnetometer_ga);
+		} else {
+			_ekf.setMagData(sensors.timestamp + sensors.magnetometer_timestamp_relative, sensors.magnetometer_ga);
+		}
 
 		// read baro data
-		_ekf.setBaroData(sensors.baro_timestamp, &sensors.baro_alt_meter);
+		if (sensors.baro_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
+			_ekf.setBaroData(0, &sensors.baro_alt_meter);
+		} else {
+			_ekf.setBaroData(sensors.timestamp + sensors.baro_timestamp_relative, &sensors.baro_alt_meter);
+		}
 
 		// read gps data if available
 		if (gps_updated) {
@@ -907,8 +915,8 @@ void Ekf2::task_main()
 			replay.time_ref = now;
 			replay.gyro_integral_dt = sensors.gyro_integral_dt;
 			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
-			replay.magnetometer_timestamp = sensors.magnetometer_timestamp;
-			replay.baro_timestamp = sensors.baro_timestamp;
+			replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
+			replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
 			memcpy(replay.gyro_integral_rad, sensors.gyro_integral_rad, sizeof(replay.gyro_integral_rad));
 			memcpy(replay.accelerometer_integral_m_s, sensors.accelerometer_integral_m_s,
 			       sizeof(replay.accelerometer_integral_m_s));

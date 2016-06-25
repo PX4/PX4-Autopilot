@@ -334,7 +334,7 @@ void AttitudeEstimatorQ::task_main()
 				_gyro(2) = sensors.gyro_integral_rad[2] / gyro_dt;
 			}
 
-			if (sensors.accelerometer_timestamp > 0) {
+			if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
 				float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
 				_accel(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
 				_accel(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
@@ -346,7 +346,7 @@ void AttitudeEstimatorQ::task_main()
 				}
 			}
 
-			if (sensors.magnetometer_timestamp > 0) {
+			if (sensors.magnetometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
 				_mag(0) = sensors.magnetometer_ga[0];
 				_mag(1) = sensors.magnetometer_ga[1];
 				_mag(2) = sensors.magnetometer_ga[2];

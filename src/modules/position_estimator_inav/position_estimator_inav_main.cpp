@@ -425,8 +425,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp;
+				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
 
 					/* mean calculation over several measurements */
@@ -502,7 +502,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_timestamp != accel_timestamp) {
+				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
 					if (att.R_valid) {
 						float sensor_accel[3];
 						float accel_dt = sensor.accelerometer_integral_dt / 1.e6f;
@@ -525,13 +525,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(acc, 0, sizeof(acc));
 					}
 
-					accel_timestamp = sensor.accelerometer_timestamp;
+					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 					accel_updates++;
 				}
 
-				if (sensor.baro_timestamp != baro_timestamp) {
+				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
 					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_timestamp = sensor.baro_timestamp;
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_updates++;
 				}
 			}

@@ -644,8 +644,9 @@ void AttitudePositionEstimatorEKF::task_main()
 			 *    We run the filter only once all data has been fetched
 			 **/
 
-			if (_baro_init && _sensor_combined.accelerometer_timestamp && _sensor_combined.timestamp
-					&& _sensor_combined.magnetometer_timestamp) {
+			if (_baro_init && _sensor_combined.timestamp &&
+					_sensor_combined.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID &&
+					_sensor_combined.magnetometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
 
 				// maintain filtered baro and gps altitudes to calculate weather offset
 				// baro sample rate is ~70Hz and measurement bandwidth is high
@@ -1365,7 +1366,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	perf_count(_perf_gyro);
 
-	if (_last_accel != _sensor_combined.accelerometer_timestamp) {
+	if (_last_accel != _sensor_combined.timestamp + _sensor_combined.accelerometer_timestamp_relative) {
 
 		_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[0];
 		_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[1];
@@ -1374,18 +1375,18 @@ void AttitudePositionEstimatorEKF::pollData()
 		float accel_dt = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 		_ekf->accel = _ekf->dVelIMU / accel_dt;
 
-		_last_accel = _sensor_combined.accelerometer_timestamp;
+		_last_accel = _sensor_combined.timestamp + _sensor_combined.accelerometer_timestamp_relative;
 	}
 
 	Vector3f mag(_sensor_combined.magnetometer_ga[0], _sensor_combined.magnetometer_ga[1],
 			_sensor_combined.magnetometer_ga[2]);
 
-	if (mag.length() > 0.1f && _last_mag != _sensor_combined.magnetometer_timestamp) {
+	if (mag.length() > 0.1f && _last_mag != _sensor_combined.timestamp + _sensor_combined.magnetometer_timestamp_relative) {
 		_ekf->magData.x = mag.x;
 		_ekf->magData.y = mag.y;
 		_ekf->magData.z = mag.z;
 		_newDataMag = true;
-		_last_mag = _sensor_combined.magnetometer_timestamp;
+		_last_mag = _sensor_combined.timestamp + _sensor_combined.magnetometer_timestamp_relative;
 		perf_count(_perf_mag);
 	}
 

@@ -1642,18 +1642,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 				write_IMU = true;
 			}
 
-			if (buf.sensor.accelerometer_timestamp != accelerometer_timestamp) {
-				accelerometer_timestamp = buf.sensor.accelerometer_timestamp;
+			if (buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative != accelerometer_timestamp) {
+				accelerometer_timestamp = buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative;
 				write_IMU = true;
 			}
 
-			if (buf.sensor.magnetometer_timestamp != magnetometer_timestamp) {
-				magnetometer_timestamp = buf.sensor.magnetometer_timestamp;
+			if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
+				magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
 				write_IMU = true;
 			}
 
-			if (buf.sensor.baro_timestamp != barometer_timestamp) {
-				barometer_timestamp = buf.sensor.baro_timestamp;
+			if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
+				barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
 				write_SENS = true;
 			}
 
