@@ -160,6 +160,9 @@ mindpx-v2_default:
 
 posix_sitl_default:
 	$(call cmake-build,$@)
+	
+posix_sitl_lpe:
+	$(call cmake-build,$@)
 
 posix_sitl_test:
 	$(call cmake-build,$@)
