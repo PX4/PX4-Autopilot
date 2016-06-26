@@ -18,8 +18,8 @@ param set CAL_ACC0_YSCALE 1.01
 param set CAL_ACC0_ZSCALE 1.01
 param set CAL_ACC1_XOFF 0.01
 param set CAL_MAG0_XOFF 0.01
-param set MC_ROLLRATE_P 0.3
-param set MC_PITCHRATE_P 0.3
+param set MC_ROLLRATE_P 0.25
+param set MC_PITCHRATE_P 0.25
 param set MC_PITCH_P 5.5
 param set MC_ROLL_P 5.5
 param set MC_ROLLRATE_I 0.1
