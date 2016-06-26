@@ -897,6 +897,7 @@ Sensors::parameters_update()
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_voltage_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_voltage_scaling, &_parameters.battery_voltage_scaling);
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -906,6 +907,7 @@ Sensors::parameters_update()
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_current_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_current_scaling, &_parameters.battery_current_scaling);
 	}
 
 	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
@@ -931,6 +933,7 @@ Sensors::parameters_update()
 		/* ensure a missing default trips a low voltage lockdown */
 		_parameters.battery_v_div = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_v_div, &_parameters.battery_v_div);
 	}
 
 	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
@@ -949,6 +952,7 @@ Sensors::parameters_update()
 		/* ensure a missing default leads to an unrealistic current value */
 		_parameters.battery_a_per_v = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_a_per_v, &_parameters.battery_a_per_v);
 	}
 
 	param_get(_parameter_handles.battery_source, &(_parameters.battery_source));
