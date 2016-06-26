@@ -543,7 +543,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			params_changed = fabsf(s->val.f - *(float *)val) > FLT_EPSILON;
+			params_changed = fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
 			break;
 
