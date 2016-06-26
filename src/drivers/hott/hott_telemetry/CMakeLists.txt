@@ -37,6 +37,8 @@ px4_add_module(
 		-Os
 	SRCS
 		hott_telemetry.cpp
+		../messages.cpp
+		../comms.cpp
 	DEPENDS
 		platforms__common
 	)

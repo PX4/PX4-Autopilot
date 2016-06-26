@@ -37,7 +37,8 @@
  *
  */
 
-#include "comms.h"
+//#include "comms.h"
+int hott_open_uart(const char *device);
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -46,7 +47,7 @@
 #include <termios.h>
 
 int
-open_uart(const char *device)
+hott_open_uart(const char *device)
 {
 	/* baud rate */
 	static const speed_t speed = B19200;
