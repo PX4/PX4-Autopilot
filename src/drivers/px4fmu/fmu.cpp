@@ -2499,7 +2499,7 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 	case PORT_PWM3:
-		/* select 4-pin PWM mode */
+		/* select 3-pin PWM mode */
 		servo_mode = PX4FMU::MODE_3PWM;
 		break;
 
