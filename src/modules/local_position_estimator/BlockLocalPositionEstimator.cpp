@@ -287,11 +287,51 @@ void BlockLocalPositionEstimator::update()
 		updateHome();
 	}
 
-	// determine if we should start estimating
-	_validXY = sqrt(math::max(_P(X_x, X_x), _P(X_y, X_y))) < EST_STDDEV_XY_VALID;
-	_validZ = sqrt(_P(X_z, X_z)) < EST_STDDEV_Z_VALID;
-	_validTZ = sqrt(_P(X_tz, X_tz)) < EST_STDDEV_TZ_VALID;
+	// is xy valid?
+	bool xy_stddev_ok = sqrt(math::max(_P(X_x, X_x), _P(X_y, X_y))) < EST_STDDEV_XY_VALID;
 
+	if (_validXY) {
+		// if valid and gps has timed out, set to not valid
+		if (!xy_stddev_ok && !_gpsInitialized) {
+			_validXY = false;
+		}
+
+	} else {
+		if (xy_stddev_ok) {
+			_validXY = true;
+		}
+	}
+
+	// is z valid?
+	bool z_stddev_ok = sqrt(_P(X_z, X_z)) < EST_STDDEV_Z_VALID;
+
+	if (_validZ) {
+		// if valid and baro has timed out, set to not valid
+		if (!z_stddev_ok && !_baroInitialized) {
+			_validZ = false;
+		}
+
+	} else {
+		if (z_stddev_ok) {
+			_validZ = true;
+		}
+	}
+
+	// is terrain valid?
+	bool tz_stddev_ok = sqrt(_P(X_tz, X_tz)) < EST_STDDEV_TZ_VALID;
+
+	if (_validTZ) {
+		if (!tz_stddev_ok) {
+			_validTZ = false;
+		}
+
+	} else {
+		if (tz_stddev_ok) {
+			_validTZ = true;
+		}
+	}
+
+	// timeouts
 	if (_validXY) {
 		_time_last_xy = _timeStamp;
 	}
