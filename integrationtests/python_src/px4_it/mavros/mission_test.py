@@ -207,17 +207,19 @@ class MavrosMissionTest(unittest.TestCase):
         count = 0
         while count < timeout:
             # transition to MC
-            if transition == 3 and self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC:
+            if (transition == ExtendedState.VTOL_STATE_MC and
+                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC):
                 break
 
             # transition to FW
-            if transition == 4 and self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW:
+            if (transition == ExtendedState.VTOL_STATE_FW and
+                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW):
                 break
 
             count = count + 1
             self.rate.sleep()
 
-        self.assertTrue(count < timeout, ("landing not detected after landing WP " +
+        self.assertTrue(count < timeout, ("transition not detected " +
             "timeout: %d, index: %d") %
             (timeout, index))
 
@@ -265,13 +267,21 @@ class MavrosMissionTest(unittest.TestCase):
                     alt += self.home_alt
                 self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
 
+            # check if VTOL transition happens if applicable
+            if waypoint.command == 84 or waypoint.command == 85 or waypoint.command == 3000:
+                transition = waypoint.param1
+
+                if waypoint.command == 84: # VTOL takeoff implies transition to FW
+                    transition = ExtendedState.VTOL_STATE_FW
+
+                if waypoint.command == 85: # VTOL takeoff implies transition to MC
+                    transition = ExtendedState.VTOL_STATE_MC
+
+                self.wait_on_transition(transition, 600, index)
+
             # after reaching position, wait for landing detection if applicable
             if waypoint.command == 85 or waypoint.command == 21:
                 self.wait_on_landing(600, index)
-
-            # check if VTOL transition happens if applicable
-            if waypoint.command == 84 or waypoint.command == 3000:
-                self.wait_on_transition(waypoint.param1, 600, index)
 
             index += 1
 
