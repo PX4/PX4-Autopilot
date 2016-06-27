@@ -62,8 +62,6 @@ class MavrosMissionTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        #self.helper = PX4TestHelper("mavros_offboard_posctl_test")
-        #self.helper.setUp()
 
         self.rate = rospy.Rate(10) # 10hz
         self.has_global_pos = False
@@ -143,6 +141,10 @@ class MavrosMissionTest(unittest.TestCase):
         self.last_alt_d = 9999
         self.last_pos_d = 9999
 
+        rospy.loginfo("trying to reach waypoint " +
+            "lat: %f, lon: %f, alt: %f, timeout: %d, index: %d" %
+            (lat, lon, alt, timeout, index))
+
         # does it reach the position in X seconds?
         count = 0
         while count < timeout:
@@ -157,6 +159,7 @@ class MavrosMissionTest(unittest.TestCase):
                 rospy.loginfo("position reached, index: %d, count: %d, pos_d: %f, alt_d: %f" %
                     (index, count, self.last_pos_d, self.last_alt_d))
                 break
+
             count = count + 1
             self.rate.sleep()
 
@@ -174,6 +177,49 @@ class MavrosMissionTest(unittest.TestCase):
         """FIXME: hack to wait for simulation to be ready"""
         while not self.has_global_pos:
             self.rate.sleep()
+
+    def wait_on_landing(self, timeout, index):
+        """Wait for landed state"""
+
+        rospy.loginfo("waiting for landing " +
+            "timeout: %d, index: %d" %
+            (timeout, index))
+
+        count = 0
+        while count < timeout:
+            if self.extended_state.landed_state == ExtendedState.LANDED_STATE_ON_GROUND:
+                break
+
+            count = count + 1
+            self.rate.sleep()
+
+        self.assertTrue(count < timeout, ("landing not detected after landing WP " +
+            "timeout: %d, index: %d") %
+            (timeout, index))
+
+    def wait_on_transition(self, transition, timeout, index):
+        """Wait for VTOL transition"""
+
+        rospy.loginfo("waiting for VTOL transition " +
+            "transition: %d, timeout: %d, index: %d" %
+            (transition, timeout, index))
+
+        count = 0
+        while count < timeout:
+            # transition to MC
+            if transition == 3 and self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC:
+                break
+
+            # transition to FW
+            if transition == 4 and self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW:
+                break
+
+            count = count + 1
+            self.rate.sleep()
+
+        self.assertTrue(count < timeout, ("landing not detected after landing WP " +
+            "timeout: %d, index: %d") %
+            (timeout, index))
 
     def send_heartbeat(self, event=None):
         # mav type gcs
@@ -195,9 +241,9 @@ class MavrosMissionTest(unittest.TestCase):
         rospy.loginfo("reading mission %s", file)
         mission = QGroundControlWP()
         wps = []
-        for wp in mission.read(open(file, 'r')):
-            wps.append(wp)
-            rospy.logdebug(wp)
+        for waypoint in mission.read(open(file, 'r')):
+            wps.append(waypoint)
+            rospy.logdebug(waypoint)
 
         rospy.loginfo("wait until ready")
         self.wait_until_ready()
@@ -210,21 +256,22 @@ class MavrosMissionTest(unittest.TestCase):
         rospy.loginfo("run mission")
         self.run_mission()
 
-        positions = (
-            (0, 0, 0),
-            (2, 2, 2),
-            (2, -2, 2),
-            (-2, -2, 2),
-            (2, 2, 2))
-
         index = 0
-        for wp in wps:
-            # only check position waypoints
-            if wp.frame == Waypoint.FRAME_GLOBAL_REL_ALT or wp.frame == Waypoint.FRAME_GLOBAL:
-                alt = wp.z_alt
-                if wp.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
+        for waypoint in wps:
+            # only check position for waypoints where this makes sense
+            if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or waypoint.frame == Waypoint.FRAME_GLOBAL:
+                alt = waypoint.z_alt
+                if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.home_alt
-                self.reach_position(wp.x_lat, wp.y_long, alt, 600, index)
+                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
+
+            # after reaching position, wait for landing detection if applicable
+            if waypoint.command == 85 or waypoint.command == 21:
+                self.wait_on_landing(600, index)
+
+            # check if VTOL transition happens if applicable
+            if waypoint.command == 84 or waypoint.command == 3000:
+                self.wait_on_transition(waypoint.param1, 600, index)
 
             index += 1
 
