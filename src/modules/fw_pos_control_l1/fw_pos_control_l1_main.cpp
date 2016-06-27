@@ -290,6 +290,7 @@ private:
 		float throttle_cruise;
 		float throttle_slew_max;
 		float man_roll_max_rad;
+		float man_pitch_max_rad;
 		float rollsp_offset_rad;
 		float pitchsp_offset_rad;
 
@@ -345,6 +346,7 @@ private:
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
 		param_t man_roll_max_deg;
+		param_t man_pitch_max_deg;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
 
@@ -624,6 +626,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
@@ -710,6 +713,8 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
 	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
+	param_get(_parameter_handles.man_pitch_max_deg, &_parameters.man_pitch_max_rad);
+	_parameters.man_pitch_max_rad = math::radians(_parameters.man_pitch_max_rad);
 	param_get(_parameter_handles.rollsp_offset_deg, &_parameters.rollsp_offset_rad);
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_rad);
 	param_get(_parameter_handles.pitchsp_offset_deg, &_parameters.pitchsp_offset_rad);
@@ -1996,6 +2001,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
 		/** MANUAL FLIGHT **/
+		setpoint = false;
+		if (_control_mode.flag_control_attitude_enabled) {
+			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+			_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max_rad;
+			_att_sp.yaw_body = 0.0f;
+			_att_sp.thrust = _manual.z;
+			setpoint = true;
+		}
 
 		// reset hold altitude
 		_hold_alt = _global_pos.alt;
@@ -2006,9 +2019,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		// reset lading abort state
 		_fw_pos_ctrl_status.abort_landing = false;
-
-		/* no flight mode applies, do not publish an attitude setpoint */
-		setpoint = false;
 
 		/* reset landing and takeoff state */
 		if (!_last_manual) {
@@ -2040,7 +2050,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
-
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_OTHER) {
+		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		if (_vehicle_land_detected.landed) {
