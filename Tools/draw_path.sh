@@ -53,18 +53,18 @@ function go_here() {
 
 # Adds the current cursor position to the file $FILE
 function store_point() {
-    echo "$CURSOR_X,$CURSOR_Y,0" >> $FILE
+    echo "$CURSOR_X,$CURSOR_Y,0," >> $FILE
 }
 
 # Loads all points from the file $FILE
 # Each line stores a point in the format "x,y,z".
-# Empty lines and lines starting with "#" are ignored.
+# Empty lines and lines starting with "/" are ignored.
 function load_file() {
     while IFS='' read -r line || [[ -n "$line" ]]; do
-        CURSOR_X=$(echo "$line" | awk -F, "/^[^#]/{print \$1}")
-        CURSOR_Y=$(echo "$line" | awk -F, "/^[^#]/{print \$2}")
+        CURSOR_X=$(echo "$line" | awk -F, "/^[^\/]/{print \$1}")
+        CURSOR_Y=$(echo "$line" | awk -F, "/^[^\/]/{print \$2}")
         #echo "X=$CURSOR_X Y=$CURSOR_Y"
-        go_here
+	[ "$CURSOR_X" = "" ] || [ "$CURSOR_Y" = "" ] ||	go_here
     done < "$FILE"
 }
 

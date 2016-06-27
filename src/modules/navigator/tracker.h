@@ -9,13 +9,14 @@
 
 class Tracker
 {
+    friend class TrackerTest;
     
 public:
     // Resets the home position used by the tracker.
     void reset(home_position_s *position);
     
-    // Informs the tracker about a new current position.
-    void update(vehicle_local_position_s *position);
+    // Informs the tracker about a new current vehicle position.
+    void update(vehicle_local_position_s *position) { if (position->xy_valid && position->z_valid) update(position->x, position->y, position->z); }
     
     // Pops the last position from the recent path. Returns false if the path is empty.
     bool pop_recent_path(double &lat, double &lon, float &alt);
@@ -33,6 +34,7 @@ public:
     
     // Dumps the content of the full flight graph to the log output
     void dump_graph(void);
+
     
 private:
     
@@ -127,6 +129,9 @@ private:
     // Returns the (signed) payload contained by a data item. The caller must ensure that the item is really a data item.
     static inline int16_t as_signed_data_item(graph_item_t &item);
 
+
+    // Informs the tracker about a new current vehicle position.
+    void update(float x, float y, float z);
     
     // Pushes a new current position to the recent path. This works even while the recent path is disabled.
     void push_recent_path(fpos_t &position);
@@ -189,6 +194,9 @@ private:
 
     // Deletes the return path. This is neccessary whenever the graph is updated.
     void delete_return_path();
+
+    // See public overload for description
+    size_t get_path_to_home(int x[], int y[], int z[], size_t max_positions);
 
     
     

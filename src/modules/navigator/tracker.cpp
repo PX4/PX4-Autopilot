@@ -66,15 +66,11 @@ void Tracker::reset(home_position_s *position) {
             graph[as_link_item(graph[index]) + 2] = make_data_item(0xFFFF);
 }
 
-
-void Tracker::update(vehicle_local_position_s *position) {
-    if (!position->xy_valid || !position->z_valid)
-        return;
-        
+void Tracker::update(float x, float y, float z) {
     fpos_t local_position = {
-        .x = position->x,
-        .y = position->y,
-        .z = position->z
+        .x = x,
+        .y = y,
+        .z = z
     };
     
     if (recent_path_tracking_enabled)
@@ -594,7 +590,7 @@ void Tracker::refill_return_path() {
     bool move_backward = return_path_size ? !move_forward : false;
 
     for (int i = return_path_size; i < RETURN_PATH_SIZE; i++) {
-        // Calculate where go next
+        // Calculate where to go next
         calc_return_path(return_path_end, move_forward, move_backward);
 
         // If we're already home, break
@@ -642,7 +638,10 @@ void Tracker::delete_return_path() {
 }
 
 
+// Instead of implementing this twice, we could call the overload that fetches local positions.
+// However, this doesn't decrease code size and this way we save stack space.
 size_t Tracker::get_path_to_home(double lat[], double lon[], float alt[], size_t max_positions) {
+    refill_return_path();
     max_positions = std::min(max_positions, return_path_size);
     ipos_t position = graph_current_position;
 
@@ -656,6 +655,30 @@ size_t Tracker::get_path_to_home(double lat[], double lon[], float alt[], size_t
 
         if (globallocalconverter_toglobal(position.x, position.y, position.z, lat + i, lon + i, alt + i))
             return 0;
+    }
+
+    return max_positions;
+}
+
+
+// This is the overload called by the tester (which operates on local positions).
+// Make sure that it stays in sync with the global overload.
+size_t Tracker::get_path_to_home(int x[], int y[], int z[], size_t max_positions) {
+    refill_return_path();
+    max_positions = std::min(max_positions, return_path_size);
+    ipos_t position = graph_current_position;
+
+    for (size_t i = 0; i < max_positions; i++) {
+        size_t index = return_path[i].update_index;
+
+        if (return_path[i].move_forward)
+            walk_forward(index, &position, NULL, false);
+        else
+            walk_backward(index, &position, NULL, false);
+
+        x[i] = position.x;
+        y[i] = position.y;
+        z[i] = position.z;
     }
 
     return max_positions;

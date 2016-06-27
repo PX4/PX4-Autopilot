@@ -16,6 +16,7 @@ sleep 1
 sensors start
 
 commander_tests
+navigator_tests
 controllib_test
 uorb_tests
 tests all
