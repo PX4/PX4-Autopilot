@@ -2056,6 +2056,7 @@ MulticopterPositionControl::task_main()
 
 		} else {
 			reset_yaw_sp = true;
+			_att_sp.yaw_sp_move_rate = 0.0f;
 		}
 
 		/* update previous velocity for velocity controller D part */
