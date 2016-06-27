@@ -291,6 +291,7 @@ private:
 		float throttle_slew_max;
 		float man_roll_max_rad;
 		float rollsp_offset_rad;
+		float pitchsp_offset_rad;
 
 		float throttle_land_max;
 
@@ -345,6 +346,7 @@ private:
 		param_t throttle_slew_max;
 		param_t man_roll_max_deg;
 		param_t rollsp_offset_deg;
+		param_t pitchsp_offset_deg;
 
 		param_t throttle_land_max;
 
@@ -623,6 +625,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
+	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
 	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
@@ -709,6 +712,8 @@ FixedwingPositionControl::parameters_update()
 	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
 	param_get(_parameter_handles.rollsp_offset_deg, &_parameters.rollsp_offset_rad);
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_rad);
+	param_get(_parameter_handles.pitchsp_offset_deg, &_parameters.pitchsp_offset_rad);
+	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_rad);
 
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
@@ -1929,6 +1934,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else {
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
+			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
 		}
 
 	} else if (_control_mode.flag_control_altitude_enabled) {
@@ -1980,14 +1986,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
-		// calculate roll setpoint from user input
-		// this is already calculated in fw_att_control_main.cpp but we do it here for the sake of logging
-		if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
-			_att_sp.roll_body = _parameters.rollsp_offset_rad;
-
+		if (fabsf(_manual.y) > 0.01f) {
+			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
 		} else {
-			_att_sp.roll_body = (_manual.y * _parameters.man_roll_max_rad)
-					    + _parameters.rollsp_offset_rad;
+			_att_sp.roll_body = 0.0f;
 		}
 
 	} else {
@@ -2203,6 +2205,10 @@ FixedwingPositionControl::task_main()
 			 */
 			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
+
+				// add attitude setpoint offsets
+				_att_sp.roll_body += _parameters.rollsp_offset_rad;
+				_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
 
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {
