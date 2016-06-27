@@ -29,29 +29,18 @@ inline void Tracker::subtract_delta_item(ipos_t &position, graph_item_t &delta) 
     position.z -= ((int)(delta << (SHIFT_COUNT - 0))) >> SHIFT_COUNT;
 }
 
-void Tracker::reset(home_position_s *position) {
+void Tracker::set_home(home_position_s *position) {
     home_position.x = position->x;
     home_position.y = position->y;
     home_position.z = position->z;
 }
 
 
-void Tracker::update(vehicle_local_position_s *position) {
-    if (position->xy_global) {
-        ref_lat = position->ref_lat;
-        ref_lon = position->ref_lon;
-    }
-    
-    if (position->z_global)
-        ref_alt = position->ref_alt;
-    
-    if (!position->xy_valid || !position->z_valid)
-        return;
-        
+void Tracker::update(float x, float y, float z) {
     fpos_t local_position = {
-        .x = position->x,
-        .y = position->y,
-        .z = position->z
+        .x = x,
+        .y = y,
+        .z = z
     };
     
     if (recent_path_tracking_enabled)
@@ -83,8 +72,17 @@ void Tracker::push_recent_path(fpos_t &position) {
                     
             subtract_delta_item(head, recent_path[index]);
             
+            if (!is_delta_item(recent_path[index])) // If this item is a bumper, we shouldn't roll over this invalid position
+                break; 
+
+            head -= as_delta_item(recent_path[index]);
             rollback = is_close(head, position);
         } while ((index != recent_path_next_read) && !rollback);
+
+        // If the preceding item would be a bumper, we shouldn't roll back to this invalid position
+        if (rollback && index != recent_path_next_read)
+            if (!is_delta_item(recent_path[(index ? index : RECENT_PATH_LENGTH) - 1]))
+                rollback = false;
     }
     
     
@@ -92,8 +90,15 @@ void Tracker::push_recent_path(fpos_t &position) {
         
         // If there was a close position in the path, roll the path back to that position
         recent_path_head = to_fpos(head);
-        recent_path_next_write = index;
-        PX4_INFO("recent path rollback to %zu", index);
+
+        if (index == recent_path_next_write) {
+            TRACKER_DBG("recent path complete rollback");
+            recent_path_next_write = 0;
+            recent_path_next_read = RECENT_PATH_LENGTH;
+        } else {
+            TRACKER_DBG("recent path rollback to %zu", index);
+            recent_path_next_write = index;
+        }
         
     } else {
         
@@ -123,10 +128,15 @@ void Tracker::push_recent_path(fpos_t &position) {
 bool Tracker::pop_recent_path(fpos_t &position) {
     position = recent_path_head;
     
+    // Check if path is empty
     if (recent_path_next_read == RECENT_PATH_LENGTH)
         return false;
     
     int last_index = (recent_path_next_write ? recent_path_next_write : RECENT_PATH_LENGTH) - 1;
+
+    // Don't consume bumper item
+    if (!is_delta_item(recent_path[last_index]))
+        return false;
     
     // Roll back most recent position
     ipos_t head = to_ipos(recent_path_head);
@@ -179,8 +189,8 @@ void Tracker::push_graph(fpos_t &position) {
     // Don't update if the path is almost full (we might append up to 4 elements)
     if (full_path_next_write > FULL_PATH_LENGTH - 4)
         return; // todo: consider a clean-up pass
-    
-    
+
+
     // Add the current position to the graph
     // todo: handle large distances
         
@@ -229,11 +239,10 @@ void Tracker::push_graph(fpos_t &position) {
 void Tracker::dump_recent_path() {
     if (recent_path_next_read == RECENT_PATH_LENGTH) {
         PX4_INFO("recent path empty");
-        PX4_INFO("element size is %lu bytes", sizeof(graph_item_t));
         return;
     }
     
-    PX4_INFO("recent path:");
+    PX4_INFO("recent path (element size: %zu):", sizeof(graph_item_t));
     size_t recent_path_length = (recent_path_next_write + RECENT_PATH_LENGTH - recent_path_next_read - 1) % RECENT_PATH_LENGTH + 1;
     PX4_INFO("  length: %zu (read-ptr: %zu, write-ptr: %zu)", recent_path_length, recent_path_next_read, recent_path_next_write);
     

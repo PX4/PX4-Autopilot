@@ -6,16 +6,27 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+// Enables verbose debug messages by the flight path tracker
+//#define DEBUG_TRACKER
+
+
+#ifdef DEBUG_TRACKER
+#define TRACKER_DBG(...) PX4_INFO(__VA_ARGS__)
+#else
+#define TRACKER_DBG(...)
+#endif
+
 
 class Tracker
 {
+    friend class TrackerTest;
     
 public:
-    // Resets the home position used by the tracker.
-    void reset(home_position_s *position);
+    // Informs the tracker about a new home position.
+    void set_home(home_position_s *position);
     
-    // Informs the tracker about a new current position.
-    void update(vehicle_local_position_s *position);
+    // Informs the tracker about a new current vehicle position.
+    void update(vehicle_local_position_s *position) { if (position->xy_valid && position->z_valid) update(position->x, position->y, position->z); }
     
     // Pops the last position from the recent path. Returns false if the path is empty.
     bool pop_recent_path(double &lat, double &lon, float &alt);
@@ -85,6 +96,9 @@ private:
     // Returns the payload contained by a data item. The caller must ensure that the item is really a data item.
     static inline uint16_t get_data_item(graph_item_t &item) { return item & 0x3FFF; }
 
+
+    // Informs the tracker about a new current vehicle position.
+    void update(float x, float y, float z);
     
     // Pushes a new current position to the recent path. This works even while the recent path is disabled.
     void push_recent_path(fpos_t &position);
@@ -100,6 +114,9 @@ private:
     // The index is decremented to point to the next item that should be consumed.
     // The index must be larger than 0.
     graph_item_t get_delta_item(size_t &index);
+
+    // See public overload for description
+    size_t get_path_to_home(int x[], int y[], int z[], size_t max_positions);
 
     
     double ref_lat;
@@ -120,11 +137,11 @@ private:
     // Stores the (potentially shortened) recent flight path as a ring buffer.
     // The recent path respects the following invariant: No two points are closer than ACCURACY.
     // This buffer contains only delta items. Each item stores a position relative to the previous position in the path.
-    // Note that the first item carries no valid information other than that the path is non-empty.
-    graph_item_t recent_path[RECENT_PATH_LENGTH];
+    // The very first item is a bumper that indicates that the initial position (0,0,0) is not valid. This bumper will disappear once the ring buffer overflows.
+    graph_item_t recent_path[RECENT_PATH_LENGTH] = { make_data_item(0) };
     
-    size_t recent_path_next_write = 0; // always valid, 0 if empty, equal to next_read if full
-    size_t recent_path_next_read = RECENT_PATH_LENGTH; // LENGTH if empty, valid if non-empty
+    size_t recent_path_next_write = 1; // always valid, 0 if empty, equal to next_read if full
+    size_t recent_path_next_read = 0; // LENGTH if empty, valid if non-empty
 
 
     // The most recent position in the full path.
