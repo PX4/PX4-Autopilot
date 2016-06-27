@@ -25,8 +25,9 @@ set(config_module_list
 	drivers/ms5611
 	#drivers/mb12xx
 	drivers/srf02
+	drivers/sf10a
 	drivers/sf0x
-	drivers/ll40ls
+	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
@@ -46,7 +47,7 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
+	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 
 	#
