@@ -110,7 +110,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 
-		if (!_canEstimateXY) {
+		if (!_validXY) {
 			dx(X_x) = 0;
 			dx(X_y) = 0;
 			dx(X_vx) = 0;

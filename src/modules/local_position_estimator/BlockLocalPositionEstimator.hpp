@@ -346,9 +346,9 @@ private:
 	float _flowMeanQual;
 
 	// status
-	bool _canEstimateXY;
-	bool _canEstimateZ;
-	bool _canEstimateT;
+	bool _validXY;
+	bool _validZ;
+	bool _validTZ;
 	bool _xyTimeout;
 	bool _zTimeout;
 	bool _tzTimeout;

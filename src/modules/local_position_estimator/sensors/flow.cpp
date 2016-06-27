@@ -49,7 +49,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// calculate range to center of image for flow
-	if (!_canEstimateT) {
+	if (!_validTZ) {
 		return -1;
 	}
 

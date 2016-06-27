@@ -9,6 +9,11 @@ orb_advert_t mavlink_log_pub = nullptr;
 // timeouts for sensors in microseconds
 static const uint32_t 		EST_SRC_TIMEOUT = 10000; // 0.01 s
 
+// required standard deviation of estimate for estimator to publish data
+static const uint32_t 		EST_STDDEV_XY_VALID = 2.0; // 2.0 m
+static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
+static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
+
 // minimum flow altitude
 static const float flow_min_agl = 0.3;
 
@@ -141,9 +146,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowMeanQual(0),
 
 	// status
-	_canEstimateXY(false),
-	_canEstimateZ(false),
-	_canEstimateT(false),
+	_validXY(false),
+	_validZ(false),
+	_validTZ(false),
 	_xyTimeout(true),
 	_zTimeout(true),
 	_tzTimeout(true),
@@ -283,26 +288,19 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// determine if we should start estimating
-	_canEstimateZ =
-		(_baroInitialized && _baroFault < fault_lvl_disable);
-	_canEstimateXY =
-		(_gpsInitialized && _gpsFault < fault_lvl_disable) ||
-		(_flowInitialized && _flowFault < fault_lvl_disable) ||
-		(_visionInitialized && _visionFault < fault_lvl_disable) ||
-		(_mocapInitialized && _mocapFault < fault_lvl_disable);
-	_canEstimateT =
-		(_lidarInitialized && _lidarFault < fault_lvl_disable) ||
-		(_sonarInitialized && _sonarFault < fault_lvl_disable);
+	_validXY = sqrt(math::max(_P(X_x, X_x), _P(X_y, X_y))) < EST_STDDEV_XY_VALID;
+	_validZ = sqrt(_P(X_z, X_z)) < EST_STDDEV_Z_VALID;
+	_validTZ = sqrt(_P(X_tz, X_tz)) < EST_STDDEV_TZ_VALID;
 
-	if (_canEstimateXY) {
+	if (_validXY) {
 		_time_last_xy = _timeStamp;
 	}
 
-	if (_canEstimateZ) {
+	if (_validZ) {
 		_time_last_z = _timeStamp;
 	}
 
-	if (_canEstimateT) {
+	if (_validTZ) {
 		_time_last_tz = _timeStamp;
 	}
 
@@ -310,7 +308,7 @@ void BlockLocalPositionEstimator::update()
 	checkTimeouts();
 
 	// if we have no lat, lon initialize projection at 0,0
-	if (_canEstimateXY && !_map_ref.init_done) {
+	if (_validXY && !_map_ref.init_done) {
 		map_projection_init(&_map_ref,
 				    _init_home_lat.get(),
 				    _init_home_lon.get());
@@ -431,7 +429,7 @@ void BlockLocalPositionEstimator::update()
 		publishLocalPos();
 		publishEstimatorStatus();
 
-		if (_canEstimateXY) {
+		if (_validXY) {
 			publishGlobalPos();
 		}
 	}
@@ -556,10 +554,10 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_lpos.get().timestamp = _timeStamp;
-		_pub_lpos.get().xy_valid = _canEstimateXY;
-		_pub_lpos.get().z_valid = _canEstimateZ;
-		_pub_lpos.get().v_xy_valid = _canEstimateXY;
-		_pub_lpos.get().v_z_valid = _canEstimateZ;
+		_pub_lpos.get().xy_valid = _validXY;
+		_pub_lpos.get().z_valid = _validZ;
+		_pub_lpos.get().v_xy_valid = _validXY;
+		_pub_lpos.get().v_z_valid = _validZ;
 		_pub_lpos.get().x = _x(X_x); 	// north
 		_pub_lpos.get().y = _x(X_y);  	// east
 		_pub_lpos.get().z = _x(X_z); 	// down
@@ -576,7 +574,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().dist_bottom = agl();
 		_pub_lpos.get().dist_bottom_rate = -_x(X_vz);
 		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
-		_pub_lpos.get().dist_bottom_valid = _canEstimateZ;
+		_pub_lpos.get().dist_bottom_valid = _validTZ && _validZ;
 		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
 		_pub_lpos.update();
@@ -636,8 +634,8 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
 		_pub_gpos.get().terrain_alt = _altHome - _x(X_tz);
-		_pub_gpos.get().terrain_alt_valid = _canEstimateT;
-		_pub_gpos.get().dead_reckoning = !_canEstimateXY && !_xyTimeout;
+		_pub_gpos.get().terrain_alt_valid = _validTZ;
+		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
 		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter[0];
 		_pub_gpos.update();
 	}
@@ -646,23 +644,23 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 void BlockLocalPositionEstimator::initP()
 {
 	_P.setZero();
-	_P(X_x, X_x) = 1;
-	_P(X_y, X_y) = 1;
-	_P(X_z, X_z) = 1;
+	_P(X_x, X_x) = 2 * EST_STDDEV_XY_VALID; // initialize to twice valid condition
+	_P(X_y, X_y) = 2 * EST_STDDEV_XY_VALID;
+	_P(X_z, X_z) = 2 * EST_STDDEV_Z_VALID;
 	_P(X_vx, X_vx) = 1;
 	_P(X_vy, X_vy) = 1;
 	_P(X_vz, X_vz) = 1;
 	_P(X_bx, X_bx) = 1e-6;
 	_P(X_by, X_by) = 1e-6;
 	_P(X_bz, X_bz) = 1e-6;
-	_P(X_tz, X_tz) = 1;
+	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID;
 }
 
 void BlockLocalPositionEstimator::predict()
 {
 	// if can't update anything, don't propagate
 	// state or covariance
-	if (!_canEstimateXY && !_canEstimateZ) { return; }
+	if (!_validXY && !_validZ) { return; }
 
 	if (_integrate.get() && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
@@ -740,14 +738,14 @@ void BlockLocalPositionEstimator::predict()
 
 	// only predict for components we have
 	// valid measurements for
-	if (!_canEstimateXY) {
+	if (!_validXY) {
 		dx(X_x) = 0;
 		dx(X_y) = 0;
 		dx(X_vx) = 0;
 		dx(X_vy) = 0;
 	}
 
-	if (!_canEstimateZ) {
+	if (!_validZ) {
 		dx(X_z) = 0;
 		dx(X_vz) = 0;
 	}

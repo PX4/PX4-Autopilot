@@ -13,6 +13,22 @@ static const float 			GPS_EPV_MIN =      2.0; // m, min allowed by gps self repo
 
 void BlockLocalPositionEstimator::gpsInit()
 {
+	// check for good gps signal
+	uint8_t nSat = _sub_gps.get().satellites_used;
+	float eph = _sub_gps.get().eph;
+	float epv = _sub_gps.get().epv;
+	uint8_t fix_type = _sub_gps.get().fix_type;
+
+	if (
+		nSat < 6 ||
+		eph > _gps_eph_max.get() ||
+		epv > _gps_epv_max.get() ||
+		fix_type < 3
+	) {
+		_gpsStats.reset();
+		return;
+	}
+
 	// measure
 	Vector<double, n_y_gps> y;
 
@@ -50,21 +66,6 @@ void BlockLocalPositionEstimator::gpsInit()
 
 int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
 {
-	// check for good gps signal
-	uint8_t nSat = _sub_gps.get().satellites_used;
-	float eph = _sub_gps.get().eph;
-	float epv = _sub_gps.get().epv;
-	uint8_t fix_type = _sub_gps.get().fix_type;
-
-	if (
-		nSat < 6 ||
-		eph > _gps_eph_max.get() ||
-		epv > _gps_epv_max.get() ||
-		fix_type < 3
-	) {
-		return -1;
-	}
-
 	// gps measurement
 	y.setZero();
 	y(0) = _sub_gps.get().lat * 1e-7;
