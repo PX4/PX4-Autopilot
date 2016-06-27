@@ -2096,12 +2096,7 @@ Sensors::task_main()
 #endif
 
 	if (ret) {
-		warnx("sensor initialization failed");
-		_sensors_task = -1;
-
-		DevMgr::releaseHandle(_h_adc);
-
-		return;
+		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
@@ -2225,17 +2220,19 @@ Sensors::task_main()
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
-			warnx("gyro has timed out");
+			if (fds[0].fd == _gyro_sub[0]) {
+				PX4_WARN("gyro0 has timed out");
+			}
 
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0 && (fds[0].fd != _gyro_sub[2])) {
 				fds[0].fd = _gyro_sub[2];
 
 				if (!_hil_enabled) {
 					warnx("failing over to third gyro");
 				}
 
-			} else if (_gyro_sub[1] >= 0) {
+			} else if (_gyro_sub[1] >= 0 && (fds[0].fd != _gyro_sub[1])) {
 				fds[0].fd = _gyro_sub[1];
 
 				if (!_hil_enabled) {
