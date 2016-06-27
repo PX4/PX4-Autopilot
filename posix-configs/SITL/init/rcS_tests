@@ -5,6 +5,8 @@ dataman start
 
 ver all
 
+sleep 1
+
 tests all
 
 shutdown
