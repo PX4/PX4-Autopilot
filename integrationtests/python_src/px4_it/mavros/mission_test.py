@@ -288,4 +288,7 @@ class MavrosMissionTest(unittest.TestCase):
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'mavros_mission_test', MavrosMissionTest)
+    name = "mavros_mission_test"
+    if len(sys.argv) > 1:
+        name += "-%s" % sys.argv[1]
+    rostest.rosrun(PKG, name, MavrosMissionTest)
