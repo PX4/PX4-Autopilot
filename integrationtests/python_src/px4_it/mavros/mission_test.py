@@ -70,7 +70,7 @@ class MavrosMissionTest(unittest.TestCase):
         self.extended_state = ExtendedState()
         self.home_alt = 0
         self.mc_rad = 5
-        self.fw_rad = 50
+        self.fw_rad = 80
         self.fw_alt_rad = 10
         self.last_alt_d = 9999
         self.last_pos_d = 9999
