@@ -1,0 +1,12 @@
+{
+     "board_id": 9,
+     "magic": "LUCIFW",
+     "description": "Firmware for Luci FMU",
+     "image": "",
+     "build_time": 0,
+     "summary": "LUCI",
+     "version": "0.1",
+     "image_size": 0,
+     "git_identity": "",
+     "board_revision": 0
+}

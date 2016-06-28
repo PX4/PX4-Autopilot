@@ -2955,7 +2955,8 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 	}
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) \
+		|| defined (CONFIG_ARCH_BOARD_LUCI_V1)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
@@ -2969,10 +2970,17 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 
 	} else {
+	#if !defined (CONFIG_ARCH_BOARD_LUCI_V1)
 		/* not ready to arm, blink at 10Hz */
 		if (leds_counter % 2 == 0) {
 			led_toggle(LED_BLUE);
 		}
+	#else
+		/* This is our only activity LED, blink a bit slower */
+		if (leds_counter % 10 == 0) {
+			led_toggle(LED_BLUE);
+		}
+	#endif
 	}
 
 #endif

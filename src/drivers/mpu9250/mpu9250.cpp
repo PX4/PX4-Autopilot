@@ -1362,6 +1362,17 @@ MPU9250::measure()
 	report.gyro_x = gyro_xt;
 	report.gyro_y = gyro_yt;
 
+	#if defined(CONFIG_ARCH_BOARD_LUCI_V1)
+		int16_t gyt = -report.gyro_y;
+		int16_t gzt = -report.gyro_z;
+		int16_t ayt = -report.accel_y;
+		int16_t azt = -report.accel_z;
+		report.gyro_z = gzt;
+		report.gyro_y = gyt;
+		report.accel_z = azt;
+		report.accel_y = ayt;
+	#endif
+
 	/*
 	 * Report buffers.
 	 */
