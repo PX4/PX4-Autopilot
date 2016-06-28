@@ -70,7 +70,7 @@ class MavrosMissionTest(unittest.TestCase):
         self.extended_state = ExtendedState()
         self.home_alt = 0
         self.mc_rad = 5
-        self.fw_rad = 80
+        self.fw_rad = 60
         self.fw_alt_rad = 10
         self.last_alt_d = 9999
         self.last_pos_d = 9999
@@ -149,10 +149,15 @@ class MavrosMissionTest(unittest.TestCase):
         # does it reach the position in X seconds?
         count = 0
         while count < timeout:
-            # use different radius matching vehicle state
+            # use MC radius by default
+            # FIXME: also check MAV_TYPE from system status, otherwise pure fixed-wing won't work
             xy_radius = self.mc_rad
             z_radius = self.mc_rad
-            if self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW:
+
+            # use FW radius if in FW or in transition
+            if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW or
+                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_MC or
+                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_FW):
                 xy_radius = self.fw_rad
                 z_radius = self.fw_alt_rad
 
