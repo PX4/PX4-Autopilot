@@ -6,14 +6,24 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+// Enables verbose debug messages by the flight path tracker
+//#define DEBUG_TRACKER
+
+
+#ifdef DEBUG_TRACKER
+#define TRACKER_DBG(...) PX4_INFO(__VA_ARGS__)
+#else
+#define TRACKER_DBG(...)
+#endif
+
 
 class Tracker
 {
     friend class TrackerTest;
     
 public:
-    // Resets the home position used by the tracker.
-    void reset(home_position_s *position);
+    // Informs the tracker about a new home position.
+    void set_home(home_position_s *position);
     
     // Informs the tracker about a new current vehicle position.
     void update(vehicle_local_position_s *position) { if (position->xy_valid && position->z_valid) update(position->x, position->y, position->z); }
@@ -34,6 +44,9 @@ public:
     
     // Dumps the content of the full flight graph to the log output
     void dump_graph(void);
+    
+    // Dumps the payload value of each node in the graph
+    void dump_nodes(void);
 
     
 private:
@@ -132,6 +145,9 @@ private:
 
     // Informs the tracker about a new current vehicle position.
     void update(float x, float y, float z);
+
+    // Registers that the vehicle moved to another position that already exists in the graph.
+    void goto_graph_index(size_t index, ipos_t position);
     
     // Pushes a new current position to the recent path. This works even while the recent path is disabled.
     void push_recent_path(fpos_t &position);
@@ -160,19 +176,25 @@ private:
     // allow_jump: If false, if a jump element (far delta) is encountered, the function returns false (but the parameters are still updated)
     bool walk_backward(size_t &index, ipos_t *position, float *distance, bool allow_jump);
 
-    // Walks forward on the graph until either an element with a link or a jump is consumed (or the beginning of the graph is reached).
+    // Walks forward on the graph until either an element with a link, the checkpoint or a jump is consumed (or the end of the graph is reached).
     // index: in: The index before the first element to be consumed.
-    //        out: An index pointing to a link element or far-delta element.
+    //        out: An index pointing to a link element, the checkpoint or a far-delta element.
+    // checkpoint: An index that should not be crossed (but can be started from). Set to 0 to disable.
     // interval_length: increased by the length of the interval that was consumed.
     // Returns: The cycle head of the link that was found or zero.
-    size_t walk_far_forward(size_t &index, float &interval_length);
+    size_t walk_far_forward(size_t &index, size_t checkpoint, float &interval_length);
 
-    // Walks backward on the graph until either an element with a link or a jump is found (or the beginning of the graph is reached).
+    // Walks backward on the graph until either an element with a link, the checkpoint or a jump is reached (or the beginning of the graph is reached).
     // index: in: The index of the first element to be consumed.
-    //        out: An index pointing to a link element or before a far-delta element.
+    //        out: An index pointing to a link element, the checkpoint or before a far-delta element.
+    // checkpoint: An index that should not be crossed (but can be started from). Set to 0 to disable.
     // interval_length: increased by the length of the interval that was consumed.
     // Returns: The cycle head of the link that was found or zero.
-    size_t walk_far_backward(size_t &index, float &interval_length);
+    size_t walk_far_backward(size_t &index, size_t checkpoint, float &interval_length);
+
+    // Registers that a node just received a new value (or was newly created).
+    // This ensures that when the distance-to-home values are demanded, the new/updated node is respected.
+    void unvisit_node(size_t node);
 
     // Ensures, that each node has a valid distance-to-home value.
     void calc_distances(void);
@@ -214,11 +236,11 @@ private:
     // Stores the (potentially shortened) recent flight path as a ring buffer.
     // The recent path respects the following invariant: No two points are closer than ACCURACY.
     // This buffer contains only delta items. Each item stores a position relative to the previous position in the path.
-    // Note that the first item carries no valid information other than that the path is non-empty.
-    graph_item_t recent_path[RECENT_PATH_LENGTH];
+    // The very first item is a bumper that indicates that the initial position (0,0,0) is not valid. This bumper will disappear once the ring buffer overflows.
+    graph_item_t recent_path[RECENT_PATH_LENGTH] = { make_data_item(0) };
     
-    size_t recent_path_next_write = 0; // always valid, 0 if empty, equal to next_read if full
-    size_t recent_path_next_read = RECENT_PATH_LENGTH; // LENGTH if empty, valid if non-empty
+    size_t recent_path_next_write = 1; // always valid, 0 if empty, equal to next_read if full
+    size_t recent_path_next_read = 0; // LENGTH if empty, valid if non-empty
 
 
     // The last position in the graph (corresponding to the end of the buffer). The absolute positions in the path can be calculated based on this.

@@ -240,7 +240,7 @@ Navigator::home_position_update(bool force)
 
 	if (updated || force) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-		_tracker.reset(&_home_pos);
+		_tracker.set_home(&_home_pos);
 	}
 }
 
