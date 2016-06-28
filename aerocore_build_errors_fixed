@@ -27,7 +27,7 @@
   _perf_chan_count(perf_alloc(PC_COUNT, "io rc #"))
   ^
 
-//
+//AGAIN, I COMMENTED OUT AEROCORE_RC FOR NOW INSTEAD OF FIXING
 In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:51:0:
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c: In function 'dsm_init':
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.h:139:45: error: 'GPIO_SPEKTRUM_PWR_EN' undeclared (first use in this function)
@@ -38,14 +38,18 @@ In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:5
   ^
 
 
-//Missing from deconfig file??
+//Missing from deconfig file?? //ADDED!! SEE changes_for_defconfig
 /home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
 __EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
 
-//
+//NOT FIXED.  I JUST COMMENTED OUT AEROCORE_RC AS A BANDAID SO I CAN SEE IF IT IS NECESSARY
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp: In member function 'virtual int AeroCoreIO::init()':
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:239:27: error: 'debug' was not declared in this scope
    debug("CDev init failed");
-                           ^
-					    ^
+
+
+//                           ^
+/home/jessica/src/Firmware/src/modules/systemlib/param/param.c:68:28: fatal error: px4_parameters.h: No such file or directory
+ #include "px4_parameters.h"
+                            ^
 
