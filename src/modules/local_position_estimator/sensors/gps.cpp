@@ -8,8 +8,8 @@ extern orb_advert_t mavlink_log_pub;
 // to initialize
 static const uint32_t 		REQ_GPS_INIT_COUNT = 10;
 static const uint32_t 		GPS_TIMEOUT =      1000000; // 1.0 s
-static const float 			GPS_EPH_MIN =      2.0; // m, min allowed by gps self reporting
-static const float 			GPS_EPV_MIN =      2.0; // m, min allowed by gps self reporting
+static const float 			GPS_EPH_MIN =      1.0; // m, min allowed by gps self reporting
+static const float 			GPS_EPV_MIN =      1.0; // m, min allowed by gps self reporting
 
 void BlockLocalPositionEstimator::gpsInit()
 {
@@ -189,7 +189,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// kalman filter correction if no hard fault
 	if (_gpsFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
-		_x += K * r;
+		Vector<float, n_x> dx = K * r;
+		correctionLogic(dx);
+		_x += dx;
 		_P -= K * C * _P;
 	}
 }

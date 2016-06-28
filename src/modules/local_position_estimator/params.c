@@ -88,34 +88,32 @@ PARAM_DEFINE_FLOAT(LPE_LDR_Z, 0.03f);
 PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
 
 /**
- * Accelerometer xy standard deviation
+ * Accelerometer xy noise density
  *
- * Data sheet sqrt(Noise power) = 150ug/sqrt(Hz)
- * std dev = (150*9.8*1e-6)*sqrt(1000 Hz) m/s^2
- * Since accels sampled at 1000 Hz.
+ * Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
  *
- * should be 0.0464
+ * Larger than data sheet to account for tilt error.
  *
  * @group Local Position Estimator
- * @unit m/s^2
+ * @unit m/s^2/srqt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.0454f);
+PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.01f);
 
 /**
- * Accelerometer z standard deviation
+ * Accelerometer z noise density
  *
- * (see Accel x comments)
+ * Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
  *
  * @group Local Position Estimator
- * @unit m/s^2
+ * @unit m/s^2/srqt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
+PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.001f);
 
 /**
  * Barometric presssure altitude z standard deviation.
@@ -126,7 +124,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
  * @max 3
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
+PARAM_DEFINE_FLOAT(LPE_BAR_Z, 0.32f);
 
 /**
  * Enables GPS data, also forces alt init with GPS
@@ -157,7 +155,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.25f);
  * @max 5
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_XY, 2.0f);
+PARAM_DEFINE_FLOAT(LPE_GPS_XY, 1.95f);
 
 /**
  * GPS z standard deviation.
@@ -168,7 +166,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_XY, 2.0f);
  * @max 200
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_Z, 100.0f);
+PARAM_DEFINE_FLOAT(LPE_GPS_Z, 3.95f);
 
 /**
  * GPS xy velocity standard deviation.
@@ -179,7 +177,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_Z, 100.0f);
  * @max 2
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.25f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.064f);
 
 /**
  * GPS z velocity standard deviation.
@@ -190,7 +188,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.25f);
  * @max 2
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.25f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.138f);
 
 /**
  * GPS max eph
@@ -258,6 +256,9 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
 /**
  * Position propagation noise density
  *
+ * Increase to get less error,
+ * decrease to get smoother.
+ *
  * @group Local Position Estimator
  * @unit m/s/sqrt(Hz)
  * @min 0
@@ -268,6 +269,9 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.0f);
 
 /**
  * Velocity propagation noise density
+ *
+ * Increase to get less error,
+ * decrease to get smoother.
  *
  * @group Local Position Estimator
  * @unit (m/s)/s/sqrt(Hz)

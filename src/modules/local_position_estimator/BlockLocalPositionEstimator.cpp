@@ -536,6 +536,40 @@ float BlockLocalPositionEstimator::agl()
 	return _x(X_tz) - _x(X_z);
 }
 
+void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
+{
+	// don't correct bias when rotating rapidly
+	float ang_speed = sqrt(
+				  _sub_att.get().rollspeed * _sub_att.get().rollspeed +
+				  _sub_att.get().pitchspeed * _sub_att.get().pitchspeed +
+				  _sub_att.get().yawspeed * _sub_att.get().yawspeed);
+
+	if (ang_speed > 1) {
+		dx(X_bx) = 0;
+		dx(X_by) = 0;
+		dx(X_bz) = 0;
+	}
+
+	if (!_validXY) {
+		dx(X_x) = 0;
+		dx(X_y) = 0;
+		dx(X_vx) = 0;
+		dx(X_vy) = 0;
+		dx(X_bx) = 0;
+		dx(X_by) = 0;
+	}
+
+	if (!_validZ) {
+		dx(X_z) = 0;
+		dx(X_vz) = 0;
+		dx(X_bz) = 0;
+	}
+
+	if (!_validTZ) {
+		dx(X_tz) = 0;
+	}
+}
+
 void BlockLocalPositionEstimator::detectDistanceSensors()
 {
 	for (int i = 0; i < N_DIST_SUBS; i++) {
@@ -776,22 +810,10 @@ void BlockLocalPositionEstimator::predict()
 	// continuous time kalman filter prediction
 	Vector<float, n_x> dx = (A * _x + B * _u) * getDt();
 
-	// only predict for components we have
-	// valid measurements for
-	if (!_validXY) {
-		dx(X_x) = 0;
-		dx(X_y) = 0;
-		dx(X_vx) = 0;
-		dx(X_vy) = 0;
-	}
-
-	if (!_validZ) {
-		dx(X_z) = 0;
-		dx(X_vz) = 0;
-	}
-
 	// propagate
+	correctionLogic(dx);
 	_x += dx;
 	_P += (A * _P + _P * A.transpose() +
-	       B * R * B.transpose() + Q) * getDt();
+	       B * R * B.transpose() +
+	       Q) * getDt();
 }

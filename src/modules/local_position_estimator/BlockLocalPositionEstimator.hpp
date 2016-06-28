@@ -195,6 +195,7 @@ private:
 
 	// misc
 	float agl();
+	void correctionLogic(Vector<float, n_x> &dx);
 	void detectDistanceSensors();
 	void updateHome();
 
