@@ -49,20 +49,11 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// calculate range to center of image for flow
-	float d = 0;
-
-	if (_lidarInitialized && (_lidarFault < fault_lvl_disable)) {
-		d = _sub_lidar->get().current_distance
-		    + (_lidar_z_offset.get() - _flow_z_offset.get());
-
-	} else if (_sonarInitialized && (_sonarFault < fault_lvl_disable)) {
-		d = _sub_sonar->get().current_distance
-		    + (_sonar_z_offset.get() - _flow_z_offset.get());
-
-	} else {
-		// no valid distance data
+	if (!_canEstimateT) {
 		return -1;
 	}
+
+	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
 
 	// check for global accuracy
 	if (_gpsInitialized) {

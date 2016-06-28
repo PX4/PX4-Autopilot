@@ -120,12 +120,31 @@ int logger_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "on")) {
+		if (logger_ptr != nullptr) {
+			logger_ptr->set_arm_override(true);
+			return 0;
+		}
+
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "off")) {
+		if (logger_ptr != nullptr) {
+			logger_ptr->set_arm_override(false);
+			return 0;
+		}
+
+		return 1;
+	}
+
 	if (!strcmp(argv[1], "stop")) {
 		if (logger_ptr == nullptr) {
 			PX4_INFO("not running");
 			return 1;
 		}
 
+		logger_ptr->print_statistics();
 		delete logger_ptr;
 		logger_ptr = nullptr;
 		return 0;
@@ -157,7 +176,7 @@ void Logger::usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO("usage: logger {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
 		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
@@ -193,18 +212,25 @@ void Logger::status()
 
 	} else {
 		PX4_INFO("Running");
-
-		float kibibytes = _writer.get_total_written() / 1024.0f;
-		float mebibytes = kibibytes / 1024.0f;
-		float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
-
-		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
-		PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
-			 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
-		_high_water = 0;
-		_write_dropouts = 0;
-		_max_dropout_duration = 0.f;
+		print_statistics();
 	}
+}
+void Logger::print_statistics()
+{
+	if (!_enabled) {
+		return;
+	}
+
+	float kibibytes = _writer.get_total_written() / 1024.0f;
+	float mebibytes = kibibytes / 1024.0f;
+	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
+
+	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
+	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
+		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
+	_high_water = 0;
+	_write_dropouts = 0;
+	_max_dropout_duration = 0.f;
 }
 
 void Logger::run_trampoline(int argc, char *argv[])
@@ -278,12 +304,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
-	warnx("largest free chunk: %d bytes", alloc_info.mxordblk);
-	warnx("remaining free heap: %d bytes", alloc_info.fordblks);
+	PX4_INFO("largest free chunk: %d bytes", alloc_info.mxordblk);
+	PX4_INFO("remaining free heap: %d bytes", alloc_info.fordblks);
 #endif /* DBGPRINT */
 
 	if (logger_ptr == nullptr) {
-		PX4_WARN("alloc failed");
+		PX4_ERR("alloc failed");
 
 	} else {
 		logger_ptr->run();
@@ -295,6 +321,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp) :
+	_arm_override(false),
 	_log_on_start(log_on_start),
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
@@ -367,7 +394,7 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
 			fd = add_topic(topics[i]);
-			PX4_INFO("logging topic: %zu, %s", i, topics[i]->o_name);
+			PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
 			break;
 		}
 	}
@@ -422,6 +449,74 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	return updated;
 }
 
+void Logger::add_default_topics()
+{
+	add_topic("sensor_gyro", 0);
+	add_topic("sensor_accel", 0);
+	add_topic("vehicle_rates_setpoint", 10);
+	add_topic("vehicle_attitude_setpoint", 10);
+	add_topic("vehicle_attitude", 0);
+	add_topic("actuator_outputs", 50);
+	add_topic("battery_status", 100);
+	add_topic("vehicle_command", 100);
+	add_topic("actuator_controls", 10);
+	add_topic("vehicle_local_position_setpoint", 200);
+	add_topic("rc_channels", 20);
+	add_topic("commander_state", 100);
+	add_topic("vehicle_local_position", 200);
+	add_topic("vehicle_global_position", 200);
+	add_topic("system_power", 100);
+	add_topic("servorail_status", 200);
+	add_topic("mc_att_ctrl_status", 50);
+	add_topic("vehicle_status", 200);
+}
+
+int Logger::add_topics_from_file(const char *fname)
+{
+	FILE		*fp;
+	char		line[80];
+	char		topic_name[80];
+	unsigned	interval;
+	int			ntopics = 0;
+
+	/* open the topic list file */
+	fp = fopen(fname, "r");
+
+	if (fp == NULL) {
+		return -1;
+	}
+
+	/* call add_topic for each topic line in the file */
+	// format is TOPIC_NAME, [interval]
+	for (;;) {
+
+		/* get a line, bail on error/EOF */
+		line[0] = '\0';
+
+		if (fgets(line, sizeof(line), fp) == NULL) {
+			break;
+		}
+
+		/* skip comment lines */
+		if ((strlen(line) < 2) || (line[0] == '#')) {
+			continue;
+		}
+
+		// default interval to zero
+		interval = 0;
+		int nfields = sscanf(line, "%s, %u", topic_name, &interval);
+
+		if (nfields > 0) {
+			/* add topic with specified interval */
+			add_topic(topic_name, interval);
+			ntopics++;
+		}
+	}
+
+	fclose(fp);
+	return ntopics;
+}
+
 void Logger::run()
 {
 #ifdef DBGPRINT
@@ -448,28 +543,14 @@ void Logger::run()
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
 
+	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
 
-	add_topic("sensor_gyro", 0);
-	add_topic("sensor_accel", 0);
-	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("vehicle_attitude_setpoint", 10);
-	add_topic("vehicle_attitude", 0);
-	add_topic("actuator_outputs", 50);
-	add_topic("battery_status", 100);
-	add_topic("vehicle_command", 100);
-	add_topic("actuator_controls", 10);
-	add_topic("vehicle_local_position_setpoint", 200);
-	add_topic("rc_channels", 20);
-//	add_topic("ekf2_innovations", 20);
-	add_topic("commander_state", 100);
-	add_topic("vehicle_local_position", 200);
-	add_topic("vehicle_global_position", 200);
-	add_topic("system_power", 100);
-	add_topic("servorail_status", 200);
-	add_topic("mc_att_ctrl_status", 50);
-//	add_topic("control_state");
-//	add_topic("estimator_status");
-	add_topic("vehicle_status", 200);
+	if (ntopics > 0) {
+		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
+
+	} else {
+		add_default_topics();
+	}
 
 	//all topics added. Get required message buffer size
 	int max_msg_size = 0;
@@ -534,7 +615,8 @@ void Logger::run()
 		if (vehicle_status_sub.check_updated()) {
 			vehicle_status_sub.update();
 			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
+				     _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;

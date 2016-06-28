@@ -502,3 +502,19 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
+
+/**
+ * Airspeed mode
+ *
+ * The param value sets the method used to publish the control state airspeed.
+ * For small wings or VTOL without airspeed sensor this parameter can be used to
+ * enable flying without an airspeed reading
+ *
+ * @min 0
+ * @max 2
+ * @value 0 use measured airspeed
+ * @value 1 use vehicle ground velocity as airspeed
+ * @value 2 declare airspeed invalid
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);

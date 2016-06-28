@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
+	drivers/sf10a
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -48,6 +49,7 @@ set(config_module_list
 	drivers/bmp280
 	drivers/bma180
 	drivers/bmi160
+	drivers/tap_esc
 
 	#
 	# System commands
@@ -68,6 +70,7 @@ set(config_module_list
 	systemcmds/ver
 	systemcmds/sd_bench
 	systemcmds/tests
+	systemcmds/motor_ramp
 
 	#
 	# General system control
