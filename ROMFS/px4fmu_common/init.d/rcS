@@ -308,22 +308,6 @@ then
 		set FMU_MODE gpio_serial
 	fi
 
-	if param greater TRIG_MODE 0
-	then
-		if [ $PWM_OUT == 1234 ]
-		then
-			if ver hwcmp PX4FMU_V4
-			then
-				set FMU_MODE pwm4
-			fi
-
-			if ver hwcmp PX4FMU_V2
-			then
-				set FMU_MODE pwm4
-			fi
-		fi
-	fi
-
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
@@ -556,13 +540,13 @@ then
 		# clear pins 5 and 6
 		if param compare SENS_EN_LL40LS 1
 		then
+			set FMU_MODE pwm4
 			set AUX_MODE pwm4
 		fi
 		if param greater TRIG_MODE 0
 		then
-			# Get FMU driver out of the way
-			set MIXER_AUX none
-			set AUX_MODE none
+			set FMU_MODE pwm4
+			set AUX_MODE pwm4
 			camera_trigger start
 		fi
 	fi
