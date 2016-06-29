@@ -90,11 +90,15 @@ static void *entry_adapter(void *ptr)
 	pthdata_t *data = (pthdata_t *) ptr;
 
 	int rv;
+
 	// set the threads name
 #ifdef __PX4_DARWIN
 	rv = pthread_setname_np(data->name);
 #else
-	rv = pthread_setname_np(pthread_self(), data->name);
+	char buf[17];
+	snprintf(buf, 16, "%s", data->name);
+	buf[16] = '0';
+	rv = pthread_setname_np(pthread_self(), buf);
 #endif
 
 	if (rv) {
