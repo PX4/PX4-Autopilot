@@ -79,13 +79,22 @@ void av_estimator_b::update(Vector3f &a, Vector3f &w, Vector3f &vbar, Vector3f &
 	/* Integration step */
 	Rhat = Rhat_dot*dt + Rhat_prev;
 
+	/* Capture NaN in Rhat */
+	if (Rhat != Rhat)
+	{
+		Rhat = Matrix3f::Identity();
+	}
+
 	/* X */
 	X = u*Rhat;
 
 	Vector3f vhat_dot_vc;
 
-	if (filter_a_valid) 
+	if (filter_a_valid) {
 		vhat_dot_vc	= k1vc * (vhat_prev - Rhat_prev.transpose() * (vhat_in - what_in));
+		//printf("filrer a valid\n");
+	}
+
 	else
 		vhat_dot_vc	= Vector3f::Zero();
 
@@ -168,7 +177,7 @@ void av_estimator_b::publish(float timestamp, Vector3f vhat_a, Vector3f what_vel
 	Vector3f vhat_a2b = Rhat.transpose() * vhat_a;
 	/* Moses stuff */
 	Matrix3f Rhot;
-	
+	printf("att %3.3f %3.3f %3.3f\n", double(att.roll), double(att.pitch), double(att.yaw));
 	/* The angle used on px4 is stuffed up see above */
 	float ctheta, stheta, cphi, sphi, cpsi, spsi;
 	ctheta = cos(-att.pitch);

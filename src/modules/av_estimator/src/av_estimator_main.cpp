@@ -105,8 +105,8 @@ static bool thread_running = false;		/**< Deamon status flag */
 static int av_estimator_task;			   /**< Handle of deamon task / thread */
 int mavlink_fd;
 
-orb_advert_t vel_meas_pub;
-orb_advert_t wind_vel_pub;      //This is nolonger required
+orb_advert_t vel_meas_pub = nullptr;
+orb_advert_t wind_vel_pub = nullptr;      //This is nolonger required
 float zbar = 0.0f, vzbar = 0.0f, beta_az = 0.0f;
 uint64_t baro_prev_time;
 
@@ -311,6 +311,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 		fds[6].events = POLLIN;
 		int ret = poll(fds, 7, pollingInterval);
 
+
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else {
@@ -347,12 +348,17 @@ int av_estimator_thread_main(int argc, char *argv[])
 				/**/
 				orb_copy(ORB_ID(vehicle_gps_position), gps_sub_fd, &rawGPS);
 			}
-
-			/* Read Vicon measurement */
+			
+			/* Read velocity measurements */
+			rawMeasuredVelocity.inertial_valid = false;
 			if(fds[5].revents & POLLIN) {
 				/**/
 				orb_copy(ORB_ID(vehicle_velocity_meas_inertial), velocity_measured_fd, &rawMeasuredVelocity);
-			}
+				//printf("Velocity updated %d\n", rawMeasuredVelocity.inertial_valid);
+			} else
+			{
+				rawMeasuredVelocity.inertial_valid = false;
+			}			
 
 			/* Read Vicon measurement */
 			if(fds[6].revents & POLLIN) {
@@ -367,7 +373,10 @@ int av_estimator_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
 				/* Without this line here, you don't get the exact 40Hz vicon velocity estimate. 
 					Need to rewrite in a similar manner to vel_con */
+					
 				orb_copy(ORB_ID(vehicle_velocity_meas_inertial), velocity_measured_fd, &rawMeasuredVelocity);
+				 				
+				
 				if (!initialized) {
 					gyro_offsets[0] += raw.gyro_rad_s[0];
 					gyro_offsets[1] += raw.gyro_rad_s[1];
@@ -471,7 +480,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 					if (vel_meas_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_velocity_meas_est_body), vel_meas_pub, &meas_body_vel);
 					} else {
-						vel_meas_pub = orb_advertise(ORB_ID(vehicle_velocity_meas_est_body), &meas_body_vel);
+						orb_advertise(ORB_ID(vehicle_velocity_meas_est_body), &meas_body_vel);
 					}
 					
 
@@ -479,7 +488,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 					if (wind_vel_pub != nullptr) {
 						orb_publish(ORB_ID(wind_estimate), wind_vel_pub, &windVelocity);
 					} else {
-						wind_vel_pub = orb_advertise(ORB_ID(wind_estimate), &windVelocity);
+						orb_advertise(ORB_ID(wind_estimate), &windVelocity);
 					}
 
 					/* Remove bias from gyro measurement */
@@ -496,7 +505,8 @@ int av_estimator_thread_main(int argc, char *argv[])
 					mu(0) = raw.magnetometer_ga[0];
 					mu(1) = raw.magnetometer_ga[1];
 					mu(2) = raw.magnetometer_ga[2];
-
+//printf("acc %3.3f %3.3f %3.3f\n",double(a(0)),double(a(1)),double(a(2)));
+//printf("gyro %3.3f %3.3f %3.3f\n",double(omega(0)),double(omega(1)),double(omega(2)));
 					/* Apply magnetometer current compensation */
 					applyCurrentCompensation(mu, current, current_k, current_c, armed_start_time, attitude_params, vehicle_status_raw);
 

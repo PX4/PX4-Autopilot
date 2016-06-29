@@ -307,6 +307,7 @@ private:
 	struct 		vehicle_omega_ff_setpoint_s 	omega_d;
 
 	int _veh_gps_pos_sub = -1;
+	int _vicon_pos_sub = -1;
 
 
 	struct map_projection_reference_s _ref_pos;
@@ -451,6 +452,21 @@ private:
 	 * Check for changes in vehicle GPS data
 	*/
 	void 		vehicle_gps_position_poll();
+
+	/**
+	  * Check for changes in vicon position 
+	*/
+	void        vehicle_vicon_position_poll();
+
+	/**
+	  * Check for changes in vehicle local position setpoint 
+	*/
+	void        vehicle_local_position_setpoint_poll();
+
+	/**
+	  * Check for changes in vehicle vehicle control mode 
+	*/
+	void        vehicle_control_mode_poll();
 
 	/**
 	 * Check for changes in vehicle attitude
@@ -768,6 +784,33 @@ MulticopterQuatPositionControl::vehicle_velocity_estimated_poll()
 }
 
 /**
+  * Poll for local position setpoint
+*/
+void
+MulticopterQuatPositionControl::vehicle_local_position_setpoint_poll()
+{
+	bool updated;
+	orb_check(_local_pos_sp_sub, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
+	}
+}
+
+/**
+  * Poll for getting vicon position estimates
+*/
+void
+MulticopterQuatPositionControl::vehicle_vicon_position_poll()
+{
+	bool updated;
+	orb_check(_vicon_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_vicon_position), _vicon_pos_sub, &_vicon_pos);
+	}
+}
+
+/**
   * Poll for getting GPS data
 */
 void
@@ -799,6 +842,22 @@ MulticopterQuatPositionControl::vehicle_attitude_poll()
 }
 
 /**
+  * Poll for vehicle control mode
+*/
+void
+MulticopterQuatPositionControl::vehicle_control_mode_poll()
+{
+	/* check if there is a new velocity estimated */
+	bool updated;
+	orb_check(_control_mode_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+	}
+}
+
+
+/**
   * Do polling
 */
 void
@@ -815,6 +874,15 @@ MulticopterQuatPositionControl::poll_subscriptions()
 
 	/* Poll vehicle attitude */
 	vehicle_attitude_poll();
+
+	/* Poll vicon position */
+	vehicle_vicon_position_poll();
+
+	/* Poll vehicle position setpoint */
+	vehicle_local_position_setpoint_poll();
+
+	/* Poll vehicle control mode */
+	vehicle_control_mode_poll();
 }
 
 /**
@@ -997,7 +1065,7 @@ MulticopterQuatPositionControl::gps_vel_setup(void) //home_position_s &home, px4
 	veh_local_pos.x = x;  
 	veh_local_pos.y = y;  
 	veh_local_pos.z = z;  
-	//printf("xy c %3.3f %3.3f %u\n",double(x), double(y), home_count);
+	//printf("xy c %3.3f %3.3f %3.3f\n",double(vx), double(vy), double(vz));
 
 	/* Please delete these lines */
 	veh_local_pos.vx = vx; 
@@ -1089,6 +1157,7 @@ MulticopterQuatPositionControl::dorotations(void)
     vx_hat = (x - px) / dtt;
     vy_hat = (y - py) / dtt;
     vz_hat = (z - pz) / dtt;
+    //printf("Vicon dt and freq %3.3f %3.3f\n",double(dtt), double(1/dtt));
 
     /* Make restart possible by noting that max vehicle velocity <= 5 TODO read from params*/
     if (vx_hat > 5.0f || vx_hat < -5.0f)
@@ -1144,7 +1213,7 @@ MulticopterQuatPositionControl::desired_setpoint(void)
 	Vector3f   xd_tmp = Vector3f::Zero();
 	Vector3f   vd_tmp = Vector3f::Zero();
 	Vector3f   ad_tmp = Vector3f::Zero();
-
+	
 	/* Let us put the desired offbard inputs into local variables */
 	xd_tmp(0) = _local_pos_sp.x;
 	xd_tmp(1) = _local_pos_sp.y;
@@ -1346,7 +1415,7 @@ MulticopterQuatPositionControl::map_projection(void)
 		output(1) = 0.0;
 		output(2) = 0.0;
 	}
-	printf("lat %3.3f %3.3f\n",double(_veh_home.lat),double(gps_poslat));
+	//printf("lat %3.3f %3.3f\n",double(_veh_home.lat),double(gps_poslat));
 	return output;
 }
 
@@ -1371,7 +1440,12 @@ MulticopterQuatPositionControl::task_main()
 
 	_veh_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
+	_vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 
+	_v_vel_est_sub = orb_subscribe(ORB_ID(vehicle_velocity_est_inertial)); 
+
+	_veh_vel_pub 	= nullptr;
+	_omega_pub 		= nullptr;
 	parameters_update(true);
 
 	/* initialize values of critical structs until first regular update */
@@ -1379,7 +1453,6 @@ MulticopterQuatPositionControl::task_main()
 
 	/* get an initial update for all sensor and status data */
 	poll_subscriptions();
-	vehicle_gps_position_poll();
 
 	hrt_abstime t_prev = 0;
 
@@ -1424,6 +1497,8 @@ MulticopterQuatPositionControl::task_main()
 		dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
 		t_prev = t;
 
+		d_meas = (t - old_meas_time)*0.000001f;
+
 		/* Setup for control stuff */
 		if (!old_auto && _control_mode.flag_control_auto_enabled) {
 		if (_att.q[0] >= 0.0f)
@@ -1432,19 +1507,22 @@ MulticopterQuatPositionControl::task_main()
 			sign_q0 = -1;
 		}
 		old_auto = _control_mode.flag_control_auto_enabled;
-	
-		
 
+		_veh_vel.body_valid 			= false;
+		_veh_vel.inertial_valid 		= false;
+	
+//printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
+//printf("%s\n", _control_mode.flag_control_manual_enabled ? "true" : "false");
 	/* Do GPS pos control */
 	if (_veh_gps_pos.fix_type >= 3 && _v_vel_est.timestamp != _v_est_time_old)// && initialise_home)// && _v_vel_est.body_valid)
 	{
-		usleep(10000);
+		//usleep(10000);
 		veh_vel_body(0) = _v_vel_est.inertial_bvx;
 		veh_vel_body(1) = _v_vel_est.inertial_bvy;
 		veh_vel_body(2) = _v_vel_est.inertial_bvz;
 
 		dt_pos_est = (_v_vel_est.timestamp - _v_est_time_old)*0.000001f;
-		printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
+		//printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
 
 		/* GPS Position estimation */
 
@@ -1486,12 +1564,9 @@ MulticopterQuatPositionControl::task_main()
 		
 	if (_local_pos_pub != nullptr ) {
 		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &veh_local_pos);
-		//_local_pos_pub->publish(veh_local_pos);
-
 
 	} else {
 		_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &veh_local_pos);	
-		//_local_pos_pub = _n.advertise<px4_vehicle_local_position>();	
 	}
 
 		if (_control_mode.flag_control_auto_enabled && initialise_home)
@@ -1506,8 +1581,8 @@ MulticopterQuatPositionControl::task_main()
 			_att_sp.q_d[3] = qd[3];
 			//_att_sp_msg.data().thrust = thrust;
 //printf("auto mode\n");
-			/* Use Autonomous mode */
 			
+			/* Use Autonomous mode */			
 			if (_att_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 				//_att_sp_pub->publish(_att_sp_msg);
@@ -1523,11 +1598,10 @@ MulticopterQuatPositionControl::task_main()
 	usleep(5000);	
 //printf("sat %lu %d %3.3f, %3.5f, %3.3f\n",_veh_gps_pos.timestamp_position, _veh_gps_pos.fix_type, (double)_veh_gps_pos.lat*1e-7, (double)_veh_gps_pos.lat*1e-7, double(_veh_gps_pos.alt*1e-3));
 
-//printf("sat %3.3f, %3.5f, %3.3f\n", double(_veh_gps_pos.lat*1e-7), double(_veh_gps_pos.lon*1e-7), double(_veh_gps_pos.alt*1e-3));
-	/* GPS is only valid when the fix is >=3D which requires a minim of 3 satellites. Do position control and  */ 
+	// This should only run when Vicon is not available
+		/* GPS is only valid when the fix is >=3D which requires a minim of 3 satellites. Do position control and  */ 
 	if (_veh_gps_pos.timestamp_time != gps_old_time && _veh_gps_pos.fix_type >= 3 && _veh_gps_pos.satellites_used > 4)
 	{
-printf("I am computing gps\n");
 		/* Handle home position and publish */
 		if(!initialise_home)
 		{
@@ -1564,12 +1638,13 @@ printf("I am computing gps\n");
 			_veh_home.lon = (double)_veh_home.lon*1e-7*M_DEG_TO_RAD;
 			_veh_home.alt = (double)_veh_home.alt*0.001;
 		}	
-printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.lon), double(_veh_home.alt), double(M_DEG_TO_RAD));
+//printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.lon), double(_veh_home.alt), double(M_DEG_TO_RAD));
 		vel_pub = _veh_gps_pos.vel_ned_valid;
 		gps_vel_setup();
 		quat_traj_control();
 		if (_control_mode.flag_control_auto_enabled)
 		{	
+			printf("auto mode");
 			_att_sp.q_d_valid = true;
 			_att_sp.q_d[0] = qd[0];
 			_att_sp.q_d[1] = qd[1];
@@ -1580,11 +1655,9 @@ printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.
 			/* Use Autonomous mode */
 			if (_att_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-				//_att_sp_pub->publish(_att_sp_msg);
 
 			} else {
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
-				//_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
 			}
 		} 
 		float dtttss = (_veh_gps_pos.timestamp_time -gps_old_time )*0.000001f;
@@ -1593,16 +1666,21 @@ printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.
 
 		old_meas_time 	= get_time_micros();
 
-		_veh_vel.body_valid 			= _veh_gps_pos.vel_ned_valid;
-		_veh_vel.body_vx 			= vx;
-		_veh_vel.body_vy 			= vy;
-		_veh_vel.body_vz 			= vz;
-		_veh_vel.inertial_vx 		= ivx;
-		_veh_vel.inertial_vy 		= ivy;
-		_veh_vel.inertial_vz 		= ivz;
-		_veh_vel.inertial_valid 		= _veh_gps_pos.vel_ned_valid;
-		_veh_vel.timestamp 			= _veh_gps_pos.timestamp_time; 
-		vel_updated = true;
+		if (dtttss < 1){ //GPS pub wasn't initialised to nullptr
+			_veh_vel.body_valid 			= _veh_gps_pos.vel_ned_valid;
+			_veh_vel.body_vx 			= vx;
+			_veh_vel.body_vy 			= vy;
+			_veh_vel.body_vz 			= vz;
+			_veh_vel.inertial_vx 		= ivx;
+			_veh_vel.inertial_vy 		= ivy;
+			_veh_vel.inertial_vz 		= ivz;
+			_veh_vel.inertial_valid 		= _veh_gps_pos.vel_ned_valid;
+			_veh_vel.timestamp 			= _veh_gps_pos.timestamp_time; 
+			vel_updated = true;
+		}	else {
+			_veh_vel.inertial_valid 	= false;
+		}	
+
 	} else if (_vicon_pos.timestamp != old_time)
 	{
 		vel_pub = true;
@@ -1610,14 +1688,17 @@ printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.
 		dorotations();
 		old_time = _vicon_pos.timestamp;
 		old_meas_time = get_time_micros();
+		//printf("receivinf vicon\n");
 		
 		if (_control_mode.flag_control_auto_enabled)
 		{
+			printf("auto mode");
+			printf("%3.3f\n", double(_att_sp.q_d[0]));
+
 			veh_vel_body(0) = vx;
 			veh_vel_body(1) = vy;
 			veh_vel_body(2) = vz;
 			quat_traj_control();
-
 			_att_sp.q_d_valid = true;
 			_att_sp.q_d[0] = qd[0];
 			_att_sp.q_d[1] = qd[1];
@@ -1630,21 +1711,25 @@ printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
 			} else {
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+				orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 			}
 		}
 
 		/* Publish Body Velocities */
-		_veh_vel.body_valid 		= true;
-		_veh_vel.body_vx 		= vx;
-		_veh_vel.body_vy 		= vy;
-		_veh_vel.body_vz 		= vz;
-		_veh_vel.inertial_vx 	= ivx;
-		_veh_vel.inertial_vy 	= ivy;
-		_veh_vel.inertial_vz 	= ivz;
-		_veh_vel.inertial_valid 	= true;
-		_veh_vel.timestamp 		= _vicon_pos.timestamp; 
-		vel_updated = true;			
+		if (dtt < 1){
+			_veh_vel.body_valid 		= true;
+			_veh_vel.body_vx 		= vx;
+			_veh_vel.body_vy 		= vy;
+			_veh_vel.body_vz 		= vz;
+			_veh_vel.inertial_vx 	= ivx;
+			_veh_vel.inertial_vy 	= ivy;
+			_veh_vel.inertial_vz 	= ivz;
+			_veh_vel.inertial_valid 	= true;
+			_veh_vel.timestamp 		= _vicon_pos.timestamp; 
+			vel_updated = true;	
+		}	else {
+			_veh_vel.inertial_valid 	= false;
+		}		
 	}
 
 	if (d_meas > 0.80f && d_meas < 1.5f) // we need to set the velocities to false then update
@@ -1660,8 +1745,7 @@ printf("home %3.3f %3.3f %3.3f %3.3f\n",double(_veh_home.lat), double(_veh_home.
 		_vicon_pos.valid 			= false;
 		vel_updated 				= false;
 		vel_pub 				= false;
-	}
-
+	} 
 
 	/* Publish measured velocities when they are valid */
 	if (vel_pub && vel_updated)

@@ -3350,8 +3350,8 @@ set_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_manual_enabled = false; //true; MBangura
+		control_mode.flag_control_auto_enabled = true; //false; MBangura
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = false;

@@ -702,6 +702,8 @@ MulticopterQuaternionControl::control_attitude(float dt)
 		/* Autonomous mode use 'vehicle_attitude_setpoint' topic */
 		vehicle_attitude_setpoint_poll();
 //printf("att auto mode\n");
+		printf("In auto att %3.3f\n", double(_v_att_sp.q_d[0]));
+
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;
 
@@ -720,7 +722,7 @@ MulticopterQuaternionControl::control_attitude(float dt)
 		}
 	}
 	/********************* End calculation of the desired quaternion ************************/
-	printf("thr stp %3.3f %3.3f %3.3f %3.3f\n",double(_thrust_sp), double(q_d[2]), double( _params.man_pitch_max), double(_manual_control_sp.x));
+	//printf("thr stp %3.3f %3.3f %3.3f %3.3f %3.3f\n",double(_thrust_sp), double(q_d[0]), double( q_d[1]), double(q_d[2]), double(q_d[3]));
 
 	/* publish the attitude setpoint if needed */
 	if (publish_att_sp) {
@@ -948,7 +950,7 @@ MulticopterQuaternionControl::task_main()
 			vehicle_manual_poll();
 			feedforwad_omega_poll();
 			rc_poll();
-			printf("RC is %3.3f %3.3f\n",double(_v_rc.channels[4]), double(_v_rc.channels[5]));
+			//printf("RC is %3.3f %3.3f\n",double(_v_rc.channels[4]), double(_v_rc.channels[5]));
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);

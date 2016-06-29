@@ -225,6 +225,7 @@ private:
 	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
+	orb_advert_t _local_pos_sp_pub;
 	int64_t _time_offset;
 	int	_orb_class_instance;
 

@@ -42,7 +42,7 @@ private:
 	vehicle_velocity_est_inertial_s vel;
 
 	orb_advert_t att_pub;
-	orb_advert_t vel_pub;
+	orb_advert_t vel_pub = nullptr;
 
 	uint64_t viconTimestampPrev = 0;
 
