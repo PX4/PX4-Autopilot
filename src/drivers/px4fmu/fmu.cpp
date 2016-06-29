@@ -1992,7 +1992,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		PX4_DEBUG("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		PX4_INFO("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2455,8 +2455,26 @@ namespace
 void
 bind_spektrum()
 {
-	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
-	g_fmu->dsm_bind_ioctl();
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (true) {
+		PX4_INFO("bind_Spektrum RX");
+		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+		if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
+			PX4_ERR("binding failed.");
+		}
+
+	} else {
+		PX4_WARN("system armed, bind request rejected");
+	}
+
+	close(fd);
 
 }
 
