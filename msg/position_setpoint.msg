@@ -37,3 +37,4 @@ bool acceleration_valid		# true if acceleration setpoint is valid/should be used
 bool acceleration_is_force	# interprete acceleration as force
 float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoint navigation
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
+float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint)

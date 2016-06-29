@@ -661,8 +661,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	if (result == calibrate_return_ok) {
 
-		(void)param_set_no_notification(param_find("CAL_MAG_PRIME"), &(device_id_primary));
-
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
 				struct mag_calibration_s mscale;
@@ -746,6 +744,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				}
 			}
 		}
+
+		// Trigger a param set on the last step so the whole
+		// system updates
+		(void)param_set(param_find("CAL_MAG_PRIME"), &(device_id_primary));
 	}
 
 	return result;

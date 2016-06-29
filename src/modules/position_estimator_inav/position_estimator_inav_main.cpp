@@ -657,9 +657,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (updated)
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
 
-					double rate_threshold = 0.15f;
+					float rate_threshold = 0.15f;
 
-					if (fabs(rates_setpoint.pitch) < rate_threshold) {
+					if (fabsf(rates_setpoint.pitch) < rate_threshold) {
 						//warnx("[inav] test ohne comp");
 						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
@@ -670,7 +670,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
-					if (fabs(rates_setpoint.roll) < rate_threshold) {
+					if (fabsf(rates_setpoint.roll) < rate_threshold) {
 						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 					else {
@@ -681,7 +681,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* flow measurements vector */
 					float flow_m[3];
-					if (fabs(rates_setpoint.yaw) < rate_threshold) {
+					if (fabsf(rates_setpoint.yaw) < rate_threshold) {
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
 					} else {
@@ -944,7 +944,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on GPS topic */
-		if (gps_valid && (t > (gps.timestamp_position + gps_topic_timeout))) {
+		if (gps_valid && (t > (gps.timestamp + gps_topic_timeout))) {
 			gps_valid = false;
 			warnx("GPS timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] GPS timeout");
@@ -1212,7 +1212,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_gps[0][0], dt, x_est, 0, w_xy_gps_p);
 				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_p);
 
-				if (gps.vel_ned_valid && t < gps.timestamp_velocity + gps_topic_timeout) {
+				if (gps.vel_ned_valid && t < gps.timestamp + gps_topic_timeout) {
 					inertial_filter_correct(corr_gps[0][1], dt, x_est, 1, w_xy_gps_v);
 					inertial_filter_correct(corr_gps[1][1], dt, y_est, 1, w_xy_gps_v);
 				}

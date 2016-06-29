@@ -4,6 +4,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linu
 
 add_definitions(
   -D__PX4_POSIX_BEBOP
+  -D__LINUX
 	)
 
 set(CMAKE_PROGRAM_PATH
@@ -13,13 +14,14 @@ set(CMAKE_PROGRAM_PATH
 
 set(config_module_list
 
-  examples/px4_simple_app
+  # examples/px4_simple_app
 
 	#
 	# Board support modules
 	#
 	drivers/device
 	modules/sensors
+	platforms/posix/drivers/df_ms5607_wrapper
 
 	#
 	# System commands
@@ -93,4 +95,8 @@ set(config_module_list
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
+)
+
+set(config_df_driver_list
+  ms5607
 )
