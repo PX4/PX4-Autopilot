@@ -1074,18 +1074,6 @@ PX4IO::task_main()
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
-				int32_t dsm_bind_val;
-				param_t dsm_bind_param;
-
-				/* see if bind parameter has been set, and reset it to -1 */
-				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-				if (dsm_bind_val > -1) {
-					dsm_bind_ioctl(dsm_bind_val);
-					dsm_bind_val = -1;
-					param_set(dsm_bind_param, &dsm_bind_val);
-				}
-
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */
 					io_set_rc_config();
