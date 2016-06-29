@@ -550,10 +550,12 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		switch (param_type(param)) {
 
 		case PARAM_TYPE_INT32:
+			params_changed = s->val.i != *(int32_t *)val;
 			s->val.i = *(int32_t *)val;
 			break;
 
 		case PARAM_TYPE_FLOAT:
+			params_changed = fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
 			break;
 
@@ -568,6 +570,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 			}
 
 			memcpy(s->val.p, val, param_size(param));
+			params_changed = true;
 			break;
 
 		default:
@@ -575,7 +578,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		}
 
 		s->unsaved = !mark_saved;
-		params_changed = true;
 		result = 0;
 	}
 

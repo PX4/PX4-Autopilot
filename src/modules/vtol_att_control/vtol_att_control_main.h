@@ -84,6 +84,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/control_state.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>

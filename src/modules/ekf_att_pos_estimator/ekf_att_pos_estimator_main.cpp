@@ -216,6 +216,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_vibration_warning(false),
 	_ekf_logging(true),
 	_debug(0),
+	_was_landed(true),
 
 	_newHgtData(false),
 	_newAdsData(false),
@@ -257,6 +258,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
+	_parameter_handles.airspeed_mode = param_find("FW_AIRSPD_MODE");
 
 	/* indicate consumers that the current position data is not valid */
 	_gps.eph = 10000.0f;
@@ -324,6 +326,7 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
+	param_get(_parameter_handles.airspeed_mode, &_parameters.airspeed_mode);
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
@@ -379,8 +382,8 @@ void AttitudePositionEstimatorEKF::vehicle_land_detected_poll()
 
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 
-		// Save params on landed
-		if (!_vehicle_land_detected.landed) {
+		// Save params on landed and previously not landed
+		if (_vehicle_land_detected.landed && !_was_landed) {
 			_mag_offset_x.set(_ekf->magBias.x);
 			_mag_offset_x.commit();
 			_mag_offset_y.set(_ekf->magBias.y);
@@ -388,6 +391,8 @@ void AttitudePositionEstimatorEKF::vehicle_land_detected_poll()
 			_mag_offset_z.set(_ekf->magBias.z);
 			_mag_offset_z.commit();
 		}
+
+		_was_landed = _vehicle_land_detected.landed;
 	}
 }
 
@@ -443,7 +448,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		// Set up height correctly
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-		initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
+		initReferencePosition(_gps.timestamp, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -816,7 +821,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	_ekf->InitialiseFilter(initVelNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
-	initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
+	initReferencePosition(_gps.timestamp, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 #if 0
 	PX4_INFO("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
@@ -917,17 +922,25 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.q[2] = _ekf->states[2];
 	_ctrl_state.q[3] = _ekf->states[3];
 
-	/* Airspeed (Groundspeed - Windspeed) */
-	//_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
-	// the line above was introduced by the control state PR. The airspeed it gives is totally wrong and leads to horrible flight performance in SITL
-	// and in outdoor tests
-	if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-	    && _airspeed.timestamp > 0) {
-		_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-		_ctrl_state.airspeed_valid = true;
+	// use estimated velocity for airspeed estimate
+	if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
+		// use measured airspeed
+		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+		    && _airspeed.timestamp > 0) {
+			_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+			_ctrl_state.airspeed_valid = true;
+		}
 
-	} else {
-		_ctrl_state.airspeed_valid = false;
+	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
+		if (_local_pos.v_xy_valid && _local_pos.v_z_valid) {
+			_ctrl_state.airspeed = sqrtf(_ekf->states[4] * _ekf->states[4]
+				+ _ekf->states[5] * _ekf->states[5] + _ekf->states[6] * _ekf->states[6]);
+			_ctrl_state.airspeed_valid = true;
+		}
+
+	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
+		// do nothing, airspeed has been declared as non-valid above, controllers
+		// will handle this assuming always trim airspeed
 	}
 
 	/* Attitude Rates */
@@ -1055,7 +1068,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	if (!_local_pos.xy_global ||
 	    !_local_pos.v_xy_valid ||
-	    _gps.timestamp_position == 0 ||
+	    _gps.timestamp == 0 ||
 	    (dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
 
 		_global_pos.eph = EPH_LARGE_VALUE;
@@ -1571,7 +1584,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		if (_gpsIsGood) {
 
 			//Calculate time since last good GPS fix
-			const float dtLastGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+			const float dtLastGoodGPS = static_cast<float>(_gps.timestamp - _previousGPSTimestamp) / 1e6f;
 
 			//Stop dead-reckoning mode
 			if (_global_pos.dead_reckoning) {
@@ -1630,7 +1643,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 			// PX4_INFO("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
 
-			_previousGPSTimestamp = _gps.timestamp_position;
+			_previousGPSTimestamp = _gps.timestamp;
 
 		}
 	}

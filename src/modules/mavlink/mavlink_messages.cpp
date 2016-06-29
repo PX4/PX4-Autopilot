@@ -39,13 +39,21 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_time.h>
 #include <stdio.h>
 #include <errno.h>
 
+#include "mavlink_main.h"
+#include "mavlink_messages.h"
+
 #include <commander/px4_custom_mode.h>
+#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_rc_input.h>
 #include <lib/geo/geo.h>
-#include <uORB/uORB.h>
+#include <mathlib/mathlib.h>
+#include <px4_time.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -57,10 +65,10 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -79,15 +87,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <drivers/drv_rc_input.h>
-#include <drivers/drv_pwm_output.h>
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
+#include <uORB/topics/wind_estimate.h>
+#include <uORB/uORB.h>
 
-#include <mathlib/mathlib.h>
-
-#include "mavlink_messages.h"
-#include "mavlink_main.h"
 
 static uint16_t cm_uint16_from_m_float(float m);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
@@ -1066,7 +1068,7 @@ protected:
 		if (_gps_sub->update(&_gps_time, &gps)) {
 			mavlink_gps_raw_int_t msg = {};
 
-			msg.time_usec = gps.timestamp_position;
+			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
 			msg.lat = gps.lat;
 			msg.lon = gps.lon;
@@ -3127,6 +3129,90 @@ protected:
 	}
 };
 
+class MavlinkStreamWind : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamWind::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "WIND";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_WIND_COV;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamWind(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_wind_estimate_sub;
+	uint64_t _wind_estimate_time;
+
+	MavlinkOrbSubscription *_global_pos_sub;
+	uint64_t _global_pos_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamWind(MavlinkStreamWind &);
+	MavlinkStreamWind& operator = (const MavlinkStreamWind &);
+
+protected:
+	explicit MavlinkStreamWind(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_wind_estimate_sub(_mavlink->add_orb_subscription(ORB_ID(wind_estimate))),
+		_wind_estimate_time(0),
+		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_global_pos_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct wind_estimate_s wind_estimate;
+
+		bool updated = _wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate);
+
+		if (updated) {
+
+			mavlink_wind_cov_t msg;
+
+			msg.time_usec = wind_estimate.timestamp;
+
+			msg.wind_x = wind_estimate.windspeed_north;
+			msg.wind_y = wind_estimate.windspeed_east;
+			msg.wind_z = 0.0f;
+
+			msg.var_horiz = wind_estimate.covariance_north + wind_estimate.covariance_east;
+			msg.var_vert = 0.0f;
+
+			struct vehicle_global_position_s global_pos;
+			_global_pos_sub->update(&_global_pos_time, &global_pos);
+			msg.wind_alt = (_global_pos_time > 0) ? global_pos.alt : NAN;
+
+
+			msg.horiz_accuracy = 0.0f;
+			msg.vert_accuracy = 0.0f;
+
+			mavlink_msg_wind_cov_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -3169,5 +3255,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
 	new StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
+	new StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	nullptr
 };

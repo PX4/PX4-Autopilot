@@ -11,30 +11,41 @@ matrix:
       env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base"
       services:
         - docker
-    - os: linux
-      sudo: required
-      env: GCC_VER=4.9 DOCKER_REPO="px4io/px4-dev-nuttx-gcc4.9"
-      services:
-        - docker
     - os: osx
-      osx_image: xcode7
       sudo: true
+      osx_image: xcode7.3
+      env: CCACHE_CPP2=1
 
 cache:
+  ccache: true
+  pip: true
   directories:
-    - $HOME/.ccache
+    - $HOME/.pip/cache/
+    - $HOME/Library/Caches/pip
 
 before_install:
-  - cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags && git submodule update --quiet --init --recursive
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker pull ${DOCKER_REPO};
+         cd ${TRAVIS_BUILD_DIR}
+      && git fetch --unshallow && git fetch --all --tags
+      && docker pull ${DOCKER_REPO}
+      ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         brew tap PX4/homebrew-px4
-      && brew update; brew update
-      && brew install cmake ninja
-      && brew install genromfs
-      && sudo easy_install pip
-      && sudo pip install empy
+         sudo -H easy_install pip
+      && sudo -H pip install empy
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
+      && sudo mv ccache /usr/local/bin
+      && chmod +x /usr/local/bin/ccache
+      && mkdir -p ~/bin
+      && sudo ln -s /usr/local/bin/ccache ~/bin/c++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/cc
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/g++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/gcc
+      && export PATH=~/bin:$PATH
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
+      && sudo mv ninja /usr/local/bin
+      && chmod +x /usr/local/bin/ninja
       ;
     fi
 
@@ -45,13 +56,16 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
+    - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
+  - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "ccache -z; make check VECTORCONTROL=1";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make check_posix_sitl_default;
     fi
+  - ccache -s
 
 after_success:
   - make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/

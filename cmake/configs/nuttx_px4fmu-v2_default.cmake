@@ -104,7 +104,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-## TO FIT modules/logger
+	#modules/logger
 	modules/sdlog2
 
 	#

@@ -108,6 +108,11 @@ uint32_t version_tag_to_number(const char *tag)
 	}
 
 	// XXX not reporting patch version yet
+	// dev > 0
+	// alpha > 64
+	// beta > 128
+	// release candidate > 192
+	// release > 255
 	ver = (ver << 8);
 
 	return ver;

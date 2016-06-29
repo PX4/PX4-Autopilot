@@ -4,16 +4,17 @@ machine:
 
 checkout:
   post:
-    - git submodule sync
+    - git submodule sync --recursive
     - git submodule update --init --recursive
 
 ## Customize dependencies
 dependencies:
+  cache_directories:
+    - "~/.ccache"
   pre:
-    - docker pull px4io/px4-dev-base
-    - docker info
+    - docker pull px4io/px4-dev-nuttx-gcc4.9
 
 test:
   override:
-    #- sudo docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
-    - docker run -v `pwd`:`pwd`:rw -w=`pwd` --user=$UID -it px4io/px4-dev-base /bin/bash -c "make"
+    - docker run --rm -v `pwd`:`pwd`:rw -w=`pwd` -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache --user=$UID -it px4io/px4-dev-nuttx-gcc4.9 /bin/bash -c "ccache -z; make px4fmu-v4_default; ccache -s"
+

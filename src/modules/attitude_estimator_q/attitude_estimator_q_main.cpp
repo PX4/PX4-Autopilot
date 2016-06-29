@@ -141,6 +141,7 @@ private:
 		param_t	bias_max;
 		param_t vibe_thresh;
 		param_t	ext_hdg_mode;
+		param_t airspeed_mode;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	float		_w_accel = 0.0f;
@@ -154,6 +155,7 @@ private:
 	float		_vibration_warning_threshold = 2.0f;
 	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
+	int 	_airspeed_mode = 0;
 
 	Vector<3>	_gyro;
 	Vector<3>	_accel;
@@ -232,6 +234,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
 	_params_handles.vibe_thresh	= param_find("ATT_VIBE_THRESH");
 	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
+	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 }
 
 /**
@@ -626,14 +629,27 @@ void AttitudeEstimatorQ::task_main()
 
 			ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
-			/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-			if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-			    && _airspeed.timestamp > 0) {
-				ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-				ctrl_state.airspeed_valid = true;
+			ctrl_state.airspeed_valid = false;
 
-			} else {
-				ctrl_state.airspeed_valid = false;
+			if (_airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
+				// use measured airspeed
+				if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+				    && _airspeed.timestamp > 0) {
+					ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+					ctrl_state.airspeed_valid = true;
+				}
+			}
+
+			else if (_airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
+				// use estimated body velocity as airspeed estimate
+				if (hrt_absolute_time() - _gpos.timestamp < 1e6) {
+					ctrl_state.airspeed = sqrtf(_gpos.vel_n * _gpos.vel_n + _gpos.vel_e * _gpos.vel_e + _gpos.vel_d * _gpos.vel_d);
+					ctrl_state.airspeed_valid = true;
+				}
+
+			} else if (_airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
+				// do nothing, airspeed has been declared as non-valid above, controllers
+				// will handle this assuming always trim airspeed
 			}
 
 			/* the instance count is not used here */
@@ -688,6 +704,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		param_get(_params_handles.bias_max, &_bias_max);
 		param_get(_params_handles.vibe_thresh, &_vibration_warning_threshold);
 		param_get(_params_handles.ext_hdg_mode, &_ext_hdg_mode);
+		param_get(_params_handles.airspeed_mode, &_airspeed_mode);
 	}
 }
 

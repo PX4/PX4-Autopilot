@@ -224,6 +224,7 @@ private:
     bool            _vibration_warning; ///< high vibration levels detected
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
+    bool            _was_landed;        ///< indicates if was landed in previous iteration
 
     bool            _newHgtData;
     bool            _newAdsData;
@@ -255,6 +256,7 @@ private:
         float magb_pnoise;
         float eas_noise;
         float pos_stddev_threshold;
+        int32_t airspeed_mode;
     }       _parameters;            /**< local copies of interesting parameters */
 
     struct {
@@ -276,6 +278,7 @@ private:
         param_t magb_pnoise;
         param_t eas_noise;
         param_t pos_stddev_threshold;
+        param_t airspeed_mode;
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;

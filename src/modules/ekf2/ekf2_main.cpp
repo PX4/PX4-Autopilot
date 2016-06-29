@@ -271,6 +271,9 @@ private:
 	control::BlockParamFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
 	control::BlockParamFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
 
+	// airspeed mode parameter
+	control::BlockParamInt _airspeed_mode;
+
 	int update_subscriptions();
 
 };
@@ -366,7 +369,8 @@ Ekf2::Ekf2():
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
 	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, &_params->switch_on_accel_bias),
-	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err)
+	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err),
+	_airspeed_mode(this, "FW_ARSP_MODE", false)
 {
 
 }
@@ -513,7 +517,7 @@ void Ekf2::task_main()
 		// read gps data if available
 		if (gps_updated) {
 			struct gps_message gps_msg = {};
-			gps_msg.time_usec = gps.timestamp_position;
+			gps_msg.time_usec = gps.timestamp;
 			gps_msg.lat = gps.lat;
 			gps_msg.lon = gps.lon;
 			gps_msg.alt = gps.alt;
@@ -521,7 +525,6 @@ void Ekf2::task_main()
 			gps_msg.eph = gps.eph;
 			gps_msg.epv = gps.epv;
 			gps_msg.sacc = gps.s_variance_m_s;
-			gps_msg.time_usec_vel = gps.timestamp_velocity;
 			gps_msg.vel_m_s = gps.vel_m_s;
 			gps_msg.vel_ned[0] = gps.vel_n_m_s;
 			gps_msg.vel_ned[1] = gps.vel_e_m_s;
@@ -531,7 +534,7 @@ void Ekf2::task_main()
 			//TODO add gdop to gps topic
 			gps_msg.gdop = 0.0f;
 
-			_ekf.setGpsData(gps.timestamp_position, &gps_msg);
+			_ekf.setGpsData(gps.timestamp, &gps_msg);
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
@@ -655,14 +658,29 @@ void Ekf2::task_main()
 						1) * acceleration(1));
 			ctrl_state.horz_acc_mag = _acc_hor_filt;
 
-			// Airspeed - take airspeed measurement directly here as no wind is estimated
-			if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
-			    && airspeed.timestamp > 0) {
-				ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-				ctrl_state.airspeed_valid = true;
+			float vel[3] = {};
+			_ekf.get_velocity(vel);
 
-			} else {
-				ctrl_state.airspeed_valid = false;
+			ctrl_state.airspeed_valid = false;
+
+			// use estimated velocity for airspeed estimate
+			if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
+				// use measured airspeed
+				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
+				    && airspeed.timestamp > 0) {
+					ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+					ctrl_state.airspeed_valid = true;
+				}
+
+			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+				if (_ekf.local_position_is_valid()) {
+					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+					ctrl_state.airspeed_valid = true;
+				}
+
+			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
+				// do nothing, airspeed has been declared as non-valid above, controllers
+				// will handle this assuming always trim airspeed
 			}
 
 			// publish control state data
@@ -702,7 +720,6 @@ void Ekf2::task_main()
 			// generate vehicle local position data
 			struct vehicle_local_position_s lpos = {};
 			float pos[3] = {};
-			float vel[3] = {};
 
 			lpos.timestamp = hrt_absolute_time();
 
@@ -713,7 +730,6 @@ void Ekf2::task_main()
 			lpos.z = pos[2];
 
 			// Velocity of body origin in local NED frame (m/s)
-			_ekf.get_velocity(vel);
 			lpos.vx = vel[0];
 			lpos.vy = vel[1];
 			lpos.vz = vel[2];
@@ -892,8 +908,8 @@ void Ekf2::task_main()
 
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
-				replay.time_usec = gps.timestamp_position;
-				replay.time_usec_vel = gps.timestamp_velocity;
+				replay.time_usec = gps.timestamp;
+				replay.time_usec_vel = gps.timestamp;
 				replay.lat = gps.lat;
 				replay.lon = gps.lon;
 				replay.alt = gps.alt;

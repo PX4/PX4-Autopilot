@@ -259,6 +259,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gps_rtcm_data(msg);
 		break;
 
+	case MAVLINK_MSG_ID_BATTERY_STATUS:
+		handle_message_battery_status(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -1154,6 +1158,41 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	}
 }
 
+void
+MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
+{
+	// external battery measurements
+	mavlink_battery_status_t battery_mavlink;
+	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
+
+	battery_status_s battery_status = {};
+	battery_status.timestamp = hrt_absolute_time();
+
+	float voltage_sum = 0.0f;
+	uint8_t cell_count = 0;
+
+	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
+		voltage_sum += (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		cell_count++;
+	}
+
+	battery_status.voltage_v = voltage_sum;
+	battery_status.voltage_filtered_v  = voltage_sum;
+	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.current_filtered_a = battery_status.current_a;
+	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
+	battery_status.cell_count = cell_count;
+	battery_status.connected = true;
+
+	if (_battery_pub == nullptr) {
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+
+	} else {
+		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
+	}
+}
+
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
@@ -1740,20 +1779,18 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	struct vehicle_gps_position_s hil_gps;
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
-	hil_gps.timestamp_time = timestamp;
+	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
 
-	hil_gps.timestamp_position = timestamp;
+	hil_gps.timestamp = timestamp;
 	hil_gps.lat = gps.lat;
 	hil_gps.lon = gps.lon;
 	hil_gps.alt = gps.alt;
 	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
 	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
 
-	hil_gps.timestamp_variance = timestamp;
 	hil_gps.s_variance_m_s = 5.0f;
 
-	hil_gps.timestamp_velocity = timestamp;
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
 	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m

@@ -1323,6 +1323,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			mission_airspeed = _pos_sp_triplet.current.cruising_speed;
 		}
 
+		float mission_throttle = _parameters.throttle_cruise;
+
+		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
+			_pos_sp_triplet.current.cruising_throttle > 0.01f) {
+			mission_throttle = _pos_sp_triplet.current.cruising_throttle;
+		}
+
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
 			_att_sp.roll_body = 0.0f;
@@ -1336,7 +1343,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
