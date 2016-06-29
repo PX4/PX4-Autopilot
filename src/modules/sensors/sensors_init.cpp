@@ -52,6 +52,9 @@
 
 using namespace DriverFramework;
 
+namespace sensors
+{
+
 #if defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
 
 // Sensor initialization is performed automatically when the QuRT sensor drivers
@@ -213,3 +216,5 @@ baro_init()
 }
 
 #endif
+
+} /* namespace sensors */

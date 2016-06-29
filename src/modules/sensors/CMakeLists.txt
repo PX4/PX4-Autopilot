@@ -38,6 +38,7 @@ px4_add_module(
 	STACK_MAIN 1300
 	COMPILE_FLAGS
 	SRCS
+		rc_update.cpp
 		sensors.cpp
 		sensors_init.cpp
 
