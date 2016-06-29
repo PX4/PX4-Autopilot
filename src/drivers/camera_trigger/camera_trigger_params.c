@@ -41,6 +41,20 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
+ /**
+ * Camera trigger Interface
+ *
+ * Selects the trigger interface
+ *
+ * @value 1 GPIO
+ * @value 2 Seagull MAP2 (PWM)
+ *
+ * @reboot_required true
+ *
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_INTERFACE, 2);
+
 /**
 * Camera trigger Interface
 *
