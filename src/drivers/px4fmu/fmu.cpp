@@ -135,8 +135,10 @@ public:
 
 	virtual int	init();
 
+	void dsm_bind_ioctl();
+
 	int		set_mode(Mode mode);
-	Mode		get_mode() { return _mode; }
+	Mode	get_mode() { return _mode; }
 
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
@@ -270,7 +272,6 @@ private:
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
-	void dsm_bind_ioctl(int dsmMode);
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
@@ -1124,7 +1125,7 @@ PX4FMU::cycle()
 
 		// Check for a DSM pairing command
 		if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
-			dsm_bind_ioctl((int)cmd.param2);
+			dsm_bind_ioctl();
 		}
 
 	}
@@ -1991,7 +1992,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		PX4_DEBUG("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2432,24 +2433,32 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-PX4FMU::dsm_bind_ioctl(int dsmMode)
+PX4FMU::dsm_bind_ioctl()
 {
 	if (!_armed.armed) {
-		PX4_INFO("[FMU] binding Spektrum RX");
+		PX4_INFO("binding Spektrum RX");
 		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
 		int ret = ioctl(nullptr, DSM_BIND_START, DSMX8_BIND_PULSES);
 
 		if (ret) {
-			PX4_INFO("binding failed.");
+			PX4_ERR("binding failed.");
 		}
 
 	} else {
-		PX4_INFO("[FMU] system armed, bind request rejected");
+		PX4_WARN("system armed, bind request rejected");
 	}
 }
 
 namespace
 {
+
+void
+bind_spektrum()
+{
+	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+	g_fmu->dsm_bind_ioctl();
+
+}
 
 enum PortMode {
 	PORT_MODE_UNSET = 0,
@@ -2885,6 +2894,11 @@ fmu_main(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
 
+	if (!strcmp(verb, "bind")) {
+		bind_spektrum();
+		exit(0);
+	}
+
 	/* does not operate on a FMU instance */
 	if (!strcmp(verb, "i2c")) {
 		if (argc > 3) {
@@ -3022,7 +3036,7 @@ fmu_main(int argc, char *argv[])
 	fprintf(stderr,
 		"  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
-	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>, bind\n");
 #endif
 	exit(1);
 }
