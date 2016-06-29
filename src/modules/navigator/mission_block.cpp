@@ -127,7 +127,14 @@ MissionBlock::is_mission_item_reached()
 				_navigator->set_cruising_speed(_mission_item.params[1]);
 			} else {
 				_navigator->set_cruising_speed();
+				/* if no speed target was given try to set throttle */
+				if (_mission_item.params[2] > 0.0f) {
+					_navigator->set_cruising_throttle(_mission_item.params[2] / 100);
+				} else {
+					_navigator->set_cruising_throttle();
+				}
 			}
+
 			return true;
 
 		default:
@@ -367,6 +374,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->acceptance_radius = item->acceptance_radius;
 	sp->disable_mc_yaw_control = false;
 	sp->cruising_speed = _navigator->get_cruising_speed();
+	sp->cruising_throttle = _navigator->get_cruising_throttle();
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:

@@ -30,6 +30,7 @@ set(config_module_list
 	systemcmds/topic_listener
 	systemcmds/ver
 	systemcmds/top
+	systemcmds/motor_ramp
 
 	modules/attitude_estimator_ekf
 	modules/attitude_estimator_q

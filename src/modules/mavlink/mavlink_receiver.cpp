@@ -167,12 +167,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_long(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_int(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
@@ -187,6 +189,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_set_mode(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
@@ -229,6 +232,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_request_data_stream(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -253,6 +257,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
 		handle_message_gps_rtcm_data(msg);
+		break;
+
+	case MAVLINK_MSG_ID_BATTERY_STATUS:
+		handle_message_battery_status(msg);
 		break;
 
 	default:
@@ -354,6 +362,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
+		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+			get_message_interval((int)cmd_mavlink.param1);
 
 		} else {
 
@@ -533,7 +547,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 		if (_flow_distance_sensor_pub == nullptr) {
 			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-						   &_orb_class_instance, ORB_PRIO_HIGH);
+						    &_orb_class_instance, ORB_PRIO_HIGH);
 
 		} else {
 			orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
@@ -1144,6 +1158,41 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	}
 }
 
+void
+MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
+{
+	// external battery measurements
+	mavlink_battery_status_t battery_mavlink;
+	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
+
+	battery_status_s battery_status = {};
+	battery_status.timestamp = hrt_absolute_time();
+
+	float voltage_sum = 0.0f;
+	uint8_t cell_count = 0;
+
+	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
+		voltage_sum += (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		cell_count++;
+	}
+
+	battery_status.voltage_v = voltage_sum;
+	battery_status.voltage_filtered_v  = voltage_sum;
+	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.current_filtered_a = battery_status.current_a;
+	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
+	battery_status.cell_count = cell_count;
+	battery_status.connected = true;
+
+	if (_battery_pub == nullptr) {
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+
+	} else {
+		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
+	}
+}
+
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
@@ -1365,20 +1414,60 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
-	mavlink_request_data_stream_t req;
-	mavlink_msg_request_data_stream_decode(msg, &req);
+	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
+}
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid
-	    && req.req_message_rate != 0) {
-		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+void
+MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
+{
+	if (data_rate > 0) {
+		_mavlink->set_data_rate(data_rate);
+	}
 
-		MavlinkStream *stream;
-		LL_FOREACH(_mavlink->get_streams(), stream) {
-			if (req.req_stream_id == stream->get_id()) {
-				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
+	// configure_stream wants a rate (msgs/second), so convert here.
+	float rate = 0;
+
+	if (interval < 0) {
+		// stop the stream.
+		rate = 0;
+
+	} else if (interval > 0) {
+		rate = 1000000.0f / interval;
+
+	} else {
+		// note: mavlink spec says rate == 0 is requesting a default rate but our streams
+		// don't publish a default rate so for now let's pick a default rate of zero.
+	}
+
+	// The interval between two messages is in microseconds.
+	// Set to -1 to disable and 0 to request default rate
+	if (msgId != 0) {
+		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+			const StreamListItem *item = streams_list[i];
+
+			if (msgId == item->get_id()) {
+				_mavlink->configure_stream_threadsafe(item->get_name(), rate);
+				break;
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::get_message_interval(int msgId)
+{
+	unsigned interval = 0;
+
+	MavlinkStream *stream;
+	LL_FOREACH(_mavlink->get_streams(), stream) {
+		if (stream->get_id() == msgId) {
+			interval = stream->get_interval();
+			break;
+		}
+	}
+
+	// send back this value...
+	mavlink_msg_message_interval_send(_mavlink->get_channel(), msgId, interval);
 }
 
 void
@@ -1690,20 +1779,18 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	struct vehicle_gps_position_s hil_gps;
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
-	hil_gps.timestamp_time = timestamp;
+	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
 
-	hil_gps.timestamp_position = timestamp;
+	hil_gps.timestamp = timestamp;
 	hil_gps.lat = gps.lat;
 	hil_gps.lon = gps.lon;
 	hil_gps.alt = gps.alt;
 	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
 	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
 
-	hil_gps.timestamp_variance = timestamp;
 	hil_gps.s_variance_m_s = 5.0f;
 
-	hil_gps.timestamp_velocity = timestamp;
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
 	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m

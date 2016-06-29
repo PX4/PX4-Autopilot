@@ -7,7 +7,7 @@
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-sh /etc/init.d/rc.mc_defaults
+sh /etc/init.d/4001_quad_x
 
 if [ $AUTOCNF == yes ]
 then
@@ -21,10 +21,3 @@ then
 	param set MC_PITCHRATE_D 0.004
 	param set MC_YAW_P 4
 fi
-
-set MIXER quad_x
-
-set PWM_OUT 1234
-
-set PWM_MIN 1100
-set PWM_MAX 1950

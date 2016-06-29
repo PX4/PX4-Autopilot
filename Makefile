@@ -50,11 +50,11 @@ ifneq ($(CMAKE_VER),0)
     $(warning sudo apt-get install cmake)
     $(warning )
     $(warning Official website:)
-    $(warning wget https://cmake.org/files/v3.3/cmake-3.3.2-Linux-x86_64.sh)
-    $(warning chmod +x cmake-3.3.2-Linux-x86_64.sh)
-    $(warning sudo mkdir /opt/cmake-3.3.2)
-    $(warning sudo ./cmake-3.3.2-Linux-x86_64.sh --prefix=/opt/cmake-3.3.2 --exclude-subdir)
-    $(warning export PATH=/opt/cmake-3.3.2/bin:$$PATH)
+    $(warning wget https://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.sh)
+    $(warning chmod +x cmake-3.4.3-Linux-x86_64.sh)
+    $(warning sudo mkdir /opt/cmake-3.4.3)
+    $(warning sudo ./cmake-3.4.3-Linux-x86_64.sh --prefix=/opt/cmake-3.4.3 --exclude-subdir)
+    $(warning export PATH=/opt/cmake-3.4.3/bin:$$PATH)
     $(warning )
     $(error Fatal)
 endif
@@ -159,6 +159,9 @@ mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
 posix_sitl_default:
+	$(call cmake-build,$@)
+	
+posix_sitl_lpe:
 	$(call cmake-build,$@)
 
 posix_sitl_test:
@@ -289,7 +292,9 @@ endif
 unittest: posix_sitl_test
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
-	
+
+tests: posix_sitl_test unittest
+
 test_onboard_sitl:
 	@HEADLESS=1 make posix_sitl_test gazebo_iris
 
@@ -299,7 +304,13 @@ qgc_firmware: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
-	check_px4fmu-v4_default_and_uavcan
+	check_px4fmu-v4_default_and_uavcan \
+	check_format
+
+extra_firmware: \
+	check_px4-stm32f4discovery_default \
+	check_px4fmu-v2_test \
+	check_px4fmu-v2_ekf2
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
@@ -320,7 +331,7 @@ distclean: submodulesclean
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
 	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
-	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo gazebo_typhoon_h480
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

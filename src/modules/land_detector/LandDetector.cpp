@@ -103,17 +103,15 @@ void LandDetector::cycle()
 	}
 
 	LandDetectionResult current_state = update();
+	bool landDetected = (current_state == LANDDETECTION_RES_LANDED);
+	bool freefallDetected = (current_state == LANDDETECTION_RES_FREEFALL);
 
-	_landDetected.timestamp = hrt_absolute_time();
-	_landDetected.landed = (current_state == LANDDETECTION_RES_LANDED);
-	_landDetected.freefall = (current_state == LANDDETECTION_RES_FREEFALL);
-
-	// publish the land detected broadcast
-	if (_landDetectedPub == nullptr) {
-		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
+	if (_landDetectedPub == nullptr || _landDetected.landed != landDetected || _landDetected.freefall != freefallDetected) {
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.landed = (current_state == LANDDETECTION_RES_LANDED);
+		_landDetected.freefall = (current_state == LANDDETECTION_RES_FREEFALL);
+		int instance;
+		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected, &instance, ORB_PRIO_DEFAULT);
 	}
 
 	if (!_taskShouldExit) {

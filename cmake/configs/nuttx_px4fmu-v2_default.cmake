@@ -68,6 +68,7 @@ set(config_module_list
 	systemcmds/ver
 	#systemcmds/sd_bench
 	#systemcmds/tests
+	systemcmds/motor_ramp
 
 	#
 	# General system control
@@ -100,7 +101,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/logger
+	#modules/logger
 	modules/sdlog2
 
 	#

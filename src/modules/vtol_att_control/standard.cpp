@@ -67,7 +67,8 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
-	_params_handles_standard.forward_thurst_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
 }
 
 Standard::~Standard()
@@ -78,6 +79,7 @@ int
 Standard::parameters_update()
 {
 	float v;
+	int i;
 
 	/* duration of a forwards transition to fw mode */
 	param_get(_params_handles_standard.front_trans_dur, &v);
@@ -112,7 +114,12 @@ Standard::parameters_update()
 	_params_standard.down_pitch_max = math::radians(v);
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
-	param_get(_params_handles_standard.forward_thurst_scale, &_params_standard.forward_thurst_scale);
+	param_get(_params_handles_standard.forward_thrust_scale, &_params_standard.forward_thrust_scale);
+
+	/* airspeed mode */
+	param_get(_params_handles_standard.airspeed_mode, &i);
+	_params_standard.airspeed_mode = math::constrain(i, 0, 2);
+
 
 
 	return OK;
@@ -180,7 +187,8 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if ((_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans &&
+			if (((_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED ||
+			      _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
 			    can_transition_on_ground()) {
@@ -242,6 +250,19 @@ void Standard::update_transition_state()
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
 
+			// time based blending when no airspeed sensor is set
+
+		} else if (_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED &&
+			   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
+			  ) {
+			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) /
+						      (_params_standard.front_trans_time_min * 1000000.0f));
+			_mc_roll_weight = weight;
+			_mc_pitch_weight = weight;
+			_mc_yaw_weight = weight;
+			_mc_throttle_weight = weight;
+
+
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
@@ -294,7 +315,7 @@ void Standard::update_mc_state()
 	VtolType::update_mc_state();
 
 	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
-	if (_params_standard.forward_thurst_scale < FLT_EPSILON) {
+	if (_params_standard.forward_thrust_scale < FLT_EPSILON) {
 		return;
 	}
 

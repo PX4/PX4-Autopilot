@@ -8,6 +8,8 @@ extern orb_advert_t mavlink_log_pub;
 // to initialize
 static const uint32_t 		REQ_GPS_INIT_COUNT = 10;
 static const uint32_t 		GPS_TIMEOUT =      1000000; // 1.0 s
+static const float 			GPS_EPH_MIN =      2.0; // m, min allowed by gps self reporting
+static const float 			GPS_EPV_MIN =      2.0; // m, min allowed by gps self reporting
 
 void BlockLocalPositionEstimator::gpsInit()
 {
@@ -122,12 +124,12 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float var_vxy = _gps_vxy_stddev.get() * _gps_vxy_stddev.get();
 	float var_vz = _gps_vz_stddev.get() * _gps_vz_stddev.get();
 
-	// if field is not zero, set it to the value provided
-	if (_sub_gps.get().eph > 1e-3f) {
+	// if field is not below minimum, set it to the value provided
+	if (_sub_gps.get().eph > GPS_EPH_MIN) {
 		var_xy = _sub_gps.get().eph * _sub_gps.get().eph;
 	}
 
-	if (_sub_gps.get().epv > 1e-3f) {
+	if (_sub_gps.get().epv > GPS_EPV_MIN) {
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
