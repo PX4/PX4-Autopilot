@@ -27,6 +27,11 @@
   _perf_chan_count(perf_alloc(PC_COUNT, "io rc #"))
   ^
 
+
+//Missing from deconfig file?? //ADDED!! SEE changes_for_defconfig
+/home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
+__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
+
 //AGAIN, I COMMENTED OUT AEROCORE_RC FOR NOW INSTEAD OF FIXING
 In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:51:0:
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c: In function 'dsm_init':
@@ -37,19 +42,18 @@ In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:5
   POWER_SPEKTRUM(true);
   ^
 
-
-//Missing from deconfig file?? //ADDED!! SEE changes_for_defconfig
-/home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
-__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
-
 //NOT FIXED.  I JUST COMMENTED OUT AEROCORE_RC AS A BANDAID SO I CAN SEE IF IT IS NECESSARY
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp: In member function 'virtual int AeroCoreIO::init()':
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/aerocore_rc.cpp:239:27: error: 'debug' was not declared in this scope
    debug("CDev init failed");
 
 
-//                           ^
+// In aerocore cmake file needed to include params library                          ^
 /home/jessica/src/Firmware/src/modules/systemlib/param/param.c:68:28: fatal error: px4_parameters.h: No such file or directory
  #include "px4_parameters.h"
                             ^
+
+//luavcan probably supposed to be libuavcan, see if you can change it
+/home/jessica/gcc-arm-none-eabi-4_9-2014q4/bin/../lib/gcc/arm-none-eabi/4.9.3/../../../../arm-none-eabi/bin/ld: cannot find -luavcan
+/home/jessica/gcc-arm-none-eabi-4_9-2014q4/bin/../lib/gcc/arm-none-eabi/4.9.3/../../../../arm-none-eabi/bin/ld: cannot find -luavcan_stm32_driver
 

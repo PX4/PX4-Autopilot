@@ -81,7 +81,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	#modules/uavcan
+	#modules/uavcan ##was commented out but tried adding
 	modules/land_detector
 
 	#
@@ -110,7 +110,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	#modules/param
+	modules/param  ##new, but needs to be here
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
