@@ -1412,13 +1412,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
-		/* announce the airspeed if needed, just publish else */
-		if (_airspeed_pub != nullptr) {
-			orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
-
-		} else {
-			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
-		}
+		int instance;
+		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
 	}
 }
 
@@ -1910,13 +1905,9 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 								(diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
-						/* announce the airspeed if needed, just publish else */
-						if (_diff_pres_pub != nullptr) {
-							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
-
-						} else {
-							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
-						}
+						int instance;
+						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance,
+								 ORB_PRIO_DEFAULT);
 					}
 
 #endif
@@ -1929,13 +1920,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
 							     _armed, &_battery_status);
 
-				/* announce the battery status if needed, just publish else */
-				if (_battery_pub != nullptr) {
-					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-				} else {
-					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-				}
+				int instance;
+				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
 			}
 
 			_last_adc = t;
@@ -2134,12 +2120,8 @@ Sensors::rc_poll()
 		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
-		if (_rc_pub != nullptr) {
-			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
-
-		} else {
-			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
-		}
+		int instance;
+		orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 
 		/* only publish manual control if the signal is still present */
 		if (!signal_lost) {
@@ -2214,12 +2196,8 @@ Sensors::rc_poll()
 					     _parameters.rc_gear_th, _parameters.rc_gear_inv);
 
 			/* publish manual_control_setpoint topic */
-			if (_manual_control_pub != nullptr) {
-				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
-
-			} else {
-				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
-			}
+			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
+					 ORB_PRIO_DEFAULT);
 
 			/* copy from mapped manual control to control group 3 */
 			struct actuator_controls_s actuator_group_3 = {};
@@ -2236,12 +2214,8 @@ Sensors::rc_poll()
 			actuator_group_3.control[7] = manual.aux3;
 
 			/* publish actuator_controls_3 topic */
-			if (_actuator_group_3_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
-
-			} else {
-				_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
-			}
+			orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance,
+					 ORB_PRIO_DEFAULT);
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			static hrt_abstime last_rc_to_param_map_time = 0;
