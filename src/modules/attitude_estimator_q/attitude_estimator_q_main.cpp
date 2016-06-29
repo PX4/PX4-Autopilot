@@ -62,6 +62,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/sensor_status.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
@@ -128,7 +129,8 @@ private:
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
-	orb_advert_t	_est_state_pub = nullptr;
+	orb_advert_t	_est_status_pub = nullptr;;
+	orb_advert_t	_imu_status_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -599,10 +601,6 @@ void AttitudeEstimatorQ::task_main()
 		memcpy(&att.q[0], _q.data, sizeof(att.q));
 		att.q_valid = true;
 
-		att.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
-		att.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
-		att.mag_vibration = _voter_mag.get_vibration_factor(hrt_absolute_time());
-
 		/* the instance count is not used here */
 		int att_inst;
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
@@ -656,6 +654,29 @@ void AttitudeEstimatorQ::task_main()
 			int ctrl_inst;
 			/* publish to control state topic */
 			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
+		}
+
+		{
+
+			struct sensor_status_s status = {};
+
+			status.timestamp = sensors.timestamp;
+
+			/* Sensor IDs of currently in-use sensors */
+			status.gyro_id = best_gyro;
+			status.accel_id = best_accel;
+			status.mag_id = best_mag;
+
+			/* Vibration data for currently in-use sensors */
+			status.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
+			status.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
+			status.mag_vibration = _voter_mag.get_vibration_factor(hrt_absolute_time());
+
+			/* the instance count is not used here */
+			int status_inst;
+			/* Publish to sensors status topic */
+			orb_publish_auto(ORB_ID(sensor_status), &_imu_status_pub, &status, &status_inst, ORB_PRIO_DEFAULT);
+
 		}
 
 		{

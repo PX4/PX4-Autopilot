@@ -72,6 +72,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -690,6 +691,13 @@ public:
 private:
 	MavlinkOrbSubscription *_sensor_sub;
 	uint64_t _sensor_time;
+	
+	MavlinkOrbSubscription *_sensor_status_sub;
+	uint64_t _status_time;
+	
+	int _accel_id;
+	int _gyro_id;
+	int _mag_id;
 
 	uint64_t _accel_timestamp;
 	uint64_t _gyro_timestamp;
@@ -704,6 +712,11 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
+		_sensor_status_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_status))),
+		_status_time(0),
+		_accel_id(0),
+		_gyro_id(0),
+		_mag_id(0),
 		_accel_timestamp(0),
 		_gyro_timestamp(0),
 		_mag_timestamp(0),
@@ -713,29 +726,40 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct sensor_combined_s sensor;
+		struct sensor_status_s status;
+		
+		if (_sensor_status_sub->update(&_status_time, &status)) {
+			_accel_id = status.accel_id;
+			_gyro_id = status.gyro_id;
+			_mag_id = status.mag_id;
+		}
 
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
+			
+			int accel_idx = 3*_accel_id;
+			int gyro_idx = 3*_gyro_id;
+			int mag_idx = 3*_mag_id;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp[0]) {
+			if (_accel_timestamp != sensor.accelerometer_timestamp[accel_idx]) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp[0];
+				_accel_timestamp = sensor.accelerometer_timestamp[accel_idx];
 			}
 
-			if (_gyro_timestamp != sensor.gyro_timestamp[0]) {
+			if (_gyro_timestamp != sensor.gyro_timestamp[gyro_idx]) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				_gyro_timestamp = sensor.gyro_timestamp[0];
+				_gyro_timestamp = sensor.gyro_timestamp[gyro_idx];
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp[0]) {
+			if (_mag_timestamp != sensor.magnetometer_timestamp[mag_idx]) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp[0];
+				_mag_timestamp = sensor.magnetometer_timestamp[mag_idx];
 			}
 
-			if (_baro_timestamp != sensor.baro_timestamp[0]) {
+			if (_baro_timestamp != sensor.baro_timestamp[0]) {	// XXX use baro ID too
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
 				_baro_timestamp = sensor.baro_timestamp[0];
@@ -744,16 +768,16 @@ protected:
 			mavlink_highres_imu_t msg;
 
 			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0];
-			msg.yacc = sensor.accelerometer_m_s2[1];
-			msg.zacc = sensor.accelerometer_m_s2[2];
-			msg.xgyro = sensor.gyro_rad_s[0];
-			msg.ygyro = sensor.gyro_rad_s[1];
-			msg.zgyro = sensor.gyro_rad_s[2];
-			msg.xmag = sensor.magnetometer_ga[0];
-			msg.ymag = sensor.magnetometer_ga[1];
-			msg.zmag = sensor.magnetometer_ga[2];
-			msg.abs_pressure = sensor.baro_pres_mbar[0];
+			msg.xacc = sensor.accelerometer_m_s2[accel_idx + 0];
+			msg.yacc = sensor.accelerometer_m_s2[accel_idx + 1];
+			msg.zacc = sensor.accelerometer_m_s2[accel_idx + 2];
+			msg.xgyro = sensor.gyro_rad_s[gyro_idx + 0];
+			msg.ygyro = sensor.gyro_rad_s[gyro_idx + 1];
+			msg.zgyro = sensor.gyro_rad_s[gyro_idx + 2];
+			msg.xmag = sensor.magnetometer_ga[mag_idx + 0];
+			msg.ymag = sensor.magnetometer_ga[mag_idx + 1];
+			msg.zmag = sensor.magnetometer_ga[mag_idx + 2];
+			msg.abs_pressure = sensor.baro_pres_mbar[0];	// XXX baro too
 			msg.diff_pressure = sensor.differential_pressure_pa[0];
 			msg.pressure_alt = sensor.baro_alt_meter[0];
 			msg.temperature = sensor.baro_temp_celcius[0];
