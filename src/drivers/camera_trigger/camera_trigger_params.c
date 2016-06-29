@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,20 @@
 
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
+
+/**
+* Camera trigger Interface
+*
+* Selects the trigger interface
+*
+* @value 1 GPIO
+* @value 2 Seagull MAP2 (PWM)
+*
+* @reboot_required true
+*
+* @group Camera trigger
+*/
+PARAM_DEFINE_INT32(TRIG_INTERFACE, 2);
 
 /**
  * Camera trigger interval
@@ -106,7 +120,7 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * @reboot_required true
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_PINS, 12);
+PARAM_DEFINE_INT32(TRIG_PINS, 6);
 
 /**
  * Camera trigger distance

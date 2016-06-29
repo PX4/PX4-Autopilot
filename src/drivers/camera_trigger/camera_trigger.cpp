@@ -77,7 +77,7 @@ extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 typedef enum {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_RELAY,
-	CAMERA_INTERFACE_MODE_PWM
+	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM
 } camera_interface_mode_t;
 
 class CameraTrigger
@@ -86,7 +86,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	CameraTrigger(camera_interface_mode_t camera_interface_mode);
+	CameraTrigger();
 
 	/**
 	 * Destructor, also kills task.
@@ -145,6 +145,7 @@ private:
 	param_t _p_interval;
 	param_t _p_distance;
 	param_t _p_pin;
+	param_t _p_interface;
 
 	camera_interface_mode_t _camera_interface_mode;
 	CameraInterface *_camera_interface;  ///< instance of camera interface
@@ -172,7 +173,7 @@ namespace camera_trigger
 CameraTrigger	*g_camera_trigger;
 }
 
-CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
+CameraTrigger::CameraTrigger() :
 	_engagecall {},
 	_disengagecall {},
 	_gpio_fd(-1),
@@ -187,7 +188,7 @@ CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
 	_trigger_pub(nullptr),
-	_camera_interface_mode(camera_interface_mode),
+	_camera_interface_mode(CAMERA_INTERFACE_MODE_RELAY),
 	_camera_interface(nullptr)
 {
 	//Initiate Camera interface basedon camera_interface_mode
@@ -197,19 +198,6 @@ CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 		_camera_interface = nullptr;
 	}
 
-	switch (_camera_interface_mode) {
-	case CAMERA_INTERFACE_MODE_RELAY:
-		_camera_interface = new CameraInterfaceRelay;
-		break;
-
-	case CAMERA_INTERFACE_MODE_PWM:
-		_camera_interface = new CameraInterfacePWM;
-		break;
-
-	default:
-		break;
-	}
-
 	memset(&_work, 0, sizeof(_work));
 
 	// Parameters
@@ -217,15 +205,26 @@ CameraTrigger::CameraTrigger(camera_interface_mode_t camera_interface_mode) :
 	_p_distance = param_find("TRIG_DISTANCE");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
+	_p_interface = param_find("TRIG_INTERFACE");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, &_mode);
+	param_get(_p_interface, &_camera_interface_mode);
 
-	struct camera_trigger_s	camera_trigger = {};
+	switch (_camera_interface_mode) {
+	case CAMERA_INTERFACE_MODE_RELAY:
+		_camera_interface = new CameraInterfaceRelay;
+		break;
 
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &camera_trigger);
+	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:
+		_camera_interface = new CameraInterfacePWM;
+		break;
+
+	default:
+		break;
+	}
 }
 
 CameraTrigger::~CameraTrigger()
@@ -420,7 +419,9 @@ CameraTrigger::engage(void *arg)
 
 	report.seq = trig->_trigger_seq++;
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
+	int instance;
+
+	orb_publish_auto(ORB_ID(camera_trigger), &trig->_trigger_pub, &report, &instance, ORB_PRIO_HIGH);
 }
 
 void
@@ -456,39 +457,24 @@ int camera_trigger_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (camera_trigger::g_camera_trigger != nullptr) {
-			errx(0, "already running");
+			PX4_WARN("already running");
+			return 0;
 		}
 
-		if (argc >= 3) {
-			if (!strcmp(argv[2], "--relay")) {
-				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_RELAY);
-				warnx("started with camera interface mode : relay");
-
-			} else if (!strcmp(argv[2], "--pwm")) {
-				camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_PWM);
-				warnx("started with camera interface mode : pwm");
-
-			} else {
-				usage();
-				return 0;
-			}
-
-		} else {
-			camera_trigger::g_camera_trigger = new CameraTrigger(CAMERA_INTERFACE_MODE_RELAY);
-			warnx("started with default camera interface mode : relay");
-		}
+		camera_trigger::g_camera_trigger = new CameraTrigger();
 
 		if (camera_trigger::g_camera_trigger == nullptr) {
-			errx(1, "alloc failed");
+			PX4_WARN("alloc failed");
+			return 1;
 		}
 
 		camera_trigger::g_camera_trigger->start();
-
 		return 0;
 	}
 
 	if (camera_trigger::g_camera_trigger == nullptr) {
-		errx(1, "not running");
+		PX4_WARN("not running");
+		return 1;
 
 	} else if (!strcmp(argv[1], "stop")) {
 		camera_trigger::g_camera_trigger->stop();
