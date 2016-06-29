@@ -797,6 +797,7 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	_q.normalize();
 
+
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame
 	// Vector<3> k = _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, 1.0f));
@@ -810,7 +811,9 @@ bool AttitudeEstimatorQ::update(float dt)
 	corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
 
 	// Gyro bias estimation
-	_gyro_bias += corr * (_w_gyro_bias * dt);
+	if (_gyro.length() < 1.0f) {
+		_gyro_bias += corr * (_w_gyro_bias * dt);
+	}
 
 	for (int i = 0; i < 3; i++) {
 		_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
