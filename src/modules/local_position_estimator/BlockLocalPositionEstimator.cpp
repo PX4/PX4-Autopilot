@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
+#include <cstdlib>
 
 orb_advert_t mavlink_log_pub = nullptr;
 
@@ -272,6 +273,9 @@ void BlockLocalPositionEstimator::update()
 
 		// assume we are on the ground, so terrain alt is local alt
 		_x(X_tz) = _x(X_z);
+
+		// reset lowpass filter as well
+		_xLowPass.setState(_x);
 	}
 
 	_lastArmedState = armedState;
@@ -588,11 +592,11 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 	float by = dx(X_by) + _x(X_by);
 	float bz = dx(X_bz) + _x(X_bz);
 
-	if (abs(bx) > BIAS_MAX) { bx = BIAS_MAX * bx / abs(bx); }
+	if (std::abs(bx) > BIAS_MAX) { bx = BIAS_MAX * bx / std::abs(bx); }
 
-	if (abs(by) > BIAS_MAX) { by = BIAS_MAX * by / abs(by); }
+	if (std::abs(by) > BIAS_MAX) { by = BIAS_MAX * by / std::abs(by); }
 
-	if (abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / abs(bz); }
+	if (std::abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / std::abs(bz); }
 }
 
 void BlockLocalPositionEstimator::detectDistanceSensors()
