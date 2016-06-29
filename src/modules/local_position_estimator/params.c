@@ -336,3 +336,14 @@ PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
  */
 PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
 
+/**
+ * Cut frequency for state publication
+ *
+ * @group Local Position Estimator
+ * @unit Hz
+ * @min 5
+ * @max 1000
+ * @decimal 0
+ */
+PARAM_DEFINE_FLOAT(LPE_X_LP, 10);
+

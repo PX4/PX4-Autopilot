@@ -102,7 +102,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocapStats(this, ""),
 	_gpsStats(this, ""),
 
-	// stats
+	// low pass
+	_xLowPass(this, "X_LP"),
+
+	// delay
 	_xDelay(this, ""),
 	_tDelay(this, ""),
 
@@ -210,6 +213,16 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
 {
+}
+
+Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
+	float t,
+	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
+	const Vector<float, BlockLocalPositionEstimator::n_u> &u,
+	const Matrix<float, BlockLocalPositionEstimator::n_x, BlockLocalPositionEstimator::n_x> &A,
+	const Matrix<float, BlockLocalPositionEstimator::n_x, BlockLocalPositionEstimator::n_u> &B)
+{
+	return A * x + B * u;
 }
 
 void BlockLocalPositionEstimator::update()
@@ -533,7 +546,8 @@ void BlockLocalPositionEstimator::checkTimeouts()
 
 float BlockLocalPositionEstimator::agl()
 {
-	return _x(X_tz) - _x(X_z);
+	const Vector<float, n_x> &xLP = _xLowPass.getState();
+	return xLP(X_tz) - xLP(X_z);
 }
 
 void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
@@ -634,6 +648,8 @@ void BlockLocalPositionEstimator::updateHome()
 
 void BlockLocalPositionEstimator::publishLocalPos()
 {
+	const Vector<float, n_x> &xLP = _xLowPass.getState();
+
 	// publish local position
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
@@ -643,12 +659,12 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().z_valid = _validZ;
 		_pub_lpos.get().v_xy_valid = _validXY;
 		_pub_lpos.get().v_z_valid = _validZ;
-		_pub_lpos.get().x = _x(X_x); 	// north
-		_pub_lpos.get().y = _x(X_y);  	// east
-		_pub_lpos.get().z = _x(X_z); 	// down
-		_pub_lpos.get().vx = _x(X_vx);  // north
-		_pub_lpos.get().vy = _x(X_vy);  // east
-		_pub_lpos.get().vz = _x(X_vz); 	// down
+		_pub_lpos.get().x = xLP(X_x); 	// north
+		_pub_lpos.get().y = xLP(X_y);  	// east
+		_pub_lpos.get().z = xLP(X_z); 	// down
+		_pub_lpos.get().vx = xLP(X_vx); // north
+		_pub_lpos.get().vy = xLP(X_vy); // east
+		_pub_lpos.get().vz = xLP(X_vz); // down
 		_pub_lpos.get().yaw = _sub_att.get().yaw;
 		_pub_lpos.get().xy_global = _sub_home.get().timestamp != 0; // need home for reference
 		_pub_lpos.get().z_global = _baroInitialized;
@@ -657,7 +673,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _sub_home.get().alt;
 		_pub_lpos.get().dist_bottom = agl();
-		_pub_lpos.get().dist_bottom_rate = -_x(X_vz);
+		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
 		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
 		_pub_lpos.get().dist_bottom_valid = _validTZ && _validZ;
 		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
@@ -701,24 +717,25 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	// publish global position
 	double lat = 0;
 	double lon = 0;
-	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
-	float alt = -_x(X_z) + _altHome;
+	const Vector<float, n_x> &xLP = _xLowPass.getState();
+	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
+	float alt = -xLP(X_z) + _altHome;
 
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy)) &&
-	    PX4_ISFINITE(_x(X_vz))) {
+	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
+	    PX4_ISFINITE(xLP(X_vz))) {
 		_pub_gpos.get().timestamp = _timeStamp;
 		_pub_gpos.get().time_utc_usec = _sub_gps.get().time_utc_usec;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
-		_pub_gpos.get().vel_n = _x(X_vx);
-		_pub_gpos.get().vel_e = _x(X_vy);
-		_pub_gpos.get().vel_d = _x(X_vz);
+		_pub_gpos.get().vel_n = xLP(X_vx);
+		_pub_gpos.get().vel_e = xLP(X_vy);
+		_pub_gpos.get().vel_d = xLP(X_vz);
 		_pub_gpos.get().yaw = _sub_att.get().yaw;
 		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
-		_pub_gpos.get().terrain_alt = _altHome - _x(X_tz);
+		_pub_gpos.get().terrain_alt = _altHome - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
 		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter[0];
@@ -819,7 +836,16 @@ void BlockLocalPositionEstimator::predict()
 	Q(X_tz, X_tz) = pn_t_sq;
 
 	// continuous time kalman filter prediction
-	Vector<float, n_x> dx = (A * _x + B * _u) * getDt();
+	// integrate runge kutta 4th order
+	// TODO move rk4 algorithm to matrixlib
+	// https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+	float h = getDt();
+	Vector<float, n_x> k1, k2, k3, k4;
+	k1 = dynamics(0, _x, _u, A, B);
+	k2 = dynamics(h / 2, _x + k1 * h / 2, _u, A, B);
+	k3 = dynamics(h / 2, _x + k2 * h / 2, _u, A, B);
+	k4 = dynamics(h, _x + k3 * h, _u, A, B);
+	Vector<float, n_x> dx = (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
 
 	// propagate
 	correctionLogic(dx);
@@ -827,4 +853,5 @@ void BlockLocalPositionEstimator::predict()
 	_P += (A * _P + _P * A.transpose() +
 	       B * R * B.transpose() +
 	       Q) * getDt();
+	_xLowPass.update(_x);
 }

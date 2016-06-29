@@ -135,6 +135,12 @@ public:
 
 	BlockLocalPositionEstimator();
 	void update();
+	Vector<float, n_x> dynamics(
+		float t,
+		const Vector<float, n_x> &x,
+		const Vector<float, n_u> &u,
+		const Matrix<float, n_x, n_x> &A,
+		const Matrix<float, n_x, n_u> &B);
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -303,6 +309,9 @@ private:
 	BlockStats<float, n_y_vision> _visionStats;
 	BlockStats<float, n_y_mocap> _mocapStats;
 	BlockStats<double, n_y_gps> _gpsStats;
+
+	// low pass
+	BlockLowPassVector<float, n_x> _xLowPass;
 
 	// delay blocks
 	BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
