@@ -32,6 +32,11 @@
 /home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
 __EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
 
+//Commented out the duplicated definition
+../../drivers/boards/aerocore/libdrivers__boards__aerocore.a(aerocore_init.c.obj): In function `nsh_archinitialize':
+/home/jessica/src/Firmware/src/drivers/boards/aerocore/aerocore_init.c:221: multiple definition of `matherr'
+/home/jessica/gcc-arm-none-eabi-4_9-2014q4/bin/../lib/gcc/arm-none-eabi/4.9.3/../../../../arm-none-eabi/lib/armv7e-m/fpu/libm.a(lib_a-s_matherr.o):s_matherr.c:(.text.matherr+0x0): first defined here
+
 //AGAIN, I COMMENTED OUT AEROCORE_RC FOR NOW INSTEAD OF FIXING
 In file included from /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c:51:0:
 /home/jessica/src/Firmware/src/drivers/aerocore_rc/dsm.c: In function 'dsm_init':

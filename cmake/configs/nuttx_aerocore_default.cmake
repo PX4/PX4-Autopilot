@@ -2,6 +2,7 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
+## Not sure what this does, tried commenting out to help compile but had no effect.  Will leave it here
 set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
@@ -63,25 +64,25 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
-	#systemcmds/topic_listener
+	systemcmds/topic_listener ##Try adding
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
-	#systemcmds/sd_bench
-	#systemcmds/tests
+	systemcmds/sd_bench ##Try adding
+	systemcmds/tests ##Try adding
 
 	#
 	# General system control
 	#
 	modules/commander
-	#modules/load_mon
+	modules/load_mon ##Try adding
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	#modules/uavcan ##was commented out but tried adding
+	#modules/uavcan ##was commented out but tried adding, did not seem to help
 	modules/land_detector
 
 	#
@@ -174,20 +175,23 @@ set(config_module_list
 	#examples/hwtest
 )
 
+
+##The stuff below this comment is not working.  
 set(config_extra_builtin_cmds
 	serdis
 	sercon
 	)
 
 # Might not want to keep this
-#set(config_io_board
-	#px4io-v2
-	#)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
+set(config_io_board
+	px4io-v2
 	)
+
+##THIS MUST BE THE PROBLEM WITH THE COMPILING ERROR
+#set(config_extra_libs
+#	uavcan
+#	uavcan_stm32_driver
+#	)
 
 set(config_io_extra_libs
 	)
