@@ -138,9 +138,7 @@ public:
 	Vector<float, n_x> dynamics(
 		float t,
 		const Vector<float, n_x> &x,
-		const Vector<float, n_u> &u,
-		const Matrix<float, n_x, n_x> &A,
-		const Matrix<float, n_x, n_u> &B);
+		const Vector<float, n_u> &u);
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -151,6 +149,9 @@ private:
 	// methods
 	// ----------------------------
 	void initP();
+	void initSS();
+	void updateSSStates();
+	void updateSSParams();
 
 	// predict the next state
 	void predict();
@@ -383,4 +384,8 @@ private:
 	Vector<float, n_x>  _x; // state vector
 	Vector<float, n_u>  _u; // input vector
 	Matrix<float, n_x, n_x>  _P; // state covariance matrix
+	Matrix<float, n_x, n_x>  _A; // dynamics matrix
+	Matrix<float, n_x, n_u>  _B; // input matrix
+	Matrix<float, n_u, n_u>  _R; // input covariance
+	Matrix<float, n_x, n_x>  _Q; // process noise covariance
 };

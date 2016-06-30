@@ -171,7 +171,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 
 	if (beta > BETA_TABLE[n_y_gps]) {
 		if (_gpsFault < FAULT_MINOR) {
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps fault, beta: %5.2f", double(beta));
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps fault, beta: %5.2f", double(beta));
 			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 			//double(r(0)),  double(r(1)), double(r(2)),
 			//double(r(3)), double(r(4)), double(r(5)));

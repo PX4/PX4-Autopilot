@@ -191,12 +191,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
 
-	// initialize P, x, u
-	initP();
+	// initialize A, B,  P, x, u
 	_x.setZero();
 	_u.setZero();
 	_flowX = 0;
 	_flowY = 0;
+	initSS();
 
 	// perf counters
 	_loop_perf = perf_alloc(PC_ELAPSED,
@@ -219,11 +219,9 @@ BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
 	float t,
 	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
-	const Vector<float, BlockLocalPositionEstimator::n_u> &u,
-	const Matrix<float, BlockLocalPositionEstimator::n_x, BlockLocalPositionEstimator::n_x> &A,
-	const Matrix<float, BlockLocalPositionEstimator::n_x, BlockLocalPositionEstimator::n_u> &B)
+	const Vector<float, BlockLocalPositionEstimator::n_u> &u)
 {
-	return A * x + B * u;
+	return _A * x + _B * u;
 }
 
 void BlockLocalPositionEstimator::update()
@@ -297,6 +295,7 @@ void BlockLocalPositionEstimator::update()
 	// update parameters
 	if (paramsUpdated) {
 		updateParams();
+		updateSSParams();
 	}
 
 	// update home position projection
@@ -762,6 +761,78 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID;
 }
 
+void BlockLocalPositionEstimator::initSS()
+{
+	initP();
+
+	// dynamics matrix
+	_A.setZero();
+	// derivative of position is velocity
+	_A(X_x, X_vx) = 1;
+	_A(X_y, X_vy) = 1;
+	_A(X_z, X_vz) = 1;
+
+	// input matrix
+	_B.setZero();
+	_B(X_vx, U_ax) = 1;
+	_B(X_vy, U_ay) = 1;
+	_B(X_vz, U_az) = 1;
+
+	// update components that depend on current state
+	updateSSStates();
+	updateSSParams();
+}
+
+void BlockLocalPositionEstimator::updateSSStates()
+{
+	// derivative of velocity is accelerometer acceleration
+	// (in input matrix) - bias (in body frame)
+	Matrix3f R_att(_sub_att.get().R);
+	_A(X_vx, X_bx) = -R_att(0, 0);
+	_A(X_vx, X_by) = -R_att(0, 1);
+	_A(X_vx, X_bz) = -R_att(0, 2);
+
+	_A(X_vy, X_bx) = -R_att(1, 0);
+	_A(X_vy, X_by) = -R_att(1, 1);
+	_A(X_vy, X_bz) = -R_att(1, 2);
+
+	_A(X_vz, X_bx) = -R_att(2, 0);
+	_A(X_vz, X_by) = -R_att(2, 1);
+	_A(X_vz, X_bz) = -R_att(2, 2);
+}
+
+void BlockLocalPositionEstimator::updateSSParams()
+{
+	// input noise covariance matrix
+	_R.setZero();
+	_R(U_ax, U_ax) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
+	_R(U_ay, U_ay) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
+	_R(U_az, U_az) = _accel_z_stddev.get() * _accel_z_stddev.get();
+
+	// process noise power matrix
+	_Q.setZero();
+	float pn_p_sq = _pn_p_noise_density.get() * _pn_p_noise_density.get();
+	float pn_v_sq = _pn_v_noise_density.get() * _pn_v_noise_density.get();
+	_Q(X_x, X_x) = pn_p_sq;
+	_Q(X_y, X_y) = pn_p_sq;
+	_Q(X_z, X_z) = pn_p_sq;
+	_Q(X_vx, X_vx) = pn_v_sq;
+	_Q(X_vy, X_vy) = pn_v_sq;
+	_Q(X_vz, X_vz) = pn_v_sq;
+
+	// technically, the noise is in the body frame,
+	// but the components are all the same, so
+	// ignoring for now
+	float pn_b_sq = _pn_b_noise_density.get() * _pn_b_noise_density.get();
+	_Q(X_bx, X_bx) = pn_b_sq;
+	_Q(X_by, X_by) = pn_b_sq;
+	_Q(X_bz, X_bz) = pn_b_sq;
+
+	// terrain random walk noise
+	float pn_t_sq = _pn_t_noise_density.get() * _pn_t_noise_density.get();
+	_Q(X_tz, X_tz) = pn_t_sq;
+}
+
 void BlockLocalPositionEstimator::predict()
 {
 	// if can't update anything, don't propagate
@@ -778,66 +849,8 @@ void BlockLocalPositionEstimator::predict()
 		_u = Vector3f(0, 0, 0);
 	}
 
-	// dynamics matrix
-	Matrix<float, n_x, n_x>  A; // state dynamics matrix
-	A.setZero();
-	// derivative of position is velocity
-	A(X_x, X_vx) = 1;
-	A(X_y, X_vy) = 1;
-	A(X_z, X_vz) = 1;
-
-	// derivative of velocity is accelerometer acceleration
-	// (in input matrix) - bias (in body frame)
-	Matrix3f R_att(_sub_att.get().R);
-	A(X_vx, X_bx) = -R_att(0, 0);
-	A(X_vx, X_by) = -R_att(0, 1);
-	A(X_vx, X_bz) = -R_att(0, 2);
-
-	A(X_vy, X_bx) = -R_att(1, 0);
-	A(X_vy, X_by) = -R_att(1, 1);
-	A(X_vy, X_bz) = -R_att(1, 2);
-
-	A(X_vz, X_bx) = -R_att(2, 0);
-	A(X_vz, X_by) = -R_att(2, 1);
-	A(X_vz, X_bz) = -R_att(2, 2);
-
-	// input matrix
-	Matrix<float, n_x, n_u>  B; // input matrix
-	B.setZero();
-	B(X_vx, U_ax) = 1;
-	B(X_vy, U_ay) = 1;
-	B(X_vz, U_az) = 1;
-
-	// input noise covariance matrix
-	Matrix<float, n_u, n_u> R;
-	R.setZero();
-	R(U_ax, U_ax) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
-	R(U_ay, U_ay) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
-	R(U_az, U_az) = _accel_z_stddev.get() * _accel_z_stddev.get();
-
-	// process noise power matrix
-	Matrix<float, n_x, n_x>  Q;
-	Q.setZero();
-	float pn_p_sq = _pn_p_noise_density.get() * _pn_p_noise_density.get();
-	float pn_v_sq = _pn_v_noise_density.get() * _pn_v_noise_density.get();
-	Q(X_x, X_x) = pn_p_sq;
-	Q(X_y, X_y) = pn_p_sq;
-	Q(X_z, X_z) = pn_p_sq;
-	Q(X_vx, X_vx) = pn_v_sq;
-	Q(X_vy, X_vy) = pn_v_sq;
-	Q(X_vz, X_vz) = pn_v_sq;
-
-	// technically, the noise is in the body frame,
-	// but the components are all the same, so
-	// ignoring for now
-	float pn_b_sq = _pn_b_noise_density.get() * _pn_b_noise_density.get();
-	Q(X_bx, X_bx) = pn_b_sq;
-	Q(X_by, X_by) = pn_b_sq;
-	Q(X_bz, X_bz) = pn_b_sq;
-
-	// terrain random walk noise
-	float pn_t_sq = _pn_t_noise_density.get() * _pn_t_noise_density.get();
-	Q(X_tz, X_tz) = pn_t_sq;
+	// update state space based on new states
+	updateSSStates();
 
 	// continuous time kalman filter prediction
 	// integrate runge kutta 4th order
@@ -845,17 +858,17 @@ void BlockLocalPositionEstimator::predict()
 	// https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
 	float h = getDt();
 	Vector<float, n_x> k1, k2, k3, k4;
-	k1 = dynamics(0, _x, _u, A, B);
-	k2 = dynamics(h / 2, _x + k1 * h / 2, _u, A, B);
-	k3 = dynamics(h / 2, _x + k2 * h / 2, _u, A, B);
-	k4 = dynamics(h, _x + k3 * h, _u, A, B);
+	k1 = dynamics(0, _x, _u);
+	k2 = dynamics(h / 2, _x + k1 * h / 2, _u);
+	k3 = dynamics(h / 2, _x + k2 * h / 2, _u);
+	k4 = dynamics(h, _x + k3 * h, _u);
 	Vector<float, n_x> dx = (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
 
 	// propagate
 	correctionLogic(dx);
 	_x += dx;
-	_P += (A * _P + _P * A.transpose() +
-	       B * R * B.transpose() +
-	       Q) * getDt();
+	_P += (_A * _P + _P * _A.transpose() +
+	       _B * _R * _B.transpose() +
+	       _Q) * getDt();
 	_xLowPass.update(_x);
 }
