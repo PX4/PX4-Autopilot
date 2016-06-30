@@ -8,7 +8,7 @@ inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
     float delta_x = pos1.x - pos2.x;
     float delta_y = pos1.y - pos2.y;
     float delta_z = pos1.z - pos2.z;
-    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < (ACCURACY * ACCURACY);
+    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < ACCURACY * ACCURACY + 0.001;
 }
 
 inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {

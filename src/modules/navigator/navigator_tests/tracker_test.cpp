@@ -40,6 +40,11 @@ DEFINE_TEST(largeNodes, 48, 47, 28, 27, 26, 25, 24, 1, 0) {
     #include "large_nodes.txt"
 };
 
+// aka:                                          14
+DEFINE_TEST(fromSim, 48, 47, 46, 45, 44, 43, 42, 41, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0) {
+    #include "from_sim.txt"
+};
+
 
 
 
@@ -109,7 +114,8 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(noLoop),
     USE_TEST(simpleLoop),
     USE_TEST(complexLoop),
-    USE_TEST(largeNodes)
+    USE_TEST(largeNodes),
+    USE_TEST(fromSim)
 };
 
 
@@ -290,10 +296,6 @@ bool TrackerTest::fly_and_return_test(void) {
         if (!try_return_controlled(tracker, test, msg)) {
             ut_assert(msg, false);
         }
-
-        // Check if the tracker agrees that we're home
-        int fetched = tracker.get_path_to_home(x, y, z, 3);
-        ut_assert(msg, fetched == 0); // Now we should be home
     }
 
 	return true;
@@ -312,11 +314,9 @@ bool TrackerTest::fly_and_leave_return_path_test(void) {
             tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
 
         int x, y, z;
-        int fetched;
 
         // Follow half of the return path
         for (size_t r = 0; r < test->ret_size / 2; r++) {
-            fetched = tracker.get_path_to_home(&x, &y, &z, 1); // Update the shortest path cache (this is not neccessary but we want it in this test)
             x = test->path[test->ret[r] * 3];
             y = test->path[test->ret[r] * 3 + 1];
             z = test->path[test->ret[r] * 3 + 2];

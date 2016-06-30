@@ -29,10 +29,10 @@ private:
 	// Set the mission item
 	void update_mission_item();
 
-	enum RCRecoverState {
-		RCRECOVER_STATE_NONE = 0,
-		RCRECOVER_STATE_RETURN,
-		RCRECOVER_STATE_LOITER
+	enum {
+		STATE_NONE = 0,
+		STATE_RETURN,
+		STATE_LOITER
 	} _state;
 
 	bool _start_lock;

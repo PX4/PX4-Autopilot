@@ -65,7 +65,8 @@
 #include "loiter.h"
 #include "takeoff.h"
 #include "land.h"
-#include "rtl.h"
+#include "rtl_basic.h"
+#include "rtl_advanced.h"
 #include "rcrecover.h"
 #include "rcloss.h"
 #include "datalinkloss.h"
@@ -78,7 +79,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
 
 class Navigator : public control::SuperBlock
 {
@@ -158,7 +159,10 @@ public:
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
 	
-	Tracker&	get_tracker() { return _tracker; }
+	Tracker*	get_tracker() { return &_tracker; }
+	
+	// Quick and dirty, to do it cleanly, we may want to introduce a new navigator mode
+	void		set_rtl_variant(bool advanced) { _use_advanced_rtl = advanced; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -281,6 +285,8 @@ private:
 	
 	Tracker		_tracker;				/**< tracks the vehicle path **/
 
+	bool		_use_advanced_rtl;		/**< use RTLA instead of RTLB **/
+
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once;	/**< flags if position SP triplet has been published once to UORB */
@@ -291,7 +297,8 @@ private:
 	Loiter		_loiter;					/**< class that handles loiter */
 	Takeoff		_takeoff;					/**< class for handling takeoff commands */
 	Land		_land;						/**< class for handling land commands */
-	RTL 		_rtl;						/**< class that handles return-to-land */
+	RTLAdvanced	_rtlAdvanced;				/**< class that handles return-to-land along recorded flight graph */
+	RTLBasic	_rtlBasic;					/**< class that handles simple return-to-land */
 	RCRecover	_rcRecover;					/**< class that handles RC recovery */
 	RCLoss 		_rcLoss;					/**< class that handles RC loss according to OBC rules (rc loss mode) */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles datalink loss according OBC rules */
