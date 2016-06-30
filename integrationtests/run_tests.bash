@@ -50,6 +50,7 @@ echo "<====="
 set +e
 echo "=====> run tests"
 rostest px4 mavros_posix_tests_iris.launch
+rostest px4 mavros_posix_tests_standard_vtol.launch
 TEST_RESULT=$?
 echo "<====="
 
