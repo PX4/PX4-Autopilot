@@ -215,7 +215,7 @@ static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 
 	} else {
 		ret = -EIO;
-		int rv = ioctl(fd, STM32_BBSRAM_GETDESC_IOCTL, (unsigned long)((uintptr_t)desc));
+		int rv = ioctl(fd, PX4_BBSRAM_GETDESC_IOCTL, (unsigned long)((uintptr_t)desc));
 
 		if (rv >= 0) {
 			ret = fd;
