@@ -30,6 +30,7 @@ FORMAT_TO_STRUCT = {
     'i', {'int32', 1};
     'I', {'uint32', 1};
     'f', {'single', 1};
+    'd', {'double', 1};
     'n', {'char4', 1};
     'N', {'char16', 1};
     'Z', {'char64', 1};
