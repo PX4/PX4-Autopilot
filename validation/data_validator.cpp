@@ -70,17 +70,13 @@ DataValidator::~DataValidator()
 void
 DataValidator::put(uint64_t timestamp, float val, uint64_t error_count_in, int priority_in)
 {
-	float data[3];
-
-	data[0] = val;
-	data[1] = 0.0f;
-	data[2] = 0.0f;
+	float data[dimensions] = { val }; //sets the first value and all others to 0
 
 	put(timestamp, data, error_count_in, priority_in);
 }
 
 void
-DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, int priority_in)
+DataValidator::put(uint64_t timestamp, float val[dimensions], uint64_t error_count_in, int priority_in)
 {
 	_event_count++;
 
@@ -93,7 +89,7 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, in
 	_error_count = error_count_in;
 	_priority = priority_in;
 
-	for (unsigned i = 0; i < _dimensions; i++) {
+	for (unsigned i = 0; i < dimensions; i++) {
 		if (_time_last == 0) {
 			_mean[i] = 0;
 			_lp[i] = val[i];
@@ -176,7 +172,7 @@ DataValidator::print()
 		return;
 	}
 
-	for (unsigned i = 0; i < _dimensions; i++) {
+	for (unsigned i = 0; i < dimensions; i++) {
 		ECL_INFO("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f",
 			(double) _value[i], (double)_lp[i], (double)_mean[i],
 			(double)_rms[i], (double)confidence(hrt_absolute_time()));
