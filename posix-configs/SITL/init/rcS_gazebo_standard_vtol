@@ -47,6 +47,7 @@ param set MPC_ACC_HOR_MAX 2
 param set GF_ACTION 3
 param set GF_MAX_HOR_DIST 500
 param set GF_MAX_VER_DIST 500
+replay tryapplyparams
 simulator start -s 
 rgbledsim start
 tone_alarm start
@@ -82,3 +83,4 @@ mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 sdlog2 start -r 200 -e -t -a
 mavlink boot_complete
+replay trystart

@@ -39,6 +39,7 @@ param set RTL_DESCEND_ALT 10.0
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2
 param set LPE_BETA_MAX 10000
+replay tryapplyparams
 simulator start -s
 rgbledsim start
 tone_alarm start
@@ -74,3 +75,4 @@ sdlog2 start -r 100 -e -t -a
 sleep 5
 local_position_estimator start
 mavlink boot_complete
+replay trystart
