@@ -11,3 +11,19 @@ index 5b57549..2c1c0ac 100644
  #endif
  
  #ifdef HAVE_RS485
+diff --git NuttX/nuttx/drivers/mtd/ramtron.c NuttX/nuttx/drivers/mtd/ramtron.c
+index a81469f..79d925f 100644
+--- NuttX/nuttx/drivers/mtd/ramtron.c
++++ NuttX/nuttx/drivers/mtd/ramtron.c
+@@ -833,7 +833,10 @@ FAR struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev)
+   /* Register the MTD with the procfs system if enabled */
+ 
+ #ifdef CONFIG_MTD_REGISTRATION
+-  mtd_register(&priv->mtd, "ramtron");
++  if (priv)
++    {
++      mtd_register(&priv->mtd, "ramtron");
++    }
+ #endif
+ 
+   /* Return the implementation-specific state structure as the MTD device */
