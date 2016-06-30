@@ -287,7 +287,7 @@ function(px4_nuttx_add_export)
 		add_dependencies(__nuttx_patch_${CONFIG} ${patch_name})
 	endforeach()
 
-	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes 
+	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
 	# note: CONFIG will be BOARD in the future evaluation of ${hw_stack_check_${CONFIG}
 	file(STRINGS "${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig"
 		hw_stack_check_${CONFIG}
@@ -562,7 +562,14 @@ function(px4_os_add_flags)
 	endif()
 
 	set(cpu_flags)
-	if (${config_nuttx_hw} STREQUAL "m4")
+	if (${config_nuttx_hw} STREQUAL "m7")
+		set(cpu_flags
+			-mcpu=cortex-m7
+			-mthumb
+			-mfpu=fpv5-d16
+			-mfloat-abi=hard
+ 			)
+	elseif (${config_nuttx_hw} STREQUAL "m4")
 		set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
