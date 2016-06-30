@@ -39,6 +39,7 @@
  * @author Paul Riseborough <p_riseborough@live.com.au>
  */
 
+#include "../ecl.h"
 #include "ekf.h"
 #include "mathlib.h"
 
@@ -67,8 +68,13 @@ Ekf::Ekf():
 	_fuse_pos(false),
 	_fuse_hor_vel(false),
 	_fuse_vert_vel(false),
-	_fuse_flow(false),
-	_fuse_hagl_data(false),
+	_gps_data_ready(false),
+	_mag_data_ready(false),
+	_baro_data_ready(false),
+	_range_data_ready(false),
+	_flow_data_ready(false),
+	_ev_data_ready(false),
+	_tas_data_ready(false),
 	_time_last_fake_gps(0),
 	_time_last_pos_fuse(0),
 	_time_last_vel_fuse(0),
@@ -209,166 +215,9 @@ bool Ekf::update()
 			predictHagl();
 		}
 
-		// control logic
+		// control fusion of observation data
 		controlFusionModes();
 
-		// measurement updates
-
-		// Fuse magnetometer data using the selected fusion method and only if angular alignment is complete
-		if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-			if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
-				fuseMag();
-
-				if (_control_status.flags.mag_dec) {
-					fuseDeclination();
-				}
-
-			} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
-				// fusion of an Euler yaw angle from either a 321 or 312 rotation sequence
-				fuseHeading();
-
-			} else {
-				// do no fusion at all
-			}
-		}
-
-		// determine if range finder data has fallen behind the fusion time horizon fuse it if we are
-		// not tilted too much to use it
-		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-		    && (_R_to_earth(2, 2) > 0.7071f)) {
-			// correct the range data for position offset relative to the IMU
-			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_range_sample_delayed.rng += pos_offset_earth(2) / _R_to_earth(2, 2);
-
-			// if we have range data we always try to estimate terrain height
-			_fuse_hagl_data = true;
-
-			// only use range finder as a height observation in the main filter if specifically enabled
-			if (_control_status.flags.rng_hgt) {
-				_fuse_height = true;
-			}
-
-		} else if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt) {
-			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
-			// and are on the ground, then synthesise a measurement at the expected on ground value
-			if (!_control_status.flags.in_air) {
-				_range_sample_delayed.rng = _params.rng_gnd_clearance;
-				_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
-
-			}
-
-			_fuse_height = true;
-		}
-
-		// determine if baro data has fallen behind the fusion time horizon and fuse it in the main filter if enabled
-		uint64_t last_baro_time_us = _baro_sample_delayed.time_us;
-		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-			if (_control_status.flags.baro_hgt) {
-				_fuse_height = true;
-
-			} else {
-				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro as a height reference
-				float local_time_step = 1e-6f*(float)(_baro_sample_delayed.time_us - last_baro_time_us);
-				local_time_step = math::constrain(local_time_step,0.0f,1.0f);
-				last_baro_time_us = _baro_sample_delayed.time_us;
-				float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt - _hgt_sensor_offset) + _state.pos(2) - _baro_hgt_offset;
-				_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
-			}
-		}
-
-		// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
-		if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed)) {
-			// Only use GPS data for position and velocity aiding if enabled
-			if (_control_status.flags.gps) {
-				_fuse_pos = true;
-				_fuse_vert_vel = true;
-				_fuse_hor_vel = true;
-
-				// correct velocity for offset relative to IMU
-				Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f/_imu_sample_delayed.delta_ang_dt);
-				Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-				Vector3f vel_offset_body = cross_product(ang_rate,pos_offset_body);
-				Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-				_gps_sample_delayed.vel -= vel_offset_earth;
-
-				// correct position and height for offset relative to IMU
-				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-				_gps_sample_delayed.pos(0) -= pos_offset_earth(0);
-				_gps_sample_delayed.pos(1) -= pos_offset_earth(1);
-				_gps_sample_delayed.hgt += pos_offset_earth(2);
-
-			}
-
-			// only use gps height observation in the main filter if specifically enabled
-			if (_control_status.flags.gps_hgt) {
-				_fuse_height = true;
-			}
-
-		}
-
-		// If we are using external vision aiding and data has fallen behind the fusion time horizon then fuse it
-		if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
-			// use external vision posiiton and height observations
-			if (_control_status.flags.ev_pos) {
-				_fuse_pos = true;
-				_fuse_height = true;
-				
-				// correct position and height for offset relative to IMU
-				Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-				Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-				_ev_sample_delayed.posNED(0) -= pos_offset_earth(0);
-				_ev_sample_delayed.posNED(1) -= pos_offset_earth(1);
-				_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);
-			}
-			// use external vision yaw observation
-			if (_control_status.flags.ev_yaw) {
-				fuseHeading();
-			}
-		}
-
-		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
-		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
-		    && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
-		    && (_R_to_earth(2, 2) > 0.7071f)) {
-			_fuse_flow = true;
-		}
-
-		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
-		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-		if (!_control_status.flags.gps && !_control_status.flags.opt_flow && !_control_status.flags.ev_pos
-		    && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
-			_fuse_pos = true;
-			_time_last_fake_gps = _time_last_imu;
-		}
-
-		// fuse available range finder data into a terrain height estimator if it has been initialised
-		if (_fuse_hagl_data && _terrain_initialised) {
-			fuseHagl();
-			_fuse_hagl_data = false;
-		}
-
-		// Fuse available NED velocity and position data into the main filter
-		if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
-			fuseVelPosHeight();
-			_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
-		}
-
-		// Update optical flow bias estimates
-		calcOptFlowBias();
-
-		// Fuse optical flow LOS rate observations into the main filter
-		if (_fuse_flow) {
-			fuseOptFlow();
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_fuse_flow = false;
-		}
-
-		// If we are using airspeed measurements and data has fallen behind the fusion time horizon then fuse it
-		if (_airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed)) {
-			fuseAirspeed();
-		}
 	}
 
 	// the output observer always runs
@@ -546,11 +395,16 @@ bool Ekf::initialiseFilter(void)
 			baroSample baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
 			_state.pos(2) = -math::max(_rng_filt_state * _R_to_earth(2, 2),_params.rng_gnd_clearance);
+			ECL_INFO("EKF using range finder height - commencing alignment");
 
 		} else if (_control_status.flags.ev_hgt) {
 			// if we are using external vision data for height, then the vertical position state needs to be reset
 			// because the initialisation position is not the zero datum
 			resetHeight();
+			ECL_INFO("EKF using vision height - commencing alignment");
+
+		} else if (_control_status.flags.baro_hgt){
+			ECL_INFO("EKF using pressure height - commencing alignment");
 
 		}
 
