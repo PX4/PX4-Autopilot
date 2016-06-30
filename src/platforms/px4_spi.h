@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef __PX4_NUTTX
+#include <nuttx/config.h>
 #include <nuttx/spi/spi.h>
 #elif defined(__PX4_POSIX)
 enum spi_dev_e {

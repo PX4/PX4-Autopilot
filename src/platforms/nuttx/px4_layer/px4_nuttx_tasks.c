@@ -54,7 +54,9 @@
 #ifdef CONFIG_ARCH_BOARD_SIM
 #define stm32_pwr_enablebkp(onoff)
 #else
-#include <stm32_pwr.h>
+# if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
+#  include <stm32_pwr.h>
+# endif
 #endif
 
 #include <systemlib/systemlib.h>

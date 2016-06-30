@@ -45,21 +45,22 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
-#ifdef CONFIG_ARCH_CHIP_STM32
+#if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
-#include <stm32.h>
-
-//STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
+//STM DocID018909 Rev 8 Sect 38.18 and DocID026670 Rev 5 40.6.1 (MCU device ID code)
 # define REVID_MASK    0xFFFF0000
 # define DEVID_MASK    0xFFF
 
-# define STM32F40x_41x 0x413
-# define STM32F42x_43x 0x419
-# define STM32F103_LD 0x412
-# define STM32F103_MD 0x410
-# define STM32F103_HD 0x414
-# define STM32F103_XLD 0x430
-# define STM32F103_CON 0x418
+
+# define STM32F74xxx_75xxx  0x449
+# define STM32F76xxx_77xxx  0x451
+# define STM32F40x_41x      0x413
+# define STM32F42x_43x      0x419
+# define STM32F103_LD       0x412
+# define STM32F103_MD       0x410
+# define STM32F103_HD       0x414
+# define STM32F103_XLD      0x430
+# define STM32F103_CON      0x418
 
 #endif
 
@@ -87,8 +88,12 @@ int mcu_version(char *rev, char **revstr)
 
 	switch (chip_version) {
 
-	case STM32F40x_41x:
-		*revstr = "STM32F40x";
+	case STM32F74xxx_75xxx:
+		*revstr = "STM32F74xxx";
+		break;
+
+	case STM32F76xxx_77xxx:
+		*revstr = "STM32F76xxx";
 		break;
 
 	case STM32F42x_43x:
