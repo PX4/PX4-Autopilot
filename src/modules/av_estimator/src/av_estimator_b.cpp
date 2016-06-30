@@ -177,7 +177,7 @@ void av_estimator_b::publish(float timestamp, Vector3f vhat_a, Vector3f what_vel
 	Vector3f vhat_a2b = Rhat.transpose() * vhat_a;
 	/* Moses stuff */
 	Matrix3f Rhot;
-	printf("att %3.3f %3.3f %3.3f\n", double(att.roll), double(att.pitch), double(att.yaw));
+
 	/* The angle used on px4 is stuffed up see above */
 	float ctheta, stheta, cphi, sphi, cpsi, spsi;
 	ctheta = cos(-att.pitch);

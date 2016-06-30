@@ -505,8 +505,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 					mu(0) = raw.magnetometer_ga[0];
 					mu(1) = raw.magnetometer_ga[1];
 					mu(2) = raw.magnetometer_ga[2];
-//printf("acc %3.3f %3.3f %3.3f\n",double(a(0)),double(a(1)),double(a(2)));
-//printf("gyro %3.3f %3.3f %3.3f\n",double(omega(0)),double(omega(1)),double(omega(2)));
+
 					/* Apply magnetometer current compensation */
 					applyCurrentCompensation(mu, current, current_k, current_c, armed_start_time, attitude_params, vehicle_status_raw);
 

@@ -624,6 +624,55 @@ struct log_LOAD_s {
 	float cpu_load;
 };
 
+/********* Moses specific logs **********/
+
+/* --- VICN - VICON POSITION --- */
+#define LOG_VICN_MSG 62
+struct log_VICN_s {
+	float x;
+	float y;
+	float z;
+	float roll;
+	float pitch;
+	float yaw;
+}; 
+
+/* -- Vehicle Inertial Measured Velocity */
+#define LOG_VVEL_MSG 63
+struct log_VVEL_s {
+	float bvx;
+	float bvy;
+	float bvz;
+	float ivx;
+	float ivy;
+	float ivz;
+};
+
+/* -- Vehicle Inertial Esitmated Velocity */
+#define LOG_VEST_MSG 64
+struct log_VEST_s {
+	float bvx;
+	float bvy;
+	float bvz;
+	float ivx;
+	float ivy;
+	float ivz;
+};
+
+/* -- Vehicle Body Fixed Frame Measured and Estimated Velocity */
+#define LOG_VMEB_MSG 65
+struct log_VMEB_s {
+	float mvx;
+	float mvy;
+	float mvz;
+	float evx;
+	float evy;
+	float evz;
+	float u;
+};
+
+/**** End Moses specific logs *************/
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -693,6 +742,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST5, "ffffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV,AirI,AirIV"),
 	LOG_FORMAT(EST6, "ffffff", "FxI,FyI,FxIV,FyIV,HAGLI,HAGLIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
+	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
 	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
 	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
@@ -713,6 +763,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL6, "Qff", "Tasp,inAsp,trAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
+	LOG_FORMAT(VVEL, "ffffff",		"bvx,bvy,bvz,ivx,ivy,ivz"),
+	LOG_FORMAT(VEST, "ffffff",		"bvx,bvy,bvz,ivx,ivy,ivz"),
+	LOG_FORMAT(VMEB, "fffffff",		"mvx,mvy,mvz,evx,evy,evz,u"),	
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),

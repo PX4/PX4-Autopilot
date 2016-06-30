@@ -155,11 +155,12 @@ private:
 	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 	float int_yawrate = 0.0f;
-	float yr_max = 30.0f;
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
 	bool	_reset_yaw_sp;			/**< reset yaw setpoint flag */
+			float params_yaw_rate_i = 0.1;
+
 
 	struct {
 		param_t roll_p;
@@ -171,6 +172,8 @@ private:
 		param_t yaw_p;
 		param_t yaw_rate_p;
 		param_t yaw_rate_d;
+		param_t yaw_rate_i;
+		param_t yaw_rate_i_max;
 
 		param_t man_roll_max;
 		param_t man_pitch_max;
@@ -186,6 +189,8 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
 		float yaw_rate_max;					/**< max yaw rate */
+		float yaw_rate_i = 0.1;
+		float yaw_rate_i_max = 0.0f;
 
 		float man_roll_max;
 		float man_pitch_max;
@@ -339,6 +344,8 @@ MulticopterQuaternionControl::MulticopterQuaternionControl() :
 	_params_handles.yaw_p			=	param_find("MC_QUAT_YAW_P");
 	_params_handles.yaw_rate_p		= 	param_find("MC_QUAT_YAWR_P");
 	_params_handles.yaw_rate_d		= 	param_find("MC_QUAT_YAWR_D");
+	_params_handles.yaw_rate_i		= 	param_find("MC_QUAT_YAWR_I");
+	_params_handles.yaw_rate_i_max		= 	param_find("MC_QUAT_YR_IMAX");
 	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
 	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
 	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
@@ -489,6 +496,10 @@ MulticopterQuaternionControl::parameters_update()
 	_params.acro_rate_max(1) = math::radians(v);
 	param_get(_params_handles.acro_yaw_max, &v);
 	_params.acro_rate_max(2) = math::radians(v);
+
+	param_get(_params_handles.yaw_rate_i, &_params.yaw_rate_i);
+	params_yaw_rate_i = _params.yaw_rate_i;
+	param_get(_params_handles.yaw_rate_i_max, &_params.yaw_rate_i_max);	
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
@@ -701,8 +712,8 @@ MulticopterQuaternionControl::control_attitude(float dt)
 	} else {
 		/* Autonomous mode use 'vehicle_attitude_setpoint' topic */
 		vehicle_attitude_setpoint_poll();
-//printf("att auto mode\n");
-		printf("In auto att %3.3f\n", double(_v_att_sp.q_d[0]));
+
+		//printf("In auto att %3.3f\n", double(_v_att_sp.q_d[0]));
 
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;
@@ -782,8 +793,6 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 		_rates_int.zero();
 	}
 
-	float params_yaw_rate_i = 0.1;
-
 	/* current body angular rates */
 	math::Vector<3> rates, vehicles_Omega_rates_d;
 	rates(0) = _v_att.rollspeed;
@@ -825,17 +834,17 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 	_att_control(0) = -_params.rate_p(0)*rates_err(0) - _params.rate_d(0)*(vehicles_Omega_rates(0) - vehicles_Omega_rates_d(0));
 	_att_control(1) = -_params.rate_p(1)*rates_err(1) - _params.rate_d(1)*(vehicles_Omega_rates(1) - vehicles_Omega_rates_d(1));
 	_att_control(2) = -_params.rate_p(2)*rates_err(2) - _params.rate_d(2)*(vehicles_Omega_rates(2) - vehicles_Omega_rates_d(2));
-
+printf("out %3.3f %3.3f %3.3f %3.3f\n",(double)_params.yaw_rate_i_max, double(params_yaw_rate_i), double(_att_control(2)), double(dt));
 
 	// yaw integral
 	int_yawrate += rates_err(2)*dt;
 
-	if (int_yawrate > yr_max)
-			int_yawrate = yr_max;
-	if (int_yawrate < -yr_max)
-		int_yawrate = -yr_max;
+	if (int_yawrate > _params.yaw_rate_i_max)
+			int_yawrate = _params.yaw_rate_i_max;
+	if (int_yawrate < -_params.yaw_rate_i_max)
+		int_yawrate = -_params.yaw_rate_i_max;
 
-	_att_control(2) -=int_yawrate*params_yaw_rate_i;
+	_att_control(2) -= int_yawrate*params_yaw_rate_i;
 
 	_rates_prev = rates;
 }

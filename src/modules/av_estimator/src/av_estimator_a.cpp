@@ -110,7 +110,6 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 	beta_gains_coup(2,2) = k2bac*0.3f;
 
 	beta_a_dot 	= -beta_gains * verror - beta_gains_coup *(beta_a_prev - beta_a_filterb);
-	//printf("beta %3.3f %3.3f\n", double(beta_a_prev(2)), double(beta_a_filterb(2)));
 
 	/* if there is no measurement of v, we want to keep the same vhat */
 	if (!valid)

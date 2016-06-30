@@ -90,6 +90,22 @@ PARAM_DEFINE_FLOAT(MC_QUAT_YAW_P, 10.0f);
 PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_P, 0.1f);
 
 /**
+ * Yaw rate integral gain
+ *
+ * @min 0.0
+ * @group Quadrotor Quaternion Control
+ */
+PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_I, 0.1f);
+
+/**
+ * Yaw rate integral max
+ *
+ * @min 0.0
+ * @group Quadrotor Quaternion Control
+ */
+PARAM_DEFINE_FLOAT(MC_QUAT_YR_IMAX, 30.0f);
+
+/**
  * Yaw rate derivate i.e. Izz.
  *
  * @min 0.0

@@ -121,6 +121,11 @@
 #include <systemlib/mavlink_log.h>
 #include <version/version.h>
 
+#include <uORB/topics/vehicle_velocity_est_inertial.h>
+#include <uORB/topics/vehicle_velocity_meas_inertial.h>
+#include <uORB/topics/vehicle_velocity_meas_est_body.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+
 #include "logbuffer.h"
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
@@ -1173,6 +1178,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
+		struct vehicle_vicon_position_s vicon_pos;
 		struct att_pos_mocap_s att_pos_mocap;
 		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
@@ -1201,6 +1207,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
+		struct vehicle_velocity_meas_inertial_s veh_vel;
+		struct vehicle_velocity_est_inertial_s veh_vel_est;
+		struct vehicle_velocity_meas_est_body_s veh_vel_body;		
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1262,6 +1271,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LAND_s log_LAND;
 			struct log_RPL6_s log_RPL6;
 			struct log_LOAD_s log_LOAD;
+			struct log_VICN_s log_VICN;
+			struct log_VVEL_s log_VVEL;
+			struct log_VEST_s log_VEST;
+			struct log_VMEB_s log_VMEB;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1287,6 +1300,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub[2];
 		int sat_info_sub;
+		int vicon_pos_sub;
 		int att_pos_mocap_sub;
 		int vision_pos_sub;
 		int flow_sub;
@@ -1312,6 +1326,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int land_detected_sub;
 		int commander_state_sub;
 		int cpuload_sub;
+		int veh_vel_sub;
+		int veh_vel_body_sub;
+		int veh_vel_est_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1331,6 +1348,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
+	subs.vicon_pos_sub = -1;
 	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
 	subs.flow_sub = -1;
@@ -1355,6 +1373,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.land_detected_sub = -1;
 	subs.commander_state_sub = -1;
 	subs.cpuload_sub = -1;
+	subs.veh_vel_sub = -1;
+	subs.veh_vel_body_sub = -1;
+	subs.veh_vel_est_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1962,6 +1983,56 @@ int sdlog2_thread_main(int argc, char *argv[])
 					LOGBUFFER_WRITE_AND_COUNT(GPSP);
 				}
 			}
+
+			/* --- VICON POSITION --- */
+			if (copy_if_updated(ORB_ID(vehicle_vicon_position), &subs.vicon_pos_sub, &buf.vicon_pos)) {
+				log_msg.msg_type = LOG_VICN_MSG;
+				log_msg.body.log_VICN.x = buf.vicon_pos.x;
+				log_msg.body.log_VICN.y = buf.vicon_pos.y;
+				log_msg.body.log_VICN.z = buf.vicon_pos.z;
+				log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
+				log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
+				log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
+				LOGBUFFER_WRITE_AND_COUNT(VICN);
+			}
+
+			/* --- Vehicle Measured and Estimated Body Velocity--- */
+			if (copy_if_updated(ORB_ID(vehicle_velocity_meas_est_body), &subs.veh_vel_body_sub, &buf.veh_vel_body)) {
+				log_msg.msg_type = LOG_VMEB_MSG;
+				log_msg.body.log_VMEB.mvx = buf.veh_vel_body.meas_vx;	
+				log_msg.body.log_VMEB.mvy = buf.veh_vel_body.meas_vx;
+				log_msg.body.log_VMEB.mvz = buf.veh_vel_body.meas_vx;	
+				log_msg.body.log_VMEB.evx = buf.veh_vel_body.est_vx;	
+				log_msg.body.log_VMEB.evy = buf.veh_vel_body.est_vy;
+				log_msg.body.log_VMEB.evz = buf.veh_vel_body.est_vz;
+				log_msg.body.log_VMEB.u = buf.veh_vel_body.u;	
+				LOGBUFFER_WRITE_AND_COUNT(VMEB);
+			}
+
+			/* --- Vehicle Measured Inertial Velocity --- */
+		if (copy_if_updated(ORB_ID(vehicle_velocity_meas_inertial), &subs.veh_vel_sub, &buf.veh_vel)) {
+			log_msg.msg_type = LOG_VVEL_MSG;
+			log_msg.body.log_VVEL.bvx = buf.veh_vel.body_vx;	
+			log_msg.body.log_VVEL.bvy = buf.veh_vel.body_vy;
+			log_msg.body.log_VVEL.bvz = buf.veh_vel.body_vz;
+			log_msg.body.log_VVEL.ivx = buf.veh_vel.inertial_vx;
+			log_msg.body.log_VVEL.ivy = buf.veh_vel.inertial_vy;
+			log_msg.body.log_VVEL.ivz = buf.veh_vel.inertial_vz;		
+			LOGBUFFER_WRITE_AND_COUNT(VVEL);
+		}
+
+			/* --- Vehicle Estimated Inertial Velocity --- */
+			if (copy_if_updated(ORB_ID(vehicle_velocity_est_inertial), &subs.veh_vel_est_sub, &buf.veh_vel_est)) {
+				log_msg.msg_type = LOG_VEST_MSG;
+				log_msg.body.log_VEST.bvx = buf.veh_vel_est.inertial_bvx;	
+				log_msg.body.log_VEST.bvy = buf.veh_vel_est.inertial_bvy;
+				log_msg.body.log_VEST.bvz = buf.veh_vel_est.inertial_bvz;
+				log_msg.body.log_VEST.ivx = buf.veh_vel_est.inertial_ivx;
+				log_msg.body.log_VEST.ivy = buf.veh_vel_est.inertial_ivy;
+				log_msg.body.log_VEST.ivz = buf.veh_vel_est.inertial_ivz;		
+				LOGBUFFER_WRITE_AND_COUNT(VEST);
+			}
+
 
 			/* --- MOCAP ATTITUDE AND POSITION --- */
 			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {

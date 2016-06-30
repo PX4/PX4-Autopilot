@@ -1692,8 +1692,8 @@ MulticopterQuatPositionControl::task_main()
 		
 		if (_control_mode.flag_control_auto_enabled)
 		{
-			printf("auto mode");
-			printf("%3.3f\n", double(_att_sp.q_d[0]));
+			printf("auto mode ");
+			printf("%3.3f %3.3f %3.3f %3.3f\n", double(_att_sp.q_d[0]),double(_att_sp.q_d[1]),double(_att_sp.q_d[2]),double(_att_sp.q_d[3]));
 
 			veh_vel_body(0) = vx;
 			veh_vel_body(1) = vy;
