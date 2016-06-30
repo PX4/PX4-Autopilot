@@ -60,6 +60,7 @@ static const int NUM_PWM = 4;
 static char _device[32] = "/sys/class/pwm/pwmchip0";
 static int  _pwm_fd[NUM_PWM];
 
+static const int FREQUENCY_PWM = 400;
 static const char *MIXER_FILENAME = "";
 
 // subscriptions
@@ -108,318 +109,326 @@ int mixer_control_callback(uintptr_t handle, uint8_t control_group, uint8_t cont
 
 
 int mixer_control_callback(uintptr_t handle,
-               uint8_t control_group,
-               uint8_t control_index,
-               float &input)
+			   uint8_t control_group,
+			   uint8_t control_index,
+			   float &input)
 {
-    const actuator_controls_s *controls = (actuator_controls_s *)handle;
+	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-    input = controls[control_group].control[control_index];
+	input = controls[control_group].control[control_index];
 
-    return 0;
+	return 0;
 }
 
 
 int initialize_mixer(const char *mixer_filename)
 {
-    char buf[2048];
-    size_t buflen = sizeof(buf);
+	char buf[2048];
+	size_t buflen = sizeof(buf);
 
-    PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
+	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
-    int fd_load = ::open(mixer_filename, O_RDONLY);
+	int fd_load = ::open(mixer_filename, O_RDONLY);
 
-    if (fd_load != -1) {
-        int nRead = ::read(fd_load, buf, buflen);
-        close(fd_load);
+	if (fd_load != -1) {
+		int nRead = ::read(fd_load, buf, buflen);
+		close(fd_load);
 
-        if (nRead > 0) {
-            _mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+		if (nRead > 0) {
+			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
-            if (_mixer != nullptr) {
-                PX4_INFO("Successfully initialized mixer from config file");
-                return 0;
+			if (_mixer != nullptr) {
+				PX4_INFO("Successfully initialized mixer from config file");
+				return 0;
 
-            } else {
-                PX4_ERR("Unable to parse from mixer config file");
-                return -1;
-            }
+			} else {
+				PX4_ERR("Unable to parse from mixer config file");
+				return -1;
+			}
 
-        } else {
-            PX4_WARN("Unable to read from mixer config file");
-            return -2;
-        }
+		} else {
+			PX4_WARN("Unable to read from mixer config file");
+			return -2;
+		}
 
-    } else {
-        PX4_WARN("No mixer config file found, using default mixer.");
+	} else {
+		PX4_WARN("No mixer config file found, using default mixer.");
 
-        /* Mixer file loading failed, fall back to default mixer configuration for
-        * QUAD_X airframe. */
-        float roll_scale = 1;
-        float pitch_scale = 1;
-        float yaw_scale = 1;
-        float deadband = 0;
+		/* Mixer file loading failed, fall back to default mixer configuration for
+		* QUAD_X airframe. */
+		float roll_scale = 1;
+		float pitch_scale = 1;
+		float yaw_scale = 1;
+		float deadband = 0;
 
-        _mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-                         MultirotorGeometry::QUAD_X,
-                         roll_scale, pitch_scale, yaw_scale, deadband);
+		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
+					     MultirotorGeometry::QUAD_X,
+					     roll_scale, pitch_scale, yaw_scale, deadband);
 
-        // TODO: temporary hack to make this compile
-        (void)_config_index[0];
+		// TODO: temporary hack to make this compile
+		(void)_config_index[0];
 
-        if (_mixer == nullptr) {
-            PX4_ERR("Mixer initialization failed");
-            return -1;
-        }
+		if (_mixer == nullptr) {
+			PX4_ERR("Mixer initialization failed");
+			return -1;
+		}
 
-        return 0;
-    }
+		return 0;
+	}
 }
 
 int pwm_write_sysfs(char *path, int value)
 {
-    int fd = ::open(path, O_WRONLY | O_CLOEXEC);
-    int n;
-    char *data;
+	int fd = ::open(path, O_WRONLY | O_CLOEXEC);
+	int n;
+	char *data;
 
-    ::free(path);
-    if (fd == -1) {
-        return -errno;
-    }
-    n = ::asprintf(&data, "%u", value);
-    if (n > 0) {
-        ::write(fd, data, n);
-        ::free(data);
-    }
-    ::close(fd);
+	::free(path);
 
-    return 0;
+	if (fd == -1) {
+		return -errno;
+	}
+
+	n = ::asprintf(&data, "%u", value);
+
+	if (n > 0) {
+		::write(fd, data, n);
+		::free(data);
+	}
+
+	::close(fd);
+
+	return 0;
 }
 
 int pwm_initialize(const char *device)
 {
-    int i;
-    char *path;
+	int i;
+	char *path;
 
-    for (i = 0; i < NUM_PWM; ++i) {
-        ::asprintf(&path, "%s/export", device);
-        if (pwm_write_sysfs(path, i) < 0) {
-            PX4_ERR("PWM export failed");
-        }
-    }
+	for (i = 0; i < NUM_PWM; ++i) {
+		::asprintf(&path, "%s/export", device);
 
-    for (i = 0; i < NUM_PWM; ++i) {
-        ::asprintf(&path, "%s/pwm%u/enable", device, i);
-        if (pwm_write_sysfs(path, 1) < 0) {
-            PX4_ERR("PWM enable failed");
-        }
-    }
+		if (pwm_write_sysfs(path, i) < 0) {
+			PX4_ERR("PWM export failed");
+		}
+	}
 
-    for (i = 0; i < NUM_PWM; ++i) {
-        ::asprintf(&path, "%s/pwm%u/period", device, i);
-        if (pwm_write_sysfs(path, (int)1e9/50)) {
-            PX4_ERR("PWM period failed");
-        }
-    }
+	for (i = 0; i < NUM_PWM; ++i) {
+		::asprintf(&path, "%s/pwm%u/enable", device, i);
 
-    for (i = 0; i < NUM_PWM; ++i) {
-        ::asprintf(&path, "%s/pwm%u/duty_cycle", device, i);
-        _pwm_fd[i] = ::open(path, O_WRONLY | O_CLOEXEC);
-        ::free(path);
-        if (_pwm_fd[i] == -1) {
-            PX4_ERR("PWM: Failed to open duty_cycle.");
-            return -errno;
-        }
-    }
+		if (pwm_write_sysfs(path, 1) < 0) {
+			PX4_ERR("PWM enable failed");
+		}
+	}
 
-    return 0;
+	for (i = 0; i < NUM_PWM; ++i) {
+		::asprintf(&path, "%s/pwm%u/period", device, i);
+
+		if (pwm_write_sysfs(path, (int)1e9 / FREQUENCY_PWM)) {
+			PX4_ERR("PWM period failed");
+		}
+	}
+
+	for (i = 0; i < NUM_PWM; ++i) {
+		::asprintf(&path, "%s/pwm%u/duty_cycle", device, i);
+		_pwm_fd[i] = ::open(path, O_WRONLY | O_CLOEXEC);
+		::free(path);
+
+		if (_pwm_fd[i] == -1) {
+			PX4_ERR("PWM: Failed to open duty_cycle.");
+			return -errno;
+		}
+	}
+
+	return 0;
 }
 
 void pwm_deinitialize()
 {
-    for (int i = 0; i < NUM_PWM; ++i) {
-        if (_pwm_fd[i] != -1) {
-            ::close(_pwm_fd[i]);
-        }
-    }
+	for (int i = 0; i < NUM_PWM; ++i) {
+		if (_pwm_fd[i] != -1) {
+			::close(_pwm_fd[i]);
+		}
+	}
 }
 
 void send_outputs_pwm(const uint16_t *pwm)
 {
-    int n;
-    char *data;
+	int n;
+	char *data;
 
-    //convert this to duty_cycle in ns
-    for (unsigned i = 0; i < NUM_PWM; ++i) {
-        n = ::asprintf(&data, "%u", pwm[i] * 1000);
-        ::write(_pwm_fd[i], data, n);
-    }
+	//convert this to duty_cycle in ns
+	for (unsigned i = 0; i < NUM_PWM; ++i) {
+		n = ::asprintf(&data, "%u", pwm[i] * 1000);
+		::write(_pwm_fd[i], data, n);
+	}
 }
 
 
 
 void task_main(int argc, char *argv[])
 {
-    _is_running = true;
+	_is_running = true;
 
-    if (pwm_initialize(_device) < 0) {
-        PX4_ERR("Failed to initialize PWM.");
-        return;
-    }
+	if (pwm_initialize(_device) < 0) {
+		PX4_ERR("Failed to initialize PWM.");
+		return;
+	}
 
-    // Subscribe for orb topics
-    _controls_sub = orb_subscribe(ORB_ID(actuator_controls_3));
-    _armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	// Subscribe for orb topics
+	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-    // Start disarmed
-    _armed.armed = false;
-    _armed.prearmed = false;
+	// Start disarmed
+	_armed.armed = false;
+	_armed.prearmed = false;
 
-    // Set up poll topic
-    px4_pollfd_struct_t fds[1];
-    fds[0].fd     = _controls_sub;
-    fds[0].events = POLLIN;
-    /* Don't limit poll intervall for now, 250 Hz should be fine. */
-    //orb_set_interval(_controls_sub, 10);
+	// Set up poll topic
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd     = _controls_sub;
+	fds[0].events = POLLIN;
+	/* Don't limit poll intervall for now, 250 Hz should be fine. */
+	//orb_set_interval(_controls_sub, 10);
 
-    // Set up mixer
-    if (initialize_mixer(MIXER_FILENAME) < 0) {
-        PX4_ERR("Mixer initialization failed.");
-        return;
-    }
+	// Set up mixer
+	if (initialize_mixer(MIXER_FILENAME) < 0) {
+		PX4_ERR("Mixer initialization failed.");
+		return;
+	}
 
-    pwm_limit_init(&_pwm_limit);
+	pwm_limit_init(&_pwm_limit);
 
-    // Main loop
-    while (!_task_should_exit) {
+	// Main loop
+	while (!_task_should_exit) {
 
-        int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
 
-        /* Timed out, do a periodic check for _task_should_exit. */
-        if (pret == 0) {
-            continue;
-        }
+		/* Timed out, do a periodic check for _task_should_exit. */
+		if (pret == 0) {
+			continue;
+		}
 
-        /* This is undesirable but not much we can do. */
-        if (pret < 0) {
-            PX4_WARN("poll error %d, %d", pret, errno);
-            /* sleep a bit before next try */
-            usleep(100000);
-            continue;
-        }
+		/* This is undesirable but not much we can do. */
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
+			/* sleep a bit before next try */
+			usleep(100000);
+			continue;
+		}
 
-        if (fds[0].revents & POLLIN) {
-            orb_copy(ORB_ID(actuator_controls_3), _controls_sub, &_controls);
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
 
-            _outputs.timestamp = _controls.timestamp;
+			_outputs.timestamp = _controls.timestamp;
 
-            /* do mixing */
-            _outputs.noutputs = _mixer->mix(_outputs.output,
-                                            0 /* not used */,
-                                            NULL);
+			/* do mixing */
+			_outputs.noutputs = _mixer->mix(_outputs.output,
+							0 /* not used */,
+							NULL);
 
 
-            /* disable unused ports by setting their output to NaN */
-            for (size_t i = _outputs.noutputs;
-                 i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
-                 i++) {
-                _outputs.output[i] = NAN;
-            }
+			/* disable unused ports by setting their output to NaN */
+			for (size_t i = _outputs.noutputs;
+			     i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
+			     i++) {
+				_outputs.output[i] = NAN;
+			}
 
-            const uint16_t reverse_mask = 0;
-            uint16_t disarmed_pwm[4];
-            uint16_t min_pwm[4];
-            uint16_t max_pwm[4];
+			const uint16_t reverse_mask = 0;
+			uint16_t disarmed_pwm[4];
+			uint16_t min_pwm[4];
+			uint16_t max_pwm[4];
 
-            for (unsigned int i = 0; i < 4; i++) {
-                disarmed_pwm[i] = _pwm_disarmed;
-                min_pwm[i] = _pwm_min;
-                max_pwm[i] = _pwm_max;
-            }
+			for (unsigned int i = 0; i < 4; i++) {
+				disarmed_pwm[i] = _pwm_disarmed;
+				min_pwm[i] = _pwm_min;
+				max_pwm[i] = _pwm_max;
+			}
 
-            uint16_t pwm[4];
+			uint16_t pwm[4];
 
-            // TODO FIXME: pre-armed seems broken
-            pwm_limit_calc(_armed.armed,
-                           false/*_armed.prearmed*/,
-                           _outputs.noutputs,
-                           reverse_mask,
-                           disarmed_pwm,
-                           min_pwm,
-                           max_pwm,
-                           _outputs.output,
-                           pwm,
-                           &_pwm_limit);
+			// TODO FIXME: pre-armed seems broken
+			pwm_limit_calc(_armed.armed,
+				       false/*_armed.prearmed*/,
+				       _outputs.noutputs,
+				       reverse_mask,
+				       disarmed_pwm,
+				       min_pwm,
+				       max_pwm,
+				       _outputs.output,
+				       pwm,
+				       &_pwm_limit);
 
-            send_outputs_pwm(pwm);
+			send_outputs_pwm(pwm);
 
-            if (_outputs_pub != nullptr) {
-                orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+			if (_outputs_pub != nullptr) {
+				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
-            } else {
-                _outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-            }
-        }
+			} else {
+				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+			}
+		}
 
-        bool updated;
-        orb_check(_armed_sub, &updated);
+		bool updated;
+		orb_check(_armed_sub, &updated);
 
-        if (updated) {
-            orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-        }
-    }
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+		}
+	}
 
-    pwm_deinitialize();
-    orb_unsubscribe(_controls_sub);
-    orb_unsubscribe(_armed_sub);
+	pwm_deinitialize();
+	orb_unsubscribe(_controls_sub);
+	orb_unsubscribe(_armed_sub);
 
-    _is_running = false;
+	_is_running = false;
 
 }
 
 void task_main_trampoline(int argc, char *argv[])
 {
-    task_main(argc, argv);
+	task_main(argc, argv);
 }
 
 void start()
 {
-    ASSERT(_task_handle == -1);
+	ASSERT(_task_handle == -1);
 
-    _task_should_exit = false;
+	_task_should_exit = false;
 
-    /* start the task */
-    _task_handle = px4_task_spawn_cmd("pwm_out_main",
-                      SCHED_DEFAULT,
-                      SCHED_PRIORITY_MAX,
-                      1500,
-                      (px4_main_t)&task_main_trampoline,
-                      nullptr);
+	/* start the task */
+	_task_handle = px4_task_spawn_cmd("pwm_out_main",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX,
+					  1500,
+					  (px4_main_t)&task_main_trampoline,
+					  nullptr);
 
-    if (_task_handle < 0) {
-        warn("task start failed");
-        return;
-    }
+	if (_task_handle < 0) {
+		warn("task start failed");
+		return;
+	}
 
 }
 
 void stop()
 {
-    _task_should_exit = true;
+	_task_should_exit = true;
 
-    while (_is_running) {
-        usleep(200000);
-        PX4_INFO(".");
-    }
+	while (_is_running) {
+		usleep(200000);
+		PX4_INFO(".");
+	}
 
-    _task_handle = -1;
+	_task_handle = -1;
 }
 
 void usage()
 {
-    PX4_INFO("usage: pwm_out start -d /sys/class/pwm/pwmchip0");
-    PX4_INFO("       pwm_out stop");
-    PX4_INFO("       pwm_out status");
+	PX4_INFO("usage: pwm_out start -d /sys/class/pwm/pwmchip0");
+	PX4_INFO("       pwm_out stop");
+	PX4_INFO("       pwm_out status");
 }
 
 } // namespace pwm_out
@@ -429,62 +438,63 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[]);
 
 int pwm_out_main(int argc, char *argv[])
 {
-    const char *device = nullptr;
-    int ch;
-    int myoptind = 1;
-    const char *myoptarg = nullptr;
+	const char *device = nullptr;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-    char *verb = nullptr;
+	char *verb = nullptr;
 
-    if (argc >= 2) {
-        verb = argv[1];
-    } else {
-        return 1;
-    }
+	if (argc >= 2) {
+		verb = argv[1];
 
-    while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-        switch (ch) {
-        case 'd':
-            device = myoptarg;
-            strncpy(pwm_out::_device, device, strlen(device));
-            break;
-        }
-    }
+	} else {
+		return 1;
+	}
 
-    // gets the parameters for the esc's pwm
-    param_get(param_find("PWM_DISARMED"), &pwm_out::_pwm_disarmed);
-    param_get(param_find("PWM_MIN"), &pwm_out::_pwm_min);
-    param_get(param_find("PWM_MAX"), &pwm_out::_pwm_max);
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device = myoptarg;
+			strncpy(pwm_out::_device, device, strlen(device));
+			break;
+		}
+	}
 
-    /*
-     * Start/load the driver.
-     */
-    if (!strcmp(verb, "start")) {
-        if (pwm_out::_is_running) {
-            PX4_WARN("pwm_out already running");
-            return 1;
-        }
+	// gets the parameters for the esc's pwm
+	param_get(param_find("PWM_DISARMED"), &pwm_out::_pwm_disarmed);
+	param_get(param_find("PWM_MIN"), &pwm_out::_pwm_min);
+	param_get(param_find("PWM_MAX"), &pwm_out::_pwm_max);
 
-        pwm_out::start();
-    }
+	/*
+	 * Start/load the driver.
+	 */
+	if (!strcmp(verb, "start")) {
+		if (pwm_out::_is_running) {
+			PX4_WARN("pwm_out already running");
+			return 1;
+		}
 
-    else if (!strcmp(verb, "stop")) {
-        if (!pwm_out::_is_running) {
-            PX4_WARN("pwm_out is not running");
-            return 1;
-        }
+		pwm_out::start();
+	}
 
-        pwm_out::stop();
-    }
+	else if (!strcmp(verb, "stop")) {
+		if (!pwm_out::_is_running) {
+			PX4_WARN("pwm_out is not running");
+			return 1;
+		}
 
-    else if (!strcmp(verb, "status")) {
-        PX4_WARN("pwm_out is %s", pwm_out::_is_running ? "running" : "not running");
-        return 0;
+		pwm_out::stop();
+	}
 
-    } else {
-        pwm_out::usage();
-        return 1;
-    }
+	else if (!strcmp(verb, "status")) {
+		PX4_WARN("pwm_out is %s", pwm_out::_is_running ? "running" : "not running");
+		return 0;
 
-    return 0;
+	} else {
+		pwm_out::usage();
+		return 1;
+	}
+
+	return 0;
 }
