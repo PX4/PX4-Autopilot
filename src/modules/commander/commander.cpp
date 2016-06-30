@@ -2192,7 +2192,9 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.gps_failure && !gpsIsNoisy) {
 					status_flags.gps_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
+					if (status_flags.condition_home_position_valid) {
+						mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
+					}
 				}
 
 			} else if (!status_flags.gps_failure) {
