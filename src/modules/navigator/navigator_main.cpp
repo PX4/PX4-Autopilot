@@ -436,8 +436,9 @@ Navigator::task_main()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = cmd.param5 / (double)1e7;
-					rep->current.lon = cmd.param6 / (double)1e7;
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
@@ -465,8 +466,16 @@ Navigator::task_main()
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.yaw = cmd.param4;
-				rep->current.lat = cmd.param5 / (double)1e7;
-				rep->current.lon = cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+				} else {
+					// If one of them is non-finite, reset both
+					rep->current.lat = NAN;
+					rep->current.lon = NAN;
+				}
+
 				rep->current.alt = cmd.param7;
 
 				rep->previous.valid = true;
