@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__rcinput
-	MAIN rcinput
+	MODULE drivers__navio_sysfs_rc_in
+	MAIN navio_sysfs_rc_in
 	STACK_MAIN 1200
 	COMPILE_FLAGS -Os
 	SRCS
-		rcinput.cpp
+		navio_sysfs_rc_in.cpp
 	DEPENDS
 		platforms__common
 	)

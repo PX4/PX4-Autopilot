@@ -47,10 +47,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-namespace rcinput
+namespace navio_sysfs_rc_in
 {
 
-extern "C" __EXPORT int rcinput_main(int argc, char *argv[]);
+extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[]);
 
 #define RCINPUT_DEVICE_PATH_BASE "/sys/kernel/rcio/rcin"
 
@@ -61,20 +61,20 @@ class RcInput
 {
 public:
 	RcInput() :
-        _shouldExit(false),
-        _isRunning(false),
-        _work{},
-        _rcinput_pub(nullptr),
-        _channels(8), //D8R-II plus
-        _data{}
-    {
-        memset(_ch_fd, 0, sizeof(_ch_fd));
-    }
-    ~RcInput()
-    {
-        work_cancel(HPWORK, &_work);
-        _isRunning = false;
-    }
+		_shouldExit(false),
+		_isRunning(false),
+		_work{},
+		_rcinput_pub(nullptr),
+		_channels(8), //D8R-II plus
+		_data{}
+	{
+		memset(_ch_fd, 0, sizeof(_ch_fd));
+	}
+	~RcInput()
+	{
+		work_cancel(HPWORK, &_work);
+		_isRunning = false;
+	}
 
 	/* @return 0 on success, -errno on failure */
 	int start();
@@ -85,49 +85,53 @@ public:
 	/* Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
-    bool isRunning() { return _isRunning; }
+	bool isRunning() { return _isRunning; }
 
 private:
-    void _cycle();
-    void _measure();
+	void _cycle();
+	void _measure();
 
-    bool _shouldExit;
-    bool _isRunning;
-    struct work_s _work;
+	bool _shouldExit;
+	bool _isRunning;
+	struct work_s _work;
 
-    orb_advert_t _rcinput_pub;
+	orb_advert_t _rcinput_pub;
 
-    int _channels;
-    int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS];
-    struct input_rc_s _data;
+	int _channels;
+	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	struct input_rc_s _data;
 
 	int navio_rc_init();
 };
 
 int RcInput::navio_rc_init()
 {
-    int i;
-    char *buf;
+	int i;
+	char *buf;
 
-    for (i = 0; i < _channels; ++i) {
-        ::asprintf(&buf, "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
-        int fd = ::open(buf, O_RDONLY);
-        ::free(buf);
-        if (fd < 0) {
-            PX4_WARN("error: open %d failed", i);
-            break;
-        }
-        _ch_fd[i] = fd;
-    }
-    for (; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
-        _data.values[i] = UINT16_MAX;
-    }
+	for (i = 0; i < _channels; ++i) {
+		::asprintf(&buf, "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
+		int fd = ::open(buf, O_RDONLY);
+		::free(buf);
 
-    _rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
-    if (_rcinput_pub == nullptr) {
-        PX4_WARN("error: advertise failed");
-        return -1;
-    }
+		if (fd < 0) {
+			PX4_WARN("error: open %d failed", i);
+			break;
+		}
+
+		_ch_fd[i] = fd;
+	}
+
+	for (; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
+		_data.values[i] = UINT16_MAX;
+	}
+
+	_rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
+
+	if (_rcinput_pub == nullptr) {
+		PX4_WARN("error: advertise failed");
+		return -1;
+	}
 
 	return 0;
 }
@@ -140,66 +144,69 @@ int RcInput::start()
 
 	if (result != 0) {
 		PX4_WARN("error: RC initialization failed");
-        return -1;
+		return -1;
 	}
 
-    _isRunning = true;
+	_isRunning = true;
 	result = work_queue(HPWORK, &_work, (worker_t)&RcInput::cycle_trampoline, this, 0);
-    if (result == -1) {
-        _isRunning = false;
-    }
 
-    return result;
+	if (result == -1) {
+		_isRunning = false;
+	}
+
+	return result;
 }
 
 void RcInput::stop()
 {
-    _shouldExit = true;
+	_shouldExit = true;
 }
 
 void RcInput::cycle_trampoline(void *arg)
 {
-    RcInput *dev = reinterpret_cast<RcInput *>(arg);
-    dev->_cycle();
+	RcInput *dev = reinterpret_cast<RcInput *>(arg);
+	dev->_cycle();
 }
 
 void RcInput::_cycle()
 {
-    _measure();
+	_measure();
 
-    if (!_shouldExit) {
-        work_queue(HPWORK, &_work, (worker_t)&RcInput::cycle_trampoline, this,
-                   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
-    }
+	if (!_shouldExit) {
+		work_queue(HPWORK, &_work, (worker_t)&RcInput::cycle_trampoline, this,
+			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+	}
 }
 
 void RcInput::_measure(void)
 {
-    uint64_t ts;
-    char buf[12];
+	uint64_t ts;
+	char buf[12];
 
-    for (int i = 0; i < _channels; ++i) {
-        int res;
-        if ((res = ::pread(_ch_fd[i], buf, sizeof(buf) - 1, 0)) < 0) {
-            _data.values[i] = UINT16_MAX;
-            continue;
-        }
-        buf[sizeof(buf) -1] = '\0';
+	for (int i = 0; i < _channels; ++i) {
+		int res;
 
-        _data.values[i] = atoi(buf);
-    }
+		if ((res = ::pread(_ch_fd[i], buf, sizeof(buf) - 1, 0)) < 0) {
+			_data.values[i] = UINT16_MAX;
+			continue;
+		}
 
-    ts = hrt_absolute_time();
-    _data.timestamp_publication = ts;
-    _data.timestamp_last_signal = ts;
-    _data.channel_count = _channels;
-    _data.rssi = 100;
-    _data.rc_lost_frame_count = 0;
-    _data.rc_total_frame_count = 1;
-    _data.rc_ppm_frame_length = 100;
-    _data.rc_failsafe = false;
-    _data.rc_lost = false;
-    _data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
+		buf[sizeof(buf) - 1] = '\0';
+
+		_data.values[i] = atoi(buf);
+	}
+
+	ts = hrt_absolute_time();
+	_data.timestamp_publication = ts;
+	_data.timestamp_last_signal = ts;
+	_data.channel_count = _channels;
+	_data.rssi = 100;
+	_data.rc_lost_frame_count = 0;
+	_data.rc_total_frame_count = 1;
+	_data.rc_ppm_frame_length = 100;
+	_data.rc_failsafe = false;
+	_data.rc_lost = false;
+	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
 	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
 }
@@ -216,12 +223,12 @@ usage(const char *reason)
 		PX4_ERR("%s", reason);
 	}
 
-	PX4_INFO("usage: rcinput {start|stop|status}");
+	PX4_INFO("usage: navio_sysfs_rc_in {start|stop|status}");
 }
 
 static RcInput *rc_input = nullptr;
 
-int rcinput_main(int argc, char *argv[])
+int navio_sysfs_rc_in_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
@@ -294,4 +301,4 @@ int rcinput_main(int argc, char *argv[])
 
 }
 
-}; // namespace rcinput
+}; // namespace navio_sysfs_rc_in

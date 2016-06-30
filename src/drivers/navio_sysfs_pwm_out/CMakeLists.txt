@@ -31,13 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__pwm_out
-	MAIN pwm_out
+	MODULE drivers__navio_sysfs_pwm_out
+	MAIN navio_sysfs_pwm_out
 	COMPILE_FLAGS
 		-Os
-		-DMAVLINK_COMM_NUM_BUFFERS=1
 	SRCS
-		pwm_out.cpp
+		navio_sysfs_pwm_out.cpp
 	DEPENDS
 		platforms__common
 	)
