@@ -70,7 +70,7 @@ private:
     static constexpr int UNVISITED_NODES_BUFFER_SIZE = 5;
 
     // The number of path elements to store in the return path. This should be sized according to what the client needs.
-    static constexpr int RETURN_PATH_SIZE = 3;
+    static constexpr int RETURN_PATH_SIZE = 6;
     
 
     struct fpos_t {
@@ -157,6 +157,11 @@ private:
 
     // Pushes a new current position to the flight graph.
     void push_graph(fpos_t &position);
+
+    // Adds a link to the end of the graph that links to the specified index.
+    // If there is already a node at that index, the end of the graph is integrated in the node cycle.
+    // The end of the graph must be a pure delta (near or far) without a link.
+    void push_link(size_t index);
 
     // Returns the index of the head of the cycle that the specified link item belongs to.
     // The caller must ensure that index points to a valid link item.

@@ -40,6 +40,11 @@ DEFINE_TEST(largeNodes, 48, 47, 28, 27, 26, 25, 24, 1, 0) {
     #include "large_nodes.txt"
 };
 
+// aka:                                          14
+DEFINE_TEST(fromSim, 48, 47, 46, 45, 44, 43, 42, 41, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0) {
+    #include "from_sim.txt"
+};
+
 
 
 
@@ -80,7 +85,8 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(noLoop),
     USE_TEST(simpleLoop),
     USE_TEST(complexLoop),
-    USE_TEST(largeNodes)
+    USE_TEST(largeNodes),
+    USE_TEST(fromSim)
 };
 
 

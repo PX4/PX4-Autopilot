@@ -65,7 +65,8 @@
 #include "loiter.h"
 #include "takeoff.h"
 #include "land.h"
-#include "rtl.h"
+#include "rtl_basic.h"
+#include "rtl_advanced.h"
 #include "rcrecover.h"
 #include "rcloss.h"
 #include "datalinkloss.h"
@@ -78,7 +79,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
 
 class Navigator : public control::SuperBlock
 {
@@ -281,7 +282,8 @@ private:
 	Loiter		_loiter;					/**< class that handles loiter */
 	Takeoff		_takeoff;					/**< class for handling takeoff commands */
 	Land		_land;						/**< class for handling land commands */
-	RTL 		_rtl;						/**< class that handles return-to-land */
+	RTLAdvanced	_rtlAdvanced;				/**< class that handles return-to-land along recorded flight graph */
+	RTLBasic	_rtlBasic;					/**< class that handles simple return-to-land */
 	RCRecover	_rcRecover;					/**< class that handles RC recovery */
 	RCLoss 		_rcLoss;					/**< class that handles RC loss according to OBC rules (rc loss mode) */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles datalink loss according OBC rules */

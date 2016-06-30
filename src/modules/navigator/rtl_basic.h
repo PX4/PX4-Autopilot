@@ -38,8 +38,8 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef NAVIGATOR_RTL_H
-#define NAVIGATOR_RTL_H
+#ifndef NAVIGATOR_RTL_BASIC_H
+#define NAVIGATOR_RTL_BASIC_H
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -53,12 +53,12 @@
 
 class Navigator;
 
-class RTL : public MissionBlock
+class RTLBasic : public MissionBlock
 {
 public:
-	RTL(Navigator *navigator, const char *name);
+	RTLBasic(Navigator *navigator, const char *name);
 
-	~RTL();
+	~RTLBasic();
 
 	virtual void on_inactive();
 
@@ -68,27 +68,27 @@ public:
 
 private:
 	/**
-	 * Set the RTL item
+	 * Set the mission item
 	 */
-	void		set_rtl_item();
+	void		set_mission_item();
 
 	/**
-	 * Move to next RTL item
+	 * Move to next RTL state
 	 */
-	void		advance_rtl();
+	void		advance_state();
 
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_TRANSITION_TO_MC,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-	} _rtl_state;
+	enum {
+		STATE_NONE = 0,
+		STATE_CLIMB,
+		STATE_RETURN,
+		STATE_TRANSITION_TO_MC,
+		STATE_DESCEND,
+		STATE_LOITER,
+		STATE_LAND,
+		STATE_LANDED,
+	} _state;
 
-	bool _rtl_start_lock;
+	bool _start_lock;
 
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;

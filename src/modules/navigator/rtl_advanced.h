@@ -3,8 +3,8 @@
  * RC recovery navigation mode
  */
 
-#ifndef NAVIGATOR_RTGS_H
-#define NAVIGATOR_RTGS_H
+#ifndef NAVIGATOR_RTL_ADVANCED_H
+#define NAVIGATOR_RTL_ADVANCED_H
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -14,12 +14,12 @@
 
 class Navigator;
 
-class RCRecover : public MissionBlock
+class RTLAdvanced : public MissionBlock
 {
 public:
-	RCRecover(Navigator *navigator, const char *name);
+	RTLAdvanced(Navigator *navigator, const char *name);
 
-	~RCRecover();
+	~RTLAdvanced();
 
 	void on_inactive();
 	void on_activation();
@@ -41,7 +41,7 @@ private:
 	double loiter_lon;
 	float loiter_alt;
 	
-	control::BlockParamFloat _param_rtl_delay;
+	control::BlockParamFloat _param_rtlb_delay;
 };
 
 #endif

@@ -17,15 +17,15 @@
 #include <uORB/topics/home_position.h>
 
 #include "navigator.h"
-#include "rcrecover.h"
+#include "rtl_advanced.h"
 
 #define DELAY_SIGMA	0.01f
 
-RCRecover::RCRecover(Navigator *navigator, const char *name) :
+RTLAdvanced::RTLAdvanced(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_state(STATE_NONE),
 	_start_lock(false),
-	_param_rtl_delay(this, "RCRCVR_RTL_DELAY", false)
+	_param_rtlb_delay(this, "RTLA_RTLB_DELAY", false)
 {
 	// load initial params
 	updateParams();
@@ -34,23 +34,19 @@ RCRecover::RCRecover(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-RCRecover::~RCRecover()
+RTLAdvanced::~RTLAdvanced()
 {
 }
 
-void RCRecover::on_inactive()
+void RTLAdvanced::on_inactive()
 {
-	_navigator->get_tracker().set_recent_path_tracking_enabled(true);
-	
-	// reset RCRecover state only if setpoint moved (why?)
+	// reset RTLAdvanced state only if setpoint moved (why?)
 	if (!_navigator->get_can_loiter_at_sp())
 		_state = STATE_NONE;
 }
 
-void RCRecover::on_activation()
+void RTLAdvanced::on_activation()
 {
-	_navigator->get_tracker().set_recent_path_tracking_enabled(false);
-	
 	/* reset starting point so we override what the triplet contained from the previous navigation state */
 	_start_lock = false;
 	set_current_position_item(&_mission_item);
@@ -58,17 +54,17 @@ void RCRecover::on_activation()
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	if (_state == STATE_NONE) {
-		// for safety reasons don't go into RCRecover if landed
+		// for safety reasons don't go into RTL if landed
 		if (_navigator->get_land_detected()->landed) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: not available when landed");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: not available when landed");
 
-		// otherwise, return along recent path
+		// otherwise, return along shortest path
 		} else {
 			_state = STATE_RETURN;
 			
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: return along recent path");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: return along shortest path");
 			
-			// in case there is no recent path, loiter at the current position
+			// in case there is no path, loiter at the current position
 			loiter_lat = _navigator->get_global_position()->lat;
 			loiter_lon = _navigator->get_global_position()->lon;
 			loiter_alt = _navigator->get_global_position()->alt;
@@ -79,13 +75,13 @@ void RCRecover::on_activation()
 	update_mission_item();
 }
 
-void RCRecover::on_active()
+void RTLAdvanced::on_active()
 {
 	if (is_mission_item_reached())
 		update_mission_item();
 }
 
-void RCRecover::update_mission_item()
+void RTLAdvanced::update_mission_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -98,15 +94,32 @@ void RCRecover::update_mission_item()
 	_navigator->set_can_loiter_at_sp(false);
 	
 	//if (_state == STATE_LOITER)
-		// todo: switch to RTL mode
+		// todo: switch to RTL Basic (fallback) mode
 
 	switch (_state) {
 	case STATE_RETURN: {
+
+		// This is temporary until we have a nicer way to follow a fine-grained path.
+		// It ensures that we look ahead far enough to find the next point that is not aleady in the acceptance radius.
+		const int PREFETCH = 6;
+		double lat[PREFETCH];
+		double lon[PREFETCH];
+		float alt[PREFETCH];
+		int prefetch = _navigator->get_tracker().get_path_to_home(lat, lon, alt, PREFETCH);
+		for (int i = 0; i < prefetch - 1; i++) {
+			if (fabs(lat[i] - _mission_item.lat) < DBL_EPSILON && fabs(lon[i] - _mission_item.lon) < DBL_EPSILON && fabs(alt[i] - _mission_item.altitude) < FLT_EPSILON) {
+				lon[0] = lon[i + 1];
+				lat[0] = lat[i + 1];
+				alt[0] = alt[i + 1];
+				break;
+			}
+		}
+
 		
-		if (_navigator->get_tracker().pop_recent_path(_mission_item.lat, _mission_item.lon, _mission_item.altitude)) {
-			loiter_lat = _mission_item.lat;
-			loiter_lon = _mission_item.lon;
-			loiter_alt = _mission_item.altitude;
+		if (prefetch) {
+			loiter_lat = _mission_item.lat = lat[0];
+			loiter_lon = _mission_item.lon = lon[0];
+			loiter_alt = _mission_item.altitude = alt[0];
 			TRACKER_DBG("tracker proposed %lf %lf %f", _mission_item.lat, _mission_item.lon, _mission_item.altitude);
 			
 			_mission_item.altitude_is_relative = false;
@@ -129,7 +142,7 @@ void RCRecover::update_mission_item()
 	}
 
 	case STATE_LOITER: {
-		bool autortl = _param_rtl_delay.get() > -DELAY_SIGMA;
+		bool fallbackRTL = _param_rtlb_delay.get() > -DELAY_SIGMA;
 
 		_mission_item.lat = loiter_lat;
 		_mission_item.lon = loiter_lon;
@@ -138,19 +151,19 @@ void RCRecover::update_mission_item()
 		_mission_item.yaw = _navigator->get_global_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = autortl ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
+		_mission_item.nav_cmd = fallbackRTL ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = std::max(_param_rtl_delay.get(), .0f);
+		_mission_item.time_inside = std::max(_param_rtlb_delay.get(), .0f);
 		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = autortl;
+		_mission_item.autocontinue = fallbackRTL;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
 
-		if (autortl) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: loiter %.1fs", (double)_mission_item.time_inside);
+		if (fallbackRTL) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: loiter %.1fs", (double)_mission_item.time_inside);
 		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC Recover: completed, loiter");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: completed, loiter");
 		}
 			
 		break;

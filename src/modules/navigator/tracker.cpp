@@ -27,7 +27,7 @@ inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
     float delta_x = pos1.x - pos2.x;
     float delta_y = pos1.y - pos2.y;
     float delta_z = pos1.z - pos2.z;
-    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < (ACCURACY * ACCURACY);
+    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < ACCURACY * ACCURACY + 0.001;
 }
 
 inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {
@@ -246,7 +246,7 @@ bool Tracker::walk_forward(size_t &index, ipos_t *position, float *distance, boo
 
     // If this element contains a link, make sure we point at the end of it
     if (!is_link_item(item)) {
-        if (is_link_item(graph[index + 1])) {
+        if (index + 1 < graph_next_write && is_link_item(graph[index + 1])) {
             size_t link = get_cycle_head(index + 1);
             if (link != index + 1) {
                 link = as_link_item(graph[link]);
@@ -342,9 +342,11 @@ void Tracker::goto_graph_index(size_t index, ipos_t position) {
 
 void Tracker::push_graph(fpos_t &position) {
     // Don't update if we're still close to the last known position
-    if (is_close(graph_current_position, position))
+    //if (is_close(graph_current_position, position)) {
+    // Until we have proper line handling, we record every single position that is unique within the tracker resolution
+    if (graph_current_position == to_ipos(position))
         return;
-    
+
 
     // Detect if the current position is at a node (in which case we'd have to walk the cycle) 
     size_t cycle_head = get_cycle_head_or_null(graph_current_index); // will be 0 if there is no node
@@ -360,7 +362,8 @@ void Tracker::push_graph(fpos_t &position) {
 
         head = graph_current_position;
         if (walk_backward(index = search_index, &head, NULL, false)) {
-            if (is_close(head, position)) {
+            //if (is_close(head, position)) {
+            if (head == to_ipos(position)) { // temporary hack
                 goto_graph_index(index, head);
                 return;
             }
@@ -368,7 +371,8 @@ void Tracker::push_graph(fpos_t &position) {
 
         head = graph_current_position;
         if (walk_forward(index = search_index, &head, NULL, false)) {
-            if (is_close(head, position)) {
+            //if (is_close(head, position)) {
+            if (head == to_ipos(position)) { // temporary hack
                 goto_graph_index(index, head);
                 return;
             }
@@ -388,6 +392,8 @@ void Tracker::push_graph(fpos_t &position) {
     if (graph_next_write > GRAPH_LENGTH - 4)
         return; // todo: consider a clean-up pass
 
+
+    int search_bound = GRAPH_SEARCH_RANGE < graph_next_write ? graph_next_write - GRAPH_SEARCH_RANGE : 0;
     
     // Append the current position to the graph
     // todo: handle large distances
@@ -397,15 +403,19 @@ void Tracker::push_graph(fpos_t &position) {
 
     size_t current_index_cycle_head = get_cycle_head_or_null(graph_current_index);
 
+
     if (graph_current_index == graph_next_write - 1 // The current graph position is at the end of the graph
         || (current_index_cycle_head && current_index_cycle_head == get_cycle_head_or_null(graph_next_write - 1)) // The current position is on the node at the end of the graph
         || !graph_next_write) // The graph was empty
     {
         graph[graph_next_write++] = make_delta_item(old_head, new_head);
     } else {
+        TRACKER_DBG("insert jump after %zu (node %zu), because current index is %zu (node %zu)", graph_next_write - 1, get_cycle_head_or_null(graph_next_write - 1), graph_current_index, current_index_cycle_head);
         graph[graph_next_write++] = make_data_item(new_head.x - old_head.x);
         graph[graph_next_write++] = make_data_item(new_head.y - old_head.y);
         graph[graph_next_write++] = make_data_item(new_head.z - old_head.z);
+        push_link(graph_current_index);
+        search_bound = graph_next_write; // Make sure that the graph is not scanned - we already inserted a link.
     }
     
     graph_head = position;
@@ -415,7 +425,6 @@ void Tracker::push_graph(fpos_t &position) {
 
     ipos_t head = new_head;
 
-    int search_bound = GRAPH_SEARCH_RANGE < graph_next_write ? graph_next_write - GRAPH_SEARCH_RANGE : 0;
 
     for (size_t index = graph_next_write - 1; index > search_bound;) {
         if (!walk_backward(index, &head, NULL, true))
@@ -423,33 +432,7 @@ void Tracker::push_graph(fpos_t &position) {
 
         // Check for intersection
         if (head == new_head) {
-            size_t node;
-
-            if (is_data_item(graph[index]))
-                if (is_link_item(graph[index - 2]))
-                    index -= 2;
-
-            // Evict existing item by inserting a link to the current position (which is where the back-link will be placed)
-            graph_item_t item = graph[index];
-            graph[index] = make_link_item(graph_next_write);
-
-            // If the evicted item was not already a link, we need to initialize the link cycle
-            if (!is_link_item(item))
-                graph[graph_next_write++] = make_link_item(node = index);
-            
-            // Insert the evicted item (which may be a link)
-            graph[graph_next_write++] = item;
-            
-            // If we just created a new cycle, we need to attach a reserved field, else, retrieve cycle head
-            if (!is_link_item(item))
-                graph[graph_next_write++] = make_data_item(0xFFFF);
-            else
-                node = get_cycle_head(index);
-            
-
-            // Make sure the node will be visited when required.
-            unvisit_node(node);
-
+            push_link(index);
             break;
         }
     }
@@ -461,6 +444,35 @@ void Tracker::push_graph(fpos_t &position) {
 
     // Since we're just updated the graph, we need to invalidate the return path
     delete_return_path();
+}
+
+
+void Tracker::push_link(size_t index) {
+	size_t node;
+
+	if (is_data_item(graph[index]))
+	    if (is_link_item(graph[index - 2]))
+	        index -= 2;
+
+	// Evict existing item by inserting a link to the current position (which is where the back-link will be placed)
+	graph_item_t item = graph[index];
+	graph[index] = make_link_item(graph_next_write);
+
+	// If the evicted item was not already a link, we need to initialize the link cycle
+	if (!is_link_item(item))
+	    graph[graph_next_write++] = make_link_item(node = index);
+    
+	// Insert the evicted item (which may be a link)
+	graph[graph_next_write++] = item;
+    
+	// If we just created a new cycle, we need to attach a reserved field, else, retrieve cycle head
+	if (!is_link_item(item))
+	    graph[graph_next_write++] = make_data_item(0xFFFF);
+	else
+	    node = get_cycle_head(index);
+    
+	// Make sure the node will be visited when required.
+	unvisit_node(node);
 }
 
 
@@ -542,6 +554,12 @@ void Tracker::calc_distances() {
 
 
         // Walk along the interval until we encounter the next node or an end
+        TRACKER_DBG("  walking interval from %zu (cycle head: %zu) %s...", walk_origin, walk_origin_cycle_head, walking_forward ? "forward" : "backward");
+        if (!walk_origin && visited_area_end) {
+            PX4_WARN("tracker integrity became questionable");
+            dump_graph();
+        }
+
         size_t index = walk_origin;
         uint16_t node = 0;
         float interval_length = 0;
@@ -575,6 +593,7 @@ void Tracker::calc_distances() {
             *dist_at_interval_end_ptr = make_data_item(alt_distance);
             // node is non-zero in this case
         } else {
+            TRACKER_DBG("  nothing is improving through this interval");
             node = 0;
         }
 
@@ -628,6 +647,8 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
             dist_forward = interval_length; // The home position is on this interval
         else if (node)
             dist_forward = as_unsigned_data_item(graph[as_link_item(graph[node]) + 2]) + interval_length;
+        if (dist_forward >= 0x3FFF)
+            dist_forward = INFINITY;
         
         // Calculate the distance if walking backward from search_index
         node = walk_far_backward(index = search_index, graph_home_index, interval_length = 0);
@@ -635,6 +656,8 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
             dist_backward = interval_length;
         else if (node)
             dist_backward = as_unsigned_data_item(graph[as_link_item(graph[node]) + 2]) + interval_length;
+        if (dist_backward >= 0x3FFF)
+            dist_backward = INFINITY;
 
         TRACKER_DBG("distance from %zu is: %f forward, %f backward", search_index, dist_forward, dist_backward);
 

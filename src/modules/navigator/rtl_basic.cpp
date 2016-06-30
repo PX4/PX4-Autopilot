@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.cpp
+ * @file rtl_basic.cpp
  * Helper class to access RTL
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
+#include <algorithm>
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
@@ -52,18 +53,18 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator.h"
-#include "rtl.h"
+#include "rtl_basic.h"
 
 #define DELAY_SIGMA	0.01f
 
-RTL::RTL(Navigator *navigator, const char *name) :
+RTLBasic::RTLBasic(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_rtl_state(RTL_STATE_NONE),
-	_rtl_start_lock(false),
-	_param_return_alt(this, "RTL_RETURN_ALT", false),
-	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
-	_param_land_delay(this, "RTL_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
+	_state(STATE_NONE),
+	_start_lock(false),
+	_param_return_alt(this, "RTLB_RETURN_ALT", false),
+	_param_descend_alt(this, "RTLB_DESCEND_ALT", false),
+	_param_land_delay(this, "RTLB_LAND_DELAY", false),
+	_param_rtl_min_dist(this, "RTLB_MIN_DIST", false)
 {
 	/* load initial params */
 	updateParams();
@@ -71,24 +72,19 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-RTL::~RTL()
-{
+RTLBasic::~RTLBasic() {
 }
 
-void
-RTL::on_inactive()
-{
+void RTLBasic::on_inactive() {
 	/* reset RTL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
-		_rtl_state = RTL_STATE_NONE;
+		_state = STATE_NONE;
 	}
 }
 
-void
-RTL::on_activation()
-{
+void RTLBasic::on_activation() {
 	/* reset starting point so we override what the triplet contained from the previous navigation state */
-	_rtl_start_lock = false;
+	_start_lock = false;
 	set_current_position_item(&_mission_item);
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
@@ -98,55 +94,51 @@ RTL::on_activation()
 			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 	/* decide where to enter the RTL procedure when we switch into it */
-	if (_rtl_state == RTL_STATE_NONE) {
+	if (_state == STATE_NONE) {
 		/* for safety reasons don't go into RTL if landed */
 		if (_navigator->get_land_detected()->landed) {
-			_rtl_state = RTL_STATE_LANDED;
+			_state = STATE_LANDED;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 
 		/* if lower than return altitude, climb up first */
 		} else if (home_dist > _param_rtl_min_dist.get() && _navigator->get_global_position()->alt < _navigator->get_home_position()->alt
 			   + _param_return_alt.get()) {
-			_rtl_state = RTL_STATE_CLIMB;
+			_state = STATE_CLIMB;
 
 		/* otherwise go straight to return */
 		} else {
 			/* set altitude setpoint to current altitude */
-			_rtl_state = RTL_STATE_RETURN;
+			_state = STATE_RETURN;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
 		}
 
 	}
 
-	set_rtl_item();
+	set_mission_item();
 }
 
-void
-RTL::on_active()
-{
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
-		advance_rtl();
-		set_rtl_item();
+void RTLBasic::on_active() {
+	if (_state != STATE_LANDED && is_mission_item_reached()) {
+		advance_state();
+		set_mission_item();
 	}
 }
 
-void
-RTL::set_rtl_item()
-{
+void RTLBasic::set_mission_item() {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* make sure we have the latest params */
 	updateParams();
 
-	if (!_rtl_start_lock) {
+	if (!_start_lock) {
 		set_previous_pos_setpoint();
 	}
 
 	_navigator->set_can_loiter_at_sp(false);
 
-	switch (_rtl_state) {
-	case RTL_STATE_CLIMB: {
+	switch (_state) {
+	case STATE_CLIMB: {
 		float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
 
 		_mission_item.lat = _navigator->get_global_position()->lat;
@@ -169,7 +161,7 @@ RTL::set_rtl_item()
 		break;
 	}
 
-	case RTL_STATE_RETURN: {
+	case STATE_RETURN: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		// don't change altitude
@@ -209,17 +201,17 @@ RTL::set_rtl_item()
 			(int)(_mission_item.altitude),
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 
-		_rtl_start_lock = true;
+		_start_lock = true;
 		break;
 	}
 
-	case RTL_STATE_TRANSITION_TO_MC: {
+	case STATE_TRANSITION_TO_MC: {
 		_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 		_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		break;
 	}
 
-	case RTL_STATE_DESCEND: {
+	case STATE_DESCEND: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
@@ -261,7 +253,7 @@ RTL::set_rtl_item()
 		break;
 	}
 
-	case RTL_STATE_LOITER: {
+	case STATE_LOITER: {
 		bool autoland = _param_land_delay.get() > -DELAY_SIGMA;
 
 		_mission_item.lat = _navigator->get_home_position()->lat;
@@ -272,7 +264,7 @@ RTL::set_rtl_item()
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
+		_mission_item.time_inside = std::max(_param_land_delay.get(), .0f);
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = autoland;
 		_mission_item.origin = ORIGIN_ONBOARD;
@@ -288,7 +280,7 @@ RTL::set_rtl_item()
 		break;
 	}
 
-	case RTL_STATE_LAND: {
+	case STATE_LAND: {
 		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		set_land_item(&_mission_item, false);
 
@@ -296,7 +288,7 @@ RTL::set_rtl_item()
 		break;
 	}
 
-	case RTL_STATE_LANDED: {
+	case STATE_LANDED: {
 		set_idle_item(&_mission_item);
 
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, landed");
@@ -321,42 +313,40 @@ RTL::set_rtl_item()
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-void
-RTL::advance_rtl()
-{
-	switch (_rtl_state) {
-	case RTL_STATE_CLIMB:
-		_rtl_state = RTL_STATE_RETURN;
+void RTLBasic::advance_state() {
+	switch (_state) {
+	case STATE_CLIMB:
+		_state = STATE_RETURN;
 		break;
 
-	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
+	case STATE_RETURN:
+		_state = STATE_DESCEND;
 
 		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+			_state = STATE_TRANSITION_TO_MC;
 		}
 		break;
 
-	case RTL_STATE_TRANSITION_TO_MC:
-		_rtl_state = RTL_STATE_RETURN;
+	case STATE_TRANSITION_TO_MC:
+		_state = STATE_RETURN;
 		break;
 
-	case RTL_STATE_DESCEND:
+	case STATE_DESCEND:
 		/* only go to land if autoland is enabled */
 		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_LOITER;
+			_state = STATE_LOITER;
 
 		} else {
-			_rtl_state = RTL_STATE_LAND;
+			_state = STATE_LAND;
 		}
 		break;
 
-	case RTL_STATE_LOITER:
-		_rtl_state = RTL_STATE_LAND;
+	case STATE_LOITER:
+		_state = STATE_LAND;
 		break;
 
-	case RTL_STATE_LAND:
-		_rtl_state = RTL_STATE_LANDED;
+	case STATE_LAND:
+		_state = STATE_LANDED;
 		break;
 
 	default:

@@ -42,7 +42,8 @@ px4_add_module(
 		mission_block.cpp
 		mission.cpp
 		loiter.cpp
-		rtl.cpp
+		rtl_basic.cpp
+		rtl_advanced.cpp
 		rcrecover.cpp
 		rcloss.cpp
 		datalinkloss.cpp
