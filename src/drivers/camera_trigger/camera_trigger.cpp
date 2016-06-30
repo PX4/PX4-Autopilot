@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -118,6 +118,11 @@ public:
 	 */
 	void		info();
 
+	/**
+	 * Trigger one image
+	 */
+	void		test();
+
 private:
 
 	struct hrt_call		_engagecall;
@@ -126,13 +131,13 @@ private:
 
 	int 			_gpio_fd;
 
-	int				_mode;
-	float 			_activation_time;
-	float  			_interval;
-	float  			_distance;
+	int			_mode;
+	float			_activation_time;
+	float			_interval;
+	float 			_distance;
 	uint32_t 		_trigger_seq;
-	bool	 		_trigger_enabled;
-	math::Vector<2>	_last_shoot_position;
+	bool			_trigger_enabled;
+	math::Vector<2>		_last_shoot_position;
 	bool			_valid_position;
 
 	int			_vcommand_sub;
@@ -140,15 +145,15 @@ private:
 
 	orb_advert_t		_trigger_pub;
 
-	param_t _p_mode;
-	param_t _p_activation_time;
-	param_t _p_interval;
-	param_t _p_distance;
-	param_t _p_pin;
-	param_t _p_interface;
+	param_t			_p_mode;
+	param_t			_p_activation_time;
+	param_t			_p_interval;
+	param_t			_p_distance;
+	param_t			_p_pin;
+	param_t			_p_interface;
 
-	camera_interface_mode_t _camera_interface_mode;
-	CameraInterface *_camera_interface;  ///< instance of camera interface
+	camera_interface_mode_t	_camera_interface_mode;
+	CameraInterface		*_camera_interface;  ///< instance of camera interface
 
 	/**
 	 * Vehicle command handler
@@ -225,6 +230,9 @@ CameraTrigger::CameraTrigger() :
 	default:
 		break;
 	}
+
+	struct camera_trigger_s	report = {};
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &report);
 }
 
 CameraTrigger::~CameraTrigger()
@@ -296,6 +304,18 @@ CameraTrigger::stop()
 	if (camera_trigger::g_camera_trigger != nullptr) {
 		delete(camera_trigger::g_camera_trigger);
 	}
+}
+
+void
+CameraTrigger::test()
+{
+	struct vehicle_command_s cmd = {};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+	cmd.param5 = 1.0f;
+
+	orb_advert_t pub;
+	pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+	(void)orb_unadvertise(pub);
 }
 
 void
@@ -419,9 +439,7 @@ CameraTrigger::engage(void *arg)
 
 	report.seq = trig->_trigger_seq++;
 
-	int instance;
-
-	orb_publish_auto(ORB_ID(camera_trigger), &trig->_trigger_pub, &report, &instance, ORB_PRIO_HIGH);
+	orb_publish(ORB_ID(camera_trigger), &(trig->_trigger_pub), &report);
 }
 
 void
@@ -435,23 +453,24 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::info()
 {
-	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
-	warnx("mode : %i", _mode);
-	warnx("interval : %.2f [ms]", (double)_interval);
-	warnx("distance : %.2f [m]", (double)_distance);
-	warnx("activation time : %.2f [ms]", (double)_activation_time);
+	PX4_INFO("state : %s", _trigger_enabled ? "enabled" : "disabled");
+	PX4_INFO("mode : %i", _mode);
+	PX4_INFO("interval : %.2f [ms]", (double)_interval);
+	PX4_INFO("distance : %.2f [m]", (double)_distance);
+	PX4_INFO("activation time : %.2f [ms]", (double)_activation_time);
 	_camera_interface->info();
 }
 
-static void usage()
+static int usage()
 {
-	errx(1, "usage: camera_trigger {start {--relay|--pwm}|stop|info}\n");
+	PX4_ERR("usage: camera_trigger {start|stop|info|test}\n");
+	return 1;
 }
 
 int camera_trigger_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		usage();
+		return usage();
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -488,8 +507,11 @@ int camera_trigger_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "disable")) {
 		camera_trigger::g_camera_trigger->control(false);
 
+	} else if (!strcmp(argv[1], "test")) {
+		camera_trigger::g_camera_trigger->test();
+
 	} else {
-		usage();
+		return usage();
 	}
 
 	return 0;
