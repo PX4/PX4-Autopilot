@@ -566,9 +566,9 @@ function(px4_os_add_flags)
 		set(cpu_flags
 			-mcpu=cortex-m7
 			-mthumb
-			-mfpu=fpv5-d16
+			-mfpu=fpv5-sp-d16
 			-mfloat-abi=hard
- 			)
+			)
 	elseif (${config_nuttx_hw} STREQUAL "m4")
 		set(cpu_flags
 			-mcpu=cortex-m4
