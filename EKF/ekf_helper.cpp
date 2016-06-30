@@ -815,21 +815,27 @@ Vector3f Ekf::calcRotVecVariances()
 	float t3 = acos(q0);
 	float t4 = -t2+1.0f;
 	float t5 = t2-1.0f;
-	float t6 = 1.0f/t5;
-	float t7 = q1*t6*2.0f;
-	float t8 = 1.0f/powf(t4,1.5f);
-	float t9 = q0*q1*t3*t8*2.0f;
-	float t10 = t7+t9;
-	float t11 = 1.0f/sqrtf(t4);
-	float t12 = q2*t6*2.0f;
-	float t13 = q0*q2*t3*t8*2.0f;
-	float t14 = t12+t13;
-	float t15 = q3*t6*2.0f;
-	float t16 = q0*q3*t3*t8*2.0f;
-	float t17 = t15+t16;
-	rot_var_vec(0) = t10*(P[0][0]*t10+P[1][0]*t3*t11*2.0f)+t3*t11*(P[0][1]*t10+P[1][1]*t3*t11*2.0f)*2.0f;
-	rot_var_vec(1) = t14*(P[0][0]*t14+P[2][0]*t3*t11*2.0f)+t3*t11*(P[0][2]*t14+P[2][2]*t3*t11*2.0f)*2.0f;
-	rot_var_vec(2) = t17*(P[0][0]*t17+P[3][0]*t3*t11*2.0f)+t3*t11*(P[0][3]*t17+P[3][3]*t3*t11*2.0f)*2.0f;
+	if ((t4 > 1e-9f) && (t5 < -1e-9f)) {
+		float t6 = 1.0f/t5;
+		float t7 = q1*t6*2.0f;
+		float t8 = 1.0f/powf(t4,1.5f);
+		float t9 = q0*q1*t3*t8*2.0f;
+		float t10 = t7+t9;
+		float t11 = 1.0f/sqrtf(t4);
+		float t12 = q2*t6*2.0f;
+		float t13 = q0*q2*t3*t8*2.0f;
+		float t14 = t12+t13;
+		float t15 = q3*t6*2.0f;
+		float t16 = q0*q3*t3*t8*2.0f;
+		float t17 = t15+t16;
+		rot_var_vec(0) = t10*(P[0][0]*t10+P[1][0]*t3*t11*2.0f)+t3*t11*(P[0][1]*t10+P[1][1]*t3*t11*2.0f)*2.0f;
+		rot_var_vec(1) = t14*(P[0][0]*t14+P[2][0]*t3*t11*2.0f)+t3*t11*(P[0][2]*t14+P[2][2]*t3*t11*2.0f)*2.0f;
+		rot_var_vec(2) = t17*(P[0][0]*t17+P[3][0]*t3*t11*2.0f)+t3*t11*(P[0][3]*t17+P[3][3]*t3*t11*2.0f)*2.0f;
+	} else {
+		rot_var_vec(0) = 4.0f * P[1][1];
+		rot_var_vec(1) = 4.0f * P[2][2];
+		rot_var_vec(2) = 4.0f * P[3][3];
+	}
 
 	return rot_var_vec;
 }
