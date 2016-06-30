@@ -39,6 +39,7 @@ param set NAV_DLL_ACT 2
 param set NAV_ACC_RAD 3.0
 param set MPC_TKO_SPEED 1.0
 param set MIS_YAW_TMT 10
+replay tryapplyparams
 simulator start -s
 rgbledsim start
 tone_alarm start
@@ -74,3 +75,4 @@ mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 sdlog2 start -r 200 -e -t -a
 mavlink boot_complete
+replay trystart
