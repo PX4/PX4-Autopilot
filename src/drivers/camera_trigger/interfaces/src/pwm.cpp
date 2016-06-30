@@ -75,6 +75,7 @@ void CameraInterfacePWM::trigger(bool enable)
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 			if (_pins[i] >= 0) {
 				up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_INSTANT_SHOOT, 1000, 2000));
+				PX4_WARN("S");
 			}
 		}
 
@@ -122,5 +123,5 @@ int CameraInterfacePWM::powerOff()
 
 void CameraInterfacePWM::info()
 {
-	warnx("PWM - camera triggering, pins 1-3 : %d,%d,%d", _pins[0], _pins[1], _pins[2]);
+	warnx("PWM - interface, pin config: %d,%d,%d", _pins[0] + 1, _pins[1] + 1, _pins[2] + 1);
 }
