@@ -209,18 +209,20 @@ static struct spi_dev_s *spi4;
 
 #include <math.h>
 
-#ifdef __cplusplus
+//No longer included in px4fmu-v2_default, maybe it is not needed here either
+//Just gonna leave it out for now
+/*#ifdef __cplusplus
 __EXPORT int matherr(struct __exception *e)
 {
 	return 1;
 }
-/*#else  //keep getting error about  redundant matherr assignment, will try with the else commented out
+#else  //keep getting error about  redundant matherr assignment, will try with the else commented out
 __EXPORT int matherr(struct __exception *e)
 {
 	return 1;
-}*/
+}
 #endif
-
+*/
 __EXPORT int nsh_archinitialize(void)
 {
 
@@ -261,6 +263,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
+
 
 	/* Configure Sensors on SPI bus #3 */
 	spi3 = px4_spibus_initialize(3);
