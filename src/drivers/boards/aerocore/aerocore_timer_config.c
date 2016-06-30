@@ -42,8 +42,8 @@
 #include <stdint.h>
 
 #include <stm32.h>
-//#include <stm32_gpio_out.h> //I replaced with below
-#include <stm32_gpio.h>
+//#include <stm32_gpio_out.h> //almost positive this is wrong. Added below statement
+#include <stm32_gpio.h>  
 #include <stm32_tim.h>
 
 #include <drivers/stm32/drv_io_timer.h>
@@ -67,7 +67,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.base = STM32_TIM3_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
+		.clock_freq = STM32_APB1_TIM3_CLKIN,
 		.first_channel_index = 4,
 		.last_channel_index = 7,
 		.handler = io_timer_handler1,
