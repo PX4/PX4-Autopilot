@@ -12,7 +12,7 @@ then
 		${DIR}/fix_code_style.sh --quiet < $file > $file.pretty
 
 		echo
-		git diff --no-index --minimal --histogram --color=always  $file $file.pretty
+		git --no-pager diff --no-index --minimal --histogram --color=always  $file $file.pretty
 		echo
 
 		rm -f $file.pretty
