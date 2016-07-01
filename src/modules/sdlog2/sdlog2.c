@@ -2138,6 +2138,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
 				log_msg.body.log_EST2.gps_check_fail_flags = buf.estimator_status.gps_check_fail_flags;
 				log_msg.body.log_EST2.control_mode_flags = buf.estimator_status.control_mode_flags;
+				log_msg.body.log_EST2.health_flags = buf.estimator_status.health_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST2);
 
 				log_msg.msg_type = LOG_EST3_MSG;
