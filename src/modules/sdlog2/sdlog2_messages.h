@@ -410,9 +410,9 @@ struct log_EST1_s {
 /* --- EST2 - ESTIMATOR STATUS --- */
 #define LOG_EST2_MSG 34
 struct log_EST2_s {
-    float cov[12];
-    uint16_t gps_check_fail_flags;
-    uint16_t control_mode_flags;
+	float cov[12];
+	uint16_t gps_check_fail_flags;
+	uint16_t control_mode_flags;
 	uint8_t health_flags;
 };
 
