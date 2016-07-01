@@ -83,7 +83,6 @@ add_library(px4_platform
 			${PX4_SRC}/platforms/posix/work_queue/sq_remfirst.c
 			${PX4_SRC}/platforms/posix/work_queue/work_cancel.c
 			${PX4_SRC}/platforms/posix/work_queue/work_lock.c
-			${PX4_SRC}/platforms/posix/work_queue/work_lock.h
 			${PX4_SRC}/platforms/posix/work_queue/work_queue.c
 			${PX4_SRC}/platforms/posix/work_queue/work_thread.c
 			)
@@ -124,10 +123,3 @@ add_executable(param_test param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/param/param.c)
 target_link_libraries(param_test ${PX4_SITL_BUILD}/libmsg_gen.a)
 add_gtest(param_test)
-
-# param_shmem_test
-#add_executable(param_shmem_test param_test.cpp uorb_stub.cpp
-#						${PX4_SRC}/modules/systemlib/bson/tinybson.c
-#						${PX4_SRC}/modules/systemlib/param/param_shmem.c)
-#target_link_libraries(param_shmem_test ${PX4_SITL_BUILD}/libmsg_gen.a)
-#add_gtest(param_shmem_test)
