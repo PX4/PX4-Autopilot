@@ -216,11 +216,8 @@ private:
 	// ----------------------------
 
 	// subscriptions
-	uORB::Subscription<vehicle_status_s> _sub_status;
 	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;

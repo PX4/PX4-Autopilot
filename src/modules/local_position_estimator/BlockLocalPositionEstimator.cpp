@@ -21,28 +21,27 @@ static const float flow_min_agl = 0.3;
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
-
 	// subscriptions, set rate, add to list
-	// TODO topic speed limiting?
-	_sub_status(ORB_ID(vehicle_status), 0, 0, &getSubscriptions()),
-	_sub_armed(ORB_ID(actuator_armed), 0, 0, &getSubscriptions()),
-	_sub_control_mode(ORB_ID(vehicle_control_mode),
-			  0, 0, &getSubscriptions()),
-	_sub_att(ORB_ID(vehicle_attitude), 0, 0, &getSubscriptions()),
-	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
-		    0, 0, &getSubscriptions()),
-	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
-	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
-	_sub_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
-	_sub_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
-	_sub_home(ORB_ID(home_position), 0, 0, &getSubscriptions()),
-	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
-	_sub_vision_pos(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
-	_sub_mocap(ORB_ID(att_pos_mocap), 0, 0, &getSubscriptions()),
-	_sub_dist0(ORB_ID(distance_sensor), 0, 0, &getSubscriptions()),
-	_sub_dist1(ORB_ID(distance_sensor), 0, 1, &getSubscriptions()),
-	_sub_dist2(ORB_ID(distance_sensor), 0, 2, &getSubscriptions()),
-	_sub_dist3(ORB_ID(distance_sensor), 0, 3, &getSubscriptions()),
+	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
+	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
+	// flow 10 hz
+	_sub_flow(ORB_ID(optical_flow), 1000 / 10, 0, &getSubscriptions()),
+	// main prediction loop, 100 hz
+	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
+	// status updates 2 hz
+	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
+	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
+	_sub_home(ORB_ID(home_position), 1000 / 2, 0, &getSubscriptions()),
+	// gps 10 hz
+	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
+	// vision 5 hz
+	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 5, 0, &getSubscriptions()),
+	// all distance sensors, 10 hz
+	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 10, 0, &getSubscriptions()),
+	_sub_dist0(ORB_ID(distance_sensor), 1000 / 10, 0, &getSubscriptions()),
+	_sub_dist1(ORB_ID(distance_sensor), 1000 / 10, 1, &getSubscriptions()),
+	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
+	_sub_dist3(ORB_ID(distance_sensor), 1000 / 10, 3, &getSubscriptions()),
 	_dist_subs(),
 	_sub_lidar(NULL),
 	_sub_sonar(NULL),
