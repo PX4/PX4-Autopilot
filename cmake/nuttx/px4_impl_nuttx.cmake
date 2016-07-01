@@ -510,13 +510,15 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-	set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+	set(nuttx_export_root ${CMAKE_BINARY_DIR}/${BOARD}/NuttX)
+	set(nuttx_export_dir ${nuttx_export_root}/nuttx-export)
 	set(added_include_dirs
 		${nuttx_export_dir}/include
 		${nuttx_export_dir}/include/cxx
 		${nuttx_export_dir}/arch/chip
 		${nuttx_export_dir}/arch/common
 		${nuttx_export_dir}/arch/armv7-m
+		${nuttx_export_root}/apps/include
 		)
 	set(added_link_dirs
 		${nuttx_export_dir}/libs
