@@ -57,7 +57,7 @@ set(config_module_list
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
+	#systemcmds/esc_calib
 	systemcmds/reboot
 	#systemcmds/topic_listener
 	systemcmds/top
