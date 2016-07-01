@@ -49,7 +49,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// calculate range to center of image for flow
-	if (!_canEstimateT) {
+	if (!_validTZ) {
 		return -1;
 	}
 
@@ -153,7 +153,9 @@ void BlockLocalPositionEstimator::flowCorrect()
 	if (_flowFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_flow> K =
 			_P * C.transpose() * S_I;
-		_x += K * r;
+		Vector<float, n_x> dx = K * r;
+		correctionLogic(dx);
+		_x += dx;
 		_P -= K * C * _P;
 
 	} else {
