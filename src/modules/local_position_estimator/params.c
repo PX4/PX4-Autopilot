@@ -4,14 +4,6 @@
 
 
 /**
- * Accelerometer integration for prediction.
- *
- * @boolean
- * @group Local Position Estimator
- */
-PARAM_DEFINE_INT32(LPE_INTEGRATE, 1);
-
-/**
  * Optical flow z offset from center
  *
  * @group Local Position Estimator
@@ -346,5 +338,26 @@ PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
  * @max 1000
  * @decimal 0
  */
-PARAM_DEFINE_FLOAT(LPE_X_LP, 5.0);
+PARAM_DEFINE_FLOAT(LPE_X_LP, 5.0f);
 
+/**
+ * Required xy standard deviation to publish position
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.3
+ * @max 5.0
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(LPE_XY_PUB, 1.0f);
+
+/**
+ * Required z standard deviation to publish altitude/ terrain
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.3
+ * @max 5.0
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(LPE_Z_PUB, 1.0f);
