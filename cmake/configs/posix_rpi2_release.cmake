@@ -72,12 +72,9 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 
-	modules/rcinput
-
 	#
 	# PX4 drivers
 	#
-	drivers/pwm_out
 
 	#
 	# Libraries
