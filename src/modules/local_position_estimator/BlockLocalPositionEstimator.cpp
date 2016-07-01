@@ -14,6 +14,7 @@ static const uint32_t 		EST_SRC_TIMEOUT = 10000; // 0.01 s
 static const uint32_t 		EST_STDDEV_XY_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
+static const bool integrate = true; // use accel for integrating
 
 // minimum flow altitude
 static const float flow_min_agl = 0.3;
@@ -55,7 +56,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_integrate(this, "INTEGRATE"),
+	_xy_pub_thresh(this, "XY_PUB"),
+	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
 	_lidar_z_stddev(this, "LDR_Z"),
@@ -303,7 +305,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is xy valid?
-	bool xy_stddev_ok = sqrt(math::max(_P(X_x, X_x), _P(X_y, X_y))) < EST_STDDEV_XY_VALID;
+	bool xy_stddev_ok = sqrtf(math::max(_P(X_x, X_x), _P(X_y, X_y))) < _xy_pub_thresh.get();
 
 	if (_validXY) {
 		// if valid and gps has timed out, set to not valid
@@ -318,7 +320,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is z valid?
-	bool z_stddev_ok = sqrt(_P(X_z, X_z)) < EST_STDDEV_Z_VALID;
+	bool z_stddev_ok = sqrtf(_P(X_z, X_z)) < _z_pub_thresh.get();
 
 	if (_validZ) {
 		// if valid and baro has timed out, set to not valid
@@ -333,7 +335,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is terrain valid?
-	bool tz_stddev_ok = sqrt(_P(X_tz, X_tz)) < EST_STDDEV_TZ_VALID;
+	bool tz_stddev_ok = sqrtf(_P(X_tz, X_tz)) < _z_pub_thresh.get();
 
 	if (_validTZ) {
 		if (!tz_stddev_ok) {
@@ -555,7 +557,7 @@ float BlockLocalPositionEstimator::agl()
 void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 {
 	// don't correct bias when rotating rapidly
-	float ang_speed = sqrt(
+	float ang_speed = sqrtf(
 				  _sub_att.get().rollspeed * _sub_att.get().rollspeed +
 				  _sub_att.get().pitchspeed * _sub_att.get().pitchspeed +
 				  _sub_att.get().yawspeed * _sub_att.get().yawspeed);
@@ -838,7 +840,7 @@ void BlockLocalPositionEstimator::predict()
 	// state or covariance
 	if (!_validXY && !_validZ) { return; }
 
-	if (_integrate.get() && _sub_att.get().R_valid) {
+	if (integrate && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 		_u = R_att * a;
