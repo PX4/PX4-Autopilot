@@ -97,8 +97,6 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -106,13 +104,25 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
-#include <v2.0/common/mavlink.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+typedef enum VEHICLE_MODE_FLAG
+{
+	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED=1, /* 0b00000001 Reserved for future use. | */
+	VEHICLE_MODE_FLAG_TEST_ENABLED=2, /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
+	VEHICLE_MODE_FLAG_AUTO_ENABLED=4, /* 0b00000100 autonomous mode enabled, system finds its own goal positions. Guided flag can be set or not, depends on the actual implementation. | */
+	VEHICLE_MODE_FLAG_GUIDED_ENABLED=8, /* 0b00001000 guided mode enabled, system flies MISSIONs / mission items. | */
+	VEHICLE_MODE_FLAG_STABILIZE_ENABLED=16, /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
+	VEHICLE_MODE_FLAG_HIL_ENABLED=32, /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
+	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED=64, /* 0b01000000 remote control input is enabled. | */
+	VEHICLE_MODE_FLAG_SAFETY_ARMED=128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
+	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
+} VEHICLE_MODE_FLAG;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
@@ -690,11 +700,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
 			/* set HIL state */
-			hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
+			hil_state_t new_hil_state = (base_mode & VEHICLE_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
 			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, &mavlink_log_pub);
 
 			// Transition the arming state
-			bool cmd_arm = base_mode & MAV_MODE_FLAG_SAFETY_ARMED;
+			bool cmd_arm = base_mode & VEHICLE_MODE_FLAG_SAFETY_ARMED;
 
 			arming_ret = arm_disarm(cmd_arm, &mavlink_log_pub, "set mode command");
 
@@ -705,7 +715,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
 			}
 
-			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
+			if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
@@ -771,16 +781,16 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			} else {
 				/* use base mode */
-				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
+				if (base_mode & VEHICLE_MODE_FLAG_AUTO_ENABLED) {
 					/* AUTO */
 					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
 
-				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
-					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
+				} else if (base_mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+					if (base_mode & VEHICLE_MODE_FLAG_GUIDED_ENABLED) {
 						/* POSCTL */
 						main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
 
-					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
+					} else if (base_mode & VEHICLE_MODE_FLAG_STABILIZE_ENABLED) {
 						/* STABILIZED */
 						main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 					} else {
@@ -2194,7 +2204,9 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.gps_failure && !gpsIsNoisy) {
 					status_flags.gps_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
+					if (status_flags.condition_home_position_valid) {
+						mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
+					}
 				}
 
 			} else if (!status_flags.gps_failure) {

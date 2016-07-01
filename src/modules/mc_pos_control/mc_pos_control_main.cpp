@@ -1975,10 +1975,10 @@ MulticopterPositionControl::task_main()
 				float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
 				// If the yaw offset became too big for the system to track stop
-				// shifting it
-
-				// XXX this needs inspection - probably requires a clamp, not an if
-				if (fabsf(yaw_offs) < yaw_offset_max) {
+				// shifting it, only allow if it would make the offset smaller again.
+				if (fabsf(yaw_offs) < yaw_offset_max ||
+						(_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
+						(_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
 					_att_sp.yaw_body = yaw_target;
 				}
 			}
@@ -2056,6 +2056,7 @@ MulticopterPositionControl::task_main()
 
 		} else {
 			reset_yaw_sp = true;
+			_att_sp.yaw_sp_move_rate = 0.0f;
 		}
 
 		/* update previous velocity for velocity controller D part */

@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN local_position_estimator
 	COMPILE_FLAGS -Os
 	STACK_MAIN 5700
-	STACK_MAX 10000
+	STACK_MAX 13000
 	SRCS
 		local_position_estimator_main.cpp
 		BlockLocalPositionEstimator.cpp

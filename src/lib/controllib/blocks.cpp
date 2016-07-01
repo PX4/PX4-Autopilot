@@ -84,6 +84,7 @@ float BlockLowPass::update(float input)
 	return getState();
 }
 
+
 float BlockHighPass::update(float input)
 {
 	float b = 2 * float(M_PI) * getFCut() * getDt();

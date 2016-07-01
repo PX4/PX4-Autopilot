@@ -1184,9 +1184,8 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 bool FixedwingPositionControl::in_takeoff_situation()
 {
 	const hrt_abstime delta_takeoff = 10000000;
-	const float throttle_threshold = 0.1f;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold
+	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
 	    && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
 		return true;
 	}
@@ -1362,8 +1361,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				alt_sp = pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
 
 			} else {
-				// use altitude given by wapoint
+				// use altitude given by waypoint
 				alt_sp = pos_sp_triplet.current.alt;
+			}
+
+			if (in_takeoff_situation()) {
+				alt_sp = math::max(alt_sp, _takeoff_ground_alt + _parameters.climbout_diff);
 			}
 
 			if (in_takeoff_situation() ||

@@ -17,9 +17,9 @@
 
 connection_string       = '127.0.0.1:14540'
 
-import_mission_filename = 'VTOLmission.txt'
-max_execution_time      = 250
-alt_acceptance_radius   = 10
+import_mission_filename = 'VTOL_TAKEOFF.mission'
+max_execution_time      = 200
+alt_acceptance_radius   = 5
 
 ################################################################################################
 # Init
@@ -150,14 +150,14 @@ def save_mission(aFileName):
     Save a mission in the Waypoint file format
     (http://qgroundcontrol.org/mavlink/waypoint_protocol#waypoint_file_format).
     """
-    print "\nSave mission from Vehicle to file: %s" % export_mission_filename
+    print "\nSave mission from Vehicle to file: %s" % aFileName
     #Download mission from vehicle
     missionlist = download_mission()
     #Add file-format information
     output='QGC WPL 110\n'
     #Add home location as 0th waypoint
     home = vehicle.home_location
-    output+="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (0,1,0,16,0,0,0,0,home.lat,home.lon,home.alt,1)
+    output+="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n\n\n" % (0,1,0,16,0,0,0,0,home.lat,home.lon,home.alt,1)
     #Add commands
     for cmd in missionlist:
         commandline="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (cmd.seq,cmd.current,cmd.frame,cmd.command,cmd.param1,cmd.param2,cmd.param3,cmd.param4,cmd.x,cmd.y,cmd.z,cmd.autocontinue)
