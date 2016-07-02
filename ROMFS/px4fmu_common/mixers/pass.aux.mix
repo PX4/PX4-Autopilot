@@ -1,21 +1,36 @@
 # Manual pass through mixer for servo outputs 1-4
 
 # AUX1 channel (select RC channel with RC_MAP_AUX1 param)
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
+S: 2 1  10000  10000      0 -10000  10000
 S: 3 5  10000  10000      0 -10000  10000
 
 # AUX2 channel (select RC channel with RC_MAP_AUX2 param)
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
+S: 2 2  10000  10000      0 -10000  10000
 S: 3 6  10000  10000      0 -10000  10000
 
 # AUX3 channel (select RC channel with RC_MAP_AUX3 param)
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
+S: 2 3  10000  10000      0 -10000  10000
 S: 3 7  10000  10000      0 -10000  10000
 
 # FLAPS channel (select RC channel with RC_MAP_FLAPS param)
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 2 4  10000  10000      0 -10000  10000
+S: 3 4  10000  10000      0 -10000  10000
+
+# AUX5 channel (select servo id 5 in mission item)
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 3 4  10000  10000      0 -10000  10000
+S: 2 5  10000  10000      0 -10000  10000
+
+# AUX6 channel (select servo id 6 in mission item)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 6  10000  10000      0 -10000  10000
+

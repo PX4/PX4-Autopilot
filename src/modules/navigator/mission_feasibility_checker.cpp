@@ -95,7 +95,6 @@ bool MissionFeasibilityChecker::checkMissionFeasible(orb_advert_t *mavlink_log_p
 	} else {
 		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	}
-
 	return !failed;
 }
 
@@ -255,6 +254,19 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			mavlink_log_critical(_mavlink_log_pub, "Rejecting mission item %i: unsupported cmd: %d", (int)(i+1), (int)missionitem.nav_cmd);
 			return false;
 		}
+                /* Check non navigation item */
+                if (missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO){
+                        /* check actuator number */
+                        if (missionitem.params[0] < 1 || missionitem.params[0] > 6) {
+                                mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 1..6", (int)missionitem.params[0]);
+                                return false;
+                        }
+                        /* check actuator value */
+                        if (missionitem.params[1] < -2000 || missionitem.params[1] > 2000) {
+                                mavlink_log_critical(_mavlink_log_pub, "Actuator value %d is out of bounds -2000..2000", (int)missionitem.params[1]);
+                                return false;
+                        }
+                }
 
 		// check if the mission starts with a land command while the vehicle is landed
 		if (missionitem.nav_cmd == NAV_CMD_LAND &&
@@ -349,24 +361,23 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		for (unsigned i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i,
 					&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
-				/* Check non navigation item */
-				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
-
-					/* check actuator number */
-					if (mission_item.params[0] < 0 || mission_item.params[0] > 5) {
-						mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 0..5", (int)mission_item.params[0]);
-						warning_issued = true;
-						return false;
-					}
-					/* check actuator value */
-					if (mission_item.params[1] < -2000 || mission_item.params[1] > 2000) {
-						mavlink_log_critical(_mavlink_log_pub, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.params[1]);
-						warning_issued = true;
-						return false;
-					}
-				}
-				/* check only items with valid lat/lon */
-				else if (isPositionCommand(mission_item.nav_cmd)) {
+                                /* Check non navigation item */
+                                if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
+                                        /* check actuator number */
+                                        if (mission_item.params[0] < 1 || mission_item.params[0] > 6) {
+                                                mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 1..6", (int)mission_item.params[0]);
+                                                warning_issued = true;
+                                                return false;
+                                        }
+                                        /* check actuator value */
+                                        if (mission_item.params[1] < -2000 || mission_item.params[1] > 2000) {
+                                                mavlink_log_critical(_mavlink_log_pub, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.params[1]);
+                                                warning_issued = true;
+                                                return false;
+                                        }
+                                }
+                                /* check only items with valid lat/lon */
+                                else if (isPositionCommand(mission_item.nav_cmd)) {
 
 					/* check distance from current position to item */
 					float dist_to_1wp = get_distance_to_next_waypoint(

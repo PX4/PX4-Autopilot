@@ -45,7 +45,7 @@ then
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "INFO  [init] Mixer: $MIXER_FILE on $OUTPUT_DEV"
+		echo "INFO  [init] Mixer: $MIXER_FILE on $OUTPUT_DEV" >> $LOG_FILE
 	else
 		echo "ERROR [init] Error loading mixer: $MIXER_FILE"
 		echo "ERROR:[init] Could not load mixer: $MIXER_FILE" >> $LOG_FILE
@@ -137,7 +137,7 @@ then
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then
-					echo "INFO  [init] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+					echo "INFO  [init] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV" >> $LOG_FILE
 				else
 					echo "ERROR [init] Error loading mixer: $MIXER_AUX_FILE"
 					echo "ERROR [init] Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
