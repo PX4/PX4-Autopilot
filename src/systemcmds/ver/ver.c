@@ -70,6 +70,19 @@ __EXPORT const char *os_git_tag = "";
 __EXPORT const uint32_t px4_board_version = 1;
 #endif
 
+// dev >= 0
+// alpha >= 64
+// beta >= 128
+// release candidate >= 192
+// release == 255
+enum FIRMWARE_TYPE {
+	FIRMWARE_TYPE_DEV = 0,
+	FIRMWARE_TYPE_ALPHA = 64,
+	FIRMWARE_TYPE_BETA = 128,
+	FIRMWARE_TYPE_RC = 192,
+	FIRMWARE_TYPE_RELEASE = 255
+};
+
 /**
  * Convert a version tag string to a number
  */
@@ -78,9 +91,16 @@ uint32_t version_tag_to_number(const char *tag)
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
 	unsigned mag = 0;
+	int32_t type = -1;
 	bool dotparsed = false;
+	unsigned dashcount = 0;
 
 	for (int i = len - 1; i >= 0; i--) {
+
+		if (tag[i] == '-') {
+			dashcount++;
+		}
+
 		if (tag[i] >= '0' && tag[i] <= '9') {
 			unsigned number = tag[i] - '0';
 
@@ -94,6 +114,29 @@ uint32_t version_tag_to_number(const char *tag)
 			/* this is a full version and we have enough digits */
 			return ver;
 
+		} else if (tag[i] == '-' && i > 3 && type == -1) {
+			/* scan until the first number */
+			const char *curr = &tag[i - 1];
+
+			// dev: v1.4.0rc3-7-g7e282f57
+
+			while (curr >= &tag[0] && (*curr <= '0' || *curr >= '9')) {
+				if (*curr == 'd') {
+					type = FIRMWARE_TYPE_DEV;
+					break;
+				} else if (*curr == 'a') {
+					type = FIRMWARE_TYPE_ALPHA;
+					break;
+				} else if (*curr == 'b') {
+					type = FIRMWARE_TYPE_BETA;
+					break;
+				} else if (*curr == 'r') {
+					type = FIRMWARE_TYPE_BETA;
+					break;
+				}
+				curr--;
+			}
+
 		} else if (tag[i] != 'v') {
 			/* reset, because we don't have a full tag but
 			 * are seeing non-numeric characters again
@@ -103,15 +146,16 @@ uint32_t version_tag_to_number(const char *tag)
 		}
 	}
 
-	// XXX not reporting patch version yet
-	// dev > 0
-	// alpha > 64
-	// beta > 128
-	// release candidate > 192
-	// release > 255
+	/* if the type is still uninitialized, check if there is a single dash in git describe */
+	if (type == -1 && dashcount == 1) {
+		type = FIRMWARE_TYPE_RELEASE;
+	} else if (type == -1) {
+		type = FIRMWARE_TYPE_DEV;
+	}
+
 	ver = (ver << 8);
 
-	return ver;
+	return ver | type;
 }
 
 static void usage(const char *reason)
@@ -167,8 +211,8 @@ int ver_main(int argc, char *argv[])
 				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
 				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
-				printf("FW version: %s (%u.%u.%u %s)\n", px4_git_tag, major, minor, patch,
-				       (type == 0) ? "dev" : "stable");
+				printf("FW version: %s (%u.%u.%u %u), %u\n", px4_git_tag, major, minor, patch,
+					type, fwver);
 				/* middleware is currently the same thing as firmware, so not printing yet */
 				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
 				ret = 0;

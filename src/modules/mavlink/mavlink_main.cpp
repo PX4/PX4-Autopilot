@@ -1222,8 +1222,8 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
-		msg.flight_sw_version = version_tag_to_number(px4_git_version);
-		msg.middleware_sw_version = version_tag_to_number(px4_git_version);
+		msg.flight_sw_version = version_tag_to_number(px4_git_tag);
+		msg.middleware_sw_version = version_tag_to_number(px4_git_tag);
 		msg.os_sw_version = version_tag_to_number(os_git_tag);
 		msg.board_version = px4_board_version;
 		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
