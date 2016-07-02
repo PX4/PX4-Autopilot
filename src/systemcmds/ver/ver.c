@@ -114,24 +114,25 @@ uint32_t version_tag_to_number(const char *tag)
 			/* this is a full version and we have enough digits */
 			return ver;
 
-		} else if (tag[i] == '-' && i > 3 && type == -1) {
+		} else if (i > 3 && type == -1) {
 			/* scan until the first number */
 			const char *curr = &tag[i - 1];
 
 			// dev: v1.4.0rc3-7-g7e282f57
+			// rc: v1.4.0rc4
 
-			while (curr >= &tag[0] && (*curr <= '0' || *curr >= '9')) {
-				if (*curr == 'd') {
+			while (curr > &tag[0]) {
+				if (*curr == 'v') {
 					type = FIRMWARE_TYPE_DEV;
 					break;
-				} else if (*curr == 'a') {
+				} else if (*curr == 'p') {
 					type = FIRMWARE_TYPE_ALPHA;
 					break;
-				} else if (*curr == 'b') {
+				} else if (*curr == 't') {
 					type = FIRMWARE_TYPE_BETA;
 					break;
 				} else if (*curr == 'r') {
-					type = FIRMWARE_TYPE_BETA;
+					type = FIRMWARE_TYPE_RC;
 					break;
 				}
 				curr--;
@@ -147,7 +148,7 @@ uint32_t version_tag_to_number(const char *tag)
 	}
 
 	/* if the type is still uninitialized, check if there is a single dash in git describe */
-	if (type == -1 && dashcount == 1) {
+	if (type == -1 && dashcount == 0) {
 		type = FIRMWARE_TYPE_RELEASE;
 	} else if (type == -1) {
 		type = FIRMWARE_TYPE_DEV;
