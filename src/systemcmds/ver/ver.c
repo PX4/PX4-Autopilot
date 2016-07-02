@@ -115,42 +115,50 @@ uint32_t version_tag_to_number(const char *tag)
 			return ver;
 
 		} else if (i > 3 && type == -1) {
-			/* scan until the first number */
+			/* scan and look for signature characters for each type */
 			const char *curr = &tag[i - 1];
 
 			// dev: v1.4.0rc3-7-g7e282f57
 			// rc: v1.4.0rc4
+			// release: v1.4.0
 
 			while (curr > &tag[0]) {
 				if (*curr == 'v') {
 					type = FIRMWARE_TYPE_DEV;
 					break;
+
 				} else if (*curr == 'p') {
 					type = FIRMWARE_TYPE_ALPHA;
 					break;
+
 				} else if (*curr == 't') {
 					type = FIRMWARE_TYPE_BETA;
 					break;
+
 				} else if (*curr == 'r') {
 					type = FIRMWARE_TYPE_RC;
 					break;
 				}
+
 				curr--;
+			}
+
+			/* looks like a release */
+			if (type == -1) {
+				type = FIRMWARE_TYPE_RELEASE;
 			}
 
 		} else if (tag[i] != 'v') {
 			/* reset, because we don't have a full tag but
-			 * are seeing non-numeric characters again
+			 * are seeing non-numeric characters
 			 */
 			ver = 0;
 			mag = 0;
 		}
 	}
 
-	/* if the type is still uninitialized, check if there is a single dash in git describe */
-	if (type == -1 && dashcount == 0) {
-		type = FIRMWARE_TYPE_RELEASE;
-	} else if (type == -1) {
+	/* if git describe contains dashes this is not a real tag */
+	if (dashcount > 0) {
 		type = FIRMWARE_TYPE_DEV;
 	}
 
@@ -213,7 +221,7 @@ int ver_main(int argc, char *argv[])
 				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 				printf("FW version: %s (%u.%u.%u %u), %u\n", px4_git_tag, major, minor, patch,
-					type, fwver);
+				       type, fwver);
 				/* middleware is currently the same thing as firmware, so not printing yet */
 				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
 				ret = 0;
