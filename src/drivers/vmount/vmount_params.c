@@ -42,8 +42,9 @@
 
 /**
 * Mount operation mode
-* MAVLINK and RC use the ROI (or RC input if enabled) to control a gimbal.
-* ONBOARD uses the vehicle_mount topic to control a rc gimbal.
+* MAVLINK and RC use the ROI (or RC input if enabled and no ROI set) to control a mount.
+* ONBOARD uses MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
+* to control a mount.
 * @value 0 DISABLE
 * @value 1 MAVLINK
 * @value 2 RC
@@ -56,9 +57,9 @@ PARAM_DEFINE_INT32(MNT_MODE, 0);
 
 /**
 * Auxiliary channel to override current mount mode (only in ONBOARD mode)
-* if <0.0f then MODE_RETRACT
+* if <0.0f then MODE_RETRACT (retracts not retracted)
 * if =0.0f then don't override
-* if >0.0f then MODE_RC_TARGETING
+* if >0.0f then MODE_RC_TARGETING (retracts retracted)
 * @value 0 Disable
 * @value 1 AUX1
 * @value 2 AUX2
@@ -107,9 +108,10 @@ PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
 
 
 /**
-* Do we want to allow the mount to be controlled when no ROI is set?
+* This enables the mount to be controlled when no ROI is set.
 *
-* If set to 1, the mount will be controlled by the rc channels below.
+* If set to 1, the mount will be controlled by the AUX channels below
+* when no ROI is set.
 *
 * @boolean
 * @group Mount
