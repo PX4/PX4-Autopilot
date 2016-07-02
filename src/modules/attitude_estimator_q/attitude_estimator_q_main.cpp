@@ -956,16 +956,20 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		(quat(0) * quat(0) - quat(1) * quat(1) - quat(2) * quat(2) + quat(3) * quat(3))
 	);
 
-	// If rotation rate is below about 30 deg/sec
+	// If rotation rate is below about 10 deg/sec
 	// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
 	float spinRate = _gyro.length();
-	if (spinRate < 1.0f) {
+	if (spinRate < 0.175f) {
 
 //		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
 		corr += (kE % _accel.normalized()) * _w_accel;
 
 		// Gyro bias estimation
 		gyro_bias += corr * (_w_gyro_bias * dt);
+
+		for (int i = 0; i < 3; i++) {
+			gyro_bias(i) = math::constrain(gyro_bias(i), -_bias_max, _bias_max);
+		}
 
 	} else {
 
@@ -998,11 +1002,12 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		}
 
 		/* compensate body frame accel for centripetal accel */
-		corr += (kE % (_accel - quat.conjugate_inversed(centripA)).normalized()) * _w_accel * spinRate;
-	}
-
-	for (int i = 0; i < 3; i++) {
-		gyro_bias(i) = math::constrain(gyro_bias(i), -_bias_max, _bias_max);
+		float gainMult = 1.0f;
+		const float fifty_dps = 0.873f;
+		if (spinRate > fifty_dps) {
+			gainMult = fmin(spinRate / fifty_dps, 10.0f);
+		}
+		corr += (kE % (_accel - quat.conjugate_inversed(centripA)).normalized()) * _w_accel * gainMult;
 	}
 
 	rates = _gyro + gyro_bias;
