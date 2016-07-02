@@ -40,7 +40,7 @@ RCRecover::~RCRecover()
 
 void RCRecover::on_inactive()
 {
-	_navigator->get_tracker().set_recent_path_tracking_enabled(true);
+	_navigator->get_tracker()->set_recent_path_tracking_enabled(true);
 	
 	// reset RCRecover state only if setpoint moved (why?)
 	if (!_navigator->get_can_loiter_at_sp())
@@ -49,7 +49,7 @@ void RCRecover::on_inactive()
 
 void RCRecover::on_activation()
 {
-	_navigator->get_tracker().set_recent_path_tracking_enabled(false);
+	_navigator->get_tracker()->set_recent_path_tracking_enabled(false);
 	
 	/* reset starting point so we override what the triplet contained from the previous navigation state */
 	_start_lock = false;
@@ -87,6 +87,8 @@ void RCRecover::on_active()
 
 void RCRecover::update_mission_item()
 {
+	// todo: directly write to setpoint triplet, as it is done in RTLAdvanced
+
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	// make sure we have the latest params
@@ -103,7 +105,7 @@ void RCRecover::update_mission_item()
 	switch (_state) {
 	case STATE_RETURN: {
 		
-		if (_navigator->get_tracker().pop_recent_path(_mission_item.lat, _mission_item.lon, _mission_item.altitude)) {
+		if (_navigator->get_tracker()->pop_recent_path(_mission_item.lat, _mission_item.lon, _mission_item.altitude)) {
 			loiter_lat = _mission_item.lat;
 			loiter_lon = _mission_item.lon;
 			loiter_alt = _mission_item.altitude;

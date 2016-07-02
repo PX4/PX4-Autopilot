@@ -159,7 +159,10 @@ public:
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
 	
-	Tracker&	get_tracker() { return _tracker; }
+	Tracker*	get_tracker() { return &_tracker; }
+	
+	// Quick and dirty, to do it cleanly, we may want to introduce a new navigator mode
+	void		set_rtl_variant(bool advanced) { _use_advanced_rtl = advanced; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -271,6 +274,8 @@ private:
 	bool		_inside_fence;			/**< vehicle is inside fence */
 	
 	Tracker		_tracker;				/**< tracks the vehicle path **/
+
+	bool		_use_advanced_rtl;		/**< use RTLA instead of RTLB **/
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */

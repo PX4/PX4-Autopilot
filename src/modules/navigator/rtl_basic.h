@@ -92,8 +92,8 @@ private:
 
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;
-	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;
+	control::BlockParamFloat _param_land_delay;
 };
 
 #endif

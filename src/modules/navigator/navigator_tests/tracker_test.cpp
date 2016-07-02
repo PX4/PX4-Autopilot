@@ -115,31 +115,28 @@ bool TrackerTest::flyAndReturnTest(void) {
 #ifdef DEBUG_TRACKER
         tracker.dump_graph();
 #endif
-
-        int x[test->ret_size];
-        int y[test->ret_size];
-        int z[test->ret_size];
+ 
 
         // Return along the shortest path while checking if it's what we expect
         for (size_t r = 0; r < test->ret_size; r++) {
-            int fetched = tracker.get_path_to_home(x, y, z, test->ret_size - r);
+            Tracker::pos_handle_t pos;
+            float x, y, z;
 
-            ut_assert(msg, fetched != 0); // If we're not home yet, the tracker must give us at least one position
-            ut_assert(msg, fetched + r <= test->ret_size); // Ensure that the return path is not too long
+            ut_assert(msg, tracker.get_current_pos(pos, x, y, z));
+            ut_assert(msg, tracker.is_same_pos(pos, pos));
 
-            for (size_t k = 0; k < fetched; k++) {
-                ut_compare(msg, x[k], test->path[test->ret[r + k] * 3]);
-                ut_compare(msg, y[k], test->path[test->ret[r + k] * 3 + 1]);
-                ut_compare(msg, z[k], test->path[test->ret[r + k] * 3 + 2]);
+            for (size_t k = 0; k < test->ret_size - r; k++) {
+                ut_assert(msg, tracker.get_path_to_home(pos, x, y, z));
+                ut_compare(msg, (int)x, test->path[test->ret[r + k] * 3]);
+                ut_compare(msg, (int)y, test->path[test->ret[r + k] * 3 + 1]);
+                ut_compare(msg, (int)z, test->path[test->ret[r + k] * 3 + 2]);
             }
+            
+            ut_assert(msg, !tracker.get_path_to_home(pos, x, y, z));
 
             // Follow the return path by one position
-            tracker.update(*x, *y, *z);
+            tracker.update(test->path[test->ret[r] * 3], test->path[test->ret[r] * 3 + 1], test->path[test->ret[r] * 3 + 2]);
         }
-
-        // Check if the tracker agrees that we're home
-        int fetched = tracker.get_path_to_home(x, y, z, 3);
-        ut_assert(msg, fetched == 0); // Now we should be home
     }
 
 	return true;
@@ -160,11 +157,9 @@ bool TrackerTest::flyAndLeaveReturnPathTest(void) {
             tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
 
         int x, y, z;
-        int fetched;
 
         // Follow half of the return path
         for (size_t r = 0; r < test->ret_size / 2; r++) {
-            fetched = tracker.get_path_to_home(&x, &y, &z, 1); // Update the shortest path cache (this is not neccessary but we want it in this test)
             x = test->path[test->ret[r] * 3];
             y = test->path[test->ret[r] * 3 + 1];
             z = test->path[test->ret[r] * 3 + 2];
@@ -185,18 +180,24 @@ bool TrackerTest::flyAndLeaveReturnPathTest(void) {
             tracker.update(x, y, z);
         }
 
+#ifdef DEBUG_TRACKER
+        tracker.dump_graph();
+#endif
+
         // As long as we're not home, return along the proposed path
         int steps = 0;
-        while (x != test->path[dest_index * 3] || y != test->path[dest_index * 3 + 1] || z != test->path[dest_index * 3 + 2]) {
-            fetched = tracker.get_path_to_home(&x, &y, &z, 1);
-            ut_assert(msg, fetched != false);
-            tracker.update(x, y, z);
+        float fx = x, fy = y, fz = z;
+        Tracker::pos_handle_t pos;
+        ut_assert(msg, tracker.get_current_pos(pos, fx, fy, fz));
+        while ((int)fx != test->path[0] || (int)fy != test->path[1] || (int)fz != test->path[2]) {
+            TRACKER_DBG("return from %d, %d, %d, home is %d, %d, %d", (int)fx, (int)fy, (int)fz, test->path[0], test->path[1], test->path[2]);
+            ut_assert(msg, tracker.get_path_to_home(pos, fx, fy, fz));
+            tracker.update(fx, fy, fz);
             ut_assert(msg, steps++ < INT_MAX); // make sure the loop terminates
         }
 
         // Check if the tracker agrees that we're home
-        fetched = tracker.get_path_to_home(&x, &y, &z, 1);
-        ut_assert(msg, fetched != false);
+        ut_assert(msg, !tracker.get_path_to_home(pos, fx, fy, fz));
     }
 
 	return true;

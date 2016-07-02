@@ -7,7 +7,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 
 // Enables verbose debug messages by the flight path tracker
-//#define DEBUG_TRACKER
+#define DEBUG_TRACKER
 
 
 #ifdef DEBUG_TRACKER
@@ -22,6 +22,9 @@ class Tracker
     friend class TrackerTest;
     
 public:
+
+    struct pos_handle_t;
+
     // Informs the tracker about a new home position.
     void set_home(home_position_s *position);
     
@@ -34,10 +37,25 @@ public:
     // Enables or disables tracking of the recent path.
     void set_recent_path_tracking_enabled(bool enabled) { recent_path_tracking_enabled = enabled; }
 
-    // Fetches the next few positions from the graph that are on the shortest path back home (starting at, but excluding the current position).
-    // The positions are written into the provided arrays.
-    // Returns the number of valid positions that could be fetched. This is at most the size of the return path buffer.
-    size_t get_path_to_home(double lat[], double lon[], float alt[], size_t max_positions);
+    // Returns a handle that refers to the current position in the graph, and the corresponding coordinates.
+    // The position handle must be viewed as an opaque value that can for instance be passed to the get_path_to_home function.
+    // Returns true on success.
+    bool get_current_pos(pos_handle_t &pos, float &x, float &y, float &z);
+
+    // Fetches the next position on the shortest path back home (starting at, but excluding the provided position).
+    // The position handle is updated accordingly.
+    // Returns true if the returned position is valid.
+    bool get_path_to_home(pos_handle_t &pos, float &x, float &y, float &z);
+
+    // Returns true if the two position handles refer to the same position.
+    bool is_same_pos(pos_handle_t &pos1, pos_handle_t &pos2);
+
+    // Returns true if the vehicle is close to the position represented by the specified handle.
+    bool is_close_to_pos(pos_handle_t &pos);
+
+    // Returns true if the home position is close to the position represented by the specified handle.
+    // This ignores the altitude information.
+    bool is_close_to_home(pos_handle_t &pos);
     
     // Dumps the points in the recent path to the log output
     void dump_recent_path(void);
@@ -47,6 +65,9 @@ public:
     
     // Dumps the payload value of each node in the graph
     void dump_nodes(void);
+    
+    // Dumps the shortest path from the current position to the home position
+    void dump_path_to_home(void);
 
     
 private:
@@ -167,9 +188,10 @@ private:
     // The caller must ensure that index points to a valid link item.
     size_t get_cycle_head(size_t index);
 
-    // Returns the index of the head of the cycle that the specified element belongs to.
-    // Returns 0 it the element is not part of a link cycle.
-    size_t get_cycle_head_or_null(size_t index);
+    // Returns the index of the node that the specified element belongs to.
+    // The node index is defined as the index of the first index in the link cycle. 
+    // Returns 0 it the element is not part of a node.
+    size_t get_node_or_null(size_t index);
 
     // Walks forward on the graph by one position.
     // The provided index must be a valid graph-index and will be updated to another valid value.
@@ -212,18 +234,6 @@ private:
     //      If the index doesn't point to a node, we can just go on in this direction.
     //  out: Indicates the direction that leads home. If the index already points at the home index, both directions are false.
     void calc_return_path(size_t &index, bool &move_forward, bool &move_backward);
-
-    // Fills up the return path buffer as far as possible.
-    void refill_return_path();
-
-    // Shifts the return path (by removing the first instruction) if the vehicle did actually follow the path.
-    void shift_return_path();
-
-    // Deletes the return path. This is neccessary whenever the graph is updated.
-    void delete_return_path();
-
-    // See public overload for description
-    size_t get_path_to_home(int x[], int y[], int z[], size_t max_positions);
 
     
     
@@ -286,16 +296,13 @@ private:
     // The distance-to-home at the end of the visited area
     uint16_t visited_area_end_distance = 0;
     
-    // A chain of these instructions, together with a starting position, represents a path along the graph.
-    struct movement_instr_t {
-        size_t update_index; // This allows us to switch the index within a node (where multiple indices represent the same position)
-        bool move_forward; // Tells us whether to move forward or backward from the associated index
-    };
+};
 
-    // Stores the next few positions on the shortest path back home (starting at, but excluding the current position)
-    movement_instr_t return_path[RETURN_PATH_SIZE];
-    size_t return_path_size = 0;
-    size_t return_path_end = 0; // The index that results when applying the last available return instruction (or the current position index if the return path is empty).
+struct Tracker::pos_handle_t {
+    size_t index; // Indicates the index of the position represented by this handle.
+    ipos_t position; // Holds the position represented by this handle.
+    bool did_move_backward; // Tells us from which direction this position was reached.
+    bool did_move_forward; // Tells us from which direction this position was reached.
 };
 
 #endif // NAVIGATOR_TRACKER_H

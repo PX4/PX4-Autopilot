@@ -141,6 +141,7 @@ Navigator::Navigator() :
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
 	_tracker(),
+	_use_advanced_rtl(true),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_pos_sp_triplet_published_invalid_once(false),
@@ -222,6 +223,8 @@ Navigator::local_position_update()
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	if (!_land_detected.landed)
 		_tracker.update(&_local_pos);
+	else
+		_use_advanced_rtl = true; // Try advanced RTL again for the next flight
 }
 
 void
@@ -579,12 +582,12 @@ Navigator::task_main()
 				} else if (_param_rcloss_act.get() == 5) {
 					_navigation_mode = &_rcLoss;
 				} else { /* if == 2 or unknown, RTL */
-					_navigation_mode = &_rtlAdvanced;
+					_navigation_mode = _use_advanced_rtl ? (NavigatorMode *)&_rtlAdvanced :  (NavigatorMode *)&_rtlBasic;
 				}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
-				_navigation_mode = &_rtlAdvanced;
+				_navigation_mode = _use_advanced_rtl ? (NavigatorMode *)&_rtlAdvanced :  (NavigatorMode *)&_rtlBasic;
 				//_navigation_mode = &_rcRecover; // for development only
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
@@ -610,7 +613,7 @@ Navigator::task_main()
 				} else if (_param_datalinkloss_act.get() == 5) {
 					_navigation_mode = &_dataLinkLoss;
 				} else { /* if == 2 or unknown, RTL */
-					_navigation_mode = &_rtlAdvanced;
+					_navigation_mode = _use_advanced_rtl ? (NavigatorMode *)&_rtlAdvanced :  (NavigatorMode *)&_rtlBasic;
 				}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
@@ -712,6 +715,7 @@ Navigator::status()
 	
 	_tracker.dump_recent_path();
 	_tracker.dump_graph();
+	_tracker.dump_path_to_home();
 }
 
 void

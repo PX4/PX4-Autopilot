@@ -23,9 +23,8 @@
 
 RTLAdvanced::RTLAdvanced(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_state(STATE_NONE),
-	_start_lock(false),
-	_param_rtlb_delay(this, "RTLA_RTLB_DELAY", false)
+	_param_fallback_delay(this, "RTLA_FALLBCK_DLY", false),
+	_param_land_delay(this, "RTL_LAND_DELAY", false)
 {
 	// load initial params
 	updateParams();
@@ -38,146 +37,135 @@ RTLAdvanced::~RTLAdvanced()
 {
 }
 
-void RTLAdvanced::on_inactive()
-{
-	// reset RTLAdvanced state only if setpoint moved (why?)
-	if (!_navigator->get_can_loiter_at_sp())
-		_state = STATE_NONE;
+void RTLAdvanced::on_inactive() {
+	_tracker = NULL;
+	deadline = HRT_ABSTIME_MAX;
 }
 
-void RTLAdvanced::on_activation()
-{
-	/* reset starting point so we override what the triplet contained from the previous navigation state */
-	_start_lock = false;
-	set_current_position_item(&_mission_item);
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-
-	if (_state == STATE_NONE) {
-		// for safety reasons don't go into RTL if landed
-		if (_navigator->get_land_detected()->landed) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: not available when landed");
-
-		// otherwise, return along shortest path
-		} else {
-			_state = STATE_RETURN;
-			
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: return along shortest path");
-			
-			// in case there is no path, loiter at the current position
-			loiter_lat = _navigator->get_global_position()->lat;
-			loiter_lon = _navigator->get_global_position()->lon;
-			loiter_alt = _navigator->get_global_position()->alt;
-		}
-
+void RTLAdvanced::on_activation() {
+	// For safety reasons don't go into RTL if landed
+	if (_navigator->get_land_detected()->landed) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: not available when landed");
+		return;
 	}
 
-	update_mission_item();
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: return along shortest path");
+
+	_tracker = _navigator->get_tracker();
+	_tracker->dump_graph();
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Init return path and setpoint triplet
+	float x, y, z;
+	if ((pos_sp_triplet->current.valid = _tracker->get_current_pos(current_pos_handle, x, y, z)))
+		setpoint_from_xyz(pos_sp_triplet->current, x, y, z);
+
+	pos_sp_triplet->next.valid = false;
+	advance_setpoint_triplet(pos_sp_triplet);
+	update_deadline();
 }
 
-void RTLAdvanced::on_active()
-{
-	if (is_mission_item_reached())
-		update_mission_item();
+void RTLAdvanced::on_active() {
+	if (deadline <= hrt_absolute_time()) {
+		
+		_tracker = NULL;
+		deadline = HRT_ABSTIME_MAX;
+
+		if (land_after_deadline) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: landing");
+			TRACKER_DBG("proceed to land");
+
+			// Perform landing
+			set_land_item(&_mission_item, true);
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+			pos_sp_triplet->next.valid = false;
+			_navigator->set_position_setpoint_triplet_updated();
+
+		} else {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: fallback to legacy mode");
+			TRACKER_DBG("fall back to legacy RTL");
+			_navigator->set_rtl_variant(false);
+		}
+
+	} else if (_tracker && _tracker->is_close_to_pos(current_pos_handle)) {
+		if (advance_setpoint_triplet(_navigator->get_position_setpoint_triplet()))
+			update_deadline(); // We made progress, update the deadline.
+		else
+			_tracker = NULL; // If the return path is empty, discard the tracker so we don't make further unneccessary checks.
+	}
 }
 
-void RTLAdvanced::update_mission_item()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	// make sure we have the latest params
+void RTLAdvanced::update_deadline() {
 	updateParams();
 
-	if (!_start_lock)
-		set_previous_pos_setpoint();
-
-	_navigator->set_can_loiter_at_sp(false);
+	land_after_deadline = _tracker->is_close_to_home(current_pos_handle);
+	float delay = land_after_deadline ? _param_land_delay.get() : _param_fallback_delay.get();
 	
-	//if (_state == STATE_LOITER)
-		// todo: switch to RTL Basic (fallback) mode
+	if (delay < 0)
+		deadline = HRT_ABSTIME_MAX;
+	else
+		deadline = hrt_absolute_time() + (hrt_abstime)delay * 1e6f;
+}
 
-	switch (_state) {
-	case STATE_RETURN: {
+void RTLAdvanced::setpoint_from_xyz(position_setpoint_s &sp, float x, float y, float z) {
+	double lat;
+	double lon;
+	float alt;
 
-		// This is temporary until we have a nicer way to follow a fine-grained path.
-		// It ensures that we look ahead far enough to find the next point that is not aleady in the acceptance radius.
-		const int PREFETCH = 6;
-		double lat[PREFETCH];
-		double lon[PREFETCH];
-		float alt[PREFETCH];
-		int prefetch = _navigator->get_tracker().get_path_to_home(lat, lon, alt, PREFETCH);
-		for (int i = 0; i < prefetch - 1; i++) {
-			if (fabs(lat[i] - _mission_item.lat) < DBL_EPSILON && fabs(lon[i] - _mission_item.lon) < DBL_EPSILON && fabs(alt[i] - _mission_item.altitude) < FLT_EPSILON) {
-				lon[0] = lon[i + 1];
-				lat[0] = lat[i + 1];
-				alt[0] = alt[i + 1];
-				break;
-			}
-		}
+	if (globallocalconverter_toglobal(x, y, z, &lat, &lon, &alt))
+		return; // todo: proper error handling
 
-		
-		if (prefetch) {
-			loiter_lat = _mission_item.lat = lat[0];
-			loiter_lon = _mission_item.lon = lon[0];
-			loiter_alt = _mission_item.altitude = alt[0];
-			TRACKER_DBG("tracker proposed %lf %lf %f", _mission_item.lat, _mission_item.lon, _mission_item.altitude);
-			
-			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.pitch_min = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			
-			_start_lock = true;
-			break;
-		}
-		
-		// Recent path is empty: fall through to loiter
-		_state = STATE_LOITER;
+	sp = {
+		.valid = true,
+		//.type = position_setpoint_s::SETPOINT_TYPE_OFFBOARD, // this seems wrong but we want to define a local (instead of global) position for this setpoint 
+		.position_valid = true,
+		//.x = x,
+		//.y = y,
+		//.z = z,
+		.lat = lat,
+		.lon = lon,
+		.alt = alt,
+		.acceptance_radius = 1,
+		.disable_mc_yaw_control = true,
+		.cruising_speed = _navigator->get_cruising_speed(),
+		.cruising_throttle = _navigator->get_cruising_throttle(),
+		.loiter_radius = _navigator->get_loiter_radius(),
+		.loiter_direction = 1
+	};
+}
+
+
+void RTLAdvanced::dump_setpoint(const char *name, position_setpoint_s &sp, bool local) {
+	if (local)
+		TRACKER_DBG("%s setpoint is (%f, %f, %f), %s", name, sp.x, sp.y, sp.z, sp.valid ? "valid" : "invalid");
+	else
+		TRACKER_DBG("%s setpoint is (%lf, %lf, %f), %s", name, sp.lat, sp.lon, sp.alt, sp.valid ? "valid" : "invalid");
+}
+
+
+bool RTLAdvanced::advance_setpoint_triplet(position_setpoint_triplet_s *pos_sp_triplet) {
+	// Shift setpoints if possible
+	if (pos_sp_triplet->next.valid) {
+		if (pos_sp_triplet->current.valid)
+			pos_sp_triplet->previous = pos_sp_triplet->current;
+		pos_sp_triplet->current = pos_sp_triplet->next;
+		current_pos_handle = next_pos_handle;
+	} else {
+		next_pos_handle = current_pos_handle;
 	}
 
-	case STATE_LOITER: {
-		bool fallbackRTL = _param_rtlb_delay.get() > -DELAY_SIGMA;
-
-		_mission_item.lat = loiter_lat;
-		_mission_item.lon = loiter_lon;
-		_mission_item.altitude = loiter_alt;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.yaw = _navigator->get_global_position()->yaw;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = fallbackRTL ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = std::max(_param_rtlb_delay.get(), .0f);
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = fallbackRTL;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		_navigator->set_can_loiter_at_sp(true);
-
-		if (fallbackRTL) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: loiter %.1fs", (double)_mission_item.time_inside);
-		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return To Land: completed, loiter");
-		}
-			
-		break;
-	}
-
-	default:
-		break;
-	}
-
-	reset_mission_item_reached();
-
-	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
-
+	// Load next setpoint
+	float x, y, z;
+	if ((pos_sp_triplet->next.valid = _tracker->get_path_to_home(next_pos_handle, x, y, z)))
+		setpoint_from_xyz(pos_sp_triplet->next, x, y, z);
+	
+	// Apply updated setpoint triplet
 	_navigator->set_position_setpoint_triplet_updated();
+
+	//dump_setpoint("previous", pos_sp_triplet->previous, false);
+	//dump_setpoint("current", pos_sp_triplet->current, false);
+	//dump_setpoint("next", pos_sp_triplet->next, false);
+
+	return pos_sp_triplet->next.valid && !_tracker->is_same_pos(current_pos_handle, next_pos_handle);
 }

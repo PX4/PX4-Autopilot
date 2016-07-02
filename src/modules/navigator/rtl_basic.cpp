@@ -63,8 +63,8 @@ RTLBasic::RTLBasic(Navigator *navigator, const char *name) :
 	_start_lock(false),
 	_param_return_alt(this, "RTLB_RETURN_ALT", false),
 	_param_descend_alt(this, "RTLB_DESCEND_ALT", false),
-	_param_land_delay(this, "RTLB_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTLB_MIN_DIST", false)
+	_param_rtl_min_dist(this, "RTLB_MIN_DIST", false),
+	_param_land_delay(this, "RTL_LAND_DELAY", false)
 {
 	/* load initial params */
 	updateParams();
