@@ -1,5 +1,7 @@
 import sys
 import re
+import math
+
 global default_var
 default_var = {}
 
@@ -39,7 +41,7 @@ class Parameter(object):
 
     # Define sorting order of the fields
     priority = {
-		"board": 9,
+        "board": 9,
         "short_desc": 8,
         "long_desc": 7,
         "min": 5,
@@ -52,6 +54,7 @@ class Parameter(object):
     def __init__(self, name, type, default = ""):
         self.fields = {}
         self.values = {}
+        self.bitmask = {}
         self.name = name
         self.type = type
         self.default = default
@@ -76,6 +79,12 @@ class Parameter(object):
         Set named enum value
         """
         self.values[code] = value
+
+    def SetBitmaskBit(self, index, bit):
+        """
+        Set named enum value
+        """
+        self.bitmask[index] = bit
 
     def GetFieldCodes(self):
         """
@@ -115,6 +124,24 @@ class Parameter(object):
                 return ""
         return fv
 
+    def GetBitmaskList(self):
+        """
+        Return list of existing bitmask codes in convenient order
+        """
+        keys = self.bitmask.keys()
+        keys.sort(key=float)
+        return keys
+
+    def GetBitmaskBit(self, index):
+        """
+        Return value of the given bitmask code or None if not found.
+        """
+        fv =  self.bitmask.get(index)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
+        return fv
+
 class SourceParser(object):
     """
     Parses provided data and stores all found parameters internally.
@@ -133,7 +160,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean", "bit"])
 
     # Order of parameter groups
     priority = {
@@ -164,6 +191,7 @@ class SourceParser(object):
                 long_desc = None
                 tags = {}
                 def_values = {}
+                def_bitmask = {}
             elif state is not None and state != "comment-processed":
                 m = self.re_comment_end.search(line)
                 if m:
@@ -187,6 +215,10 @@ class SourceParser(object):
                                 # Take the meta info string and split the code and description
                                 metainfo = desc.split(" ",  1)
                                 def_values[metainfo[0]] = metainfo[1]
+                            elif (tag == "bit"):
+                                # Take the meta info string and split the code and description
+                                metainfo = desc.split(" ",  1)
+                                def_bitmask[metainfo[0]] = metainfo[1]
                             else:
                                 tags[tag] = desc
                             current_tag = tag
@@ -262,6 +294,8 @@ class SourceParser(object):
                                 param.SetField(tag, tags[tag])
                         for def_value in def_values:
                             param.SetEnumValue(def_value, def_values[def_value])
+                        for def_bit in def_bitmask:
+                            param.SetBitmaskBit(def_bit, def_bitmask[def_bit])
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
@@ -323,6 +357,16 @@ class SourceParser(object):
                             return False
                         if param.GetEnumValue(code) == "":
                             sys.stderr.write("Description for enum value is empty: {0} {1}\n".format(name, code))
+                            return False
+                for index in param.GetBitmaskList():
+                        if not self.IsNumber(index):
+                            sys.stderr.write("bit value not number: {0} {1}\n".format(name, index))
+                            return False
+                        if not int(min) <= math.pow(2, int(index)) <= int(max):
+                            sys.stderr.write("Bitmask bit must be between {0} and {1}: {2} {3}\n".format(min, max, name, math.pow(2, int(index))))
+                            return False
+                        if param.GetBitmaskBit(index) == "":
+                            sys.stderr.write("Description for bitmask bit is empty: {0} {1}\n".format(name, index))
                             return False
         return True
 
