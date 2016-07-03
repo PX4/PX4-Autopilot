@@ -136,10 +136,11 @@ private:
         }
     };
     
+    static inline int round(float f) { return (int)(f + (f < 0 ? -0.5f : 0.5f)); };
     static inline bool is_close(fpos_t pos1, fpos_t pos2);
     static inline bool is_close(ipos_t pos1, fpos_t pos2);
     static inline fpos_t to_fpos(ipos_t &pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
-    static inline ipos_t to_ipos(fpos_t &pos) { return { .x = (int)pos.x, .y = (int)pos.y, .z = (int)pos.z }; }
+    static inline ipos_t to_ipos(fpos_t &pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
 
 
     typedef uint16_t graph_item_t;

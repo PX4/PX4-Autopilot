@@ -715,7 +715,7 @@ Navigator::status()
 	
 	_tracker.dump_recent_path();
 	_tracker.dump_graph();
-	_tracker.dump_path_to_home();
+	//_tracker.dump_path_to_home();
 }
 
 void
