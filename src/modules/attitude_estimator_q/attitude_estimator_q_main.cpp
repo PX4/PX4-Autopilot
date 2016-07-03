@@ -976,7 +976,7 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		Vector<3> centripE = aE - Vector<3>(0.0f, 0.0f, -9.925f);
 		//PX4_DEBUG("centripE: (%8.3f, %8.3f, %8.3f)", (double)centripE.data[0], (double)centripE.data[1], (double)centripE.data[2]);
 
-		// construct centripetal accel vector in body frame
+		// construct centripetal accel vector in earth frame
 		// assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
 		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % quat.conjugate(Vector<3>(1.0f, 0.0f, 0.0f));
 		_centrip.centripMag = centripE * centripA;
@@ -1003,6 +1003,8 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		if (spinRate > fifty_dps) {
 			gainMult = fmin(spinRate / fifty_dps, 10.0f);
 		}
+
+		/* estimated g vector in body frame is (_accel - centripetal accel) */
 		corr += (kE % (_accel - quat.conjugate_inversed(centripA)).normalized()) * _w_accel * gainMult;
 	}
 
