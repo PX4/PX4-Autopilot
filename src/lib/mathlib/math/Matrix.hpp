@@ -305,7 +305,7 @@ public:
 	 * transpose the matrix
 	 */
 	Matrix<N, M> transposed(void) const {
-		matrix::Matrix<float, N, M> Me(this->arm_mat.pData);
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
 		Matrix<N, M> res(Me.transpose().data());
 		return res;
 	}
