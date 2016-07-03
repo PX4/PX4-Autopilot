@@ -860,17 +860,13 @@ bool AttitudeEstimatorQ::update(Quaternion & quat, Vector<3> & rates, Vector<3> 
 		(quat(0) * quat(0) - quat(1) * quat(1) - quat(2) * quat(2) + quat(3) * quat(3))
 	);
 
-	// If rotation rate is below about 30 deg/sec
-	// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
-	if (_gyro.length() < 0.6f) {
-
-//		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
-		corr += (kE % _accel.normalized()) * _w_accel;
-
-	}
+	//corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+	corr += (kE % _accel.normalized()) * _w_accel;
 
 	// Gyro bias estimation
-	gyro_bias += corr * (_w_gyro_bias * dt);
+	if (_gyro.length() < 1.0f) {
+		gyro_bias += corr * (_w_gyro_bias * dt);
+	}
 
 	for (int i = 0; i < 3; i++) {
 		gyro_bias(i) = math::constrain(gyro_bias(i), -_bias_max, _bias_max);
