@@ -106,13 +106,12 @@ PARAM_DEFINE_FLOAT(MC_QUAT_YAWR_I, 0.1f);
 PARAM_DEFINE_FLOAT(MC_QUAT_YR_IMAX, 30.0f);
 
 /**
- * Yaw rate derivate i.e. Izz.
+ * Battery 
  *
  * @min 0.0
- * @max 1.0
  * @group Quadrotor Quaternion Control
  */
-//PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
+PARAM_DEFINE_INT32(MC_QUAT_BAT_V, 0);
 
 /**
  * Max manual roll
@@ -142,32 +141,3 @@ PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
  * @group Quadrotor Quaternion Control
  */
 PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
-
-/**
- * Max acro roll rate
- *
- * @unit deg/s
- * @min 0.0
- * @max 360.0
- * @group Quadrotor Quaternion Control
- */
-//PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 90.0f);
-
-/**
- * Max acro pitch rate
- *
- * @unit deg/s
- * @min 0.0
- * @max 360.0
- * @group Quadrotor Quaternion Control
- */
-//PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 90.0f);
-
-/**
- * Max acro yaw rate
- *
- * @unit deg/s
- * @min 0.0
- * @group Quadrotor Quaternion Control
- */
-//PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 120.0f);

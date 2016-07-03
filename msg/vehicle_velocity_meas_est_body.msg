@@ -9,3 +9,6 @@ float32 est_vy			# Body inertial vy
 float32 est_vz			# Body inertial vz
 
 float32 u			# Latent scaling
+
+float32 baro_alt_est		# Estimated barometer altitude
+float32 baro_vz_est		# Estimated barometer vz

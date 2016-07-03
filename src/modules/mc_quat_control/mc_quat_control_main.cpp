@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_omega_ff_setpoint.h>
 
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/battery_status.h>
 
 /**
  * Quadroter quaternion based attitude control app start / stop handling function
@@ -128,8 +129,9 @@ private:
 	int		_params_sub;			/**< parameter updates subscription */
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_armed_sub;				/**< arming status subscription */
-	int 	_omega_d_sub = -1;		/**< Feedforward angular velocity */
-	int _v_rc_sub;
+	int 	_omega_d_sub;			/**< Feedforward angular velocity */
+	int 	_v_rc_sub;
+	int 	_battery_sub;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
@@ -146,6 +148,7 @@ private:
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
 	struct vehicle_omega_ff_setpoint_s 	_omega_d;	/**< Feedforward angular velocity */
 	struct rc_channels_s _v_rc;
+	struct battery_status_s _battery;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -159,7 +162,7 @@ private:
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
 	bool	_reset_yaw_sp;			/**< reset yaw setpoint flag */
-			float params_yaw_rate_i = 0.1;
+	float params_yaw_rate_i = 0.1;	 
 
 
 	struct {
@@ -181,6 +184,8 @@ private:
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
+
+		param_t battery_switch;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -196,6 +201,8 @@ private:
 		float man_pitch_max;
 		float man_yaw_max;
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
+
+		int battery_switch;
 	}		_params;
 
 	/**
@@ -217,6 +224,11 @@ private:
 	  * Obtain feedforward in vehicle angular velocity
 	*/
 	void 		feedforwad_omega_poll();
+
+	/**
+	  * Obtain battery status for esc
+	*/
+	void 		battery_status_poll();
 
 	/**
 	 * Check for changes in manual inputs.
@@ -298,6 +310,7 @@ MulticopterQuaternionControl::MulticopterQuaternionControl() :
 	_armed_sub(-1),
 	_omega_d_sub(-1),
 	_v_rc_sub(-1),
+	_battery_sub(-1),
 
 /* publications */
 	_att_sp_pub(nullptr),
@@ -352,6 +365,7 @@ MulticopterQuaternionControl::MulticopterQuaternionControl() :
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.battery_switch	= 	param_find("MC_QUAT_BAT_V");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -501,6 +515,8 @@ MulticopterQuaternionControl::parameters_update()
 	params_yaw_rate_i = _params.yaw_rate_i;
 	param_get(_params_handles.yaw_rate_i_max, &_params.yaw_rate_i_max);	
 
+	param_get(_params_handles.battery_switch, &_params.battery_switch);
+
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;
@@ -526,11 +542,24 @@ MulticopterQuaternionControl::vehicle_control_mode_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if vehicle status has changed */
 	orb_check(_v_control_mode_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
+	}
+}
+
+void
+MulticopterQuaternionControl::battery_status_poll()
+{
+	bool updated;
+
+	/* Check for battery status update */
+	orb_check(_battery_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(battery_status), _battery_sub, &_battery_sub);
 	}
 }
 
@@ -834,7 +863,13 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 	_att_control(0) = -_params.rate_p(0)*rates_err(0) - _params.rate_d(0)*(vehicles_Omega_rates(0) - vehicles_Omega_rates_d(0));
 	_att_control(1) = -_params.rate_p(1)*rates_err(1) - _params.rate_d(1)*(vehicles_Omega_rates(1) - vehicles_Omega_rates_d(1));
 	_att_control(2) = -_params.rate_p(2)*rates_err(2) - _params.rate_d(2)*(vehicles_Omega_rates(2) - vehicles_Omega_rates_d(2));
-printf("out %3.3f %3.3f %3.3f %3.3f\n",(double)_params.yaw_rate_i_max, double(params_yaw_rate_i), double(_att_control(2)), double(dt));
+
+	/* Here we implement the battery voltage if we are using open-loop voltage control 16.4*/
+	printf("Battery voltage %3.3f %3.3f %d\n", (double)_battery.voltage_v, double(_battery.voltage_filtered_v), _params.battery_switch);
+
+	if (_params.battery_switch == 1) {
+		//_thrust_sp = _thrust_sp * (1 + (16.4f - _battery.voltage_filtered_v)/16.4f);
+	}
 
 	// yaw integral
 	int_yawrate += rates_err(2)*dt;
@@ -874,6 +909,7 @@ MulticopterQuaternionControl::task_main()
 
 	_omega_d_sub = orb_subscribe(ORB_ID(vehicle_omega_ff_setpoint));
 	_v_rc_sub =  orb_subscribe(ORB_ID(rc_channels));
+	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 
 
 	/* initialize parameters cache */
@@ -959,6 +995,7 @@ MulticopterQuaternionControl::task_main()
 			vehicle_manual_poll();
 			feedforwad_omega_poll();
 			rc_poll();
+			battery_status_poll();
 			//printf("RC is %3.3f %3.3f\n",double(_v_rc.channels[4]), double(_v_rc.channels[5]));
 
 			if (_v_control_mode.flag_control_attitude_enabled) {

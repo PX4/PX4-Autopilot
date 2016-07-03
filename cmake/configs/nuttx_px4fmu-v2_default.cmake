@@ -86,7 +86,7 @@ set(config_module_list
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
+	#modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/local_position_estimator
 
@@ -103,6 +103,7 @@ set(config_module_list
 
 	modules/mc_quat_control
 	modules/mc_quat_pos_control
+	modules/mc_quat_vel_control
 
 	#
 	# Logging

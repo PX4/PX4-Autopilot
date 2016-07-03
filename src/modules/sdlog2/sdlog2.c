@@ -2006,6 +2006,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_VMEB.evy = buf.veh_vel_body.est_vy;
 				log_msg.body.log_VMEB.evz = buf.veh_vel_body.est_vz;
 				log_msg.body.log_VMEB.u = buf.veh_vel_body.u;	
+				log_msg.body.log_VMEB.baro_z = buf.veh_vel_body.baro_alt_est;
+				log_msg.body.log_VMEB.baro_vz = buf.veh_vel_body.baro_vz_est;
 				LOGBUFFER_WRITE_AND_COUNT(VMEB);
 			}
 

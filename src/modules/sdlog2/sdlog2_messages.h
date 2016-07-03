@@ -669,6 +669,8 @@ struct log_VMEB_s {
 	float evy;
 	float evz;
 	float u;
+	float baro_z;
+	float baro_vz;
 };
 
 /**** End Moses specific logs *************/
@@ -765,7 +767,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LOAD, "f", "CPU"),
 	LOG_FORMAT(VVEL, "ffffff",		"bvx,bvy,bvz,ivx,ivy,ivz"),
 	LOG_FORMAT(VEST, "ffffff",		"bvx,bvy,bvz,ivx,ivy,ivz"),
-	LOG_FORMAT(VMEB, "fffffff",		"mvx,mvy,mvz,evx,evy,evz,u"),	
+	LOG_FORMAT(VMEB, "fffffffff",		"mvx,mvy,mvz,evx,evy,evz,u,baro_z,baro_vz"),	
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),

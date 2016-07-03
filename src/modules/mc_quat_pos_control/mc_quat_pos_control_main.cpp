@@ -33,7 +33,7 @@
 
 /**
  * @file mc_quat_pos_control_main.cpp
- * Multicopter position controller.
+ * Multicopter quaternion position controller.
  *
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -92,10 +92,9 @@
 #include <uORB/topics/vehicle_velocity_meas_inertial.h>
 #include <uORB/topics/vehicle_velocity_meas_est_body.h>  
 #include <av_estimator/include/av_estimator_params.h> 
+//#include <av_estimator/include/av_estimator_main.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_omega_ff_setpoint.h>
-
-//#include "mc_quat_pos_control.h"
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -297,6 +296,9 @@ private:
 	struct vehicle_vicon_position_s 			_vicon_pos;   			/**< vicon position */
 	struct vehicle_gps_position_s 			_veh_gps_pos;			/**< Subscribe to gps position */
 	struct vehicle_velocity_meas_inertial_s			_veh_vel;			/**< vehicle velocity */
+	struct vehicle_velocity_meas_est_body_s			_veh_vel_body;  	/**< Body fixed frame velocity measurements */
+
+	int _veh_vel_body_sub = -1;
 	orb_advert_t _veh_vel_pub;
 
 	/* subscribe to raw data */
@@ -447,6 +449,11 @@ private:
 	 * Check for changes in vehicle estimated velocity
 	*/
 	void 		vehicle_velocity_estimated_poll();
+
+	/**
+	 * Check for changes in vehicle body fixed frame velocities (est and meas)
+	*/
+	void 		vehicle_velocity_body_poll();
 
 	/**
 	 * Check for changes in vehicle GPS data
@@ -784,6 +791,21 @@ MulticopterQuatPositionControl::vehicle_velocity_estimated_poll()
 }
 
 /**
+  * Poll estimated velocity for GPS
+*/
+void
+MulticopterQuatPositionControl::vehicle_velocity_body_poll()
+{
+	/* check if there is a new velocity */
+	bool updated;
+	orb_check(_v_vel_est_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_velocity_meas_est_body), _veh_vel_body_sub, &_veh_vel_body);
+	}
+}
+
+/**
   * Poll for local position setpoint
 */
 void
@@ -883,6 +905,9 @@ MulticopterQuatPositionControl::poll_subscriptions()
 
 	/* Poll vehicle control mode */
 	vehicle_control_mode_poll();
+
+	/* Poll vehicle body frame velocity */
+	vehicle_velocity_body_poll();
 }
 
 /**
@@ -1444,6 +1469,9 @@ MulticopterQuatPositionControl::task_main()
 
 	_v_vel_est_sub = orb_subscribe(ORB_ID(vehicle_velocity_est_inertial)); 
 
+	_veh_vel_body_sub = orb_subscribe(ORB_ID(vehicle_velocity_meas_est_body));
+
+	/* Do I need these two ? */
 	_veh_vel_pub 	= nullptr;
 	_omega_pub 		= nullptr;
 	parameters_update(true);
@@ -1486,7 +1514,7 @@ MulticopterQuatPositionControl::task_main()
 			warn("poll error %d, %d", pret, errno);
 			continue;
 		}
-		/* run controller on attitude changes */
+		/* run controller on attitude changes FIXME enable this*/
 		//if (fds[0].revents & POLLIN) {
 		/* Do polling */
 		poll_subscriptions(); // This should go outside of that loop
@@ -1511,8 +1539,8 @@ MulticopterQuatPositionControl::task_main()
 		_veh_vel.body_valid 			= false;
 		_veh_vel.inertial_valid 		= false;
 	
-//printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
-//printf("%s\n", _control_mode.flag_control_manual_enabled ? "true" : "false");
+	//printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
+	//printf("%s\n", _control_mode.flag_control_manual_enabled ? "true" : "false");
 	/* Do GPS pos control */
 	if (_veh_gps_pos.fix_type >= 3 && _v_vel_est.timestamp != _v_est_time_old)// && initialise_home)// && _v_vel_est.body_valid)
 	{
@@ -1521,11 +1549,12 @@ MulticopterQuatPositionControl::task_main()
 		veh_vel_body(1) = _v_vel_est.inertial_bvy;
 		veh_vel_body(2) = _v_vel_est.inertial_bvz;
 
+		/* If we haven't taken off or in the process of landing use barometer measurements z and vz or altitude is less than yyy*/
+
 		dt_pos_est = (_v_vel_est.timestamp - _v_est_time_old)*0.000001f;
 		//printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
 
 		/* GPS Position estimation */
-
 		gps_body_pos_hat_dot(0)  = veh_vel_body(0) - _params.vel_ff(0)*(gps_body_pos_hat(0) - x); 
 		gps_body_pos_hat_dot(1)  = veh_vel_body(1) - _params.vel_ff(1)*(gps_body_pos_hat(1) - y);
 		gps_body_pos_hat_dot(2)  = veh_vel_body(2) - _params.vel_ff(2)*(gps_body_pos_hat(2) - z);
@@ -1580,16 +1609,14 @@ MulticopterQuatPositionControl::task_main()
 			_att_sp.q_d[2] = qd[2];
 			_att_sp.q_d[3] = qd[3];
 			//_att_sp_msg.data().thrust = thrust;
-//printf("auto mode\n");
+			//printf("auto mode\n");
 			
 			/* Use Autonomous mode */			
 			if (_att_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-				//_att_sp_pub->publish(_att_sp_msg);
 
 			} else {
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
-				//_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
 			}
 		}
 
@@ -1752,10 +1779,8 @@ MulticopterQuatPositionControl::task_main()
 	{
 		if (_veh_vel_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_velocity_meas_inertial), _veh_vel_pub, &_veh_vel);
-			//_veh_vel_pub->publish(_veh_vel_msg);
 		} else {
 			_veh_vel_pub = orb_advertise(ORB_ID(vehicle_velocity_meas_inertial), &_veh_vel);
-			//_veh_vel_pub = _n.advertise<px4_vehicle_velocity_meas_inertial>();
 		}
 	}
 	vel_updated = false;

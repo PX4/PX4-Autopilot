@@ -356,7 +356,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_velocity_meas_inertial), velocity_measured_fd, &rawMeasuredVelocity);
 				//printf("Velocity updated %d\n", rawMeasuredVelocity.inertial_valid);
 			} else
-			{
+			{ //TODO remove this
 				rawMeasuredVelocity.inertial_valid = false;
 			}			
 
@@ -474,6 +474,8 @@ int av_estimator_thread_main(int argc, char *argv[])
 					meas_body_vel.est_vy = filter_b.strapdown_est_vhat(1);
 					meas_body_vel.est_vz = filter_b.strapdown_est_vhat(2);
 					meas_body_vel.u 		 = filter_b.scaling_u;
+					meas_body_vel.baro_alt_est = baro_data(1);
+					meas_body_vel.baro_vz_est = baro_data(0);
 					meas_body_vel.timestamp = raw.timestamp;
 
 					/* Publish measured and estimated velocities in body frame*/
