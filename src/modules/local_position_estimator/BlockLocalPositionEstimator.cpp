@@ -27,8 +27,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
 	// flow 10 hz
 	_sub_flow(ORB_ID(optical_flow), 1000 / 10, 0, &getSubscriptions()),
-	// main prediction loop, 100 hz
-	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
+	// main prediction loop, 150 hz
+	_sub_sensor(ORB_ID(sensor_combined), 1000 / 150, 0, &getSubscriptions()),
 	// status updates 2 hz
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
 	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
@@ -194,6 +194,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// initialize A, B,  P, x, u
 	_x.setZero();
+	_x(X_q3) = 1;
 	_u.setZero();
 	_flowX = 0;
 	_flowY = 0;
@@ -222,7 +223,33 @@ Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dyn
 	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
 	const Vector<float, BlockLocalPositionEstimator::n_u> &u)
 {
-	return _A * x + _B * u;
+	Vector<float, n_x> dx = zeros<float, n_x, 1>();
+	Quatf q_nb(x(0), x(1), x(2), x(3));
+	Dcmf C_nb = q_nb;
+	Vector3f omega_nb(u(U_gx), u(U_gy), u(U_gz));
+	Quatf qdot = q_nb.derivative(omega_nb);
+
+	// position dynamics
+	dx(X_x) = _x(X_vx);
+	dx(X_y) = _x(X_vy);
+	dx(X_z) = _x(X_vz);
+	dx(X_vx) = u(U_ax);
+	dx(X_vy) = u(U_ay);
+	dx(X_vz) = u(U_az);
+
+	// attitude dynamics
+	dx(X_q0) = qdot(0);
+	dx(X_q1) = qdot(1);
+	dx(X_q2) = qdot(2);
+	dx(X_q3) = qdot(3);
+
+	// stationary states
+	dx(X_bx) = 0;
+	dx(X_by) = 0;
+	dx(X_bz) = 0;
+	dx(X_tz) = 0;
+
+	return dx;
 }
 
 void BlockLocalPositionEstimator::update()
@@ -841,13 +868,15 @@ void BlockLocalPositionEstimator::predict()
 	if (!_validXY && !_validZ) { return; }
 
 	if (integrate && _sub_att.get().R_valid) {
-		Matrix3f R_att(_sub_att.get().R);
-		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
-		_u = R_att * a;
-		_u(U_az) += 9.81f; // add g
+		Matrix3f C_nb(_sub_att.get().R);
+		Vector3f a_b(_sub_sensor.get().accelerometer_m_s2);
+		Vector3f a_n = C_nb * a_b;
+		_u(U_ax) = a_n(0);
+		_u(U_ay) = a_n(1);
+		_u(U_az) = a_n(2) + 9.81f; // add g
 
 	} else {
-		_u = Vector3f(0, 0, 0);
+		_u = zeros<float, n_u, 1>();
 	}
 
 	// update state space based on new states
