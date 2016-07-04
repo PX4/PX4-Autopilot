@@ -94,6 +94,7 @@ PARAM_DEFINE_FLOAT(RTLB_MIN_DIST, 5.0f);
  *
  * If the vehicle makes no progress in advanced RTL for this timespan for whatever reason, the system falls back to basic RTL mode.
  * Note that there may be long straight lines in the return path. This delay should be large enough to allow flying along such lines.
+ * If set to 0, the system will always immediately use legacy RTL instead of advanced RTL.
  * If set to -1 the system will not switch to basic RTL but loiter.
  *
  * @unit s

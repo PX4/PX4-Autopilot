@@ -145,6 +145,13 @@ private:
 
     typedef uint16_t graph_item_t;
 
+    // Large elements have 4 playload items:
+    //  Node cycle master: delta coefficient, evicted item, distance to home
+    //  Far jump: x, y, z, reserved
+    static constexpr int MASTER_LINK_SIZE = 4;
+    static constexpr int REGULAR_LINK_SIZE = 2;
+    static constexpr int FAR_JUMP_SIZE = MASTER_LINK_SIZE;
+
     static inline graph_item_t make_delta_item(ipos_t &from_pos, ipos_t &to_pos);
     static inline graph_item_t make_link_item(uint16_t index) { return (1 << 15) | (index & 0x3FFF); }
     static inline graph_item_t make_data_item(uint16_t data) { return (3 << 14) | (data & 0x3FFF); }
@@ -181,9 +188,9 @@ private:
     void push_graph(fpos_t &position);
 
     // Adds a link to the end of the graph that links to the specified index.
-    // If there is already a node at that index, the end of the graph is integrated in the node cycle.
+    // If there is already a node at that index, the new link is integrated in the node cycle.
     // The end of the graph must be a pure delta (near or far) without a link.
-    void push_link(size_t index);
+    void push_link(size_t index, uint16_t attribute);
 
     // Returns the index of the head of the cycle that the specified link item belongs to.
     // The caller must ensure that index points to a valid link item.
@@ -193,6 +200,10 @@ private:
     // The node index is defined as the index of the first index in the link cycle. 
     // Returns 0 it the element is not part of a node.
     size_t get_node_or_null(size_t index);
+
+    // Returns the payload of the specified node.
+    // If node is invalid (0), this returns a NULL pointer.
+    graph_item_t* get_node_payload_ptr(size_t node) { return node ? graph + as_link_item(graph[node]) + 3 : NULL; }
 
     // Walks forward on the graph by one position.
     // The provided index must be a valid graph-index and will be updated to another valid value.
@@ -219,6 +230,11 @@ private:
     // interval_length: increased by the length of the interval that was consumed.
     // Returns: The cycle head of the link that was found or zero.
     size_t walk_far_backward(size_t &index, size_t checkpoint, float &interval_length);
+
+    // Walks through a node cycle by advancing index by one link.
+    // Returns false if node is invalid (0) or when the cycle head is reached.
+    // Hence, when iterating through the links of a node, start at the node head and call walk_node AFTER each iteration.
+    inline bool walk_node(size_t node, size_t &index);
 
     // Registers that a node just received a new value (or was newly created).
     // This ensures that when the distance-to-home values are demanded, the new/updated node is respected.

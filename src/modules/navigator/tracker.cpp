@@ -5,8 +5,7 @@
 #include "tracker.h"
 
 
-inline float fast_sqrt(int val) {
-    // todo: ensure that this stays in prog-mem (wherever possible)
+inline float fast_sqrt(int val, bool fallback_to_infinity) {
     const float values[] = {
         0.000000000000000f, 1.000000000000000f, 1.414213562373095f, 1.732050807568877f,
         2.000000000000000f, 2.236067977499790f, 2.449489742783178f, 2.645751311064591f,
@@ -20,7 +19,14 @@ inline float fast_sqrt(int val) {
 
     if (val < sizeof(values) / sizeof(values[0]))
         return values[val];
-    return sqrt(val);
+
+    if (fallback_to_infinity)
+        return INFINITY;
+
+    float result = sqrt(val);
+    if (isnan(result))
+        PX4_WARN("fast_sqrt returns NaN for %d", val);
+    return result;
 }
 
 inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
@@ -33,6 +39,7 @@ inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
 inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {
     return is_close(to_fpos(pos1), pos2);
 }
+
 
 inline Tracker::graph_item_t Tracker::make_delta_item(ipos_t &from_pos, ipos_t &to_pos) {
     int delta_x = to_pos.x - from_pos.x;
@@ -191,10 +198,15 @@ bool Tracker::pop_recent_path(double &lat, double &lon, float &alt) {
 
 
 size_t Tracker::get_cycle_head(size_t index) {
+    // Generally, we scan the entire link cycle to find the lowest index, but often we may recognize the cycle head earlier.
     size_t initial_index = index;
     size_t lowest_index = index;
     do {
+        if (index + 1 < graph_next_write && !is_data_item(graph[index + 1]))
+            return index; // If a link item is not followed by a data item, it MUST be the cycle head 
+
         index = as_link_item(graph[index]);
+
         if (index < lowest_index)
             lowest_index = index;
     } while (index != initial_index);
@@ -203,13 +215,21 @@ size_t Tracker::get_cycle_head(size_t index) {
 
 
 size_t Tracker::get_node_or_null(size_t index) {
-    if (is_data_item(graph[index]))
-        index -= 2;
-    
-    if (is_link_item(graph[index]))
-        return get_cycle_head(index);
+    if (is_link_item(graph[index])) {
+        return index; // Index points to a cycle head
+    } else if (is_delta_item(graph[index])) {
+        return 0; // Index points to a compact delta item
+    }
 
-    return 0;
+    if (is_link_item(graph[index - REGULAR_LINK_SIZE + 1])) {
+        index -= REGULAR_LINK_SIZE - 1; // Index points to a regular link
+    } else if (is_link_item(graph[index - MASTER_LINK_SIZE + 1])) {
+        index -= MASTER_LINK_SIZE - 1; // Index points to a master link
+    } else {
+        return 0; // Index points to a far jump
+    }
+
+    return get_cycle_head(index);
 }
 
 
@@ -224,23 +244,24 @@ bool Tracker::walk_forward(size_t &index, ipos_t *position, float *distance, boo
     if (is_data_item(item)) {
         delta.x = as_signed_data_item(item);
         delta.y = as_signed_data_item(graph[++index]);
-        item = graph[++index];
+        delta.z = as_signed_data_item(graph[++index]);
+        item = graph[++index]; // fetch link or reserved field (must be a data item)
     }
 
     if (is_link_item(item))
-        item = graph[as_link_item(item) + 1];
+        item = graph[as_link_item(item) + 2];
     
     if (is_delta_item(item)) {
         delta = as_delta_item(item);
         result = true;
     } else {
-        delta.z = as_signed_data_item(item);
+        // ignore reserved item for now 
     }
 
     if (position)
         *position += delta;
     if (distance)
-        *distance += fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+        *distance += fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false);
 
     // If this element contains a link, make sure we point at the end of it
     if (index + 1 < graph_next_write && is_link_item(graph[index + 1])) {
@@ -248,9 +269,9 @@ bool Tracker::walk_forward(size_t &index, ipos_t *position, float *distance, boo
         if (link != index + 1) {
             link = as_link_item(graph[link]);
             if (link == index + 1) {
-                index += 3;
+                index += MASTER_LINK_SIZE; // go to end of master link
             } else {
-                index += 1;
+                index += REGULAR_LINK_SIZE; // go to end of regular link
             }
         }
     }
@@ -266,37 +287,33 @@ bool Tracker::walk_backward(size_t &index, ipos_t *position, float *distance, bo
     ipos_t delta;
     graph_item_t item = graph[index--];
 
+    // Skip over link, possibly fetching the evicted item
     if (is_link_item(item)) {
-        size_t link = get_cycle_head(index + 1);
-        if (link == index + 1) {
-            link = as_link_item(graph[link]);
-            item = graph[link + 1];
-        } else {
-            item = graph[index--];
-        }
+        item = graph[as_link_item(item) + 2]; // skip over cycle head
+    } else if (is_data_item(item)) {
+        if (is_link_item(graph[index])) {
+            item = graph[(index -= REGULAR_LINK_SIZE) + 1]; // skip over regular link
+        } else if (is_link_item(graph[index - 2])) {
+            item = graph[(index -= MASTER_LINK_SIZE) + 1]; // skip over master link
+        } // else the item is part of a far jump - don't skip it
     }
 
-    if (is_data_item(item)) {
-        if (is_link_item(graph[index - 1])) {
-            item = graph[index - 2];
-            index -= 3;
-        }
-    }
-
+    // Fetch compact or far delta
     if (is_delta_item(item)) {
         delta = as_delta_item(item);
         result = true;
     } else {
-        index -= 2;
+        index -= FAR_JUMP_SIZE - 1;
         delta.x = as_signed_data_item(graph[index + 1]);
         delta.y = as_signed_data_item(graph[index + 2]);
-        delta.z = as_signed_data_item(item);
+        delta.z = as_signed_data_item(graph[index + 3]);
+        // "item" holds a reserved value - ignore it for now
     }
 
     if (position)
         *position -= delta;
     if (distance)
-        *distance += fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+        *distance += fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false);
 
     return result;
 }
@@ -328,6 +345,21 @@ size_t Tracker::walk_far_backward(size_t &index, size_t checkpoint, float &inter
 }
 
 
+inline bool Tracker::walk_node(size_t node, size_t &index) {
+    if (!node)
+        return false;
+    
+    if (index == as_link_item(graph[node]) + MASTER_LINK_SIZE - 1) {
+        index -= MASTER_LINK_SIZE - 1;
+    } else if (index != node){
+        index -= REGULAR_LINK_SIZE - 1;
+    }
+
+    index = as_link_item(graph[index]) + (index == node ? MASTER_LINK_SIZE : REGULAR_LINK_SIZE) - 1;
+    return index - 1 != node;
+}
+
+
 void Tracker::goto_graph_index(size_t index, ipos_t position) {
     TRACKER_DBG("vehicle moved to already visited index %zu", index);
     graph_current_index = index;
@@ -346,7 +378,6 @@ void Tracker::push_graph(fpos_t &position) {
     // Detect if the current position is at a node (in which case we'd have to walk the cycle) 
     size_t walk_origin_node = get_node_or_null(graph_current_index); // will be 0 if there is no node
     size_t walk_origin = walk_origin_node ? walk_origin_node : graph_current_index;
-    bool is_cycle_master = false;
 
     // Look at all positions that are adjacent to the current position.
     // If neccessary, walk the cycle that represents the node at this position.  
@@ -371,27 +402,18 @@ void Tracker::push_graph(fpos_t &position) {
                 return;
             }
         }
-
-        if (!walk_origin_node)
-            break;
-        
-        if (is_cycle_master)
-            walk_origin -= 2;
-        is_cycle_master = walk_origin == walk_origin_node;
-        walk_origin = as_link_item(graph[walk_origin]) + (is_cycle_master ? 2 : 0);
-    } while (walk_origin != walk_origin_node);
+    } while (walk_node(walk_origin_node, walk_origin));
 
 
-    // Don't proceed if the path is almost full (we might append up to 4 items)
-    if (graph_next_write > GRAPH_LENGTH - 4)
+    // Don't proceed if the path is almost full.
+    // The most we can append in one go is a far jump, a master link, a compact delta and another master link.
+    if (graph_next_write > GRAPH_LENGTH - FAR_JUMP_SIZE - 2 * MASTER_LINK_SIZE - 1)
         return; // todo: consider a clean-up pass
 
     
-    // Append the current position to the graph
     // todo: handle large distances
 
     ipos_t old_head = to_ipos(graph_head);
-
     size_t current_index_node = get_node_or_null(graph_current_index);
 
     // If the new interval is detached, we insert a far jump to the last known position and link it to the last known index.
@@ -404,8 +426,9 @@ void Tracker::push_graph(fpos_t &position) {
         graph[graph_next_write++] = make_data_item(graph_current_position.x - old_head.x);
         graph[graph_next_write++] = make_data_item(graph_current_position.y - old_head.y);
         graph[graph_next_write++] = make_data_item(graph_current_position.z - old_head.z);
+        graph[graph_next_write++] = make_data_item(0); // append reserved item
         old_head = graph_current_position;
-        push_link(graph_current_index);
+        push_link(graph_current_index, 0);
     }
 
     // Add compact delta to current position
@@ -414,7 +437,7 @@ void Tracker::push_graph(fpos_t &position) {
     graph_head = position;
     
 
-    // Scan through the existing path to see if we've been here already
+    // Scan through the graph to see if we've been here already
 
     int search_bound = GRAPH_SEARCH_RANGE < graph_next_write ? graph_next_write - GRAPH_SEARCH_RANGE : 0;
     ipos_t head = new_head;
@@ -425,7 +448,7 @@ void Tracker::push_graph(fpos_t &position) {
 
         // Check for intersection
         if (head == new_head) {
-            push_link(index);
+            push_link(index, 0);
             break;
         }
     }
@@ -437,29 +460,32 @@ void Tracker::push_graph(fpos_t &position) {
 }
 
 
-void Tracker::push_link(size_t index) {
+void Tracker::push_link(size_t index, uint16_t attribute) {
 	size_t node;
 
-	if (is_data_item(graph[index]))
-	    if (is_link_item(graph[index - 2]))
-	        index -= 2;
+	if (is_data_item(graph[index])) {
+	    if (is_link_item(graph[index - REGULAR_LINK_SIZE + 1]))
+            index -= REGULAR_LINK_SIZE - 1;
+        else if (is_link_item(graph[index - MASTER_LINK_SIZE + 1]))
+	        index -= MASTER_LINK_SIZE - 1;
+    }
 
 	// Evict existing item by inserting a link to the current position (which is where the back-link will be placed)
 	graph_item_t item = graph[index];
 	graph[index] = make_link_item(graph_next_write);
 
-	// If the evicted item was not already a link, we need to initialize the link cycle
-	if (!is_link_item(item))
-	    graph[graph_next_write++] = make_link_item(node = index);
-    
-	// Insert the evicted item (which may be a link)
-	graph[graph_next_write++] = item;
-    
-	// If we just created a new cycle, we need to attach a reserved field, else, retrieve cycle head
-	if (!is_link_item(item))
-	    graph[graph_next_write++] = make_data_item(0xFFFF);
-	else
+	if (!is_link_item(item)) {
+        // Append master link
+	    graph[graph_next_write++] = make_link_item(node = index); // new link item pointing to the cycle head
+        graph[graph_next_write++] = make_data_item(attribute); // attribute
+	    graph[graph_next_write++] = item; // evicted delta item
+	    graph[graph_next_write++] = make_data_item(0xFFFF); // node payload
+    } else {
+        // Append regular link
+	    graph[graph_next_write++] = item; // evicted link item
+        graph[graph_next_write++] = make_data_item(attribute); // attribute
 	    node = get_cycle_head(index);
+    }
     
 	// Make sure the node will be visited when required.
 	unvisit_node(node);
@@ -504,8 +530,8 @@ void Tracker::unvisit_node(size_t node) {
 
 void Tracker::calc_distances() {
     // todo: respect home index != 0
-    uint16_t walk_origin = 0;
-    uint16_t walk_origin_node = 0;
+    size_t walk_origin = 0;
+    size_t walk_origin_node = 0;
     bool walking_forward = true;
 
     bool should_log = visited_area_end + 1 < graph_next_write || unvisited_nodes_count;
@@ -519,22 +545,17 @@ void Tracker::calc_distances() {
             walking_forward = true;
         } else {
             walking_forward = false;
-            if (walk_origin_node && walk_origin != walk_origin_node) {
-                if (is_data_item(graph[walk_origin]))
-                    walk_origin -= 2;
-                walk_origin = as_link_item(graph[walk_origin]);
+            if (walk_node(walk_origin_node, walk_origin)) {
+                // nothing more todo: walk_node takes care of everything
             } else if (unvisited_nodes_count) {
-                walk_origin = as_link_item(graph[walk_origin_node = unvisited_nodes[0]]) + 2;
+                walk_origin = walk_origin_node = unvisited_nodes[0];
                 memcpy(unvisited_nodes, unvisited_nodes + 1, --unvisited_nodes_count * sizeof(unvisited_nodes[0]));
             } else {
-                walk_origin_node = get_node_or_null(visited_area_end);
-                
-                if (walk_origin_node && walk_origin_node == visited_area_end) {
-                    // If we continue at the end of the visited area, it's only neccessary to walk the node if we continue at a cycle head.
-                    // (because this can happen if it was evicted from the unvisited nodes buffer)
-                    walk_origin = as_link_item(graph[walk_origin_node]) + 2;
-                } else {
-                    // Else, it is sufficient to walk forward and not look into the node
+                // If we continue at the end of the visited area, it's only neccessary to walk the node if we continue at a cycle head.
+                // (because this can happen if it was evicted from the unvisited nodes buffer)
+                // Else, it is sufficient to walk forward and not look into the node
+                walk_origin = walk_origin_node = get_node_or_null(visited_area_end);
+                if (!walk_origin_node || walk_origin_node != visited_area_end) {
                     walk_origin = visited_area_end;
                     walk_origin_node = 0;
                     walking_forward = true;
@@ -560,8 +581,8 @@ void Tracker::calc_distances() {
         TRACKER_DBG("  interval from %zu (node: %zu) to %zu (node: %zu): length %f", walk_origin, walk_origin_node, index, node, interval_length);
 
         // Calculate distance to home at the beginning and end of the interval we just visited
-        graph_item_t *dist_at_interval_start_ptr = walk_origin_node ? &graph[as_link_item(graph[walk_origin_node]) + 2] : NULL;
-        graph_item_t *dist_at_interval_end_ptr = node ? &graph[as_link_item(graph[node]) + 2] : NULL;
+        graph_item_t *dist_at_interval_start_ptr = get_node_payload_ptr(walk_origin_node);
+        graph_item_t *dist_at_interval_end_ptr = get_node_payload_ptr(node);
         uint16_t dist_at_interval_start = dist_at_interval_start_ptr ? as_unsigned_data_item(*dist_at_interval_start_ptr) : visited_area_end_distance;
         uint16_t dist_at_interval_end = dist_at_interval_end_ptr ? as_unsigned_data_item(*dist_at_interval_end_ptr) : (index == graph_home_index ? 0 : (dist_at_interval_start + interval_length));
 
@@ -621,7 +642,6 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
     float best_origin = index;
 
     size_t walk_origin = walk_origin_node ? walk_origin_node : index;
-    bool is_cycle_master = false;
 
     // Look at all intervals that originate at the current position to find the shortest path home.
     // If neccessary, walk the cycle that represents the node at this position.
@@ -636,7 +656,7 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
         if (index == graph_home_index)
             dist_forward = interval_length; // The home position is on this interval
         else if (node)
-            dist_forward = as_unsigned_data_item(graph[as_link_item(graph[node]) + 2]) + interval_length;
+            dist_forward = as_unsigned_data_item(*get_node_payload_ptr(node)) + interval_length;
         if (dist_forward >= 0x3FFF)
             dist_forward = INFINITY;
         
@@ -645,7 +665,7 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
         if (index == graph_home_index)
             dist_backward = interval_length;
         else if (node)
-            dist_backward = as_unsigned_data_item(graph[as_link_item(graph[node]) + 2]) + interval_length;
+            dist_backward = as_unsigned_data_item(*get_node_payload_ptr(node)) + interval_length;
         if (dist_backward >= 0x3FFF)
             dist_backward = INFINITY;
 
@@ -657,15 +677,7 @@ void Tracker::calc_return_path(size_t &index, bool &move_forward, bool &move_bac
             best_origin = walk_origin;
             best_distance = move_forward ? dist_forward : dist_backward;
         }
-
-        if (!walk_origin_node)
-            break;
-        
-        if (is_cycle_master)
-            walk_origin -= 2;
-        is_cycle_master = walk_origin == walk_origin_node;
-        walk_origin = as_link_item(graph[walk_origin]) + (is_cycle_master ? 2 : 0);
-    } while (walk_origin != walk_origin_node);
+    } while (walk_node(walk_origin_node, walk_origin));
 
     // Move index within the current node
     index = best_origin;
@@ -773,31 +785,38 @@ void Tracker::dump_graph() {
     size_t index = graph_next_write - 1;
     do {
         size_t node = get_node_or_null(index);
-        bool is_cycle_master = is_data_item(graph[index]) && is_link_item(graph[index - 2]);
+        bool is_cycle_head = node && index == node;
+        bool is_cycle_master = is_data_item(graph[index]) && !is_link_item(graph[index - REGULAR_LINK_SIZE + 1]) && is_link_item(graph[index - MASTER_LINK_SIZE + 1]);
+        bool is_regular_link = is_data_item(graph[index]) && is_link_item(graph[index - REGULAR_LINK_SIZE + 1]);
         
         size_t delta_item_index;
-        if (is_cycle_master)
-            delta_item_index = index - 3;
-        else if (index && index == node)
-            delta_item_index = as_link_item(graph[index]) + 1;
-        else if (is_link_item(graph[index]))
-            delta_item_index = index - 1;
+        if (is_cycle_head)
+            delta_item_index = as_link_item(graph[node]) + 2;
+        else if (is_cycle_master)
+            delta_item_index = index - MASTER_LINK_SIZE;
+        else if (is_regular_link)
+            delta_item_index = index - REGULAR_LINK_SIZE;
         else
             delta_item_index = index;
 
-        PX4_INFO("  %zu: (%d, %d, %d)%s%s%s", index, head.x, head.y, head.z, is_cycle_master ? " m" : "", is_data_item(graph[delta_item_index]) ? " j" : "", graph_current_index == index ? " <=" : "");
+        PX4_INFO("  %zu: (%d, %d, %d)%s%s%s",
+            index, head.x, head.y, head.z,
+            is_cycle_head ? ", head" : is_cycle_master ? ", master" : is_regular_link ? ", link" : "",
+            is_data_item(graph[delta_item_index]) ? ", jump" : "",
+            graph_current_index == index ? " <= current index" : "");
     } while (walk_backward(index, &head, NULL, true));
 
+
     PX4_INFO("  nodes:");
-    for (index = 1; index < graph_next_write; index++) {
+    for (index = 0; walk_forward(index, NULL, NULL, true);) {
         if (get_node_or_null(index) != index)
             continue;
         
-        PX4_INFO("    node with data %d:", as_unsigned_data_item(graph[as_link_item(graph[index]) + 2]));
+        PX4_INFO("    node with data %d:", as_unsigned_data_item(*get_node_payload_ptr(index)));
         size_t link = index;
         bool is_cycle_master = false;
         do {
-            PX4_INFO("      idx %zu%s", link + (is_cycle_master ? 2 : 0), is_cycle_master ? " m" : "");
+            PX4_INFO("      idx %zu%s", link + (link == index ? 0 : is_cycle_master ? MASTER_LINK_SIZE - 1 : 1), is_cycle_master ? " m" : "");
             is_cycle_master = link == index;
         } while ((link = as_link_item(graph[link])) != index);
     }
@@ -805,9 +824,9 @@ void Tracker::dump_graph() {
 
 void Tracker::dump_nodes() {
     PX4_INFO("nodes:");
-    for (size_t index = 1; index < graph_next_write; index++)
+    for (size_t index = 0; walk_forward(index, NULL, NULL, true);)
         if (get_node_or_null(index) == index)
-            PX4_INFO("    node %zu: distance %d", index, as_unsigned_data_item(graph[as_link_item(graph[index]) + 2]));
+            PX4_INFO("    node %zu: distance %d", index, as_unsigned_data_item(*get_node_payload_ptr(index)));
 }
 
 void Tracker::dump_path_to_home() {

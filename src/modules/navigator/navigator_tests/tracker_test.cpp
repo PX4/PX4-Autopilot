@@ -193,7 +193,7 @@ bool TrackerTest::flyAndLeaveReturnPathTest(void) {
             TRACKER_DBG("return from %d, %d, %d, home is %d, %d, %d", (int)fx, (int)fy, (int)fz, test->path[0], test->path[1], test->path[2]);
             ut_assert(msg, tracker.get_path_to_home(pos, fx, fy, fz));
             tracker.update(fx, fy, fz);
-            ut_assert(msg, steps++ < INT_MAX); // make sure the loop terminates
+            ut_assert(msg, steps++ < 256); // make sure the loop terminates
         }
 
         // Check if the tracker agrees that we're home
