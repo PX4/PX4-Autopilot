@@ -767,24 +767,83 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item)
 {
-	/* only support global waypoints for now */
-	switch (mavlink_mission_item->frame) {
-	case MAV_FRAME_GLOBAL:
+	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
+		mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+
+		// only support global waypoints for now
+
 		mission_item->lat = (double)mavlink_mission_item->x;
 		mission_item->lon = (double)mavlink_mission_item->y;
 		mission_item->altitude = mavlink_mission_item->z;
-		mission_item->altitude_is_relative = false;
-		break;
 
-	case MAV_FRAME_GLOBAL_RELATIVE_ALT:
-		mission_item->lat = (double)mavlink_mission_item->x;
-		mission_item->lon = (double)mavlink_mission_item->y;
-		mission_item->altitude = mavlink_mission_item->z;
-		mission_item->altitude_is_relative = true;
-		break;
+		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL) {
+			mission_item->altitude_is_relative = false;
+		} else if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+			mission_item->altitude_is_relative = true;
+		}
 
-	case MAV_FRAME_MISSION:
-		// This is a mission item with no coordinate
+		mission_item->time_inside = 0.0f;
+
+		switch (mavlink_mission_item->command) {
+		case MAV_CMD_NAV_WAYPOINT:
+			mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+			mission_item->time_inside = mavlink_mission_item->param1;
+			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			break;
+
+		case MAV_CMD_NAV_LOITER_UNLIM:
+			mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
+			mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			break;
+
+		case MAV_CMD_NAV_LOITER_TIME:
+			mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+			mission_item->time_inside = mavlink_mission_item->param1;
+			mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
+			mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
+			break;
+
+		case MAV_CMD_NAV_LAND:
+			mission_item->nav_cmd = NAV_CMD_LAND;
+			// TODO: abort alt param1
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			break;
+
+		case MAV_CMD_NAV_TAKEOFF:
+			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
+			mission_item->pitch_min = mavlink_mission_item->param1;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			break;
+
+		case MAV_CMD_NAV_LOITER_TO_ALT:
+			mission_item->nav_cmd = NAV_CMD_LOITER_TO_ALT;
+			mission_item->force_heading = (mavlink_mission_item->param1 > 0) ? true : false;
+			mission_item->loiter_radius = fabsf(mavlink_mission_item->param2);
+			mission_item->loiter_direction = (mavlink_mission_item->param2 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
+			break;
+
+		case MAV_CMD_NAV_VTOL_TAKEOFF:
+		case MAV_CMD_NAV_VTOL_LAND:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			break;
+
+		default:
+			mission_item->nav_cmd = NAV_CMD_INVALID;
+			return MAV_MISSION_UNSUPPORTED;
+		}
+
+		mission_item->frame = mavlink_mission_item->frame;
+
+	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
+
+		// this is a mission item with no coordinates
+
 		mission_item->params[0] = mavlink_mission_item->param1;
 		mission_item->params[1] = mavlink_mission_item->param2;
 		mission_item->params[2] = mavlink_mission_item->param3;
@@ -792,49 +851,43 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[4] = mavlink_mission_item->x;
 		mission_item->params[5] = mavlink_mission_item->y;
 		mission_item->params[6] = mavlink_mission_item->z;
-		break;
 
-	default:
-		return MAV_MISSION_UNSUPPORTED_FRAME;
-	}
+		switch (mavlink_mission_item->command) {
+		case MAV_CMD_DO_JUMP:
+			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
+			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
+			mission_item->do_jump_current_count = 0;
+			mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
+			break;
 
-	mission_item->frame = mavlink_mission_item->frame;
+		case MAV_CMD_DO_CHANGE_SPEED:
+		case MAV_CMD_DO_SET_SERVO:
+		case MAV_CMD_DO_DIGICAM_CONTROL:
+		case MAV_CMD_DO_MOUNT_CONFIGURE:
+		case MAV_CMD_DO_MOUNT_CONTROL:
+		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case MAV_CMD_DO_VTOL_TRANSITION:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
 
-	switch (mavlink_mission_item->command) {
-	case MAV_CMD_NAV_TAKEOFF:
-		mission_item->pitch_min = mavlink_mission_item->param1;
-		break;
+		default:
+			mission_item->nav_cmd = NAV_CMD_INVALID;
+			return MAV_MISSION_UNSUPPORTED;
+		}
 
-	case MAV_CMD_DO_JUMP:
-		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
-		mission_item->do_jump_current_count = 0;
-		mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
-		break;
-
-	default:
-		mission_item->acceptance_radius = mavlink_mission_item->param2;
-		mission_item->time_inside = mavlink_mission_item->param1;
-		break;
-	}
-
-	mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
-	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
-	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
-
-	/* unsigned, so can't be negative, only check for overflow */
-	if (mavlink_mission_item->command >= NAV_CMD_INVALID) {
-		mission_item->nav_cmd = NAV_CMD_INVALID;
+		mission_item->frame = MAV_FRAME_MISSION;
 
 	} else {
-		mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+		return MAV_MISSION_UNSUPPORTED_FRAME;
 	}
 
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
-	mission_item->origin = ORIGIN_MAVLINK;
 
 	/* reset DO_JUMP count */
 	mission_item->do_jump_current_count = 0;
+
+	mission_item->origin = ORIGIN_MAVLINK;
 
 	return MAV_MISSION_ACCEPTED;
 }
@@ -857,32 +910,82 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->y = mission_item->params[5];
 		mavlink_mission_item->z = mission_item->params[6];
 
-	// default mappings for regular waypoints
+		switch (mavlink_mission_item->command) {
+		case NAV_CMD_DO_JUMP:
+			mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
+			mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
+			break;
+
+		case NAV_CMD_DO_CHANGE_SPEED:
+		case NAV_CMD_DO_SET_SERVO:
+		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_DO_MOUNT_CONFIGURE:
+		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case NAV_CMD_DO_VTOL_TRANSITION:
+			break;
+
+		default:
+			return ERROR;
+		}
+
 	} else {
+		mavlink_mission_item->param1 = 0.0f;
+		mavlink_mission_item->param2 = 0.0f;
+		mavlink_mission_item->param3 = 0.0f;
+		mavlink_mission_item->param4 = 0.0f;
 		mavlink_mission_item->x = (float)mission_item->lat;
 		mavlink_mission_item->y = (float)mission_item->lon;
 		mavlink_mission_item->z = mission_item->altitude;
 
-		mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
-		mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
-	}
+		if (mission_item->altitude_is_relative) {
+			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+		} else {
+			mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
+		}
 
-	// specific item handling
-	switch (mission_item->nav_cmd) {
-	case NAV_CMD_TAKEOFF:
-	case NAV_CMD_VTOL_TAKEOFF:
-		mavlink_mission_item->param1 = mission_item->pitch_min;
-		break;
+		switch (mission_item->nav_cmd) {
+		case NAV_CMD_WAYPOINT:
+			mavlink_mission_item->param1 = mission_item->time_inside;
+			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			break;
 
-	case NAV_CMD_DO_JUMP:
-		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
-		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count - mission_item->do_jump_current_count;
-		break;
+		case NAV_CMD_LOITER_UNLIMITED:
+			mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			break;
 
-	default:
-		mavlink_mission_item->param2 = mission_item->acceptance_radius;
-		mavlink_mission_item->param1 = mission_item->time_inside;
-		break;
+		case NAV_CMD_LOITER_TIME_LIMIT:
+			mavlink_mission_item->param1 = mission_item->time_inside;
+			mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
+			break;
+
+		case NAV_CMD_LAND:
+			// TODO: param1 abort alt
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			break;
+
+		case NAV_CMD_TAKEOFF:
+			mavlink_mission_item->param1 = mission_item->pitch_min;
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			break;
+
+		case NAV_CMD_LOITER_TO_ALT:
+			mavlink_mission_item->param1 = mission_item->force_heading;
+			mavlink_mission_item->param2 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
+			break;
+
+		case MAV_CMD_NAV_VTOL_TAKEOFF:
+		case MAV_CMD_NAV_VTOL_LAND:
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			break;
+
+		default:
+			return ERROR;
+		}
 	}
 
 	return OK;
