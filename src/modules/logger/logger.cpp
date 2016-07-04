@@ -1249,7 +1249,7 @@ void Logger::write_changed_parameters()
 			}
 
 			/* format parameter key (type and name) */
-			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s ", type_str, param_name(param));
+			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 			/* copy parameter value directly to buffer */
