@@ -977,8 +977,11 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		//PX4_DEBUG("centripE: (%8.3f, %8.3f, %8.3f)", (double)centripE.data[0], (double)centripE.data[1], (double)centripE.data[2]);
 
 		// construct centripetal accel vector in earth frame
-		// assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
-		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % quat.conjugate(Vector<3>(1.0f, 0.0f, 0.0f));
+//		// assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
+//		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % quat.conjugate(Vector<3>(1.0f, 0.0f, 0.0f));
+		// assuming earth frame centripetal accel is perpendicular to (Tx+Ty)/earthZ plane
+		Vector<3> vthrE = quat.conjugate(Vector<3>(0.0f, 0.0f, 1.0f));
+		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % Vector<3>(vthrE.data[0], vthrE.data[1], 0.0f).normalized();
 		_centrip.centripMag = centripE * centripA;
 		centripA *= _centrip.centripMag;
 		//PX4_DEBUG("centripA: (%8.3f, %8.3f, %8.3f)", (double)centripA.data[0], (double)centripA.data[1], (double)centripA.data[2]);
