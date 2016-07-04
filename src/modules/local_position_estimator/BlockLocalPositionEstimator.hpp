@@ -311,6 +311,7 @@ private:
 
 	// low pass
 	BlockLowPassVector<float, n_x> _xLowPass;
+	BlockLowPass _aglLowPass;
 
 	// delay blocks
 	BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
