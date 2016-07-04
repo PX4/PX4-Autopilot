@@ -420,12 +420,12 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 		if (OK == orb_exists(sub.metadata, multi_instance)) {
 			handle = orb_subscribe_multi(sub.metadata, multi_instance);
 
-			write_add_logged_msg(sub, multi_instance);
-
 			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
 			if (handle >= 0) {
+				write_add_logged_msg(sub, multi_instance);
+
 				/* set to the same interval as the first instance */
 				unsigned int interval;
 
