@@ -260,6 +260,8 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_4CAP			8
 #define PWM_SERVO_MODE_5CAP			9
 #define PWM_SERVO_MODE_6CAP		       10
+#define PWM_SERVO_MODE_10PWM		11
+#define PWM_SERVO_MODE_12PWM		12
 #define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 32)
 
 /** enable/disable oneshot mode */
