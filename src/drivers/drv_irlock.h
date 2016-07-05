@@ -53,8 +53,8 @@
 struct irlock_s {
 	uint64_t timestamp; /** microseconds since system start **/
 	uint16_t target_num;	/** target number prioritised by size (largest is 0) **/
-	float angle_x;	/** x-axis angle in radians from center of image to center of target **/
-	float angle_y;	/** y-axis angle in radians from center of image to center of target **/
-	float size_x;	/** size in radians of target along x-axis **/
-	float size_y;	/** size in radians of target along y-axis **/
+	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
+	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
+	float size_x;	/** size of target along x-axis in units of tan(theta) **/
+	float size_y;	/** size of target along y-axis in units of tan(theta) **/
 };

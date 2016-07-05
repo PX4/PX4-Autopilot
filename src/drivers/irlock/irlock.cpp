@@ -67,10 +67,17 @@
 #define IRLOCK_RESYNC		0x5500
 #define IRLOCK_ADJUST		0xAA
 
-#define IRLOCK_CENTER_X				159			// the x-axis center pixel position
-#define IRLOCK_CENTER_Y				99			// the y-axis center pixel position
-#define IRLOCK_PIXELS_PER_RADIAN_X	307.9075f	// x-axis pixel to radian scaler assuming 60deg FOV on x-axis
-#define IRLOCK_PIXELS_PER_RADIAN_Y	326.4713f	// y-axis pixel to radian scaler assuming 35deg FOV on y-axis
+#define IRLOCK_RES_X 320
+#define IRLOCK_RES_Y 200
+
+#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2)			// the x-axis center pixel position
+#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2)			// the y-axis center pixel position
+
+#define IRLOCK_FOV_X (60.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_Y (35.0f*M_PI_F/180.0f)
+
+#define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*tanf(IRLOCK_FOV_X/2)/IRLOCK_RES_X)
+#define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*tanf(IRLOCK_FOV_Y/2)/IRLOCK_RES_Y)
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -234,8 +241,8 @@ int IRLOCK::test()
 			_reports->get(&obj_report);
 			warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
 			      (int)obj_report.target_num,
-			      (double)obj_report.angle_x,
-			      (double)obj_report.angle_y,
+			      (double)obj_report.pos_x,
+			      (double)obj_report.pos_y,
 			      (double)obj_report.size_x,
 			      (double)obj_report.size_y);
 		}
@@ -388,10 +395,10 @@ int IRLOCK::read_device_block(struct irlock_s *block)
 
 	/** convert to angles **/
 	block->target_num = target_num;
-	block->angle_x = (((float)(pixel_x - IRLOCK_CENTER_X)) / IRLOCK_PIXELS_PER_RADIAN_X);
-	block->angle_y = (((float)(pixel_y - IRLOCK_CENTER_Y)) / IRLOCK_PIXELS_PER_RADIAN_Y);
-	block->size_x = pixel_size_x / IRLOCK_PIXELS_PER_RADIAN_X;
-	block->size_y = pixel_size_y / IRLOCK_PIXELS_PER_RADIAN_Y;
+	block->pos_x = (pixel_x - IRLOCK_CENTER_X) * IRLOCK_TAN_ANG_PER_PIXEL_X;
+	block->pos_y = (pixel_y - IRLOCK_CENTER_Y) * IRLOCK_TAN_ANG_PER_PIXEL_Y;
+	block->size_x = pixel_size_x * IRLOCK_TAN_ANG_PER_PIXEL_X;
+	block->size_y = pixel_size_y * IRLOCK_TAN_ANG_PER_PIXEL_Y;
 
 	block->timestamp = hrt_absolute_time();
 	return status;
