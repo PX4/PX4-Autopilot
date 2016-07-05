@@ -59,15 +59,15 @@ __END_DECLS
 #define FW_BUILD_URI STRINGIFY(BUILD_URI)
 
 #if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "LINUXTEST"
+#  define	HW_ARCH "SITL"
 #elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "LINUXTEST"
+#  define	HW_ARCH "EAGLE"
 #elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "LINUXTEST"
-#elif defined(CONFIG_ARCH_BOARD_RPI2)
-#  define	HW_ARCH "LINUXTEST"
+#  define HW_ARCH "EXCELSIOR"
+#elif defined(CONFIG_ARCH_BOARD_RPI2) || defined(CONFIG_ARCH_BOARD_NAVIO2)
+#  define	HW_ARCH "RPI"
 #elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "LINUXTEST"
+#  define	HW_ARCH "BEBOP"
 #else
 #define HW_ARCH (board_name())
 #endif

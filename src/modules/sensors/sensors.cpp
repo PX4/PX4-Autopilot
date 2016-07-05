@@ -919,7 +919,7 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 		_parameters.battery_v_div = 0.0f;
 
-	} else if (_parameters.battery_v_div < 0.0f) {
+	} else if (_parameters.battery_v_div <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		_parameters.battery_v_div = 13.653333333f;
@@ -929,6 +929,8 @@ Sensors::parameters_update()
 		_parameters.battery_v_div = 7.8196363636f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		_parameters.battery_v_div = 5.7013919372f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
+		_parameters.battery_v_div = 10.177939394f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
 		_parameters.battery_v_div = 0.0f;
@@ -940,13 +942,15 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 		_parameters.battery_a_per_v = 0.0f;
 
-	} else if (_parameters.battery_a_per_v < 0.0f) {
+	} else if (_parameters.battery_a_per_v <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		/* current scaling for ACSP4 */
 		_parameters.battery_a_per_v = 36.367515152f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		/* current scaling for 3DR power brick */
+		_parameters.battery_a_per_v = 15.391030303f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
 		_parameters.battery_a_per_v = 15.391030303f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
@@ -2096,12 +2100,7 @@ Sensors::task_main()
 #endif
 
 	if (ret) {
-		warnx("sensor initialization failed");
-		_sensors_task = -1;
-
-		DevMgr::releaseHandle(_h_adc);
-
-		return;
+		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
@@ -2225,17 +2224,19 @@ Sensors::task_main()
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
-			warnx("gyro has timed out");
+			if (fds[0].fd == _gyro_sub[0]) {
+				PX4_WARN("gyro0 has timed out");
+			}
 
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0 && (fds[0].fd != _gyro_sub[2])) {
 				fds[0].fd = _gyro_sub[2];
 
 				if (!_hil_enabled) {
 					warnx("failing over to third gyro");
 				}
 
-			} else if (_gyro_sub[1] >= 0) {
+			} else if (_gyro_sub[1] >= 0 && (fds[0].fd != _gyro_sub[1])) {
 				fds[0].fd = _gyro_sub[1];
 
 				if (!_hil_enabled) {

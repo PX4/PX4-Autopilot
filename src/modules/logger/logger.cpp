@@ -252,7 +252,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 				unsigned long r = strtoul(myoptarg, NULL, 10);
 
 				if (r <= 0) {
-					r = 1;
+					r = 1e6;
 				}
 
 				log_interval = 1e6 / r;
@@ -420,12 +420,12 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 		if (OK == orb_exists(sub.metadata, multi_instance)) {
 			handle = orb_subscribe_multi(sub.metadata, multi_instance);
 
-			write_add_logged_msg(sub, multi_instance);
-
 			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
 
 			/* copy first data */
 			if (handle >= 0) {
+				write_add_logged_msg(sub, multi_instance);
+
 				/* set to the same interval as the first instance */
 				unsigned int interval;
 
@@ -1249,7 +1249,7 @@ void Logger::write_changed_parameters()
 			}
 
 			/* format parameter key (type and name) */
-			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s ", type_str, param_name(param));
+			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
 
 			/* copy parameter value directly to buffer */

@@ -80,7 +80,7 @@
 #define SF10A_DEVICE_PATH	"/dev/sf10a"
 
 /* Device limits */
-#define SF10A_MIN_DISTANCE 	(0.0f)
+#define SF10A_MIN_DISTANCE 	(0.01f)
 #define SF10A_MAX_DISTANCE 	(25.0f)
 
 

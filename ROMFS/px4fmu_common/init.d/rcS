@@ -125,6 +125,16 @@ then
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
+
+		#
+		# Release 1.4.0 transitional support:
+		# set to old default if unconfigured.
+		# this preserves the previous behaviour
+		#
+		if param compare BAT_N_CELLS 0
+		then
+			param set BAT_N_CELLS 3
+		fi
 	fi
 
 	#

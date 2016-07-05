@@ -106,6 +106,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// low pass
 	_xLowPass(this, "X_LP"),
+	// use same lp constant for agl
+	_aglLowPass(this, "X_LP"),
 
 	// delay
 	_xDelay(this, ""),
@@ -275,6 +277,7 @@ void BlockLocalPositionEstimator::update()
 
 		// reset lowpass filter as well
 		_xLowPass.setState(_x);
+		_aglLowPass.setState(0);
 	}
 
 	_lastArmedState = armedState;
@@ -550,8 +553,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 
 float BlockLocalPositionEstimator::agl()
 {
-	const Vector<float, n_x> &xLP = _xLowPass.getState();
-	return xLP(X_tz) - xLP(X_z);
+	return _x(X_tz) - _x(X_z);
 }
 
 void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
@@ -676,7 +678,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _sub_home.get().alt;
-		_pub_lpos.get().dist_bottom = agl();
+		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
 		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
 		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
 		_pub_lpos.get().dist_bottom_valid = _validTZ && _validZ;
@@ -872,4 +874,5 @@ void BlockLocalPositionEstimator::predict()
 	       _B * _R * _B.transpose() +
 	       _Q) * getDt();
 	_xLowPass.update(_x);
+	_aglLowPass.update(agl());
 }

@@ -170,7 +170,8 @@ MissionBlock::is_mission_item_reached()
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
+				&& dist_z <= _navigator->get_default_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (!_navigator->get_vstatus()->is_rotary_wing &&
@@ -183,7 +184,8 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+				&& dist_z <= _navigator->get_default_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else {
@@ -195,7 +197,8 @@ MissionBlock::is_mission_item_reached()
 				mission_acceptance_radius = _navigator->get_acceptance_radius();
 			}
 
-			if (dist >= 0.0f && dist <= mission_acceptance_radius) {
+			if (dist >= 0.0f && dist <= mission_acceptance_radius
+				&& dist_z <= _navigator->get_default_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		}

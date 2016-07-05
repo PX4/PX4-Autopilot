@@ -863,6 +863,9 @@ Mavlink::get_free_tx_buf()
 		// No FIONWRITE on Linux
 #if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
 		(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+#else
+        //Linux cp210x does not support TIOCOUTQ
+        buf_free = 256;
 #endif
 
 		if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
@@ -1219,8 +1222,8 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
-		msg.flight_sw_version = version_tag_to_number(px4_git_version);
-		msg.middleware_sw_version = version_tag_to_number(px4_git_version);
+		msg.flight_sw_version = version_tag_to_number(px4_git_tag);
+		msg.middleware_sw_version = version_tag_to_number(px4_git_tag);
 		msg.os_sw_version = version_tag_to_number(os_git_tag);
 		msg.board_version = px4_board_version;
 		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
