@@ -15,11 +15,12 @@ then
 	echo formatting
 	$astyle ${format_wildcards}
 else
-	echo checking format
-	$astyle --dry-run ${format_wildcards} | grep Formatted
+	echo checking format...
+	$astyle --dry-run ${format_wildcards} | grep Formatted &>/dev/null
 	if [[ $? -eq 0 ]]
 	then
-		echo need to format
+		echo Error: need to format
+		echo "run './scripts/format.sh astyle 1'"
 		exit 1
 	fi
 	echo no formatting needed
