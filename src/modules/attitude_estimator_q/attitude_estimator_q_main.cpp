@@ -969,9 +969,9 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 	double last_thetaT = _thetaT;
 	_thetaT = atan2(thrE.data[1], thrE.data[0]);
 	double dtheta = _thetaT - last_thetaT;
-	if (dtheta > 2.0 * M_PI) {
+	if (dtheta > M_PI) {
 		dtheta -= 2.0 * M_PI;
-	} else if (dtheta < 2.0 * M_PI) {
+	} else if (dtheta < -M_PI) {
 		dtheta += 2.0 * M_PI;
 	}
 	float omegaE = _lp_omega.apply((float)dtheta / dt);
@@ -1017,7 +1017,7 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 
 		/* compensate body frame accel for centripetal accel */
 		/* estimated g vector in body frame is (_accel - centripetal accel) */
-//		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel * gainMult;
+//		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
 	}
 
 	// Gyro bias estimation
