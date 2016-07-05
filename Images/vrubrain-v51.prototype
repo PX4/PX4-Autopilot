@@ -1,0 +1,12 @@
+{
+    "board_id": 1351,
+    "magic": "VRUBRAINv51",
+    "description": "Firmware for the VRUBRAINv51 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "VRUBRAINv51",
+    "version": "5.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}

@@ -1,0 +1,12 @@
+{
+    "board_id": 1151,
+    "magic": "VRBRAINv51",
+    "description": "Firmware for the VRBRAINv51 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "VRBRAINv51",
+    "version": "5.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}
