@@ -141,11 +141,31 @@
 /* no GPIO driver on the SITL configuration */
 #endif
 
+#if defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) || defined(CONFIG_ARCH_BOARD_VRCORE_V10) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
+/*
+ * VRBRAINv52 GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+# define GPIO_SERVO_1       (1<<12)      /**< servo 1 output */
+# define GPIO_SERVO_2       (1<<13)      /**< servo 2 output */
+# define GPIO_SERVO_3       (1<<14)      /**< servo 2 output */
+
+/**
+ * Device paths for things that support the GPIO ioctl protocol.
+ */
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+
+#endif
+
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
 	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
-	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) &&\
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL)
+	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL) && \
+	!defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) && !defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) && !defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) && \
+	!defined(CONFIG_ARCH_BOARD_VRCORE_V10) && \
+	!defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51) && !defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
 /*
