@@ -36,7 +36,7 @@ px4_add_module(
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2200
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS -Os -DDEBUG_BUILD
 	SRCS
 		logger.cpp
 		log_writer.cpp
