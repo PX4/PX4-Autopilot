@@ -3,12 +3,6 @@
 # Nuttx/ Configuration
 #
 
-# The following line is needed because the upstream tools that generates
-# the include/nuttx/include/config.h file adds logic that relies on this
-# and our build flags include -Werror=undef
-#
-CONFIG_NSOCKET_DESCRIPTORS=0
-
 #
 # Build Setup
 #
@@ -639,8 +633,6 @@ CONFIG_ARCH_BOARD="px4fmu-v2"
 #
 # Custom Board Configuration
 #
-CONFIG_BOARD_CRASHDUMP=y
-CONFIG_BOARD_RESET_ON_CRASH=y
 # CONFIG_BOARD_CUSTOM_LEDS is not set
 # CONFIG_BOARD_CUSTOM_BUTTONS is not set
 CONFIG_BOARD_HAS_PROBES=y
@@ -649,12 +641,12 @@ CONFIG_BOARD_HAS_PROBES=y
 #
 # Common Board Options
 #
-CONFIG_NSH_MMCSDMINOR=0
-CONFIG_NSH_MMCSDSLOTNO=0
 
 #
 # Board-Specific Options
 #
+CONFIG_BOARD_CRASHDUMP=y
+CONFIG_BOARD_RESET_ON_CRASH=y
 CONFIG_LIB_BOARDCTL=y
 # CONFIG_BOARDCTL_RESET is not set
 # CONFIG_BOARDCTL_UNIQUEID is not set
@@ -829,7 +821,12 @@ CONFIG_WATCHDOG_DEVPATH="/dev/watchdog0"
 # CONFIG_VIDEO_DEVICES is not set
 # CONFIG_BCH is not set
 # CONFIG_INPUT is not set
+
+#
+# IO Expander/GPIO Support
+#
 # CONFIG_IOEXPANDER is not set
+# CONFIG_DEV_GPIO is not set
 
 #
 # LCD Driver Support
@@ -1077,6 +1074,7 @@ CONFIG_CDCACM_VENDORSTR="3D Robotics"
 CONFIG_CDCACM_PRODUCTSTR="PX4 FMU v2.x"
 # CONFIG_USBMSC is not set
 # CONFIG_USBHOST is not set
+# CONFIG_HAVE_USBTRACE is not set
 # CONFIG_DRIVERS_WIRELESS is not set
 
 #
@@ -1090,6 +1088,8 @@ CONFIG_SYSLOG_SERIAL_CONSOLE=y
 # CONFIG_SYSLOG_CHAR is not set
 CONFIG_SYSLOG_CONSOLE=y
 # CONFIG_SYSLOG_NONE is not set
+# CONFIG_SYSLOG_FILE is not set
+# CONFIG_SYSLOG_CHARDEV is not set
 
 #
 # Networking Support
@@ -1237,6 +1237,7 @@ CONFIG_ARCH_HAVE_TLS=y
 # CONFIG_LIB_CRC64_FAST is not set
 # CONFIG_LIB_KBDCODEC is not set
 # CONFIG_LIB_SLCDCODEC is not set
+# CONFIG_LIB_HEX2BIN is not set
 
 #
 # Basic CXX Support
@@ -1429,6 +1430,7 @@ CONFIG_NSH_DISABLE_LOSMART=y
 # CONFIG_NSH_DISABLE_MV is not set
 # CONFIG_NSH_DISABLE_MW is not set
 # CONFIG_NSH_DISABLE_PS is not set
+CONFIG_NSH_DISABLE_PSSTACKUSAGE=y
 # CONFIG_NSH_DISABLE_PUT is not set
 # CONFIG_NSH_DISABLE_PWD is not set
 # CONFIG_NSH_DISABLE_RM is not set
@@ -1444,6 +1446,8 @@ CONFIG_NSH_DISABLE_LOSMART=y
 # CONFIG_NSH_DISABLE_USLEEP is not set
 # CONFIG_NSH_DISABLE_WGET is not set
 # CONFIG_NSH_DISABLE_XD is not set
+CONFIG_NSH_MMCSDMINOR=0
+CONFIG_NSH_MMCSDSLOTNO=0
 
 #
 # Configure Command Options
@@ -1522,4 +1526,3 @@ CONFIG_READLINE_ECHO=y
 # CONFIG_SYSTEM_UBLOXMODEM is not set
 # CONFIG_SYSTEM_VI is not set
 # CONFIG_SYSTEM_ZMODEM is not set
-#

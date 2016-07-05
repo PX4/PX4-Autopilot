@@ -1,14 +1,14 @@
 diff --git NuttX/nuttx/include/signal.h NuttX/nuttx/include/signal.h
-index 12585c9..c729dee 100644
+index bd8ee9f..7ee242a 100644
 --- NuttX/nuttx/include/signal.h
 +++ NuttX/nuttx/include/signal.h
 @@ -282,8 +282,11 @@ extern "C"
- #endif
  
- int kill(pid_t, int);
+ int kill(pid_t pid, int signo);
+ int raise(int signo);
 +#pragma GCC diagnostic push
 +#pragma GCC diagnostic ignored "-Wshadow"
- int sigaction(int sig, FAR const struct sigaction *act,
+ int sigaction(int signo, FAR const struct sigaction *act,
                FAR struct sigaction *oact);
 +#pragma GCC diagnostic pop
  int sigaddset(FAR sigset_t *set, int signo);
