@@ -3,7 +3,7 @@ include(nuttx/px4_impl_nuttx)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 ## Not sure what this does, tried commenting out to help compile but had no effect.  Will leave it here
-set(config_uavcan_num_ifaces 2)
+#set(config_uavcan_num_ifaces 2)  ##not currently using uavcan
 
 set(config_module_list
 	#
@@ -177,7 +177,7 @@ set(config_module_list
 
 
 ##The stuff below this comment is not working.  
-set(config_extra_builtin_cmds
+set(config_extra_builtin_commands
 	serdis
 	sercon
 	)
@@ -199,9 +199,11 @@ set(config_io_extra_libs
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon" STACK_MAIN "2048")
+	MAIN "sercon"
+	STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis" STACK_MAIN "2048")
+	MAIN "serdis"
+	STACK_MAIN "2048")

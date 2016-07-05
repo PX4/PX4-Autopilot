@@ -28,7 +28,7 @@
   ^
 
 
-//Missing from deconfig file?? //ADDED!! SEE changes_for_defconfig
+//Missing from deconfig file?? //ADDED!! SEE changes_for_defconfig //USE MENUCONFIG
 /home/jessica/src/Firmware/src/systemcmds/ver/ver.c:67:45: error: 'CONFIG_CDCACM_PRODUCTID' undeclared here (not in a function)
 __EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
 
