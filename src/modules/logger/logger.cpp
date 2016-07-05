@@ -469,6 +469,7 @@ void Logger::add_default_topics()
 	add_topic("servorail_status", 200);
 	add_topic("mc_att_ctrl_status", 50);
 	add_topic("vehicle_status", 200);
+	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
 }
 
 int Logger::add_topics_from_file(const char *fname)
