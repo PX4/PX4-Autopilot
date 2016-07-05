@@ -2062,7 +2062,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
-#ifdef RC_SERIAL_PORT
+#if defined(RC_SERIAL_PORT) && defined(GPIO_SPEKTRUM_PWR_EN)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
