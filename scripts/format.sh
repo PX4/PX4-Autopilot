@@ -20,7 +20,7 @@ else
 	if [[ $? -eq 0 ]]
 	then
 		echo Error: need to format
-		echo "run './scripts/format.sh astyle 1'"
+		echo "From cmake build directory run: 'make format'"
 		exit 1
 	fi
 	echo no formatting needed
