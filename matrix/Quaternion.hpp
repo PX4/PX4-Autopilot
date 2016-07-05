@@ -73,7 +73,7 @@ public:
      *
      * @param other Matrix41 to copy
      */
-    Quaternion(const Matrix41 & other) :
+    Quaternion(const Matrix41 &other) :
         Vector<Type, 4>(other)
     {
     }
@@ -86,18 +86,18 @@ public:
      *
      * @param dcm dcm to set quaternion to
      */
-    Quaternion(const Dcm<Type> & dcm) :
+    Quaternion(const Dcm<Type> &dcm) :
         Vector<Type, 4>()
     {
         Quaternion &q = *this;
-        q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
-                               dcm(1, 1) + dcm(2, 2)));
+        q(0) = Type(0.5) * Type(sqrt(Type(1) + dcm(0, 0) +
+                                     dcm(1, 1) + dcm(2, 2)));
         q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
-                    (4 * q(0)));
+                    (Type(4) * q(0)));
         q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
-                    (4 * q(0)));
+                    (Type(4) * q(0)));
         q(3) = Type((dcm(1, 0) - dcm(0, 1)) /
-                    (4 * q(0)));
+                    (Type(4) * q(0)));
     }
 
     /**
@@ -109,7 +109,7 @@ public:
      *
      * @param euler euler angle instance
      */
-    Quaternion(const Euler<Type> & euler) :
+    Quaternion(const Euler<Type> &euler) :
         Vector<Type, 4>()
     {
         Quaternion &q = *this;
@@ -161,10 +161,10 @@ public:
     {
         const Quaternion &p = *this;
         Quaternion r;
-        r(0) = p(0)*q(0) - p(1)*q(1) - p(2)*q(2) - p(3)*q(3);
-        r(1) = p(0)*q(1) + p(1)*q(0) - p(2)*q(3) + p(3)*q(2);
-        r(2) = p(0)*q(2) + p(1)*q(3) + p(2)*q(0) - p(3)*q(1);
-        r(3) = p(0)*q(3) - p(1)*q(2) + p(2)*q(1) + p(3)*q(0);
+        r(0) = p(0) * q(0) - p(1) * q(1) - p(2) * q(2) - p(3) * q(3);
+        r(1) = p(0) * q(1) + p(1) * q(0) - p(2) * q(3) + p(3) * q(2);
+        r(2) = p(0) * q(2) + p(1) * q(3) + p(2) * q(0) - p(3) * q(1);
+        r(3) = p(0) * q(3) - p(1) * q(2) + p(2) * q(1) + p(3) * q(0);
         return r;
     }
 
@@ -173,7 +173,7 @@ public:
      *
      * @param other quaternion to multiply with
      */
-    void operator*=(const Quaternion & other)
+    void operator*=(const Quaternion &other)
     {
         Quaternion &self = *this;
         self = self * other;
@@ -207,7 +207,8 @@ public:
      *
      * @param w direction
      */
-    Matrix41 derivative(const Matrix31 & w) const {
+    Matrix41 derivative(const Matrix31 &w) const
+    {
         const Quaternion &q = *this;
         Type dataQ[] = {
             q(0), -q(1), -q(2), -q(3),
@@ -218,16 +219,17 @@ public:
         Matrix<Type, 4, 4> Q(dataQ);
         Vector<Type, 4> v;
         v(0) = 0;
-        v(1) = w(0,0);
-        v(2) = w(1,0);
-        v(3) = w(2,0);
+        v(1) = w(0, 0);
+        v(2) = w(1, 0);
+        v(3) = w(2, 0);
         return Q * v * Type(0.5);
     }
 
     /**
      * Invert quaternion
      */
-    void invert() {
+    void invert()
+    {
         Quaternion &q = *this;
         q(1) *= -1;
         q(2) *= -1;
@@ -239,7 +241,8 @@ public:
      *
      * @return inverted quaternion
      */
-    Quaternion inversed() {
+    Quaternion inversed()
+    {
         Quaternion &q = *this;
         Quaternion ret;
         ret(0) = q(0);
@@ -254,7 +257,8 @@ public:
      *
      * @param vec rotation vector
      */
-    void rotate(const Vector<Type, 3> &vec) {
+    void rotate(const Vector<Type, 3> &vec)
+    {
         Quaternion res;
         res.from_axis_angle(vec);
         (*this) = (*this) * res;
@@ -269,16 +273,19 @@ public:
      * @param vec rotation vector
      * @return quaternion representing the rotation
      */
-    void from_axis_angle(Vector<Type, 3> vec) {
+    void from_axis_angle(Vector<Type, 3> vec)
+    {
         Quaternion &q = *this;
         Type theta = vec.norm();
-        if(theta < (Type)1e-10) {
+
+        if (theta < (Type)1e-10) {
             q(0) = (Type)1.0;
-            q(1)=q(2)=q(3)=0;
+            q(1) = q(2) = q(3) = 0;
             return;
         }
+
         vec /= theta;
-        from_axis_angle(vec,theta);
+        from_axis_angle(vec, theta);
     }
 
     /**
@@ -288,15 +295,18 @@ public:
      * @param theta scalar describing angle of rotation
      * @return quaternion representing the rotation
      */
-    void from_axis_angle(const Vector<Type, 3> &axis, Type theta) {
+    void from_axis_angle(const Vector<Type, 3> &axis, Type theta)
+    {
         Quaternion &q = *this;
-        if(theta < (Type)1e-10) {
-            q(0) = (Type)1.0;
-            q(1)=q(2)=q(3)=0;
-        }
-        Type magnitude = sinf(theta/2.0f);
 
-        q(0) = cosf(theta/2.0f);
+        if (theta < (Type)1e-10) {
+            q(0) = (Type)1.0;
+            q(1) = q(2) = q(3) = 0;
+        }
+
+        Type magnitude = sinf(theta / 2.0f);
+
+        q(0) = cosf(theta / 2.0f);
         q(1) = axis(0) * magnitude;
         q(2) = axis(1) * magnitude;
         q(3) = axis(2) * magnitude;
@@ -311,17 +321,20 @@ public:
      *
      * @return vector, direction representing rotation axis and norm representing angle
      */
-    Vector<Type, 3> to_axis_angle() {
+    Vector<Type, 3> to_axis_angle()
+    {
         Quaternion &q = *this;
         Type axis_magnitude = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));
         Vector<Type, 3> vec;
         vec(0) = q(1);
         vec(1) = q(2);
         vec(2) = q(3);
-        if(axis_magnitude >= (Type)1e-10) {
+
+        if (axis_magnitude >= (Type)1e-10) {
             vec = vec / axis_magnitude;
-            vec = vec * wrap_pi((Type)2.0 * atan2f(axis_magnitude,q(0)));
+            vec = vec * wrap_pi((Type)2.0 * atan2f(axis_magnitude, q(0)));
         }
+
         return vec;
     }
 };

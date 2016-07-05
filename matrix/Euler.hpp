@@ -54,7 +54,7 @@ public:
      *
      * @param other vector to copy
      */
-    Euler(const Vector<Type, 3> & other) :
+    Euler(const Vector<Type, 3> &other) :
         Vector<Type, 3>(other)
     {
     }
@@ -64,7 +64,7 @@ public:
      *
      * @param other Matrix31 to copy
      */
-    Euler(const Matrix<Type, 3, 1> & other) :
+    Euler(const Matrix<Type, 3, 1> &other) :
         Vector<Type, 3>(other)
     {
     }
@@ -97,19 +97,20 @@ public:
      *
      * @param dcm Direction cosine matrix
     */
-    Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
+    Euler(const Dcm<Type> &dcm) : Vector<Type, 3>()
     {
-        Type phi_val = Type(atan2(dcm(2,1), dcm(2,2)));
-        Type theta_val = Type(asin(-dcm(2,0)));
-        Type psi_val = Type(atan2(dcm(1,0), dcm(0,0)));
+        Type phi_val = Type(atan2(dcm(2, 1), dcm(2, 2)));
+        Type theta_val = Type(asin(-dcm(2, 0)));
+        Type psi_val = Type(atan2(dcm(1, 0), dcm(0, 0)));
         Type pi = Type(M_PI);
 
-        if (fabs(theta_val - pi/2) < 1.0e-3) {
+        if (Type(fabs(theta_val - pi / Type(2))) < Type(1.0e-3)) {
             phi_val = Type(0.0);
-            psi_val = Type(atan2(dcm(1,2), dcm(0,2)));
-        } else if (Type(fabs(theta_val + pi/2)) < Type(1.0e-3)) {
+            psi_val = Type(atan2(dcm(1, 2), dcm(0, 2)));
+
+        } else if (Type(fabs(theta_val + pi / Type(2))) < Type(1.0e-3)) {
             phi_val = Type(0.0);
-            psi_val = Type(atan2(-dcm(1,2), -dcm(0,2)));
+            psi_val = Type(atan2(-dcm(1, 2), -dcm(0, 2)));
         }
 
         phi() = phi_val;
@@ -127,29 +128,35 @@ public:
      *
      * @param q quaternion
     */
-    Euler(const Quaternion<Type> & q) :
+    Euler(const Quaternion<Type> &q) :
         Vector<Type, 3>()
     {
         *this = Euler(Dcm<Type>(q));
     }
 
-    inline Type phi() const {
+    inline Type phi() const
+    {
         return (*this)(0);
     }
-    inline Type theta() const {
+    inline Type theta() const
+    {
         return (*this)(1);
     }
-    inline Type psi() const {
+    inline Type psi() const
+    {
         return (*this)(2);
     }
 
-    inline Type & phi() {
+    inline Type &phi()
+    {
         return (*this)(0);
     }
-    inline Type & theta() {
+    inline Type &theta()
+    {
         return (*this)(1);
     }
-    inline Type & psi() {
+    inline Type &psi()
+    {
         return (*this)(2);
     }
 
