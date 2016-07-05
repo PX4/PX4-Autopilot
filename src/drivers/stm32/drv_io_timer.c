@@ -111,7 +111,7 @@
 #define CCMR_C1_PWMIN_INIT 0 // TBD
 
 //												 				  NotUsed   PWMOut  PWMIn Capture
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0  ,  0   ,  0 };
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0  ,  0   ,  0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
