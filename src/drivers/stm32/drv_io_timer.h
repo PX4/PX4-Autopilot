@@ -46,7 +46,11 @@
 __BEGIN_DECLS
 /* configuration limits */
 #define MAX_IO_TIMERS			4
+#if defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) || defined(CONFIG_ARCH_BOARD_VRCORE_V10) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
+#define MAX_TIMER_IO_CHANNELS	12
+#else
 #define MAX_TIMER_IO_CHANNELS	8
+#endif
 #define IO_TIMER_ALL_MODES_CHANNELS 0
 
 typedef enum io_timer_channel_mode_t {
