@@ -252,7 +252,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 				unsigned long r = strtoul(myoptarg, NULL, 10);
 
 				if (r <= 0) {
-					r = 1;
+					r = 1e6;
 				}
 
 				log_interval = 1e6 / r;
