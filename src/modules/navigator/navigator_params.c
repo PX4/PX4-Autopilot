@@ -58,6 +58,7 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  * Acceptance Radius
  *
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * For fixed wing NAV_ACC_RAD is the vertical acceptance, as the L1 turning distance is used for horizontal acceptance.
  *
  * @unit m
  * @min 0.05
@@ -102,7 +103,7 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_RCL_ACT, 0);
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
  * Airfield home Lat

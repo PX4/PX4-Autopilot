@@ -319,6 +319,7 @@ private:
 		float battery_current_offset;
 		float battery_v_div;
 		float battery_a_per_v;
+		int32_t battery_source;
 
 		float baro_qnh;
 
@@ -381,6 +382,7 @@ private:
 		param_t battery_current_offset;
 		param_t battery_v_div;
 		param_t battery_a_per_v;
+		param_t battery_source;
 
 		param_t board_rotation;
 
@@ -653,6 +655,7 @@ Sensors::Sensors() :
 	_parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
 	_parameter_handles.battery_v_div = param_find("BAT_V_DIV");
 	_parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
+	_parameter_handles.battery_source = param_find("BAT_SOURCE");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -894,6 +897,7 @@ Sensors::parameters_update()
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_voltage_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_voltage_scaling, &_parameters.battery_voltage_scaling);
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -903,6 +907,7 @@ Sensors::parameters_update()
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_current_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_current_scaling, &_parameters.battery_current_scaling);
 	}
 
 	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
@@ -914,7 +919,7 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 		_parameters.battery_v_div = 0.0f;
 
-	} else if (_parameters.battery_v_div < 0.0f) {
+	} else if (_parameters.battery_v_div <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		_parameters.battery_v_div = 13.653333333f;
@@ -924,17 +929,20 @@ Sensors::parameters_update()
 		_parameters.battery_v_div = 7.8196363636f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		_parameters.battery_v_div = 5.7013919372f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
+		_parameters.battery_v_div = 10.177939394f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
 		_parameters.battery_v_div = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_v_div, &_parameters.battery_v_div);
 	}
 
 	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
 		warnx("%s", paramerr);
 		_parameters.battery_a_per_v = 0.0f;
 
-	} else if (_parameters.battery_a_per_v < 0.0f) {
+	} else if (_parameters.battery_a_per_v <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		/* current scaling for ACSP4 */
@@ -942,11 +950,16 @@ Sensors::parameters_update()
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		/* current scaling for 3DR power brick */
 		_parameters.battery_a_per_v = 15.391030303f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
+		_parameters.battery_a_per_v = 15.391030303f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
 		_parameters.battery_a_per_v = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_a_per_v, &_parameters.battery_a_per_v);
 	}
+
+	param_get(_parameter_handles.battery_source, &(_parameters.battery_source));
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
@@ -1718,7 +1731,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-			if (updated_battery) {
+			if (_parameters.battery_source == 0 && updated_battery) {
 				actuator_controls_s ctrl;
 				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
@@ -2087,12 +2100,7 @@ Sensors::task_main()
 #endif
 
 	if (ret) {
-		warnx("sensor initialization failed");
-		_sensors_task = -1;
-
-		DevMgr::releaseHandle(_h_adc);
-
-		return;
+		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
@@ -2216,17 +2224,19 @@ Sensors::task_main()
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
-			warnx("gyro has timed out");
+			if (fds[0].fd == _gyro_sub[0]) {
+				PX4_WARN("gyro0 has timed out");
+			}
 
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0 && (fds[0].fd != _gyro_sub[2])) {
 				fds[0].fd = _gyro_sub[2];
 
 				if (!_hil_enabled) {
 					warnx("failing over to third gyro");
 				}
 
-			} else if (_gyro_sub[1] >= 0) {
+			} else if (_gyro_sub[1] >= 0 && (fds[0].fd != _gyro_sub[1])) {
 				fds[0].fd = _gyro_sub[1];
 
 				if (!_hil_enabled) {
@@ -2292,7 +2302,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2000,
+					   2200,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

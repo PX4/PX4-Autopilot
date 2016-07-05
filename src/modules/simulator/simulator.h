@@ -243,7 +243,7 @@ private:
 #ifndef __PX4_QURT
 		,
 		_rc_channels_pub(nullptr),
-		_actuator_outputs_sub(-1),
+		_actuator_outputs_sub{},
 		_vehicle_attitude_sub(-1),
 		_manual_sub(-1),
 		_vehicle_status_sub(-1),
@@ -253,7 +253,12 @@ private:
 		_manual{},
 		_vehicle_status{}
 #endif
-	{}
+	{
+		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
+		{
+			_actuator_outputs_sub[i] = -1;
+		}
+	}
 	~Simulator() { _instance = NULL; }
 
 	void initializeSensorData();
@@ -299,14 +304,14 @@ private:
 	orb_advert_t _rc_channels_pub;
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub;
+	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES];
 	int _vehicle_attitude_sub;
 	int _manual_sub;
 	int _vehicle_status_sub;
 
 	// uORB data containers
 	struct rc_input_values _rc_input;
-	struct actuator_outputs_s _actuators;
+	struct actuator_outputs_s _actuators[ORB_MULTI_MAX_INSTANCES];
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
@@ -316,7 +321,7 @@ private:
 	void send_controls();
 	void pollForMAVLinkMessages(bool publish, int udp_port);
 
-	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
+	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg, unsigned index);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);

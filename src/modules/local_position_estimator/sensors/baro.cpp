@@ -76,8 +76,8 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	if (beta > BETA_TABLE[n_y_baro]) {
 		if (_baroFault < FAULT_MINOR) {
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
-			//double(r(0)), double(beta));
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
+						     double(r(0)), double(beta));
 			_baroFault = FAULT_MINOR;
 		}
 
@@ -90,14 +90,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 	if (_baroFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-
-		if (!_canEstimateXY) {
-			dx(X_x) = 0;
-			dx(X_y) = 0;
-			dx(X_vx) = 0;
-			dx(X_vy) = 0;
-		}
-
+		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}

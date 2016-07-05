@@ -442,8 +442,9 @@ Mission::set_mission_items()
 	if (item_contains_position(&_mission_item)) {
 
 		/* force vtol land */
-		if(_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get()
-				&& !_navigator->get_vstatus()->is_rotary_wing){
+		if (_mission_item.nav_cmd == NAV_CMD_LAND && _navigator->get_vstatus()->is_vtol
+			&& _param_force_vtol.get() && !_navigator->get_vstatus()->is_rotary_wing) {
+
 			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
 		}
 

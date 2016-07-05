@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 include(CMakeForceCompiler)
-CMAKE_FORCE_C_COMPILER(clang Clang)
-CMAKE_FORCE_CXX_COMPILER(clang++ Clang)
+#CMAKE_FORCE_C_COMPILER(clang Clang)
+#CMAKE_FORCE_CXX_COMPILER(clang++ Clang)
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 	add_compile_options(-Qunused-arguments )
@@ -28,6 +28,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -Wno-unused-but-set-variable")
 
 set(GTEST_DIR ${CMAKE_SOURCE_DIR}/googletest)
 add_subdirectory(${GTEST_DIR})
@@ -97,7 +98,6 @@ add_library(px4_platform
 			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
 			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
 			${PX4_SRC}/platforms/posix/px4_layer/px4_sem.cpp
-			${PX4_SRC}/platforms/posix/px4_layer/shmem_posix.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_addlast.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_rem.c
 			${PX4_SRC}/platforms/posix/work_queue/dq_remfirst.c

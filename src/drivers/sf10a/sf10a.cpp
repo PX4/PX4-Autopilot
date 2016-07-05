@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,6 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
@@ -81,13 +80,12 @@
 #define SF10A_DEVICE_PATH	"/dev/sf10a"
 
 /* Device limits */
-#define SF10A_MIN_DISTANCE 	(0.0f)
+#define SF10A_MIN_DISTANCE 	(0.01f)
 #define SF10A_MAX_DISTANCE 	(25.0f)
 
 
 /* conversion rates */
 
-//#define SF10A_CONVERSION_INTERVAL 		25000			// Overclocking SF10a to 40 Hz
 #define SF10A_CONVERSION_INTERVAL 		31250		// Maximum rate according to datasheet is 32Hz
 
 
@@ -426,7 +424,6 @@ SF10A::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 SF10A::read(struct file *filp, char *buffer, size_t buflen)
 {
-
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
@@ -487,7 +484,6 @@ SF10A::read(struct file *filp, char *buffer, size_t buflen)
 int
 SF10A::measure()
 {
-
 	int ret;
 
 	/*
@@ -564,30 +560,11 @@ SF10A::collect()
 void
 SF10A::start()
 {
-
 	/* reset the report ring and state machine */
 	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&SF10A::cycle_trampoline, this, 5);
-
-	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
-	};
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
-	}
 }
 
 void
@@ -599,17 +576,14 @@ SF10A::stop()
 void
 SF10A::cycle_trampoline(void *arg)
 {
-
 	SF10A *dev = (SF10A *)arg;
 
 	dev->cycle();
-
 }
 
 void
 SF10A::cycle()
 {
-
 	set_address(SF10A_BASEADDR);
 
 	/* Collect results */
@@ -634,7 +608,6 @@ SF10A::cycle()
 		   (worker_t)&SF10A::cycle_trampoline,
 		   this,
 		   USEC2TICK(SF10A_CONVERSION_INTERVAL));
-
 }
 
 void

@@ -109,6 +109,16 @@ then
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
+
+		#
+		# Release 1.4.0 transitional support:
+		# set to old default if unconfigured.
+		# this preserves the previous behaviour
+		#
+		if param compare BAT_N_CELLS 0
+		then
+			param set BAT_N_CELLS 3
+		fi
 	fi
 
 	#
@@ -296,6 +306,22 @@ then
 	if [ $OUTPUT_MODE == ardrone ]
 	then
 		set FMU_MODE gpio_serial
+	fi
+
+	if param greater TRIG_MODE 0
+	then
+		if [ $PWM_OUT == 1234 ]
+		then
+			if ver hwcmp PX4FMU_V4
+			then
+				set FMU_MODE pwm4
+			fi
+
+			if ver hwcmp PX4FMU_V2
+			then
+				set FMU_MODE pwm4
+			fi
+		fi
 	fi
 
 	if [ $HIL == yes ]
@@ -638,7 +664,7 @@ then
 				then
 				fi
 			else
-				if logger start -b 9
+				if logger start -b 12
 				then
 				fi
 			fi

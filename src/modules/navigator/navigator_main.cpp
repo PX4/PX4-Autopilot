@@ -159,6 +159,7 @@ Navigator::Navigator() :
 	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
+	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
 	_mission_cruising_speed(-1.0f)
 {
 	/* Create a list of our possible navigation types */
@@ -338,18 +339,19 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("no GPS - navigator timed out");
 				global_pos_available_once = false;
+				PX4_WARN("navigator: global position timeout");
 			}
-			continue;
+			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
+		} else {
+			/* success, global pos was available */
+			global_pos_available_once = true;
 		}
-
-		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 
@@ -434,8 +436,9 @@ Navigator::task_main()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = cmd.param5 / (double)1e7;
-					rep->current.lon = cmd.param6 / (double)1e7;
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
@@ -463,8 +466,16 @@ Navigator::task_main()
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.yaw = cmd.param4;
-				rep->current.lat = cmd.param5 / (double)1e7;
-				rep->current.lon = cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+				} else {
+					// If one of them is non-finite, reset both
+					rep->current.lat = NAN;
+					rep->current.lon = NAN;
+				}
+
 				rep->current.alt = cmd.param7;
 
 				rep->previous.valid = true;
@@ -721,6 +732,17 @@ Navigator::get_cruising_speed()
 		return _param_cruising_speed_hover.get();
 	} else {
 		return _param_cruising_speed_plane.get();
+	}
+}
+
+float
+Navigator::get_cruising_throttle()
+{
+	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
+	if (_mission_throttle > 0.0f) {
+		return _mission_throttle;
+	} else {
+		return _param_cruising_throttle_plane.get();
 	}
 }
 

@@ -278,6 +278,8 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
     for (size_t i=0; i<cArmingTransitionTests; i++) {
         const ArmingTransitionTest_t* test = &rgArmingTransitionTests[i];
 
+	const bool check_gps = false;
+
         // Setup initial machine state
         status.arming_state = test->current_state.arming_state;
         status_flags.condition_system_sensors_initialized = test->condition_system_sensors_initialized;
@@ -294,7 +296,7 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         		false /* no pre-arm checks */,
         		nullptr /* no mavlink_log_pub */,
         		&status_flags,
-        		5.0f);
+        		5.0f, check_gps);
 
         // Validate result of transition
         ut_compare(test->assertMsg, test->expected_transition_result, result);

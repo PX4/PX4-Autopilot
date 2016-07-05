@@ -106,6 +106,9 @@ public:
 	static void usage(const char *reason);
 
 	void status();
+	void print_statistics();
+
+	void set_arm_override(bool override) { _arm_override = override; }
 
 private:
 	static void run_trampoline(int argc, char *argv[]);
@@ -186,6 +189,15 @@ private:
 	 */
 	bool get_log_time(struct tm *tt, bool boot_time = false);
 
+	/**
+	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
+	 * @param fname name of file
+	 * @return number of topics added
+	 */
+	int add_topics_from_file(const char *fname);
+
+	void add_default_topics();
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -202,6 +214,8 @@ private:
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
 	bool						_was_armed = false;
+	bool						_arm_override;
+
 
 	// statistics
 	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)

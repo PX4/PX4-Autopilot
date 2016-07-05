@@ -153,7 +153,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		_distance_last = distance->current_distance;
 	}
 
-	if (gps->timestamp_position > _time_last_gps && gps->fix_type >= 3) {
+	if (gps->timestamp > _time_last_gps && gps->fix_type >= 3) {
 		matrix::Matrix<float, 1, n_x> C;
 		C(0, 1) = 1;
 
@@ -172,7 +172,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		_x += K * r;
 		_P -= K * C * _P;
 
-		_time_last_gps = gps->timestamp_position;
+		_time_last_gps = gps->timestamp;
 	}
 
 	// reinitialise filter if we find bad data

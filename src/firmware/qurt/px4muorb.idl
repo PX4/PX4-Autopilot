@@ -49,6 +49,28 @@ interface px4muorb{
     * @param time_us: pointer to time in us
     */
    AEEResult get_absolute_time(rout unsigned long long time_us);
+   
+   /**
+    * Interface to update param for krait.
+    *
+    * @param param: param index.
+    * @param value: param value.
+    */
+   AEEResult param_update_to_shmem( in unsigned long param, in sequence<octet> value);
+   
+   /**
+    * Interface to update index for krait.
+    * @param data: param index array.
+    */
+   AEEResult param_update_index_from_shmem( rout sequence<octet> data);
+   
+   /**
+    * Interface to get param value for krait.
+    *
+    * @param param: param index.
+    * @param value: param value.
+    */
+   AEEResult param_update_value_from_shmem( in unsigned long param, rout sequence<octet> value);
 
    /**
     * Interface to add a subscriber to the identified topic

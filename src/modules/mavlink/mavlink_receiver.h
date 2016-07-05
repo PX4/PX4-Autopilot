@@ -142,8 +142,20 @@ private:
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
+	void handle_message_battery_status(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
+
+	/**
+	 * Set the interval at which the given message stream is published.
+	 * The rate is the number of messages per second.
+	 *
+	 * @param msgId the message ID of to change the interval of
+	 * @param interval the interval in us to send the message at
+	 * @param data_rate the total link data rate in bytes per second
+	 */
+	void set_message_interval(int msgId, float interval, int data_rate=-1);
+	void get_message_interval(int msgId);
 
 	/**
 	 * Convert remote timestamp to local hrt time (usec)

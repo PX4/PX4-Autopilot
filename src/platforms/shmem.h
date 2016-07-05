@@ -33,6 +33,8 @@
 
 #define MAX_SHMEM_PARAMS 2000 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
 
+#define PARAM_BUFFER_SIZE (MAX_SHMEM_PARAMS / 8 + 1)
+
 struct shmem_info {
 	union param_value_u params_val[MAX_SHMEM_PARAMS];
 	unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1]; /*bit map of all params changed by krait*/

@@ -74,8 +74,6 @@
 
 __BEGIN_DECLS
 
-__EXPORT const char *getprogname(void);
-
 
 #ifdef __PX4_NUTTX
 #define EXIT(eval) exit(eval)
