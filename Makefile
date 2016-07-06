@@ -9,7 +9,7 @@
 # 1. Redistributions of source code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in
+#    notice, this list of conditionsrc/modules/uavcanesc/nshterm/nshterm.c<<s and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
 # 3. Neither the name PX4 nor the names of its contributors may be
@@ -136,6 +136,9 @@ endef
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
+
+tap-v1_default:
+	$(call cmake-build,nuttx_tap-v1_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
@@ -292,6 +295,7 @@ checks_defaults: \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
 	check_s2740vc-v1_default \
+	check_tap-v1_default \
 
 checks_bootloaders: \
 	check_px4cannode-v1_bootloader \

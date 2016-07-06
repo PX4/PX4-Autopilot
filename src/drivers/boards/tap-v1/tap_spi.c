@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +33,56 @@
  ****************************************************************************/
 
 /**
- * Dump GPS communication to a file.
+ * @file tap-v1_spi.c
  *
- * If this is set to 1, all GPS communication data will be published via uORB,
- * and written to the log file as gps_dump message.
- * @min 0
- * @max 1
- * @value 0 Disable
- * @value 1 Enable
- * @group GPS
+ * Board-specific SPI functions.
  */
-PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
+
+/************************************************************************************
+ * Included Files
+ ************************************************************************************/
+
+#include <px4_config.h>
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
+
+#include <nuttx/spi.h>
+#include <arch/board/board.h>
+
+#include "up_arch.h"
+#include "chip.h"
+#include "stm32.h"
+#include "board_config.h"
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Name: stm32_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the tap-v1 board.
+ *
+ ************************************************************************************/
+
+__EXPORT void stm32_spiinitialize(void)
+{
+	stm32_configgpio(GPIO_SPI_CS_SDCARD);
+	stm32_configgpio(GPIO_SPI_SD_SW);
+}
+
+
+__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+	/* there can only be one device on this bus, so always select it */
+	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, !selected);
+}
+
+__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	return stm32_gpioread(GPIO_SPI_SD_SW);
+}
 

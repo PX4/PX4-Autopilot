@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +33,85 @@
  ****************************************************************************/
 
 /**
- * Dump GPS communication to a file.
+ * @file tap-v1_led.c
  *
- * If this is set to 1, all GPS communication data will be published via uORB,
- * and written to the log file as gps_dump message.
- * @min 0
- * @max 1
- * @value 0 Disable
- * @value 1 Enable
- * @group GPS
+ * TAP_V1 LED backend.
  */
-PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 
+#include <px4_config.h>
+
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "board_config.h"
+
+#include <arch/board/board.h>
+
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+__EXPORT void led_init(void)
+{
+	/* Configure LED1-2 GPIOs for output */
+
+	stm32_configgpio(GPIO_BLUE_LED);
+	stm32_configgpio(GPIO_RED_LED);
+}
+
+__EXPORT void led_on(int led)
+{
+	if (led == 0) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_BLUE_LED, false);
+	}
+
+	if (led == 1) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_RED_LED, false);
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	if (led == 0) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_BLUE_LED, true);
+	}
+
+	if (led == 1) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_RED_LED, true);
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 0) {
+		if (stm32_gpioread(GPIO_BLUE_LED)) {
+			stm32_gpiowrite(GPIO_BLUE_LED, false);
+
+		} else {
+			stm32_gpiowrite(GPIO_BLUE_LED, true);
+		}
+	}
+
+	if (led == 1) {
+		if (stm32_gpioread(GPIO_RED_LED)) {
+			stm32_gpiowrite(GPIO_RED_LED, false);
+
+		} else {
+			stm32_gpiowrite(GPIO_RED_LED, true);
+		}
+	}
+}
