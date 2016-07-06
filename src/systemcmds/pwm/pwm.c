@@ -90,6 +90,7 @@ usage(const char *reason)
 	     "disarmed ...\t\t\tDisarmed PWM\n"
 	     "min ...\t\t\t\tMinimum PWM\n"
 	     "max ...\t\t\t\tMaximum PWM\n"
+	     "trim ...\t\t\tTrim PWM\n"
 	     "\t[-c <channels>]\t\t(e.g. 1234)\n"
 	     "\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 	     "\t[-a]\t\t\tConfigure all outputs\n"
@@ -448,6 +449,49 @@ pwm_main(int argc, char *argv[])
 
 		exit(0);
 
+	} else if (!strcmp(argv[1], "trim")) {
+
+		if (set_mask == 0) {
+			usage("no channels set");
+		}
+
+		struct pwm_output_values pwm_values;
+
+		memset(&pwm_values, 0, sizeof(pwm_values));
+
+		pwm_values.channel_count = servo_count;
+
+		/* first get current state before modifying it */
+		ret = ioctl(fd, PWM_SERVO_GET_TRIM_PWM, (long unsigned int)&pwm_values);
+
+		if (ret != OK) {
+			errx(ret, "failed get trim values");
+		}
+
+		for (unsigned i = 0; i < servo_count; i++) {
+			if (set_mask & 1 << i) {
+				pwm_values.values[i] = pwm_value;
+
+				if (print_verbose) {
+					warnx("Channel %d: trim PWM: %d", i + 1, pwm_value);
+				}
+			}
+		}
+
+		if (pwm_values.channel_count == 0) {
+			usage("no PWM values added");
+
+		} else {
+
+			ret = ioctl(fd, PWM_SERVO_SET_TRIM_PWM, (long unsigned int)&pwm_values);
+
+			if (ret != OK) {
+				errx(ret, "failed setting trim values");
+			}
+		}
+
+		exit(0);
+
 	} else if (!strcmp(argv[1], "disarmed")) {
 
 		if (set_mask == 0) {
@@ -768,6 +812,8 @@ pwm_main(int argc, char *argv[])
 
 		struct pwm_output_values max_pwm;
 
+		struct pwm_output_values trim_pwm;
+
 		ret = ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (unsigned long)&failsafe_pwm);
 
 		if (ret != OK) {
@@ -792,6 +838,12 @@ pwm_main(int argc, char *argv[])
 			err(1, "PWM_SERVO_GET_MAX_PWM");
 		}
 
+		ret = ioctl(fd, PWM_SERVO_GET_TRIM_PWM, (unsigned long)&trim_pwm);
+
+		if (ret != OK) {
+			err(1, "PWM_SERVO_GET_TRIM_PWM");
+		}
+
 		/* print current servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
 			servo_position_t spos;
@@ -809,8 +861,8 @@ pwm_main(int argc, char *argv[])
 				}
 
 
-				printf(" failsafe: %d, disarmed: %d us, min: %d us, max: %d us)",
-				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i]);
+				printf(" failsafe: %d, disarmed: %d us, min: %d us, max: %d us, trim: %d us)",
+				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i], trim_pwm.values[i]);
 				printf("\n");
 
 			} else {
