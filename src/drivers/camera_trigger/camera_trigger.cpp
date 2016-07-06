@@ -464,7 +464,6 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 				// Check that distance threshold is exceeded and the time between last shot is large enough
 				if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
-					warnx("Shooting once, distance set to %2.2f", (double)trig->_distance);
 					trig->shootOnce();
 					trig->_last_shoot_position = current_position;
 				}
