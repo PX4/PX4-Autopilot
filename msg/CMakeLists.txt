@@ -32,6 +32,7 @@
 ############################################################################
 
 set(msg_file_names
+    centripetal.msg
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_direct.msg

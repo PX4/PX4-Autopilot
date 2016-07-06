@@ -95,7 +95,7 @@ int logger_main(int argc, char *argv[])
 	}
 
 	if (argc < 2) {
-		PX4_INFO("usage: logger {start|stop|status}");
+		Logger::usage(nullptr);
 		return 1;
 	}
 
@@ -451,10 +451,11 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 
 void Logger::add_default_topics()
 {
+	add_topic("centripetal", 0);
 	add_topic("sensor_gyro", 0);
 	add_topic("sensor_accel", 0);
-	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("vehicle_attitude_setpoint", 10);
+	add_topic("vehicle_rates_setpoint", 20);
+	add_topic("vehicle_attitude_setpoint", 20);
 	add_topic("vehicle_attitude", 0);
 	add_topic("actuator_outputs", 50);
 	add_topic("battery_status", 100);
