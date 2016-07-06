@@ -220,6 +220,7 @@ private:
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	uint16_t	_trim_pwm[_max_actuators];
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
@@ -342,6 +343,7 @@ PX4FMU::PX4FMU() :
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
 		_max_pwm[i] = PWM_DEFAULT_MAX;
+		_trim_pwm[i] = PWM_DEFAULT_TRIM;
 	}
 
 	_control_topics[0] = ORB_ID(actuator_controls_0);
@@ -1115,7 +1117,7 @@ PX4FMU::cycle()
 
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
-				       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
+				       _trim_pwm, _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 			/* overwrite outputs in case of lockdown with disarmed PWM values */
@@ -1874,6 +1876,46 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			for (unsigned i = 0; i < _max_actuators; i++) {
 				pwm->values[i] = _max_pwm[i];
+			}
+
+			pwm->channel_count = _max_actuators;
+			arg = (unsigned long)&pwm;
+			break;
+		}
+
+	case PWM_SERVO_SET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			/* discard if too many values are sent */
+			if (pwm->channel_count > _max_actuators) {
+				ret = -EINVAL;
+				break;
+			}
+
+			for (unsigned i = 0; i < pwm->channel_count; i++) {
+				if (pwm->values[i] == 0) {
+					/* allow 0 - turns the trim option off */
+					_trim_pwm[i] = 0;
+
+				} else if (pwm->values[i] < PWM_LOWEST_MAX) {
+					_trim_pwm[i] = PWM_LOWEST_MAX;
+
+				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
+					_trim_pwm[i] = PWM_HIGHEST_MAX;
+
+				} else {
+					_trim_pwm[i] = pwm->values[i];
+				}
+			}
+
+			break;
+		}
+
+	case PWM_SERVO_GET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _max_actuators; i++) {
+				pwm->values[i] = _trim_pwm[i];
 			}
 
 			pwm->channel_count = _max_actuators;
