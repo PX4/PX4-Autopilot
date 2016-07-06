@@ -134,6 +134,8 @@ __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern int __px4_log_level_current;
 __EXPORT extern void px4_backtrace(void);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+
 __END_DECLS
 
 #define PX4_BACKTRACE() px4_backtrace()
@@ -166,6 +168,7 @@ __END_DECLS
 #define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,(unsigned int)pthread_self()
 #define __px4__log_modulename_fmt	"%-10s "
+#define __px4__log_modulename_pfmt	"[%s] "
 #define __px4__log_modulename_arg	,"[" MODULE_NAME "]"
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
@@ -246,42 +249,14 @@ __END_DECLS
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s [%-10s] val is %d\n", __px4_log_level_str[3],
+ * 	printf("%-5s [%s] val is %d\n", __px4_log_level_str[3],
  *		MODULENAME, val);
  ****************************************************************************/
 
-/* It turns out the macro below uses a lot more flash space than a static
- * inline function. */
-#if 0
-#define __px4_log_modulename(level, FMT, ...) \
-	__px4__log_printline(level,\
-			     __px4__log_level_fmt\
-			     __px4__log_modulename_fmt\
-			     FMT\
-			     __px4__log_end_fmt\
-			     __px4__log_level_arg(level)\
-			     __px4__log_modulename_arg\
-			     , ##__VA_ARGS__\
-			    )
-#endif
-
-static inline void __px4_log_modulename(int level, const char *fmt, ...)
-{
-	if (level <= __px4_log_level_current) {
-		PX4_LOG_COLOR_START
-		printf(__px4__log_level_fmt __px4__log_level_arg(level));
-		PX4_LOG_COLOR_MODULE
-		printf(__px4__log_modulename_fmt __px4__log_modulename_arg);
-		PX4_LOG_COLOR_MESSAGE
-		va_list argptr;
-		va_start(argptr, fmt);
-		vprintf(fmt, argptr);
-		va_end(argptr);
-		PX4_LOG_COLOR_END
-		printf("\n");
-	}
-}
-
+#define __px4_log_modulename(level, fmt, ...) \
+	do { \
+		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
+	} while(0)
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
