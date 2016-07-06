@@ -426,18 +426,20 @@ void task_main(int argc, char *argv[])
 			uint16_t disarmed_pwm[4];
 			uint16_t min_pwm[4];
 			uint16_t max_pwm[4];
+			uint16_t trim_pwm[4];
 
 			for (unsigned int i = 0; i < 4; i++) {
 				disarmed_pwm[i] = _pwm_disarmed;
 				min_pwm[i] = _pwm_min;
 				max_pwm[i] = _pwm_max;
+				trim_pwm[i] = 0;
 			}
 
 			uint16_t pwm[4];
 
 			// TODO FIXME: pre-armed seems broken
 			pwm_limit_calc(_armed.armed, false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask,
-				       disarmed_pwm, min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+				       disarmed_pwm, min_pwm, max_pwm, trim_pwm, _outputs.output, pwm, &_pwm_limit);
 
 
 			send_outputs_mavlink(pwm, 4);
