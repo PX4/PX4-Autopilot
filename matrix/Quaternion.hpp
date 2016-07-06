@@ -282,6 +282,7 @@ public:
 
     /**
      * Rotate quaternion from rotation vector
+     * TODO replace with AxisAngle call
      *
      * @param vec rotation vector
      */
@@ -318,6 +319,7 @@ public:
 
     /**
      * Rotation quaternion from axis and angle
+     * XXX DEPRECATED, use AxisAngle class
      *
      * @param axis axis of rotation
      * @param theta scalar describing angle of rotation
@@ -343,6 +345,7 @@ public:
 
     /**
      * Rotation vector from quaternion
+     * XXX DEPRECATED, use AxisAngle class
      *
      * The axis of rotation is given by vector direction and
      * the angle is given by the norm.
