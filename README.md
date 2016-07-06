@@ -53,6 +53,15 @@ See the test directory for detailed examples. Some simple examples are included 
 	// you can also directly create a DCM instance from euler angles like this
 	dcm = Eulerf(roll, pitch, yaw);
 
+	// create an axis angle representation from euler angles
+	AxisAngle<float> axis_angle = euler;
+
+	// use axis angle to initialize a DCM
+	Dcmf dcm2(AxisAngle(1, 2, 3));
+	
+	// use axis angle with axis/angle separated to init DCM
+	Dcmf dcm2(AxisAngle(Vector3f(1, 0, 0), 0.2));
+
 	// do some kalman filtering
 	const size_t n_x = 5;
 	const size_t n_y = 3;
