@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
+#include <px4_log.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <rc/st24.h>

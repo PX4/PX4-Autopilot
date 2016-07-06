@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
+#include <px4_log.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/sf0x/sf0x_parser.h>
 #include <systemlib/err.h>

@@ -1,3 +1,5 @@
+#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
+#include <px4_log.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

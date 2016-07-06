@@ -46,6 +46,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
+#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
+#include <px4_log.h>
 #include "apps.h"
 #include "px4_middleware.h"
 #include "DriverFramework.hpp"

@@ -166,6 +166,7 @@ __END_DECLS
 #define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,(unsigned int)pthread_self()
 #define __px4__log_modulename_fmt	"%-10s "
+#define __px4__log_modulename_pfmt	"[%s] "
 #define __px4__log_modulename_arg	,"[" MODULE_NAME "]"
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
@@ -249,29 +250,25 @@ __END_DECLS
  * 	printf("%-5s [%-10s] val is %d\n", __px4_log_level_str[3],
  *		MODULENAME, val);
  ****************************************************************************/
+/* One and only one c or cpp file must define PX4_IMPLEMENT_PX4_LOG_MODULENAME prior to including
+ * px4_log.h
+ */
+__BEGIN_DECLS
+__EXPORT void _do_px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
 
-/* It turns out the macro below uses a lot more flash space than a static
- * inline function. */
-#if 0
-#define __px4_log_modulename(level, FMT, ...) \
-	__px4__log_printline(level,\
-			     __px4__log_level_fmt\
-			     __px4__log_modulename_fmt\
-			     FMT\
-			     __px4__log_end_fmt\
-			     __px4__log_level_arg(level)\
-			     __px4__log_modulename_arg\
-			     , ##__VA_ARGS__\
-			    )
-#endif
+#define __px4_log_modulename(level, fmt, ...) \
+	do { \
+		_do_px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
+	} while(0)
 
-static inline void __px4_log_modulename(int level, const char *fmt, ...)
+#if defined(PX4_IMPLEMENT_PX4_LOG_MODULENAME)
+__EXPORT void _do_px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
 	if (level <= __px4_log_level_current) {
 		PX4_LOG_COLOR_START
 		printf(__px4__log_level_fmt __px4__log_level_arg(level));
 		PX4_LOG_COLOR_MODULE
-		printf(__px4__log_modulename_fmt __px4__log_modulename_arg);
+		printf(__px4__log_modulename_pfmt, moduleName);
 		PX4_LOG_COLOR_MESSAGE
 		va_list argptr;
 		va_start(argptr, fmt);
@@ -281,7 +278,8 @@ static inline void __px4_log_modulename(int level, const char *fmt, ...)
 		printf("\n");
 	}
 }
-
+#endif
+__END_DECLS
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
