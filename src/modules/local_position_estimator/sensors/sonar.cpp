@@ -48,9 +48,14 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	// measure
 	float d = _sub_sonar->get().current_distance;
-	float eps = 0.01f;
+	float eps = 0.01f; // 1 cm
 	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
+
+	// prevent driver from setting min dist below eps
+	if (min_dist < eps) {
+		min_dist = eps;
+	}
 
 	// check for bad data
 	if (d > max_dist || d < min_dist) {
