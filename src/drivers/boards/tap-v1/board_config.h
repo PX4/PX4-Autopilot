@@ -59,8 +59,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-#define UDID_START		0x1FFF7A10
-
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs
  *
@@ -223,6 +221,10 @@ __BEGIN_DECLS
 		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, }
 
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -270,6 +272,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

@@ -37,6 +37,7 @@ px4_add_module(
 		-Os
 	SRCS
 		../common/board_name.c
+		../common/board_dma_alloc.c
 		tap_init.c
 		tap_timer_config.c
 		tap_spi.c

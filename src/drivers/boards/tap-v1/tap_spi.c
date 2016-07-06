@@ -48,12 +48,9 @@
 #include <stdbool.h>
 #include <debug.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32.h"
 #include "board_config.h"
 
 /************************************************************************************
