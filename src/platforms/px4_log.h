@@ -134,6 +134,8 @@ __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern int __px4_log_level_current;
 __EXPORT extern void px4_backtrace(void);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+
 __END_DECLS
 
 #define PX4_BACKTRACE() px4_backtrace()
@@ -247,39 +249,14 @@ __END_DECLS
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s [%-10s] val is %d\n", __px4_log_level_str[3],
+ * 	printf("%-5s [%s] val is %d\n", __px4_log_level_str[3],
  *		MODULENAME, val);
  ****************************************************************************/
-/* One and only one c or cpp file must define PX4_IMPLEMENT_PX4_LOG_MODULENAME prior to including
- * px4_log.h
- */
-__BEGIN_DECLS
-__EXPORT void _do_px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
 
 #define __px4_log_modulename(level, fmt, ...) \
 	do { \
-		_do_px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
+		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
 	} while(0)
-
-#if defined(PX4_IMPLEMENT_PX4_LOG_MODULENAME)
-__EXPORT void _do_px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
-{
-	if (level <= __px4_log_level_current) {
-		PX4_LOG_COLOR_START
-		printf(__px4__log_level_fmt __px4__log_level_arg(level));
-		PX4_LOG_COLOR_MODULE
-		printf(__px4__log_modulename_pfmt, moduleName);
-		PX4_LOG_COLOR_MESSAGE
-		va_list argptr;
-		va_start(argptr, fmt);
-		vprintf(fmt, argptr);
-		va_end(argptr);
-		PX4_LOG_COLOR_END
-		printf("\n");
-	}
-}
-#endif
-__END_DECLS
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
