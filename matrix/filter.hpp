@@ -12,7 +12,7 @@ int kalman_correct(
     const Matrix<Type, N, 1> &r,
     Matrix<Type, M, 1> & dx,
     Matrix<Type, M, M> & dP,
-    float & beta
+    Type & beta
 )
 {
     SquareMatrix<Type, N> S_I = SquareMatrix<Type, N>(C*P*C.T() + R).I();
