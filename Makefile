@@ -137,6 +137,9 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
+tap-v1_default:
+	$(call cmake-build,nuttx_tap-v1_default)
+
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
 
@@ -249,6 +252,7 @@ checks_defaults: \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
 	check_px4-stm32f4discovery_default \
+	check_tap-v1_default \
 
 checks_bootloaders: \
 

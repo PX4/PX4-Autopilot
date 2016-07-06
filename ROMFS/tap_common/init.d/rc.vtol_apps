@@ -1,0 +1,44 @@
+#!nsh
+#
+# Standard apps for vtol:
+# att & pos estimator, att & pos control.
+#
+#
+
+
+#---------------------------------------
+# Estimator group selction
+#
+# INAV
+if param compare SYS_MC_EST_GROUP 0
+then
+	attitude_estimator_q start
+	position_estimator_inav start
+fi
+
+# LPE
+if param compare SYS_MC_EST_GROUP 1
+then
+	attitude_estimator_q start
+	local_position_estimator start
+fi
+
+# EKF
+if param compare SYS_MC_EST_GROUP 2
+then
+	ekf2 start
+fi
+#---------------------------------------
+
+
+vtol_att_control start
+mc_att_control start
+mc_pos_control start
+fw_att_control start
+fw_pos_control_l1 start
+
+#
+# Start Land Detector
+# Multicopter for now until we have something for VTOL
+#
+land_detector start vtol
