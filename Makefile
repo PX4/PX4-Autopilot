@@ -221,7 +221,7 @@ sizes:
 
 
 checks_defaults: \
-	check_px4nucleof767-v1_default \
+	check_px4nucleoF767ZI-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v4_default \
