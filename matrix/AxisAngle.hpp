@@ -78,9 +78,15 @@ public:
         AxisAngle &v = *this;
         Type angle = (Type)2.0f*acosf(q(0));
         Type mag = sinf(angle/2.0f);
-        v(0) = angle*q(1)/mag;
-        v(1) = angle*q(2)/mag;
-        v(2) = angle*q(3)/mag;
+        if (fabs(angle) < 1e-10f) {
+            v(0) = 0;
+            v(1) = 0;
+            v(2) = 0;
+        } else {
+            v(0) = angle*q(1)/mag;
+            v(1) = angle*q(2)/mag;
+            v(2) = angle*q(3)/mag;
+        }
     }
 
     /**
@@ -95,7 +101,7 @@ public:
         Vector<Type, 3>()
     {
         AxisAngle &v = *this;
-        v = Quaternion<float>(dcm);
+        v = Quaternion<Type>(dcm);
     }
 
     /**
@@ -111,7 +117,7 @@ public:
         Vector<Type, 3>()
     {
         AxisAngle &v = *this;
-        v = Quaternion<float>(euler);
+        v = Quaternion<Type>(euler);
     }
 
     /**

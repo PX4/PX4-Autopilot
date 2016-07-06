@@ -259,7 +259,7 @@ int main()
     TEST(isEqual(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f)));
 
     AxisAnglef aa_euler_init(Eulerf(0.0f, 0.0f, 0.0f));
-    TEST(isEqual(aa_euler_init, Vector3f(0.0f, 0.0f, 1.0f)));
+    TEST(isEqual(aa_euler_init, Vector3f(0.0f, 0.0f, 0.0f)));
 
     Dcmf dcm_aa_check = AxisAnglef(dcm_check);
     TEST(isEqual(dcm_aa_check, dcm_check));
