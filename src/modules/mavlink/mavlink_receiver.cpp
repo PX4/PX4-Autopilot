@@ -674,13 +674,13 @@ MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
 	local_position.v_z_valid = true;
 	local_position.dist_bottom_valid = true;
 	local_position.ref_timestamp = hrt_absolute_time();
-	
+	/*
 	if (_local_pos_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &local_position);		
 
 	} else {
 		orb_advertise(ORB_ID(vehicle_local_position), &local_position);
-	}
+	} */
 }
 
 

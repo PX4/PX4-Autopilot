@@ -19,9 +19,10 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 	k2ba 	= attitude_params.att_vel_k2ba; 
 	k2bac   = attitude_params.att_vel_k2bac;	
 
+	/* TODO remove this when we use other sensors */
 	if (rawGPS.fix_type >= 3)
 	{
-		k2v 	= attitude_params.att_vel_k2v*0.6f;
+		k2v 	= attitude_params.att_vel_k2v * 0.6f;
 	} else
 	{
 		k2v 	= attitude_params.att_vel_k2v;
@@ -44,12 +45,12 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 	cpsi = cos(-yaw);
 	spsi = sin(-yaw);
 	Rhot(0,0) = ctheta*cpsi; 
-	Rhot(0,1) = sphi*stheta*cpsi-cphi*spsi; 
-	Rhot(0,2) = cphi*stheta*cpsi+sphi*spsi;     
+	Rhot(0,1) = sphi*stheta*cpsi - cphi*spsi; 
+	Rhot(0,2) = cphi*stheta*cpsi + sphi*spsi;     
 
 	Rhot(1,0) = ctheta*spsi; 
-	Rhot(1,1) = sphi*stheta*spsi+cphi*cpsi; 
-	Rhot(1,2) = cphi*stheta*spsi-sphi*cpsi;		    
+	Rhot(1,1) = sphi*stheta*spsi + cphi*cpsi; 
+	Rhot(1,2) = cphi*stheta*spsi - sphi*cpsi;		    
 
 	Rhot(2,0) = -stheta; 
 	Rhot(2,1) = ctheta*sphi; 
@@ -69,19 +70,17 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 		vbar_a(1) = rawVelocity.inertial_vy;
 		vbar_a(2) = rawVelocity.inertial_vz;
 
-		if(rawVelocity.timestamp!=prev_vel_timestamp)
+		if(rawVelocity.timestamp != prev_vel_timestamp)
 		{
-			if(prev_vel_timestamp!=0.0f)
+			if(prev_vel_timestamp != 0.0f)
 				dt2 = (rawVelocity.timestamp - prev_vel_timestamp) / 1000000.0f;
+
 			prev_vel_timestamp = rawVelocity.timestamp;
 
-			verror = vhat - vbar_a;
-
-			vhat_dot_2 = - k2v*verror;
-			Rhat_dot_2 = - k2r*skew(g/u*verror.cross(e3))*Rhat;
-
-			udot = -k2u*g*verror.transpose()*e3;
-			u = udot*dt2 + u_prev;
+			verror 				= vhat - vbar_a;
+			Rhat_dot_2 			= - k2r * skew(g/u * verror.cross(e3)) * Rhat;
+			udot 				= -k2u * g * verror.transpose() * e3;
+			u 					= udot * dt2 + u_prev;
 			u_prev = u;
 		}
 		else
@@ -95,9 +94,9 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 	}
 
 	/* Calculate intgration update */
-	vhat_dot 	= Rhot*(a-beta_a*1.0f)+g*e3;// - k2vc * ((vhat_a_prev-what_a_prev)-Rhat*vhat_prev);					
-	Rhat_dot 	= Rhat*skew(w);
-	what_dot 	= - k2w * ((what_prev - vhat_prev) + Rhot*vhat_body); 
+	vhat_dot 	= Rhot * (a - beta_a) + g * e3;// - k2vc * ((vhat_a_prev-what_a_prev)-Rhat*vhat_prev);					
+	Rhat_dot 	= Rhat * skew(w);
+	what_dot 	= - k2w * ((what_prev - vhat_prev) + Rhot * vhat_body); 
 	//beta_a_dot 	= k2ba * k2v * verror;// - k2bac*(beta_a_2_prev-beta_a_prev); //comment Jan16
 	Matrix3f beta_gains = Matrix3f::Zero();
 	Matrix3f beta_gains_coup = Matrix3f::Zero();
@@ -107,20 +106,14 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 
 	beta_gains_coup(0,0) = k2bac;
 	beta_gains_coup(1,1) = k2bac;
-	beta_gains_coup(2,2) = k2bac*0.3f;
+	beta_gains_coup(2,2) = k2bac * 0.3f;
 
-	beta_a_dot 	= -beta_gains * verror - beta_gains_coup *(beta_a_prev - beta_a_filterb);
+	beta_a_dot 	= -beta_gains * verror - beta_gains_coup * (beta_a_prev - beta_a_filterb);
 
 	/* if there is no measurement of v, we want to keep the same vhat */
 	if (!valid)
 	{
-		vhat_dot(0) = 0.0f; //Vector3f::Zero();
-		vhat_dot(1) = 0.0f;
-		vhat_dot(2) = 0.0f;
-
-		vhat_dot_2(0) = 0.0f; // = Vector3f::Zero();
-		vhat_dot_2(1) = 0.0f;
-		vhat_dot_2(2) = 0.0f;
+		vhat_dot = Vector3f::Zero();
 
 		what_dot =  Vector3f::Zero();
 		what_prev = Vector3f::Zero();
@@ -129,28 +122,25 @@ void av_estimator_a::update(Vector3f &a, Vector3f &w, Matrix3f &Rhat_b, vehicle_
 
 		if (vbar_a.norm() < 5.0f)
 		{
-			vhat_prev(0)= vbar_a(0);
-			vhat_prev(1)= vbar_a(1);
-			vhat_prev(2)= vbar_a(2);
+			vhat_prev(0) = vbar_a(0);
+			vhat_prev(1) = vbar_a(1);
+			vhat_prev(2) = vbar_a(2);
 		} else
 		{
-			vhat_prev(0)= 0.0f;
-			vhat_prev(1)= 0.0f;
-			vhat_prev(2)= 0.0f;
+			vhat_prev = Vector3f::Zero();
 		}
 	}
-	/* Moses */
-	Vector3f vhat_dot_3 = - k2v*(vhat - vbar_a) -k2vc*((vhat - what) - Rhot*vhat_body); //Rhat_b was here
+	
+	vhat_dot_2 = - k2v * (vhat - vbar_a) -k2vc * ((vhat - what) - Rhot * vhat_body); //Rhat_b was here
 
 	/* Integrate */
-	X 	= u*Rhat;
-	//vhat 	= vhat_dot*dt   + vhat_dot_2*dt2 + vhat_prev;
-	vhat 	= vhat_dot*dt   + vhat_dot_3*dt + vhat_prev;
-	Rhat 	= Rhat_dot*dt   + Rhat_dot_2*dt2 + Rhat_prev;
-	what 	= what_dot*dt   + what_prev;
-	beta_a 	= beta_a_dot*dt + beta_a_prev;
+	X 		= u * Rhat;
+	vhat 	= vhat_dot * dt   + vhat_dot_2 * dt + vhat_prev;
+	Rhat 	= Rhat_dot * dt   + Rhat_dot_2 * dt2 + Rhat_prev;
+	what 	= what_dot * dt   + what_prev;
+	beta_a 	= beta_a_dot * dt + beta_a_prev;
 
-	/* During restart of velocity component and 5m/s is the max velocity the vehicle can experience*/
+	/* During restart of velocity component and 5m/s is the max velocity the vehicle can experience */
 	if (abs(vhat.norm() - vbar_a.norm()) > 5.0f)
 		vhat = vbar_a;
 	
