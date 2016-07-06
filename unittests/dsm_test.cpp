@@ -2,8 +2,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
-#include <px4_log.h>
 #include "../../src/systemcmds/tests/tests.h"
 #include <drivers/drv_hrt.h>
 // Enable DSM parser output

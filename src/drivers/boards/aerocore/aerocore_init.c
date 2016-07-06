@@ -46,8 +46,6 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
-#include <px4_log.h>
 
 #include <stdbool.h>
 #include <stdio.h>

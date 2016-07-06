@@ -1,5 +1,3 @@
-#define PX4_IMPLEMENT_PX4_LOG_MODULENAME
-#include <px4_log.h>
 #include <systemlib/visibility.h>
 #include <systemlib/param/param.h>
 
