@@ -23,6 +23,7 @@ A simple and efficient template based matrix library.
 	* Quaternion
 	* Dcm
 	* Euler (Body 321)
+	* Axis Angle
 
 * matrix/filter.hpp : Provides filtering routines.
 	* kalman_correct
