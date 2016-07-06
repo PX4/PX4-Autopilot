@@ -67,41 +67,68 @@
 #define SMARTPORT_ID_FUEL          0x0600
 #define SMARTPORT_ID_ALT           0x0100
 #define SMARTPORT_ID_VARIO         0x0110   //VSPEED
-#define SMARTPORT_ID_ACCX          0x0700
+#define SMARTPORT_ID_ACCX          0x0700   //Measured in g!
 #define SMARTPORT_ID_ACCY          0x0710
 #define SMARTPORT_ID_ACCZ          0x0720
 #define SMARTPORT_ID_CURR          0x0200
-#define SMARTPORT_ID_VFAS          0x0210  //Volt per Cell
-#define SMARTPORT_ID_CELLS         0x0300
+#define SMARTPORT_ID_VFAS          0x0210  //Battery Voltage
+#define SMARTPORT_ID_CELLS         0x0300  //Volt per cell
 #define SMARTPORT_ID_GPS_LON_LAT   0x0800
 #define SMARTPORT_ID_GPS_ALT       0x0820
 #define SMARTPORT_ID_GPS_SPD       0x0830
 #define SMARTPORT_ID_GPS_CRS       0x0840
 #define SMARTPORT_ID_GPS_TIME      0x0850
-#define SMARTPORT_ID_DIY_FIRST     0x5000
-#define SMARTPORT_ID_DIY_LAST      0x50ff  //We have 256 possible ID's for custom values :)
-#define SMARTPORT_ID_DIY_NAVSTATE  0x5000
-#define SMARTPORT_ID_DIY_GPSFIX    0x5001
 
-// Public functions
+/* We have 256 possible ID's for custom values, from 0x5000 to 0x50ff
+ * These are offset by 128 for future compability with APM (0-128 for APM, 128-255 for PX4)
+ */
+#define SMARTPORT_ID_DIY_NAV_STATE  0x5080
+#define SMARTPORT_ID_DIY_GPS_FIX    0x5081
+#define SMARTPORT_ID_DIY_ARMING_STATE    0x5082
+#define SMARTPORT_ID_DIY_ATTITUDE_ROLL  0x5083
+#define SMARTPORT_ID_DIY_ATTITUDE_PITCH   0x5084
+#define SMARTPORT_ID_DIY_ATTITUDE_YAW   0x5085
+#define SMARTPORT_ID_DIY_MISSION_COUNT 0x5086
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_REACHED 0x5087 //Sequence is an id for a mission item - "a thing to do"
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_CURRENT 0x5088
+#define SMARTPORT_ID_DIY_MISSION_SEQUENCE_STATUS 0x5089
+#define SMARTPORT_ID_DIY_MAVLINK_MESSAGE_BYTE 0x508a //Start bit is 0x02, End bit is 0x03
+
+/* Public functions
+TODO: home position?
+*/
 bool sPort_init(void);
 void sPort_deinit(void);
 void sPort_update_topics(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
-void sPort_send_BATV(int uart);
+void sPort_send_VFAS(int uart);
+void sPort_send_CELLS(int uart);
 void sPort_send_CUR(int uart);
 void sPort_send_ALT(int uart);
-void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
 void sPort_send_FUEL(int uart);
+void sPort_send_ACCX(int uart);
+void sPort_send_ACCY(int uart);
+void sPort_send_ACCZ(int uart);
 void sPort_send_GPS_LON(int uart);
 void sPort_send_GPS_LAT(int uart);
 void sPort_send_GPS_ALT(int uart);
 void sPort_send_GPS_SPD(int uart);
 void sPort_send_GPS_CRS(int uart);
+void sPort_send_GPS_DATE(int uart);
 void sPort_send_GPS_TIME(int uart);
-
-void sPort_send_NAV_STATE(int uart);
 void sPort_send_GPS_FIX(int uart);
+void sPort_send_NAV_STATE(int uart);
+void sPort_send_ARMING_STATE(int uart);
+void sPort_send_ATTITUDE_ROLL(int uart);
+void sPort_send_ATTITUDE_PITCH(int uart);
+void sPort_send_ATTITUDE_YAW(int uart);
+void sPort_send_MISSION_SEQUENCE_CURRENT(int uart);
+void sPort_send_MISSION_SEQUENCE_REACHED(int uart);
+void sPort_send_MISSION_SEQUENCE_STATUS(int uart);
+void sPort_send_MAVLINK_MESSAGE(int uart);
+void fifo_init(void);
+int fifo_push(uint8_t new);
+int fifo_pop(uint8_t *old);
 
 #endif /* _SPORT_TELEMETRY_H */
