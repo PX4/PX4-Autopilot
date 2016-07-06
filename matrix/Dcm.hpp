@@ -27,6 +27,10 @@ class Quaternion;
 template<typename Type>
 class Euler;
 
+template<typename Type>
+class AxisAngle;
+
+
 /**
  * Direction cosine matrix class
  *
@@ -127,6 +131,21 @@ public:
         dcm(2, 0) = -sinThe;
         dcm(2, 1) = sinPhi * cosThe;
         dcm(2, 2) = cosPhi * cosThe;
+    }
+
+
+    /**
+     * Constructor from axis angle
+     *
+     * This sets the transformation matrix from frame 2 to frame 1 where the rotation
+     * from frame 1 to frame 2 is described by a 3-2-1 intrinsic Tait-Bryan rotation sequence.
+     *
+     *
+     * @param euler euler angle instance
+     */
+    Dcm(const AxisAngle<Type> & aa) {
+        Dcm &dcm = *this;
+        dcm = Quaternion<Type>(aa);
     }
 
     Vector<Type, 3> vee() const {    // inverse to Vector.hat() operation

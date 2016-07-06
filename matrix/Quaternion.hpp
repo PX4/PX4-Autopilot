@@ -30,6 +30,10 @@ class Dcm;
 template <typename Type>
 class Euler;
 
+template <typename Type>
+class AxisAngle;
+
+
 /**
  * Quaternion class
  *
@@ -128,6 +132,30 @@ public:
         q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 -
                sinPhi_2 * sinTheta_2 * cosPsi_2;
     }
+
+    /**
+     * Quaternion from AxisAngle
+     *
+     * @param aa axis-angle vector
+     */
+    Quaternion(const AxisAngle<Type> &aa) :
+        Vector<Type, 4>()
+    {
+        Quaternion &q = *this;
+        Type angle = aa.norm();
+        Vector<Type, 3> axis = aa.unit();
+        if (angle < (Type)1e-10) {
+            q(0) = (Type)1.0;
+            q(1) = q(2) = q(3) = 0;
+        } else {
+            Type magnitude = sinf(angle / 2.0f);
+            q(0) = cosf(angle / 2.0f);
+            q(1) = axis(0) * magnitude;
+            q(2) = axis(1) * magnitude;
+            q(3) = axis(2) * magnitude;
+        }
+    }
+
 
     /**
      * Constructor from quaternion values

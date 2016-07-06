@@ -6,9 +6,16 @@
 
 using namespace matrix;
 
+// important to list all classes here for coverage
 template class Quaternion<float>;
 template class Euler<float>;
 template class Dcm<float>;
+template class AxisAngle<float>;
+template class Scalar<float>;
+template class SquareMatrix<float, 2>;
+template class Vector<float, 3>;
+template class Vector2<float>;
+template class Vector3<float>;
 
 int main()
 {
@@ -238,6 +245,30 @@ int main()
     for(int i = 0; i < 4; i++)
         TEST(fabsf(q_from_array(i) - q_array[i]) < eps);
 
+    // axis angle
+    AxisAnglef aa_true(Vector3f(1.0f, 2.0f, 3.0f));
+    TEST(isEqual(aa_true, Vector3f(1.0f, 2.0f, 3.0f)));
+    AxisAnglef aa_empty;
+    TEST(isEqual(aa_empty, AxisAnglef(0.0f, 0.0f, 0.0f)));
+    float aa_data[] =  {4.0f, 5.0f, 6.0f};
+    AxisAnglef aa_data_init(aa_data);
+    TEST(isEqual(aa_data_init, AxisAnglef(4.0f, 5.0f, 6.0f)));
+
+    q = Quatf(-0.29555112749297824f, 0.25532186f,  0.51064372f,  0.76596558f);
+    AxisAnglef aa_q_init(q);
+    TEST(isEqual(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f)));
+
+    AxisAnglef aa_euler_init(Eulerf(0.0f, 0.0f, 0.0f));
+    TEST(isEqual(aa_euler_init, Vector3f(0.0f, 0.0f, 1.0f)));
+
+    Dcmf dcm_aa_check = AxisAnglef(dcm_check);
+    TEST(isEqual(dcm_aa_check, dcm_check));
+
+    AxisAnglef aa_axis_angle_init(Vector3f(1.0f, 2.0f, 3.0f), 3.0f);
+    TEST(isEqual(aa_axis_angle_init, Vector3f(0.80178373f, 1.60356745f, 2.40535118f)));
+
+    TEST(isEqual(Quatf((AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), 0.0f))),
+                 Quatf(1.0f, 0.0f, 0.0f, 0.0f)));
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
