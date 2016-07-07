@@ -37,7 +37,6 @@
  */
 
 #include <sys/types.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>

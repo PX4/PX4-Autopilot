@@ -41,7 +41,6 @@
  * @author Mark Charlebois
  */
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <px4_config.h>
