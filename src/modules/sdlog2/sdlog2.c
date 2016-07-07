@@ -147,10 +147,10 @@ static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 
 #if defined __PX4_POSIX
 static const int MAX_WRITE_CHUNK = 2048;
-static const int MIN_BYTES_TO_WRITE = 256;
+static const int MIN_BYTES_TO_WRITE = 512;
 #else
 static const int MAX_WRITE_CHUNK = 512;
-static const int MIN_BYTES_TO_WRITE = 256;
+static const int MIN_BYTES_TO_WRITE = 512;
 #endif
 
 static bool _extended_logging = false;
