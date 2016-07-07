@@ -37,6 +37,10 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <px4_time.h>
 #include <px4_posix.h>
 #include <px4_defines.h>
@@ -45,7 +49,6 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <errno.h>
 #include "hrt_work.h"

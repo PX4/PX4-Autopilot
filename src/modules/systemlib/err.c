@@ -38,9 +38,12 @@
  * the same names.
  */
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <px4_config.h>
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <stdlib.h>

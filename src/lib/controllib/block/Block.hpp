@@ -39,7 +39,10 @@
 
 #pragma once
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <stdint.h>
 #include <inttypes.h>
 

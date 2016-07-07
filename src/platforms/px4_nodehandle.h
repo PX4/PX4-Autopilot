@@ -45,10 +45,13 @@
 #include "px4_app.h"
 
 #if defined(__PX4_ROS)
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 /* includes when building for ros */
 #include "ros/ros.h"
 #include <list>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <type_traits>
 #else
