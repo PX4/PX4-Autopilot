@@ -493,7 +493,7 @@ CameraTrigger::engage(void *arg)
 
 	report.seq = trig->_trigger_seq++;
 
-	orb_publish(ORB_ID(camera_trigger), &(trig->_trigger_pub), &report);
+	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
 }
 
 void
