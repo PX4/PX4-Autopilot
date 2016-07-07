@@ -1551,12 +1551,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
 				log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
 				log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
-				log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
-				log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
-				log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
-				log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
-				log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
-				log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
+				log_msg.body.log_RPL1.gyro_x_rad = buf.replay.gyro_rad[0];
+				log_msg.body.log_RPL1.gyro_y_rad = buf.replay.gyro_rad[1];
+				log_msg.body.log_RPL1.gyro_z_rad = buf.replay.gyro_rad[2];
+				log_msg.body.log_RPL1.accelerometer_x_m_s2 = buf.replay.accelerometer_m_s2[0];
+				log_msg.body.log_RPL1.accelerometer_y_m_s2 = buf.replay.accelerometer_m_s2[1];
+				log_msg.body.log_RPL1.accelerometer_z_m_s2 = buf.replay.accelerometer_m_s2[2];
 				log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
 				log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
 				log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
@@ -1660,14 +1660,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (write_IMU) {
 				log_msg.msg_type = LOG_IMU_MSG;
 
-				float gyro_dt = buf.sensor.gyro_integral_dt / 1.e6f;
-				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_integral_rad[0] / gyro_dt;
-				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_integral_rad[1] / gyro_dt;
-				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_integral_rad[2] / gyro_dt;
-				float accel_dt = buf.sensor.accelerometer_integral_dt / 1.e6f;
-				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_integral_m_s[0] / accel_dt;
-				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_integral_m_s[1] / accel_dt;
-				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_integral_m_s[2] / accel_dt;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad[0];
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad[1];
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad[2];
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];

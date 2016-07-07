@@ -1074,42 +1074,36 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 			}
 
 			got_update = true;
-			math::Vector<3> sensor_value;
 
 			if (accel_report.integral_dt != 0) {
 				math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
 				vect_int = _board_rotation * vect_int;
 
-				_last_sensor_data[i].accelerometer_integral_m_s[0] = vect_int(0);
-				_last_sensor_data[i].accelerometer_integral_m_s[1] = vect_int(1);
-				_last_sensor_data[i].accelerometer_integral_m_s[2] = vect_int(2);
-
-				_last_sensor_data[i].accelerometer_integral_dt = (uint32_t)accel_report.integral_dt;
-
 				float dt = accel_report.integral_dt / 1.e6f;
-				sensor_value = vect_int / dt;
+				_last_sensor_data[i].accelerometer_integral_dt = dt;
+
+				_last_sensor_data[i].accelerometer_m_s2[0] = vect_int(0) / dt;
+				_last_sensor_data[i].accelerometer_m_s2[1] = vect_int(1) / dt;
+				_last_sensor_data[i].accelerometer_m_s2[2] = vect_int(2) / dt;
 
 			} else {
-				//this is undesirable: a driver did not set the integral, so we have to construct it ourselves
+				//using the value instead of the integral (the integral is the prefered choice)
 				math::Vector<3> vect_val(accel_report.x, accel_report.y, accel_report.z);
 				vect_val = _board_rotation * vect_val;
-
-				sensor_value = vect_val;
 
 				if (_last_accel_timestamp[i] == 0) {
 					_last_accel_timestamp[i] = accel_report.timestamp - 1000;
 				}
 
 				_last_sensor_data[i].accelerometer_integral_dt =
-					(uint32_t)(accel_report.timestamp - _last_accel_timestamp[i]);
-				float dt = _last_sensor_data[i].accelerometer_integral_dt / 1.e6f;
-				_last_sensor_data[i].accelerometer_integral_m_s[0] = vect_val(0) * dt;
-				_last_sensor_data[i].accelerometer_integral_m_s[1] = vect_val(1) * dt;
-				_last_sensor_data[i].accelerometer_integral_m_s[2] = vect_val(2) * dt;
+					(accel_report.timestamp - _last_accel_timestamp[i]) / 1.e6f;
+				_last_sensor_data[i].accelerometer_m_s2[0] = vect_val(0);
+				_last_sensor_data[i].accelerometer_m_s2[1] = vect_val(1);
+				_last_sensor_data[i].accelerometer_m_s2[2] = vect_val(2);
 			}
 
 			_last_accel_timestamp[i] = accel_report.timestamp;
-			_accel.voter.put(i, accel_report.timestamp, sensor_value.data,
+			_accel.voter.put(i, accel_report.timestamp, _last_sensor_data[i].accelerometer_m_s2,
 					 accel_report.error_count, _accel.priority[i]);
 		}
 	}
@@ -1119,9 +1113,9 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		_accel.voter.get_best(hrt_absolute_time(), &best_index);
 
 		if (best_index >= 0) {
-			raw.accelerometer_integral_m_s[0] = _last_sensor_data[best_index].accelerometer_integral_m_s[0];
-			raw.accelerometer_integral_m_s[1] = _last_sensor_data[best_index].accelerometer_integral_m_s[1];
-			raw.accelerometer_integral_m_s[2] = _last_sensor_data[best_index].accelerometer_integral_m_s[2];
+			raw.accelerometer_m_s2[0] = _last_sensor_data[best_index].accelerometer_m_s2[0];
+			raw.accelerometer_m_s2[1] = _last_sensor_data[best_index].accelerometer_m_s2[1];
+			raw.accelerometer_m_s2[2] = _last_sensor_data[best_index].accelerometer_m_s2[2];
 			raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 			_accel.last_best_vote = (uint8_t)best_index;
 		}
@@ -1147,42 +1141,36 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 			}
 
 			got_update = true;
-			math::Vector<3> sensor_value;
 
 			if (gyro_report.integral_dt != 0) {
 				math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
 				vect_int = _board_rotation * vect_int;
 
-				_last_sensor_data[i].gyro_integral_rad[0] = vect_int(0);
-				_last_sensor_data[i].gyro_integral_rad[1] = vect_int(1);
-				_last_sensor_data[i].gyro_integral_rad[2] = vect_int(2);
-
-				_last_sensor_data[i].gyro_integral_dt = (uint32_t)gyro_report.integral_dt;
-
 				float dt = gyro_report.integral_dt / 1.e6f;
-				sensor_value = vect_int / dt;
+				_last_sensor_data[i].gyro_integral_dt = dt;
+
+				_last_sensor_data[i].gyro_rad[0] = vect_int(0) / dt;
+				_last_sensor_data[i].gyro_rad[1] = vect_int(1) / dt;
+				_last_sensor_data[i].gyro_rad[2] = vect_int(2) / dt;
 
 			} else {
-				//this is undesirable: a driver did not set the integral, so we have to construct it ourselves
+				//using the value instead of the integral (the integral is the prefered choice)
 				math::Vector<3> vect_val(gyro_report.x, gyro_report.y, gyro_report.z);
 				vect_val = _board_rotation * vect_val;
-
-				sensor_value = vect_val;
 
 				if (_last_sensor_data[i].timestamp == 0) {
 					_last_sensor_data[i].timestamp = gyro_report.timestamp - 1000;
 				}
 
 				_last_sensor_data[i].gyro_integral_dt =
-					(uint32_t)(gyro_report.timestamp - _last_sensor_data[i].timestamp);
-				float dt = _last_sensor_data[i].gyro_integral_dt / 1.e6f;
-				_last_sensor_data[i].gyro_integral_rad[0] = vect_val(0) * dt;
-				_last_sensor_data[i].gyro_integral_rad[1] = vect_val(1) * dt;
-				_last_sensor_data[i].gyro_integral_rad[2] = vect_val(2) * dt;
+					(gyro_report.timestamp - _last_sensor_data[i].timestamp) / 1.e6f;
+				_last_sensor_data[i].gyro_rad[0] = vect_val(0);
+				_last_sensor_data[i].gyro_rad[1] = vect_val(1);
+				_last_sensor_data[i].gyro_rad[2] = vect_val(2);
 			}
 
 			_last_sensor_data[i].timestamp = gyro_report.timestamp;
-			_gyro.voter.put(i, gyro_report.timestamp, sensor_value.data,
+			_gyro.voter.put(i, gyro_report.timestamp, _last_sensor_data[i].gyro_rad,
 					gyro_report.error_count, _gyro.priority[i]);
 		}
 	}
@@ -1192,9 +1180,9 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		_gyro.voter.get_best(hrt_absolute_time(), &best_index);
 
 		if (best_index >= 0) {
-			raw.gyro_integral_rad[0] = _last_sensor_data[best_index].gyro_integral_rad[0];
-			raw.gyro_integral_rad[1] = _last_sensor_data[best_index].gyro_integral_rad[1];
-			raw.gyro_integral_rad[2] = _last_sensor_data[best_index].gyro_integral_rad[2];
+			raw.gyro_rad[0] = _last_sensor_data[best_index].gyro_rad[0];
+			raw.gyro_rad[1] = _last_sensor_data[best_index].gyro_rad[1];
+			raw.gyro_rad[2] = _last_sensor_data[best_index].gyro_rad[2];
 			raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 			raw.timestamp = _last_sensor_data[best_index].timestamp;
 			_gyro.last_best_vote = (uint8_t)best_index;

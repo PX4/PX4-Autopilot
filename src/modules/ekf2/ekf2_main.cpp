@@ -505,8 +505,16 @@ void Ekf2::task_main()
 		}
 
 		// push imu data into estimator
-		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt,
-				sensors.gyro_integral_rad, sensors.accelerometer_integral_m_s);
+		float gyro_integral[3];
+		gyro_integral[0] = sensors.gyro_rad[0] * sensors.gyro_integral_dt;
+		gyro_integral[1] = sensors.gyro_rad[1] * sensors.gyro_integral_dt;
+		gyro_integral[2] = sensors.gyro_rad[2] * sensors.gyro_integral_dt;
+		float accel_integral[3];
+		accel_integral[0] = sensors.accelerometer_m_s2[0] * sensors.accelerometer_integral_dt;
+		accel_integral[1] = sensors.accelerometer_m_s2[1] * sensors.accelerometer_integral_dt;
+		accel_integral[2] = sensors.accelerometer_m_s2[2] * sensors.accelerometer_integral_dt;
+		_ekf.setIMUData(now, sensors.gyro_integral_dt * 1.e6f, sensors.accelerometer_integral_dt * 1.e6f,
+				gyro_integral, accel_integral);
 
 		// read mag data
 		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
@@ -622,15 +630,14 @@ void Ekf2::task_main()
 			control_state_s ctrl_state = {};
 			float gyro_bias[3] = {};
 			_ekf.get_gyro_bias(gyro_bias);
-			float gyro_rad_s[3];
-			float gyro_dt = sensors.gyro_integral_dt / 1.e6f;
-			gyro_rad_s[0] = sensors.gyro_integral_rad[0] / gyro_dt - gyro_bias[0];
-			gyro_rad_s[1] = sensors.gyro_integral_rad[1] / gyro_dt - gyro_bias[1];
-			gyro_rad_s[2] = sensors.gyro_integral_rad[2] / gyro_dt - gyro_bias[2];
 			ctrl_state.timestamp = hrt_absolute_time();
-			ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad_s[0]);
-			ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad_s[1]);
-			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad_s[2]);
+			float gyro_rad[3];
+			gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
+			gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
+			gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
+			ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
 
 			// Velocity in body frame
 			float velocity[3];
@@ -657,11 +664,7 @@ void Ekf2::task_main()
 			ctrl_state.q[3] = q(3);
 
 			// Acceleration data
-			matrix::Vector<float, 3> acceleration;
-			float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
-			acceleration(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
-			acceleration(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
-			acceleration(2) = sensors.accelerometer_integral_m_s[2] / accel_dt;
+			matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
 
 			float accel_bias[3];
 			_ekf.get_accel_bias(accel_bias);
@@ -722,9 +725,9 @@ void Ekf2::task_main()
 			att.q[3] = q(3);
 			att.q_valid = true;
 
-			att.rollspeed = gyro_rad_s[0];
-			att.pitchspeed = gyro_rad_s[1];
-			att.yawspeed = gyro_rad_s[2];
+			att.rollspeed = gyro_rad[0];
+			att.pitchspeed = gyro_rad[1];
+			att.yawspeed = gyro_rad[2];
 
 			// publish vehicle attitude data
 			if (_att_pub == nullptr) {
@@ -917,9 +920,8 @@ void Ekf2::task_main()
 			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
 			replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
 			replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
-			memcpy(replay.gyro_integral_rad, sensors.gyro_integral_rad, sizeof(replay.gyro_integral_rad));
-			memcpy(replay.accelerometer_integral_m_s, sensors.accelerometer_integral_m_s,
-			       sizeof(replay.accelerometer_integral_m_s));
+			memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
+			memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
 			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
 			replay.baro_alt_meter = sensors.baro_alt_meter;
 
