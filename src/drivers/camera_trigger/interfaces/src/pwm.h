@@ -18,6 +18,7 @@ public:
 	virtual ~CameraInterfacePWM();
 
 	void trigger(bool enable);
+	void keep_alive(bool signal_on);
 
 	int powerOn();
 	int powerOff();
