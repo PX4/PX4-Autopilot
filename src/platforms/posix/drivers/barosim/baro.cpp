@@ -36,7 +36,10 @@
  * Driver for the simulated barometric pressure sensor
  */
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <inttypes.h>
 #include <px4_config.h>
 #include <px4_defines.h>

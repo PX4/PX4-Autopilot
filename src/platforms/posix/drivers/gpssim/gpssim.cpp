@@ -36,8 +36,11 @@
  * Simulated GPS driver
  */
 
-#include <sys/types.h>
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
+#include <sys/types.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>

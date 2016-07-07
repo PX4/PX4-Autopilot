@@ -106,6 +106,10 @@ print("""
  * Tool for listening to topics when running flight stack on linux.
  */
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <drivers/drv_hrt.h>
 #include <px4_middleware.h>
 #include <px4_app.h>
@@ -115,7 +119,6 @@ print("""
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #ifndef PRIu64
