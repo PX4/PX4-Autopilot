@@ -144,8 +144,14 @@ static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
 static const unsigned MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 static const unsigned MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
 static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
+
+#if defined __PX4_POSIX
+static const int MAX_WRITE_CHUNK = 2048;
+static const int MIN_BYTES_TO_WRITE = 256;
+#else
 static const int MAX_WRITE_CHUNK = 512;
-static const int MIN_BYTES_TO_WRITE = 512;
+static const int MIN_BYTES_TO_WRITE = 256;
+#endif
 
 static bool _extended_logging = false;
 static bool _gpstime_only = false;
