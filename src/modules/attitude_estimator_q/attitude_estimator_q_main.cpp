@@ -328,17 +328,15 @@ void AttitudeEstimatorQ::task_main()
 			// Feed validator with recent sensor data
 
 			if (sensors.timestamp > 0) {
-				float gyro_dt = sensors.gyro_integral_dt / 1e6;
-				_gyro(0) = sensors.gyro_integral_rad[0] / gyro_dt;
-				_gyro(1) = sensors.gyro_integral_rad[1] / gyro_dt;
-				_gyro(2) = sensors.gyro_integral_rad[2] / gyro_dt;
+				_gyro(0) = sensors.gyro_rad[0];
+				_gyro(1) = sensors.gyro_rad[1];
+				_gyro(2) = sensors.gyro_rad[2];
 			}
 
 			if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-				float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
-				_accel(0) = sensors.accelerometer_integral_m_s[0] / accel_dt;
-				_accel(1) = sensors.accelerometer_integral_m_s[1] / accel_dt;
-				_accel(2) = sensors.accelerometer_integral_m_s[2] / accel_dt;
+				_accel(0) = sensors.accelerometer_m_s2[0];
+				_accel(1) = sensors.accelerometer_m_s2[1];
+				_accel(2) = sensors.accelerometer_m_s2[2];
 
 				if (_accel.length() < 0.01f) {
 					warnx("WARNING: degenerate accel!");
