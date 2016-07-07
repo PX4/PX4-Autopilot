@@ -24,6 +24,11 @@ public:
 	 */
 	virtual void trigger(bool enable) {};
 
+	/**
+	 * prevent the camera from sleeping
+	 * @param keep alive signal:
+	 */
+	virtual void keep_alive(bool signal_on) {};
 
 	/**
 	 * Display info.

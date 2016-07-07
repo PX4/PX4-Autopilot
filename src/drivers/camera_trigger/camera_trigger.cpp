@@ -104,6 +104,11 @@ public:
 	void		shootOnce();
 
 	/**
+	 * Toggle keep camera alive functionality
+	 */
+	void		keepAlive(bool on);
+
+	/**
 	 * Start the task.
 	 */
 	void		start();
@@ -127,6 +132,9 @@ private:
 
 	struct hrt_call		_engagecall;
 	struct hrt_call		_disengagecall;
+	struct hrt_call		_keepalivecall_up;
+	struct hrt_call		_keepalivecall_down;
+
 	static struct work_s	_work;
 
 	int 			_gpio_fd;
@@ -167,6 +175,14 @@ private:
 	 * Resets trigger
 	 */
 	static void	disengage(void *arg);
+	/**
+	 * Fires trigger
+	 */
+	static void	keep_alive_up(void *arg);
+	/**
+	 * Resets trigger
+	 */
+	static void	keep_alive_down(void *arg);
 
 };
 
@@ -232,6 +248,7 @@ CameraTrigger::CameraTrigger() :
 	}
 
 	struct camera_trigger_s	report = {};
+
 	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &report);
 }
 
@@ -270,6 +287,26 @@ CameraTrigger::control(bool on)
 }
 
 void
+CameraTrigger::keepAlive(bool on)
+{
+	if (on) {
+		// schedule keep-alive up and down calls
+		hrt_call_every(&_keepalivecall_up, 0, (60000 * 1000),
+			       (hrt_callout)&CameraTrigger::keep_alive_up, this);
+
+		// schedule keep-alive up and down calls
+		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), (60000 * 1000),
+			       (hrt_callout)&CameraTrigger::keep_alive_down, this);
+
+	} else {
+		// cancel all calls
+		hrt_cancel(&_keepalivecall_up);
+		hrt_cancel(&_keepalivecall_down);
+	}
+
+}
+
+void
 CameraTrigger::shootOnce()
 {
 	// schedule trigger on and off calls
@@ -289,6 +326,14 @@ CameraTrigger::start()
 		control(true);
 	}
 
+	// Prevent camera from sleeping, if triggering is enabled
+	if (_mode > 0) {
+		keepAlive(true);
+
+	} else {
+		keepAlive(false);
+	}
+
 	// start to monitor at high rate for trigger enable command
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
 
@@ -300,6 +345,8 @@ CameraTrigger::stop()
 	work_cancel(LPWORK, &_work);
 	hrt_cancel(&_engagecall);
 	hrt_cancel(&_disengagecall);
+	hrt_cancel(&_keepalivecall_up);
+	hrt_cancel(&_keepalivecall_down);
 
 	if (camera_trigger::g_camera_trigger != nullptr) {
 		delete(camera_trigger::g_camera_trigger);
@@ -390,7 +437,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 				if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
 
-					// Set trigger to false if the set distance is not positive
+					// Set trigger to disabled if the set distance is not positive
+					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
+						trig->_camera_interface->powerOn();
+
+					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
+						trig->_camera_interface->powerOff();
+					}
+
 					trig->_trigger_enabled = cmd.param1 > 0.0f;
 					trig->_distance = cmd.param1;
 				}
@@ -448,6 +502,22 @@ CameraTrigger::disengage(void *arg)
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);
+}
+
+void
+CameraTrigger::keep_alive_up(void *arg)
+{
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	trig->_camera_interface->keep_alive(true);
+}
+
+void
+CameraTrigger::keep_alive_down(void *arg)
+{
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	trig->_camera_interface->keep_alive(false);
 }
 
 void
