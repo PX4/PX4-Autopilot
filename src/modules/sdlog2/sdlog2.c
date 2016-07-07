@@ -1503,7 +1503,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			continue;
 		}
 
-		if (poll_counter++ >= poll_to_logging_factor) {
+		if ((poll_counter+1) >= poll_to_logging_factor) {
 			poll_counter = 0;
 		} else {
 
@@ -1531,6 +1531,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					}
 					break;
 			}
+			poll_counter++;
 			continue;
 		}
 
