@@ -41,7 +41,6 @@
 #ifndef I2C_FRAME_H_
 #define I2C_FRAME_H_
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 typedef  struct i2c_frame {

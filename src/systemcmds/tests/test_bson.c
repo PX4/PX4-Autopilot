@@ -37,7 +37,6 @@
  * Tests for the bson en/decoder
  */
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <px4_defines.h>
