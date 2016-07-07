@@ -167,6 +167,8 @@ private:
 	Vector<3>	_mag;
 
 	double _thetaT = 0.0f;	/* estimated direction of thrust vector */
+	Vector<3> 	_delay_buff[10];
+	int		_delay_index;
 
 	vision_position_estimate_s _vision = {};
 	Vector<3>	_vision_hdg;
@@ -870,7 +872,7 @@ bool AttitudeEstimatorQ::update(Quaternion & quat, Vector<3> & rates, Vector<3> 
 	corr += (kE % _accel.normalized()) * _w_accel;
 
 	// Gyro bias estimation
-	if (_gyro.length() < 1.0f) {
+	if (_gyro.length() < 0.175f) {
 		gyro_bias += corr * (_w_gyro_bias * dt);
 	}
 
@@ -975,68 +977,66 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 	_centrip.tV = 0.0f;
 	_centrip.centripMag = 0.0f;
 
-	float omegaMag = fabsf(omegaE);
-	if (omegaMag < 0.175f) {
+	// estimate centripetal acceleration in the earth frame
+	Vector<3> aE = quat.conjugate(_accel);
+	Vector<3> centripE = aE - Vector<3>(0.0f, 0.0f, -9.925f);
 
-//		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
-		corr += (kE % _accel.normalized()) * _w_accel;
+	// construct centripetal accel vector in earth frame
 
-	} else {
-
-		// estimate centripetal acceleration in the earth frame
-		Vector<3> aE = quat.conjugate(_accel);
-		Vector<3> centripE = aE - Vector<3>(0.0f, 0.0f, -9.925f);
-
-		// construct centripetal accel vector in earth frame
-
-		// no slip: assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
+	// no slip: assuming earth frame centripetal accel is perpendicular to bodyX/earthZ plane
 //		Vector<3> centripA = Vector<3>(0.0f, 0.0f, 1.0f) % quat.conjugate(Vector<3>(1.0f, 0.0f, 0.0f));
 //		Vector<3> omegaE = quat.conjugate(_gyro);
 //		float omega = omegaE.data[2];
 
-		// thrust vector: assuming omegaE cross V = centripE (and measured aE is purely centripetal)
-		Vector<2> Vt = Vector<2>(omegaE * centripE.data[1], -omegaE * centripE.data[0]);
+	// thrust vector: assuming omegaE cross V = centripE (and measured aE is purely centripetal)
+	Vector<2> Vt = Vector<2>(omegaE * centripE.data[1], -omegaE * centripE.data[0]);
 
-		_centrip.centripMag = centripE.length();
+	_centrip.centripMag = centripE.length();
 
-		// estimate tangential velocity in earth frame
-		_centrip.tV = fminf(fabs(_centrip.centripMag / omegaE), 20.0f);
+	// estimate tangential velocity in earth frame
+	_centrip.tV = fminf(fabs(_centrip.centripMag / omegaE), 20.0f);
 
-		Vector<3> estG = aE - centripE;
+	Vector<3> estG = aE - centripE;
 
-		/* compensate body frame accel for centripetal accel */
-		/* estimated g vector in body frame is (_accel - centripetal accel) */
+	/* compensate body frame accel for centripetal accel */
+	/* estimated g vector in body frame is (_accel - centripetal accel) */
 //		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
 
-		// earth frame magnetometer reference vector
-	//	Vector<3> magRef(0.229f, -0.006f, 0.368f);
-		// transform to body frame and normalize
-		Vector<3> magRef = quat.conjugate_inversed(Vector<3>(0.229f, -0.006f, 0.368f)).normalized();
+	// earth frame magnetometer reference vector
+//	Vector<3> magRef(0.229f, -0.006f, 0.368f);
+	// transform to body frame and normalize
+	Vector<3> magRef = quat.conjugate_inversed(Vector<3>(0.229f, -0.006f, 0.368f)).normalized();
+	// delay the reference value for comparison with current magnetometer value
+	_delay_buff[_delay_index] = magRef;
+	_delay_index++;
+	if (_delay_index > 9) _delay_index = 0;
+	int cur_index = _delay_index - 8;
+	if (cur_index < 0) cur_index += 10;
 
-		Vector<3> mag_n = _mag.normalized();
-		Vector<3> mag_err = mag_n % magRef;
+	Vector<3> mag_n = _mag.normalized();
+	Vector<3> mag_err = mag_n % _delay_buff[cur_index];
 
-		// 3D magnetometer correction in body frame
-		corr += mag_err * _w_mag * dt; // * gainMult;
-
-		for (int i=0; i<3; i++) {
-			_centrip.aE[i] = aE.data[i];
-			_centrip.centripA[i] = centripE.data[i];
-			_centrip.estG[i] = estG.data[i];
-			_centrip.mag_n[i] = mag_n.data[i];
-			_centrip.magRef[i] = magRef.data[i];
-			_centrip.mag_err[i] = mag_err.data[i];
-		}
-
-		/* compensate body frame accel for centripetal accel */
-		/* estimated g vector in body frame is (_accel - centripetal accel) */
-//		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
+	for (int i=0; i<3; i++) {
+		_centrip.aE[i] = aE.data[i];
+		_centrip.centripA[i] = centripE.data[i];
+		_centrip.estG[i] = estG.data[i];
+		_centrip.mag_n[i] = mag_n.data[i];
+		_centrip.magRef[i] = magRef.data[i];
+		_centrip.mag_err[i] = mag_err.data[i];
 	}
+
+	/* compensate body frame accel for centripetal accel */
+	/* estimated g vector in body frame is (_accel - centripetal accel) */
+//		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
 
 	// Gyro bias estimation
 	// If rotation rate is below about 10 deg/sec
 	// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
 	if (spinRate < 0.175f) {
+
+//		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+		corr += (kE % _accel.normalized()) * _w_accel;
+
 
 		gyro_bias += corr * (_w_gyro_bias * dt);
 
@@ -1044,6 +1044,9 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 			gyro_bias(i) = math::constrain(gyro_bias(i), -_bias_max, _bias_max);
 		}
 
+	} else {
+		// 3D magnetometer correction in body frame only
+		corr += mag_err * 0.00025f;
 	}
 
 	rates = _gyro + gyro_bias;
