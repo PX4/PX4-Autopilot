@@ -1456,29 +1456,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	while (!main_thread_should_exit) {
 
-		// wait for up to 100ms for data
-		int pret = px4_poll(&fds[0], px4_pollfd_len, 100);
-
-		// timed out - periodic check for _task_should_exit
-		if (pret == 0) {
-			continue;
-		}
-
-		// this is undesirable but not much we can do - might want to flag unhappy status
-		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
-			// sleep a bit before next try
-			usleep(100000);
-			continue;
-		}
-
-		if ((poll_counter + 1) % poll_to_logging_factor == 0) {
-			poll_counter = 0;
-		} else {
-			// copy topic
-			poll_counter++;
-			continue;
-		}
+		/* Check below's topics first even if logging is not enabled.
+		 * We need to do this because should only poll further below if we're
+		 * actually going to orb_copy the data after the poll. */
 
 		/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 		if (copy_if_updated(ORB_ID(vehicle_command), &subs.cmd_sub, &buf_cmd)) {
@@ -1503,6 +1483,54 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		if (!logging_enabled) {
+			usleep(50000);
+			continue;
+		}
+
+		// wait for up to 100ms for data
+		int pret = px4_poll(&fds[0], px4_pollfd_len, 100);
+
+		// timed out - periodic check for _task_should_exit
+		if (pret == 0) {
+			continue;
+		}
+
+		// this is undesirable but not much we can do - might want to flag unhappy status
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
+			// sleep a bit before next try
+			usleep(100000);
+			continue;
+		}
+
+		if (poll_counter++ >= poll_to_logging_factor) {
+			poll_counter = 0;
+		} else {
+
+			/* In this case, we still need to do orb_copy, otherwise we'll stall. */
+			switch (log_type) {
+				case LOG_TYPE_ALL:
+					if (fds[0].revents & POLLIN) {
+						orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+					}
+
+					if (fds[1].revents & POLLIN) {
+						orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+					}
+					break;
+
+				case LOG_TYPE_NORMAL:
+					if (fds[0].revents & POLLIN) {
+						orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+					}
+					break;
+
+				case LOG_TYPE_REPLAY_ONLY:
+					if (fds[0].revents & POLLIN) {
+						orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+					}
+					break;
+			}
 			continue;
 		}
 
