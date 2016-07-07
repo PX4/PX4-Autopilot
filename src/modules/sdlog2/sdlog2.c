@@ -1400,7 +1400,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	// wakeup source
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[2];
+	unsigned px4_pollfd_len = 0;
 
 	int poll_counter = 0;
 
@@ -1412,6 +1413,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			fds[0].fd = subs.sensor_sub;
 			fds[0].events = POLLIN;
 
+			subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
+			fds[1].fd = subs.replay_sub;
+			fds[1].events = POLLIN;
+
+			px4_pollfd_len = 2;
+
 			poll_to_logging_factor = 1;
 
 			break;
@@ -1421,6 +1428,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 			fds[0].fd = subs.sensor_sub;
 			fds[0].events = POLLIN;
+
+			px4_pollfd_len = 1;
 
 			// TODO Remove hardcoded rate!
 			poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
@@ -1432,6 +1441,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
 			fds[0].fd = subs.replay_sub;
 			fds[0].events = POLLIN;
+
+			px4_pollfd_len = 1;
 
 			poll_to_logging_factor = 1;
 
@@ -1446,7 +1457,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	while (!main_thread_should_exit) {
 
 		// wait for up to 100ms for data
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], px4_pollfd_len, 100);
 
 		// timed out - periodic check for _task_should_exit
 		if (pret == 0) {
@@ -1459,24 +1470,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			// sleep a bit before next try
 			usleep(100000);
 			continue;
-		}
-
-		if (!fds[0].revents & POLLIN) {
-			continue;
-		}
-
-		switch (log_type) {
-			case LOG_TYPE_ALL:
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
-				break;
-
-			case LOG_TYPE_NORMAL:
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
-				break;
-
-			case LOG_TYPE_REPLAY_ONLY:
-				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
-				break;
 		}
 
 		if ((poll_counter + 1) % poll_to_logging_factor == 0) {
@@ -1539,15 +1532,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 			bool replay_updated = false;
 
 			if (log_type == LOG_TYPE_ALL) {
-				// When logging everything we are polling for sensor_combined, so
-				// we need to use the usual copy_if_updated which includes orb_subscribe.
-				replay_updated = copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay);
 
-			} else {
-				// We poll on the replay topic so we know that it was updated
-				// but we need to copy it again since we are re-using the buffer.
-				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
-				replay_updated = true;
+				if (fds[1].revents & POLLIN) {
+					orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+					replay_updated = true;
+				}
+
+			} else if (log_type == LOG_TYPE_REPLAY_ONLY) {
+				if (fds[0].revents & POLLIN) {
+					orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+					replay_updated = true;
+				}
 			}
 
 			if (replay_updated) {
@@ -1636,60 +1631,60 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		if (log_type == LOG_TYPE_ALL || log_type == LOG_TYPE_NORMAL) {
 
-			// We poll on sensor combined, so we know it has updated just now
-			// but we need to copy it again because we are re-using the buffer.
-			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+			if (fds[0].revents & POLLIN) {
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 
-			bool write_IMU = false;
-			bool write_SENS = false;
+				bool write_IMU = false;
+				bool write_SENS = false;
 
-			if (buf.sensor.timestamp != gyro_timestamp) {
-				gyro_timestamp = buf.sensor.timestamp;
-				write_IMU = true;
-			}
+				if (buf.sensor.timestamp != gyro_timestamp) {
+					gyro_timestamp = buf.sensor.timestamp;
+					write_IMU = true;
+				}
 
-			if (buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative != accelerometer_timestamp) {
-				accelerometer_timestamp = buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative;
-				write_IMU = true;
-			}
+				if (buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative != accelerometer_timestamp) {
+					accelerometer_timestamp = buf.sensor.timestamp + buf.sensor.accelerometer_timestamp_relative;
+					write_IMU = true;
+				}
 
-			if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
-				magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
-				write_IMU = true;
-			}
+				if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
+					magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
+					write_IMU = true;
+				}
 
-			if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
-				barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
-				write_SENS = true;
-			}
+				if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
+					barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
+					write_SENS = true;
+				}
 
-			if (write_IMU) {
-				log_msg.msg_type = LOG_IMU_MSG;
+				if (write_IMU) {
+					log_msg.msg_type = LOG_IMU_MSG;
 
-				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad[0];
-				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad[1];
-				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad[2];
-				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
-				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
-				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
-				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
-				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
-				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
-				log_msg.body.log_IMU.temp_gyro = 0;
-				log_msg.body.log_IMU.temp_acc = 0;
-				log_msg.body.log_IMU.temp_mag = 0;
-				LOGBUFFER_WRITE_AND_COUNT(IMU);
-			}
+					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad[0];
+					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad[1];
+					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad[2];
+					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
+					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
+					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
+					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
+					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
+					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+					log_msg.body.log_IMU.temp_gyro = 0;
+					log_msg.body.log_IMU.temp_acc = 0;
+					log_msg.body.log_IMU.temp_mag = 0;
+					LOGBUFFER_WRITE_AND_COUNT(IMU);
+				}
 
-			if (write_SENS) {
-				log_msg.msg_type = LOG_SENS_MSG;
+				if (write_SENS) {
+					log_msg.msg_type = LOG_SENS_MSG;
 
-				log_msg.body.log_SENS.baro_pres = 0;
-				log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
-				log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
-				log_msg.body.log_SENS.diff_pres = 0;
-				log_msg.body.log_SENS.diff_pres_filtered = 0;
-				LOGBUFFER_WRITE_AND_COUNT(SENS);
+					log_msg.body.log_SENS.baro_pres = 0;
+					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
+					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
+					log_msg.body.log_SENS.diff_pres = 0;
+					log_msg.body.log_SENS.diff_pres_filtered = 0;
+					LOGBUFFER_WRITE_AND_COUNT(SENS);
+				}
 			}
 
 			/* --- VTOL VEHICLE STATUS --- */
