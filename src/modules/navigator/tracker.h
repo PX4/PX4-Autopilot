@@ -2,9 +2,10 @@
 #ifndef NAVIGATOR_TRACKER_H
 #define NAVIGATOR_TRACKER_H
 
-
+#include <limits.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+
 
 // Enables verbose debug messages by the flight path tracker
 #define DEBUG_TRACKER
@@ -96,6 +97,22 @@ private:
 
     struct fpos_t {
         float x, y, z;
+    
+        inline fpos_t operator*(const float scalar) const {
+            return {
+                .x = this->x * scalar,
+                .y = this->y * scalar,
+                .z = this->z * scalar
+            };
+        }
+
+        inline fpos_t operator-(const fpos_t &pos2) const {
+            return {
+                .x = this->x - pos2.x,
+                .y = this->y - pos2.y,
+                .z = this->z - pos2.z
+            };
+        }
     };
     
     struct ipos_t {
@@ -139,9 +156,9 @@ private:
     static inline int round(float f) { return (int)(f + (f < 0 ? -0.5f : 0.5f)); };
     static inline bool is_close(fpos_t pos1, fpos_t pos2);
     static inline bool is_close(ipos_t pos1, fpos_t pos2);
-    static inline fpos_t to_fpos(ipos_t &pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
-    static inline ipos_t to_ipos(fpos_t &pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
-
+    bool is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, float *coefficient);
+    static inline fpos_t to_fpos(ipos_t pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
+    static inline ipos_t to_ipos(fpos_t pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
 
     typedef uint16_t graph_item_t;
 
@@ -151,6 +168,7 @@ private:
     static constexpr int MASTER_LINK_SIZE = 4;
     static constexpr int REGULAR_LINK_SIZE = 2;
     static constexpr int FAR_JUMP_SIZE = MASTER_LINK_SIZE;
+    static constexpr uint16_t UNSIGNED_DATA_ITEM_MAX = 0x3FFF;
 
     static inline graph_item_t make_delta_item(ipos_t &from_pos, ipos_t &to_pos);
     static inline graph_item_t make_link_item(uint16_t index) { return (1 << 15) | (index & 0x3FFF); }
@@ -158,6 +176,7 @@ private:
     static inline bool is_delta_item(graph_item_t &item) { return !(item >> 15); }
     static inline bool is_link_item(graph_item_t &item) { return (item >> 14) == 2; }
     static inline bool is_data_item(graph_item_t &item) { return (item >> 14) == 3; }
+
 
     // Returns the delta position stored in a delta item. The caller must ensure that the item is really a delta item.
     static inline ipos_t as_delta_item(graph_item_t &delta);
@@ -172,11 +191,55 @@ private:
     static inline int16_t as_signed_data_item(graph_item_t &item);
 
 
+    struct link_attributes_t {
+        int8_t _dist_to_node_coef;
+        int8_t _dist_to_home_coef;
+
+        link_attributes_t(graph_item_t attributes) {
+            const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 7;
+            _dist_to_node_coef = ((int)(attributes << (SHIFT_COUNT - 7))) >> SHIFT_COUNT;
+            _dist_to_home_coef = ((int)(attributes << (SHIFT_COUNT - 0))) >> SHIFT_COUNT;
+        }
+
+        link_attributes_t(float dist_to_node_coef, float dist_to_home_coef) {
+            _dist_to_node_coef = (int8_t)(dist_to_node_coef * 0x40);
+            _dist_to_home_coef = (int8_t)(dist_to_home_coef * 0x40);
+        }
+
+        inline float get_dist_to_node_coef() { return (float)_dist_to_node_coef / 0x40; }
+        inline float get_dist_to_home_coef() { return (float)_dist_to_home_coef / 0x40; }
+
+        bool is_valid() {
+            return _dist_to_node_coef < 0x40 && _dist_to_node_coef >= (int8_t)0xC0
+                && _dist_to_home_coef < 0x40 && _dist_to_home_coef >= (int8_t)0xC0;
+        }
+        
+        graph_item_t as_attr_item() {
+            return make_data_item(((_dist_to_node_coef & 0x7F) << 7) | ((_dist_to_home_coef & 0x7F) << 0));
+        }
+
+        inline void reset_dist_to_home_coef() { _dist_to_home_coef = _dist_to_node_coef; }
+
+        // improvement: should be in [-2 +2] to prevent overflow. +1 if node-to-home was reduced by the delta-length.
+        void update_node_to_home(float improvement) {
+            _dist_to_home_coef += (int8_t)(improvement * 0x40);
+            if (!is_valid())
+                _dist_to_home_coef = improvement >= 0 ? _dist_to_node_coef : -_dist_to_node_coef;
+        }
+
+        bool decrease_dist_to_home_coef(float alt_dist_to_home_coef) {
+            int8_t alt_val = (int8_t)(alt_dist_to_home_coef * 0x40);
+            if (_dist_to_home_coef > alt_val) { // A smaller distance attribute also means a smaller actual distance-to-home
+                _dist_to_home_coef = alt_val;
+                return true;
+            }
+            return false;
+        }
+    };
+
+
     // Informs the tracker about a new current vehicle position.
     void update(float x, float y, float z);
-
-    // Registers that the vehicle moved to another position that already exists in the graph.
-    void goto_graph_index(size_t index, ipos_t position);
     
     // Pushes a new current position to the recent path. This works even while the recent path is disabled.
     void push_recent_path(fpos_t &position);
@@ -187,10 +250,16 @@ private:
     // Pushes a new current position to the flight graph.
     void push_graph(fpos_t &position);
 
+    // Adds a compact delta element to the end of the graph.
+    void push_compact_delta(ipos_t destination);
+
+    // Adds a far jump element to the end of the graph.
+    void push_far_delta(ipos_t destination);
+
     // Adds a link to the end of the graph that links to the specified index.
     // If there is already a node at that index, the new link is integrated in the node cycle.
     // The end of the graph must be a pure delta (near or far) without a link.
-    void push_link(size_t index, uint16_t attribute);
+    void push_link(size_t index, link_attributes_t attributes);
 
     // Returns the index of the head of the cycle that the specified link item belongs to.
     // The caller must ensure that index points to a valid link item.
@@ -201,19 +270,60 @@ private:
     // Returns 0 it the element is not part of a node.
     size_t get_node_or_null(size_t index);
 
-    // Returns the payload of the specified node.
+    // Returns the length of the delta item at the specified index.
+    float get_delta_length(size_t index);
+
+    // Returns a pointer to the payload item of the specified node.
     // If node is invalid (0), this returns a NULL pointer.
-    graph_item_t* get_node_payload_ptr(size_t node) { return node ? graph + as_link_item(graph[node]) + 3 : NULL; }
+    graph_item_t* get_node_payload_ptr(size_t node) { return node ? &graph[as_link_item(graph[node]) + 3] : NULL; }
 
-    // Walks forward on the graph by one position.
-    // The provided index must be a valid graph-index and will be updated to another valid value.
-    // allow_jump: If false, if a jump element (far delta) is encountered, the function returns false (but the parameters are still updated)
-    bool walk_forward(size_t &index, ipos_t *position, float *distance, bool allow_jump);
+    // Returns a pointer to the attributes item of the specified link.
+    // The caller must make sure that the index actually points to an element with a link that is NOT the cycle head.
+    graph_item_t* get_link_attr_ptr(size_t index) { return is_link_item(graph[index - 1]) ? &graph[index] : &graph[index - 2]; }
+    
+    // Returns the position difference between two links of the same node.
+    // The caller must ensure that both indices point to links in the same node.
+    ipos_t get_intra_node_delta(size_t link1, size_t link2);
 
-    // Walks backward on the graph by one position.
+    // Retrieves the distance of a particular link element to home, based on the precalculated value stored in the node.
+    // Even though the node and node_delta_length could be inferred from the index, they are expected as a parameter for improved efficiency.
+    // If node is invalid (0), the function returns 0.
+    float get_link_dist_to_home(size_t node, float node_delta_length, size_t index);
+
+    // Updates the distance of a particular link element to home.
+    // This may influence the distance-to-home of the cycle head, or of any other link in the node.
+    // No distances can be increased through this function.
+    // Even though the node and node_delta_length could be inferred from the index, they are expected as a parameter for improved efficiency.
+    // If node is invalid (0), no action is taken.
+    // Returns false iif nothing was changed.
+    bool set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance);
+    
+    // Returns true iif the two indices are equal or belong to the same node.
+    bool is_same_pos(size_t index1, size_t index2);
+
+    // Walks forward on the graph by one position. Returns false if the end of the graph is reached.
     // The provided index must be a valid graph-index and will be updated to another valid value.
-    // allow_jump: If false, if a jump element (far delta) is encountered, the function returns false (but the parameters are still updated)
-    bool walk_backward(size_t &index, ipos_t *position, float *distance, bool allow_jump);
+    // *compact_delta: Receives the information on whether the consumed delta was a compact delta or a far jump.
+    bool walk_forward(size_t &index, ipos_t *delta, float *distance, bool *compact_delta);
+
+    // Walks forward on the graph by one position. Returns false if the end of the graph is reached.
+    // If jumps are disallowed but a far delta element was consumed, the funtion also returns false.
+    inline bool walk_forward(size_t &index, ipos_t *delta, float *distance, bool allow_jump) {
+        bool compact_delta;
+        return walk_forward(index, delta, distance, &compact_delta) ? allow_jump || compact_delta : false;
+    }
+
+    // Walks backward on the graph by one position. Returns false if the beginning of the graph is reached.
+    // The provided index must be a valid graph-index and will be updated to another valid value.
+    // *compact_delta: Receives the information on whether the consumed delta was a compact delta or a far jump.
+    bool walk_backward(size_t &index, ipos_t *delta, float *distance, bool *compact_delta);
+
+    // Walks backward on the graph by one position. Returns false if the beginning of the graph is reached.
+    // If jumps are disallowed but a far delta element was consumed, the funtion also returns false.
+    bool walk_backward(size_t &index, ipos_t *delta, float *distance, bool allow_jump) {
+        bool compact_delta;
+        return walk_backward(index, delta, distance, &compact_delta) ? allow_jump || compact_delta : false;
+    } 
 
     // Walks forward on the graph until either an element with a link, the checkpoint or a jump is consumed (or the end of the graph is reached).
     // index: in: The index before the first element to be consumed.
@@ -243,14 +353,18 @@ private:
     // Ensures, that each node has a valid distance-to-home value.
     void calc_distances(void);
 
-    // Calculates the next instruction to get back home, starting at the specified index.
-    // index: in: the index from which to return home. If this is a node, all adjacent intervals are considered.
-    //        out: the index from which to actually move. This is either equal to the input or an index of the same node.
+    // Calculates the next best move to get back home, starting at the specified index.
+    // index: The index from which to return home. If this is a node, all adjacent intervals are considered.
+    // bias: The actual starting position may be anywhere on the line specified by index. This bias specifies the distance to the end of this line.
     // move_forward/move_backward:
-    //  in: Indicates the direction of the previous instruction. Both false if the previous direction is unknown.
-    //      If the index doesn't point to a node, we can just go on in this direction.
-    //  out: Indicates the direction that leads home. If the index already points at the home index, both directions are false.
-    void calc_return_path(size_t &index, bool &move_forward, bool &move_backward);
+    //  in: Indicates the direction of the previous instruction. If the index doesn't point to a node, we can just go on in this direction.
+    //      Both false indicates that the previous direction is unknown.
+    //      Both true indicates that the previous instruction was a relocation within the same node.
+    //  out: Indicates the direction that leads home.
+    //      If a relocation within the same node is recommended, both values are set to false.
+    //      If the index already points at the home index, both values are set to false.
+    // Returns: In case of an intra-node relocation, the index of the destination link, otherwise the input index.
+    size_t calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward);
 
     
     
@@ -276,13 +390,10 @@ private:
 
 
     // The last position in the graph (corresponding to the end of the buffer). The absolute positions in the path can be calculated based on this.
-    fpos_t graph_head = { .x = 0, .y = 0, .z = 0 };
+    ipos_t graph_head = { .x = 0, .y = 0, .z = 0 };
 
     // The next free slot in the graph.
     size_t graph_next_write = 0;
-
-    // The current vehicle position.
-    ipos_t graph_current_position = { .x = 0, .y = 0, .z = 0 };
 
     // An index into the graph buffer corresponding to the current vehicle position.
     // A valid graph index obeys these rules:
@@ -291,6 +402,18 @@ private:
     // Pre-increment (when walking forwards, the element after the item being pointed to is consumed).
     size_t graph_current_index = 0;
 
+    // The delta of the line on which the vehicle currently resides.
+    ipos_t graph_current_delta = { .x = 0, .y = 0, .z = 0 };
+
+    // The end of the line on which the vehicle currently resides.
+    ipos_t graph_current_line_end = { .x = 0, .y = 0, .z = 0 };
+
+    // The delta coefficient to specify the point on the current line that corresponds to the vehicle position
+    link_attributes_t graph_current_attributes{0, 0};
+
+    // Returns a point on the graph that corresponds to the current vehicle position
+    ipos_t graph_get_current_pos() { return to_ipos(to_fpos(graph_current_line_end) - to_fpos(graph_current_delta) * graph_current_attributes.get_dist_to_node_coef()); }
+
     // Stores the entire flight path (until the buffer is full).
     // Each delta item stores a position relative to the previous position in the path.
     // If an intersection is detected, a node is created by linking the intersecting positions and attaching some payload data to the node.
@@ -298,26 +421,27 @@ private:
     graph_item_t graph[GRAPH_LENGTH];
 
     // The index in the graph that represents the position that is closest to the true home position.
-    uint16_t graph_home_index = 0;
+    size_t graph_home_index = 0;
 
     // A buffer to hold the smallest nodes that have a new distance-to-home.
     // This contains only (unique) cycle heads and is sorted by size.
-    uint16_t unvisited_nodes[UNVISITED_NODES_BUFFER_SIZE];
-    uint16_t unvisited_nodes_count = 0;
+    size_t unvisited_nodes[UNVISITED_NODES_BUFFER_SIZE];
+    size_t unvisited_nodes_count = 0;
 
     // The end of the linearily visited area.
     // Up to this index, all nodes have a consistent and up-to-date distance-to-home, except the ones mentioned in unvisited_nodes.
     // This is always larger than the greatest unvisited node.
-    uint16_t visited_area_end = 0;
+    size_t visited_area_end = 0;
     
     // The distance-to-home at the end of the visited area
-    uint16_t visited_area_end_distance = 0;
+    float visited_area_end_distance = 0;
     
 };
 
 struct Tracker::pos_handle_t {
     size_t index; // Indicates the index of the position represented by this handle.
     ipos_t position; // Holds the position represented by this handle.
+    float bias; // Indicates how far the actual position is from the one stored in the position field. 
     bool did_move_backward; // Tells us from which direction this position was reached.
     bool did_move_forward; // Tells us from which direction this position was reached.
 };
