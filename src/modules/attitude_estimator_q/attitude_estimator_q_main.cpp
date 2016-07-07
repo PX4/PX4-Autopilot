@@ -968,12 +968,7 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 	Vector<3> thrE = quat.conjugate(Vector<3>(0.0f, 0.0f, 1.0f));
 	double last_thetaT = _thetaT;
 	_thetaT = atan2(thrE.data[1], thrE.data[0]);
-	double dtheta = _thetaT - last_thetaT;
-	if (dtheta > M_PI) {
-		dtheta -= 2.0 * M_PI;
-	} else if (dtheta < -M_PI) {
-		dtheta += 2.0 * M_PI;
-	}
+	double dtheta = _wrap_pi(_thetaT - last_thetaT);
 	float omegaE = _lp_omega.apply((float)dtheta / dt);
 	_centrip.thetaT = _thetaT;
 	_centrip.omegaE = omegaE;
@@ -1009,10 +1004,28 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 
 		Vector<3> estG = aE - centripE;
 
+		/* compensate body frame accel for centripetal accel */
+		/* estimated g vector in body frame is (_accel - centripetal accel) */
+//		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
+
+		// earth frame magnetometer reference vector
+	//	Vector<3> magRef(0.229f, -0.006f, 0.368f);
+		// transform to body frame and normalize
+		Vector<3> magRef = quat.conjugate_inversed(Vector<3>(0.229f, -0.006f, 0.368f)).normalized();
+
+		Vector<3> mag_n = _mag.normalized();
+		Vector<3> mag_err = mag_n % magRef;
+
+		// 3D magnetometer correction in body frame
+		corr += mag_err * _w_mag * dt; // * gainMult;
+
 		for (int i=0; i<3; i++) {
 			_centrip.aE[i] = aE.data[i];
 			_centrip.centripA[i] = centripE.data[i];
 			_centrip.estG[i] = estG.data[i];
+			_centrip.mag_n[i] = mag_n.data[i];
+			_centrip.magRef[i] = magRef.data[i];
+			_centrip.mag_err[i] = mag_err.data[i];
 		}
 
 		/* compensate body frame accel for centripetal accel */
