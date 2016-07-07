@@ -162,6 +162,13 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH4IN		GPIO_TIM3_CH4IN_2
 #define DIRECT_INPUT_TIMER_CHANNELS	8
 
+//Added
+/* USB OTG FS
+ *
+ * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
+ */
+#define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer 8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
@@ -219,7 +226,9 @@ __BEGIN_DECLS
 extern void stm32_spiinitialize(void);
 #define board_spi_reset(ms)
 
-#define board_peripheral_reset(ms)
+extern void stm32_usbinitialize(void); //added
+
+#define board_peripheral_reset(ms);
 
 /****************************************************************************
  * Name: nsh_archinitialize

@@ -41,6 +41,7 @@ px4_add_module(
 		aerocore_timer_config.c  ##I need this, but the file does not work
 		aerocore_spi.c
 		aerocore_led.c
+		aerocore_usb.c
 	DEPENDS
 		platforms__common
 	)
