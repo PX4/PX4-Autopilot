@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,9 +33,9 @@
  ****************************************************************************/
 
 /**
- * @file tap-v1_spi.c
+ * @file tap-v1_sdio.c
  *
- * Board-specific SPI functions.
+ * Board-specific SDIOfunctions.
  */
 
 /************************************************************************************
@@ -45,10 +45,13 @@
 #include <px4_config.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <debug.h>
+#include <errno.h>
 
 #include <nuttx/spi.h>
+#include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
@@ -56,33 +59,64 @@
 #include "stm32.h"
 #include "board_config.h"
 
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
+
+/* Configuration ************************************************************/
+
+/* Debug ********************************************************************/
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lowsyslog(__VA_ARGS__)
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lowsyslog
+#  else
+#    define message printf
+#  endif
+#endif
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+static struct spi_dev_s *spi;
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_spiinitialize
+ * Name: board_sdio_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the tap-v1 board.
+ *   Called to configure SDIO.
  *
  ************************************************************************************/
 
-__EXPORT void stm32_spiinitialize(void)
+__EXPORT int board_sdio_initialize(void)
 {
-	stm32_configgpio(GPIO_SPI_CS_SDCARD);
-	stm32_configgpio(GPIO_SPI_SD_SW);
-}
+	/* Get the SPI port for the microSD slot */
 
+	spi = up_spiinitialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
-__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
-{
-	/* there can only be one device on this bus, so always select it */
-	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, !selected);
-}
+	if (!spi) {
+		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+		return -ENODEV;
+	}
 
-__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
-{
-	return !stm32_gpioread(GPIO_SPI_SD_SW);
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi);
+
+	if (result != OK) {
+		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
+		return -ENODEV;
+	}
+
+	return OK;
 }
 

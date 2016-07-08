@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file tap-v1_spi.c
+ * @file tap-v1_pwr.c
  *
  * Board-specific SPI functions.
  */
@@ -46,43 +46,122 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #include <debug.h>
 
-#include <nuttx/spi.h>
 #include <arch/board/board.h>
+#include <nuttx/arch.h>
 
 #include "up_arch.h"
-#include "chip.h"
-#include "stm32.h"
 #include "board_config.h"
+#include <stm32_pwr.h>
+
+extern void led_on(int led);
+extern void led_off(int led);
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+/************************************************************************************
+ * Private Functions
+ ************************************************************************************/
+
+static int board_button_irq(int irq, FAR void *context)
+{
+	static struct timespec time_down;
+
+	if (board_pwr_button_down()) {
+
+		led_on(BOARD_LED_RED);
+
+		clock_gettime(CLOCK_REALTIME, &time_down);
+
+	} else {
+
+		led_off(BOARD_LED_RED);
+
+		struct timespec now;
+
+		clock_gettime(CLOCK_REALTIME, &now);
+
+		uint64_t tdown_ms = time_down.tv_sec * 1000 + time_down.tv_nsec / 1000000;
+
+		uint64_t tnow_ms  = now.tv_sec * 1000 + now.tv_nsec / 1000000;
+
+		if (tdown_ms != 0 && (tnow_ms - tdown_ms) >= MS_PWR_BUTTON_DOWN) {
+
+			led_on(BOARD_LED_BLUE);
+
+			up_mdelay(750);
+			stm32_pwr_enablebkp();
+			/* XXX wow, this is evil - write a magic number into backup register zero */
+			*(uint32_t *)0x40002850 = 0xdeaddead;
+			up_mdelay(750);
+			up_systemreset();
+
+			while (1);
+		}
+	}
+
+	return OK;
+}
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_spiinitialize
+ * Name: board_pwr_init()
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the tap-v1 board.
+ *   Called to configure power control for the tap-v1 board.
+ *
+ * Input Parameters:
+ *   stage- 0 for boot, 1 for board init
  *
  ************************************************************************************/
 
-__EXPORT void stm32_spiinitialize(void)
+void board_pwr_init(int stage)
 {
-	stm32_configgpio(GPIO_SPI_CS_SDCARD);
-	stm32_configgpio(GPIO_SPI_SD_SW);
+	if (stage == 0) {
+		stm32_configgpio(POWER_ON_GPIO);
+		stm32_configgpio(KEY_AD_GPIO);
+	}
+
+	if (stage == 1) {
+		stm32_gpiosetevent(KEY_AD_GPIO, true, true, true, board_button_irq);
+	}
 }
 
+/****************************************************************************
+ * Name: board_pwr_button_down
+ *
+ * Description:
+ *   Called to Read the logical state of the active low power button.
+ *
+ ****************************************************************************/
 
-__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+bool board_pwr_button_down(void)
 {
-	/* there can only be one device on this bus, so always select it */
-	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, !selected);
+	return 0 == stm32_gpioread(KEY_AD_GPIO);
 }
 
-__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
-{
-	return !stm32_gpioread(GPIO_SPI_SD_SW);
-}
+/****************************************************************************
+ * Name: board_pwr
+ *
+ * Description:
+ *   Called to turn on or off the TAP
+ *
+ ****************************************************************************/
 
+void board_pwr(bool on_not_off)
+{
+	if (on_not_off) {
+		stm32_configgpio(POWER_ON_GPIO);
+
+	} else {
+
+		stm32_configgpio(POWER_OFF_GPIO);
+	}
+}

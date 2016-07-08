@@ -54,9 +54,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
 #include <nuttx/i2c.h>
-#include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 
 #include "stm32.h"
@@ -128,6 +126,8 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure always-on ADC pins */
 	stm32_configgpio(GPIO_ADC1_IN10);
 
+	board_pwr_init(0);
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
@@ -142,10 +142,6 @@ __EXPORT void stm32_boardinitialize(void)
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
-
-static struct spi_dev_s *spi;
-
-#include <math.h>
 
 __EXPORT int nsh_archinitialize(void)
 {
@@ -176,26 +172,18 @@ __EXPORT int nsh_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
+	board_pwr_init(1);
+
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
 
-	/* Get the SPI port for the microSD slot */
+	/* Init the microSD slot */
 
-	spi = up_spiinitialize(CONFIG_NSH_MMCSDSPIPORTNO);
-
-	if (!spi) {
-		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-		up_ledon(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* Now bind the SPI interface to the MMCSD driver */
-	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi);
+	result = board_sdio_initialize();
 
 	if (result != OK) {
-		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
