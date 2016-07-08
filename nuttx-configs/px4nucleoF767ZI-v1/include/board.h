@@ -327,10 +327,9 @@
 #define BUTTON_USER        0
 #define NUM_BUTTONS        1
 #define BUTTON_USER_BIT    (1 << BUTTON_USER)
-
 /* Alternate function pin selections ************************************************/
 
-#define GPIO_USART1_RX   GPIO_USART1_RX_1    /* PB7[CN11-21] */
+#define GPIO_USART1_RX   GPIO_USART1_RX_2    /* PB7[CN11-21] CONFLICT w/ BLUE LED*/
 #define GPIO_USART1_TX   GPIO_USART1_TX_2    /* PB6[CN12-17] */
 
 #define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6[CN11-43]  */
@@ -342,14 +341,16 @@
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8[CN12-10]  */
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2  /* PD12[CN12-43] */
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_2  /* PD11[CN12-45] */
+#if !defined(CONFIG_STM32F7_CAN1) && defined(CONFIG_STM32F7_UART4)
+#  define GPIO_UART4_RX    GPIO_UART4_RX_4    /* PD0[CN11-57]  */
+#  define GPIO_UART4_TX    GPIO_UART4_TX_4    /* PD1[CN11-55]  */
+#endif
+#define GPIO_USART6_RX   GPIO_USART6_RX_2   /* PG9[CN11-63]  */
+#define GPIO_USART6_TX   GPIO_USART6_TX_2   /* PG14[CN12-61] */
+#define GPIO_USART6_RTS  GPIO_USART6_RTS_2  /* PG8[CN12-66]  */
+#define GPIO_USART6_CTT  GPIO_USART6_CTS_2  /* PG15[CN11-64  */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_1    /* PA1[CN11-30]  */
-#define GPIO_UART4_TX    GPIO_UART4_TX_1    /* PA0[CN11-28]  */
-
-#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7[CN12-19]  */
-#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6[CN12-4]   */
-
-#define GPIO_UART7_RX    GPIO_UART7_RX_1    /* PE7[CN12-44]  */
+#define GPIO_UART7_RX    GPIO_UART7_RX_2    /* PF6[CN11-9]  */
 #define GPIO_UART7_TX    GPIO_UART7_TX_1    /* PE8[CN12-40]  */
 
 /* USART8:
@@ -375,41 +376,53 @@
  * CAN2 is routed to the Morpho connector.
  * CAN3 is routed to the Morpho connector.
  */
-
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0[CN11-57]  */
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1[CN11-55]  */
+/* The 144 pin package is conflicted with UART4 */
+#if defined(CONFIG_STM32F7_CAN1) && !defined(CONFIG_STM32F7_UART4)
+#  define GPIO_CAN1_RX     GPIO_CAN1_RX_3   /* PD0[CN11-57]  */
+#  define GPIO_CAN1_TX     GPIO_CAN1_TX_3   /* PD1[CN11-55]  */
+#endif
 #define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12[CN12-16] */
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13[CN12-30] */
 #define GPIO_CAN3_RX     GPIO_CAN3_RX_1     /* PA8[CN12-23]  */
-#define GPIO_CAN3_TX     GPIO_CAN3_TX_2     /* PB4[CN12-27]  */
+#define GPIO_CAN3_TX     GPIO_CAN3_TX_1     /* PA15[CN11-17] */
+
+#if defined(CONFIG_STM32F7_CAN1) && defined(CONFIG_STM32F7_UART4)
+#warning "On The 144 pin package CAN1 is conflicted with UART4!"
+#endif
 
 /* SPI
- *
- * There are sensors on SPI1, and SPI2 is connected to the FRAM.
- * SPI5 and SPI5 Reserved
+ * N.B. 144 pinout limits access to SPI 2
+ * There are sensors on SPI1, and SPI4 is connected to the FRAM.
+ * BARO is on SPI5 for isolation.
+ * SPI6 Reserved
  *
  */
 
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6[CN12-13]  */
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1   /* PA7[CN12-15]  */
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1    /* PA5[CN12-11]  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3   /* PD7[CN11-45]  */
+#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_3    /* PG11[CN11-79s] */
 
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1   /* PB14[CN12-28] */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1   /* PB15[CN12-26] */
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_2    /* PB10[CN12-25] */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE13[CN12-55]  */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1   /* PE6[CN11-62]  */
+#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_1    /* PE2[CN11-46]  */
 
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1   /* PF8[CN11-54]  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1   /* PF9[CN11-56]  */
 #define GPIO_SPI5_SCK    GPIO_SPI5_SCK_1    /* PF7[CN11-11]  */
 
 #define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1   /* PG12[CN11-65] */
-#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1   /* PG14[CN12-61] */
+#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_3   /* PB5[CN12-29] */
 #define GPIO_SPI6_SCK    GPIO_SPI6_SCK_1    /* PG13[CN11-68] */
 
 /* I2C
  *
- *   Need to verify that PF0 and PF1 can be used on Morpho
+ *   Each I2C is associated with a U[S]ART
+ *   hence the naming I2C2_SDA_UART4 in FMU USAGE spreadsheet
+ *
+ *   PF1 can not be used on Morpho connector without SB mods.
  *   see PH1/PF1, SP148, SB163 On schematic
+ *
+ *   I2C3 is not pined out on FMUv5 on 144 pin packages
  *
  *   The optional _GPIO configurations allow the I2C driver to manually
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
@@ -434,7 +447,10 @@
                                              GPIO_PORTB      | \
                                              GPIO_PIN9)
 
-//TODO:#warning "Check PF0 and PF1 make it to Morpho connector"
+/* PF1 can not be used on Morpho connector without SB mods. */
+#if defined(CONFIG_STM32F7_I2C2)
+#  warning "PF1 can not be used on Morpho connector without SB mods."
+#endif
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1[CN11-51]  */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0[CN11-53]  */
 
@@ -452,14 +468,34 @@
                                              GPIO_PORTF      | \
                                              GPIO_PIN0)
 
+#define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14[CN12-50] */
+#define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15[CN12-60] */
+
+#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT     | \
+                                             GPIO_OPENDRAIN  | \
+                                             GPIO_SPEED_50MHz| \
+                                             GPIO_OUTPUT_SET | \
+                                             GPIO_PORTF      | \
+                                             GPIO_PIN14)
+
+#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT     | \
+                                             GPIO_OPENDRAIN  | \
+                                             GPIO_SPEED_50MHz| \
+                                             GPIO_OUTPUT_SET | \
+                                             GPIO_PORTF      | \
+                                             GPIO_PIN14)
+
 /* SDMMC1
  *
- *      SDIO_CK                             PC12[CN11-3]
- *      SDIO_CMD                            PD2[CN11-4]
- *      SDIO_D0                             PC8[CN12-2]
- *      SDIO_D1                             PC9[CN12-1]
- *      SDIO_D2                             PC10[CN11-1]
- *      SDIO_D3                             PC11[CN11-2]
+ *      VDD 3.3                             [CN11-5]
+ *      GND                                 [CN11-8]
+ *      SDMMC1_CK                           PC12[CN11-3]
+ *      SDMMC1_CMD                          PD2[CN11-4]
+ *      SDMMC1_D0                           PC8[CN12-2]
+ *      SDMMC1_D1                           PC9[CN12-1]
+ *      SDMMC1_D2                           PC10[CN11-1]
+ *      SDMMC1_D3                           PC11[CN11-2]
+ *      GPIO_SDMMC1_NCD                     PG0[CN11-69]
  */
 
 /* USB
