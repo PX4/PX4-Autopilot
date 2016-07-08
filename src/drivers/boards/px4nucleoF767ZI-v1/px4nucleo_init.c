@@ -226,9 +226,6 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -416,67 +413,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-	/* Configure SPI-based devices */
-
-	spi1 = stm32_spibus_initialize(1);
-
-	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
-		board_autoled_on(LED_RED);
-		return -ENODEV;
-	}
-
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
-	up_udelay(20);
-
-	/* Get the SPI port for the FRAM */
-
-	spi2 = stm32_spibus_initialize(2);
-
-	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\n");
-		board_autoled_on(LED_RED);
-		return -ENODEV;
-	}
-
-	/* Default SPI2 to 12MHz and de-assert the known chip selects.
-	 * MS5611 has max SPI clock speed of 20MHz
-	 */
-
-	// XXX start with 10.4 MHz and go up to 20 once validated
-	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, SPIDEV_FLASH, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
-
-#ifdef CONFIG_MMCSD
-	/* First, get an instance of the SDIO interface */
-
-	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
-
-	if (!sdio) {
-		message("[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
-		return -ENODEV;
-	}
-
-	/* Now bind the SDIO interface to the MMC/SD driver */
-	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+#ifdef CONFIG_SPI
+	int ret = stm32_spi_bus_initialize();
 
 	if (ret != OK) {
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		board_autoled_on(LED_RED);
 		return ret;
 	}
 
-	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
-	sdio_mediachange(sdio, true);
+#endif
+
+#ifdef CONFIG_MMCSD
+	ret = stm32_sdio_initialize();
+
+	if (ret != OK) {
+		board_autoled_on(LED_RED);
+		return ret;
+	}
 
 #endif
 
