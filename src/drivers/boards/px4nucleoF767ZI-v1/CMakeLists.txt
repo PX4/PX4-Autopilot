@@ -39,6 +39,7 @@ px4_add_module(
 		../common/board_dma_alloc.c
 #		WIP px4nucleo_can.c
 		px4nucleo_init.c
+		px4nucleo_sdio.c
 		px4nucleo_timer_config.c
 		px4nucleo_spi.c
 		px4nucleo_usb.c
