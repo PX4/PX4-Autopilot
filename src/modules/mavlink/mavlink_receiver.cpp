@@ -683,7 +683,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	// Use the component ID to identify the mocap system
 	att_pos_mocap.id = msg->compid;
 
-	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	att_pos_mocap.timestamp_boot = sync_stamp(mocap.time_usec);
 	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
 
 	att_pos_mocap.q[0] = mocap.q[0];
@@ -963,7 +963,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	vision_position.timestamp_boot = sync_stamp(pos.usec);
 	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
