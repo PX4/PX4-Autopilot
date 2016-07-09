@@ -54,6 +54,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/px4_macros.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/stm32/drv_io_timer.h>
@@ -61,7 +62,7 @@
 
 #include <board_config.h>
 
-
+#if defined(BOARD_HAS_LED_PWM)
 #define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))
 
 #define rCR1(_tmr)      REG(_tmr, STM32_GTIM_CR1_OFFSET)
@@ -96,103 +97,41 @@ void led_pwm_servo_arm(bool armed);
 unsigned led_pwm_timer_get_period(unsigned timer);
 
 
-const struct io_timers_t led_pwm_timers[3] = {
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN,
-		.vectorno =  STM32_IRQ_TIM3,
-		.first_channel_index = 4,
-		.last_channel_index = 7,
-		.handler = io_timer_handler0,
-	},
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN,
-		.vectorno =  STM32_IRQ_TIM3,
-		.first_channel_index = 4,
-		.last_channel_index = 7,
-		.handler = io_timer_handler1,
-	},
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN,
-		.vectorno =  STM32_IRQ_TIM3,
-		.first_channel_index = 4,
-		.last_channel_index = 7,
-		.handler = io_timer_handler2,
-	}
-};
-
-#define LED_TIM3_CH3OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN0)
-#define LED_TIM3_CH2OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN7)
-#define LED_TIM3_CH4OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN1)
-#define LED_TIM3_CH3IN  (GPIO_INPUT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN0)
-#define LED_TIM3_CH2IN  (GPIO_INPUT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN7)
-#define LED_TIM3_CH4IN  (GPIO_INPUT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN1)
-
-const struct timer_io_channels_t led_pwm_channels[3] = {
-	{
-		.gpio_out = LED_TIM3_CH3OUT,
-		.gpio_in  = LED_TIM3_CH3IN,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.masks	= GTIM_SR_CC3IF | GTIM_SR_CC3OF,
-		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
-	},
-	{
-		.gpio_out = LED_TIM3_CH2OUT,
-		.gpio_in  = LED_TIM3_CH2IN,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.masks	= GTIM_SR_CC2IF | GTIM_SR_CC2OF,
-		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
-	},
-	{
-		.gpio_out = LED_TIM3_CH4OUT,
-		.gpio_in  = LED_TIM3_CH4IN,
-		.timer_index = 2,
-		.timer_channel = 4,
-		.masks	= GTIM_SR_CC4IF | GTIM_SR_CC4OF,
-		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
-	}
-};
-
-
 static void
 led_pwm_timer_init(unsigned timer)
 {
-	/* enable the timer clock before we try to talk to it */
-	modifyreg32(led_pwm_timers[timer].clock_register, 0, led_pwm_timers[timer].clock_bit);
+	/* valid Timer */
 
-	/* disable and configure the timer */
-	rCR1(timer) = 0;
-	rCR2(timer) = 0;
-	rSMCR(timer) = 0;
-	rDIER(timer) = 0;
-	rCCER(timer) = 0;
-	rCCMR1(timer) = 0;
-	rCCMR2(timer) = 0;
-	rCCER(timer) = 0;
-	rDCR(timer) = 0;
+	if (led_pwm_timers[timer].base != 0) {
 
-	if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
-		/* master output enable = on */
-		rBDTR(timer) = ATIM_BDTR_MOE;
+		/* enable the timer clock before we try to talk to it */
+
+		modifyreg32(led_pwm_timers[timer].clock_register, 0, led_pwm_timers[timer].clock_bit);
+
+		/* disable and configure the timer */
+		rCR1(timer) = 0;
+		rCR2(timer) = 0;
+		rSMCR(timer) = 0;
+		rDIER(timer) = 0;
+		rCCER(timer) = 0;
+		rCCMR1(timer) = 0;
+		rCCMR2(timer) = 0;
+		rCCER(timer) = 0;
+		rDCR(timer) = 0;
+
+		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
+			/* master output enable = on */
+			rBDTR(timer) = ATIM_BDTR_MOE;
+		}
+
+		/* configure the timer to free-run at 1MHz */
+		rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
+
+		/* default to updating at 50Hz */
+		led_pwm_timer_set_rate(timer, 50);
+
+		/* note that the timer is left disabled - arming is performed separately */
 	}
-
-	/* configure the timer to free-run at 1MHz */
-	rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
-
-	/* default to updating at 50Hz */
-	led_pwm_timer_set_rate(timer, 50);
-
-	/* note that the timer is left disabled - arming is performed separately */
 }
 unsigned
 led_pwm_timer_get_period(unsigned timer)
@@ -216,31 +155,28 @@ led_pwm_channel_init(unsigned channel)
 	unsigned timer = led_pwm_channels[channel].timer_index;
 
 	/* configure the GPIO first */
+
 	px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
 	/* configure the channel */
 	switch (led_pwm_channels[channel].timer_channel) {
 	case 1:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		//rCCR1(timer) = led_pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC1E;
 		break;
 
 	case 2:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		//rCCR2(timer) = led_pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC2E;
 		break;
 
 	case 3:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		//rCCR3(timer) = led_pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC3E;
 		break;
 
 	case 4:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		//rCCR4(timer) = led_pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC4E;
 		break;
 	}
@@ -249,7 +185,7 @@ led_pwm_channel_init(unsigned channel)
 int
 led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 {
-	if (channel >= 3) {
+	if (channel >= arraySize(led_pwm_channels)) {
 		return -1;
 	}
 
@@ -263,7 +199,11 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	unsigned period = led_pwm_timer_get_period(timer);
 
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
 	unsigned value = period - (unsigned)cvalue * period / 255;
+#else
+	unsigned value = (unsigned)cvalue * period / 255;
+#endif
 
 	/* configure the channel */
 	if (value > 0) {
@@ -336,12 +276,12 @@ int
 led_pwm_servo_init(void)
 {
 	/* do basic timer initialisation first */
-	for (unsigned i = 0; i < 3; i++) {
+	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 		led_pwm_timer_init(i);
 	}
 
 	/* now init channels */
-	for (unsigned i = 0; i < 3; i++) {
+	for (unsigned i = 0; i < arraySize(led_pwm_channels); i++) {
 		led_pwm_channel_init(i);
 	}
 
@@ -359,7 +299,7 @@ void
 led_pwm_servo_arm(bool armed)
 {
 	/* iterate timers and arm/disarm appropriately */
-	for (unsigned i = 0; i < 3; i++) {
+	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 		if (led_pwm_timers[i].base != 0) {
 			if (armed) {
 				/* force an update to preload all registers */
@@ -369,14 +309,10 @@ led_pwm_servo_arm(bool armed)
 				rCR1(i) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
 
 			} else {
-				// XXX This leads to FMU PWM being still active
-				// but uncontrollable. Just disable the timer
-				// and risk a runt.
-				///* on disarm, just stop auto-reload so we don't generate runts */
-				//rCR1(i) &= ~GTIM_CR1_ARPE;
 				rCR1(i) = 0;
 			}
 		}
 	}
 }
 
+#endif // BOARD_HAS_LED_PWM
