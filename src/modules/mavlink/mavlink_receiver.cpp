@@ -2177,8 +2177,9 @@ void MavlinkReceiver::print_status()
 
 uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 {
-	if (_time_offset > 0) {
-		return usec - (_time_offset / 1000) ;
+
+	if (_time_offset != 0) {
+		return usec + (_time_offset / 1000) ;
 
 	} else {
 		return hrt_absolute_time();
