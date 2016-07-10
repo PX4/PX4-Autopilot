@@ -787,6 +787,7 @@ function(px4_add_common_flags)
 	string(REPLACE "-" "_" board_config ${board_upper})
 	set(added_definitions
 		-DCONFIG_ARCH_BOARD_${board_config}
+		-D__STDC_FORMAT_MACROS
 		)
 
 	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
