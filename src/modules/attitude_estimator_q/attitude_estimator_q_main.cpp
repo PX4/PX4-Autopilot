@@ -401,10 +401,10 @@ void AttitudeEstimatorQ::task_main()
 
 		// Check for timeouts on data
 		if (_ext_hdg_mode == 1) {
-			_ext_hdg_good = _vision.timestamp_boot > 0 && (hrt_elapsed_time(&_vision.timestamp_boot) < 500000);
+			_ext_hdg_good = _vision.timestamp > 0 && (hrt_elapsed_time(&_vision.timestamp) < 500000);
 
 		} else if (_ext_hdg_mode == 2) {
-			_ext_hdg_good = _mocap.timestamp_boot > 0 && (hrt_elapsed_time(&_mocap.timestamp_boot) < 500000);
+			_ext_hdg_good = _mocap.timestamp > 0 && (hrt_elapsed_time(&_mocap.timestamp) < 500000);
 		}
 
 		bool gpos_updated;
