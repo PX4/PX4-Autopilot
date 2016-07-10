@@ -533,18 +533,18 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	if (!(m_pub_blocked)) {
 
 		if (_gyro_topic == nullptr) {
-      _gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
-                &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
-    }
-    else {
+			_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
+							  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
+
+		} else {
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
 		}
 
 		if (_accel_topic == nullptr) {
-      _accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
-                &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
-    }
-    else {
+			_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
+							   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
+
+		} else {
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
 
