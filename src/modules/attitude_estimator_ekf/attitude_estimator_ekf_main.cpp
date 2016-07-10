@@ -499,7 +499,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						orb_copy(ORB_ID(att_pos_mocap), mocap_sub, &mocap);
 					}
 
-					if (mocap.timestamp_boot > 0 && (hrt_elapsed_time(&mocap.timestamp_boot) < 500000)) {
+					if (mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000)) {
 
 						math::Quaternion q(mocap.q);
 						math::Matrix<3, 3> Rmoc = q.to_dcm();
@@ -511,7 +511,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
-					}else if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
+					} else if (vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000)) {
 
 						math::Quaternion q(vision.q);
 						math::Matrix<3, 3> Rvis = q.to_dcm();
