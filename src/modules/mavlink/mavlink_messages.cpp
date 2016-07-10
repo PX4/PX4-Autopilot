@@ -1459,7 +1459,7 @@ protected:
 
         if (_pos_sub->update(&_pos_time, &vpos)) {
             mavlink_vision_position_estimate_t vmsg;
-            vmsg.usec = vpos.timestamp_boot;
+            vmsg.usec = vpos.timestamp;
             vmsg.x = vpos.x;
             vmsg.y = vpos.y;
             vmsg.z = vpos.z;

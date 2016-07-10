@@ -957,14 +957,13 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate_s vision_position;
-	memset(&vision_position, 0, sizeof(vision_position));
+	struct vision_position_estimate_s vision_position = {};
 
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = sync_stamp(pos.usec);
-	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
+	vision_position.timestamp = sync_stamp(pos.usec);
+	vision_position.timestamp_received = hrt_absolute_time();
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
