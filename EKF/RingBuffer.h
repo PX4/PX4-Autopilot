@@ -37,7 +37,6 @@
  * Template RingBuffer.
  */
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <cstdio>
 #include <cstring>

@@ -40,7 +40,6 @@
  * @author Siddharth B Purohit <siddharthbharatpurohit@gmail.com>
  */
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <math.h>
 #include "../ecl.h"
