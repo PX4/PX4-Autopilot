@@ -769,8 +769,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					static hrt_abstime last_vision_time = 0;
 
-					float vision_dt = (vision.timestamp_boot - last_vision_time) / 1e6f;
-					last_vision_time = vision.timestamp_boot;
+					float vision_dt = (vision.timestamp - last_vision_time) / 1e6f;
+					last_vision_time = vision.timestamp;
 
 					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
 						vision.vx = (vision.x - last_vision_x) / vision_dt;
@@ -951,14 +951,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (vision.timestamp_boot + vision_topic_timeout))) {
+		if (vision_valid && (t > (vision.timestamp + vision_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] VISION timeout");
 		}
 
 		/* check for timeout on mocap topic */
-		if (mocap_valid && (t > (mocap.timestamp_boot + mocap_topic_timeout))) {
+		if (mocap_valid && (t > (mocap.timestamp + mocap_topic_timeout))) {
 			mocap_valid = false;
 			warnx("MOCAP timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP timeout");
