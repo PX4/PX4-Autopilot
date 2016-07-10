@@ -23,7 +23,11 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
+<<<<<<< c4eb65862f307de4b679e24f44fab0c565d7c2a3
 	platforms/posix/drivers/df_mpu6050_wrapper
+=======
+	platforms/posix/drivers/df_ak8963_wrapper
+>>>>>>> Add DF wrapper for AK8963
 
 	#
 	# System commands
