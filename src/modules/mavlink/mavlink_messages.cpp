@@ -1219,7 +1219,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_pos_time > 0) ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1292,7 +1292,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_trigger_time > 0) ? MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1435,7 +1435,7 @@ public:
 
     unsigned get_size()
     {
-        return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+        return (_pos_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
     }
 private:
 
@@ -2674,7 +2674,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_debug_time > 0) ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2739,7 +2739,8 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_fw_pos_ctrl_status_sub->is_published()) ?
+				MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3068,7 +3069,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_local_pos_time > 0) ? MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3147,7 +3148,7 @@ public:
 
 	static const char *get_name_static()
 	{
-		return "WIND";
+		return "WIND_COV";
 	}
 
 	static uint8_t get_id_static()
@@ -3167,7 +3168,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_wind_estimate_time > 0) ? MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
