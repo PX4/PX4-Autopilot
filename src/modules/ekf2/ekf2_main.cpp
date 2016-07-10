@@ -608,8 +608,8 @@ void Ekf2::task_main()
 				ev_data.angErr = _default_ev_ang_noise;
 			}
 
-			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
-			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
+			// use timestamp from external computer, clocks are synchronized when using MAVROS
+			_ekf.setExtVisionData(ev.timestamp, &ev_data);
 		}
 
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
@@ -979,7 +979,7 @@ void Ekf2::task_main()
 			}
 
 			if (vision_position_updated) {
-				replay.ev_timestamp = ev.timestamp_computer;
+				replay.ev_timestamp = ev.timestamp;
 				replay.pos_ev[0] = ev.x;
 				replay.pos_ev[1] = ev.y;
 				replay.pos_ev[2] = ev.z;
