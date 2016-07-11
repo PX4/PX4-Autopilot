@@ -42,7 +42,7 @@
 #include <stdint.h>
 
 #include <stm32.h>
-#include <stm32_gpio.h>  
+#include <stm32_gpio.h>
 #include <stm32_tim.h>
 
 #include <drivers/stm32/drv_io_timer.h>
