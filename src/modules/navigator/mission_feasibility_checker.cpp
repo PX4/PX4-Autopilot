@@ -361,25 +361,8 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		for (unsigned i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i,
 					&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
-                                /* Check non navigation item */
-                                if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
-                                        /* check actuator number */
-                                        if (mission_item.params[0] < 1 || mission_item.params[0] > 6) {
-                                                mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 1..6", (int)mission_item.params[0]);
-                                                warning_issued = true;
-                                                return false;
-                                        }
-                                        /* check actuator value */
-                                        if (mission_item.params[1] < -2000 || mission_item.params[1] > 2000) {
-                                                mavlink_log_critical(_mavlink_log_pub, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.params[1]);
-                                                warning_issued = true;
-                                                return false;
-                                        }
-                                }
-                                /* check only items with valid lat/lon */
-                                else if (isPositionCommand(mission_item.nav_cmd)) {
-
-					/* check distance from current position to item */
+                                if (isPositionCommand(mission_item.nav_cmd)) {
+                                        /* check distance from current position to item */
 					float dist_to_1wp = get_distance_to_next_waypoint(
 							mission_item.lat, mission_item.lon, curr_lat, curr_lon);
 
