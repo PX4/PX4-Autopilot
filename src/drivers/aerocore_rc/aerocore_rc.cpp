@@ -113,15 +113,15 @@ protected:
 	unsigned		_measure_ticks;
 	unsigned		_max_rc_input;
 
-    unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
-    uint64_t		_rc_last_valid;		///< last valid timestamp
+	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
+	uint64_t		_rc_last_valid;		///< last valid timestamp
 
 	ringbuffer::RingBuffer		*_reports;
 
-uint16_t		_status;		///< Various IO status flags
+	uint16_t		_status;		///< Various IO status flags
 
-    orb_advert_t		_rc_topic;
-    orb_advert_t        _to_input_rc;
+	orb_advert_t		_rc_topic;
+	orb_advert_t        _to_input_rc;
 
 	int			_class_instance;
 	int			_mavlink_fd;
@@ -187,11 +187,11 @@ AeroCoreIO::AeroCoreIO() :
 	CDev("AeroCoreIO", AEROCOREIO_RC_DEVICE_PATH),
 	_measure_ticks(0),
 	_max_rc_input(0),
-    	_rc_chan_count(0),
-   	 _rc_last_valid(0),
+	_rc_chan_count(0),
+	_rc_last_valid(0),
 	_reports(nullptr),
 	_status(0),
-   	_rc_topic(nullptr), //changed from -1 
+	_rc_topic(nullptr), //changed from -1
 	_to_input_rc(nullptr), //changed from -1
 	_class_instance(-1),
 	_mavlink_fd(-1),
@@ -210,12 +210,14 @@ AeroCoreIO::~AeroCoreIO()
 	/* make sure we are truly inactive */
 	stop_cycle();
 
-	if (_class_instance != -1)
+	if (_class_instance != -1) {
 		unregister_class_devname(AEROCOREIO_RC_DEVICE_PATH, _class_instance);
+	}
 
 	/* free any existing reports */
-	if (_reports != nullptr)
+	if (_reports != nullptr) {
 		delete _reports;
+	}
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -230,11 +232,12 @@ AeroCoreIO::init()
 {
 	int ret;
 
-	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);	
+	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	_max_rc_input = PX4IO_RC_INPUT_CHANNELS;
 
 	ret = CDev::init();
+
 	if (ret != OK) {
 		debug("CDev init failed");
 		goto out;
@@ -245,6 +248,7 @@ AeroCoreIO::init()
 
 	// publish the RC config values to the register
 	ret = io_set_rc_config();
+
 	if (ret != OK) {
 		log("failed to update RC input config");
 		mavlink_log_info(_mavlink_fd, "[IO] RC config upload fail");
@@ -262,14 +266,16 @@ AeroCoreIO::io_set_rc_config()
 	int input_map[_max_rc_input];
 	int32_t ichan;
 	int ret = OK;
+
 	/*
 	* Generate the input channel -> control channel mapping table;
 	* assign RC_MAP_ROLL/PITCH/YAW/THROTTLE to the canonical
 	* controls.
 	*/
 	/* fill the mapping with an error condition triggering value */
-	for (unsigned i = 0; i < _max_rc_input; i++)
+	for (unsigned i = 0; i < _max_rc_input; i++) {
 		input_map[i] = UINT8_MAX;
+	}
 
 	/*
 	* NOTE: The indices for mapped channels are 1-based
@@ -278,35 +284,47 @@ AeroCoreIO::io_set_rc_config()
 	*/
 	/* ROLL */
 	param_get(param_find("RC_MAP_ROLL"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 0;
 	}
+
 	/* PITCH */
 	param_get(param_find("RC_MAP_PITCH"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 1;
 	}
+
 	/* YAW */
 	param_get(param_find("RC_MAP_YAW"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 2;
 	}
+
 	/* THROTTLE */
 	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 3;
 	}
+
 	/* FLAPS */
 	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 4;
 	}
+
 	/* MAIN MODE SWITCH */
 	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
+
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		/* use out of normal bounds index to indicate special channel */
 		input_map[ichan - 1] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
 	}
+
 	/*
 	* Iterate all possible RC inputs.
 	*/
@@ -338,6 +356,7 @@ AeroCoreIO::io_set_rc_config()
 		regs[PX4IO_P_RC_CONFIG_OPTIONS] = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 		sprintf(pname, "RC%d_REV", i + 1);
 		param_get(param_find(pname), &fval);
+
 		/*
 		* This has been taken for the sake of compatibility
 		* with APM's setup / mission planner: normal: 1,
@@ -346,119 +365,127 @@ AeroCoreIO::io_set_rc_config()
 		if (fval < 0) {
 			regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
 		}
+
 		/* send channel config to IO */
 		memcpy(&r_page_rc_input_config[offset], &regs, sizeof(uint16_t) * PX4IO_P_RC_CONFIG_STRIDE);
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
+
 	return ret;
 }
 
 int
 AeroCoreIO::io_get_raw_rc_input(rc_input_values &input_rc)
 {
-    uint32_t channel_count;
-    int	ret = 0;
+	uint32_t channel_count;
+	int	ret = 0;
 
-    /* we don't have the status bits, so input_source has to be set elsewhere */
-    input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
+	/* we don't have the status bits, so input_source has to be set elsewhere */
+	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-    static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
-    uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
+	static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
-    /*
-     * Read the channel count and the first 9 channels.
-     *
-     * This should be the common case (9 channel R/C control being a reasonable upper bound).
-     */
-    input_rc.timestamp_publication = hrt_absolute_time();
+	/*
+	 * Read the channel count and the first 9 channels.
+	 *
+	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 */
+	input_rc.timestamp_publication = hrt_absolute_time();
 
-    memcpy(&regs[0], &r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT], 2 * (prolog + 9)); // get the count, start there, get the all the values inbetween BASE and COUNT and then 9 more
+	memcpy(&regs[0], &r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT],
+	       2 * (prolog + 9)); // get the count, start there, get the all the values inbetween BASE and COUNT and then 9 more
 
-    if (ret != OK)
-        return ret;
+	if (ret != OK) {
+		return ret;
+	}
 
-    /*
-     * Get the channel count any any extra channels. This is no more expensive than reading the
-     * channel count once.
-     */
-    channel_count = regs[PX4IO_P_RAW_RC_COUNT];
+	/*
+	 * Get the channel count any any extra channels. This is no more expensive than reading the
+	 * channel count once.
+	 */
+	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 
-    if (channel_count != _rc_chan_count)
-        perf_count(_perf_chan_count);
+	if (channel_count != _rc_chan_count) {
+		perf_count(_perf_chan_count);
+	}
 
-    _rc_chan_count = channel_count;
+	_rc_chan_count = channel_count;
 
-    input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
-    input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
-    input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-    input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
-    input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
+	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
+	input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
+	input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
+	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
 
-    /* rc_lost has to be set before the call to this function */
-    if (!input_rc.rc_lost && !input_rc.rc_failsafe)
-        _rc_last_valid = input_rc.timestamp_publication;
+	/* rc_lost has to be set before the call to this function */
+	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
+		_rc_last_valid = input_rc.timestamp_publication;
+	}
 
-    input_rc.timestamp_last_signal = _rc_last_valid;
+	input_rc.timestamp_last_signal = _rc_last_valid;
 
-    if (channel_count > 9) {
-	memcpy(&regs[prolog + 9], &r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE + 9], 2 * (channel_count - 9));
+	if (channel_count > 9) {
+		memcpy(&regs[prolog + 9], &r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE + 9], 2 * (channel_count - 9));
 
-        if (ret != OK)
-            return ret;
-    }
+		if (ret != OK) {
+			return ret;
+		}
+	}
 
-    input_rc.channel_count = channel_count;
-    memcpy(input_rc.values, &regs[prolog], channel_count * 2);
+	input_rc.channel_count = channel_count;
+	memcpy(input_rc.values, &regs[prolog], channel_count * 2);
 
-    return ret;
+	return ret;
 }
 
 int
 AeroCoreIO::io_publish_raw_rc()
 {
 
-    /* fetch values from IO */
-    rc_input_values	rc_val;
+	/* fetch values from IO */
+	rc_input_values	rc_val;
 
 	uint16_t status = r_status_flags;
 
-    /* set the RC status flag ORDER MATTERS! */
-    rc_val.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
+	/* set the RC status flag ORDER MATTERS! */
+	rc_val.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
 
-    int ret = io_get_raw_rc_input(rc_val);
+	int ret = io_get_raw_rc_input(rc_val);
 
-    if (ret != OK)
-        return ret;
+	if (ret != OK) {
+		return ret;
+	}
 
-    /* sort out the source of the values */
-    if (status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-        rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
+	/* sort out the source of the values */
+	if (status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
+		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
 
-    } else if (status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-        rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+	} else if (status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
+		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
-    } else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-        rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
+	} else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
+		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
 
-    } else {
-        rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+	} else {
+		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-        /* only keep publishing RC input if we ever got a valid input */
-        if (_rc_last_valid == 0) {
-            /* we have never seen valid RC signals, abort */
-            return OK;
-        }
-    }
+		/* only keep publishing RC input if we ever got a valid input */
+		if (_rc_last_valid == 0) {
+			/* we have never seen valid RC signals, abort */
+			return OK;
+		}
+	}
 
-    /* lazily advertise on first publication */
-    if (_to_input_rc <= 0) {
-        _to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
+	/* lazily advertise on first publication */
+	if (_to_input_rc <= 0) {
+		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
 
-    } else {
-        orb_publish(ORB_ID(input_rc), _to_input_rc, &rc_val);
-    }
+	} else {
+		orb_publish(ORB_ID(input_rc), _to_input_rc, &rc_val);
+	}
 
-    return OK;
+	return OK;
 }
 
 ssize_t
@@ -476,20 +503,20 @@ AeroCoreIO::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop_cycle();
 				_measure_ticks = 0;
 				return OK;
 
-				/* external signalling not supported */
+			/* external signalling not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
@@ -499,13 +526,14 @@ AeroCoreIO::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_measure_ticks = USEC2TICK(AEROCOREIO_RC_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start_cycle();
+					}
 
 					return OK;
 				}
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -514,15 +542,17 @@ AeroCoreIO::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(AEROCOREIO_RC_CONVERSION_INTERVAL))
+					if (ticks < USEC2TICK(AEROCOREIO_RC_CONVERSION_INTERVAL)) {
 						return -EINVAL;
+					}
 
 					/* update interval for next measurement */
 					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start_cycle();
+					}
 
 					return OK;
 				}
@@ -530,24 +560,28 @@ AeroCoreIO::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0)
+		if (_measure_ticks == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = irqsave();
-		if (!_reports->resize(arg)) {
+			irqstate_t flags = irqsave();
+
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
 			irqrestore(flags);
-			return -ENOMEM;
+			return OK;
 		}
-		irqrestore(flags);		
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
@@ -641,18 +675,24 @@ start()
 
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
+	{
 		errx(0, "already started");
+	}
 
 	g_dev = new AeroCoreIO();
+
 	if (g_dev == nullptr) {
 		//delete interface;
 		errx(1, "failed to allocate driver");
 	}
-	if (g_dev->init() != OK)
+
+	if (g_dev->init() != OK) {
 		goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(AEROCOREIO_RC_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0) {
 		warnx("can't open baro device");
 		goto fail;
@@ -685,8 +725,9 @@ test()
 {
 	int fd = open(AEROCOREIO_RC_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "%s open failed (try 'aerocore_io start' if the driver is not running)", AEROCOREIO_RC_DEVICE_PATH);
+	}
 
 	errx(0, "PASS");
 }
@@ -699,14 +740,17 @@ reset()
 {
 	int fd = open(AEROCOREIO_RC_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
 	exit(0);
 }
@@ -717,8 +761,9 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
@@ -742,20 +787,23 @@ aerocore_rc_main(int argc, char *argv[])
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(argv[1], "test")) {
 		aerocore_rc::test();
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(argv[1], "reset")) {
 		aerocore_rc::reset();
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(argv[1], "info")) {
 		aerocore_rc::info();
+	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }

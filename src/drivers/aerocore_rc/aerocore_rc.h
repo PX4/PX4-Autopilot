@@ -126,14 +126,14 @@ enum {							/* DSM bind states */
 	dsm_bind_send_pulses,
 	dsm_bind_reinit_uart
 };
-			/* 8 */
+/* 8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 #define PX4IO_P_SETUP_REBOOT_BL			10	/* reboot IO into bootloader */
 #define PX4IO_REBOOT_BL_MAGIC			14662	/* required argument for reboot (random) */
 
 #define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
-						/* 12 occupied by CRC */
+/* 12 occupied by CRC */
 #define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
 
 # define POWER_SPEKTRUM(_s) stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
@@ -192,7 +192,8 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
+			   uint16_t max_channels);
 extern void	sbus1_output(uint16_t *values, uint16_t num_values);
 extern void	sbus2_output(uint16_t *values, uint16_t num_values);
 #ifdef __cplusplus

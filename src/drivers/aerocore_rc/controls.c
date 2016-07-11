@@ -81,7 +81,8 @@ controls_init(void)
 }
 
 void
-controls_tick() {
+controls_tick()
+{
 
 	/*
 	 * Gather R/C control inputs from supported sources.
@@ -95,8 +96,10 @@ controls_tick() {
 	uint16_t rssi = 0;
 
 #ifdef ADC_RSSI
+
 	if (r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) {
 		unsigned counts = adc_measure(ADC_RSSI);
+
 		if (counts != 0xffff) {
 			/* use 1:1 scaling on 3.3V ADC input */
 			unsigned mV = counts * 3300 / 4096;
@@ -105,20 +108,25 @@ controls_tick() {
 			rssi = mV / 13;
 		}
 	}
+
 #endif
 
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 
 	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
+
 	if (dsm_updated) {
 		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_raw_rc_count = temp_count & 0x7fff;
-		if (temp_count & 0x8000)
+
+		if (temp_count & 0x8000) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-		else
+
+		} else {
 			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+		}
 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
@@ -134,10 +142,11 @@ controls_tick() {
 	 * disable the PPM decoder completely if we have S.bus signal.
 	 */
 	bool ppm_updated = false;
-	
+
 	/* limit number of channels to allowable data size */
-	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
+	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS) {
 		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
+	}
 
 	/* store RSSI */
 	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
@@ -165,7 +174,7 @@ controls_tick() {
 		/* map raw inputs to mapped inputs */
 		/* XXX mapping should be atomic relative to protocol */
 		for (unsigned i = 0; i < r_raw_rc_count; i++) {
-			
+
 			/* map the input channel */
 			uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
 
@@ -177,10 +186,13 @@ controls_tick() {
 				/*
 				 * 1) Constrain to min/max values, as later processing depends on bounds.
 				 */
-				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
+				if (raw < conf[PX4IO_P_RC_CONFIG_MIN]) {
 					raw = conf[PX4IO_P_RC_CONFIG_MIN];
-				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
+				}
+
+				if (raw > conf[PX4IO_P_RC_CONFIG_MAX]) {
 					raw = conf[PX4IO_P_RC_CONFIG_MAX];
+				}
 
 				/*
 				 * 2) Scale around the mid point differently for lower and upper range.
@@ -199,10 +211,12 @@ controls_tick() {
 				 * DO NOT REMOVE OR ALTER STEP 1!
 				 */
 				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(
+								     conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
 				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(
+								     conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
 				} else {
 					/* in the configured dead zone, output zero */
@@ -216,6 +230,7 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
+
 				if (mapped < PX4IO_CONTROL_CHANNELS) {
 
 					/* invert channel if pitch - pulling the lever down means pitching up by convention */
@@ -229,6 +244,7 @@ controls_tick() {
 						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < r_setup_rc_thr_failsafe)) ||
 						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > r_setup_rc_thr_failsafe))) {
 							r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+
 						} else {
 							r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 						}
@@ -255,6 +271,7 @@ controls_tick() {
 		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
 		if (assigned_channels > 4) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_MAPPING_OK;
+
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
 		}
@@ -274,9 +291,9 @@ controls_tick() {
 
 		/* clear the input-kind flags here */
 		r_status_flags &= ~(
-			PX4IO_P_STATUS_FLAGS_RC_PPM |
-			PX4IO_P_STATUS_FLAGS_RC_DSM |
-			PX4IO_P_STATUS_FLAGS_RC_SBUS);
+					  PX4IO_P_STATUS_FLAGS_RC_PPM |
+					  PX4IO_P_STATUS_FLAGS_RC_DSM |
+					  PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
 	}
 
@@ -293,8 +310,8 @@ controls_tick() {
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
 		r_status_flags &= ~(
-			PX4IO_P_STATUS_FLAGS_OVERRIDE |
-			PX4IO_P_STATUS_FLAGS_RC_OK);
+					  PX4IO_P_STATUS_FLAGS_OVERRIDE |
+					  PX4IO_P_STATUS_FLAGS_RC_OK);
 
 		/* flag raw RC as lost */
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
@@ -317,9 +334,9 @@ controls_tick() {
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
-	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
 		bool override = false;
 
@@ -330,8 +347,9 @@ controls_tick() {
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) < RC_CHANNEL_LOW_THRESH))
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) < RC_CHANNEL_LOW_THRESH)) {
 			override = true;
+		}
 
 		if (override) {
 
@@ -340,6 +358,7 @@ controls_tick() {
 		} else {
 			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
+
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
