@@ -42,7 +42,6 @@
 #include <stdint.h>
 
 #include <stm32.h>
-//#include <stm32_gpio_out.h> //almost positive this is wrong. Added below statement
 #include <stm32_gpio.h>  
 #include <stm32_tim.h>
 

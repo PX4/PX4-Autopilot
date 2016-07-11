@@ -209,20 +209,6 @@ static struct spi_dev_s *spi4;
 
 #include <math.h>
 
-//No longer included in px4fmu-v2_default, maybe it is not needed here either
-//Just gonna leave it out for now
-/*#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else  //keep getting error about  redundant matherr assignment, will try with the else commented out
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#endif
-*/
 __EXPORT int nsh_archinitialize(void)
 {
 
