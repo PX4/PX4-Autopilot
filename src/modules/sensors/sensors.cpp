@@ -593,7 +593,7 @@ Sensors::Sensors() :
 	_vibration_warning_timestamp(0),
 	_vibration_warning(false)
 {
-	_mag.voter.set_timeout(200000);
+	_mag.voter.set_timeout(300000);
 
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
