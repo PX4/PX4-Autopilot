@@ -463,25 +463,50 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 
 void Logger::add_default_topics()
 {
-	add_topic("sensor_gyro", 0);
-	add_topic("sensor_accel", 0);
-	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("vehicle_attitude_setpoint", 10);
-	add_topic("vehicle_attitude", 0);
+	add_topic("vehicle_attitude", 10);
 	add_topic("actuator_outputs", 50);
-	add_topic("battery_status", 100);
-	add_topic("vehicle_command", 100);
-	add_topic("actuator_controls", 10);
-	add_topic("vehicle_local_position_setpoint", 200);
-	add_topic("rc_channels", 20);
-	add_topic("commander_state", 100);
-	add_topic("vehicle_local_position", 200);
-	add_topic("vehicle_global_position", 200);
-	add_topic("system_power", 100);
-	add_topic("servorail_status", 200);
-	add_topic("mc_att_ctrl_status", 50);
+	add_topic("telemetry_status", 50);
+	add_topic("vehicle_command");
 	add_topic("vehicle_status", 200);
+	add_topic("vtol_vehicle_status", 100);
+	add_topic("commander_state", 100);
+	add_topic("satellite_info", 1000);
+	add_topic("vehicle_attitude_setpoint", 20);
+	add_topic("vehicle_rates_setpoint", 10);
+	add_topic("actuator_controls", 20);
+	add_topic("actuator_controls_0", 20);
+	add_topic("actuator_controls_1", 20);
+	add_topic("vehicle_local_position", 100);
+	add_topic("vehicle_local_position_setpoint", 50);
+	add_topic("vehicle_global_position", 100);
+	add_topic("vehicle_global_velocity_setpoint", 100);
+	add_topic("battery_status", 300);
+	add_topic("system_power", 300);
+	add_topic("servorail_status", 300);
+	add_topic("position_setpoint_triplet", 10);
+	add_topic("att_pos_mocap", 50);
+	add_topic("vision_position_estimate", 50);
+	add_topic("optical_flow", 50);
+	add_topic("rc_channels");
+	add_topic("airspeed", 50);
+	add_topic("distance_sensor", 20);
+	add_topic("esc_status", 20);
+	add_topic("estimator_status", 50); //this one is large
+	add_topic("ekf2_innovations", 20);
+	add_topic("tecs_status", 20);
+	add_topic("wind_estimate", 100);
+	add_topic("encoders", 50);
+	add_topic("time_offset", 1000);
+	add_topic("mc_att_ctrl_status", 50);
+	add_topic("control_state", 20);
+	add_topic("camera_trigger");
+	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
+
+	/* for estimator replay (need to be at full rate) */
+	add_topic("sensor_combined");
+	add_topic("vehicle_gps_position");
+	add_topic("vehicle_land_detected");
 }
 
 int Logger::add_topics_from_file(const char *fname)
