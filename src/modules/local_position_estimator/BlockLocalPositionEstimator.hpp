@@ -290,7 +290,7 @@ private:
 	BlockParamFloat  _pn_p_noise_density;
 	BlockParamFloat  _pn_v_noise_density;
 	BlockParamFloat  _pn_b_noise_density;
-	BlockParamFloat  _pn_t_noise_density;
+	BlockParamFloat  _t_max_grade;
 
 	// init home
 	BlockParamFloat  _init_home_lat;

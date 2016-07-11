@@ -85,7 +85,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
-	_pn_t_noise_density(this, "PN_T"),
+	_t_max_grade(this, "T_MAX_GRADE"),
 
 	// init home
 	_init_home_lat(this, "LAT"),
@@ -831,9 +831,9 @@ void BlockLocalPositionEstimator::updateSSParams()
 	_Q(X_by, X_by) = pn_b_sq;
 	_Q(X_bz, X_bz) = pn_b_sq;
 
-	// terrain random walk noise
-	float pn_t_sq = _pn_t_noise_density.get() * _pn_t_noise_density.get();
-	_Q(X_tz, X_tz) = pn_t_sq;
+	// terrain random walk noise ((m/s)/sqrt(hz)), scales with velocity
+	float pn_t_stddev = (_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
+	_Q(X_tz, X_tz) = pn_t_stddev * pn_t_stddev;
 }
 
 void BlockLocalPositionEstimator::predict()
