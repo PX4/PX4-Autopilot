@@ -275,7 +275,7 @@ then
 		then
 		fi
 	else
-		if logger start -b 12
+		if logger start -b 12 -t
 		then
 		fi
 	fi
