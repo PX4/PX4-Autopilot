@@ -1741,7 +1741,7 @@ protected:
 		if (_mocap_sub->update(&_mocap_time, &mocap)) {
 			mavlink_att_pos_mocap_t msg;
 
-			msg.time_usec = mocap.timestamp_boot;
+			msg.time_usec = mocap.timestamp;
 			msg.q[0] = mocap.q[0];
 			msg.q[1] = mocap.q[1];
 			msg.q[2] = mocap.q[2];
