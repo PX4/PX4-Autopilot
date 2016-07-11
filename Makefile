@@ -303,6 +303,7 @@ test_onboard_sitl:
 
 # QGroundControl flashable firmware
 qgc_firmware: \
+	check_aerocore_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
