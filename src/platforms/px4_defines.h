@@ -120,6 +120,10 @@ typedef param_t px4_param_t;
 #define PRId64 "lld"
 #endif
 
+#if !defined(offsetof)
+#  define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
+#endif
+
 /*
  * POSIX Specific defines
  */
