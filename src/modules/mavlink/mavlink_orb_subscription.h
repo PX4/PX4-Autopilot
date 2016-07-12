@@ -54,26 +54,37 @@ public:
 	~MavlinkOrbSubscription();
 
 	/**
-	 * Check if subscription updated and get data.
+	 * Check if subscription updated based on timestamp.
 	 *
-	 * @return true only if topic was updated and data copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but still copy the data.
-	 * If no data available data buffer will be filled with zeroes.
+	 * @return true only if topic was updated based on a timestamp and
+	 * copied to buffer successfully.
+	 * If topic was not updated since last check it will return false but
+	 * still copy the data.
+	 * If no data available data buffer will be filled with zeros.
 	 */
-	bool update(uint64_t *time, void* data);
+	bool update(uint64_t *time, void *data);
 
 	/**
 	 * Copy topic data to given buffer.
 	 *
 	 * @return true only if topic data copied successfully.
 	 */
-	bool update(void* data);
+	bool update(void *data);
+
+	/**
+	 * Check if the subscription has been updated.
+	 *
+	 * @return true if there has been an update which has been
+	 * copied successfully.
+	 */
+	bool update_if_changed(void *data);
 
 	/**
 	 * Check if the topic has been published.
 	 *
 	 * This call will return true if the topic was ever published.
 	 * @return true if the topic has been published at least once.
+	 * If no data is available the buffer will be filled with zeros.
 	 */
 	bool is_published();
 	orb_id_t get_topic() const;
