@@ -224,6 +224,11 @@ struct parameters {
 	float tas_innov_gate;		// True Airspeed Innovation consistency gate size in standard deciation
   	float eas_noise;			// EAS measurement noise standard deviation used for airspeed fusion [m/s]
 
+  	// synthetic sideslip fusion
+ 	float beta_innov_gate;		// synthetic sideslip innovation consistency gate size in standard deviation (STD)
+ 	float beta_noise;			// synthetic sideslip noise (rad)
+ 	float beta_avg_ft_ms;		// The average time between synthetic sideslip measurements (msec)
+
 	// range finder fusion
 	float range_noise;		// observation noise for range finder measurements (m)
 	float range_innov_gate;		// range finder fusion innovation consistency gate size (STD)
@@ -319,7 +324,12 @@ struct parameters {
 
 		// airspeed fusion
 		tas_innov_gate = 5.0f;		
-  		eas_noise = 1.4f;			
+  		eas_noise = 1.4f;	
+
+  		// sysntetic sideslip fusion
+ 		beta_innov_gate = 5.0f;
+ 		beta_noise = 0.03f;
+ 		beta_avg_ft_ms = 100.0f;		
 
 		// range finder fusion
 		range_noise = 0.1f;
@@ -446,6 +456,7 @@ union filter_control_status_u {
 		uint16_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
 		uint16_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
 		uint16_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
+		uint16_t fuse_beta   : 1; // 15 - true when synthetic sideslip measurements are being fused
 	} flags;
 	uint16_t value;
 };
