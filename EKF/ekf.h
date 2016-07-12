@@ -433,6 +433,9 @@ private:
 	// control fusion of air data observations
 	void controlAirDataFusion();
 
+	// control fusion of synthetic sideslip observations
+	void controlBetaFusion();
+
 	// control fusion of pressure altitude observations
 	void controlBaroFusion();
 
