@@ -443,7 +443,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
 		parseMessage(data, dest_ptr, type);
 		_ev.timestamp = replay_part5.time_ev_usec;
-		_ev.timestamp_computer = replay_part5.time_ev_usec; // fake this timestamp
+		_ev.timestamp_received = replay_part5.time_ev_usec; // fake this timestamp
 		_ev.x = replay_part5.x;
 		_ev.y = replay_part5.y;
 		_ev.z = replay_part5.z;
