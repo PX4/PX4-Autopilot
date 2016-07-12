@@ -44,12 +44,13 @@
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
  *
- * The first 0x4000 of flash is reserved for the bootloader.
+ * The first 16 KiB of flash is reserved for the bootloader.
+ * Paramater storage will use the next 2 16KiB Sectors.
  */
 
 MEMORY
 {
-    flash (rx)   : ORIGIN = 0x08004000, LENGTH = 1008K
+    flash (rx)   : ORIGIN = 0x0800C000, LENGTH = 976K
     sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 128K
     ccsram (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
 }
