@@ -121,7 +121,7 @@ MissionBlock::is_mission_item_reached()
 				return false;
 			}
 
-		case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
+		case NAV_CMD_DO_CHANGE_SPEED:
 			// XXX not differentiating ground and airspeed yet
 			if (_mission_item.params[1] > 0.0f) {
 				_navigator->set_cruising_speed(_mission_item.params[1]);
