@@ -146,7 +146,7 @@ private:
 	int				_local_pos_sub;			/**< vehicle local position */
 	int				_local_pos_sp_sub;		/**< offboard local position setpoint */
 
-	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
+	orb_advert_t	_att_sp_pub = nullptr;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 
 	int _att_sub;
@@ -275,7 +275,7 @@ private:
 	bool 		vel_pub = false;
 
 	orb_advert_t 	home_position_pub; 
-	orb_advert_t 	_local_pos_pub;
+	orb_advert_t 	_local_pos_pub = nullptr;
 	struct 			vehicle_local_position_s 			veh_local_pos;
 	struct 			home_position_s 					_veh_home;
 
@@ -438,7 +438,7 @@ MulticopterQuatPositionControl::MulticopterQuatPositionControl() :
 	_local_pos_sub(-1),
 
 	/* publications */
-	_att_sp_pub(nullptr),
+	//_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
@@ -1224,6 +1224,7 @@ MulticopterQuatPositionControl::dorotations(void)
 	body_pos(2) = z;
 
 	old_time = _vicon_pos.timestamp;
+	old_meas_time 	= get_time_micros();
 }
 
 void 
@@ -1292,7 +1293,7 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	Vector3f err_xyz 		= Vector3f::Zero();
 	//Vector3f Rd_trans 		= Vector3f::Zero();
 	//Vector3f yaw_rot 		= Vector3f::Zero();
-	Matrix3f Rdtrans 		= Matrix3f::Zero();
+	Matrix3f Rdtrans 		= Matrix3f::Identity();
 	//Vector3f nu 			= Vector3f::Zero();
 	//Vector3f xi 			= Vector3f::Zero();
 
@@ -1312,14 +1313,13 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	Ki(1,1) 				= _params.vel_i(1);
 	Ki(2,2) 				= _params.vel_i(2);	
 	
-
-	//err_xyz = Kp * (pos - pos_d) + Kd * (veh_vel_body - vel_d) - c_bar_vec * vel_d; 
+	//err_xyz = Kp * (body_pos_hat - pos_d) + Kd * (veh_vel_body - vel_d) - c_bar_vec * vel_d * 0.0f; 
 
 	/* PID controller */
 	Vector3f veld2 = vel_d - Kp * (body_pos_hat - pos_d);
 	Vector3f err_vel = veh_vel_body - veld2;
 
-	int_velocity += err_vel * dt_pos_est;
+	int_velocity -= err_vel * dt_pos_est;
 
 	if (int_velocity(0) > _params.vel_imax(0)) //max
 		int_velocity(0) = _params.vel_imax(0);
@@ -1336,17 +1336,17 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	if (int_velocity(2) < -_params.vel_imax(2))
 		int_velocity(2) = -_params.vel_imax(2);
 
-	if (!_control_mode.flag_control_auto_enabled)
-		int_velocity(2) = 0.0f;
-
+	
 	if (!control_pos) { //include landing and takeoff
 		int_velocity = Vector3f::Zero();
 	}
 
 	err_xyz = Kd * (err_vel) + Ki * int_velocity - c_bar_vec * vel_d; 
 
+	err_xyz = Kd * err_vel;
 
-	/* TODO bounds on ex ey ez should be in parameters file as in max in attitude or R_Max*/
+
+	/* TODO bounds on ex ey ez should be in parameters file as in max in attitude or R_Max */
 	float max_erxy = 0.23f * 2.0f;
 	if (err_xyz(0) > max_erxy) 
 		err_xyz(0) = max_erxy;
@@ -1400,6 +1400,10 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	if ((isfinite(qd[3]) == false) || !(isnan(qd[3]) == false))
 		qd[3] = 0.10f;
 
+	//printf("posd %3.3f %3.3f %3.3f\n", double(pos(0)), double(pos(1)),double(pos(2)));
+	//printf("errxyz %3.3f %3.3f %3.3f\n", double(err_xyz(0)), double(err_xyz(1)),double(err_xyz(2)));
+	printf("desired %3.3f %3.3f %3.3f\n",double(qd[0]), double( qd[1]), double(qd[2]));
+
 	/* Determination of feedforward terms */
 	/* We assume \dot{T}_d = 0 */
 	Vector3f veh_acc = Vector3f::Zero();
@@ -1411,10 +1415,12 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	veh_acc_tilde = veh_acc - acc_d;
 	Vector3f Omega_dxy = Rdtrans.transpose()*(Kp*(veh_vel_body - vel_d) + Kd*veh_acc_tilde - c_bar_vec*thrust*acc_d);
 
+	//FIXME fix this	
 	omega_d.rates[1] = Omega_dxy(0);
 	omega_d.rates[0] = Omega_dxy(1);
 	omega_d.rates[2] = 0.0f; //See thesis
 	omega_d.validity = true;
+	omega_d.validity = false;
 
 	if (_omega_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_omega_ff_setpoint), _omega_pub, &omega_d);
@@ -1531,6 +1537,10 @@ MulticopterQuatPositionControl::task_main()
 		}
 		/* run controller on attitude changes FIXME enable this*/
 		if (fds[0].revents & POLLIN) {
+			_veh_vel.body_valid 			= false;
+			_veh_vel.inertial_valid 		= false;
+
+
 			/* Do polling */
 			poll_subscriptions(); // This should go outside of that loop
 
@@ -1550,11 +1560,9 @@ MulticopterQuatPositionControl::task_main()
 				sign_q0 = -1;
 			}
 			old_auto = _control_mode.flag_control_auto_enabled;
-
-			_veh_vel.body_valid 			= false;
-			_veh_vel.inertial_valid 		= false;
+			
 		
-		//printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
+		printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
 		//printf("%s\n", _control_mode.flag_control_manual_enabled ? "true" : "false");
 			/* Do GPS pos control */
 			if (_v_vel_est.timestamp != _v_est_time_old)
@@ -1567,6 +1575,7 @@ MulticopterQuatPositionControl::task_main()
 				/* If we haven't taken off or in the process of landing use barometer measurements z and vz or altitude is less than yyy*/
 
 				dt_pos_est = (_v_vel_est.timestamp - _v_est_time_old)*0.000001f;
+				_v_est_time_old = _v_vel_est.timestamp;
 				//printf("dt freq %3.3f %3.3f\n",double(dt_pos_est),double(1/dt_pos_est));
 
 				body_pos(0) = x;
@@ -1615,6 +1624,10 @@ MulticopterQuatPositionControl::task_main()
 					_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &veh_local_pos);	
 				}
 
+				if (!_control_mode.flag_control_auto_enabled)
+					int_velocity = Vector3f::Zero();
+
+
 				if (_control_mode.flag_control_auto_enabled && initialise_home)
 				{	
 					desired_setpoint();
@@ -1635,11 +1648,9 @@ MulticopterQuatPositionControl::task_main()
 					} else {
 						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 					}
-				}
-
-				_v_est_time_old = _v_vel_est.timestamp;
+				}				
 			}
-			usleep(5000);	
+			//usleep(5000);	
 	//printf("sat %lu %d %3.3f, %3.5f, %3.3f\n",_veh_gps_pos.timestamp_position, _veh_gps_pos.fix_type, (double)_veh_gps_pos.lat*1e-7, (double)_veh_gps_pos.lat*1e-7, double(_veh_gps_pos.alt*1e-3));
 
 		// This should only run when Vicon is not available
@@ -1664,6 +1675,8 @@ MulticopterQuatPositionControl::task_main()
 			/* Publish measured velocities when they are valid */
 			if (vel_pub && vel_updated)
 			{
+				//printf("should I publisj %3.3f %3.3f\n",(double)_veh_vel.inertial_vx, double(_veh_vel.inertial_vy));
+				//printf("%s\n", _veh_vel.inertial_valid ? "true" : "false");
 				if (_veh_vel_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_velocity_meas_inertial), _veh_vel_pub, &_veh_vel);
 				} else {

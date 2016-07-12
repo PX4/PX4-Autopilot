@@ -225,13 +225,14 @@ void av_estimator_b::publish(float timestamp, Vector3f vhat_a, Vector3f what_vel
 
 
 	/* Publish */
-	if (vel_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_velocity_est_inertial), vel_pub, &vel);
-	} else {
-		orb_advertise(ORB_ID(vehicle_velocity_est_inertial), &vel);
+	if (vel.inertial_valid)
+	{
+		if (vel_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_velocity_est_inertial), vel_pub, &vel);
+		} else {
+			orb_advertise(ORB_ID(vehicle_velocity_est_inertial), &vel);
+		}
 	}
-
-
 }
 
 

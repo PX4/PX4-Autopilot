@@ -290,6 +290,8 @@ int av_estimator_thread_main(int argc, char *argv[])
 	av_estimator_b filter_b;
 	av_estimator_a filter_a;
 
+	rawMeasuredVelocity.inertial_valid = false;
+
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -350,15 +352,12 @@ int av_estimator_thread_main(int argc, char *argv[])
 			}
 			
 			/* Read velocity measurements */
-			rawMeasuredVelocity.inertial_valid = false;
+			//rawMeasuredVelocity.inertial_valid = false;
 			if(fds[5].revents & POLLIN) {
 				/**/
 				orb_copy(ORB_ID(vehicle_velocity_meas_inertial), velocity_measured_fd, &rawMeasuredVelocity);
-				//printf("Velocity updated %d\n", rawMeasuredVelocity.inertial_valid);
-			} else
-			{ //TODO remove this
-				rawMeasuredVelocity.inertial_valid = false;
-			}			
+				//printf("Velocity updated\n");
+			} 		
 
 			/* Read Vicon measurement */
 			if(fds[6].revents & POLLIN) {

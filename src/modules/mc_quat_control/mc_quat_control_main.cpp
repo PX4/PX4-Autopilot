@@ -559,7 +559,7 @@ MulticopterQuaternionControl::battery_status_poll()
 	orb_check(_battery_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(battery_status), _battery_sub, &_battery_sub);
+		orb_copy(ORB_ID(battery_status), _battery_sub, &_battery);
 	}
 }
 
@@ -834,9 +834,9 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 	math::Vector<3> omega_d_vec;
 	if (_v_control_mode.flag_control_auto_enabled && _omega_d.validity) //modify this to incorporate auto mode
 	{
-		omega_d_vec(0) = _omega_d.rates[0]*0;
-		omega_d_vec(1) = _omega_d.rates[1]*0;
-		omega_d_vec(2) = _omega_d.rates[2]*0;
+		omega_d_vec(0) = _omega_d.rates[0];
+		omega_d_vec(1) = _omega_d.rates[1];
+		omega_d_vec(2) = _omega_d.rates[2];
 	} else
 	{
 		omega_d_vec(0) = 0.0f;
@@ -864,12 +864,14 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 	_att_control(1) = -_params.rate_p(1)*rates_err(1) - _params.rate_d(1)*(vehicles_Omega_rates(1) - vehicles_Omega_rates_d(1));
 	_att_control(2) = -_params.rate_p(2)*rates_err(2) - _params.rate_d(2)*(vehicles_Omega_rates(2) - vehicles_Omega_rates_d(2));
 
-	/* Here we implement the battery voltage if we are using open-loop voltage control 16.4*/
-	printf("Battery voltage %3.3f %3.3f %d\n", (double)_battery.voltage_v, double(_battery.voltage_filtered_v), _params.battery_switch);
+	//printf("acct %3.3f %3.3f %3.3f\n", double(_att_control(0)), double(_att_control(1)), double(_att_control(2)) );
 
-	if (_params.battery_switch == 1) {
+	/* Here we implement the battery voltage if we are using open-loop voltage control 16.4*/
+	//printf("Battery voltage %3.3f %3.3f %d\n", (double)_battery.voltage_v, double(_battery.voltage_filtered_v), _params.battery_switch);
+
+	//if (_params.battery_switch == 1) {
 		//_thrust_sp = _thrust_sp * (1 + (16.4f - _battery.voltage_filtered_v)/16.4f);
-	}
+	//}
 
 	// yaw integral
 	int_yawrate += rates_err(2)*dt;
@@ -878,6 +880,9 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 			int_yawrate = _params.yaw_rate_i_max;
 	if (int_yawrate < -_params.yaw_rate_i_max)
 		int_yawrate = -_params.yaw_rate_i_max;
+
+	if (_thrust_sp < 0.3f)
+			int_yawrate = 0.0f;
 
 	_att_control(2) -= int_yawrate*params_yaw_rate_i;
 
