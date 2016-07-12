@@ -94,6 +94,7 @@
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
+#define CIRCLE_RADIUS_DEFAULT 3.0f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -725,8 +726,14 @@ MulticopterPositionControl::poll_subscriptions()
 			_posctrl_sub_mode = MODE_POS_CTRL;
 		} else if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE) {
 			_posctrl_sub_mode = MODE_CIRCLE;
-			_R_circle = _vehicle_command.param1;
-			map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
+			_R_circle = _vehicle_command.param1 != NAN ? _vehicle_command.param1 : CIRCLE_RADIUS_DEFAULT;
+
+			if (_vehicle_command.param5 != NAN && _vehicle_command.param6 != NAN) {
+				map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
+			} else {
+				_circle_orig(0) = _pos(0) + cosf(_yaw) * _R_circle;
+				_circle_orig(1) = _pos(1) + sinf(_yaw) * _R_circle;
+			}
 		}
 	}
 }
@@ -888,7 +895,7 @@ MulticopterPositionControl::control_manual(float dt)
 			if (_R_circle < 0.0f) {
 				// just switched into circle mode, set circle radius and origin
 				// if circle mode was activated via command then the radius was already set above
-				_R_circle = 3.0f;
+				_R_circle = CIRCLE_RADIUS_DEFAULT;
 				_circle_orig(0) = _pos(0) + _R_circle * cosf(_yaw);
 				_circle_orig(1) = _pos(1) + _R_circle * sinf(_yaw);
 			}
@@ -898,7 +905,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 			// user can change radius with pitch stick
 			_R_circle += _manual.x * 2.0f * dt;
-			_R_circle = math::constrain(_R_circle, 3.0f, 100.0f);
+			_R_circle = math::constrain(_R_circle, CIRCLE_RADIUS_DEFAULT, 100.0f);
 			control_circle(_circle_orig(0), _circle_orig(1), _R_circle, vel_desired, &req_vel_sp_scaled.data[0], &_att_sp.yaw_body);
 			req_vel_sp(0) = _params.vel_cruise(0) > FLT_EPSILON ? req_vel_sp_scaled(0) / _params.vel_cruise(0) : 0.0f;
 			req_vel_sp(1) = _params.vel_cruise(1) > FLT_EPSILON ? req_vel_sp_scaled(1) / _params.vel_cruise(1) : 0.0f;
