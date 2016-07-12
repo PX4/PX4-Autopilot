@@ -413,9 +413,10 @@ union innovation_fault_status_u {
 		bool reject_mag_z: 1;		// 5 - true if the Z magnetometer observation has been rejected
 		bool reject_yaw: 1;		// 6 - true if the yaw observation has been rejected
 		bool reject_airspeed: 1;	// 7 - true if the airspeed observation has been rejected
-		bool reject_hagl: 1;		// 8 - true if the height above ground observation has been rejected
-		bool reject_optflow_X: 1;	// 9 - true if the X optical flow observation has been rejected
-		bool reject_optflow_Y: 1;	// 10 - true if the Y optical flow observation has been rejected
+		bool reject_sideslip: 1;	// 8 - true if the synthetic sideslip observation has been rejected
+		bool reject_hagl: 1;		// 9 - true if the height above ground observation has been rejected
+		bool reject_optflow_X: 1;	// 10 - true if the X optical flow observation has been rejected
+		bool reject_optflow_Y: 1;	// 11 - true if the Y optical flow observation has been rejected
 	} flags;
 	uint16_t value;
 
