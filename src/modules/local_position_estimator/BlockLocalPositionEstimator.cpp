@@ -32,7 +32,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// status updates 2 hz
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
 	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
-	_sub_home(ORB_ID(home_position), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
 	// vision 5 hz
@@ -87,9 +86,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_b_noise_density(this, "PN_B"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
-	// init home
-	_init_home_lat(this, "LAT"),
-	_init_home_lon(this, "LON"),
+	// init origin
+	_init_origin_lat(this, "LAT"),
+	_init_origin_lon(this, "LON"),
 
 	// flow gyro
 	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
@@ -140,12 +139,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocapInitialized(false),
 
 	// reference altitudes
-	_altHome(0),
-	_altHomeInitialized(false),
-	_baroAltHome(0),
-	_gpsAltHome(0),
-	_visionHome(),
-	_mocapHome(),
+	_altOrigin(0),
+	_altOriginInitialized(false),
+	_baroAltOrigin(0),
+	_gpsAltOrigin(0),
+	_visionOrigin(),
+	_mocapOrigin(),
 
 	// flow integration
 	_flowX(0),
@@ -256,12 +255,10 @@ void BlockLocalPositionEstimator::update()
 	// reset pos, vel, and terrain on arming
 	if (!_lastArmedState && armedState) {
 
-		// we just armed, we are at home position on the ground
+		// we just armed, we are at origin on the ground
 		_x(X_x) = 0;
 		_x(X_y) = 0;
-
-		// the pressure altitude of home may have drifted, so we don't
-		// reset z to zero
+		_x(X_z) = 0;
 
 		// reset flow integral
 		_flowX = 0;
@@ -287,7 +284,6 @@ void BlockLocalPositionEstimator::update()
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
 	bool gpsUpdated = _gps_on.get() && _sub_gps.updated();
-	bool homeUpdated = _sub_home.updated();
 	bool visionUpdated = _vision_on.get() && _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
@@ -300,11 +296,6 @@ void BlockLocalPositionEstimator::update()
 	if (paramsUpdated) {
 		updateParams();
 		updateSSParams();
-	}
-
-	// update home position projection
-	if (homeUpdated) {
-		updateHome();
 	}
 
 	// is xy valid?
@@ -370,8 +361,8 @@ void BlockLocalPositionEstimator::update()
 	// if we have no lat, lon initialize projection at 0,0
 	if (_validXY && !_map_ref.init_done) {
 		map_projection_init(&_map_ref,
-				    _init_home_lat.get(),
-				    _init_home_lon.get());
+				    _init_origin_lat.get(),
+				    _init_origin_lon.get());
 	}
 
 	// reinitialize x if necessary
@@ -484,7 +475,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (_altHomeInitialized) {
+	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
@@ -570,6 +561,7 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 		dx(X_bz) = 0;
 	}
 
+	// if xy not valid, stop estimating
 	if (!_validXY) {
 		dx(X_x) = 0;
 		dx(X_y) = 0;
@@ -579,12 +571,14 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 		dx(X_by) = 0;
 	}
 
+	// if z not valid, stop estimating
 	if (!_validZ) {
 		dx(X_z) = 0;
 		dx(X_vz) = 0;
 		dx(X_bz) = 0;
 	}
 
+	// if terrain not valid, stop estimating
 	if (!_validTZ) {
 		dx(X_tz) = 0;
 	}
@@ -629,28 +623,6 @@ void BlockLocalPositionEstimator::detectDistanceSensors()
 	}
 }
 
-void BlockLocalPositionEstimator::updateHome()
-{
-	double lat = _sub_home.get().lat;
-	double lon = _sub_home.get().lon;
-	float alt = _sub_home.get().alt;
-
-	// updating home causes absolute measurements
-	// like gps and baro to be off, need to allow it
-	// to reset by resetting covariance
-	initP();
-	mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] home "
-				     "lat %6.2f lon %6.2f alt %5.1f m",
-				     lat, lon, double(alt));
-	map_projection_init(&_map_ref, lat, lon);
-	float delta_alt = alt - _altHome;
-	_altHomeInitialized = true;
-	_altHome = alt;
-	_gpsAltHome += delta_alt;
-	_baroAltHome +=  delta_alt;
-	_visionHome(2) += delta_alt;
-	_mocapHome(2) += delta_alt;
-}
 
 void BlockLocalPositionEstimator::publishLocalPos()
 {
@@ -672,12 +644,12 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
 		_pub_lpos.get().yaw = _sub_att.get().yaw;
-		_pub_lpos.get().xy_global = _sub_home.get().timestamp != 0; // need home for reference
+		_pub_lpos.get().xy_global = _validXY;
 		_pub_lpos.get().z_global = _baroInitialized;
-		_pub_lpos.get().ref_timestamp = _sub_home.get().timestamp;
+		_pub_lpos.get().ref_timestamp = _timeStamp;
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
-		_pub_lpos.get().ref_alt = _sub_home.get().alt;
+		_pub_lpos.get().ref_alt = _altOrigin;
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
 		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
 		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
@@ -725,7 +697,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	double lon = 0;
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
-	float alt = -xLP(X_z) + _altHome;
+	float alt = -xLP(X_z) + _altOrigin;
 
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
@@ -741,7 +713,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().yaw = _sub_att.get().yaw;
 		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
-		_pub_gpos.get().terrain_alt = _altHome - xLP(X_tz);
+		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
 		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
