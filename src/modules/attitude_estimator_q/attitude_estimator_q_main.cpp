@@ -1011,7 +1011,10 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 
 		// estimate actual centripetal accel using Vt and centripMag
 		Vector<3> centripA = Vector<3>(Vt.data[0], Vt.data[1], 0.0f);
-		Vector<3> estG = aE - centripA;
+//		Vector<3> estG = aE - centripA;
+
+		// log estimate of g vector
+		Vector<3> estG = quat.conjugate(_accel.normalized());
 
 		/* compensate body frame accel for centripetal accel */
 		/* estimated g vector in body frame is (_accel - centripetal accel) */
@@ -1047,19 +1050,18 @@ bool AttitudeEstimatorQ::update_centrip_comp(Quaternion & quat, Vector<3> & rate
 		_centrip.mag_err[i] = mag_err.data[i];
 	}
 
-	/* compensate body frame accel for centripetal accel */
 	/* estimated g vector in body frame is (_accel - centripetal accel) */
 //		corr += (kE % (_accel - quat.conjugate_inversed(centripE)).normalized()) * _w_accel;
 
-	// Gyro bias estimation
-	// If rotation rate is below about 10 deg/sec
-	// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
+	/* compensate orientation using either g or mag vector */
 	if (spinRate < 0.175f) {
 
 //		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
 		corr += (kE % _accel.normalized()) * _w_accel;
 
-
+		// Gyro bias estimation
+		// If rotation rate is below about 10 deg/sec
+		// (see Bill Premerlani's paper: http://gentlenav.googlecode.com/files/fastRotations.pdf)
 		gyro_bias += corr * (_w_gyro_bias * dt);
 
 		for (int i = 0; i < 3; i++) {
