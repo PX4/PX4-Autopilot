@@ -79,6 +79,12 @@ public:
 	// gets the innovation variance of the airspeed measurement
 	void get_airspeed_innov_var(float *airspeed_innov_var);
 
+	// gets the innovations of synthetic sideslip measurement
+ 	void get_beta_innov(float *beta_innov);
+
+ 	// gets the innovation variance of the synthetic sideslip measurement
+ 	void get_beta_innov_var(float *beta_innov_var);
+
 	// gets the innovation variance of the heading measurement
 	void get_heading_innov_var(float *heading_innov_var);
 
@@ -229,6 +235,7 @@ private:
 	uint64_t _time_last_hgt_fuse;   // time the last fusion of height measurements was performed (usec)
 	uint64_t _time_last_of_fuse;    // time the last fusion of optical flow measurements were performed (usec)
 	uint64_t _time_last_arsp_fuse;	// time the last fusion of airspeed measurements were performed (usec)
+	uint64_t _time_last_beta_fuse;	// time the last fusion of synthetic sideslip measurements were performed (usec)
 	Vector2f _last_known_posNE;     // last known local NE position vector (m)
 	float _last_disarmed_posD;      // vertical position recorded at arming (m)
 	float _last_dt_overrun;		// the amount of time the last IMU collection over-ran the target set by FILTER_UPDATE_PERIOD_MS (sec)
@@ -247,6 +254,9 @@ private:
 
 	float _airspeed_innov;		// airspeed measurement innovation
 	float _airspeed_innov_var;	// airspeed measurement innovation variance
+
+	float _beta_innov;		// synthetic sideslip measurement innovation
+ 	float _beta_innov_var;	// synthetic sideslip measurement innovation variance
 
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance
@@ -341,6 +351,9 @@ private:
 
 	// fuse airspeed measurement
 	void fuseAirspeed();
+
+	// fuse synthetic zero sideslip measurement
+ 	void fuseSideslip();
 
 	// fuse velocity and position measurements (also barometer height)
 	void fuseVelPosHeight();
