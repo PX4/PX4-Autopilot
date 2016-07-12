@@ -84,6 +84,8 @@ public:
 
 	virtual void get_state_delayed(float *state) = 0;
 
+	virtual void get_wind_velocity(float *wind) = 0;
+
 	virtual void get_covariances(float *covariances) = 0;
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set

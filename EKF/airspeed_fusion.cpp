@@ -202,3 +202,9 @@ void Ekf::fuseAirspeed()
 		}
 	}
 }
+
+void Ekf::get_wind_velocity(float *wind)
+{
+	wind[0] = _state.wind_vel(0);
+	wind[1] = _state.wind_vel(1);
+}

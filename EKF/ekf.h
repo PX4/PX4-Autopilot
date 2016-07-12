@@ -97,6 +97,9 @@ public:
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state);
 
+	// get the wind velocity in m/s
+	void get_wind_velocity(float *wind);
+
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
 
