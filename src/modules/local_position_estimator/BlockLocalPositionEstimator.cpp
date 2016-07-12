@@ -259,9 +259,7 @@ void BlockLocalPositionEstimator::update()
 		// we just armed, we are at home position on the ground
 		_x(X_x) = 0;
 		_x(X_y) = 0;
-
-		// the pressure altitude of home may have drifted, so we don't
-		// reset z to zero
+		_x(X_z) = 0;
 
 		// reset flow integral
 		_flowX = 0;
