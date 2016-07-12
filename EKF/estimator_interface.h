@@ -67,6 +67,9 @@ public:
 	// gets the innovation of airspeed measurement
  	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
 
+	// gets the innovation of the synthetic sideslip measurement
+	virtual void get_beta_innov(float *beta_innov) = 0;
+
 	// gets the innovations of the heading measurement
 	virtual void get_heading_innov(float *heading_innov) = 0;
 
@@ -79,6 +82,9 @@ public:
 
 	// gets the innovation variance of the airspeed measurement
  	virtual void get_airspeed_innov_var(float *get_airspeed_innov_var) = 0;
+
+	// gets the innovation variance of the synthetic sideslip measurement
+	virtual void get_beta_innov_var(float *get_beta_innov_var) = 0;
 
 	// gets the innovation variance of the heading measurement
 	virtual void get_heading_innov_var(float *heading_innov_var) = 0;
@@ -162,6 +168,9 @@ public:
 
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air) {_control_status.flags.in_air = in_air;}
+
+	// set flag if synthetic sideslip measurement should be fused
+	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = fuse_beta;}
 
 	// return true if the global position estimate is valid
 	virtual bool global_position_is_valid() = 0;
@@ -305,6 +314,7 @@ protected:
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 	float _tas_test_ratio;		// tas innovation consistency check ratio
 	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
+	float _beta_test_ratio;			// sideslip innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status;
 
 	// IMU vibration monitoring
