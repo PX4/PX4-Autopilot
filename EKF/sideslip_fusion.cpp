@@ -39,6 +39,7 @@
  * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
+#include "../ecl.h"
 #include "ekf.h"
 #include "mathlib.h"
 
