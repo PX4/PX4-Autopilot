@@ -580,6 +580,12 @@ void Ekf::get_airspeed_innov(float *airspeed_innov)
 	memcpy(airspeed_innov,&_airspeed_innov, sizeof(float));
 }
 
+// gets the innovations of the synthetic sideslip measurements
+void Ekf::get_beta_innov(float *beta_innov)
+{
+	memcpy(beta_innov,&_beta_innov, sizeof(float));
+}
+
 // gets the innovations of the heading measurement
 void Ekf::get_heading_innov(float *heading_innov)
 {
@@ -603,6 +609,12 @@ void Ekf::get_mag_innov_var(float mag_innov_var[3])
 void Ekf::get_airspeed_innov_var(float *airspeed_innov_var)
 {
 	memcpy(airspeed_innov_var, &_airspeed_innov_var, sizeof(float));
+}
+
+// gets the innovation variance of the synthetic sideslip measurement
+void Ekf::get_beta_innov_var(float *beta_innov_var)
+{
+	memcpy(beta_innov_var, &_beta_innov_var, sizeof(float));
 }
 
 // gets the innovation variance of the heading measurement
