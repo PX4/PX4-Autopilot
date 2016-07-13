@@ -13,7 +13,7 @@ add_executable(firmware_nuttx
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
-	romfs apps nuttx m gcc df_driver_framework
+	romfs apps nuttx m gcc
 	)
 
 if(NOT ${BOARD} STREQUAL "sim")
