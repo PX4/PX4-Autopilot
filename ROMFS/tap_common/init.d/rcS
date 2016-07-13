@@ -117,6 +117,8 @@ then
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
+	set USE_IO no
+	
 
 	#
 	# Set parameters and env variables for selected AUTOSTART
