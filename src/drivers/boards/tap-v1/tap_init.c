@@ -57,6 +57,8 @@
 #include <nuttx/i2c.h>
 #include <nuttx/analog/adc.h>
 
+
+
 #include "stm32.h"
 #include "board_config.h"
 #include "stm32_uart.h"
@@ -67,6 +69,10 @@
 #include <drivers/drv_led.h>
 
 #include <systemlib/cpuload.h>
+
+# if defined(FLASH_BASED_PARAMS)
+#  include <systemlib/flashparams/flashfs.h>
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -178,6 +184,25 @@ __EXPORT int nsh_archinitialize(void)
 	drv_led_start();
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t  sector_map[] = {
+		{1, 16 * 1024, 0x08004000},
+		{2, 16 * 1024, 0x08008000},
+		{0, 0, 0},
+	};
+
+	/* Initalizee the flashfs layer to use heap allocated memory */
+
+	result = parameter_flashfs_init(sector_map, NULL, 0);
+
+	if (result != OK) {
+		message("[boot] FAILED to init params in FLASH %d\n", result);
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
+#endif
 
 	/* Init the microSD slot */
 
