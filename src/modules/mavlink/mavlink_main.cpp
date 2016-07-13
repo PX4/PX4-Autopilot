@@ -224,6 +224,7 @@ Mavlink::Mavlink() :
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
 	_broadcast_address_not_found_warned(false),
+	_broadcast_failed_warned(false),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -920,7 +921,12 @@ Mavlink::send_packet()
 						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
-					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+					if (!_broadcast_failed_warned) {
+						PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+						_broadcast_failed_warned = true;
+					}
+				} else {
+					_broadcast_failed_warned = false;
 				}
 			}
 		}
