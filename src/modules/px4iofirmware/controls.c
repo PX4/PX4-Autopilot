@@ -486,6 +486,7 @@ controls_tick()
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
 	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) &&
+	    !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		bool override = false;
@@ -506,9 +507,14 @@ controls_tick()
 		 * If the FMU is dead then enable override if we have a mixer
 		 * and we want to immediately override (instead of using the RC channel
 		 * as in the case above.
+		 *
+		 * Also, do not enter manual override if we asked for termination
+		 * failsafe and FMU is lost.
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
-		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE)) {
+		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
+		    !(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)
+		    ) {
 			override = true;
 		}
 
