@@ -46,6 +46,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(NULL),
 	_sub_sonar(NULL),
+	_sub_landed(ORB_ID(vehicle_land_detected), 1000 / 10, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -568,6 +569,19 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 		dx(X_bz) = 0;
 	}
 
+	// if we are landed, we are not moving
+	bool landed = _sub_landed.get().landed;
+
+	if (landed) {
+		dx(X_x) = 0;
+		dx(X_y) = 0;
+		dx(X_z) = 0;
+		dx(X_vx) = 0;
+		dx(X_vy) = 0;
+		dx(X_vz) = 0;
+	}
+
+	// if xy not valid, stop estimating
 	if (!_validXY) {
 		dx(X_x) = 0;
 		dx(X_y) = 0;
@@ -577,12 +591,14 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 		dx(X_by) = 0;
 	}
 
+	// if z not valid, stop estimating
 	if (!_validZ) {
 		dx(X_z) = 0;
 		dx(X_vz) = 0;
 		dx(X_bz) = 0;
 	}
 
+	// if terrain not valid, stop estimating
 	if (!_validTZ) {
 		dx(X_tz) = 0;
 	}
