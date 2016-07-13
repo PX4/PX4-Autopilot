@@ -3057,10 +3057,10 @@ public:
 		return MAVLINK_MSG_ID_ALTITUDE;
 	}
 
-    uint8_t get_id()
-    {
-        return get_id_static();
-    }
+	uint8_t get_id()
+	{
+		return get_id_static();
+	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
