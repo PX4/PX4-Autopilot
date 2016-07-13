@@ -2342,7 +2342,7 @@ Sensors::task_main()
 		}
 
 		/* wait for up to 50ms for data */
-		int pret = px4_poll(fds, num_poll_fds, 50);
+		int pret = px4_poll(fds, 1, 50);
 
 		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
