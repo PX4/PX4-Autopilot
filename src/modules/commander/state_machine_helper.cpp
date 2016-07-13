@@ -674,7 +674,8 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				}
 
 			/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
-			} else if (status_flags->gps_failure && armed) {
+			/* A local position estimate is enough for POSCTL, this enables POSCTL using e.g. flow. */
+			} else if (!status_flags->condition_local_position_valid && armed) {
 				status->failsafe = true;
 
 				if (status_flags->condition_local_altitude_valid) {
