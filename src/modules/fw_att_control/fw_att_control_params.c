@@ -518,3 +518,46 @@ PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
+
+/**
+ * Manual roll scale
+ *
+ * Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
+ * to adjust the throws of the control surfaces.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
+
+/**
+ * Manual pitch scale
+ *
+ * Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows
+ * to adjust the throws of the control surfaces.
+ *
+ * @unit norm
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
+
+/**
+ * Manual yaw scale
+ *
+ * Scale factor applied to the desired yaw actuator command in full manual mode. This parameter allows
+ * to adjust the throws of the control surfaces.
+ *
+ * @unit norm
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
