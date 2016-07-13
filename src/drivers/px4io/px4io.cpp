@@ -1364,6 +1364,7 @@ PX4IO::io_set_control_state(unsigned group)
 	if (!_test_fmu_fail) {
 		/* copy values to registers in IO */
 		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
+
 	} else {
 		return OK;
 	}
@@ -2754,6 +2755,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				if (!_test_fmu_fail) {
 					/* send a direct PWM value */
 					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
+
 				} else {
 					/* Just silently accept the ioctl without doing anything
 					 * in test mode. */
@@ -3061,10 +3063,12 @@ PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
 		perf_begin(_perf_write);
 
 		int ret = OK;
+
 		/* The write() is silently ignored in test mode. */
 		if (!_test_fmu_fail) {
 			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
 		}
+
 		perf_end(_perf_write);
 
 		if (ret != OK) {
@@ -3900,6 +3904,7 @@ px4io_main(int argc, char *argv[])
 		if (g_dev != nullptr) {
 			g_dev->test_fmu_fail(true);
 			exit(0);
+
 		} else {
 
 			errx(1, "px4io must be started first");
@@ -3910,6 +3915,7 @@ px4io_main(int argc, char *argv[])
 		if (g_dev != nullptr) {
 			g_dev->test_fmu_fail(false);
 			exit(0);
+
 		} else {
 
 			errx(1, "px4io must be started first");
