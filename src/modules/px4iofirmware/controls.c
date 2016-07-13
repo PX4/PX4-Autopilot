@@ -481,14 +481,12 @@ controls_tick()
 	/*
 	 * Check for manual override.
 	 *
-	 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
-	 * must have R/C input (NO FAILSAFE!).
-	 * Override is enabled if either the hardcoded channel / value combination
-	 * is selected, or the AP has requested it.
+	 * Firstly, manual override must be enabled, RC input available and a mixer loaded.
 	 */
-	if ((!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)) &&
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) &&
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		bool override = false;
 
@@ -499,28 +497,23 @@ controls_tick()
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH)) {
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		    (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH)) {
 			override = true;
 		}
 
 		/*
-		  if the FMU is dead then enable override if we have a
-		  mixer and OVERRIDE_IMMEDIATE is set
+		 * If the FMU is dead then enable override if we have a mixer
+		 * and we want to immediately override (instead of using the RC channel
+		 * as in the case above.
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
-		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
-		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE)) {
 			override = true;
 		}
 
 		if (override) {
-
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
-
-			/* mix new RC input control values to servos */
-			if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated) {
-				mixer_tick();
-			}
 
 		} else {
 			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
