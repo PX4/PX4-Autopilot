@@ -183,11 +183,25 @@ out:
 
 		if (result == OK) {
 
+			/* Check for a write that has no changes */
+
+			uint8_t *was_buffer;
+			size_t was_buf_size;
+			int was_result = parameter_flashfs_read(parameters_token, &was_buffer, &was_buf_size);
+
 			void *enc_buff = bson_encoder_buf_data(&encoder);
-			memcpy(buffer, enc_buff, buf_size);
+
+			bool commit = was_result < OK || was_buf_size != buf_size || 0 != memcmp(was_buffer, enc_buff, was_buf_size);
+
+			if (commit) {
+
+				memcpy(buffer, enc_buff, buf_size);
+				result = parameter_flashfs_write(parameters_token, buffer, buf_size);
+				result = result == buf_size ? OK : -EFBIG;
+
+			}
+
 			free(enc_buff);
-			result = parameter_flashfs_write(parameters_token, buffer, buf_size);
-			result = result == buf_size ? OK : -EFBIG;
 		}
 	}
 
