@@ -229,6 +229,27 @@ __EXPORT hrt_abstime hrt_reset(void)
 }
 
 /*
+ * Get cpu time.
+ */
+hrt_abstime hrt_cpu_time(void)
+{
+	clockid_t cid;
+	int s;
+
+	s = pthread_getcpuclockid(pthread_self(), &cid);
+
+	if (s == 0) {
+		struct timespec ts;
+
+		if (clock_gettime(cid, &ts) == 0) {
+			return ts_to_abstime(&ts);
+		}
+	}
+
+	return 0;
+}
+
+/*
  * Convert a timespec to absolute time.
  */
 hrt_abstime ts_to_abstime(struct timespec *ts)
