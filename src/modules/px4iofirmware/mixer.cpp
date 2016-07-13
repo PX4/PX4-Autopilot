@@ -143,6 +143,7 @@ mixer_tick(void)
 
 				/* if allowed, mix from RC inputs directly up to available rc channels */
 				source = MIX_OVERRIDE_FMU_OK;
+
 			} else {
 				/* if allowed, mix from RC inputs directly */
 				source = MIX_OVERRIDE;
