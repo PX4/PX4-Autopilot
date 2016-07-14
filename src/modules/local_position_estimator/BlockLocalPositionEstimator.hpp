@@ -19,10 +19,10 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -205,7 +205,6 @@ private:
 	float agl();
 	void correctionLogic(Vector<float, n_x> &dx);
 	void detectDistanceSensors();
-	void updateHome();
 
 	// publications
 	void publishLocalPos();
@@ -222,7 +221,6 @@ private:
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
-	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
@@ -233,6 +231,7 @@ private:
 	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
+	uORB::Subscription<vehicle_land_detected_s> _sub_landed;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -292,9 +291,9 @@ private:
 	BlockParamFloat  _pn_b_noise_density;
 	BlockParamFloat  _t_max_grade;
 
-	// init home
-	BlockParamFloat  _init_home_lat;
-	BlockParamFloat  _init_home_lon;
+	// init origin
+	BlockParamFloat  _init_origin_lat;
+	BlockParamFloat  _init_origin_lon;
 
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
@@ -344,12 +343,12 @@ private:
 	bool _mocapInitialized;
 
 	// reference altitudes
-	float _altHome;
-	bool _altHomeInitialized;
-	float _baroAltHome;
-	float _gpsAltHome;
-	Vector3f _visionHome;
-	Vector3f _mocapHome;
+	float _altOrigin;
+	bool _altOriginInitialized;
+	float _baroAltOrigin;
+	float _gpsAltOrigin;
+	Vector3f _visionOrigin;
+	Vector3f _mocapOrigin;
 
 	// flow integration
 	float _flowX;
