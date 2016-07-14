@@ -253,7 +253,6 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
-	math::Vector<3> _thrust_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
@@ -2056,14 +2055,6 @@ MulticopterPositionControl::task_main()
 				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
 
 				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-
-				/* reset the acceleration set point for all non-attitude flight modes */
-				if (!(_control_mode.flag_control_offboard_enabled &&
-				      !(_control_mode.flag_control_position_enabled ||
-					_control_mode.flag_control_velocity_enabled))) {
-
-					_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
-				}
 			}
 
 			/* copy quaternion setpoint to attitude setpoint topic */
