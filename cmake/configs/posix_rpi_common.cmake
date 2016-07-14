@@ -1,12 +1,12 @@
-# This file is shared between posix_rpi2_native.cmake
-# and posix_rpi2_cross.cmake.
+# This file is shared between posix_rpi_native.cmake
+# and posix_rpi_cross.cmake.
 
 include(posix/px4_impl_posix)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
 add_definitions(
-	-D__PX4_POSIX_RPI2
+	-D__PX4_POSIX_RPI
 	-D__LINUX
 )
 
