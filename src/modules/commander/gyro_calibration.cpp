@@ -92,7 +92,6 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 	}
 
 	memset(&worker_data->gyro_report_0, 0, sizeof(worker_data->gyro_report_0));
-	memset(&worker_data->gyro_scale, 0, sizeof(worker_data->gyro_scale));
 
 	/* use first gyro to pace, but count correctly per-gyro for statistics */
 	while (calibration_counter[0] < calibration_count) {
@@ -142,9 +141,6 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 			return calibrate_return_error;
 		}
 
-		worker_data->gyro_scale[s].x_scale = 1.0f;
-		worker_data->gyro_scale[s].y_scale = 1.0f;
-		worker_data->gyro_scale[s].z_scale = 1.0f;
 		worker_data->gyro_scale[s].x_offset /= calibration_counter[s];
 		worker_data->gyro_scale[s].y_offset /= calibration_counter[s];
 		worker_data->gyro_scale[s].z_offset /= calibration_counter[s];
