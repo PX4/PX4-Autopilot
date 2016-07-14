@@ -152,7 +152,7 @@ px4fmu-v1_default:
 
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
-	
+
 px4fmu-v2_test:
 	$(call cmake-build,nuttx_px4fmu-v2_test)
 
@@ -170,7 +170,7 @@ mindpx-v2_default:
 
 posix_sitl_default:
 	$(call cmake-build,$@)
-	
+
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
@@ -199,10 +199,10 @@ eagle_default: posix_eagle_default qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
 
 qurt_eagle_legacy_driver_default:
-	$(call cmake-build,$@)	
-	
+	$(call cmake-build,$@)
+
 posix_eagle_legacy_driver_default:
-	$(call cmake-build,$@) 
+	$(call cmake-build,$@)
 
 qurt_excelsior_default:
 	$(call cmake-build,$@)
@@ -212,10 +212,10 @@ posix_excelsior_default:
 
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
-posix_rpi2_default:
+posix_rpi2_native:
 	$(call cmake-build,$@)
 
-posix_rpi2_release:
+posix_rpi2_cross:
 	$(call cmake-build,$@)
 
 posix_bebop_default:
