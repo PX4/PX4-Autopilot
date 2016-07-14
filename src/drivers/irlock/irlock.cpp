@@ -67,20 +67,9 @@
 #define IRLOCK_RESYNC		0x5500
 #define IRLOCK_ADJUST		0xAA
 
-#define IRLOCK_RES_X 320
-#define IRLOCK_RES_Y 200
-
-#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2)			// the x-axis center pixel position
-#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2)			// the y-axis center pixel position
-
-#define IRLOCK_FOV_X (60.0f*M_PI_F/180.0f)
-#define IRLOCK_FOV_Y (35.0f*M_PI_F/180.0f)
-
-#define IRLOCK_TAN_HALF_FOV_X 0.57735026919f // tan(0.5 * 60 * pi/180)
-#define IRLOCK_TAN_HALF_FOV_Y 0.31529878887f // tan(0.5 * 35 * pi/180)
-
-#define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
-#define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
+// converts IRLOCK pixels to a position on a normal plane 1m in front of the lens
+// based on a characterization of IR-LOCK with the standard lens, focused such that 2.38mm of threads are exposed
+#define IRLOCK_PIXEL_POS_TO_1M_PLANE_POS(_PIX_X,_PIX_Y,_RET_X,_RET_Y) _RET_X = (-0.00293875727162397f*_PIX_X + 0.470201163459835f)/(4.43013552642296e-6f*((_PIX_X - 160.0f)*(_PIX_X - 160.0f)) + 4.79331390531725e-6f*((_PIX_Y - 100.0f)*(_PIX_Y - 100.0f)) - 1.0f); _RET_Y = (-0.003056843086277f*_PIX_Y + 0.3056843086277f)/(4.43013552642296e-6f*((_PIX_X - 160.0f)*(_PIX_X - 160.0f)) + 4.79331390531725e-6f*((_PIX_Y - 100.0f)*(_PIX_Y - 100.0f)) - 1.0f);
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -398,12 +387,21 @@ int IRLOCK::read_device_block(struct irlock_target_s *block)
 		return -EIO;
 	}
 
+	int16_t corner1_pix_x = pixel_x-pixel_size_x/2;
+        int16_t corner1_pix_y = pixel_y-pixel_size_y/2;
+        int16_t corner2_pix_x = pixel_x+pixel_size_x/2;
+        int16_t corner2_pix_y = pixel_y+pixel_size_y/2;
+
+        float corner1_pos_x, corner1_pos_y, corner2_pos_x, corner2_pos_y;
+        IRLOCK_PIXEL_POS_TO_1M_PLANE_POS(corner1_pix_x, corner1_pix_y, corner1_pos_x, corner1_pos_y)
+        IRLOCK_PIXEL_POS_TO_1M_PLANE_POS(corner2_pix_x, corner2_pix_y, corner2_pos_x, corner2_pos_y)
+
 	/** convert to angles **/
 	block->signature = signature;
-	block->pos_x = (pixel_x - IRLOCK_CENTER_X) * IRLOCK_TAN_ANG_PER_PIXEL_X;
-	block->pos_y = (pixel_y - IRLOCK_CENTER_Y) * IRLOCK_TAN_ANG_PER_PIXEL_Y;
-	block->size_x = pixel_size_x * IRLOCK_TAN_ANG_PER_PIXEL_X;
-	block->size_y = pixel_size_y * IRLOCK_TAN_ANG_PER_PIXEL_Y;
+        block->pos_x = 0.5f*(corner1_pos_x+corner2_pos_x);
+        block->pos_y = 0.5f*(corner1_pos_y+corner2_pos_y);
+        block->size_x = corner2_pos_x-corner1_pos_x;
+        block->size_y = corner2_pos_y-corner1_pos_y;
 	return status;
 }
 
