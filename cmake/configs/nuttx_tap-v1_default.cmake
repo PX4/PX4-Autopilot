@@ -14,6 +14,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/tap-v1
 	drivers/rgbled_pwm
+	drivers/tap_esc
 	#drivers/mpu6500
 	drivers/ms5611
 	drivers/gps
