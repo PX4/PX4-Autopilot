@@ -37,27 +37,27 @@ void BlockLocalPositionEstimator::gpsInit()
 
 	// if finished
 	if (_gpsStats.getCount() > REQ_GPS_INIT_COUNT) {
-		double gpsLatHome = _gpsStats.getMean()(0);
-		double gpsLonHome = _gpsStats.getMean()(1);
+		double gpsLatOrigin = _gpsStats.getMean()(0);
+		double gpsLonOrigin = _gpsStats.getMean()(1);
 
 		if (!_receivedGps) {
 			_receivedGps = true;
-			map_projection_init(&_map_ref, gpsLatHome, gpsLonHome);
+			map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
 		}
 
-		_gpsAltHome = _gpsStats.getMean()(2);
+		_gpsAltOrigin = _gpsStats.getMean()(2);
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps init "
 					     "lat %6.2f lon %6.2f alt %5.1f m",
-					     gpsLatHome,
-					     gpsLonHome,
-					     double(_gpsAltHome));
+					     gpsLatOrigin,
+					     gpsLonOrigin,
+					     double(_gpsAltOrigin));
 		_gpsInitialized = true;
 		_gpsFault = FAULT_NONE;
 		_gpsStats.reset();
 
-		if (!_altHomeInitialized) {
-			_altHomeInitialized = true;
-			_altHome = _gpsAltHome;
+		if (!_altOriginInitialized) {
+			_altOriginInitialized = true;
+			_altOrigin = _gpsAltOrigin;
 		}
 	}
 }
@@ -92,7 +92,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float  alt = y_global(2);
 	float px = 0;
 	float py = 0;
-	float pz = -(alt - _gpsAltHome);
+	float pz = -(alt - _gpsAltOrigin);
 	map_projection_project(&_map_ref, lat, lon, &px, &py);
 	Vector<float, 6> y;
 	y.setZero();
