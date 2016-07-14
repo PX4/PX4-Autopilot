@@ -106,6 +106,8 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_SONAR      2
 #define PX4_I2C_BUS_EXPANSION  3
 
+#define PX4_I2C_OBDEV_HMC5883	0x1e
+
 /*
  * Devices on the onboard bus.
  *
