@@ -1,5 +1,5 @@
-# This file is shared between posix_rpi2_default.cmake
-# and posix_rpi2_release.cmake.
+# This file is shared between posix_rpi2_native.cmake
+# and posix_rpi2_cross.cmake.
 
 include(posix/px4_impl_posix)
 
