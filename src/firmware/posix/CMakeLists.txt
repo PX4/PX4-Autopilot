@@ -37,7 +37,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 			 DEPENDS mainapp
 			 DEST /home/linaro)
 
-elseif ("${BOARD}" STREQUAL "rpi2")
+elseif ("${BOARD}" STREQUAL "rpi")
 
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
@@ -57,7 +57,7 @@ elseif ("${BOARD}" STREQUAL "rpi2")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
-				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi2/mainapp.config
+				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi/mainapp.config
 			 DEPENDS mainapp
 			 DEST /home/pi)
 

@@ -212,10 +212,10 @@ posix_excelsior_default:
 
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
-posix_rpi2_native:
+posix_rpi_native:
 	$(call cmake-build,$@)
 
-posix_rpi2_cross:
+posix_rpi_cross:
 	$(call cmake-build,$@)
 
 posix_bebop_default:
