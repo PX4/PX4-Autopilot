@@ -142,6 +142,9 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 			return calibrate_return_error;
 		}
 
+		worker_data->gyro_scale[s].x_scale = 1.0f;
+		worker_data->gyro_scale[s].y_scale = 1.0f;
+		worker_data->gyro_scale[s].z_scale = 1.0f;
 		worker_data->gyro_scale[s].x_offset /= calibration_counter[s];
 		worker_data->gyro_scale[s].y_offset /= calibration_counter[s];
 		worker_data->gyro_scale[s].z_offset /= calibration_counter[s];
