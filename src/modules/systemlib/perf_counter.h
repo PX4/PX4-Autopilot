@@ -48,9 +48,7 @@
 enum perf_counter_type {
 	PC_COUNT,		/**< count the number of times an event occurs */
 	PC_ELAPSED,		/**< measure the time elapsed performing an event */
-#ifdef __PX4_POSIX
 	PC_CONSUMED,	/**< measure the cpu time spent by a thread */
-#endif
 	PC_INTERVAL		/**< measure the interval between instances of an event */
 };
 

@@ -233,6 +233,7 @@ __EXPORT hrt_abstime hrt_reset(void)
  */
 hrt_abstime hrt_cpu_time(void)
 {
+#ifdef __PX4_POSIX
 	clockid_t cid;
 	int s;
 
@@ -247,6 +248,10 @@ hrt_abstime hrt_cpu_time(void)
 	}
 
 	return 0;
+#else
+	PX4_ERR("hrt_cpu_time: not Implemented for current platform");
+	return -1;
+#endif
 }
 
 /*
@@ -613,4 +618,3 @@ hrt_call_invoke(void)
 
 	hrt_unlock();
 }
-

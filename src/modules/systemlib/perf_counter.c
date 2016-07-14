@@ -122,10 +122,14 @@ perf_alloc(enum perf_counter_type type, const char *name)
 		break;
 
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
 		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+		break;
+
+	case PC_CONSUMED:
+
+#ifdef __PX4_POSIX
+		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+#endif
 		break;
 
 	case PC_INTERVAL:
@@ -252,12 +256,9 @@ perf_begin(perf_counter_t handle)
 		((struct perf_ctr_elapsed *)handle)->time_start = HRT_ABSOLUTE_TIME(PC_ELAPSED);
 		break;
 
-#ifdef __PX4_POSIX
-
 	case PC_CONSUMED:
 		((struct perf_ctr_elapsed *)handle)->time_start = HRT_ABSOLUTE_TIME(PC_CONSUMED);
 		break;
-#endif
 
 	default:
 		break;
@@ -273,10 +274,7 @@ perf_end(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
-		{
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			if (pce->time_start != 0) {
@@ -390,10 +388,7 @@ perf_cancel(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
-		{
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			pce->time_start = 0;
@@ -420,10 +415,7 @@ perf_reset(perf_counter_t handle)
 		break;
 
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
-		{
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			pce->event_count = 0;
 			pce->time_start = 0;
@@ -471,10 +463,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		break;
 
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
-		{
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
@@ -520,10 +509,7 @@ perf_event_count(perf_counter_t handle)
 		return ((struct perf_ctr_count *)handle)->event_count;
 
 	case PC_ELAPSED:
-#ifdef __PX4_POSIX
-	case PC_CONSUMED:
-#endif
-		{
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			return pce->event_count;
 		}
