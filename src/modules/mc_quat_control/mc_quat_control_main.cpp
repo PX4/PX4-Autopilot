@@ -753,8 +753,8 @@ MulticopterQuaternionControl::control_attitude(float dt)
 			q_d[1] = _v_att_sp.q_d[1];
 			q_d[2] = _v_att_sp.q_d[2];		
 			q_d[3] = _v_att_sp.q_d[3];
-			_thrust_sp = _manual_control_sp.z; //_v_att_sp.thrust; //_manual_control_sp.z
-			//_thrust_sp = _v_att_sp.thrust;
+			//_thrust_sp = _manual_control_sp.z; //_v_att_sp.thrust; //_manual_control_sp.z
+			_thrust_sp = _v_att_sp.thrust;
 		} else {
 			//TODO maybe we should have here conversion from att_d(rpy) to quaternion
 			_thrust_sp = 0.1;
@@ -864,14 +864,13 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 	_att_control(1) = -_params.rate_p(1)*rates_err(1) - _params.rate_d(1)*(vehicles_Omega_rates(1) - vehicles_Omega_rates_d(1));
 	_att_control(2) = -_params.rate_p(2)*rates_err(2) - _params.rate_d(2)*(vehicles_Omega_rates(2) - vehicles_Omega_rates_d(2));
 
-	//printf("acct %3.3f %3.3f %3.3f\n", double(_att_control(0)), double(_att_control(1)), double(_att_control(2)) );
 
 	/* Here we implement the battery voltage if we are using open-loop voltage control 16.4*/
 	//printf("Battery voltage %3.3f %3.3f %d\n", (double)_battery.voltage_v, double(_battery.voltage_filtered_v), _params.battery_switch);
 
-	//if (_params.battery_switch == 1) {
-		//_thrust_sp = _thrust_sp * (1 + (16.4f - _battery.voltage_filtered_v)/16.4f);
-	//}
+	if (_params.battery_switch == 1) {
+		_thrust_sp = _thrust_sp * (1 + (16.4f - _battery.voltage_filtered_v)/16.4f);
+	}
 
 	// yaw integral
 	int_yawrate += rates_err(2)*dt;

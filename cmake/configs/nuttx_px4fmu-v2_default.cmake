@@ -39,7 +39,7 @@ set(config_module_list
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	#drivers/mkblctrl
+	drivers/mkblctrl #comment this again
 	drivers/px4flow
 	#drivers/oreoled
 	drivers/gimbal

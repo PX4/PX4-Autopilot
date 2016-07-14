@@ -36,9 +36,8 @@ PARAM_DEFINE_FLOAT(ATT_VEL_K2_W, 0.1f);
 PARAM_DEFINE_FLOAT(ATT_VEL_K2_BA, 0.3f);
 PARAM_DEFINE_FLOAT(ATT_VEL_K2_BAC, 0.0f);
 
-PARAM_DEFINE_FLOAT(ATT_CBAR_0, 0.05f);
-PARAM_DEFINE_FLOAT(ATT_CBAR_1, 0.05f);
-PARAM_DEFINE_FLOAT(ATT_CBAR_2, 0.0f);
+PARAM_DEFINE_FLOAT(ATT_CBAR_X, 0.05f);
+PARAM_DEFINE_FLOAT(ATT_CBAR_Y, 0.05f);
 
 PARAM_DEFINE_FLOAT(ATT_BARO_K1, 0.90f);
 PARAM_DEFINE_FLOAT(ATT_BARO_K2, 0.5f);
@@ -71,9 +70,12 @@ int parameters_init(struct av_estimator_param_handles *h)
 	h->att_vel_k2ba  =      param_find("ATT_VEL_K2_BA");
 	h->att_vel_k2bac =      param_find("ATT_VEL_K2_BAC");
 
-	h->cbar_0 =		param_find("ATT_CBAR_0");
-	h->cbar_1 =		param_find("ATT_CBAR_1");
-	h->cbar_2 =		param_find("ATT_CBAR_2");
+	h->cbar_x =		param_find("ATT_CBAR_X");
+	h->cbar_y =		param_find("ATT_CBAR_Y");
+
+	h->cbar_x_offset = param_find("MC_VEL_CBAR_XOFF");
+	h->cbar_y_offset = param_find("MC_VEL_CBAR_YOFF");
+
 
 	h->curr_calib_en =	param_find("ATT_C_CAL_EN");
 
@@ -136,9 +138,11 @@ int parameters_update(const struct av_estimator_param_handles *h, struct av_esti
 	param_get(h->att_vel_k2ba ,	&(p->att_vel_k2ba ));
 	param_get(h->att_vel_k2bac,	&(p->att_vel_k2bac));
 
-	param_get(h->cbar_0, &(p->cbar_0));
-	param_get(h->cbar_1, &(p->cbar_1));
-	param_get(h->cbar_2, &(p->cbar_2));
+	param_get(h->cbar_x, &(p->cbar_x));
+	param_get(h->cbar_y, &(p->cbar_y));
+
+	param_get(h->cbar_x_offset, &(p->cbar_x_offset));
+	param_get(h->cbar_y_offset, &(p->cbar_y_offset));
 
 	param_get(h->baro_k1, &(p->baro_k1));
 	param_get(h->baro_k2, &(p->baro_k2));

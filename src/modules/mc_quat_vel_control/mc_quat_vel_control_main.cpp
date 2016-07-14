@@ -92,6 +92,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 
+#include "mc_quat_vel_control_params.h"
+
 #include <uORB/topics/rc_channels.h>
 
 #include <px4_eigen.h>
@@ -199,6 +201,11 @@ private:
 	float Kp_velx = 0.0f, Ki_velx = 0.0f, Kp_vely = 0.0f, Ki_vely = 0.0f, Kp_velz = 0.0f, Ki_velz = 0.0f;
 	float yr_max = 30.0f;
 	bool change_control_gain = false;
+
+	float xvelcalib = 0.0f, yvelcalib = 0.0f, xoff = 0.0f, yoff = 0.0f; 
+	int vel_calib_count = 0;
+
+	math::Vector<3> veh_vel;
 
 
 	struct {
@@ -364,6 +371,11 @@ private:
 	 * Attitude rates controller.
 	 */
 	void		control_attitude_rates(float dt);
+
+	/**
+	 *  Drag offset calibration
+	*/
+	void 		velocity_offset_calibration();
 
 	/**
 	 * Quaternion compilation files.
@@ -971,6 +983,14 @@ MulticopterQuaternionVelControl::parameter_update_poll()
 }
 
 void
+MulticopterQuaternionVelControl::velocity_offset_calibration()
+{	
+	xvelcalib += veh_vel(0);
+	yvelcalib += veh_vel(1);
+	vel_calib_count += 1;
+}
+
+void
 MulticopterQuaternionVelControl::vehicle_rc_poll()
 {
 	bool updated;
@@ -1185,8 +1205,7 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 	float ctheta, stheta, cphi, sphi, cpsi, spsi;
 
 	float cs_angle = 1.0f;
-	bool publish_att_sp = false;
-	math::Vector<3> veh_vel;
+	bool publish_att_sp = false;	
 
 	/* Flag for changing gains when we lose inertial sensors. A more efficient method is required */
 	change_control_gain = false;
@@ -1261,54 +1280,35 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 		if (_v_vel.body_valid )
 		{
 			vel_cont = true;
+			
+			if (_v_vel_est.inertial_valid)
+			{
+				/* Only run controller when new data is available */
+				if  (_v_vel_est.timestamp != old_vel_timestamp)
+				{
+					veh_vel(0) = _v_vel_est.inertial_bvx;
+					veh_vel(1) = _v_vel_est.inertial_bvy;
+					veh_vel(2) = _v_vel_est.inertial_bvz;
 
-			/* If meas velocity is >35Hz there is no advantage in using v_est
-			   For now lets use vicon = lpos since that is what we have at 39Hz */
-			/*if (_v_vicon_position.valid) //These comments Jan15
-			{ 
-				if  (_v_vel.timestamp != old_vel_timestamp)
-					{
-						veh_vel(0) = _v_vel.body_vx;
-						veh_vel(1) = _v_vel.body_vy;
-						veh_vel(2) = _v_vel.body_vz;
-
-						dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
-
-						control_velocity(veh_vel);
-						old_vel_timestamp = _v_vel.timestamp;
-					}
-			} *///else
-			//{
-					if (_v_vel_est.inertial_valid)
-					{
-						/* Only run controller when new data is available */
-						if  (_v_vel_est.timestamp != old_vel_timestamp)
-						{
-							veh_vel(0) = _v_vel_est.inertial_bvx;
-							veh_vel(1) = _v_vel_est.inertial_bvy;
-							veh_vel(2) = _v_vel_est.inertial_bvz;
-
-							dtt = (_v_vel_est.timestamp - old_vel_timestamp)*0.000001f;
-							control_velocity(veh_vel);
-							old_vel_timestamp = _v_vel_est.timestamp;
-						}
-				} else 
-				{    /* We know that there is no v_est data so lets use v_meas */
-					/* Only run controller when new data is available */
-					if  (_v_vel.timestamp != old_vel_timestamp)
-					{
-						veh_vel(0) = _v_vel.body_vx;
-						veh_vel(1) = _v_vel.body_vy;
-						veh_vel(2) = _v_vel.body_vz;
-
-						dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
-
-						control_velocity(veh_vel);
-						old_vel_timestamp = _v_vel.timestamp;
-					}
+					dtt = (_v_vel_est.timestamp - old_vel_timestamp)*0.000001f;
+					control_velocity(veh_vel);
+					old_vel_timestamp = _v_vel_est.timestamp;
 				}
+			} else 
+			{    /* We know that there is no v_est data so lets use v_meas */
+				/* Only run controller when new data is available */
+				if  (_v_vel.timestamp != old_vel_timestamp)
+				{
+					veh_vel(0) = _v_vel.body_vx;
+					veh_vel(1) = _v_vel.body_vy;
+					veh_vel(2) = _v_vel.body_vz;
 
-			//} Jan15
+					dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
+
+					control_velocity(veh_vel);
+					old_vel_timestamp = _v_vel.timestamp;
+				}
+			}
 					
 			_lpos_sp.vy = _vel_setpoint(0);
 			_lpos_sp.vx = _vel_setpoint(1);
@@ -1429,53 +1429,37 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 
 		if (_v_vel.body_valid )
 		{
-			/* If meas velocity is >35Hz there is no advantage in using v_est
-			   For now lets use vicon = lpos since that is what we have at 39Hz */
-			/*if (_v_vicon_position.valid)
+			
+			if (_v_vel_est.inertial_valid)
 			{
-				if  (_v_vel.timestamp != old_vel_timestamp)
-					{
-						veh_vel(0) = _v_vel.body_vx;
-						veh_vel(1) = _v_vel.body_vy;
-						veh_vel(2) = _v_vel.body_vz;
+				//change_control_gain = true;
+				//set_control_gains(change_control_gain);
 
-						dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
-
-						control_velocity(veh_vel);
-						old_vel_timestamp = _v_vel.timestamp;
-					}
-			} else
-			{*/
-				if (_v_vel_est.inertial_valid)
+				/* Only run controller when new data is available */
+				if  (_v_vel_est.timestamp != old_vel_timestamp)
 				{
-					//change_control_gain = true;
-					//set_control_gains(change_control_gain);
+					veh_vel(0) = _v_vel_est.inertial_bvx;
+					veh_vel(1) = _v_vel_est.inertial_bvy;
+					veh_vel(2) = _v_vel_est.inertial_bvz;
 
-					/* Only run controller when new data is available */
-					if  (_v_vel_est.timestamp != old_vel_timestamp)
-					{
-						veh_vel(0) = _v_vel_est.inertial_bvx;
-						veh_vel(1) = _v_vel_est.inertial_bvy;
-						veh_vel(2) = _v_vel_est.inertial_bvz;
+					dtt = (_v_vel_est.timestamp - old_vel_timestamp)*0.000001f;
+					control_velocity(veh_vel);
+					old_vel_timestamp = _v_vel_est.timestamp;
+				} 
+			} else
+			{ // This is there just in case we are not running our av_estimator
+				if  (_v_vel.timestamp != old_vel_timestamp)
+				{
+					veh_vel(0) = _v_vel.body_vx;
+					veh_vel(1) = _v_vel.body_vy;
+					veh_vel(2) = _v_vel.body_vz;
 
-						dtt = (_v_vel_est.timestamp - old_vel_timestamp)*0.000001f;
-						control_velocity(veh_vel);
-						old_vel_timestamp = _v_vel_est.timestamp;
-					} 
-				} else
-				{ // This is there just in case we are not running our av_estimator
-					if  (_v_vel.timestamp != old_vel_timestamp)
-					{
-						veh_vel(0) = _v_vel.body_vx;
-						veh_vel(1) = _v_vel.body_vy;
-						veh_vel(2) = _v_vel.body_vz;
+					dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
 
-						dtt = (_v_vel.timestamp - old_vel_timestamp)*0.000001f;
-
-						control_velocity(veh_vel);
-						old_vel_timestamp = _v_vel.timestamp;
-					}
+					control_velocity(veh_vel);
+					old_vel_timestamp = _v_vel.timestamp;
 				}
+			}
 			//} 
 		} else
 		{
@@ -1687,8 +1671,6 @@ MulticopterQuaternionVelControl::control_attitude_rates(float dt)
 		_att_control(2) -=int_yawrate*_params.rate_i(2)*0;
 	}		
 	_rates_prev = rates;
-
-	printf("yaw con %3.3f\n",double(_att_control(2)));
 }
 
 void
@@ -1734,6 +1716,7 @@ MulticopterQuaternionVelControl::task_main()
 	/* Do initial polling */
 	poll_subscriptions();
 
+	float prev_rc_chan5 = _v_rc_channels.channels[5];
 
 	while (!_task_should_exit) {
 
@@ -1751,6 +1734,15 @@ MulticopterQuaternionVelControl::task_main()
 			usleep(100000);
 			continue;
 		}
+		/*float yoff = 0.5f;
+		xoff += 0.001f*0;
+		char str[30] = "MC_VEL_CBAR_YOFF";
+
+		result = param_set(param_find(str), &yoff);
+		result = param_set(param_find("MC_VEL_CBAR_XOFF"), &xoff);
+		if (result != OK) {
+			printf("unable to reset %s", str);
+		}*/
 
 		perf_begin(_loop_perf);
 
@@ -1767,6 +1759,33 @@ MulticopterQuaternionVelControl::task_main()
 			} else if (dt > 0.02f) {
 				dt = 0.02f;
 			}
+
+			/* Run the drag offset calibration when velocity measurements are available*/
+			if (_v_vel.body_valid)
+			{
+				if (prev_rc_chan5 < 0 && _v_rc_channels.channels[5] > 0)
+				{
+					xoff = xvelcalib/vel_calib_count;
+					yoff = yvelcalib/vel_calib_count;
+
+					param_set(param_find("MC_VEL_CBAR_XOFF"), &xoff);
+					param_set(param_find("MC_VEL_CBAR_YOFF"), &yoff);
+				}
+
+				if (_v_rc_channels.channels[5] < 0)
+				{
+					velocity_offset_calibration();
+				} else {
+					xvelcalib = 0.0f;
+					yvelcalib = 0.0f;
+					vel_calib_count = 0;
+				}
+			}
+			
+
+
+			prev_rc_chan5 = _v_rc_channels.channels[5];
+
 
 			/* copy attitude topic */
 			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);

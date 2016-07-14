@@ -89,7 +89,6 @@
 #include <uORB/topics/vehicle_velocity_meas_inertial.h>
 #include <uORB/topics/vehicle_velocity_meas_est_body.h>  
 #include <av_estimator/include/av_estimator_params.h> 
-//#include <av_estimator/include/av_estimator_main.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_omega_ff_setpoint.h>
 
@@ -178,6 +177,8 @@ private:
 		param_t est_z;
 		param_t xy_vel_imax;
 		param_t z_vel_imax;
+		param_t cbar_x;
+		param_t cbar_y;
 		param_t xy_p;
 		param_t xy_vel_p;
 		param_t xy_vel_i;
@@ -225,6 +226,8 @@ private:
 		float vel_max_down;
 		uint32_t alt_mode;
 		float mg;
+		float cbar_x;
+		float cbar_y;
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
 		math::Vector<3> vel_i;
@@ -240,10 +243,10 @@ private:
 	Vector3f pos_d = Vector3f::Zero(), vel_d = Vector3f::Zero(), acc_d = Vector3f::Zero();
 	
 	/* Initialisation of time and filters */
-	float 		x, y, z, vx = 0.0f, vy = 0.0f, vz = 0.0f;
+	float 		x = 0.0f, y = 0.0f, z = 0.0f, vx = 0.0f, vy = 0.0f, vz = 0.0f;
 	float 		ivx = 0.0f, ivy = 0.0f, ivz = 0.0f;
 	float 		px_tmp = 0.0f, py_tmp = 0.0f, pz_tmp = 0.0f; 
-	float 		qd[4], thrust;
+	float 		qd[4] = {1.0f, 0.0f, 0.0f, 0.0f}, thrust = 0.0f;
 	int 		sign_q0 = 1;
 	uint64_t 	old_time = 0;
 	uint64_t 	gps_old_time = 0, _v_est_time_old = 0;
@@ -255,8 +258,6 @@ private:
 
 	Vector3f 	int_velocity = Vector3f::Zero();
 
-	//math::Matrix<3,3> Rot;
-	//math::Vector<3>	   veh_vel_body = Vector3f::Zero();
 	Matrix3f 	Rot 			= Matrix3f::Identity();
 	Vector3f    veh_vel_body 	= Vector3f::Zero();
 	Matrix3f	Omega_x;
@@ -286,6 +287,7 @@ private:
 	struct 			vehicle_gps_position_s 				_veh_gps_pos;			/**< Subscribe to gps position */
 	struct 			vehicle_velocity_meas_inertial_s	_veh_vel;			/**< vehicle velocity */
 	struct 			vehicle_velocity_meas_est_body_s	_veh_vel_body;  	/**< Body fixed frame velocity measurements */
+	struct 			parameter_update_s 					param_upd;
 
 	int 			_veh_vel_body_sub = -1;
 	orb_advert_t 	_veh_vel_pub;
@@ -438,7 +440,6 @@ MulticopterQuatPositionControl::MulticopterQuatPositionControl() :
 	_local_pos_sub(-1),
 
 	/* publications */
-	//_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
@@ -483,6 +484,9 @@ MulticopterQuatPositionControl::MulticopterQuatPositionControl() :
 
 	_params_handles.xy_vel_imax = param_find("MPC_VEL_IXY_MAX");
 	_params_handles.z_vel_imax  = param_find("MPC_VEL_IZ_MAX");
+
+	_params_handles.cbar_x = param_find("ATT_CBAR_X");
+	_params_handles.cbar_y = param_find("ATT_CBAR_Y");
 
 	float p;
 	param_get(param_find("MPC_Z_VEL_MAX"), &p);
@@ -542,8 +546,8 @@ MulticopterQuatPositionControl::~MulticopterQuatPositionControl()
 int
 MulticopterQuatPositionControl::parameters_update(bool force)
 {
-	bool updated = false;
-	struct parameter_update_s param_upd;
+	bool updated = false;	
+	orb_check(_params_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
@@ -649,6 +653,12 @@ MulticopterQuatPositionControl::parameters_update(bool force)
 		param_get(_params_handles.est_z, &v);
 		_params.pos_est_gains(2) = v;
 
+		param_get(_params_handles.cbar_x, &v);
+		_params_handles.cbar_x = v;
+
+		param_get(_params_handles.cbar_y, &v);
+		_params_handles.cbar_y = v;
+
 		pos_filter_gains(0,0) = _params.pos_est_gains(0);
 		pos_filter_gains(1,1) = _params.pos_est_gains(1);
 		pos_filter_gains(2,2) = _params.pos_est_gains(2);
@@ -658,6 +668,9 @@ MulticopterQuatPositionControl::parameters_update(bool force)
 		_params.vel_imax(1) = v;
 		param_get(_params_handles.z_vel_imax, &v);
 		_params.vel_imax(2) = v;
+
+		param_get(_params_handles.mg, &v);
+		_params.mg = v;
 	}
 
 	return OK;
@@ -1219,9 +1232,9 @@ MulticopterQuatPositionControl::dorotations(void)
 	py_tmp = y_tmp;
 	pz_tmp = z_tmp; 
 
-	body_pos(0) = x;
-	body_pos(1) = y;
-	body_pos(2) = z;
+	//body_pos(0) = x;
+	//body_pos(1) = y;
+	//body_pos(2) = z;
 
 	old_time = _vicon_pos.timestamp;
 	old_meas_time 	= get_time_micros();
@@ -1312,6 +1325,9 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	Ki(0,0) 				= _params.vel_i(0);
 	Ki(1,1) 				= _params.vel_i(1);
 	Ki(2,2) 				= _params.vel_i(2);	
+
+	c_bar_vec(0,0) 			= _params.cbar_x;
+	c_bar_vec(1,1) 			= _params.cbar_y;
 	
 	//err_xyz = Kp * (body_pos_hat - pos_d) + Kd * (veh_vel_body - vel_d) - c_bar_vec * vel_d * 0.0f; 
 
@@ -1402,7 +1418,6 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 
 	//printf("posd %3.3f %3.3f %3.3f\n", double(pos(0)), double(pos(1)),double(pos(2)));
 	//printf("errxyz %3.3f %3.3f %3.3f\n", double(err_xyz(0)), double(err_xyz(1)),double(err_xyz(2)));
-	printf("desired %3.3f %3.3f %3.3f\n",double(qd[0]), double( qd[1]), double(qd[2]));
 
 	/* Determination of feedforward terms */
 	/* We assume \dot{T}_d = 0 */
@@ -1492,6 +1507,8 @@ MulticopterQuatPositionControl::task_main()
 
 	_veh_vel_body_sub = orb_subscribe(ORB_ID(vehicle_velocity_meas_est_body));
 
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	/* Do I need these two ? */
 	_veh_vel_pub 	= nullptr;
 	_omega_pub 		= nullptr;
@@ -1505,12 +1522,12 @@ MulticopterQuatPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
-	math::Vector<3> thrust_int;
-	thrust_int.zero();
+	//math::Vector<3> thrust_int;
+	//thrust_int.zero();
 
 
-	math::Matrix<3, 3> R;
-	R.identity();
+	//math::Matrix<3, 3> R;
+	//R.identity();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -1540,9 +1557,8 @@ MulticopterQuatPositionControl::task_main()
 			_veh_vel.body_valid 			= false;
 			_veh_vel.inertial_valid 		= false;
 
-
 			/* Do polling */
-			poll_subscriptions(); // This should go outside of that loop
+			poll_subscriptions(); 
 
 			parameters_update(false);
 
@@ -1562,8 +1578,7 @@ MulticopterQuatPositionControl::task_main()
 			old_auto = _control_mode.flag_control_auto_enabled;
 			
 		
-		printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
-		//printf("%s\n", _control_mode.flag_control_manual_enabled ? "true" : "false");
+			//printf("%s\n", _control_mode.flag_control_auto_enabled ? "true" : "false");
 			/* Do GPS pos control */
 			if (_v_vel_est.timestamp != _v_est_time_old)
 			{
@@ -1582,10 +1597,18 @@ MulticopterQuatPositionControl::task_main()
 				body_pos(1) = y;
 				body_pos(2) = z;
 
-				/* GPS Position estimation */
+				/* Position estimation */
 				body_pos_hat_dot  = veh_vel_body - pos_filter_gains*(body_pos_hat - body_pos); 
 
 				body_pos_hat = body_pos_hat + body_pos_hat_dot*dt_pos_est;
+
+				/* Some hack for initialisation */
+				if (dt_pos_est > 1)
+				{
+					body_pos_hat(0) = x;
+					body_pos_hat(1) = y;
+					body_pos_hat(2) = z;
+				}
 				//printf("x hatx %3.3f %3.3f %3.3f\n",double(x), double(gps_body_pos_hat(0)), double(veh_vel_body(0)));
 
 				if (isinf(body_pos_hat(0)) || isnan(body_pos_hat(0)))
@@ -1632,13 +1655,14 @@ MulticopterQuatPositionControl::task_main()
 				{	
 					desired_setpoint();
 					quat_traj_control();
+					printf("integrals %3.3f %3.3f %3.3f\n", double(int_velocity(0)),double(int_velocity(1)),double(int_velocity(2)));
 
 					_att_sp.q_d_valid = true;
 					_att_sp.q_d[0] = qd[0];
 					_att_sp.q_d[1] = qd[1];
 					_att_sp.q_d[2] = qd[2];
 					_att_sp.q_d[3] = qd[3];
-					//_att_sp_msg.data().thrust = thrust;
+					_att_sp.thrust = thrust;
 					//printf("auto mode\n");
 					
 					/* Use Autonomous mode */			

@@ -72,6 +72,8 @@
 #include <uORB/topics/vehicle_velocity_meas_inertial.h>
 #include <uORB/topics/vehicle_velocity_meas_est_body.h>
 
+#include <mc_quat_vel_control/mc_quat_vel_control_params.h>
+
 #include <mavlink/mavlink_log_handler.h>
 #include <drivers/drv_hrt.h>
 #include <px4_eigen.h>
@@ -421,10 +423,9 @@ int av_estimator_thread_main(int argc, char *argv[])
 				else 
 				{
 					/* Get drag coefficients */
-					Cbar(0) = attitude_params.cbar_0;
-					Cbar(1) = attitude_params.cbar_1;
-					Cbar(2) = attitude_params.cbar_2;
-		
+					Cbar(0) = attitude_params.cbar_x;
+					Cbar(1) = attitude_params.cbar_y;
+
 					getCurrentCalibParam(attitude_params, current_k,current_c);
 
 					/* Calculate data time difference in seconds */
@@ -433,8 +434,8 @@ int av_estimator_thread_main(int argc, char *argv[])
 					
 					/* All of this should really be in a function */
 					/* Body fixed frame velocity measurements */
-					vbar(0) = (raw.accelerometer_m_s2[0] + 0.3127f)/raw.accelerometer_m_s2[2] /Cbar(0); //0.2569f
-					vbar(1) = (raw.accelerometer_m_s2[1] + 0.3083f)/raw.accelerometer_m_s2[2] /Cbar(1); //0.4886
+					vbar(0) = (raw.accelerometer_m_s2[0] + attitude_params.cbar_x_offset)/raw.accelerometer_m_s2[2] /Cbar(0); //0.2569f
+					vbar(1) = (raw.accelerometer_m_s2[1] + attitude_params.cbar_y_offset)/raw.accelerometer_m_s2[2] /Cbar(1); //0.4886
 
 					
 					baro_alt = raw.baro_alt_meter[0] - baro_offset;

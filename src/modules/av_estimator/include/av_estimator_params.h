@@ -30,9 +30,10 @@ struct av_estimator_params {
 	float att_vel_k2w;  
 	float att_vel_k2ba; 
 	float att_vel_k2bac;
-	float cbar_0;
-	float cbar_1;
-	float cbar_2;
+	float cbar_x;
+	float cbar_y;
+	float cbar_x_offset;
+	float cbar_y_offset;
 	int curr_calib_en;
 	float magcalib_k0_0;
 	float magcalib_k0_1;
@@ -83,9 +84,10 @@ struct av_estimator_param_handles {
 	param_t att_vel_k2w;  
 	param_t att_vel_k2ba; 
 	param_t att_vel_k2bac;
-	param_t cbar_0;
-	param_t cbar_1;
-	param_t cbar_2;
+	param_t cbar_x;
+	param_t cbar_y;
+	param_t cbar_x_offset;
+	param_t cbar_y_offset;
 	param_t curr_calib_en;
 	param_t magcalib_k0_0;
 	param_t magcalib_k0_1;
