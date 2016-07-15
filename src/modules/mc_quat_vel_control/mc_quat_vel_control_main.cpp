@@ -814,14 +814,6 @@ MulticopterQuaternionVelControl::determine_desired_quat_Rd(float x_con, float y_
 	quat[1] = q.x();
 	quat[2] = -q.y();
 	quat[3] = q.z();
-
-	/*float r, p, y;
-	r 	= atan2f(Rdtrans(2,1), Rdtrans(2,2));	
-	p 	= -asinf(Rdtrans(2,0));	
-	y 	= atan2f(Rdtrans(1,0), Rdtrans(0,0));	
-
-	printf("rypcalc %3.3f %3.3f %3.3f\n", double(r),double(p),(double)y);
-	*/
 }
 
 /**
@@ -1051,7 +1043,6 @@ MulticopterQuaternionVelControl::vehicle_lpos_setpoint_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position_setpoint), _v_lpos_sp_sub, &_lpos_sp);
 	}
-	//printf("Body vel time %lu %u\n",_lpos_sp.timestamp,_lpos_sp.timestamp);
 }
 
 void
@@ -1423,10 +1414,8 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 		_vel_setpoint(2) = vel_stpMos(2);
 		/* End addition Jan16 */
 
-		/* The lpos_set is in inertial frame so we need to convert to body fixed frame */
-		//_vel_setpoint = quat_rotation(_vel_setpoint,_v_att.q); //Changed on Jan2016
 
-
+		/* Choose velocity measurements to use in controller */
 		if (_v_vel.body_valid )
 		{
 			
@@ -1459,10 +1448,9 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 					control_velocity(veh_vel);
 					old_vel_timestamp = _v_vel.timestamp;
 				}
-			}
-			//} 
-		} else
-		{
+			} 
+		} else /* If inertial velocity measurements or estimates are not available, use body-fixed frame */
+			{
 			if  (_v_vel_body_est.timestamp != old_vel_timestamp)
 				{
 					change_control_gain = true;
@@ -1478,63 +1466,57 @@ void MulticopterQuaternionVelControl::control_attitude(float dt)
 				}
 		}
 		
-			//Moses: I should end the if loop here and use v_est_body
-			vz_err = veh_vel(2) - _vel_setpoint(2); //create new local variable for vz
-			vz_err =_v_vel.body_vz - _vel_setpoint(2);
-			int_vz += vz_err*dtt;	
-			if (int_vz > _params.iz_max) 
-				int_vz = _params.iz_max;
-			if (int_vz < -_params.iz_max)
-				int_vz = -_params.iz_max;	
+		vz_err = veh_vel(2) - _vel_setpoint(2); //create new local variable for vz
+		vz_err =_v_vel.body_vz - _vel_setpoint(2);
+		int_vz += vz_err*dtt;	
+		if (int_vz > _params.iz_max) 
+			int_vz = _params.iz_max;
+		if (int_vz < -_params.iz_max)
+			int_vz = -_params.iz_max;	
 
-			/* If we haven't taken off yet FIXME somewhat not necessary*/
-			if (_v_vicon_position.valid){
-					if ((int(_lpos_sp.vz) == 0) & (fabs(_v_local_position.z) < 0.25))
-					{
-						int_vz = 0.0f;
-						int_vx = 0.0f;
-						int_vy = 0.0f;
-					} 
-			}
+		/* If we haven't taken off yet FIXME somewhat not necessary*/
+		if (_v_vicon_position.valid){
+				if ((int(_lpos_sp.vz) == 0) & (fabs(_v_local_position.z) < 0.25))
+				{
+					int_vz = 0.0f;
+					int_vx = 0.0f;
+					int_vy = 0.0f;
+				} 
+		}
 			
 
-			/* vz control */
-			control_vz();
+		/* vz control */
+		control_vz();
 
-			/* Limit desired angular setpoints */
-			if (_v_att_sp.roll_body > _params.man_roll_max*0.3f)
-				_v_att_sp.roll_body = _params.man_roll_max*0.3f;
-			if (_v_att_sp.roll_body < -_params.man_roll_max*0.3f)
-				_v_att_sp.roll_body = -_params.man_roll_max*0.3f;
-			if (_v_att_sp.pitch_body > _params.man_pitch_max*0.3f)
-				_v_att_sp.pitch_body = _params.man_pitch_max*0.3f;
-			if (_v_att_sp.pitch_body < -_params.man_pitch_max*0.3f)
-				_v_att_sp.pitch_body = -_params.man_pitch_max*0.3f;
+		/* Limit desired angular setpoints */
+		if (_v_att_sp.roll_body > _params.man_roll_max * 0.3f)
+			_v_att_sp.roll_body = _params.man_roll_max * 0.3f;
+		if (_v_att_sp.roll_body < -_params.man_roll_max * 0.3f)
+			_v_att_sp.roll_body = -_params.man_roll_max * 0.3f;
+		if (_v_att_sp.pitch_body > _params.man_pitch_max * 0.3f)
+			_v_att_sp.pitch_body = _params.man_pitch_max * 0.3f;
+		if (_v_att_sp.pitch_body < -_params.man_pitch_max * 0.3f)
+			_v_att_sp.pitch_body = -_params.man_pitch_max * 0.3f;
 
 
-			/* Now we need to determine the third angle */
-			float thet 	= -asin(_v_att_sp.pitch_body);
-			float ph   	= asin(_v_att_sp.roll_body / cosf(thet));
-			cs_angle 	= cos(thet) * cos(ph);
+		/* Now we need to determine the third angle */
+		float thet 	= -asin(_v_att_sp.pitch_body);
+		float ph   	= asin(_v_att_sp.roll_body / cosf(thet));
+		cs_angle 	= cos(thet) * cos(ph);
 
-			_v_att_sp.thrust = _manual_control_sp.z;
+		_v_att_sp.thrust = _manual_control_sp.z;
 
-			/* Determine desired quaternion */
-			//determine_desired_quat_Rd(_v_att_sp.pitch_body,_v_att_sp.roll_body,cs_angle,_lpos_sp.yaw,q_d);
-			getQuatFromRPY123(_v_att_sp.roll_body, _v_att_sp.pitch_body, _lpos_sp.yaw, q_d);
-			//printf("rypd %3.3f %3.3f %3.3f\n", double(ph),double(thet),(double)_lpos_sp.yaw);
-		
-			/* Update the attitude setpoint */
-			_v_att_sp.q_d[0] = q_d[0];
-			_v_att_sp.q_d[1] = q_d[1];
-			_v_att_sp.q_d[2] = q_d[2];
-			_v_att_sp.q_d[3] = q_d[3];
-			_thrust_sp = _manual_control_sp.z; //uncomment
-			_v_att_sp.thrust = _thrust_sp;
-			publish_att_sp = true;
-		//}	else { // We know that the body fixed frame estimated velocities are always available
-
-		//}				
+		/* Determine desired quaternion */
+		getQuatFromRPY123(_v_att_sp.roll_body, _v_att_sp.pitch_body, _lpos_sp.yaw, q_d);
+	
+		/* Update the attitude setpoint */
+		_v_att_sp.q_d[0] = q_d[0];
+		_v_att_sp.q_d[1] = q_d[1];
+		_v_att_sp.q_d[2] = q_d[2];
+		_v_att_sp.q_d[3] = q_d[3];
+		_thrust_sp = _manual_control_sp.z; //uncomment
+		_v_att_sp.thrust = _thrust_sp;
+		publish_att_sp = true;					
 	}
 	/********************* End calculation of the desired quaternion ************************/
 

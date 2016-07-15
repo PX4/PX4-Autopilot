@@ -866,8 +866,6 @@ MulticopterQuaternionControl::control_attitude_rates(float dt)
 
 
 	/* Here we implement the battery voltage if we are using open-loop voltage control 16.4*/
-	//printf("Battery voltage %3.3f %3.3f %d\n", (double)_battery.voltage_v, double(_battery.voltage_filtered_v), _params.battery_switch);
-
 	if (_params.battery_switch == 1) {
 		_thrust_sp = _thrust_sp * (1 + (16.4f - _battery.voltage_filtered_v)/16.4f);
 	}
