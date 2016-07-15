@@ -134,10 +134,10 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 static void usage()
 {
 
-	cout << "./mainapp [-d] [startup_config] -h" << std::endl;
+	cout << "./px4 [-d] [startup_config] -h" << std::endl;
 	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
 	     std::endl;
-	cout << "                   This is needed if mainapp is intended to be run as a upstart job on linux" << std::endl;
+	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << std::endl;
 	cout << "<startup_config> - config file for starting/stopping px4 modules" << std::endl;
 	cout << "   -h            - help/usage information" << std::endl;
 }
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 	DriverFramework::Framework::initialize();
 	px4::init_once();
 
-	px4::init(argc, argv, "mainapp");
+	px4::init(argc, argv, "px4");
 
 	// if commandfile is present, process the commands from the file
 	if (commands_file != nullptr) {
