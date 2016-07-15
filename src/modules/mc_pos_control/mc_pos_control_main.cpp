@@ -2000,12 +2000,6 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if we no aiding velocity controller is active */
-			if (!_control_mode.flag_control_velocity_enabled) {
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-			}
-
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
 				float thr_val = throttle_curve(_manual.z, _params.thr_hover);
@@ -2017,9 +2011,12 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			math::Matrix<3, 3> R_sp;
-
+			/* control roll and pitch directly if we no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
+				math::Matrix<3, 3> R_sp;
+				_att_sp.roll_body = _manual.y * _params.man_roll_max;
+				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+
 				// construct attitude setpoint rotation matrix. modify the setpoints for roll
 				// and pitch such that they reflect the user's intention even if a yaw error
 				// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -2053,14 +2050,14 @@ MulticopterPositionControl::task_main()
 				float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
 				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
-
 				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
+				/* copy quaternion setpoint to attitude setpoint topic */
+				math::Quaternion q_sp;
+				q_sp.from_dcm(R_sp);
+				memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			}
 
-			/* copy quaternion setpoint to attitude setpoint topic */
-			math::Quaternion q_sp;
-			q_sp.from_dcm(R_sp);
-			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 
 		} else {
