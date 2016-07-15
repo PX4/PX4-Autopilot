@@ -48,9 +48,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+#include <drivers/drv_hrt.h>
 #include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
+#include <px4_sem.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 
@@ -83,6 +85,12 @@ static Logger *logger_ptr = nullptr;
 static int logger_task = -1;
 static pthread_t writer_thread;
 
+/* This is used to schedule work for the logger (periodic scan for updated topics) */
+static void timer_callback(void *arg)
+{
+	px4_sem_t *semaphore = (px4_sem_t *)arg;
+	px4_sem_post(semaphore);
+}
 
 
 int logger_main(int argc, char *argv[])
@@ -236,7 +244,7 @@ void Logger::print_statistics()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	unsigned log_interval = 3500;
+	uint32_t log_interval = 3500;
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
 	bool log_until_shutdown = false;
@@ -327,7 +335,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 }
 
 
-Logger::Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
+Logger::Logger(size_t buffer_size, uint32_t log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp) :
 	_arm_override(false),
 	_log_on_start(log_on_start),
@@ -642,7 +650,13 @@ void Logger::run()
 		start_log();
 	}
 
-	/* every log_interval usec, check for orb updates */
+	/* init the update timer */
+	struct hrt_call timer_call;
+	px4_sem_t timer_semaphore;
+	px4_sem_init(&timer_semaphore, 0, 0);
+	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
+
+
 	while (!_task_should_exit) {
 
 		// Start/stop logging when system arm/disarm
@@ -772,8 +786,18 @@ void Logger::run()
 
 		}
 
-		usleep(_log_interval);
+		/*
+		 * We wait on the semaphore, which periodically gets updated by a high-resolution timer.
+		 * The simpler alternative would be:
+		 *   usleep(max(300, _log_interval - elapsed_time_since_loop_start));
+		 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
+		 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
+		 */
+		while (px4_sem_wait(&timer_semaphore) != 0);
 	}
+
+	hrt_cancel(&timer_call);
+	px4_sem_destroy(&timer_semaphore);
 
 	// stop the writer thread
 	_writer.thread_stop();

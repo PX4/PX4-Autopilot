@@ -75,7 +75,7 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
+	Logger(size_t buffer_size, uint32_t log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp);
 
 	~Logger();
