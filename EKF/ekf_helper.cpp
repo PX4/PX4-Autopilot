@@ -40,11 +40,6 @@
  */
 
 #include "ekf.h"
-#ifdef __PX4_POSIX
-#include <iostream>
-#include <fstream>
-#endif
-#include <iomanip>
 #include "mathlib.h"
 
 // Reset the velocity states. If we have a recent and valid
