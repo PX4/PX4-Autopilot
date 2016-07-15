@@ -482,7 +482,6 @@ void Logger::add_default_topics()
 	add_topic("vehicle_global_velocity_setpoint", 100);
 	add_topic("battery_status", 300);
 	add_topic("system_power", 300);
-	add_topic("servorail_status", 300);
 	add_topic("position_setpoint_triplet", 10);
 	add_topic("att_pos_mocap", 50);
 	add_topic("vision_position_estimate", 50);
@@ -495,9 +494,6 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 20);
 	add_topic("tecs_status", 20);
 	add_topic("wind_estimate", 100);
-	add_topic("encoders", 50);
-	add_topic("time_offset", 1000);
-	add_topic("mc_att_ctrl_status", 50);
 	add_topic("control_state", 20);
 	add_topic("camera_trigger");
 	add_topic("cpuload");
