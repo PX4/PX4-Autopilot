@@ -45,7 +45,6 @@
 #include "topics/hil_sensor.h"
 #include "topics/vehicle_attitude.h"
 #include "topics/vehicle_global_position.h"
-#include "topics/encoders.h"
 #include "topics/position_setpoint_triplet.h"
 #include "topics/vehicle_status.h"
 #include "topics/manual_control_setpoint.h"
@@ -162,7 +161,6 @@ template class __EXPORT Subscription<sensor_combined_s>;
 template class __EXPORT Subscription<hil_sensor_s>;
 template class __EXPORT Subscription<vehicle_attitude_s>;
 template class __EXPORT Subscription<vehicle_global_position_s>;
-template class __EXPORT Subscription<encoders_s>;
 template class __EXPORT Subscription<position_setpoint_triplet_s>;
 template class __EXPORT Subscription<vehicle_status_s>;
 template class __EXPORT Subscription<manual_control_setpoint_s>;
