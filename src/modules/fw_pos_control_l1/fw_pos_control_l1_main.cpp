@@ -1342,17 +1342,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-						calculate_target_airspeed(mission_airspeed),
-						eas2tas,
-						math::radians(_parameters.pitch_limit_min),
-						math::radians(_parameters.pitch_limit_max),
-						_parameters.throttle_min,
-						_parameters.throttle_max,
-						mission_throttle,
-						false,
-						math::radians(_parameters.pitch_limit_min),
-						_global_pos.alt,
-						ground_speed);
+						   calculate_target_airspeed(mission_airspeed),
+						   eas2tas,
+						   math::radians(_parameters.pitch_limit_min),
+						   math::radians(_parameters.pitch_limit_max),
+						   _parameters.throttle_min,
+						   _parameters.throttle_max,
+						   mission_throttle,
+						   false,
+						   math::radians(_parameters.pitch_limit_min),
+						   _global_pos.alt,
+						   ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -1385,17 +1385,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			}
 
 			tecs_update_pitch_throttle(alt_sp,
-						calculate_target_airspeed(mission_airspeed),
-						eas2tas,
-						math::radians(_parameters.pitch_limit_min),
-						math::radians(_parameters.pitch_limit_max),
-						_parameters.throttle_min,
-						_parameters.throttle_max,
-						_parameters.throttle_cruise,
-						false,
-						math::radians(_parameters.pitch_limit_min),
-						_global_pos.alt,
-						ground_speed);
+						   calculate_target_airspeed(mission_airspeed),
+						   eas2tas,
+						   math::radians(_parameters.pitch_limit_min),
+						   math::radians(_parameters.pitch_limit_max),
+						   _parameters.throttle_min,
+						   _parameters.throttle_max,
+						   _parameters.throttle_cruise,
+						   false,
+						   math::radians(_parameters.pitch_limit_min),
+						   _global_pos.alt,
+						   ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
@@ -1539,6 +1539,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				}
 
 				float throttle_max = _parameters.throttle_max;
+
 				if (_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt() || _land_motor_lim) {
 					throttle_max = math::min(_parameters.throttle_max, _parameters.throttle_land_max);
 
@@ -1731,6 +1732,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 					 * full throttle, otherwise we use the idle throttle */
 					float takeoff_throttle = _parameters.throttle_idle;
+
 					if (_launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 						takeoff_throttle = _parameters.throttle_max;
 					}
