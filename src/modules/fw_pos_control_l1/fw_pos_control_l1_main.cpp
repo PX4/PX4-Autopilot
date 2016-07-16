@@ -1729,10 +1729,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_att_sp.yaw_body = _l1_control.nav_bearing();
 
 					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
-					 * full throttle, otherwise we use the preTakeOff Throttle */
-					float takeoff_throttle = _launch_detection_state !=
-								 LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
-								 _launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
+					 * full throttle, otherwise we use the idle throttle */
+					float takeoff_throttle = _parameters.throttle_idle;
+					if (_launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+						takeoff_throttle = _parameters.throttle_max;
+					}
 
 					/* select maximum pitch: the launchdetector may impose another limit for the pitch
 					 * depending on the state of the launch */
@@ -2014,16 +2015,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
 		   !_runway_takeoff.runwayTakeoffEnabled()) {
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = (_launchDetector.launchDetectionEnabled()) ? _launchDetector.getThrottlePreTakeoff() :
-				 _parameters.throttle_idle;
+
+		// thrust prelaunch detect is set to FW_THR_IDLE
+		_att_sp.thrust = _parameters.throttle_idle;
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 
+		// runway takeoff directly handles thrust
 		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), _parameters.throttle_max));
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&

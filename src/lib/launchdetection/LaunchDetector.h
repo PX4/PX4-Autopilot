@@ -65,8 +65,6 @@ public:
 	LaunchDetectionResult getLaunchDetected();
 	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
 
-	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
-
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
 
@@ -81,7 +79,6 @@ private:
 
 	LaunchMethod *launchMethods[1];
 	control::BlockParamInt launchdetection_on;
-	control::BlockParamFloat throttlePreTakeoff;
 
 };
 
