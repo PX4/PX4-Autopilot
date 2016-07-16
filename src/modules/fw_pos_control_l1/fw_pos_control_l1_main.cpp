@@ -1354,6 +1354,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						   _global_pos.alt,
 						   ground_speed);
 
+			if (in_takeoff_situation()) {
+
+				/* limit roll motion to ensure enough lift */
+				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-5.0f),
+								    math::radians(5.0f));
+			}
+
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
