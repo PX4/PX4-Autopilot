@@ -2042,19 +2042,22 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else {
 			_att_sp.thrust = math::min(get_tecs_thrust(), _parameters.throttle_max);
 		}
-
-
 	}
 
-	/* During a takeoff waypoint while waiting for launch the pitch sp is set
-	 * already (not by tecs) */
-	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO && (
-		      (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		       (_launch_detection_state == LAUNCHDETECTION_RES_NONE ||
-			_runway_takeoff.runwayTakeoffEnabled())) ||
-		      (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
-		       _land_noreturn_vertical))
-	     )) {
+
+	// TECS pitch ignored during takeoff prelaunch or when using runwayTakeoff
+	bool takeoff_notecs = (_control_mode_current == FW_POSCTRL_MODE_AUTO)
+			      && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)
+			      && (_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled());
+
+	// TECS pitch ignored during landing flare
+	bool land_notecs = (_control_mode_current == FW_POSCTRL_MODE_AUTO)
+			   && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
+			   && _land_noreturn_vertical;
+
+
+	// get pitch setpoint from TECS except during takeoff (prelaunch or runway) and landing flare
+	if (!takeoff_notecs && !land_notecs) {
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
 
