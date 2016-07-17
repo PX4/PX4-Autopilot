@@ -43,7 +43,8 @@
 
 #include <drivers/drv_hrt.h>
 
-namespace systemlib {
+namespace systemlib
+{
 
 class Hysteresis
 {
@@ -59,15 +60,18 @@ public:
 	~Hysteresis()
 	{}
 
-	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us) {
+	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us)
+	{
 		if (from_state == true) {
 			_hysteresis_time_from_true_us = new_hysteresis_time_us;
+
 		} else {
 			_hysteresis_time_from_false_us = new_hysteresis_time_us;
 		}
 	}
 
-	bool get_state() const {
+	bool get_state() const
+	{
 		return _state;
 	}
 

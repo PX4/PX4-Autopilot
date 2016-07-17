@@ -41,7 +41,8 @@
 #include "systemlib/hysteresis/hysteresis.h"
 
 
-namespace systemlib {
+namespace systemlib
+{
 
 
 void
@@ -52,9 +53,11 @@ Hysteresis::set_state_and_update(const bool new_state)
 			_requested_state = new_state;
 			_last_time_to_change_state = hrt_absolute_time();
 		}
+
 	} else {
 		_requested_state = _state;
 	}
+
 	update();
 }
 
@@ -64,8 +67,8 @@ Hysteresis::update()
 	if (_requested_state != _state) {
 
 		if (hrt_elapsed_time(&_last_time_to_change_state) >= (_state ?
-								      _hysteresis_time_from_true_us :
-								      _hysteresis_time_from_false_us)) {
+				_hysteresis_time_from_true_us :
+				_hysteresis_time_from_false_us)) {
 			_state = _requested_state;
 		}
 	}
