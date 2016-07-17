@@ -308,7 +308,7 @@ PARAM_DEFINE_FLOAT(LPE_T_MAX_GRADE, 1.0f);
 PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
 
 /**
- * Home latitude for nav w/o GPS
+ * Local origin latitude for nav w/o GPS
  *
  * @group Local Position Estimator
  * @unit deg
@@ -319,7 +319,7 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
 
 /**
- * Home longitude for nav w/o GPS
+ * Local origin longitude for nav w/o GPS
  *
  * @group Local Position Estimator
  * @unit deg

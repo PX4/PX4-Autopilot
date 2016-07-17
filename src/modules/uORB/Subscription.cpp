@@ -63,6 +63,7 @@
 #include "topics/att_pos_mocap.h"
 #include "topics/vision_position_estimate.h"
 #include "topics/control_state.h"
+#include "topics/vehicle_land_detected.h"
 
 #include <px4_defines.h>
 
@@ -179,5 +180,6 @@ template class __EXPORT Subscription<distance_sensor_s>;
 template class __EXPORT Subscription<att_pos_mocap_s>;
 template class __EXPORT Subscription<vision_position_estimate_s>;
 template class __EXPORT Subscription<control_state_s>;
+template class __EXPORT Subscription<vehicle_land_detected_s>;
 
 } // namespace uORB
