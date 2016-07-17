@@ -388,13 +388,18 @@ Mission::set_mission_items()
 	} else {
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
-			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, loitering");
+
+			if (_navigator->get_land_detected()->landed) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, landed");
+			} else {
+				/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, loitering");
+
+				/* use last setpoint for loiter */
+				_navigator->set_can_loiter_at_sp(true);
+			}
+
 			user_feedback_done = true;
-
-			/* use last setpoint for loiter */
-			_navigator->set_can_loiter_at_sp(true);
-
 		}
 
 		_mission_type = MISSION_TYPE_NONE;
