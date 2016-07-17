@@ -76,6 +76,7 @@
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -167,7 +168,8 @@ static hrt_abstime commander_boot_timestamp = 0;
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
-static uint64_t _inair_last_time = 0;
+
+static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
@@ -1646,6 +1648,9 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
+			auto_disarm_hysteresis.set_hysteresis_time_from(false,
+									(hrt_abstime)disarm_when_landed * 1000000);
+
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
@@ -2011,20 +2016,20 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (disarm_when_landed > 0) {
-				if (land_detector.landed) {
-					if (_inair_last_time > 0 &&
-					    (hrt_elapsed_time(&_inair_last_time) > (hrt_abstime)disarm_when_landed * 1000 * 1000)) {
-						arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
-						_inair_last_time = 0;
-					}
-				} else {
-					_inair_last_time = land_detector.timestamp;
-				}
-			}
 
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
+		}
+
+		// Check for auto-disarm
+		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
+			auto_disarm_hysteresis.set_state_and_update(true);
+		} else {
+			auto_disarm_hysteresis.set_state_and_update(false);
+		}
+
+		if (auto_disarm_hysteresis.get_state()) {
+			arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 		}
 
 		if (!rtl_on) {
