@@ -49,6 +49,7 @@ set(SRCS
 	bson/tinybson.c
 	circuit_breaker.cpp
 	battery.cpp
+	hysteresis/hysteresis.cpp
 	)
 
 if(${OS} STREQUAL "nuttx")
