@@ -61,12 +61,13 @@ Hysteresis::set_state_and_update(const bool new_state)
 void
 Hysteresis::update()
 {
+	if (_requested_state != _state) {
 
-
-	if (_requested_state != _state &&
-	    hrt_elapsed_time(&_last_time_to_change_state) >= _hysteresis_time_us) {
-
-		_state = _requested_state;
+		if (hrt_elapsed_time(&_last_time_to_change_state) >= (_state ?
+								      _hysteresis_time_from_true_us :
+								      _hysteresis_time_from_false_us)) {
+			_state = _requested_state;
+		}
 	}
 }
 

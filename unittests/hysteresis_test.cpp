@@ -2,23 +2,23 @@
 
 #include "gtest/gtest.h"
 
-const static unsigned hysteresis_time_us = 5000;
 
 TEST(HysteresisTest, InitFalse)
 {
-	systemlib::Hysteresis hysteresis(hysteresis_time_us, false);
+	systemlib::Hysteresis hysteresis(false);
 	ASSERT_FALSE(hysteresis.get_state());
 }
 
 TEST(HysteresisTest, InitTrue)
 {
-	systemlib::Hysteresis hysteresis(hysteresis_time_us, true);
+	systemlib::Hysteresis hysteresis(true);
 	ASSERT_TRUE(hysteresis.get_state());
 }
 
 TEST(HysteresisTest, ZeroCase)
 {
-	systemlib::Hysteresis hysteresis(0, false);
+	// Default is 0 hysteresis.
+	systemlib::Hysteresis hysteresis(false);
 	ASSERT_FALSE(hysteresis.get_state());
 
 	// Change and see result immediately.
@@ -37,7 +37,36 @@ TEST(HysteresisTest, ZeroCase)
 
 TEST(HysteresisTest, ChangeAfterTime)
 {
-	systemlib::Hysteresis hysteresis(hysteresis_time_us, false);
+	systemlib::Hysteresis hysteresis(false);
+	hysteresis.set_hysteresis_time_from(false, 5000);
+	hysteresis.set_hysteresis_time_from(true, 3000);
+
+	// Change to true.
+	hysteresis.set_state_and_update(true);
+	ASSERT_FALSE(hysteresis.get_state());
+	usleep(4000);
+	hysteresis.update();
+	ASSERT_FALSE(hysteresis.get_state());
+	usleep(2000);
+	hysteresis.update();
+	ASSERT_TRUE(hysteresis.get_state());
+
+	// Change back to false.
+	hysteresis.set_state_and_update(false);
+	ASSERT_TRUE(hysteresis.get_state());
+	usleep(1000);
+	hysteresis.update();
+	ASSERT_TRUE(hysteresis.get_state());
+	usleep(3000);
+	hysteresis.update();
+	ASSERT_FALSE(hysteresis.get_state());
+}
+
+TEST(HysteresisTest, HysteresisChanged)
+{
+	systemlib::Hysteresis hysteresis(false);
+	hysteresis.set_hysteresis_time_from(true, 2000);
+	hysteresis.set_hysteresis_time_from(false, 5000);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
@@ -49,20 +78,25 @@ TEST(HysteresisTest, ChangeAfterTime)
 	hysteresis.update();
 	ASSERT_TRUE(hysteresis.get_state());
 
+	// Change hysteresis time.
+	hysteresis.set_hysteresis_time_from(true, 10000);
+
 	// Change back to false.
 	hysteresis.set_state_and_update(false);
 	ASSERT_TRUE(hysteresis.get_state());
-	usleep(3000);
+	usleep(7000);
 	hysteresis.update();
 	ASSERT_TRUE(hysteresis.get_state());
-	usleep(3000);
+	usleep(5000);
 	hysteresis.update();
 	ASSERT_FALSE(hysteresis.get_state());
 }
 
 TEST(HysteresisTest, ChangeAfterTimeMultipleSets)
 {
-	systemlib::Hysteresis hysteresis(hysteresis_time_us, false);
+	systemlib::Hysteresis hysteresis(false);
+	hysteresis.set_hysteresis_time_from(true, 5000);
+	hysteresis.set_hysteresis_time_from(false, 5000);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
@@ -87,7 +121,8 @@ TEST(HysteresisTest, ChangeAfterTimeMultipleSets)
 
 TEST(HysteresisTest, TakeChangeBack)
 {
-	systemlib::Hysteresis hysteresis(hysteresis_time_us, false);
+	systemlib::Hysteresis hysteresis(false);
+	hysteresis.set_hysteresis_time_from(false, 5000);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
@@ -111,4 +146,8 @@ TEST(HysteresisTest, TakeChangeBack)
 	usleep(3000);
 	hysteresis.update();
 	ASSERT_TRUE(hysteresis.get_state());
+
+	// The other directory is immediate.
+	hysteresis.set_state_and_update(false);
+	ASSERT_FALSE(hysteresis.get_state());
 }
