@@ -169,6 +169,38 @@ MissionBlock::is_mission_item_reached()
 					_navigator->get_global_position()->alt,
 					&dist_xy, &dist_z);
 
+		/* FW special case for NAV_CMD_WAYPOINT to achieve altitude via loiter */
+		if (!_navigator->get_vstatus()->is_rotary_wing &&
+			(_mission_item.nav_cmd == NAV_CMD_WAYPOINT)) {
+
+			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+			/* close to waypoint, but altitude error greater than twice acceptance */
+			if ((dist >= 0.0f)
+				&& (dist_z > 2 * _navigator->get_altitude_acceptance_radius())
+				&& (dist_xy < 2 * _navigator->get_loiter_radius())) {
+
+				/* SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER */
+				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					curr_sp->loiter_radius = _navigator->get_loiter_radius();
+					curr_sp->loiter_direction = 1;
+					_navigator->set_position_setpoint_triplet_updated();
+				}
+			} else {
+				/* restore SETPOINT_TYPE_POSITION */
+				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+					/* loiter acceptance criteria required to revert back to SETPOINT_TYPE_POSITION */
+					if ((dist >= 0.0f)
+						&& (dist_z < _navigator->get_loiter_radius())
+						&& (dist_xy <= _navigator->get_loiter_radius() * 1.2f)) {
+
+						curr_sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+						_navigator->set_position_setpoint_triplet_updated();
+					}
+				}
+			}
+		}
+
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
 
