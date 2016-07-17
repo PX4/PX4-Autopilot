@@ -59,7 +59,7 @@ public:
 	~Hysteresis()
 	{}
 
-	void set_hysteresis_time_from(const bool from_state, const unsigned new_hysteresis_time_us) {
+	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us) {
 		if (from_state == true) {
 			_hysteresis_time_from_true_us = new_hysteresis_time_us;
 		} else {
@@ -79,8 +79,8 @@ private:
 
 	bool _state;
 	bool _requested_state;
-	unsigned _hysteresis_time_from_true_us;
-	unsigned _hysteresis_time_from_false_us;
+	hrt_abstime _hysteresis_time_from_true_us;
+	hrt_abstime _hysteresis_time_from_false_us;
 	hrt_abstime _last_time_to_change_state;
 };
 
