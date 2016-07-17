@@ -263,7 +263,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
 		param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
-		_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f*_params.ff_trigger_time);
+		_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f * _params.ff_trigger_time);
 	}
 }
 
