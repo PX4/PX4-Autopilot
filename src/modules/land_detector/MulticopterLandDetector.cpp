@@ -203,7 +203,7 @@ bool MulticopterLandDetector::get_landed_state()
 		// quite acrobatic flight.
 		if ((_min_trust_start > 0) &&
 		    (hrt_elapsed_time(&_min_trust_start) > 8 * 1000 * 1000)) {
-			return !get_freefall_state();
+			return true;
 
 		} else {
 			return false;
