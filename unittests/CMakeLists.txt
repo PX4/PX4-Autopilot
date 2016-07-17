@@ -173,6 +173,11 @@ add_executable(param_test param_test.cpp uorb_stub.cpp
 target_link_libraries(param_test ${PX4_SITL_BUILD}/libmsg_gen.a)
 add_gtest(param_test)
 
+# hysteresis_test
+add_executable(hysteresis_test hysteresis_test.cpp
+						${PX4_SRC}/modules/systemlib/hysteresis/hysteresis.cpp)
+add_gtest(hysteresis_test)
+
 # param_shmem_test
 #add_executable(param_shmem_test param_test.cpp uorb_stub.cpp
 #						${PX4_SRC}/modules/systemlib/bson/tinybson.c
