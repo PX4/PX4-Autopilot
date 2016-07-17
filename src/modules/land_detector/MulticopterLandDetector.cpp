@@ -66,10 +66,13 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_manual{},
 	_ctrl_state{},
 	_ctrl_mode{},
-	_landTimer(0),
-	_freefallTimer(0),
-	_min_trust_start(0)
+	_min_trust_start(0),
+	_freefall_hysteresis(false),
+	_landed_hysteresis(true)
 {
+	// Use Trigger time when transitioning from in-air (false) to landed (true).
+	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME);
+
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
@@ -113,10 +116,13 @@ LandDetectionResult MulticopterLandDetector::update()
 
 	updateParameterCache(false);
 
-	if (get_freefall_state()) {
+	_landed_hysteresis.set_state_and_update(get_landed_state());
+	_freefall_hysteresis.set_state_and_update(get_freefall_state());
+
+	if (_freefall_hysteresis.get_state()) {
 		_state = LANDDETECTION_RES_FREEFALL;
 
-	} else if (get_landed_state()) {
+	} else if (_landed_hysteresis.get_state()) {
 		_state = LANDDETECTION_RES_LANDED;
 
 	} else {
@@ -133,8 +139,6 @@ bool MulticopterLandDetector::get_freefall_state()
 		return false;
 	}
 
-	const uint64_t now = hrt_absolute_time();
-
 	if (_ctrl_state.timestamp == 0) {
 		// _ctrl_state is not valid yet, we have to assume we're not falling.
 		return false;
@@ -145,14 +149,7 @@ bool MulticopterLandDetector::get_freefall_state()
 			 + _ctrl_state.z_acc * _ctrl_state.z_acc;
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
-	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
-
-	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
-		_freefallTimer = now;
-		return false;
-	}
-
-	return (now - _freefallTimer) / 1000000.0f > _params.ff_trigger_time;
+	return (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -240,11 +237,10 @@ bool MulticopterLandDetector::get_landed_state()
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
 		// Sensed movement or thottle high, so reset the land detector.
-		_landTimer = now;
 		return false;
 	}
 
-	return (now - _landTimer > LAND_DETECTOR_TRIGGER_TIME);
+	return true;
 }
 
 void MulticopterLandDetector::updateParameterCache(const bool force)
@@ -267,6 +263,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
 		param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
+		_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f*_params.ff_trigger_time);
 	}
 }
 
