@@ -1,18 +1,15 @@
+# This file is shared between posix_rpi_native.cmake
+# and posix_rpi_cross.cmake.
+
 include(posix/px4_impl_posix)
-
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf-raspbian.cmake)
-
-set(CMAKE_PROGRAM_PATH
-	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin"
-	${CMAKE_PROGRAM_PATH}
-)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
 add_definitions(
-	-D__PX4_POSIX_RPI2
+	-D__PX4_POSIX_RPI
 	-D__LINUX
 )
+
 
 set(config_module_list
 	#
@@ -34,6 +31,7 @@ set(config_module_list
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/esc_calib
+	systemcmds/reboot
 	systemcmds/topic_listener
 	systemcmds/perf
 
@@ -53,7 +51,7 @@ set(config_module_list
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/fw_att_control
-	modules/fw_pos_control_l1	
+	modules/fw_pos_control_l1
 	modules/vtol_att_control
 
 	#
@@ -75,6 +73,9 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
+	drivers/gps
+	drivers/navio_sysfs_rc_in
+	drivers/navio_sysfs_pwm_out
 
 	#
 	# Libraries
@@ -101,6 +102,9 @@ set(config_module_list
 	platforms/posix/work_queue
 )
 
+#
+# DriverFramework driver
+#
 set(config_df_driver_list
 	mpu9250
 	lsm9ds1

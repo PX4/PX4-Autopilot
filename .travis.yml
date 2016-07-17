@@ -8,7 +8,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base"
+      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base:2016-07-14"
       services:
         - docker
     - os: osx

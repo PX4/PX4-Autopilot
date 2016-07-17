@@ -59,7 +59,7 @@ __END_DECLS
 #  define	HW_ARCH "EAGLE"
 #elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
 #  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI2) || defined(CONFIG_ARCH_BOARD_NAVIO2)
+#elif defined(CONFIG_ARCH_BOARD_RPI) || defined(CONFIG_ARCH_BOARD_NAVIO2)
 #  define	HW_ARCH "RPI"
 #elif defined(CONFIG_ARCH_BOARD_BEBOP)
 #  define	HW_ARCH "BEBOP"

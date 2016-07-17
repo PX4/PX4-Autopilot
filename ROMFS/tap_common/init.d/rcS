@@ -154,6 +154,8 @@ then
 		fi
 	fi
 
+	gps start -d /dev/ttyS0
+
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
 	if dataman start

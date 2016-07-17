@@ -346,6 +346,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		_state = MAVLINK_WPM_STATE_IDLE;
 
+		// since we are giving up, reset this state also, so another request can be started.
+		_transfer_in_progress = false;
+
 	} else if (_state == MAVLINK_WPM_STATE_GETLIST && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
 		/* try to request item again after timeout */
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);

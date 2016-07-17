@@ -102,7 +102,6 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/encoders.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
@@ -1196,7 +1195,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct servorail_status_s servorail_status;
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
-		struct encoders_s encoders;
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
@@ -1308,7 +1306,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int system_power_sub;
 		int servorail_status_sub;
 		int wind_sub;
-		int encoders_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
@@ -1354,7 +1351,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
 	subs.ctrl_state_sub = -1;
-	subs.encoders_sub = -1;
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
@@ -2213,16 +2209,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
 				log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
 				LOGBUFFER_WRITE_AND_COUNT(WIND);
-			}
-
-			/* --- ENCODERS --- */
-			if (copy_if_updated(ORB_ID(encoders), &subs.encoders_sub, &buf.encoders)) {
-				log_msg.msg_type = LOG_ENCD_MSG;
-				log_msg.body.log_ENCD.cnt0 = buf.encoders.counts[0];
-				log_msg.body.log_ENCD.vel0 = buf.encoders.velocity[0];
-				log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
-				log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
-				LOGBUFFER_WRITE_AND_COUNT(ENCD);
 			}
 
 			/* --- TIMESYNC OFFSET --- */

@@ -1319,10 +1319,9 @@ PX4FMU::cycle()
 
 		} else {
 			// Scan the next protocol
-			set_rc_scan_state(RC_SCAN_SUMD);
+			set_rc_scan_state(RC_SCAN_PPM);
 		}
 
-		set_rc_scan_state(RC_SCAN_PPM);
 		break;
 
 	case RC_SCAN_PPM:

@@ -129,15 +129,31 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* configure always-on ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
+	/* Hold power state */
 
 	board_pwr_init(0);
 
+	/* Select 0 */
+
+	stm32_configgpio(GPIO_S0);
+	stm32_configgpio(GPIO_S1);
+	stm32_configgpio(GPIO_S2);
+
+	/* Radio Off (active low, init is set) */
+
+	stm32_configgpio(GPIO_PCON_RADIO);
+
+	/* configure always-on ADC pins */
+
+	stm32_configgpio(GPIO_ADC1_IN10);
+
+
 	/* configure SPI interfaces */
+
 	stm32_spiinitialize();
 
 	/* configure LEDs (empty call to NuttX' ledinit) */
+
 	up_ledinit();
 }
 
