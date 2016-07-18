@@ -1993,6 +1993,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (fabsf(_manual.y) > 0.01f) {
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+
 		} else {
 			_att_sp.roll_body = 0.0f;
 		}
@@ -2002,6 +2003,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/** MANUAL FLIGHT **/
 		setpoint = false;
+
 		if (_control_mode.flag_control_attitude_enabled) {
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
 			_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max_rad;
@@ -2050,8 +2052,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
+
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_OTHER) {
 		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
+
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		if (_vehicle_land_detected.landed) {
@@ -2071,13 +2075,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	// auto runway takeoff
 	use_tecs_pitch &= !(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
-		      pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		       (_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled()));
+			    pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+			    (_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled()));
 
 
 	// flaring during landing
 	use_tecs_pitch &= !(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
-		       _land_noreturn_vertical);
+			    _land_noreturn_vertical);
 
 	// manual attitude control
 	use_tecs_pitch &=  !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
