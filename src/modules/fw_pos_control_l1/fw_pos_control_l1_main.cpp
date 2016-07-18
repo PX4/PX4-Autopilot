@@ -1838,6 +1838,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_hdg_hold_yaw = _yaw;
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 			_yaw_lock_engaged = false;
+
+			/* reset setpoints from other modes (auto) otherwise we won't
+			 * level out without new manual input */
+			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+			_att_sp.yaw_body = 0;
 		}
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
@@ -1941,6 +1946,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+			_att_sp.yaw_body = 0;
 		}
 
 	} else if (_control_mode.flag_control_altitude_enabled) {
@@ -1993,19 +1999,27 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   tecs_status_s::TECS_MODE_NORMAL);
 
 		_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+		_att_sp.yaw_body = 0;
 
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
-		/** MANUAL FLIGHT **/
-		setpoint = false;
-
 		if (_control_mode.flag_control_attitude_enabled) {
+			/** STABILIZED FLIGHT **/
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
 			_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max_rad;
 			_att_sp.yaw_body = 0.0f;
 			_att_sp.thrust = _manual.z;
-			setpoint = true;
+
+		} else {
+			/** MANUAL FLIGHT **/
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
+			_att_sp.yaw_body = 0.0f;
+			_att_sp.thrust = 0.0f;
+
+			/* do not publish the setpoint */
+			setpoint = false;
 		}
 
 		// reset hold altitude
