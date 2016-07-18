@@ -267,6 +267,7 @@ int led_init()
 {
 	blink_msg_end = 0;
 
+#ifndef CONFIG_ARCH_BOARD_NAVIO2
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -289,6 +290,7 @@ int led_init()
 
 	/* switch amber off */
 	led_off(LED_AMBER);
+#endif
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	DevHandle h;
@@ -303,7 +305,9 @@ int led_init()
 
 void led_deinit()
 {
+#ifndef CONFIG_ARCH_BOARD_NAVIO2
 	DevMgr::releaseHandle(h_leds);
+#endif
 	DevMgr::releaseHandle(h_rgbleds);
 }
 
