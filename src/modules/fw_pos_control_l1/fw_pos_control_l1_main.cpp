@@ -2230,6 +2230,11 @@ FixedwingPositionControl::task_main()
 				_att_sp.roll_body += _parameters.rollsp_offset_rad;
 				_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
 
+				if (_control_mode.flag_control_manual_enabled) {
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
+					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
+				}
+
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
