@@ -980,7 +980,8 @@ FixedwingAttitudeControl::task_main()
 				yaw_sp = _att_sp.yaw_body;
 				throttle_sp = _att_sp.thrust;
 
-				if (!_vcontrol_mode.flag_control_velocity_enabled) {
+				/* allow manual yaw in manual modes */
+				if (_vcontrol_mode.flag_control_manual_enabled) {
 					yaw_manual = _manual.r;
 				}
 

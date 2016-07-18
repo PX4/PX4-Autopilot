@@ -108,7 +108,7 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
 #define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
 #define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
-#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
+#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll/yaw input from user which does not change the locked heading
 #define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
 #define THROTTLE_THRESH 0.05f 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 #define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
@@ -1882,8 +1882,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   tecs_status_s::TECS_MODE_NORMAL);
 
 		/* heading control */
+		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH &&
+			fabs(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
-		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH) {
 			/* heading / roll is zero, lock onto current heading */
 			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
