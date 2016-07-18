@@ -39,6 +39,8 @@ px4_add_module(
 		-Os
 	SRCS
 		mpu6000.cpp
+		mpu6000_i2c.cpp
+		mpu6000_spi.cpp
 	DEPENDS
 		platforms__common
 	)
