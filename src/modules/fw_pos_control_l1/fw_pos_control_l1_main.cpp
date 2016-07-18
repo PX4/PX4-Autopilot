@@ -1888,7 +1888,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* heading control */
 		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH &&
-			fabs(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
+		    fabs(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
 			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
