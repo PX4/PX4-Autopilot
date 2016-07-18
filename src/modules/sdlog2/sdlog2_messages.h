@@ -706,7 +706,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
-	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
+	LOG_FORMAT(RPL1, "QffQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gx,gy,gz,ax,ay,az,magX,magY,magZ,b_alt"),
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
