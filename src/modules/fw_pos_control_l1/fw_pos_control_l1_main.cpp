@@ -1991,12 +1991,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
-		if (fabsf(_manual.y) > 0.01f) {
-			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
-
-		} else {
-			_att_sp.roll_body = 0.0f;
-		}
+		_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
 
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
