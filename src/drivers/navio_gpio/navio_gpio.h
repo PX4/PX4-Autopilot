@@ -3,6 +3,7 @@
 
 #define GPIO_BLOCK_SIZE (4096)
 #define GPIO_PHYS_ADDR  (0x3F200000)
+
 #define GPIO_GPFSEL0_OFFSET    (0x0)
 #define GPIO_GPLEV0_OFFSET     (0x34)
 #define GPIO_GPSET0_OFFSET     (0x1C)
@@ -15,7 +16,7 @@
 #define GPIO_CNF_OUTPUT (1 << GPIO_CNF_SHIFT)
 #define GPIO_CNF_AF0    (4 << GPIO_CNF_SHIFT)
 #define GPIO_CNF_AF1    (5 << GPIO_CNF_SHIFT)
-#define GPIO_CNF_AF2    (7 << GPIO_CNF_SHIFT)
+#define GPIO_CNF_AF2    (6 << GPIO_CNF_SHIFT)
 #define GPIO_CNF_AF3    (7 << GPIO_CNF_SHIFT)
 #define GPIO_CNF_AF4    (3 << GPIO_CNF_SHIFT)
 #define GPIO_CNF_AF5    (2 << GPIO_CNF_SHIFT)
