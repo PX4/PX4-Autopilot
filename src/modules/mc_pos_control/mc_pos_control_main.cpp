@@ -273,6 +273,7 @@ private:
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
 	float _R_circle;					/**< desired radius for circle mode */
+	float _v_tang_circle_sp;			/**< tangential velocity setpoint in circle mode */
 	math::Vector<2> _circle_orig;		/**< local origin of circle in circle mode */
 	bool _was_pos_ctrl_mode;			/**< previous iteration was in position control mode */
 
@@ -429,6 +430,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
 	_R_circle(-1.0f),
+	_v_tang_circle_sp(0.0f),
 	_was_pos_ctrl_mode(false)
 {
 	// Make the quaternion valid for control state
@@ -727,6 +729,10 @@ MulticopterPositionControl::poll_subscriptions()
 			_posctrl_sub_mode = MODE_CIRCLE;
 			_R_circle = PX4_ISFINITE(_vehicle_command.param1) ? _vehicle_command.param1 : CIRCLE_RADIUS_DEFAULT;
 
+			// if tangential velocity is non-finite then manual control inputs from RC will be used to generate tangential velocity
+			_v_tang_circle_sp = PX4_ISFINITE(_vehicle_command.param2) ? math::constrain(_vehicle_command.param2, -_params.vel_cruise(0), _params.vel_cruise(0)) : _vehicle_command.param2;
+			_pos_sp(2) = PX4_ISFINITE(_vehicle_command.param3) ? _vehicle_command.param3 : _pos_sp(2);
+
 			if (PX4_ISFINITE(_vehicle_command.param5) && PX4_ISFINITE(_vehicle_command.param6)) {
 				map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
 			} else {
@@ -900,7 +906,7 @@ MulticopterPositionControl::control_manual(float dt)
 			}
 
 			// desired velocity along the circle
-			float vel_desired = _manual.y * _params.vel_cruise(0);
+			float vel_desired = PX4_ISFINITE(_v_tang_circle_sp) ? _v_tang_circle_sp:  _manual.y * _params.vel_cruise(0);
 
 			// user can change radius with pitch stick
 			_R_circle += _manual.x * 2.0f * dt;
