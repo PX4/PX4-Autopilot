@@ -2129,7 +2129,7 @@ Sensors::rc_poll()
 			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
 					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 			manual.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
-					     _parameters.rc_trans_th, _parameters.rc_trans_inv);
+						   _parameters.rc_trans_th, _parameters.rc_trans_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
