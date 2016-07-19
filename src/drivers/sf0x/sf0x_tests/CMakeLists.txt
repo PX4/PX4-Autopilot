@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,59 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(srcs
-	test_adc.c
-	test_autodeclination.cpp
-	test_bson.c
-	test_conv.cpp
-	test_file.c
-	test_file2.c
-	test_float.cpp
-	test_gpio.c
-	test_hott_telemetry.c
-	test_hrt.c
-	test_int.cpp
-	test_jig_voltages.c
-	test_led.c
-	test_mathlib.cpp
-	test_matrix.cpp
-	test_mixer.cpp
-	test_mount.c
-	test_params.c
-	test_perf.c
-	test_ppm_loopback.c
-	test_rc.c
-	test_sensors.c
-	test_servo.c
-	test_sleep.c
-	test_uart_baudchange.c
-	test_uart_console.c
-	test_uart_loopback.c
-	test_uart_send.c
-	tests_main.c
-	)
-
-if(${OS} STREQUAL "nuttx")
-	list(APPEND srcs
-		test_time.c
-		)
-endif()
-
 px4_add_module(
-	MODULE systemcmds__tests
-	MAIN tests
-	STACK_MAIN 10000
-	STACK_MAX 10000
+	MODULE drivers__sf0x__sf0x_tests
+	MAIN sf0x_tests
 	COMPILE_FLAGS
-		${MODULE_CFLAGS}
-		-Wno-unused-result
-		-Wno-float-equal
-		-Wno-missing-declarations
-		-Wno-double-promotion
-		-Wno-unknown-warning-option
-		-Os
-	SRCS ${srcs}
+	SRCS
+		SF0XTest.cpp
+		../sf0x_parser.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -59,7 +59,7 @@
 
 int test_conv(int argc, char *argv[])
 {
-	PX4_INFO("Testing system conversions");
+	//PX4_INFO("Testing system conversions");
 
 	for (int i = -10000; i <= 10000; i += 1) {
 		float f = i / 10000.0f;
@@ -72,7 +72,7 @@ int test_conv(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("All conversions clean");
+	//PX4_INFO("All conversions clean");
 
 	return 0;
 }

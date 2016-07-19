@@ -174,9 +174,6 @@ posix_sitl_default:
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-posix_sitl_test:
-	$(call cmake-build,$@)
-
 posix_sitl_replay:
 	$(call cmake-build,$@)
 
@@ -271,14 +268,14 @@ checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
 
 checks_sitls: \
-	check_posix_sitl_default \
-	check_posix_sitl_test \
+	check_posix_sitl_default
 
 checks_last: \
-	check_unittest \
+	check_tests \
 	check_format \
 
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -300,15 +297,18 @@ ifeq ($(VECTORCONTROL),1)
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-unittest: posix_sitl_test
+unittest: posix_sitl_default
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
-tests: posix_sitl_test unittest
+run_tests_posix: posix_sitl_default
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/fs/microsd
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/eeprom
+	@touch build_posix_sitl_default/src/firmware/posix/rootfs/eeprom/parameters
+	@(cd build_posix_sitl_default/src/firmware/posix && ./mainapp -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
+	@(cd build_posix_sitl_default/src/firmware/posix && grep --color=always "All tests passed" test_output)
 
-test_onboard_sitl:
-	@HEADLESS=1 make posix_sitl_test gazebo_iris
-
+tests: check_unittest run_tests_posix
 
 # QGroundControl flashable firmware
 qgc_firmware: \
