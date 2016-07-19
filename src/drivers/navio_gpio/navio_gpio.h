@@ -86,13 +86,10 @@ namespace navio_gpio
 class Gpio
 {
 public:
-	Gpio() :
-		_isMapped(false)
-	{
-	}
+	Gpio()
+	{ }
 	~Gpio()
-	{
-	}
+	{ }
 
 	int start();
 	int stop();
@@ -102,7 +99,7 @@ public:
 	bool gpioread(uint32_t pinset);
 	void gpiowrite(uint32_t pinset, bool value);
 
-	bool isMapped() { return _isMapped; }
+	bool isMapped() { return _gpio_map != nullptr; }
 
 private:
 	void atomic_modify(uint32_t addr,
@@ -111,7 +108,6 @@ private:
 			   unsigned int value);
 
 	void *_gpio_map;
-	bool _isMapped;
 
 	SyncObj m_lock;
 };

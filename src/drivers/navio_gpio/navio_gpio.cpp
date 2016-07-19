@@ -145,10 +145,10 @@ int navio_gpio_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "start")) {
+		PX4_WARN("gpio should only be started directly for debugging");
 
 		if (gpio != nullptr && gpio->isMapped()) {
 			PX4_WARN("already mapped");
-			/* this is not an error */
 			return 0;
 		}
 
@@ -156,13 +156,14 @@ int navio_gpio_main(int argc, char *argv[])
 
 		if (gpio == nullptr) {
 			PX4_ERR("alloc failed");
-			return -1;
+			return 1;
 		}
 
 		int ret = gpio->start();
 
 		if (ret != 0) {
 			PX4_ERR("start failed");
+			return 1;
 		}
 
 		return 0;
@@ -170,10 +171,14 @@ int navio_gpio_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 
-		if (gpio == nullptr || gpio->isMapped()) {
-			PX4_WARN("not mapped");
-			/* this is not an error */
+		if (gpio == nullptr) {
+			PX4_WARN("gpio not started from navio_gpio");
 			return 0;
+		}
+
+		if (!gpio->isMapped()) {
+			PX4_WARN("not mapped");
+			return 1;
 		}
 
 		gpio->stop();
@@ -185,7 +190,12 @@ int navio_gpio_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (gpio != nullptr && gpio->isMapped()) {
+		if (gpio == nullptr) {
+			PX4_WARN("gpio not started from navio_gpio");
+			return 0;
+		}
+
+		if (gpio->isMapped()) {
 			PX4_INFO("mapped");
 
 		} else {
