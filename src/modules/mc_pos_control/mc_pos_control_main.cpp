@@ -95,6 +95,7 @@
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
 #define CIRCLE_RADIUS_DEFAULT 3.0f
+#define CIRCLE_RADIUS_MAX 100.0f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -728,6 +729,7 @@ MulticopterPositionControl::poll_subscriptions()
 		} else if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE) {
 			_posctrl_sub_mode = MODE_CIRCLE;
 			_R_circle = PX4_ISFINITE(_vehicle_command.param1) ? _vehicle_command.param1 : CIRCLE_RADIUS_DEFAULT;
+			_R_circle = math::constrain(_R_circle, CIRCLE_RADIUS_DEFAULT, CIRCLE_RADIUS_MAX);
 
 			// if tangential velocity is non-finite then manual control inputs from RC will be used to generate tangential velocity
 			_v_tang_circle_sp = PX4_ISFINITE(_vehicle_command.param2) ? math::constrain(_vehicle_command.param2, -_params.vel_cruise(0), _params.vel_cruise(0)) : _vehicle_command.param2;
