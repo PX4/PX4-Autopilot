@@ -2394,7 +2394,7 @@ usage()
 	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
-	warnx("    -M 6000|20608 (default 6000)");
+	warnx("    -T 6000|20608 (default 6000)");
 	warnx("    -R rotation");
 	warnx("    -a accel range (in g)");
 }
