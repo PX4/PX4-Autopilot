@@ -267,7 +267,7 @@ int led_init()
 {
 	blink_msg_end = 0;
 
-#ifndef CONFIG_ARCH_BOARD_NAVIO2
+#ifndef CONFIG_ARCH_BOARD_RPI
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -305,7 +305,7 @@ int led_init()
 
 void led_deinit()
 {
-#ifndef CONFIG_ARCH_BOARD_NAVIO2
+#ifndef CONFIG_ARCH_BOARD_RPI
 	DevMgr::releaseHandle(h_leds);
 #endif
 	DevMgr::releaseHandle(h_rgbleds);
