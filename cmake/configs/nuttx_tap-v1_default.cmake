@@ -32,6 +32,7 @@ set(config_module_list
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
+	systemcmds/motor_test
 	systemcmds/reboot
 	systemcmds/top
 	systemcmds/config
