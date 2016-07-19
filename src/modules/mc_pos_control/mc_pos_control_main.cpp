@@ -733,7 +733,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 			// if tangential velocity is non-finite then manual control inputs from RC will be used to generate tangential velocity
 			_v_tang_circle_sp = PX4_ISFINITE(_vehicle_command.param2) ? math::constrain(_vehicle_command.param2, -_params.vel_cruise(0), _params.vel_cruise(0)) : _vehicle_command.param2;
-			_pos_sp(2) = PX4_ISFINITE(_vehicle_command.param3) ? _vehicle_command.param3 : _pos_sp(2);
+			_pos_sp(2) = PX4_ISFINITE(_vehicle_command.param3) ? -_vehicle_command.param3 : _pos_sp(2);
 
 			if (PX4_ISFINITE(_vehicle_command.param5) && PX4_ISFINITE(_vehicle_command.param6)) {
 				map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
