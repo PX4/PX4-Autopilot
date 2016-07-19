@@ -481,7 +481,7 @@ VtolAttitudeControl::handle_command()
 bool
 VtolAttitudeControl::is_fixed_wing_requested()
 {
-	bool to_fw = _manual_control_sp.aux1 > 0.0f;
+	bool to_fw = _manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 	// listen to transition commands if not in manual
 	if (!_v_control_mode.flag_control_manual_enabled) {
