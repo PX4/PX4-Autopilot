@@ -34,10 +34,25 @@
 /**
  * @file mpu6000.cpp
  *
- * Driver for the Invensense MPU6000 connected via SPI.
+ * Driver for the Invensense MPU6000, MPU6050 and the ICM2608 connected via
+ * SPI or I2C.
+ *
+ * When the device is on the SPI bus the hrt is used to provide thread of
+ * execution to the driver.
+ *
+ * When the device is on the I2C bus a work queue is used provide thread of
+ * execution to the driver.
+ *
+ * The I2C code is only included in the build if USE_I2C is defined by the
+ * existance of any of PX4_I2C_MPU6050_ADDR, PX4_I2C_MPU6000_ADDR or
+ * PX4_I2C_ICM_20608_G_ADDR in the board_config.h file.
+ *
+ * The command line option -T 6000|20608 (default 6000) selects between
+ * MPU60x0 or the ICM20608G;
  *
  * @author Andrew Tridgell
  * @author Pat Hickey
+ * @author David Sidrane
  */
 
 #include <px4_config.h>
@@ -63,6 +78,7 @@
 #include <systemlib/px4_macros.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -85,6 +101,9 @@
   worst case timing jitter due to other timers
  */
 #define MPU6000_TIMER_REDUCTION				200
+#define MPU6000_CONVERSION_INTERVAL			10000 //todo:This is set long for the moment
+// As the bus is running at 100KHX and the
+// Transaction time is 2.163Ms
 
 enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
@@ -139,6 +158,16 @@ private:
 	int 			_device_type;
 	MPU6000_gyro		*_gyro;
 	uint8_t			_product;	/** product code */
+
+#if defined(USE_I2C)
+	/*
+	 * SPI bus based device use hrt
+	 * I2C bus needs to use work queue
+	 */
+	bool 			_use_hrt;
+	work_s			_work;
+#endif
+
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
@@ -229,6 +258,39 @@ private:
 	 */
 	bool 		is_mpu_device() { return _device_type == 6000;}
 
+
+#if defined(USE_I2C)
+	/**
+	 * When the I2C interfase is cho
+	 * Perform a poll cycle; collect from the previous measurement
+	 * and start a new one.
+	 *
+	 * This is the heart of the measurement state machine.  This function
+	 * alternately starts a measurement, or collects the data from the
+	 * previous measurement.
+	 *
+	 * When the interval between measurements is greater than the minimum
+	 * measurement interval, a gap is inserted between collection
+	 * and measurement to provide the most recent measurement possible
+	 * at the next interval.
+	 */
+	void			cycle();
+
+	/**
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		cycle_trampoline(void *arg);
+
+	bool is_i2c(void) { return !_use_hrt; }
+
+	void use_i2c(bool on_true) { _use_hrt = !on_true; }
+
+#endif
+
+
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
 	 * generic hrt wrapper yet.
@@ -243,7 +305,7 @@ private:
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
-	void			measure();
+	int			measure();
 
 	/**
 	 * Read a register from the MPU6000
@@ -406,7 +468,11 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_device_type(device_type),
 	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
-	_call{},
+#if defined(USE_I2C)
+	_use_hrt(false),
+	_work{},
+#endif
+	_call {},
 	_call_interval(0),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -446,6 +512,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_last_accel{},
 	_got_duplicate(false)
 {
+#if defined(USE_I2C)
+	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
+	memset(&_work, 0, sizeof(_work));
+#endif
 	// disable debug() calls
 	_debug_enabled = false;
 
@@ -509,7 +579,14 @@ MPU6000::~MPU6000()
 int
 MPU6000::init()
 {
-	/* probe again to get our settings */
+
+#if defined(USE_I2C)
+	unsigned dummy;
+	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+#endif
+
+
+	/* probe again to get our settings that are based on the device type */
 
 	int ret = probe();
 
@@ -531,6 +608,7 @@ MPU6000::init()
 		return ret;
 	}
 
+	ret = -ENOMEM;
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
@@ -543,6 +621,8 @@ MPU6000::init()
 	if (_gyro_reports == nullptr) {
 		goto out;
 	}
+
+	ret = -EIO;
 
 	if (reset() != OK) {
 		goto out;
@@ -626,8 +706,15 @@ int MPU6000::reset()
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
 
-		// Disable I2C bus (recommended on datasheet)
-		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
+#if defined(USE_I2C)
+
+		if (!is_i2c())
+#endif
+		{
+			// Disable I2C bus (recommended on datasheet)
+			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
+		}
+
 		px4_leave_critical_section(state);
 
 		if (read_reg(MPUREG_PWR_MGMT_1) == MPU_CLK_SEL_PLLGYROZ) {
@@ -1218,7 +1305,13 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					  them. This prevents aliasing due to a beat between the
 					  stm32 clock and the mpu6000 clock
 					 */
-					_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
+#if defined(USE_I2C)
+
+					if (!is_i2c())
+#endif
+					{
+						_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
+					}
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -1521,18 +1614,40 @@ MPU6000::start()
 	_accel_reports->flush();
 	_gyro_reports->flush();
 
-	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - MPU6000_TIMER_REDUCTION,
-		       (hrt_callout)&MPU6000::measure_trampoline, this);
+#if defined(USE_I2C)
+
+	if (_use_hrt) {
+#endif
+		/* start polling at the specified rate */
+		hrt_call_every(&_call,
+			       1000,
+			       _call_interval - MPU6000_TIMER_REDUCTION,
+			       (hrt_callout)&MPU6000::measure_trampoline, this);
+#if defined(USE_I2C)
+
+	} else {
+		/* schedule a cycle to start things */
+		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
+	}
+
+#endif
 }
 
 void
 MPU6000::stop()
 {
-	hrt_cancel(&_call);
+#if defined(USE_I2C)
 
+	if (_use_hrt) {
+#endif
+		hrt_cancel(&_call);
+#if defined(USE_I2C)
+
+	} else {
+		work_cancel(HPWORK, &_work);
+	}
+
+#endif
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 
@@ -1540,6 +1655,43 @@ MPU6000::stop()
 	_accel_reports->flush();
 	_gyro_reports->flush();
 }
+
+#if defined(USE_I2C)
+void
+MPU6000::cycle_trampoline(void *arg)
+{
+	MPU6000 *dev = (MPU6000 *)arg;
+
+	dev->cycle();
+}
+
+void
+MPU6000::cycle()
+{
+
+	int ret = measure();
+
+	if (ret != OK) {
+		/* issue a reset command to the sensor */
+		reset();
+		start();
+		return;
+	}
+
+	if (_call_interval != 0) {
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&MPU6000::cycle_trampoline,
+			   this,
+			   USEC2TICK(MPU6000_CONVERSION_INTERVAL));
+//todo:This is set long for the moment
+// As the bus is running at 100KHX and the
+// Transaction time is 2.163Ms
+// It should be USEC2TICK(_call_interval - MPU6000_TIMER_REDUCTION));
+// When I get the bus running at 400Khz
+	}
+}
+#endif
 
 void
 MPU6000::measure_trampoline(void *arg)
@@ -1549,7 +1701,6 @@ MPU6000::measure_trampoline(void *arg)
 	/* make another measurement */
 	dev->measure();
 }
-
 void
 MPU6000::check_registers(void)
 {
@@ -1611,17 +1762,17 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
-void
+int
 MPU6000::measure()
 {
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
-		return;
+		return OK;
 	}
 
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
-		return;
+		return OK;
 	}
 
 	struct MPUReport mpu_report;
@@ -1648,7 +1799,7 @@ MPU6000::measure()
 	if (sizeof(mpu_report) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED),
 			(uint8_t *)&mpu_report,
 			sizeof(mpu_report))) {
-		return;
+		return -EIO;
 	}
 
 	check_registers();
@@ -1666,7 +1817,7 @@ MPU6000::measure()
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
-		return;
+		return OK;
 	}
 
 	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
@@ -1700,7 +1851,7 @@ MPU6000::measure()
 		// costs 20ms with interrupts disabled. That means if
 		// the mpu6k does go bad it would cause a FMU failure,
 		// regardless of whether another sensor is available,
-		return;
+		return -EIO;
 	}
 
 	perf_count(_good_transfers);
@@ -1710,7 +1861,7 @@ MPU6000::measure()
 		// the sensor again. We still increment
 		// _good_transfers, but don't return any data yet
 		_register_wait--;
-		return;
+		return OK;
 	}
 
 
@@ -1734,7 +1885,7 @@ MPU6000::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
+	accel_report	arb;
 	gyro_report		grb;
 
 	/*
@@ -1865,6 +2016,7 @@ MPU6000::measure()
 
 	/* stop measuring */
 	perf_end(_sample_perf);
+	return OK;
 }
 
 void
@@ -2054,6 +2206,7 @@ start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int
 
 	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, external);
 
+
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
 		return false;
@@ -2136,9 +2289,7 @@ start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type
 		started |= start_bus(bus_options[i], rotation, range, device_type, external);
 	}
 
-	if (!started) {
-		exit(1);
-	}
+	exit(started ? 0 : 1);
 
 }
 

@@ -181,6 +181,9 @@ MPU6000_SPI::ioctl(unsigned operation, unsigned &arg)
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
+	case MPUIOCGIS_I2C:
+		return 0;
+
 	default: {
 			ret = -EINVAL;
 		}

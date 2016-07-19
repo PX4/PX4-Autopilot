@@ -15,7 +15,7 @@ set(config_module_list
 	drivers/boards/tap-v1
 	drivers/rgbled_pwm
 	drivers/tap_esc
-	#drivers/mpu6500
+	drivers/mpu6000
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
