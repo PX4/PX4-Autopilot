@@ -371,23 +371,20 @@ private:
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
 
-	unsigned write_err_count = 0;
+	unsigned _write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
 #ifndef __PX4_POSIX_EAGLE
-	FILE *fp;
+	FILE *_fp = nullptr;
 #endif
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
-#ifndef __PX4_POSIX_EAGLE
-	, fp(nullptr)
-#endif
 	{}
 
 	~MavlinkStreamStatustext() {
 #ifndef __PX4_POSIX_EAGLE
-		if (fp != nullptr) {
-			fclose(fp);
+		if (_fp != nullptr) {
+			fclose(_fp);
 		}
 #endif
 	}
@@ -421,27 +418,27 @@ protected:
 				strftime(tstamp, sizeof(tstamp) - 1, "%Y_%m_%d_%H_%M_%S", &tt);
 
 				if (_mavlink->get_instance_id() == 0/* && _mavlink->get_logging_enabled()*/) {
-					if (fp != nullptr) {
-						fputs(tstamp, fp);
-						fputs(": ", fp);
-						if (EOF == fputs(msg.text, fp)) {
-							write_err_count++;
+					if (_fp != nullptr) {
+						fputs(tstamp, _fp);
+						fputs(": ", _fp);
+						if (EOF == fputs(msg.text, _fp)) {
+							_write_err_count++;
 						} else {
-							write_err_count = 0;
+							_write_err_count = 0;
 						}
 
-						if (write_err_count >= write_err_threshold) {
-							(void)fclose(fp);
-							fp = nullptr;
+						if (_write_err_count >= write_err_threshold) {
+							(void)fclose(_fp);
+							_fp = nullptr;
 							PX4_WARN("mavlink logging disabled");
 						} else {
-							(void)fputs("\n", fp);
+							(void)fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(_fp->fs_filedes);
 #endif
 						}
 
-					} else if (write_err_count < write_err_threshold) {
+					} else if (_write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_path[128];
 
@@ -449,16 +446,16 @@ protected:
 
 						/* store the log file in the root directory */
 						snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/msgs_%s.txt", tstamp);
-						fp = fopen(log_file_path, "ab");
+						_fp = fopen(log_file_path, "ab");
 
-						if (fp != nullptr) {
+						if (_fp != nullptr) {
 							/* write first message */
-							fputs(tstamp, fp);
-							fputs(": ", fp);
-							fputs(msg.text, fp);
-							fputs("\n", fp);
+							fputs(tstamp, _fp);
+							fputs(": ", _fp);
+							fputs(msg.text, _fp);
+							fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(_fp->fs_filedes);
 #endif
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
