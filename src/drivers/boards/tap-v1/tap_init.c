@@ -133,6 +133,11 @@ __EXPORT void stm32_boardinitialize(void)
 
 	board_pwr_init(0);
 
+	/* TEMP ctrl Off (active high, init is clear) */
+
+	stm32_configgpio(GPIO_TEMP_CONT);
+
+
 	/* Select 0 */
 
 	stm32_configgpio(GPIO_S0);
@@ -142,6 +147,7 @@ __EXPORT void stm32_boardinitialize(void)
 	/* Radio Off (active low, init is set) */
 
 	stm32_configgpio(GPIO_PCON_RADIO);
+
 
 	/* configure always-on ADC pins */
 
