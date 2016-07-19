@@ -407,6 +407,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		if (internal_state->main_state != new_main_state) {
 			main_state_prev = internal_state->main_state;
 			internal_state->main_state = new_main_state;
+			internal_state->timestamp = hrt_absolute_time();
 		} else {
 			ret = TRANSITION_NOT_CHANGED;
 		}
