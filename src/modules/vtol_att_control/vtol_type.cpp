@@ -173,8 +173,10 @@ void VtolType::update_fw_state()
 		_tecs_running_ts = hrt_absolute_time();
 	}
 
-	// tecs didn't publish yet or the position controller didn't publish yet AFTER tecs
-	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
+	// TECS didn't publish yet or the position controller didn't publish yet AFTER tecs
+	// only wait on TECS we're in a mode where it is actually running
+	if ((!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts))
+	    && _v_control_mode->flag_control_altitude_enabled) {
 		waiting_on_tecs();
 	}
 
