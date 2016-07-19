@@ -459,6 +459,7 @@ protected:
 #endif
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
+							_write_err_count = write_err_threshold; //only try to open the file once
 						}
 					}
 				}
