@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__mpu6000
 	MAIN mpu6000
-	STACK_MAIN 1300
+	STACK_MAIN 1400
 	COMPILE_FLAGS
 		-Weffc++
 		-Os

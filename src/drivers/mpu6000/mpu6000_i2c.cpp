@@ -121,6 +121,9 @@ MPU6000_I2C::ioctl(unsigned operation, unsigned &arg)
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
+	case MPUIOCGIS_I2C:
+		return 1;
+
 	default:
 		ret = -EINVAL;
 	}

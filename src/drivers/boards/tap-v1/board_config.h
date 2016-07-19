@@ -114,8 +114,7 @@ __BEGIN_DECLS
  * Note that these are unshifted addresses (not includinf R/W).
  */
 
-/* todo:
- * Cannot tell from the schematic if there is one or 2 MPU6050
+/*
  * The slave address of the MPU-60X0 is b110100X which is 7 bits long.
  * The LSB bit of the 7 bit address is determined by the logic level
  * on pin AD0. This allows two MPU-60X0s to be connected to the same I2C bus.
@@ -123,8 +122,7 @@ __BEGIN_DECLS
  * should be b1101000 (pin AD0 is logic low) and the address of the other
  * should be b1101001 (pin AD0 is logic high).
  */
-#define PX4_I2C_ON_BOARD_MPU6050_ADDRS {0x68,0x69}
-
+#define PX4_I2C_MPU6050_ADDR 0x68
 
 /*
  * ADC channels

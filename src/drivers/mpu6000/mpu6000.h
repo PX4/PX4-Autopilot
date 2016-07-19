@@ -174,6 +174,8 @@
 #define EXTERNAL_BUS 0
 #endif
 
+#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
+
 #pragma pack(push, 1)
 /**
  * Report conversation within the MPU6000, including command byte and
