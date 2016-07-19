@@ -720,15 +720,14 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
-
 		// update sub-mode for position control mode
 		if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_STANDARD) {
 			_posctrl_sub_mode = MODE_POS_CTRL;
 		} else if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE) {
 			_posctrl_sub_mode = MODE_CIRCLE;
-			_R_circle = _vehicle_command.param1 != NAN ? _vehicle_command.param1 : CIRCLE_RADIUS_DEFAULT;
+			_R_circle = PX4_ISFINITE(_vehicle_command.param1) ? _vehicle_command.param1 : CIRCLE_RADIUS_DEFAULT;
 
-			if (_vehicle_command.param5 != NAN && _vehicle_command.param6 != NAN) {
+			if (PX4_ISFINITE(_vehicle_command.param5) && PX4_ISFINITE(_vehicle_command.param6)) {
 				map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6, &_circle_orig.data[0], &_circle_orig.data[1]);
 			} else {
 				_circle_orig(0) = _pos(0) + cosf(_yaw) * _R_circle;
