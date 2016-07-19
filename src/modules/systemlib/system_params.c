@@ -144,7 +144,7 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  * SD logger
  *
  * @value 0 sdlog2 (default)
- * @value 1 new logger (experimental)
+ * @value 1 new logger
  * @min 0
  * @max 1
  * @reboot_required true

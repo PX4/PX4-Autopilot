@@ -49,7 +49,7 @@ namespace landdetection
 {
 
 LandDetector::LandDetector() :
-	_landDetectedPub(0),
+	_landDetectedPub(nullptr),
 	_landDetected{0, false, false},
 	_arming_time(0),
 	_taskShouldExit(false),
@@ -93,7 +93,6 @@ void LandDetector::cycle()
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = false;
 		_landDetected.freefall = false;
-		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 
 		// initialize land detection algorithm
 		initialize();
@@ -107,15 +106,12 @@ void LandDetector::cycle()
 	bool landDetected = (current_state == LANDDETECTION_RES_LANDED);
 	bool freefallDetected = (current_state == LANDDETECTION_RES_FREEFALL);
 
-	// publish if land detection state has changed
-	if ((_landDetected.landed != landDetected) || (_landDetected.freefall != freefallDetected)) {
+	if (_landDetectedPub == nullptr || _landDetected.landed != landDetected || _landDetected.freefall != freefallDetected) {
 		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.landed = landDetected;
-		_landDetected.freefall = freefallDetected;
-
-		// publish the land detected broadcast
-		orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
-		//warnx("in air status changed: %s", (_landDetected.landed) ? "LANDED" : "TAKEOFF");
+		_landDetected.landed = (current_state == LANDDETECTION_RES_LANDED);
+		_landDetected.freefall = (current_state == LANDDETECTION_RES_FREEFALL);
+		int instance;
+		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected, &instance, ORB_PRIO_DEFAULT);
 	}
 
 	if (!_taskShouldExit) {

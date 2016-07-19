@@ -90,11 +90,15 @@ static void *entry_adapter(void *ptr)
 	pthdata_t *data = (pthdata_t *) ptr;
 
 	int rv;
+
 	// set the threads name
 #ifdef __PX4_DARWIN
 	rv = pthread_setname_np(data->name);
 #else
-	rv = pthread_setname_np(pthread_self(), data->name);
+	char buf[17];
+	snprintf(buf, 16, "%s", data->name);
+	buf[16] = '0';
+	rv = pthread_setname_np(pthread_self(), buf);
 #endif
 
 	if (rv) {
@@ -388,19 +392,22 @@ unsigned long px4_getpid()
 	return (unsigned long)pthread_self();
 }
 
-const char *getprogname()
+const char *px4_get_taskname()
 {
 	pthread_t pid = pthread_self();
+	const char *prog_name = "UnknownApp";
+
+	pthread_mutex_lock(&task_mutex);
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
 		if (taskmap[i].isused && taskmap[i].pid == pid) {
-			pthread_mutex_lock(&task_mutex);
-			return taskmap[i].name.c_str();
-			pthread_mutex_unlock(&task_mutex);
+			prog_name = taskmap[i].name.c_str();
 		}
 	}
 
-	return "Unknown App";
+	pthread_mutex_unlock(&task_mutex);
+
+	return prog_name;
 }
 
 int px4_prctl(int option, const char *arg2, unsigned pid)

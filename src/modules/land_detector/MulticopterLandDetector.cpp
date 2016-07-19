@@ -67,7 +67,8 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_ctrl_state{},
 	_ctrl_mode{},
 	_landTimer(0),
-	_freefallTimer(0)
+	_freefallTimer(0),
+	_min_trust_start(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
@@ -133,6 +134,11 @@ bool MulticopterLandDetector::get_freefall_state()
 	}
 
 	const uint64_t now = hrt_absolute_time();
+
+	if (_ctrl_state.timestamp == 0) {
+		// _ctrl_state is not valid yet, we have to assume we're not falling.
+		return false;
+	}
 
 	float acc_norm = _ctrl_state.x_acc * _ctrl_state.x_acc
 			 + _ctrl_state.y_acc * _ctrl_state.y_acc

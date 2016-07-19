@@ -5,6 +5,14 @@ if [[ "$#" < 2 ]]; then
 	exit
 fi
 
+if [ -z ${AUTOPILOT_HOST+x} ]; then
+	host=px4autopilot
+	echo "\$AUTOPILOT_HOST is not set (use default: $host)"
+else
+	host=$AUTOPILOT_HOST
+	echo "\$AUTOPILOT_HOST is set to $host"
+fi
+
 echo "Uploading..."
 
 # Get last argument
@@ -19,6 +27,6 @@ do
 	fi
 	# echo "Pushing $arg to $last"
 	#adb push $arg $last
-	scp $arg pi@px4autopilot:$last
+	scp $arg pi@$host:$last
 	((i+=1))
 done

@@ -92,7 +92,7 @@ static void print_prompt()
 	cout.flush();
 }
 
-static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
+static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
 	// command is appargs[0]
 	string command = appargs[0];
@@ -109,8 +109,6 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 
 		arg[i] = (char *)0;
 
-		cout << endl;
-
 		int retval = apps[command](i, (char **)arg);
 
 		if (retval) {
@@ -121,16 +119,14 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 			}
 		}
 
-
-
 	} else if (command.compare("help") == 0) {
 		list_builtins();
 
-	} else if (command.length() == 0) {
+	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
 
-	} else {
-		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+	} else if (!silently_fail) {
+		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
 }
@@ -148,10 +144,6 @@ static void usage()
 
 static void process_line(string &line, bool exit_on_fail)
 {
-	if (line.length() == 0) {
-		printf("\n");
-	}
-
 	vector<string> appargs(10);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
@@ -168,6 +160,21 @@ static void restore_term(void)
 bool px4_exit_requested(void)
 {
 	return _ExitFlag;
+}
+
+static void set_cpu_scaling()
+{
+#ifdef __PX4_POSIX_EAGLE
+	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
+	// at the maximum frequency all the time.
+	// Interestingely, cpu0 and cpu3 set the scaling for all 4 CPUs on Snapdragon.
+	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
+	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
+
+	// Alternatively we could also raise the minimum frequency to save some power,
+	// unfortunately this still lead to some drops.
+	//system("echo 1190400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq");
+#endif
 }
 
 int main(int argc, char **argv)
@@ -191,6 +198,8 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_int, NULL);
 	//sigaction(SIGTERM, &sig_int, NULL);
 	sigaction(SIGFPE, &sig_fpe, NULL);
+
+	set_cpu_scaling();
 
 	int index = 1;
 	char *commands_file = nullptr;
@@ -341,6 +350,7 @@ int main(int argc, char **argv)
 					}
 				}
 
+				cout << endl;
 				process_line(mystr, false);
 				mystr = "";
 				buf_ptr_read = buf_ptr_write;
@@ -380,8 +390,11 @@ int main(int argc, char **argv)
 				}
 
 			default:	// any other input
-				cout << c;
-				mystr += c;
+				if (c > 3) {
+					cout << c;
+					mystr += c;
+				}
+
 				break;
 			}
 		}
@@ -397,7 +410,7 @@ int main(int argc, char **argv)
 		//if (px4_task_is_running("muorb")) {
 		// sending muorb stop is needed if it is running to exit cleanly
 		vector<string> muorb_stop_cmd = { "muorb", "stop" };
-		run_cmd(muorb_stop_cmd, !daemon_mode);
+		run_cmd(muorb_stop_cmd, !daemon_mode, true);
 	}
 
 	vector<string> shutdown_cmd = { "shutdown" };

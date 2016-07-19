@@ -923,7 +923,6 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 
 	DIR* const romfs_dir = opendir(romfs_path);
 	if (!romfs_dir) {
-		warnx("base: couldn't open %s", romfs_path);
 		return;
 	}
 

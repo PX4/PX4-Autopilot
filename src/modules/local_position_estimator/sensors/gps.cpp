@@ -11,6 +11,22 @@ static const uint32_t 		GPS_TIMEOUT =      1000000; // 1.0 s
 
 void BlockLocalPositionEstimator::gpsInit()
 {
+	// check for good gps signal
+	uint8_t nSat = _sub_gps.get().satellites_used;
+	float eph = _sub_gps.get().eph;
+	float epv = _sub_gps.get().epv;
+	uint8_t fix_type = _sub_gps.get().fix_type;
+
+	if (
+		nSat < 6 ||
+		eph > _gps_eph_max.get() ||
+		epv > _gps_epv_max.get() ||
+		fix_type < 3
+	) {
+		_gpsStats.reset();
+		return;
+	}
+
 	// measure
 	Vector<double, n_y_gps> y;
 
@@ -21,41 +37,33 @@ void BlockLocalPositionEstimator::gpsInit()
 
 	// if finished
 	if (_gpsStats.getCount() > REQ_GPS_INIT_COUNT) {
-		double gpsLatHome = _gpsStats.getMean()(0);
-		double gpsLonHome = _gpsStats.getMean()(1);
+		double gpsLatOrigin = _gpsStats.getMean()(0);
+		double gpsLonOrigin = _gpsStats.getMean()(1);
 
 		if (!_receivedGps) {
 			_receivedGps = true;
-			map_projection_init(&_map_ref, gpsLatHome, gpsLonHome);
+			map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
 		}
 
-		_gpsAltHome = _gpsStats.getMean()(2);
+		_gpsAltOrigin = _gpsStats.getMean()(2);
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps init "
 					     "lat %6.2f lon %6.2f alt %5.1f m",
-					     gpsLatHome,
-					     gpsLonHome,
-					     double(_gpsAltHome));
+					     gpsLatOrigin,
+					     gpsLonOrigin,
+					     double(_gpsAltOrigin));
 		_gpsInitialized = true;
 		_gpsFault = FAULT_NONE;
 		_gpsStats.reset();
 
-		if (!_altHomeInitialized) {
-			_altHomeInitialized = true;
-			_altHome = _gpsAltHome;
+		if (!_altOriginInitialized) {
+			_altOriginInitialized = true;
+			_altOrigin = _gpsAltOrigin;
 		}
 	}
 }
 
 int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
 {
-	// check for good gps signal
-	uint8_t nSat = _sub_gps.get().satellites_used;
-	float eph = _sub_gps.get().eph;
-
-	if (nSat < 6 || eph > _gps_eph_max.get()) {
-		return -1;
-	}
-
 	// gps measurement
 	y.setZero();
 	y(0) = _sub_gps.get().lat * 1e-7;
@@ -84,7 +92,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float  alt = y_global(2);
 	float px = 0;
 	float py = 0;
-	float pz = -(alt - _gpsAltHome);
+	float pz = -(alt - _gpsAltOrigin);
 	map_projection_project(&_map_ref, lat, lon, &px, &py);
 	Vector<float, 6> y;
 	y.setZero();
@@ -115,12 +123,12 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float var_vxy = _gps_vxy_stddev.get() * _gps_vxy_stddev.get();
 	float var_vz = _gps_vz_stddev.get() * _gps_vz_stddev.get();
 
-	// if field is not zero, set it to the value provided
-	if (_sub_gps.get().eph > 1e-3f) {
+	// if field is not below minimum, set it to the value provided
+	if (_sub_gps.get().eph > _gps_xy_stddev.get()) {
 		var_xy = _sub_gps.get().eph * _sub_gps.get().eph;
 	}
 
-	if (_sub_gps.get().epv > 1e-3f) {
+	if (_sub_gps.get().epv > _gps_z_stddev.get()) {
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
@@ -161,13 +169,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 
 	if (beta > BETA_TABLE[n_y_gps]) {
 		if (_gpsFault < FAULT_MINOR) {
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps fault, beta: %5.2f", double(beta));
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-			//double(r(0)),  double(r(1)), double(r(2)),
-			//double(r(3)), double(r(4)), double(r(5)));
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-			//double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
-			//double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
+						     double(r(0)*r(0) / S_I(0, 0)),  double(r(1)*r(1) / S_I(1, 1)), double(r(2)*r(2) / S_I(2, 2)),
+						     double(r(3)*r(3) / S_I(3, 3)),  double(r(4)*r(4) / S_I(4, 4)), double(r(5)*r(5) / S_I(5, 5)));
 			_gpsFault = FAULT_MINOR;
 		}
 
@@ -179,7 +183,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// kalman filter correction if no hard fault
 	if (_gpsFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
-		_x += K * r;
+		Vector<float, n_x> dx = K * r;
+		correctionLogic(dx);
+		_x += dx;
 		_P -= K * C * _P;
 	}
 }

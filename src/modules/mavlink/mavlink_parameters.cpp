@@ -57,11 +57,26 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkSt
 	_uavcan_parameter_value_sub(-1)
 {
 }
+MavlinkParametersManager::~MavlinkParametersManager()
+{
+	if (_uavcan_parameter_value_sub >= 0) {
+		orb_unsubscribe(_uavcan_parameter_value_sub);
+	}
+	if (_uavcan_parameter_request_pub) {
+		orb_unadvertise(_uavcan_parameter_request_pub);
+	}
+}
 
 unsigned
 MavlinkParametersManager::get_size()
 {
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+}
+
+unsigned
+MavlinkParametersManager::get_size_avg()
+{
+	return 0;
 }
 
 void

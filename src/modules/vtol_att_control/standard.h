@@ -75,7 +75,8 @@ private:
 		float front_trans_timeout;
 		float front_trans_time_min;
 		float down_pitch_max;
-		float forward_thurst_scale;
+		float forward_thrust_scale;
+		int airspeed_mode;
 	} _params_standard;
 
 	struct {
@@ -87,7 +88,8 @@ private:
 		param_t front_trans_timeout;
 		param_t front_trans_time_min;
 		param_t down_pitch_max;
-		param_t forward_thurst_scale;
+		param_t forward_thrust_scale;
+		param_t airspeed_mode;
 	} _params_handles_standard;
 
 	enum vtol_mode {

@@ -54,6 +54,7 @@ namespace logger
 
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
+	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
 	uint64_t time_tried_subscribe;	// captures the time at which we checked last time if this instance existed
 	const orb_metadata *metadata = nullptr;
 
@@ -74,25 +75,56 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
+	Logger(size_t buffer_size, uint32_t log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp);
 
 	~Logger();
 
-	int add_topic(const orb_metadata *topic);
+	/**
+	 * Tell the logger that we're in replay mode. This must be called
+	 * before starting the logger.
+	 * @param file_name file name of the used log replay file. Will be copied.
+	 */
+	void setReplayFile(const char *file_name);
 
+	/**
+	 * Add a topic to be logged. This must be called before start_log()
+	 * (because it does not write an ADD_LOGGED_MSG message).
+	 * @param name topic name
+	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
+	 * @return 0 on success
+	 */
 	int add_topic(const char *name, unsigned interval);
+
+	/**
+	 * add a logged topic (called by add_topic() above)
+	 */
+	int add_topic(const orb_metadata *topic);
 
 	static int start(char *const *argv);
 
 	static void usage(const char *reason);
 
 	void status();
+	void print_statistics();
+
+	void set_arm_override(bool override) { _arm_override = override; }
 
 private:
 	static void run_trampoline(int argc, char *argv[]);
 
 	void run();
+
+	/**
+	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
+	 */
+	void write_all_add_logged_msg();
+
+	/**
+	 * Write an ADD_LOGGED_MSG to the log for a given subscription and instance.
+	 * _writer.lock() must be held when calling this.
+	 */
+	void write_add_logged_msg(LoggerSubscription &subscription, int instance);
 
 	/**
 	 * Create logging directory
@@ -118,23 +150,36 @@ private:
 
 	void stop_log();
 
+	/**
+	 * write the file header with file magic and timestamp.
+	 */
+	void write_header();
+
 	void write_formats();
 
 	void write_version();
 
 	void write_info(const char *name, const char *value);
+	void write_info(const char *name, int32_t value);
 
 	void write_parameters();
 
 	void write_changed_parameters();
 
-	bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer, uint64_t *time_last_checked);
+	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer);
 
 	/**
 	 * Write data to the logger. Waits if buffer is full until all data is written.
 	 * Must be called with _writer.lock() held.
 	 */
 	bool write_wait(void *ptr, size_t size);
+
+	/**
+	 * Write data to the logger and handle dropouts.
+	 * Must be called with _writer.lock() held.
+	 * @return true if data written, false otherwise (on overflow)
+	 */
+	bool write(void *ptr, size_t size);
 
 	/**
 	 * Get the time for log file name
@@ -144,7 +189,16 @@ private:
 	 */
 	bool get_log_time(struct tm *tt, bool boot_time = false);
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 128; /**< Maximum number of logged topics */
+	/**
+	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
+	 * @param fname name of file
+	 * @return number of topics added
+	 */
+	int add_topics_from_file(const char *fname);
+
+	void add_default_topics();
+
+	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 #ifdef __PX4_POSIX_EAGLE
@@ -153,11 +207,15 @@ private:
 	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";
 #endif
 
+	uint8_t						*_msg_buffer = nullptr;
+	int						_msg_buffer_len = 0;
 	bool						_task_should_exit = true;
 	char 						_log_dir[64];
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
 	bool						_was_armed = false;
+	bool						_arm_override;
+
 
 	// statistics
 	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)
@@ -174,11 +232,9 @@ private:
 	uint32_t					_log_interval;
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
+	uint16_t					_next_topic_id; ///< id of next subscribed topic
+	char						*_replay_file_name = nullptr;
 };
 
-Logger *logger_ptr = nullptr;
-int		logger_task = -1;
-pthread_t _writer_thread;
-
-}
-}
+} //namespace logger
+} //namespace px4

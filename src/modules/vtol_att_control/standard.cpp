@@ -67,7 +67,8 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
-	_params_handles_standard.forward_thurst_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
 }
 
 Standard::~Standard()
@@ -78,6 +79,7 @@ int
 Standard::parameters_update()
 {
 	float v;
+	int i;
 
 	/* duration of a forwards transition to fw mode */
 	param_get(_params_handles_standard.front_trans_dur, &v);
@@ -112,7 +114,12 @@ Standard::parameters_update()
 	_params_standard.down_pitch_max = math::radians(v);
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
-	param_get(_params_handles_standard.forward_thurst_scale, &_params_standard.forward_thurst_scale);
+	param_get(_params_handles_standard.forward_thrust_scale, &_params_standard.forward_thrust_scale);
+
+	/* airspeed mode */
+	param_get(_params_handles_standard.airspeed_mode, &i);
+	_params_standard.airspeed_mode = math::constrain(i, 0, 2);
+
 
 
 	return OK;
@@ -180,7 +187,8 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if ((_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans &&
+			if (((_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED ||
+			      _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
 			    can_transition_on_ground()) {
@@ -242,6 +250,19 @@ void Standard::update_transition_state()
 			_mc_yaw_weight = weight;
 			_mc_throttle_weight = weight;
 
+			// time based blending when no airspeed sensor is set
+
+		} else if (_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED &&
+			   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
+			  ) {
+			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) /
+						      (_params_standard.front_trans_time_min * 1000000.0f));
+			_mc_roll_weight = weight;
+			_mc_pitch_weight = weight;
+			_mc_yaw_weight = weight;
+			_mc_throttle_weight = weight;
+
+
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
@@ -294,36 +315,61 @@ void Standard::update_mc_state()
 	VtolType::update_mc_state();
 
 	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
-	if (_params_standard.forward_thurst_scale < FLT_EPSILON) {
+	if (_params_standard.forward_thrust_scale < FLT_EPSILON) {
 		return;
 	}
 
-	// get projection of thrust vector on body x axis. This is used to
-	// determine the desired forward acceleration which we want to achieve with the pusher
-	math::Matrix<3, 3> R(&_v_att->R[0]);
-	math::Matrix<3, 3> R_sp(&_v_att_sp->R_body[0]);
-	math::Vector<3> thrust_sp_axis(-R_sp(0, 2), -R_sp(1, 2), -R_sp(2, 2));
-	math::Vector<3> euler = R.to_euler();
-	R.from_euler(0, 0, euler(2));
-	math::Vector<3> body_x_zero_tilt(R(0, 0), R(1, 0), R(2, 0));
+	matrix::Dcmf R(matrix::Quatf(_v_att->q));
+	matrix::Dcmf R_sp(&_v_att_sp->R_body[0]);
+	matrix::Eulerf euler(R);
+	matrix::Eulerf euler_sp(R_sp);
+	_pusher_throttle = 0.0f;
 
-	// we are using a parameter to scale the thrust value in order to compensate for highly over/under-powered motors
-	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust * _params_standard.forward_thurst_scale;
+	// direction of desired body z axis represented in earth frame
+	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2));
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
+
+	// calculate the desired pitch seen in the heading frame
+	// this value corresponds to the amount the vehicle would try to pitch forward
+	float pitch_forward = asinf(body_z_sp(0));
+
+	// only allow pitching forward up to threshold, the rest of the desired
+	// forward acceleration will be compensated by the pusher
+	if (pitch_forward < -_params_standard.down_pitch_max) {
+		// desired roll angle in heading frame stays the same
+		float roll_new = -atan2f(body_z_sp(1), body_z_sp(2));
+
+		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max)) * _v_att_sp->thrust;
+
+		// limit desired pitch
+		float pitch_new = -_params_standard.down_pitch_max;
+
+		// create corrected desired body z axis in heading frame
+		matrix::Dcmf R_tmp = matrix::Eulerf(roll_new, pitch_new, 0.0f);
+		matrix::Vector3f tilt_new(R_tmp(0, 2), R_tmp(1, 2), R_tmp(2, 2));
+
+		// rotate the vector into a new frame which is rotated in z by the desired heading
+		// with respect to the earh frame.
+		float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+		matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
+		tilt_new = R_yaw_correction * tilt_new;
+
+		// now extract roll and pitch setpoints
+		float pitch = asinf(tilt_new(0));
+		float roll = -atan2f(tilt_new(1), tilt_new(2));
+		R_sp = matrix::Eulerf(roll, pitch, euler_sp(2));
+		matrix::Quatf q_sp(R_sp);
+		memcpy(&_v_att_sp->R_body[0], &R_sp._data[0], sizeof(_v_att_sp->R_body));
+		memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
+	}
+
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
-	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max :
-				   _v_att_sp->pitch_body;
-
-	// compute new desired rotation matrix with corrected pitch angle
-	// and copy data to attitude setpoint topic
-	euler = R_sp.to_euler();
-	euler(1) = pitch_sp_corrected;
-	R_sp.from_euler(euler(0), euler(1), euler(2));
-	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
-	_v_att_sp->pitch_body = pitch_sp_corrected;
-	math::Quaternion q_sp;
-	q_sp.from_dcm(R_sp);
-	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }
 
 void Standard::update_fw_state()

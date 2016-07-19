@@ -73,6 +73,8 @@ public:
 
 	unsigned get_size();
 
+	unsigned get_size_avg();
+
 	void handle_message(const mavlink_message_t *msg);
 
 private:
@@ -84,6 +86,7 @@ private:
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
 	void send(const hrt_abstime t);
 

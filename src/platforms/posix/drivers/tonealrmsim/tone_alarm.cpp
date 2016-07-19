@@ -249,6 +249,7 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
+	_tune_names[TONE_HOME_SET] = "home_set";
 }
 
 ToneAlarm::~ToneAlarm()
@@ -656,8 +657,6 @@ ToneAlarm::devIOCTL(unsigned long cmd, unsigned long arg)
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		PX4_INFO("TONE_SET_ALARM %lu", arg);
-
 		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == TONE_STOP_TUNE) {
 				// stop the tune
@@ -672,6 +671,7 @@ ToneAlarm::devIOCTL(unsigned long cmd, unsigned long arg)
 					/* play the selected tune */
 					_default_tune_number = arg;
 					start_tune(_default_tunes[arg]);
+					PX4_INFO("%s", _tune_names[arg]);
 				}
 			}
 

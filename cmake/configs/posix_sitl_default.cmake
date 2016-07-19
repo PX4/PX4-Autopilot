@@ -29,6 +29,8 @@ set(config_module_list
 	systemcmds/sd_bench
 	systemcmds/topic_listener
 	systemcmds/ver
+	systemcmds/top
+	systemcmds/motor_ramp
 
 	modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
@@ -50,6 +52,7 @@ set(config_module_list
 	modules/param
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/replay
 	modules/sdlog2
 	modules/sensors
 	modules/simulator
@@ -109,3 +112,12 @@ set(config_sitl_debugger
 	)
 set_property(CACHE config_sitl_debugger
 	PROPERTY STRINGS "disable;gdb;lldb")
+
+# If the environment variable 'replay' is defined, we are building with replay
+# support. In this case, we enable the orb publisher rules.
+set(REPLAY_FILE "$ENV{replay}")
+if(REPLAY_FILE)
+	message("Building with uorb publisher rules support")
+	add_definitions(-DORB_USE_PUBLISHER_RULES)
+endif()
+

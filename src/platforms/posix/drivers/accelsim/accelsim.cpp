@@ -802,9 +802,21 @@ ACCELSIM::stop()
 void
 ACCELSIM::_measure()
 {
-	//PX4_INFO("ACCELSIM::_measure");
-	/* status register and data as read back from the device */
+#if 0
+	static int x = 0;
 
+	// Verify the samples are being taken at the expected rate
+	if (x == 99) {
+		x = 0;
+		PX4_INFO("ACCELSIM::measure %" PRIu64, hrt_absolute_time());
+
+	} else {
+		x++;
+	}
+
+#endif
+
+	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;

@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -133,6 +133,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

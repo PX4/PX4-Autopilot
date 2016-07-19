@@ -238,17 +238,18 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 		if (missionitem.nav_cmd != NAV_CMD_IDLE &&
 			missionitem.nav_cmd != NAV_CMD_WAYPOINT &&
 			missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED &&
-			/* not yet supported: missionitem.nav_cmd != NAV_CMD_LOITER_TURN_COUNT && */
 			missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
 			missionitem.nav_cmd != NAV_CMD_LAND &&
 			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
-			missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
+			missionitem.nav_cmd != NAV_CMD_LOITER_TO_ALT &&
 			missionitem.nav_cmd != NAV_CMD_VTOL_TAKEOFF &&
-			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
+			missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 			missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 			missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+			missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
+			missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 
@@ -407,13 +408,15 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 bool
 MissionFeasibilityChecker::isPositionCommand(unsigned cmd){
-	if( cmd == NAV_CMD_WAYPOINT ||
-		cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-		cmd == NAV_CMD_LOITER_TURN_COUNT ||
+	if (cmd == NAV_CMD_WAYPOINT ||
 		cmd == NAV_CMD_LOITER_UNLIMITED ||
-		cmd == NAV_CMD_TAKEOFF ||
+		cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 		cmd == NAV_CMD_LAND ||
-		cmd == NAV_CMD_PATHPLANNING) {
+		cmd == NAV_CMD_TAKEOFF ||
+		cmd == NAV_CMD_LOITER_TO_ALT ||
+		cmd == NAV_CMD_VTOL_TAKEOFF ||
+		cmd == NAV_CMD_VTOL_LAND) {
+
 		return true;
 	} else {
 		return false;

@@ -1964,28 +1964,80 @@ PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 
 /**
- * Scaling factor for battery voltage sensor on FMU v2.
+ * Scaling from ADC counts to volt on the ADC input (battery voltage)
+ *
+ * This is not the battery voltage, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
  *
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
 
 /**
- * Scaling factor for battery current sensor.
+ * Scaling from ADC counts to volt on the ADC input (battery current)
+ *
+ * This is not the battery current, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
  *
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
 
 /**
- * Offset for battery current sensor.
+ * Offset in volt as seen by the ADC input of the current sensor.
+ *
+ * This offset will be subtracted before calculating the battery
+ * current based on the voltage.
  *
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_C_OFFSET, -1.0);
+PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
+
+/**
+ * Battery voltage divider (V divider)
+ *
+ * This is the divider from battery voltage to 3.3V ADC voltage.
+ * If using e.g. Mauch power modules the value from the datasheet
+ * can be applied straight here. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+
+/**
+ * Battery current per volt (A/V)
+ *
+ * The voltage seen by the 3.3V ADC multiplied by this factor
+ * will determine the battery current. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+
+/**
+ * Battery monitoring source.
+ *
+ * This parameter controls the source of battery data. The value 'Power Module'
+ * means that measurements are expected to come from a power module. If the value is set to
+ * 'External' then the system expects to receive mavlink battery status messages.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Power Module
+ * @value 1 External
+ * @group Battery Calibration
+ */
+
+PARAM_DEFINE_INT32(BAT_SOURCE, 0);
 
 
 /**

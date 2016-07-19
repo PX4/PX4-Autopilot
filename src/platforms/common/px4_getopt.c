@@ -143,10 +143,12 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 	char c;
 	int takesarg;
 
-	if (*myoptind == 1)
+	if (*myoptind == 1) {
 		if (reorder(argc, argv, options) != 0) {
+			*myoptind += 1;
 			return (int)'?';
 		}
+	}
 
 	p = argv[*myoptind];
 
@@ -158,6 +160,7 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 		c = isvalidopt(p[1], options, &takesarg);
 
 		if (c == '?') {
+			*myoptind += 1;
 			return (int)c;
 		}
 
@@ -165,6 +168,11 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 
 		if (takesarg) {
 			*myoptarg = argv[*myoptind];
+
+			if (!*myoptarg) { //Error: option takes an argument, but there is no more argument
+				return -1;
+			}
+
 			*myoptind += 1;
 		}
 

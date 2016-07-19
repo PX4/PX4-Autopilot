@@ -450,55 +450,8 @@ function(px4_os_add_flags)
 	endif()
 
 	set(cpu_flags)
-	if (${BOARD} STREQUAL "px4fmu-v1")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4fmu-v2")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4fmu-v4")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4-stm32f4discovery")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "aerocore")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "mindpx-v2")
-			set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4io-v1")
+	# Handle non-F4 boards specifically here
+	if (${BOARD} STREQUAL "px4io-v1")
 		set(cpu_flags
 			-mcpu=cortex-m3
 			-mthumb
@@ -509,6 +462,14 @@ function(px4_os_add_flags)
 			-mcpu=cortex-m3
 			-mthumb
 			-march=armv7-m
+			)
+	else ()
+			set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
 			)
 	endif()
 	list(APPEND c_flags ${cpu_flags})

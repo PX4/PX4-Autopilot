@@ -177,6 +177,25 @@ void VtolType::update_fw_state()
 	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
 		waiting_on_tecs();
 	}
+
+	// quadchute
+	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
+		if (-(_local_pos->z) < _params->fw_min_alt) {
+			_attc->abort_front_transition();
+		}
+	}
+
+}
+
+void VtolType::update_transition_state()
+{
+	// quadchute
+	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
+		if (-(_local_pos->z) < _params->fw_min_alt) {
+			_attc->abort_front_transition();
+		}
+	}
+
 }
 
 bool VtolType::can_transition_on_ground()

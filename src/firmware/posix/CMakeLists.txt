@@ -11,7 +11,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb
@@ -36,14 +36,14 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
 			 DEPENDS mainapp
 			 DEST /home/linaro)
-			 
-elseif ("${BOARD}" STREQUAL "rpi2")
+
+elseif ("${BOARD}" STREQUAL "rpi")
 
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
-		
+
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
@@ -57,11 +57,46 @@ elseif ("${BOARD}" STREQUAL "rpi2")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
-				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi2/mainapp.config
+				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi/mainapp.config
 			 DEPENDS mainapp
 			 DEST /home/pi)
 
+elseif ("${BOARD}" STREQUAL "bebop")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+
+	add_executable(mainapp
+		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		apps.h
+		)
+
+	if (NOT APPLE)
+		target_link_libraries(mainapp
+			-Wl,--start-group
+			${module_libraries}
+			${df_driver_libs}
+			pthread m rt
+			-Wl,--end-group
+			)
+	else()
+		target_link_libraries(mainapp
+			${module_libraries}
+			${df_driver_libs}
+			pthread m
+			)
+	endif()
+
+	px4_add_adb_push_to_bebop(OUT upload
+			 OS ${OS}
+			 BOARD ${BOARD}
+			 FILES ${CMAKE_CURRENT_BINARY_DIR}/mainapp
+						 ${CMAKE_SOURCE_DIR}/posix-configs/bebop/mainapp.config
+			 DEPENDS mainapp
+			 DEST /usr/bin)
+			 
 else()
+
 	add_executable(mainapp
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
@@ -93,7 +128,7 @@ add_dependencies(run_config mainapp)
 
 foreach(viewer none jmavsim gazebo replay)
 	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris iris_opt_flow tailsitter standard_vtol plane)
+		foreach(model none iris iris_opt_flow tailsitter standard_vtol plane solo typhoon_h480)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")

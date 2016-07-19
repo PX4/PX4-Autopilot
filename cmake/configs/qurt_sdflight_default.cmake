@@ -55,13 +55,12 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/land_detector
-	modules/load_mon
 
 	#
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/uart_esc
+	drivers/pwm_out_rc_in
 	drivers/qshell/qurt
 
 	#

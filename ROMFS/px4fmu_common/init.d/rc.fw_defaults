@@ -11,7 +11,12 @@ then
 	param set RTL_DESCEND_ALT 100
 	param set RTL_LAND_DELAY -1
 
-	param set NAV_ACC_RAD 50
+	# FW uses L1 distance for acceptance radius 
+	#  set a smaller NAV_ACC_RAD for vertical acceptance distance
+	param set NAV_ACC_RAD 10
+	
+	param set MIS_LTRMIN_ALT 25
+	param set MIS_TAKEOFF_ALT 25
 
 	param set PE_VELNE_NOISE 0.3
 	param set PE_VELD_NOISE 0.35

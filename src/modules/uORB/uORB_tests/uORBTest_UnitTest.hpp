@@ -54,7 +54,10 @@ ORB_DEFINE(orb_test_medium, struct orb_test_medium, sizeof(orb_test_medium),
 	   "ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
 ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium, sizeof(orb_test_medium),
 	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
-
+ORB_DEFINE(orb_test_medium_queue, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium_queue_poll, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
 
 struct orb_test_large {
 	int val;
@@ -98,13 +101,23 @@ private:
 	bool pubsubtest_print;
 	int pubsubtest_res = OK;
 
-	int test_unadvertise();
 	orb_advert_t _pfd[4]; ///< used for test_multi and test_multi_reversed
 
 	int test_single();
+
+	/* These 3 depend on each other and must be called in this order */
 	int test_multi();
-	int test_multi2();
 	int test_multi_reversed();
+	int test_unadvertise();
+
+	int test_multi2();
+
+	/* queuing tests */
+	int test_queue();
+	static int pub_test_queue_entry(char *const argv[]);
+	int pub_test_queue_main();
+	int test_queue_poll_notify();
+	volatile int _num_messages_sent = 0;
 
 	int test_fail(const char *fmt, ...);
 	int test_note(const char *fmt, ...);

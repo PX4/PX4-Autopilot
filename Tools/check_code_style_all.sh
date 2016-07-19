@@ -23,6 +23,7 @@ find \
     src/modules/controllib_test \
     src/modules/dataman \
     src/modules/fw_att_control \
+    src/modules/fw_pos_control_l1 \
     src/modules/gpio_led \
     src/modules/land_detector \
     src/modules/local_position_estimator \
@@ -31,6 +32,7 @@ find \
     src/modules/muorb \
     src/modules/param \
     src/modules/px4iofirmware \
+    src/modules/replay \
     src/modules/segway \
     src/modules/sensors \
     src/modules/simulator \

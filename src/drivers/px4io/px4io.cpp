@@ -699,6 +699,12 @@ PX4IO::init()
 		// be due to mismatched firmware versions and we want
 		// the startup script to be able to load a new IO
 		// firmware
+
+		// If IO has already safety off it won't accept going into bootloader mode,
+		// therefore we need to set safety on first.
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
+
+		// Now the reboot into bootloader mode should succeed.
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
 		return -1;
 	}
@@ -894,7 +900,7 @@ PX4IO::init()
 	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
-		DEVICE_LOG("default PWM output device");
+		PX4_INFO("default PWM output device");
 		_primary_pwm_device = true;
 	}
 
@@ -1120,7 +1126,7 @@ PX4IO::task_main()
 				}
 
 				int32_t safety_param_val;
-				param_t safety_param = param_find("RC_FAILS_THR");
+				param_t safety_param = param_find("CBRK_IO_SAFETY");
 
 				if (safety_param != PARAM_INVALID) {
 
@@ -1160,28 +1166,49 @@ PX4IO::task_main()
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
-				float trim_val;
+				float param_val;
 				param_t parm_handle;
 
 				parm_handle = param_find("TRIM_ROLL");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(param_val));
 				}
 
 				parm_handle = param_find("TRIM_PITCH");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(param_val));
 				}
 
 				parm_handle = param_find("TRIM_YAW");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_R_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_ROLL, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_P_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_PITCH, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_Y_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_YAW, FLOAT_TO_REG(param_val));
 				}
 
 				/* S.BUS output */
@@ -1944,7 +1971,9 @@ PX4IO::io_publish_pwm_outputs()
 	/* get mixer status flags from IO */
 	uint16_t mixer_status;
 	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status, sizeof(mixer_status) / sizeof(uint16_t));
-	memcpy(&motor_limits, &mixer_status, sizeof(motor_limits));
+	motor_limits.lower_limit = mixer_status & PX4IO_P_STATUS_MIXER_LOWER_LIMIT;
+	motor_limits.upper_limit = mixer_status & PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
+	motor_limits.yaw = mixer_status & PX4IO_P_STATUS_MIXER_YAW_LIMIT;
 
 	if (ret != OK) {
 		return ret;

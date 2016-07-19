@@ -67,9 +67,10 @@ public:
 
 	/**
 	 * Write data to be logged. The caller must call lock() before calling this.
+	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
 	 * @return true on success, false if not enough space in the buffer left
 	 */
-	bool write(void *ptr, size_t size);
+	bool write(void *ptr, size_t size, uint64_t dropout_start = 0);
 
 	void lock()
 	{
@@ -112,6 +113,11 @@ private:
 	{
 		_count -= n;
 	}
+
+	/**
+	 * Write to the buffer but assuming there is enough space
+	 */
+	inline void write_no_check(void *ptr, size_t size);
 
 	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
 	static constexpr size_t	_min_write_chunk = 4096;

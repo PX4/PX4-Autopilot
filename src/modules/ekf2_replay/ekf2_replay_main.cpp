@@ -70,6 +70,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/vision_position_estimate.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -135,6 +136,8 @@ private:
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
 	orb_advert_t _airspeed_pub;
+	orb_advert_t _ev_pub;
+	orb_advert_t _vehicle_status_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -151,6 +154,8 @@ private:
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
 	struct airspeed_s _airspeed;
+	struct vision_position_estimate_s _ev;
+	struct vehicle_status_s _vehicle_status;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
@@ -158,6 +163,7 @@ private:
 	bool _read_part3;
 	bool _read_part4;
 	bool _read_part6;
+	bool _read_part5;
 
 	int _write_fd = -1;
 	px4_pollfd_struct_t _fds[1];
@@ -206,6 +212,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
 	_airspeed_pub(nullptr),
+	_ev_pub(nullptr),
+	_vehicle_status_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -217,12 +225,15 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_land_detected{},
 	_flow{},
 	_range{},
+	_airspeed{},
+	_vehicle_status{},
 	_message_counter(0),
 	_part1_counter_ref(0),
 	_read_part2(false),
 	_read_part3(false),
 	_read_part4(false),
 	_read_part6(false),
+	_read_part5(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -270,6 +281,15 @@ void Ekf2Replay::publishEstimatorInput()
 
 	_read_part4 = false;
 
+	if (_ev_pub == nullptr && _read_part5) {
+		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev);
+
+	} else if (_ev_pub != nullptr && _read_part5) {
+		orb_publish(ORB_ID(vision_position_estimate), _ev_pub, &_ev);
+	}
+
+	_read_part5 = false;
+
 	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
 
@@ -279,6 +299,7 @@ void Ekf2Replay::publishEstimatorInput()
 
 	if (_airspeed_pub == nullptr && _read_part6) {
 		_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+
 	} else if (_airspeed_pub != nullptr) {
 		orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 	}
@@ -347,34 +368,35 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	struct log_RPL3_s replay_part3 = {};
 	struct log_RPL4_s replay_part4 = {};
 	struct log_RPL6_s replay_part6 = {};
+	struct log_RPL5_s replay_part5 = {};
 	struct log_LAND_s vehicle_landed = {};
+	struct log_STAT_s vehicle_status = {};
 
 	if (type == LOG_RPL1_MSG) {
 
 		uint8_t *dest_ptr = (uint8_t *)&replay_part1.time_ref;
 		parseMessage(data, dest_ptr, type);
 		_sensors.timestamp = replay_part1.time_ref;
-		_sensors.gyro_integral_dt[0] = replay_part1.gyro_integral_dt;
-		_sensors.accelerometer_integral_dt[0] = replay_part1.accelerometer_integral_dt;
-		_sensors.magnetometer_timestamp[0] = replay_part1.magnetometer_timestamp;
-		_sensors.baro_timestamp[0] = replay_part1.baro_timestamp;
-		_sensors.gyro_integral_rad[0] = replay_part1.gyro_integral_x_rad;
-		_sensors.gyro_integral_rad[1] = replay_part1.gyro_integral_y_rad;
-		_sensors.gyro_integral_rad[2] = replay_part1.gyro_integral_z_rad;
-		_sensors.accelerometer_integral_m_s[0] = replay_part1.accelerometer_integral_x_m_s;
-		_sensors.accelerometer_integral_m_s[1] = replay_part1.accelerometer_integral_y_m_s;
-		_sensors.accelerometer_integral_m_s[2] = replay_part1.accelerometer_integral_z_m_s;
+		_sensors.gyro_integral_dt = replay_part1.gyro_integral_dt;
+		_sensors.accelerometer_integral_dt = replay_part1.accelerometer_integral_dt;
+		_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
+		_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+		_sensors.gyro_rad[0] = replay_part1.gyro_x_rad;
+		_sensors.gyro_rad[1] = replay_part1.gyro_y_rad;
+		_sensors.gyro_rad[2] = replay_part1.gyro_z_rad;
+		_sensors.accelerometer_m_s2[0] = replay_part1.accelerometer_x_m_s2;
+		_sensors.accelerometer_m_s2[1] = replay_part1.accelerometer_y_m_s2;
+		_sensors.accelerometer_m_s2[2] = replay_part1.accelerometer_z_m_s2;
 		_sensors.magnetometer_ga[0] = replay_part1.magnetometer_x_ga;
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;
-		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
+		_sensors.baro_alt_meter = replay_part1.baro_alt_meter;
 		_part1_counter_ref = _message_counter;
 
 	} else if (type == LOG_RPL2_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
 		parseMessage(data, dest_ptr, type);
-		_gps.timestamp_position = replay_part2.time_pos_usec;
-		_gps.timestamp_velocity = replay_part2.time_vel_usec;
+		_gps.timestamp = replay_part2.time_pos_usec;
 		_gps.lat = replay_part2.lat;
 		_gps.lon = replay_part2.lon;
 		_gps.fix_type = replay_part2.fix_type;
@@ -409,22 +431,31 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_range.current_distance = replay_part4.range_to_ground;
 		_read_part4 = true;
 
-	} 
-
-	else if (type == LOG_RPL6_MSG){
+	} else if (type == LOG_RPL6_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part6.time_airs_usec;
 		parseMessage(data, dest_ptr, type);
 		_airspeed.timestamp = replay_part6.time_airs_usec;
 		_airspeed.indicated_airspeed_m_s = replay_part6.indicated_airspeed_m_s;
 		_airspeed.true_airspeed_m_s = replay_part6.true_airspeed_m_s;
-		_airspeed.true_airspeed_unfiltered_m_s = replay_part6.true_airspeed_unfiltered_m_s;
-		_airspeed.air_temperature_celsius = replay_part6.air_temperature_celsius;
-		_airspeed.confidence = replay_part6.confidence;
 		_read_part6 = true;
 
-	}
+	} else if (type == LOG_RPL5_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
+		parseMessage(data, dest_ptr, type);
+		_ev.timestamp = replay_part5.time_ev_usec;
+		_ev.timestamp_received = replay_part5.time_ev_usec; // fake this timestamp
+		_ev.x = replay_part5.x;
+		_ev.y = replay_part5.y;
+		_ev.z = replay_part5.z;
+		_ev.q[0] = replay_part5.q0;
+		_ev.q[1] = replay_part5.q1;
+		_ev.q[2] = replay_part5.q2;
+		_ev.q[3] = replay_part5.q3;
+		_ev.pos_err = replay_part5.pos_err;
+		_ev.ang_err = replay_part5.pos_err;
+		_read_part5 = true;
 
-	else if (type == LOG_LAND_MSG) {
+	} else if (type == LOG_LAND_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&vehicle_landed.landed;
 		parseMessage(data, dest_ptr, type);
 		_land_detected.landed =  vehicle_landed.landed;
@@ -434,6 +465,19 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 
 		} else if (_landed_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_land_detected), _landed_pub, &_land_detected);
+		}
+	}
+
+	else if (type == LOG_STAT_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+		parseMessage(data, dest_ptr, type);
+		_vehicle_status.is_rotary_wing = vehicle_status.is_rot_wing;
+
+		if (_vehicle_status_pub == nullptr) {
+			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &_vehicle_status);
+
+		} else if (_vehicle_status_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &_vehicle_status);
 		}
 	}
 }

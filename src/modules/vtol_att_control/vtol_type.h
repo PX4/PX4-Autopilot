@@ -59,6 +59,7 @@ struct Params {
 	float arsp_lp_gain;			// total airspeed estimate low pass gain
 	int vtol_type;
 	int elevons_mc_lock;		// lock elevons in multicopter mode
+	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
 };
 
 enum mode {
@@ -81,6 +82,8 @@ class VtolType
 public:
 
 	VtolType(VtolAttitudeControl *att_controller);
+	VtolType(const VtolType &) = delete;
+	VtolType &operator=(const VtolType &) = delete;
 
 	virtual ~VtolType();
 

@@ -43,17 +43,14 @@ ln -s ${SRC_DIR} /root/Firmware
 echo "=====> compile ($SRC_DIR)"
 cd $SRC_DIR
 make ${BUILD}
-mkdir -p Tools/sitl_gazebo/Build
-cd Tools/sitl_gazebo/Build
-cmake -Wno-dev ..
-make -j4
-make sdf
+make --no-print-directory gazebo_build
 echo "<====="
 
 # don't exit on error anymore from here on (because single tests or exports might fail)
 set +e
 echo "=====> run tests"
 rostest px4 mavros_posix_tests_iris.launch
+rostest px4 mavros_posix_tests_standard_vtol.launch
 TEST_RESULT=$?
 echo "<====="
 

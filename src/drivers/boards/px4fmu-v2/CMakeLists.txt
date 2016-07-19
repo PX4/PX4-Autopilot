@@ -36,6 +36,7 @@ px4_add_module(
 		-Os
 	SRCS
 		../common/board_name.c
+		../common/board_dma_alloc.c
 		px4fmu_can.c
 		px4fmu2_init.c
 		px4fmu_timer_config.c

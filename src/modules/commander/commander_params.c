@@ -263,6 +263,19 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
 /**
+ * Allow arming without GPS
+ *
+ * The default allows to arm the vehicle without GPS signal.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ * @value 0 Don't allow arming without GPS
+ * @value 1 Allow arming without GPS
+ */
+PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+
+/**
  * Battery failsafe mode
  *
  * Action the system takes on low battery. Defaults to off
@@ -275,6 +288,48 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
+
+/**
+ * Time-out to wait when offboard connection is lost before triggering offboard lost action.
+ * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
+ *
+ * @group Commander
+ * @unit second
+ * @min 0
+ * @max 60
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
+
+/**
+ * Set offboard loss failsafe mode
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Land at current position
+ * @value 1 Loiter
+ * @value 2 Return to Land
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
+
+/**
+ * Set offboard loss failsafe mode when RC is available
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Position control
+ * @value 1 Altitude control
+ * @value 2 Manual
+ * @value 3 Return to Land
+ * @value 4 Land at current position
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
 /**
  * First flightmode slot (1000-1160)
@@ -369,7 +424,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 
 /**
- * Fift flightmode slot (1640-1800)
+ * Fifth flightmode slot (1640-1800)
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.

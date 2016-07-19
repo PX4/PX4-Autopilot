@@ -50,7 +50,8 @@ uORB::DeviceNode::DeviceNode
 	const struct orb_metadata *meta,
 	const char *name,
 	const char *path,
-	int priority
+	int priority,
+	unsigned int queue_size
 ) :
 	CDev(name, path),
 	_meta(meta),
@@ -60,6 +61,7 @@ uORB::DeviceNode::DeviceNode
 	_publisher(0),
 	_priority(priority),
 	_published(false),
+	_queue_size(queue_size),
 	_IsRemoteSubscriberPresent(false),
 	_subscriber_count(0)
 {
@@ -125,7 +127,7 @@ uORB::DeviceNode::open(struct file *filp)
 		sd->generation = _generation;
 
 		/* set priority */
-		sd->priority = _priority;
+		sd->set_priority(_priority);
 
 		filp->f_priv = (void *)sd;
 
@@ -155,7 +157,10 @@ uORB::DeviceNode::close(struct file *filp)
 		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
-			hrt_cancel(&sd->update_call);
+			if (sd->update_interval) {
+				hrt_cancel(&sd->update_interval->update_call);
+			}
+
 			remove_internal_subscriber();
 			delete sd;
 			sd = nullptr;
@@ -183,26 +188,39 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
+
+	if (_generation > sd->generation + _queue_size) {
+		/* Reader is too far behind: some messages are lost */
+		sd->generation = _generation - _queue_size;
+	}
+
+	if (_generation == sd->generation && sd->generation > 0) {
+		/* The subscriber already read the latest message, but nothing new was published yet.
+		 * Return the previous message
+		 */
+		--sd->generation;
+	}
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
-		memcpy(buffer, _data, _meta->o_size);
+		memcpy(buffer, _data + (_meta->o_size * (sd->generation % _queue_size)), _meta->o_size);
 	}
 
-	/* track the last generation that the file has seen */
-	sd->generation = _generation;
+	if (sd->generation < _generation) {
+		++sd->generation;
+	}
 
 	/* set priority */
-	sd->priority = _priority;
+	sd->set_priority(_priority);
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
 	 * we have just collected it.
 	 */
-	sd->update_reported = false;
+	sd->set_update_reported(false);
 
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	return _meta->o_size;
 }
@@ -226,7 +244,7 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 
 			/* re-check size */
 			if (nullptr == _data) {
-				_data = new uint8_t[_meta->o_size];
+				_data = new uint8_t[_meta->o_size * _queue_size];
 			}
 
 			unlock();
@@ -244,16 +262,17 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	}
 
 	/* Perform an atomic copy. */
-	irqstate_t flags = irqsave();
-	memcpy(_data, buffer, _meta->o_size);
+	irqstate_t flags = px4_enter_critical_section();
+	memcpy(_data + (_meta->o_size * (_generation % _queue_size)), buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
+	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	_generation++;
 
 	_published = true;
 
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
@@ -268,9 +287,9 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE: {
-			irqstate_t state = irqsave();
+			irqstate_t state = px4_enter_critical_section();
 			*(hrt_abstime *)arg = _last_update;
-			irqrestore(state);
+			px4_leave_critical_section(state);
 			return OK;
 		}
 
@@ -278,16 +297,58 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 		*(bool *)arg = appears_updated(sd);
 		return OK;
 
-	case ORBIOCSETINTERVAL:
-		sd->update_interval = arg;
-		return OK;
+	case ORBIOCSETINTERVAL: {
+			int ret = PX4_OK;
+			lock();
+
+			if (arg == 0) {
+				if (sd->update_interval) {
+					delete(sd->update_interval);
+					sd->update_interval = nullptr;
+				}
+
+			} else {
+				if (sd->update_interval) {
+					sd->update_interval->interval = arg;
+
+				} else {
+					sd->update_interval = new UpdateIntervalData();
+
+					if (sd->update_interval) {
+						memset(&sd->update_interval->update_call, 0, sizeof(hrt_call));
+						sd->update_interval->interval = arg;
+
+					} else {
+						ret = -ENOMEM;
+					}
+				}
+			}
+
+			unlock();
+			return ret;
+		}
 
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
 		return OK;
 
 	case ORBIOCGPRIORITY:
-		*(int *)arg = sd->priority;
+		*(int *)arg = sd->priority();
+		return OK;
+
+	case ORBIOCSETQUEUESIZE:
+		//no need for locking here, since this is used only during the advertisement call,
+		//and only one advertiser is allowed to open the DeviceNode at the same time.
+		return update_queue_size(arg);
+
+	case ORBIOCGETINTERVAL:
+		if (sd->update_interval) {
+			*(unsigned *)arg = sd->update_interval->interval;
+
+		} else {
+			*(unsigned *)arg = 0;
+		}
+
 		return OK;
 
 	default:
@@ -400,7 +461,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	bool ret = false;
 
 	/* avoid racing between interrupt and non-interrupt context calls */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
@@ -418,7 +479,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		/*
 		 * Handle non-rate-limited subscribers.
 		 */
-		if (sd->update_interval == 0) {
+		if (sd->update_interval == nullptr) {
 			ret = true;
 			break;
 		}
@@ -430,7 +491,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * behaviour where checking / polling continues to report an update
 		 * until the topic is read.
 		 */
-		if (sd->update_reported) {
+		if (sd->update_reported()) {
 			ret = true;
 			break;
 		}
@@ -442,7 +503,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * must have collected the update we reported, otherwise
 		 * update_reported would still be true.
 		 */
-		if (!hrt_called(&sd->update_call)) {
+		if (!hrt_called(&sd->update_interval->update_call)) {
 			break;
 		}
 
@@ -451,22 +512,22 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * until the interval has passed once more by restarting the interval
 		 * timer and thereby re-scheduling a poll notification at that time.
 		 */
-		hrt_call_after(&sd->update_call,
-			       sd->update_interval,
+		hrt_call_after(&sd->update_interval->update_call,
+			       sd->update_interval->interval,
 			       &uORB::DeviceNode::update_deferred_trampoline,
 			       (void *)this);
 
 		/*
 		 * Remember that we have told the subscriber that there is data.
 		 */
-		sd->update_reported = true;
+		sd->set_update_reported(true);
 		ret = true;
 
 		break;
 	}
 
 out:
-	irqrestore(state);
+	px4_leave_critical_section(state);
 
 	/* consider it updated */
 	return ret;
@@ -520,6 +581,20 @@ void uORB::DeviceNode::remove_internal_subscriber()
 bool uORB::DeviceNode::is_published()
 {
 	return _published;
+}
+
+int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
+{
+	if (_queue_size == queue_size) {
+		return PX4_OK;
+	}
+
+	if (_data || _queue_size > queue_size) {
+		return ERROR;
+	}
+
+	_queue_size = queue_size;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -634,18 +709,12 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					*(adv->instance) = group_tries;
 				}
 
-				/* driver wants a permanent copy of the node name, so make one here */
-				objname = strdup(meta->o_name);
-
-				if (objname == nullptr) {
-					return -ENOMEM;
-				}
+				objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
 
 				/* driver wants a permanent copy of the path, so make one here */
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					free((void *)objname);
 					return -ENOMEM;
 				}
 
@@ -654,7 +723,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
-					free((void *)objname);
 					free((void *)devpath);
 					return -ENOMEM;
 				}
@@ -681,7 +749,6 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					}
 
 					/* also discard the name now */
-					free((void *)objname);
 					free((void *)devpath);
 
 				} else {

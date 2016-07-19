@@ -141,6 +141,7 @@ protected:
 	orb_advert_t    _actuator_pub;
 	orb_advert_t	_cmd_pub;
 
+	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
 	control::BlockParamInt _param_vtol_wv_land;

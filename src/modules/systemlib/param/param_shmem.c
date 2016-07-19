@@ -109,7 +109,7 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 //#define ENABLE_SHMEM_DEBUG
 
 extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-extern void release_shmem_lock(void);
+extern void release_shmem_lock(const char *caller_file_name, int caller_line_number);
 
 struct param_wbuf_s *param_find_changed(param_t param);
 
@@ -828,17 +828,8 @@ param_save_default(void)
 {
 	int res = OK;
 	int fd = -1;
-	bool is_locked = false;
 
 	const char *filename = param_get_default_file();
-
-	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
-		PX4_ERR("Could not get shmem lock");
-		res = ERROR;
-		goto exit;
-	}
-
-	is_locked = true;
 
 	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
@@ -869,16 +860,12 @@ param_save_default(void)
 
 exit:
 
-	if (is_locked) {
-		release_shmem_lock();
-	}
-
 	if (fd >= 0) {
 		close(fd);
 	}
 
 	if (res == OK) {
-		PX4_INFO("saving params completed successfully");
+		PX4_DEBUG("saving params completed successfully");
 	}
 
 	return res;
@@ -923,7 +910,9 @@ param_load_default_no_notify(void)
 	int fd_load = open(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
-		release_shmem_lock();
+#ifdef __PX4_QURT
+		release_shmem_lock(__FILE__, __LINE__);
+#endif
 
 		/* no parameter file is OK, otherwise this is an error */
 		if (errno != ENOENT) {
@@ -938,7 +927,7 @@ param_load_default_no_notify(void)
 
 	close(fd_load);
 
-	PX4_INFO("param loading done");
+	PX4_DEBUG("param loading done");
 
 	if (result != 0) {
 		PX4_WARN("error reading parameters from '%s'", param_get_default_file());
@@ -1241,8 +1230,10 @@ uint32_t param_hash_check(void)
 
 void init_params(void)
 {
+#ifdef __PX4_QURT
 	//copy params to shared memory
 	init_shared_memory();
+#endif
 
 	/*load params automatically*/
 #ifdef __PX4_POSIX
@@ -1250,6 +1241,7 @@ void init_params(void)
 #endif
 	param_import_done = 1;
 
+#ifdef __PX4_QURT
 	copy_params_to_shmem(param_info_base);
 
 
@@ -1260,6 +1252,6 @@ void init_params(void)
 		 (unsigned char *)&shmem_info_p->krait_changed_index - (unsigned char *)shmem_info_p,
 		 (unsigned char *)&shmem_info_p->adsp_changed_index - (unsigned char *)shmem_info_p);
 #endif
-
+#endif
 }
 

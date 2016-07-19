@@ -84,6 +84,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/control_state.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -209,6 +210,7 @@ private:
 		param_t arsp_lp_gain;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
+		param_t fw_min_alt;
 	} _params_handles;
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines

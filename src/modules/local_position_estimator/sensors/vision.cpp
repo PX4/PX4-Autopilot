@@ -21,7 +21,7 @@ void BlockLocalPositionEstimator::visionInit()
 
 	// increament sums for mean
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
-		_visionHome = _visionStats.getMean();
+		_visionOrigin = _visionStats.getMean();
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position init: "
 					     "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
 					     double(_visionStats.getMean()(0)),
@@ -33,9 +33,9 @@ void BlockLocalPositionEstimator::visionInit()
 		_visionInitialized = true;
 		_visionFault = FAULT_NONE;
 
-		if (!_altHomeInitialized) {
-			_altHomeInitialized = true;
-			_altHome = _visionHome(2);
+		if (!_altOriginInitialized) {
+			_altOriginInitialized = true;
+			_altOrigin = _visionOrigin(2);
 		}
 	}
 }
@@ -47,7 +47,7 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 	y(Y_vision_y) = _sub_vision_pos.get().y;
 	y(Y_vision_z) = _sub_vision_pos.get().z;
 	_visionStats.update(y);
-	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
+	_time_last_vision_p = _sub_vision_pos.get().timestamp;
 	return OK;
 }
 
@@ -58,8 +58,8 @@ void BlockLocalPositionEstimator::visionCorrect()
 
 	if (visionMeasure(y) != OK) { return; }
 
-	// make measurement relative to home
-	y -= _visionHome;
+	// make measurement relative to origin
+	y -= _visionOrigin;
 
 	// vision measurement matrix, measures position
 	Matrix<float, n_y_vision, n_x> C;
@@ -96,7 +96,9 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// kalman filter correction if no fault
 	if (_visionFault <  fault_lvl_disable) {
 		Matrix<float, n_x, n_y_vision> K = _P * C.transpose() * S_I;
-		_x += K * r;
+		Vector<float, n_x> dx = K * r;
+		correctionLogic(dx);
+		_x += dx;
 		_P -= K * C * _P;
 	}
 }

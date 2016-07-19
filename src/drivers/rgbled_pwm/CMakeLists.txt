@@ -36,7 +36,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		drv_led_pwm.cpp
 		rgbled_pwm.cpp
 	DEPENDS
 		platforms__common

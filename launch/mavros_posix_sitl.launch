@@ -6,6 +6,7 @@
     <arg name="ns" default="/"/>
     <arg name="world" default="iris"/>
     <arg name="build" default="posix_sitl_default"/>
+    <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
 
     <include file="$(find px4)/launch/posix_sitl.launch">
         <arg name="headless" value="$(arg headless)"/>
@@ -17,6 +18,7 @@
 
     <include file="$(find px4)/launch/mavros.launch">
         <arg name="ns" value="$(arg ns)"/>
-        <arg name="fcu_url" value="udp://:14567@localhost:14557"/>
+        <arg name="gcs_url" value=""/> <!-- GCS link is provided by SITL -->
+        <arg name="fcu_url" value="$(arg fcu_url)"/>
     </include>
 </launch>

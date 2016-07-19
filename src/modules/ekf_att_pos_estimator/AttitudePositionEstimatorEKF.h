@@ -71,7 +71,6 @@
 #include <geo/geo.h>
 #include <terrain_estimation/terrain_estimator.h>
 #include <systemlib/perf_counter.h>
-#include <lib/ecl/validation/data_validator_group.h>
 #include "estimator_22states.h"
 
 #include <controllib/blocks.hpp>
@@ -191,8 +190,6 @@ private:
     float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
-    float       _vibration_warning_threshold = 2.0f;
-    hrt_abstime _vibration_warning_timestamp = 0;
 
     perf_counter_t  _loop_perf;         ///< loop performance counter
     perf_counter_t  _loop_intvl;        ///< loop rate counter
@@ -213,17 +210,10 @@ private:
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
     hrt_abstime     _distance_last_valid;
-    DataValidatorGroup _voter_gyro;
-    DataValidatorGroup _voter_accel;
-    DataValidatorGroup _voter_mag;
-    int             _gyro_main;         ///< index of the main gyroscope
-    int             _accel_main;        ///< index of the main accelerometer
-    int             _mag_main;          ///< index of the main magnetometer
     bool            _data_good;         ///< all required filter data is ok
-    bool            _failsafe;          ///< failsafe on one of the sensors
-    bool            _vibration_warning; ///< high vibration levels detected
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
+    bool            _was_landed;        ///< indicates if was landed in previous iteration
 
     bool            _newHgtData;
     bool            _newAdsData;
@@ -255,6 +245,7 @@ private:
         float magb_pnoise;
         float eas_noise;
         float pos_stddev_threshold;
+        int32_t airspeed_mode;
     }       _parameters;            /**< local copies of interesting parameters */
 
     struct {
@@ -276,6 +267,7 @@ private:
         param_t magb_pnoise;
         param_t eas_noise;
         param_t pos_stddev_threshold;
+        param_t airspeed_mode;
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;

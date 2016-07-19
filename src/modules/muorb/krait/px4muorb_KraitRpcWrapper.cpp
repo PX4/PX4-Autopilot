@@ -38,6 +38,7 @@
 #include <rpcmem.h>
 #include "px4muorb.h"
 #include "px4_log.h"
+#include <shmem.h>
 
 using namespace px4muorb;
 
@@ -51,7 +52,7 @@ using namespace px4muorb;
 static char *_TopicNameBuffer = 0;
 static const int32_t _MAX_TOPIC_NAME_BUFFER = 256;
 
-static uint8_t *_DataBuffer  = 0;
+static uint8_t *_DataBuffer = 0;
 static const uint32_t _MAX_DATA_BUFFER_SIZE = 2048;
 
 static bool _Initialized = false;
@@ -60,8 +61,11 @@ static bool _Initialized = false;
 // hence we are trying to allocation 64K of byte buffers.
 static const uint32_t _MAX_TOPIC_DATA_BUFFER_SIZE = 1024;
 static const uint32_t _MAX_TOPICS = 64;
-static const uint32_t _MAX_BULK_TRANSFER_BUFFER_SIZE = _MAX_TOPIC_DATA_BUFFER_SIZE * _MAX_TOPICS;
+static const uint32_t _MAX_BULK_TRANSFER_BUFFER_SIZE =
+	_MAX_TOPIC_DATA_BUFFER_SIZE * _MAX_TOPICS;
 static uint8_t *_BulkTransferBuffer = 0;
+
+unsigned char *adsp_changed_index = 0;
 
 // The DSP timer can be read from this file.
 #define DSP_TIMER_FILE "/sys/kernel/boot_adsp/qdsp_qtimer"
@@ -99,12 +103,13 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 	// Do this call right after reading to avoid latency here.
 	timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	uint64_t time_appsproc = ((uint64_t)ts.tv_sec) * 1000000llu + (ts.tv_nsec / 1000);
+	uint64_t time_appsproc = ((uint64_t) ts.tv_sec) * 1000000llu
+				 + (ts.tv_nsec / 1000);
 
 	close(fd);
 
 	uint64_t time_dsp;
-	int ret  = sscanf(buffer, "%llx", &time_dsp);
+	int ret = sscanf(buffer, "%llx", &time_dsp);
 
 	if (ret < 0) {
 		PX4_ERR("Could not parse DSP timer.");
@@ -116,8 +121,9 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 	time_dsp /= 19.2;
 
 	// Before casting to in32_t, check if it fits.
-	uint64_t abs_diff = (time_appsproc > time_dsp)
-			    ? (time_appsproc - time_dsp) : (time_dsp - time_appsproc);
+	uint64_t abs_diff =
+		(time_appsproc > time_dsp) ?
+		(time_appsproc - time_dsp) : (time_dsp - time_appsproc);
 
 	if (abs_diff > INT32_MAX) {
 		PX4_ERR("Timer difference too big");
@@ -126,12 +132,13 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 
 	*time_diff_us = time_appsproc - time_dsp;
 
-	PX4_DEBUG("found time_dsp: %llu us, time_appsproc: %llu us", time_dsp, time_appsproc);
-	PX4_DEBUG("found time_diff: %li us, %.6f s", *time_diff_us, ((double)*time_diff_us) / 1e6);
+	PX4_DEBUG("found time_dsp: %llu us, time_appsproc: %llu us",
+		  time_dsp, time_appsproc);
+	PX4_DEBUG("found time_diff: %li us, %.6f s",
+		  *time_diff_us, ((double)*time_diff_us) / 1e6);
 
 	return 0;
 }
-
 
 px4muorb::KraitRpcWrapper::KraitRpcWrapper()
 {
@@ -150,21 +157,25 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 
 	PX4_DEBUG("%s Now calling rpcmem_alloc...", __FUNCTION__);
 
-	_BulkTransferBuffer = (uint8_t *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID, MUORB_KRAIT_FASTRPC_MEM_FLAGS,
+	_BulkTransferBuffer = (uint8_t *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID,
+			      MUORB_KRAIT_FASTRPC_MEM_FLAGS,
 			      _MAX_BULK_TRANSFER_BUFFER_SIZE * sizeof(uint8_t));
 	rc = (_BulkTransferBuffer != NULL) ? true : false;
 
 	if (!rc) {
-		PX4_ERR("%s rpcmem_alloc failed! for bulk transfer buffers", __FUNCTION__);
+		PX4_ERR("%s rpcmem_alloc failed! for bulk transfer buffers",
+			__FUNCTION__);
 		return rc;
 
 	} else {
-		PX4_DEBUG("%s rpcmem_alloc passed for Bulk transfer buffers buffer_size: %d addr: %p",
-			  __FUNCTION__, (_MAX_BULK_TRANSFER_BUFFER_SIZE * sizeof(uint8_t)), _BulkTransferBuffer);
+		PX4_DEBUG(
+			"%s rpcmem_alloc passed for Bulk transfer buffers buffer_size: %d addr: %p",
+			__FUNCTION__, (_MAX_BULK_TRANSFER_BUFFER_SIZE * sizeof(uint8_t)), _BulkTransferBuffer);
 	}
 
 	_TopicNameBuffer = (char *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID,
-			   MUORB_KRAIT_FASTRPC_MEM_FLAGS, _MAX_TOPIC_NAME_BUFFER * sizeof(char));
+			   MUORB_KRAIT_FASTRPC_MEM_FLAGS,
+			   _MAX_TOPIC_NAME_BUFFER * sizeof(char));
 
 	rc = (_TopicNameBuffer != NULL) ? true : false;
 
@@ -179,7 +190,8 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 
 	// now allocate the data buffer.
 	_DataBuffer = (uint8_t *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID,
-					       MUORB_KRAIT_FASTRPC_MEM_FLAGS, _MAX_DATA_BUFFER_SIZE * sizeof(uint8_t));
+					       MUORB_KRAIT_FASTRPC_MEM_FLAGS,
+					       _MAX_DATA_BUFFER_SIZE * sizeof(uint8_t));
 
 	rc = (_DataBuffer != NULL) ? true : false;
 
@@ -195,6 +207,18 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 		PX4_DEBUG("%s rpcmem_alloc passed for data_buffer", __FUNCTION__);
 	}
 
+	adsp_changed_index = (uint8_t *) rpcmem_alloc(MUORB_KRAIT_FASTRPC_HEAP_ID,
+			     MUORB_KRAIT_FASTRPC_MEM_FLAGS, PARAM_BUFFER_SIZE * sizeof(uint8_t));
+
+	rc = (adsp_changed_index != NULL) ? true : false;
+
+	if (!rc) {
+		PX4_ERR("%s rpcmem_alloc failed! for adsp_changed_index", __FUNCTION__);
+
+	} else {
+		memset(adsp_changed_index, 0, PARAM_BUFFER_SIZE * sizeof(uint8_t));
+	}
+
 	int32_t time_diff_us;
 
 	if (calc_timer_diff_to_dsp_us(&time_diff_us) != 0) {
@@ -204,7 +228,8 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 
 	// call muorb initialize routine.
 	if (px4muorb_orb_initialize() != 0) {
-		PX4_ERR("%s Error calling the uorb fastrpc initalize method..", __FUNCTION__);
+		PX4_ERR("%s Error calling the uorb fastrpc initalize method..",
+			__FUNCTION__);
 		rc = false;
 		return rc;
 	}
@@ -219,7 +244,8 @@ bool px4muorb::KraitRpcWrapper::Initialize()
 
 	int diff = (time_dsp - time_appsproc);
 
-	PX4_INFO("time_dsp: %llu us, time appsproc: %llu us, diff: %d us", time_dsp, time_appsproc, diff);
+	PX4_DEBUG("time_dsp: %llu us, time appsproc: %llu us, diff: %d us",
+		  time_dsp, time_appsproc, diff);
 
 	_Initialized = true;
 	return rc;
@@ -242,6 +268,11 @@ bool px4muorb::KraitRpcWrapper::Terminate()
 		_DataBuffer = 0;
 	}
 
+	if (adsp_changed_index != NULL) {
+		rpcmem_free(adsp_changed_index);
+		adsp_changed_index = 0;
+	}
+
 	_Initialized = false;
 	return true;
 }
@@ -256,28 +287,32 @@ int32_t px4muorb::KraitRpcWrapper::RemoveSubscriber(const char *topic)
 	return (_Initialized ? px4muorb_remove_subscriber(topic) : -1);
 }
 
-int32_t px4muorb::KraitRpcWrapper::IsSubscriberPresent(const char *topic, int32_t *status)
+int32_t px4muorb::KraitRpcWrapper::IsSubscriberPresent(const char *topic,
+		int32_t *status)
 {
 	return (_Initialized ? px4muorb_is_subscriber_present(topic, status) : -1);
 }
 
-int32_t px4muorb::KraitRpcWrapper::SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data)
+int32_t px4muorb::KraitRpcWrapper::SendData(const char *topic,
+		int32_t length_in_bytes, const uint8_t *data)
 {
-	return (_Initialized ? px4muorb_send_topic_data(topic, data, length_in_bytes) : -1);
+	return (_Initialized ?
+		px4muorb_send_topic_data(topic, data, length_in_bytes) : -1);
 }
 
-int32_t px4muorb::KraitRpcWrapper::ReceiveData(int32_t *msg_type, char **topic, int32_t *length_in_bytes,
-		uint8_t **data)
+int32_t px4muorb::KraitRpcWrapper::ReceiveData(int32_t *msg_type, char **topic,
+		int32_t *length_in_bytes, uint8_t **data)
 {
 	int32_t rc = -1;
 
 	if (_Initialized) {
-		rc = px4muorb_receive_msg(msg_type, _TopicNameBuffer, _MAX_TOPIC_NAME_BUFFER, _DataBuffer, _MAX_DATA_BUFFER_SIZE,
+		rc = px4muorb_receive_msg(msg_type, _TopicNameBuffer,
+					  _MAX_TOPIC_NAME_BUFFER, _DataBuffer, _MAX_DATA_BUFFER_SIZE,
 					  length_in_bytes);
 
 		if (rc == 0) {
 			*topic = _TopicNameBuffer;
-			*data  = _DataBuffer;
+			*data = _DataBuffer;
 
 		} else {
 			PX4_ERR("ERROR: Getting data from fastRPC link");
@@ -290,13 +325,15 @@ int32_t px4muorb::KraitRpcWrapper::ReceiveData(int32_t *msg_type, char **topic, 
 	return rc;
 }
 
-int32_t px4muorb::KraitRpcWrapper::ReceiveBulkData(uint8_t **bulk_data, int32_t *length_in_bytes, int32_t *topic_count)
+int32_t px4muorb::KraitRpcWrapper::ReceiveBulkData(uint8_t **bulk_data,
+		int32_t *length_in_bytes, int32_t *topic_count)
 {
 	int32_t rc = -1;
 
 	if (_Initialized) {
 		//rc = px4muorb_receive_msg( msg_type, _TopicNameBuffer, _MAX_TOPIC_NAME_BUFFER, _DataBuffer, _MAX_DATA_BUFFER_SIZE, length_in_bytes  );
-		rc = px4muorb_receive_bulk_data(_BulkTransferBuffer, _MAX_BULK_TRANSFER_BUFFER_SIZE,  length_in_bytes, topic_count);
+		rc = px4muorb_receive_bulk_data(_BulkTransferBuffer,
+						_MAX_BULK_TRANSFER_BUFFER_SIZE, length_in_bytes, topic_count);
 
 		if (rc == 0) {
 			*bulk_data = _BulkTransferBuffer;

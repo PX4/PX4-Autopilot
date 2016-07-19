@@ -251,8 +251,6 @@ ADC::init()
 	}
 
 
-	DEVICE_DEBUG("init done");
-
 	/* create the device node */
 	return CDev::init();
 }
@@ -273,9 +271,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 	memcpy(buffer, _samples, len);
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	return len;
 }
@@ -343,13 +341,13 @@ ADC::update_adc_report(hrt_abstime now)
 void
 ADC::update_system_power(hrt_abstime now)
 {
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || \
-    defined (CONFIG_ARCH_BOARD_MINDPX_V2) || \
-    defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if defined (BOARD_ADC_USB_CONNECTED)
 	system_power_s system_power = {};
 	system_power.timestamp = now;
 
 	system_power.voltage5V_v = 0;
+
+#if defined(ADC_5V_RAIL_SENSE)
 
 	for (unsigned i = 0; i < _channel_count; i++) {
 		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
@@ -358,35 +356,21 @@ ADC::update_system_power(hrt_abstime now)
 		}
 	}
 
+#endif
+
+	/* Note once the board_config.h provides BOARD_ADC_USB_CONNECTED,
+	 * It must provide the true logic GPIO BOARD_ADC_xxxx macros.
+	 */
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
-	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
+	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
 
-#if defined (CONFIG_ARCH_BOARD_MINDPX_V2)
-	// note that the valid pins are active low
-	system_power.brick_valid   = 1;
-	system_power.servo_valid   = 1;
+	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
+	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
 	// OC pins are active low
-	system_power.periph_5V_OC  = 1;
-	system_power.hipower_5V_OC = 1;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-	// note that the valid pins are active high
-	system_power.brick_valid   = stm32_gpioread(GPIO_VDD_BRICK_VALID);
-	system_power.servo_valid   = 1;
-
-	// OC pins are not supported
-	system_power.periph_5V_OC  = 0;
-	system_power.hipower_5V_OC = 0;
-#else
-	// note that the valid pins are active low
-	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
-	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
-
-	// OC pins are active low
-	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
-	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
-#endif
+	system_power.periph_5V_OC  = BOARD_ADC_PERIPH_5V_OC;
+	system_power.hipower_5V_OC = BOARD_ADC_HIPOWER_5V_OC;
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
@@ -396,7 +380,7 @@ ADC::update_system_power(hrt_abstime now)
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // BOARD_ADC_USB_CONNECTED
 }
 
 uint16_t

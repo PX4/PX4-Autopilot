@@ -278,7 +278,7 @@ private:
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
-	RingBuffer		*_reports;	///< buffer of recorded voltages, currents
+	ringbuffer::RingBuffer	*_reports;	///< buffer of recorded voltages, currents
 	struct battery_status_s _last_report;	///< last published report, used for test()
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
@@ -312,7 +312,7 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_enabled(false),
 	_work{},
 	_reports(nullptr),
-	_batt_topic(-1),
+	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
 	_batt_capacity(0),
@@ -365,7 +365,7 @@ BATT_SMBUS::init()
 
 	} else {
 		// allocate basic report buffers
-		_reports = new RingBuffer(2, sizeof(struct battery_status_s));
+		_reports = new ringbuffer::RingBuffer(2, sizeof(struct battery_status_s));
 
 		if (_reports == nullptr) {
 			ret = ENOTTY;
@@ -706,13 +706,13 @@ BATT_SMBUS::cycle()
 
 
 		// publish to orb
-		if (_batt_topic != -1) {
+		if (_batt_topic != nullptr) {
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
 
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
 
-			if (_batt_topic < 0) {
+			if (_batt_topic == nullptr) {
 				errx(1, "ADVERT FAIL");
 			}
 		}

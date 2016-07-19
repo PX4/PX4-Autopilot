@@ -33,11 +33,15 @@ void BlockLocalPositionEstimator::lidarInit()
 int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 {
 	// measure
-	float d = _sub_lidar->get().current_distance + _lidar_z_offset.get();
-	warnx("d %10.2g, lidar z offset %10.2g\n", double(d), double(_lidar_z_offset.get()));
-	float eps = 0.01f;
+	float d = _sub_lidar->get().current_distance;
+	float eps = 0.01f; // 1 cm
 	float min_dist = _sub_lidar->get().min_distance + eps;
 	float max_dist = _sub_lidar->get().max_distance - eps;
+
+	// prevent driver from setting min dist below eps
+	if (min_dist < eps) {
+		min_dist = eps;
+	}
 
 	// check for bad data
 	if (d > max_dist || d < min_dist) {
@@ -45,7 +49,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	}
 
 	// update stats
-	_lidarStats.update(Scalarf(d));
+	_lidarStats.update(Scalarf(d + _lidar_z_offset.get()));
 	_time_last_lidar = _timeStamp;
 	y.setZero();
 	y(0) = d;
@@ -109,14 +113,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	if (_lidarFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-
-		if (!_canEstimateXY) {
-			dx(X_x) = 0;
-			dx(X_y) = 0;
-			dx(X_vx) = 0;
-			dx(X_vy) = 0;
-		}
-
+		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}

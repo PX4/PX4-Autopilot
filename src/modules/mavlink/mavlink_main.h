@@ -114,13 +114,9 @@ public:
 
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
-	static mavlink_message_t *get_buffer_for_instance(unsigned instance) { return &_mavlink_buffer[instance]; }
+	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
 
-	mavlink_message_t 	*get_buffer() { return Mavlink::get_buffer_for_instance(_instance_id); }
-
-	static mavlink_status_t *get_status_for_instance(unsigned instance) { return &_mavlink_status[instance]; }
-
-	mavlink_status_t 	*get_status() { return Mavlink::get_status_for_instance(_instance_id); }
+	mavlink_status_t 	*get_status() { return &_mavlink_status; }
 
 	/**
 	 * Set the MAVLink version
@@ -168,6 +164,30 @@ public:
 		MAVLINK_MODE_CONFIG
 	};
 
+	enum BROADCAST_MODE {
+		BROADCAST_MODE_OFF = 0,
+		BROADCAST_MODE_ON
+	};
+
+	static const char *mavlink_mode_str(enum MAVLINK_MODE mode) {
+		switch (mode) {
+			case MAVLINK_MODE_NORMAL:
+				return "Normal";
+			case MAVLINK_MODE_CUSTOM:
+				return "Custom";
+			case MAVLINK_MODE_ONBOARD:
+				return "Onboard";
+			case MAVLINK_MODE_OSD:
+				return "OSD";
+			case MAVLINK_MODE_MAGIC:
+				return "Magic";
+			case MAVLINK_MODE_CONFIG:
+				return "Config";
+			default:
+				return "Unknown";
+		}
+	}
+
 	void			set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE	get_mode() { return _mode; }
 
@@ -185,13 +205,15 @@ public:
 
 	void			set_config_link_on(bool on) { _config_link_on = on; }
 
+	bool			broadcast_enabled() { return _broadcast_mode > BROADCAST_MODE_OFF; }
+
 	/**
 	 * Set the boot complete flag on all instances
 	 *
 	 * Setting the flag unblocks parameter transmissions, which are gated
 	 * beforehand to ensure that the system is fully initialized.
 	 */
-	static void		set_boot_complete() { _boot_complete = true; }
+	static void		set_boot_complete();
 
 	/**
 	 * Get the free space in the transmit buffer
@@ -258,7 +280,7 @@ public:
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
 	 */
-	void			resend_message(mavlink_message_t *msg);
+	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
 
 	void			handle_message(const mavlink_message_t *msg);
 
@@ -327,7 +349,7 @@ public:
 	bool			get_has_received_messages() { return _received_messages; }
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
-	bool			should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
+	bool			should_transmit() { return (_boot_complete && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
 
 	bool			message_buffer_write(const void *ptr, int size);
 
@@ -395,6 +417,9 @@ public:
 
 	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
 
+	int			get_data_rate() { return _datarate; }
+	void			set_data_rate(int rate) { if (rate > 0) _datarate = rate; }
+
 protected:
 	Mavlink			*next;
 
@@ -404,8 +429,9 @@ private:
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
-	static mavlink_message_t _mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
-	static mavlink_status_t _mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
+	static const unsigned MAVLINK_MAX_INSTANCES = 4;
+	mavlink_message_t _mavlink_buffer;
+	mavlink_status_t _mavlink_status;
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
@@ -481,6 +507,8 @@ private:
 	struct sockaddr_in _bcast_addr;
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
+	bool _broadcast_address_not_found_warned;
+	bool _broadcast_failed_warned;
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif
@@ -505,6 +533,7 @@ private:
 
 	bool			_param_initialized;
 	bool			_logging_enabled;
+	uint32_t		_broadcast_mode;
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
@@ -513,6 +542,7 @@ private:
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
+	param_t			_param_broadcast;
 
 	unsigned		_system_type;
 	static bool		_config_link_on;

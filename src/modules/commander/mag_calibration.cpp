@@ -124,7 +124,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	_last_mag_progress = 0;
 
 	for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)
 		// Reset mag id to mag not available
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
 		result = param_set_no_notification(param_find(str), &(device_ids[cur_mag]));
@@ -166,7 +166,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 #endif
 
 /* for calibration, commander will run on apps, so orb messages are used to get info from dsp */
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)
 		// Attempt to open mag
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, cur_mag);
 		int fd = px4_open(str, O_RDONLY);
@@ -508,7 +508,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 			// Mag in this slot is available
 			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
 
-#ifdef __PX4_QURT
+#if defined(__PX4_QURT) || defined(__PX4_POSIX_RPI)
 			// For QURT respectively the driver framework, we need to get the device ID by copying one report.
 			struct mag_report	mag_report;
 			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &mag_report);
@@ -661,12 +661,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	if (result == calibrate_return_ok) {
 
-		(void)param_set_no_notification(param_find("CAL_MAG_PRIME"), &(device_id_primary));
-
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
 				struct mag_calibration_s mscale;
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)
 				int fd_mag = -1;
 
 				// Set new scale
@@ -690,7 +688,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.y_offset = sphere_y[cur_mag];
 					mscale.z_offset = sphere_z[cur_mag];
 
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)
 					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != OK) {
 						calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
 						result = calibrate_return_error;
@@ -698,7 +696,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #endif
 				}
 
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)
 				// Mag device no longer needed
 				if (fd_mag >= 0) {
 					px4_close(fd_mag);
@@ -718,10 +716,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_offset)));
 					(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
-					(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
 
 					// FIXME: scaling is not used right now on QURT
 #ifndef __PX4_QURT
+					(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
 					(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
@@ -746,6 +744,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				}
 			}
 		}
+
+		// Trigger a param set on the last step so the whole
+		// system updates
+		(void)param_set(param_find("CAL_MAG_PRIME"), &(device_id_primary));
 	}
 
 	return result;
