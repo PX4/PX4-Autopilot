@@ -149,6 +149,7 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 
 	if (command.compare("help") == 0) {
 		list_builtins(apps);
+		return 0;
 	}
 
 	//replaces app.find with iterator code to avoid null pointer exception
