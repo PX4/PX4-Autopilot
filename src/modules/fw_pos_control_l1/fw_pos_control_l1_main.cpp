@@ -1942,7 +1942,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				}
 			}
 
-		} else {
+		}
+
+		if (!_yaw_lock_engaged || fabsf(_manual.y) > HDG_HOLD_MAN_INPUT_THRESH ||
+		    fabsf(_manual.r) > HDG_HOLD_MAN_INPUT_THRESH) {
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
@@ -2004,23 +2007,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
-		if (_control_mode.flag_control_attitude_enabled) {
-			/** STABILIZED FLIGHT **/
-			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
-			_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max_rad;
-			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust = _manual.z;
-
-		} else {
-			/** MANUAL FLIGHT **/
-			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust = 0.0f;
-
-			/* do not publish the setpoint */
-			setpoint = false;
-		}
+		/* do not publish the setpoint */
+		setpoint = false;
 
 		// reset hold altitude
 		_hold_alt = _global_pos.alt;
