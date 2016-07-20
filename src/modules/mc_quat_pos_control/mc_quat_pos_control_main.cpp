@@ -281,7 +281,7 @@ private:
 	struct 			home_position_s 					_veh_home;
 
 	struct 			vehicle_velocity_est_inertial_s		_v_vel_est;				/**< vehicle velocity estimated */
-	int         	_v_vel_est_sub = -1;										/**< Subscribe to vehicle est velo */
+	int         	_v_vel_est_sub = 					-1;						/**< Subscribe to vehicle est velo */
 	struct 			vehicle_attitude_s 					_att;				    /**< vehicle attitude */
 	struct 			vehicle_vicon_position_s 			_vicon_pos;   			/**< vicon position */
 	struct 			vehicle_gps_position_s 				_veh_gps_pos;			/**< Subscribe to gps position */
@@ -293,8 +293,8 @@ private:
 	orb_advert_t 	_veh_vel_pub;
 
 	/* subscribe to raw data */
-	int 			sub_raw 			= -1; 
-	struct 			sensor_combined_s 	raw;
+	int 			sub_raw 							= -1; 
+	struct 			sensor_combined_s 					raw;
 
 	orb_advert_t 	_omega_pub;
 	struct 			vehicle_omega_ff_setpoint_s 		omega_d;
@@ -389,6 +389,12 @@ private:
 	  * Check for changes in vehicle vehicle control mode 
 	*/
 	void        vehicle_control_mode_poll();
+
+
+	/**
+	  * Check for changes in vehicle landing 
+	*/
+	void		vehicle_land_detection_poll();
 
 	/**
 	 * Check for changes in vehicle attitude
@@ -810,6 +816,22 @@ MulticopterQuatPositionControl::vehicle_control_mode_poll()
 
 
 /**
+  * Determine whether vehicle has landed
+*/
+void
+MulticopterQuatPositionControl::vehicle_land_detection_poll()
+{
+	/* check if there is a new velocity estimated */
+	bool updated;
+	orb_check(_vehicle_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
+	}
+}
+
+
+/**
   * Do polling
 */
 void
@@ -838,6 +860,9 @@ MulticopterQuatPositionControl::poll_subscriptions()
 
 	/* Poll vehicle body frame velocity */
 	vehicle_velocity_body_poll();
+
+	/* Poll vehicle land detection */
+	vehicle_land_detection_poll();
 }
 
 /**
@@ -887,12 +912,10 @@ MulticopterQuatPositionControl::handle_gps_signal()
 				_veh_home.alt = home_alt/(home_count-2*0);
 
 				if (home_position_pub == 0) {
-					//home_position_pub->publish(_veh_home);
 					orb_publish(ORB_ID(home_position), home_position_pub, &_veh_home);
 
 				} else {
 					home_position_pub= orb_advertise(ORB_ID(home_position), &_veh_home);
-					//_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
 				}
 
 				_veh_home.lat = (double)_veh_home.lat*1e-7*M_DEG_TO_RAD;
@@ -1183,15 +1206,20 @@ MulticopterQuatPositionControl::dorotations(void)
     vx_hat = (x - px) / dtt;
     vy_hat = (y - py) / dtt;
     vz_hat = (z - pz) / dtt;
-    //printf("Vicon dt and freq %3.3f %3.3f\n",double(dtt), double(1/dtt));
 
     /* Make restart possible by noting that max vehicle velocity <= 5 TODO read from params*/
-    if (vx_hat > 5.0f || vx_hat < -5.0f)
-    	vx_hat = 0.0f;
-    if (vy_hat > 5.0f || vy_hat < -5.0f)
-    	vy_hat = 0.0f;
-    if (vz_hat > 5.0f || vz_hat < -5.0f)
-    	vz_hat = 0.0f;
+    if (vx_hat > 5.0f )
+    	vx_hat = 5.0f;
+    if (vx_hat < -5.0f)
+    	vx_hat = -5.0f;
+    if (vy_hat > 5.0f )
+    	vy_hat = 5.0f;
+    if (vy_hat < -5.0f)
+    	vy_hat = -5.0f;
+    if (vz_hat > 5.0f )
+    	vz_hat = 5.0f;
+    if (vz_hat < -5.0f)
+    	vz_hat = -5.0f;
 
     vx = vx * 0.5f + vx_hat * 0.5f; 
     vy = vy * 0.5f + vy_hat * 0.5f;
@@ -1231,10 +1259,6 @@ MulticopterQuatPositionControl::dorotations(void)
 	px_tmp = x_tmp;
 	py_tmp = y_tmp;
 	pz_tmp = z_tmp; 
-
-	//body_pos(0) = x;
-	//body_pos(1) = y;
-	//body_pos(2) = z;
 
 	old_time = _vicon_pos.timestamp;
 	old_meas_time 	= get_time_micros();
@@ -1329,8 +1353,6 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	c_bar_vec(0,0) 			= _params.cbar_x;
 	c_bar_vec(1,1) 			= _params.cbar_y;
 	
-	//err_xyz = Kp * (body_pos_hat - pos_d) + Kd * (veh_vel_body - vel_d) - c_bar_vec * vel_d * 0.0f; 
-
 	/* PID controller */
 	Vector3f veld2 = vel_d - Kp * (body_pos_hat - pos_d);
 	Vector3f err_vel = veh_vel_body - veld2;
@@ -1353,7 +1375,7 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 		int_velocity(2) = -_params.vel_imax(2);
 
 	
-	if (!control_pos) { //include landing and takeoff
+	if (!control_pos || _vehicle_land_detected.landed) { //include landing and takeoff
 		int_velocity = Vector3f::Zero();
 	}
 
@@ -1398,6 +1420,9 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 		if (fabs(z) < 0.25)
 			thrust = 0.1f;
 	}
+
+	if (_vehicle_land_detected.landed && int(_local_pos_sp.z) == 0)
+		thrust = 0.1f;
 
 	/* Capture inf and NaN in thrust this should capture all the others*/
 	if ((isfinite(thrust) == false) || !(isnan(thrust) == false))

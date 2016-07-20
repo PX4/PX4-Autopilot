@@ -924,7 +924,7 @@ MulticopterQuaternionControl::task_main()
 	fds[0].events = POLLIN;
 
 	int fdt, ret, servo_count;
-	int pwm_value = 1000;
+	int pwm_value = 1150;
 
 	fdt = open(PX4IO_DEVICE_PATH, O_WRONLY);
 	if (fdt < 0) {
@@ -969,16 +969,14 @@ MulticopterQuaternionControl::task_main()
 			}
 
 			/* Testing servo control */
-			servos[5] += dt*500;
-			if (servos[5] > 2000)
-				servos[5] = pwm_value;
+			
 			//ret = write(fdt, servos, sizeof(servos));
 			if (_v_rc.channels[5] < 0)
 			{
-				servos[5] = pwm_value;
+				servos[5] = 1950;
 			} else
 			{
-				servos[5] = 2000;
+				servos[5] = pwm_value;
 			}
 			ret = ioctl(fdt, PWM_SERVO_SET(5), servos[5]);
 

@@ -46,3 +46,6 @@ void applyCurrentCompensation(Vector3f &mu, float * current, float * current_k, 
 
 /* Function to use barometer to determine vz */
 void use_barometer(av_estimator_params  attitude_params, uint64_t cur_baro_time, float baro_alt, float * cur_att, Vector3f &acc, Vector2f &baro_out);
+
+/* Function to do drag offset calibration */
+void 		velocity_offset_calibration();
