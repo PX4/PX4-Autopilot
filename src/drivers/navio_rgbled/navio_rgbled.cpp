@@ -1,11 +1,8 @@
-#include "navio_gpio.h"
-#include "DevObj.hpp"
 
 #include <px4_posix.h>
 #include <drivers/drv_rgbled.h>
 
-#define RGBLED_BASE_DEVICE_PATH "/dev/rgbled"
-#define RGBLED_DEVICE_PATH  "/dev/rgbled0"
+#include "navio_rgbled.h"
 
 #define GPIO_LED_CNF    (GPIO_CNF_OUTPUT)
 #define GPIO_LED_R      (GPIO_PIN4)
@@ -13,47 +10,7 @@
 #define GPIO_LED_B      (GPIO_PIN6)
 
 using namespace DriverFramework;
-using namespace navio_gpio;
 
-class RGBLED : public DevObj
-{
-public:
-	RGBLED(const char *name) :
-		DevObj(name,
-		       RGBLED_DEVICE_PATH,
-		       RGBLED_BASE_DEVICE_PATH,
-		       DeviceBusType_UNKNOWN,
-		       0),
-		_rgbsets{
-		{0, 0, 0}, /* OFF */
-		{1, 0, 0}, /* red */
-		{1, 1, 0}, /* yellow */
-		{1, 0, 1}, /* purple */
-		{0, 1, 0}, /* green */
-		{0, 0, 1}, /* blue */
-		{1, 1, 1}, /* white */
-	},
-	_max_color(7),
-		   _rgb{0, 0, 0},
-		   _turn(true)
-	{ };
-	virtual ~RGBLED()
-	{ };
-
-	int start();
-	int stop();
-	int devIOCTL(unsigned long request, unsigned long arg);
-
-protected:
-	void _measure();
-
-private:
-	Gpio _gpio;
-	const rgbled_rgbset_t _rgbsets[7];
-	const int _max_color;
-	rgbled_rgbset_t _rgb;
-	bool _turn;
-};
 
 int RGBLED::start()
 {
@@ -101,9 +58,9 @@ int RGBLED::devIOCTL(unsigned long request, unsigned long arg)
 	case RGBLED_SET_RGB:
 		ret = 0;
 		rgb = (rgbled_rgbset_t *)arg;
-		_rgb.red = (rgb->red != 0) ? 1 : 0;
-		_rgb.green = (rgb->green != 0) ? 1 : 0;
-		_rgb.blue = (rgb->blue != 0) ? 1 : 0;
+		_rgb.red = (rgb->red != 0) ? LED_ON : LED_OFF;
+		_rgb.green = (rgb->green != 0) ? LED_ON : LED_OFF;
+		_rgb.blue = (rgb->blue != 0) ? LED_ON : LED_OFF;
 		_gpio.gpiowrite(GPIO_LED_R, _rgb.red);
 		_gpio.gpiowrite(GPIO_LED_G, _rgb.green);
 		_gpio.gpiowrite(GPIO_LED_B, _rgb.blue);
@@ -132,19 +89,19 @@ int RGBLED::devIOCTL(unsigned long request, unsigned long arg)
 			break;
 
 		case RGBLED_MODE_BLINK_SLOW:
-			DevObj::setSampleInterval(20000 * 1000);
+			DevObj::setSampleInterval(2000 * 1000);
 			break;
 
 		case RGBLED_MODE_BLINK_NORMAL:
-			DevObj::setSampleInterval(5000 * 1000);
+			DevObj::setSampleInterval(500 * 1000);
 			break;
 
 		case RGBLED_MODE_BLINK_FAST:
-			DevObj::setSampleInterval(1000 * 1000);
+			DevObj::setSampleInterval(100 * 1000);
 			break;
 
 		case RGBLED_MODE_BREATHE:
-			DevObj::setSampleInterval(15000 * 1000);
+			DevObj::setSampleInterval(1500 * 1000);
 			break;
 
 		default:
@@ -176,9 +133,9 @@ int RGBLED::devIOCTL(unsigned long request, unsigned long arg)
 void RGBLED::_measure()
 {
 	if (_turn) {
-		_gpio.gpiowrite(GPIO_LED_R, 0);
-		_gpio.gpiowrite(GPIO_LED_G, 0);
-		_gpio.gpiowrite(GPIO_LED_B, 0);
+		_gpio.gpiowrite(GPIO_LED_R, LED_OFF);
+		_gpio.gpiowrite(GPIO_LED_G, LED_OFF);
+		_gpio.gpiowrite(GPIO_LED_B, LED_OFF);
 		_turn = false;
 
 	} else {

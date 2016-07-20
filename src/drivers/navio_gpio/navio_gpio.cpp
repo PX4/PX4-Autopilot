@@ -113,10 +113,10 @@ void Gpio::gpiowrite(uint32_t pinset, bool value)
 	pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 
 	if (value == 0) {
-		addr = (uint32_t)_gpio_map + GPIO_GPSET0_OFFSET + pin / 32;
+		addr = (uint32_t)_gpio_map + GPIO_GPCLR0_OFFSET + pin / 32;
 
 	} else {
-		addr = (uint32_t)_gpio_map + GPIO_GPCLR0_OFFSET + pin / 32;
+		addr = (uint32_t)_gpio_map + GPIO_GPSET0_OFFSET + pin / 32;
 	}
 
 	shift = pin % 32;

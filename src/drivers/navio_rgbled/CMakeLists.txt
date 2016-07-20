@@ -43,4 +43,5 @@ px4_add_module(
 		drivers__navio_gpio
 	)
 
+#add_subdirectory(test)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
