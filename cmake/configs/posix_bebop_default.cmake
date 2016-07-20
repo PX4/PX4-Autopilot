@@ -100,6 +100,6 @@ set(config_module_list
 )
 
 set(config_df_driver_list
-  ms5607
-  mpu6050
+	ms5607
+	mpu6050
 )
