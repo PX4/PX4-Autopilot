@@ -2166,7 +2166,7 @@ Sensors::check_failover(SensorData &sensor, const char *sensor_name)
 			PX4_INFO("%s sensor switch from #%i", sensor_name, sensor.voter.failover_index());
 
 		} else {
-			mavlink_and_console_log_emergency(&_mavlink_log_pub, "%s #%i failure :%s%s%s%s%s!",
+			mavlink_and_console_log_emergency(&_mavlink_log_pub, "%s #%i failover :%s%s%s%s%s!",
 							  sensor_name,
 							  sensor.voter.failover_index(),
 							  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
@@ -2230,9 +2230,6 @@ Sensors::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_d
 	for (unsigned i = 0; i < group_count; i++) {
 		if (sensor_data.subscription[i] < 0) {
 			sensor_data.subscription[i] = orb_subscribe_multi(meta, i);
-			int32_t priority;
-			orb_priority(sensor_data.subscription[i], &priority);
-			sensor_data.priority[i] = (uint8_t)priority;
 		}
 
 		int32_t priority;
@@ -2320,10 +2317,10 @@ Sensors::task_main()
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
-	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
+	/* wakeup source */
+	px4_pollfd_struct_t poll_fds = {};
 
-	int num_poll_fds = 0;
+	poll_fds.events = POLLIN;
 
 	_task_should_exit = false;
 
@@ -2331,18 +2328,12 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* use the gyro(s) to pace output */
-		if (num_poll_fds != _gyro.subscription_count) { //happens the first time we enter, or when new gyro added
-			num_poll_fds = _gyro.subscription_count;
+		/* use the best-voted gyro to pace output */
+		poll_fds.fd = _gyro.subscription[_gyro.last_best_vote];
 
-			for (int i = 0; i < _gyro.subscription_count; ++i) {
-				fds[i].fd = _gyro.subscription[i];
-				fds[i].events = POLLIN;
-			}
-		}
-
-		/* wait for up to 50ms for data */
-		int pret = px4_poll(fds, 1, 50);
+		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
+		 * if a gyro fails) */
+		int pret = px4_poll(&poll_fds, 1, 50);
 
 		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
