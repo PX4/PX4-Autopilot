@@ -99,11 +99,14 @@
   sample rate and then throw away duplicates by comparing
   accelerometer values. This time reduction is enough to cope with
   worst case timing jitter due to other timers
+
+  I2C bus is running at 100 kHz Transaction time is 2.163Ms
+ I2C bus is running at 400 kHz (304 kHz acutal) Transaction time
+ is 583 uS
+
  */
 #define MPU6000_TIMER_REDUCTION				200
-#define MPU6000_CONVERSION_INTERVAL			10000 //todo:This is set long for the moment
-// As the bus is running at 100KHX and the
-// Transaction time is 2.163Ms
+
 
 enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
@@ -1683,12 +1686,7 @@ MPU6000::cycle()
 			   &_work,
 			   (worker_t)&MPU6000::cycle_trampoline,
 			   this,
-			   USEC2TICK(MPU6000_CONVERSION_INTERVAL));
-//todo:This is set long for the moment
-// As the bus is running at 100KHX and the
-// Transaction time is 2.163Ms
-// It should be USEC2TICK(_call_interval - MPU6000_TIMER_REDUCTION));
-// When I get the bus running at 400Khz
+			   USEC2TICK(_call_interval - MPU6000_TIMER_REDUCTION));
 	}
 }
 #endif
