@@ -108,6 +108,9 @@ __BEGIN_DECLS
 
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 
+#define PX4_I2C_BUS_ONBOARD_HZ      400000
+#define PX4_I2C_BUS_SONAR_HZ        400000
+#define PX4_I2C_BUS_EXPANSION_HZ    100000
 /*
  * Devices on the onboard bus.
  *
@@ -338,6 +341,16 @@ bool board_pwr_button_down(void);
  ****************************************************************************/
 
 void board_pwr(bool on_not_off);
+
+/****************************************************************************
+ * Name: board_i2c_initialize
+ *
+ * Description:
+ *   Called to set I2C bus frequncies.
+ *
+ ****************************************************************************/
+
+int board_i2c_initialize(void);
 
 #endif /* __ASSEMBLY__ */
 __END_DECLS

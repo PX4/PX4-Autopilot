@@ -207,6 +207,13 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
 
+	result = board_i2c_initialize();
+
+	if (result != OK) {
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t  sector_map[] = {
 		{1, 16 * 1024, 0x08004000},
