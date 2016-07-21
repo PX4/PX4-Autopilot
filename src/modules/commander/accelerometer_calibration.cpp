@@ -175,7 +175,7 @@ typedef struct  {
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 	int fd;
 #endif
 
@@ -195,7 +195,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* reset all sensors */
 	for (unsigned s = 0; s < max_accel_sens; s++) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
 		fd = px4_open(str, 0);
@@ -329,7 +329,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			return ERROR;
 		}
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, i);
 		fd = px4_open(str, 0);
 
@@ -419,7 +419,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			break;
 		}
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_RPI)
+#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
 		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
 		struct accel_report	accel_report;
 		orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &accel_report);
