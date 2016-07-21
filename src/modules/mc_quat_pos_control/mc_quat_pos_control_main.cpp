@@ -1441,9 +1441,7 @@ MulticopterQuatPositionControl::quat_traj_control(void)
 	if ((isfinite(qd[3]) == false) || !(isnan(qd[3]) == false))
 		qd[3] = 0.10f;
 
-	//printf("posd %3.3f %3.3f %3.3f\n", double(pos(0)), double(pos(1)),double(pos(2)));
-	//printf("errxyz %3.3f %3.3f %3.3f\n", double(err_xyz(0)), double(err_xyz(1)),double(err_xyz(2)));
-
+	
 	/* Determination of feedforward terms */
 	/* We assume \dot{T}_d = 0 */
 	Vector3f veh_acc = Vector3f::Zero();
@@ -1634,7 +1632,6 @@ MulticopterQuatPositionControl::task_main()
 					body_pos_hat(1) = y;
 					body_pos_hat(2) = z;
 				}
-				//printf("x hatx %3.3f %3.3f %3.3f\n",double(x), double(gps_body_pos_hat(0)), double(veh_vel_body(0)));
 
 				if (isinf(body_pos_hat(0)) || isnan(body_pos_hat(0)))
 					body_pos_hat(0) = x;
@@ -1680,7 +1677,6 @@ MulticopterQuatPositionControl::task_main()
 				{	
 					desired_setpoint();
 					quat_traj_control();
-					printf("integrals %3.3f %3.3f %3.3f\n", double(int_velocity(0)),double(int_velocity(1)),double(int_velocity(2)));
 
 					_att_sp.q_d_valid = true;
 					_att_sp.q_d[0] = qd[0];
@@ -1724,8 +1720,6 @@ MulticopterQuatPositionControl::task_main()
 			/* Publish measured velocities when they are valid */
 			if (vel_pub && vel_updated)
 			{
-				//printf("should I publisj %3.3f %3.3f\n",(double)_veh_vel.inertial_vx, double(_veh_vel.inertial_vy));
-				//printf("%s\n", _veh_vel.inertial_valid ? "true" : "false");
 				if (_veh_vel_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_velocity_meas_inertial), _veh_vel_pub, &_veh_vel);
 				} else {

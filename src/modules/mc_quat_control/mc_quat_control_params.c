@@ -51,8 +51,8 @@
  * @min 0.0
  * @group Quadrotor Quaternion Control
  */
-PARAM_DEFINE_FLOAT(MC_QUAT_ROLL_P, 6.0f);
-PARAM_DEFINE_FLOAT(MC_QUAT_PITCH_P, 6.0f);
+PARAM_DEFINE_FLOAT(MC_QUAT_ROLL_P, 8.0f);
+PARAM_DEFINE_FLOAT(MC_QUAT_PITCH_P, 8.0f);
 
 /**
  * Quaternion ptch and roll rates P gain or K_\Omega in paper
@@ -60,8 +60,8 @@ PARAM_DEFINE_FLOAT(MC_QUAT_PITCH_P, 6.0f);
  * @min 0.0
  * @group Quadrotor Quaternion Control
  */
-PARAM_DEFINE_FLOAT(MC_QUAT_ROLLR_P, 0.05f);
-PARAM_DEFINE_FLOAT(MC_QUAT_PITCHR_P, 0.05f);
+PARAM_DEFINE_FLOAT(MC_QUAT_ROLLR_P, 0.04f);
+PARAM_DEFINE_FLOAT(MC_QUAT_PITCHR_P, 0.04f);
 
 
 /**

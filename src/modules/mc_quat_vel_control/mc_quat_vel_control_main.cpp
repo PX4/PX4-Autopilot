@@ -98,7 +98,7 @@
 
 #include <px4_eigen.h>
 
- #define acc_grav 9.81f
+#define acc_grav 9.81f
 
 using namespace Eigen;
 
@@ -202,9 +202,6 @@ private:
 	float yr_max = 30.0f;
 	bool change_control_gain = false;
 
-	float xvelcalib = 0.0f, yvelcalib = 0.0f, xoff = 0.0f, yoff = 0.0f; 
-	int vel_calib_count = 0;
-
 	math::Vector<3> veh_vel;
 
 
@@ -217,7 +214,8 @@ private:
 		param_t vz_i;
 		param_t ixy_max;
 		param_t iz_max;
-		param_t drag_cbar;
+		param_t drag_cbar_x;
+		param_t drag_cbar_y;
 		param_t vz_mg;
 		param_t thr_max;
 		param_t thr_min;
@@ -256,7 +254,8 @@ private:
 		math::Vector<3> vel_i;				/**< I gain for velocity error */
 		float mg, thr_max, thr_min;					/**< mg of vehicle */
 
-		float ixy_max, iz_max, cbar;		/** Integral saturation limits */
+		float ixy_max, iz_max;		/** Integral saturation limits */
+		Vector3f cbar;
 
 		float man_vx_max;					/**< Maximum vx for manual control */
 		float man_vy_max;					/**< Maximum vy for manual control */
@@ -507,7 +506,8 @@ MulticopterQuaternionVelControl::MulticopterQuaternionVelControl() :
 	_params_handles.vy_i			= 	param_find("MC_VEL_VY_I");
 	_params_handles.ixy_max 		=	param_find("MC_VEL_IXY_MAX");
 	_params_handles.iz_max			=	param_find("MC_VEL_IZ_MAX");
-	_params_handles.drag_cbar		=	param_find("MC_VEL_CBAR");
+	_params_handles.drag_cbar_x		=	param_find("ATT_CBAR_X");
+	_params_handles.drag_cbar_y		=	param_find("ATT_CBAR_Y");
 	_params_handles.man_vx_max		= 	param_find("MC_VEL_VX_MAX");
 	_params_handles.man_vy_max		= 	param_find("MC_VEL_VY_MAX");
 	_params_handles.vz_p			= 	param_find("MC_VEL_VZ_P");
@@ -732,8 +732,8 @@ void MulticopterQuaternionVelControl::control_velocity(math::Vector<3> vel)
 	//rollspeed is omega1 or omega-1
 
 	/* These are more like x_con, y_con, z_con */
-	_v_att_sp.roll_body 	= vy_err*Kp_vely + int_vy*Ki_vely - roll_cor/acc_grav - _params.cbar*_vel_setpoint(0);
-	_v_att_sp.pitch_body 	= -vx_err*Kp_velx - int_vx*Ki_velx + pitch_cor/acc_grav + _params.cbar*_vel_setpoint(1);
+	_v_att_sp.roll_body 	= vy_err*Kp_vely + int_vy*Ki_vely - roll_cor/acc_grav - _params.cbar(1)*_vel_setpoint(0);
+	_v_att_sp.pitch_body 	= -vx_err*Kp_velx - int_vx*Ki_velx + pitch_cor/acc_grav + _params.cbar(0)*_vel_setpoint(1);
 
 	/* Capture NaN and INF */
 	if ((isfinite(_v_att_sp.roll_body) == false) || !(isnan(_v_att_sp.roll_body) == false))
@@ -927,8 +927,11 @@ int MulticopterQuaternionVelControl::parameters_update()
 	_params.ixy_max = v;
 	param_get(_params_handles.iz_max, &v);
 	_params.iz_max = v;
-	param_get(_params_handles.drag_cbar, &v);
-	_params.cbar = v;
+	param_get(_params_handles.drag_cbar_x, &v);
+	_params.cbar(0) = v;
+	param_get(_params_handles.drag_cbar_y, &v);
+	_params.cbar(1) = v;
+	_params.cbar(2) = 0.0f;
 
 
 	/* manual control scale */
@@ -975,19 +978,11 @@ MulticopterQuaternionVelControl::parameter_update_poll()
 }
 
 void
-MulticopterQuaternionVelControl::velocity_offset_calibration()
-{	
-	xvelcalib += veh_vel(0);
-	yvelcalib += veh_vel(1);
-	vel_calib_count += 1;
-}
-
-void
 MulticopterQuaternionVelControl::vehicle_rc_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check RC state if vehicle status has changed */
 	orb_check(_v_rc_sub, &updated);
 
 	if (updated) {
@@ -1698,8 +1693,6 @@ MulticopterQuaternionVelControl::task_main()
 	/* Do initial polling */
 	poll_subscriptions();
 
-	float prev_rc_chan5 = _v_rc_channels.channels[5];
-
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
@@ -1716,16 +1709,7 @@ MulticopterQuaternionVelControl::task_main()
 			usleep(100000);
 			continue;
 		}
-		/*float yoff = 0.5f;
-		xoff += 0.001f*0;
-		char str[30] = "MC_VEL_CBAR_YOFF";
-
-		result = param_set(param_find(str), &yoff);
-		result = param_set(param_find("MC_VEL_CBAR_XOFF"), &xoff);
-		if (result != OK) {
-			printf("unable to reset %s", str);
-		}*/
-
+		
 		perf_begin(_loop_perf);
 
 		/* run controller on attitude changes */
@@ -1740,33 +1724,7 @@ MulticopterQuaternionVelControl::task_main()
 
 			} else if (dt > 0.02f) {
 				dt = 0.02f;
-			}
-
-			/* Run the drag offset calibration when velocity measurements are available*/
-			if (_v_vel.body_valid)
-			{
-				if (prev_rc_chan5 < 0 && _v_rc_channels.channels[5] > 0)
-				{
-					xoff = xvelcalib/vel_calib_count;
-					yoff = yvelcalib/vel_calib_count;
-
-					param_set(param_find("MC_VEL_CBAR_XOFF"), &xoff);
-					param_set(param_find("MC_VEL_CBAR_YOFF"), &yoff);
-				}
-
-				if (_v_rc_channels.channels[5] < 0)
-				{
-					velocity_offset_calibration();
-				} else {
-					xvelcalib = 0.0f;
-					yvelcalib = 0.0f;
-					vel_calib_count = 0;
-				}
-			}
-			
-
-
-			prev_rc_chan5 = _v_rc_channels.channels[5];
+			}			
 
 
 			/* copy attitude topic */

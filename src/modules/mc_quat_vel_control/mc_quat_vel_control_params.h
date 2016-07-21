@@ -34,10 +34,6 @@
 /**
  * @file mc_quat_vel_control_params.c
  * Parameters for the quaternion based quadrotor controller for manual and trajectory tracking.
- *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Moses Bangura <moses.bangura@anu.edu.au, dnovichman@hotmail.com>
  */
 
@@ -47,22 +43,18 @@
  * Vehicle velocity control gains
  * Units in m/s or something
  */
-PARAM_DEFINE_FLOAT(MC_VEL_VX_P, 2.0f);
-PARAM_DEFINE_FLOAT(MC_VEL_VX_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_VEL_VX_P, 0.20f);
+PARAM_DEFINE_FLOAT(MC_VEL_VX_I, 0.3f);
 PARAM_DEFINE_FLOAT(MC_VEL_VX_MAX, 2.0f);
-PARAM_DEFINE_FLOAT(MC_VEL_VY_P, 1.0f);
+PARAM_DEFINE_FLOAT(MC_VEL_VY_P, 0.30f);
 PARAM_DEFINE_FLOAT(MC_VEL_VY_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_VEL_VY_MAX, 2.0f);
 
 PARAM_DEFINE_FLOAT(MC_VEL_VZ_P, 0.1f);
 PARAM_DEFINE_FLOAT(MC_VEL_VZ_I, 0.03f);
-PARAM_DEFINE_FLOAT(MC_VEL_VZ_MG, 0.470f);
+PARAM_DEFINE_FLOAT(MC_VEL_VZ_MG, 0.20f);
 PARAM_DEFINE_FLOAT(MC_THR_MIN, 0.20f); /* We can read these from MPC TODO */
-PARAM_DEFINE_FLOAT(MC_THR_MAX, 0.50f);
+PARAM_DEFINE_FLOAT(MC_THR_MAX, 0.30f);
 
-PARAM_DEFINE_FLOAT(MC_VEL_CBAR, 0.05f);
 PARAM_DEFINE_FLOAT(MC_VEL_IXY_MAX, 20.0f);
 PARAM_DEFINE_FLOAT(MC_VEL_IZ_MAX, 20.0f);
-
-PARAM_DEFINE_FLOAT(MC_VEL_CBAR_XOFF, 0.0f);
-PARAM_DEFINE_FLOAT(MC_VEL_CBAR_YOFF, 0.0f);

@@ -82,6 +82,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
+#include <uORB/topics/rc_channels.h>
+
 #include <uORB/topics/wind_estimate.h>
 
 #include "../include/av_estimator_b.h"
@@ -112,6 +114,15 @@ orb_advert_t wind_vel_pub = nullptr;      //This is nolonger required
 float zbar = 0.0f, vzbar = 0.0f, beta_az = 0.0f;
 uint64_t baro_prev_time;
 
+int 		_v_rc_sub; 
+struct 		rc_channels_s	_v_rc_channels;
+int vel_calib_count = 0;
+float xvelcalib = 0.0f, yvelcalib = 0.0f, xoff = 0.0f, yoff = 0.0f; 
+
+/* Drag coefficient */
+Vector3f Cbar = Vector3f::Zero();
+
+
 static void
 usage(const char *reason)
 {
@@ -120,6 +131,18 @@ usage(const char *reason)
 
 	fprintf(stderr, "usage: av_estimator {start|stop|status}\n");
 	exit(1);
+}
+
+void 	vehicle_rc_poll()
+{
+	bool updated;
+
+	/* Check RC state if vehicle status has changed */
+	orb_check(_v_rc_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(rc_channels), _v_rc_sub, &_v_rc_channels);
+	}
 }
 
 /**
@@ -270,10 +293,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 
 	/* Timestep */
 	float dt = 0.005f;
-	uint64_t prev_timestamp = 0;	
-
-	/* Drag coefficient */
-	Vector3f Cbar = Vector3f::Zero();
+	uint64_t prev_timestamp = 0;		
 
 	/* Barometer outpput data vz z*/ 
 	Vector2f baro_data = Vector2f::Zero();
@@ -292,7 +312,16 @@ int av_estimator_thread_main(int argc, char *argv[])
 	av_estimator_b filter_b;
 	av_estimator_a filter_a;
 
+	
+	float prev_rc_chan5;
+
+	memset(&_v_rc_channels, 0, sizeof(_v_rc_channels));
+
+	_v_rc_sub 		= orb_subscribe(ORB_ID(rc_channels));
+	vehicle_rc_poll();
+
 	rawMeasuredVelocity.inertial_valid = false;
+	prev_rc_chan5 = _v_rc_channels.channels[5];
 
 	/* Main loop*/
 	while (!thread_should_exit) {
@@ -491,7 +520,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 						orb_publish(ORB_ID(wind_estimate), wind_vel_pub, &windVelocity);
 					} else {
 						orb_advertise(ORB_ID(wind_estimate), &windVelocity);
-					}
+					}					
 
 					/* Remove bias from gyro measurement */
 					omega(0) = raw.gyro_rad_s[0] - gyro_offsets[0];
@@ -507,6 +536,33 @@ int av_estimator_thread_main(int argc, char *argv[])
 					mu(0) = raw.magnetometer_ga[0];
 					mu(1) = raw.magnetometer_ga[1];
 					mu(2) = raw.magnetometer_ga[2];
+
+					/* Poll RC */
+					vehicle_rc_poll();
+
+					/* Run the drag offset calibration when velocity measurements are available*/
+					if (rawMeasuredVelocity.body_valid)
+					{
+						if (prev_rc_chan5 > 0 && _v_rc_channels.channels[5] < 0)
+						{
+							xoff = xvelcalib/vel_calib_count;
+							yoff = yvelcalib/vel_calib_count;
+
+							param_set(param_find("ATT_CBAR_XOFF"), &xoff);
+							param_set(param_find("ATT_CBAR_YOFF"), &yoff);
+						}
+
+						if (_v_rc_channels.channels[5] > 0)
+						{
+							velocity_offset_calibration(filter_a.vhat, a);
+						} else {
+							xvelcalib = 0.0f;
+							yvelcalib = 0.0f;
+							vel_calib_count = 0;
+						}
+					}	
+
+					prev_rc_chan5 = _v_rc_channels.channels[5];
 
 					/* Apply magnetometer current compensation */
 					applyCurrentCompensation(mu, current, current_k, current_c, armed_start_time, attitude_params, vehicle_status_raw);
@@ -646,4 +702,10 @@ void use_barometer(av_estimator_params  attitude_params, uint64_t cur_baro_time,
 	baro_out(1) = zbar;
 }
 
+void 	velocity_offset_calibration(Vector3f veh_vel, Vector3f acc)
+{	
 
+	xvelcalib += (veh_vel(0)*Cbar(0)*acc(2) - acc(0));
+	yvelcalib += (veh_vel(1)*Cbar(1)*acc(2) - acc(1));
+	vel_calib_count += 1;
+}
