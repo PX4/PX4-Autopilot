@@ -121,8 +121,13 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 public:
 
 	// constants
-	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
-	enum {U_ax = 0, U_ay, U_az, n_u};
+	enum {X_q0, X_q1, X_q2, X_q3,
+	      X_x = 0, X_y, X_z,
+	      X_vx, X_vy, X_vz,
+	      X_bx, X_by, X_bz,
+	      X_tz, n_x
+	     };
+	enum {U_ax = 0, U_ay, U_az, U_gx, U_gy, U_gz, n_u};
 	enum {Y_baro_z = 0, n_y_baro};
 	enum {Y_lidar_z = 0, n_y_lidar};
 	enum {Y_flow_x = 0, Y_flow_y, n_y_flow};
