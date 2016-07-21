@@ -432,24 +432,28 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	math::Vector<3> vec_integrated_unused;
 	uint64_t integral_dt_unused;
 
-	math::Vector<3> accel_val((data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale,
-				  (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale,
-				  (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale);
+	math::Vector<3> accel_val(data.accel_m_s2_x, data.accel_m_s2_y, data.accel_m_s2_z);
 
 	// apply sensor rotation on the accel measurement
 	accel_val = _rotation_matrix * accel_val;
+
+	accel_val(0) = (accel_val(0) - _accel_calibration.x_offset) * _accel_calibration.x_scale;
+	accel_val(1) = (accel_val(1) - _accel_calibration.y_offset) * _accel_calibration.y_scale;
+	accel_val(2) = (accel_val(2) - _accel_calibration.z_offset) * _accel_calibration.z_scale;
 
 	_accel_int.put_with_interval(data.fifo_sample_interval_us,
 				     accel_val,
 				     vec_integrated_unused,
 				     integral_dt_unused);
 
-	math::Vector<3> gyro_val((data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale,
-				 (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale,
-				 (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale);
+	math::Vector<3> gyro_val(data.gyro_rad_s_x, data.gyro_rad_s_y, data.gyro_rad_s_z);
 
 	// apply sensor rotation on the gyro measurement
 	gyro_val = _rotation_matrix * gyro_val;
+
+	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
+	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
+	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
