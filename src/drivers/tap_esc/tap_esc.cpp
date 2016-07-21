@@ -44,6 +44,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/test_motor.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 
@@ -98,6 +99,7 @@ private:
 	// subscriptions
 	unsigned	_num_outputs;
 	int	_armed_sub;
+	int _test_motor_sub;
 	orb_advert_t        	_outputs_pub = nullptr;
 	actuator_outputs_s      _outputs;
 	static actuator_armed_s	_armed;
@@ -152,6 +154,7 @@ TAP_ESC::TAP_ESC():
 	_mode(MODE_4PWM),
 	_num_outputs(0),
 	_armed_sub(-1),
+	_test_motor_sub(-1),
 	_outputs_pub(nullptr),
 	_control_subs{ -1},
 	_esc_feedback_pub(nullptr),
@@ -437,6 +440,7 @@ TAP_ESC::cycle()
 		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 		_esc_feedback_pub = orb_advertise(ORB_ID(esc_report), &_esc_feedback);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 		_initialized = true;
 	}
 
@@ -477,19 +481,14 @@ TAP_ESC::cycle()
 
 
 	/* check if anything updated */
-	int ret = ::poll(_poll_fds, _poll_fds_num, 0);
+	int ret = ::poll(_poll_fds, _poll_fds_num, 5);
 
 
 	/* this would be bad... */
 	if (ret < 0) {
 		DEVICE_LOG("poll error %d", errno);
 
-	} else if (ret == 0) {
-		/* timeout: no control data, switch to failsafe values */
-//		warnx("no PWM: failsafe");
-		//printf("timeout\n");
-
-	} else {
+	} else { /* update even in the case of a timeout, to check for test_motor commands */
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
@@ -539,10 +538,8 @@ TAP_ESC::cycle()
 			_outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-				if (i >= num_outputs) {
-					_outputs.output[i] = NAN;
-				}
+			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				_outputs.output[i] = NAN;
 			}
 
 			/* iterate actuators */
@@ -570,16 +567,28 @@ TAP_ESC::cycle()
 			_outputs.noutputs = num_outputs;
 			_outputs.timestamp = hrt_absolute_time();
 
-			for (unsigned i = 0; i < num_outputs; i++) {
+			/* check for motor test commands */
+			bool test_motor_updated;
+			orb_check(_test_motor_sub, &test_motor_updated);
 
-				_outputs.output[i] = 900;
-
+			if (test_motor_updated) {
+				struct test_motor_s test_motor;
+				orb_copy(ORB_ID(test_motor), _test_motor_sub, &test_motor);
+				_outputs.output[test_motor.motor_number] = 900.f + (1100.f * test_motor.value); //scale to [900, 2000]
+				PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
+					 (double)_outputs.output[test_motor.motor_number]);
 			}
 
-			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-				if (i >= num_outputs) {
-					_outputs.output[i] = NAN;
+			/* set the invalid values to the minimum */
+			for (unsigned i = 0; i < num_outputs; i++) {
+				if (!PX4_ISFINITE(_outputs.output[i])) {
+					_outputs.output[i] = 900;
 				}
+			}
+
+			/* disable unused ports by setting their output to NaN */
+			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				_outputs.output[i] = NAN;
 			}
 
 		}
@@ -630,6 +639,11 @@ TAP_ESC::cycle()
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		/* do not obey the lockdown value, as lockdown is for PWMSim */
 		IS_armed = _armed.armed;
+
+		/* reset all outputs */
+		for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+			_outputs.output[i] = NAN;
+		}
 	}
 
 
@@ -639,12 +653,15 @@ void TAP_ESC::work_stop()
 {
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
 
-	::close(_armed_sub);
+	orb_unsubscribe(_armed_sub);
+	_armed_sub = -1;
+	orb_unsubscribe(_test_motor_sub);
+	_test_motor_sub = -1;
 
 	DEVICE_LOG("stopping");
 	_initialized = false;

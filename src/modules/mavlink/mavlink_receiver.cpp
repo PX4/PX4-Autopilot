@@ -677,14 +677,13 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct att_pos_mocap_s att_pos_mocap;
-	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
+	struct att_pos_mocap_s att_pos_mocap = {};
 
 	// Use the component ID to identify the mocap system
 	att_pos_mocap.id = msg->compid;
 
-	att_pos_mocap.timestamp_boot = sync_stamp(mocap.time_usec);
-	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+	att_pos_mocap.timestamp = sync_stamp(mocap.time_usec);
+	att_pos_mocap.timestamp_received = hrt_absolute_time();
 
 	att_pos_mocap.q[0] = mocap.q[0];
 	att_pos_mocap.q[1] = mocap.q[1];

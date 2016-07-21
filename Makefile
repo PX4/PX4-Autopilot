@@ -104,14 +104,21 @@ endif
     PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
+# check if replay env variable is set & set build dir accordingly
+ifdef replay
+	BUILD_DIR_SUFFIX := _replay
+else
+	BUILD_DIR_SUFFIX :=
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@); fi
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@$(BUILD_DIR_SUFFIX)/Makefile ]; then rm -rf $(PWD)/build_$@$(BUILD_DIR_SUFFIX); fi
++@if [ ! -e $(PWD)/build_$@$(BUILD_DIR_SUFFIX)/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@$(BUILD_DIR_SUFFIX) && cd $(PWD)/build_$@$(BUILD_DIR_SUFFIX) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@$(BUILD_DIR_SUFFIX)); fi
 +@Tools/check_submodules.sh
-+@(echo "PX4 CONFIG: $@" && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@(echo "PX4 CONFIG: $@$(BUILD_DIR_SUFFIX)" && cd $(PWD)/build_$@$(BUILD_DIR_SUFFIX) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 define cmake-build-other
@@ -145,7 +152,7 @@ px4fmu-v1_default:
 
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
-	
+
 px4fmu-v2_test:
 	$(call cmake-build,nuttx_px4fmu-v2_test)
 
@@ -163,7 +170,7 @@ mindpx-v2_default:
 
 posix_sitl_default:
 	$(call cmake-build,$@)
-	
+
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
@@ -192,10 +199,10 @@ eagle_default: posix_eagle_default qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
 
 qurt_eagle_legacy_driver_default:
-	$(call cmake-build,$@)	
-	
+	$(call cmake-build,$@)
+
 posix_eagle_legacy_driver_default:
-	$(call cmake-build,$@) 
+	$(call cmake-build,$@)
 
 qurt_excelsior_default:
 	$(call cmake-build,$@)
@@ -205,16 +212,13 @@ posix_excelsior_default:
 
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
-posix_rpi2_default:
+posix_rpi_native:
 	$(call cmake-build,$@)
 
-posix_rpi2_release:
+posix_rpi_cross:
 	$(call cmake-build,$@)
 
 posix_bebop_default:
-	$(call cmake-build,$@)
-
-posix_navio2_release:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_default

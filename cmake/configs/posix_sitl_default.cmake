@@ -112,3 +112,12 @@ set(config_sitl_debugger
 	)
 set_property(CACHE config_sitl_debugger
 	PROPERTY STRINGS "disable;gdb;lldb")
+
+# If the environment variable 'replay' is defined, we are building with replay
+# support. In this case, we enable the orb publisher rules.
+set(REPLAY_FILE "$ENV{replay}")
+if(REPLAY_FILE)
+	message("Building with uorb publisher rules support")
+	add_definitions(-DORB_USE_PUBLISHER_RULES)
+endif()
+

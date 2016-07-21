@@ -508,6 +508,7 @@ private:
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
 	bool _broadcast_address_not_found_warned;
+	bool _broadcast_failed_warned;
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif

@@ -47,9 +47,13 @@ if(NOT ${BOARD} STREQUAL "sim")
 	endif()
 	
 	set(romfs_dir "ROMFS/px4fmu_common")
+	if (${BOARD} STREQUAL "tap-v1")
+	set(romfs_dir "ROMFS/tap_common")
+	endif()
 	if (${BOARD} STREQUAL "px4fmu-v2" AND ${LABEL} STREQUAL "test")
 	    set(romfs_dir "ROMFS/px4fmu_test")
 	endif()
+
 
 	px4_nuttx_add_romfs(OUT romfs
 		ROOT ${romfs_dir}

@@ -32,6 +32,7 @@ param set COM_RC_IN_MODE 1
 param set NAV_ACC_RAD 2.0
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
+replay tryapplyparams
 rgbledsim start
 tone_alarm start
 gyrosim start
@@ -62,3 +63,4 @@ mavlink stream -r 250 -s HIGHRES_IMU -u _MAVPORT_
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u _MAVPORT_
 sdlog2 start -r 100 -e -t -a
 mavlink boot_complete
+replay trystart

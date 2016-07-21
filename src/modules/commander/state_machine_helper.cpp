@@ -278,17 +278,20 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		// Sensors need to be initialized for STANDBY state, except for HIL
 		} else if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
-			(!status_flags->condition_system_sensors_initialized)) {
-			if ((!status_flags->condition_system_prearm_error_reported &&
-			      status_flags->condition_system_hotplug_timeout) ||
-			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
-				status_flags->condition_system_prearm_error_reported = true;
+			if (!status_flags->condition_system_sensors_initialized) {
+
+				if (status_flags->condition_system_hotplug_timeout) {
+					if (!status_flags->condition_system_prearm_error_reported) {
+						mavlink_and_console_log_critical(mavlink_log_pub,
+							"Not ready to fly: Sensors not set up correctly");
+						status_flags->condition_system_prearm_error_reported = true;
+					}
+				}
+				feedback_provided = true;
+				valid_transition = false;
 			}
-			feedback_provided = true;
-			valid_transition = false;
 		}
 
 		// Finish up the state transition
@@ -404,6 +407,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		if (internal_state->main_state != new_main_state) {
 			main_state_prev = internal_state->main_state;
 			internal_state->main_state = new_main_state;
+			internal_state->timestamp = hrt_absolute_time();
 		} else {
 			ret = TRANSITION_NOT_CHANGED;
 		}
@@ -671,7 +675,12 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				}
 
 			/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
-			} else if (status_flags->gps_failure && armed) {
+			/* A local position estimate is enough for POSCTL for multirotors,
+			 * this enables POSCTL using e.g. flow.
+			 * For fixedwing, a global position is needed. */
+			} else if (((status->is_rotary_wing && !status_flags->condition_local_position_valid) ||
+				   (!status->is_rotary_wing && !status_flags->condition_global_position_valid))
+				   && armed) {
 				status->failsafe = true;
 
 				if (status_flags->condition_local_altitude_valid) {

@@ -82,6 +82,8 @@ class VtolType
 public:
 
 	VtolType(VtolAttitudeControl *att_controller);
+	VtolType(const VtolType &) = delete;
+	VtolType &operator=(const VtolType &) = delete;
 
 	virtual ~VtolType();
 

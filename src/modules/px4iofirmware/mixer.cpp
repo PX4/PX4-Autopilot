@@ -373,14 +373,17 @@ mixer_callback(uintptr_t handle,
 	if (source == MIX_OVERRIDE || source == MIX_OVERRIDE_FMU_OK) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 		    control_index == actuator_controls_s::INDEX_ROLL) {
+			control *= REG_TO_FLOAT(r_setup_scale_roll);
 			control += REG_TO_FLOAT(r_setup_trim_roll);
 
 		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 			   control_index == actuator_controls_s::INDEX_PITCH) {
+			control *= REG_TO_FLOAT(r_setup_scale_pitch);
 			control += REG_TO_FLOAT(r_setup_trim_pitch);
 
 		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 			   control_index == actuator_controls_s::INDEX_YAW) {
+			control *= REG_TO_FLOAT(r_setup_scale_yaw);
 			control += REG_TO_FLOAT(r_setup_trim_yaw);
 		}
 	}

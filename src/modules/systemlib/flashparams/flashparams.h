@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file LaunchMethod.h
- * Base class for different launch methods
+ * @file param.h
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Global flash based parameter store.
+ *
+ * This provides the mechanisms to interface to the PX4
+ * parameter system but replace the IO with non file based flash
+ * i/o routines. So that the code my be implemented on a SMALL memory
+ * foot print device.
+ *
  */
 
-#ifndef LAUNCHMETHOD_H_
-#define LAUNCHMETHOD_H_
+#ifndef _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
+#define _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
 
-namespace launchdetection
-{
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include "systemlib/uthash/utarray.h"
 
-enum LaunchDetectionResult {
-	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
-	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
-							  control the attitude. However any motors should not throttle
-							  up and still be set to 'throttlePreTakeoff'.
-							  For instance this is used to have a delay for the motor
-							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
-							attitude and also throttle up the motors. */
-};
+__BEGIN_DECLS
 
-class LaunchMethod
-{
-public:
-	virtual ~LaunchMethod() {};
+/*
+ * When using the flash based parameter store we have to force
+ * the param_values and 2 functions to be global
+ */
 
-	virtual void update(float accel_x) = 0;
-	virtual LaunchDetectionResult getLaunchDetected() const = 0;
-	virtual void reset() = 0;
+#define FLASH_PARAMS_EXPOSE __EXPORT
 
-	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
-	virtual float getPitchMax(float pitchMaxDefault) = 0;
+__EXPORT extern UT_array        *param_values;
+__EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved);
+__EXPORT const void *param_get_value_ptr_external(param_t param);
 
-protected:
-private:
-};
-
-}
-
-#endif /* LAUNCHMETHOD_H_ */
+/* The interface hooks to the Flash based storage */
+__EXPORT int flash_param_save(void);
+__EXPORT int flash_param_save_default(void);
+__EXPORT int flash_param_load(void);
+__EXPORT int flash_param_import(void);
+__END_DECLS
+#endif /* _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H */

@@ -224,6 +224,7 @@ Mavlink::Mavlink() :
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
 	_broadcast_address_not_found_warned(false),
+	_broadcast_failed_warned(false),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -920,7 +921,12 @@ Mavlink::send_packet()
 						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
-					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+					if (!_broadcast_failed_warned) {
+						PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+						_broadcast_failed_warned = true;
+					}
+				} else {
+					_broadcast_failed_warned = false;
 				}
 			}
 		}
@@ -1812,7 +1818,6 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
 	uint64_t ack_time = 0;
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
-	uint64_t mavlink_log_time = 0;
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
@@ -2069,7 +2074,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		struct mavlink_log_s mavlink_log;
-		if (mavlink_log_sub->update(&mavlink_log_time, &mavlink_log)) {
+		if (mavlink_log_sub->update_if_changed(&mavlink_log)) {
 			_logbuffer.put(&mavlink_log);
 		}
 

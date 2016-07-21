@@ -14,6 +14,17 @@ else
 	fmu i2c 1 100000
 	fmu i2c 2 100000
 
+	if ver hwcmp PX4FMU_V4
+	then
+		# We know there are sketchy boards out there
+		# as chinese companies produce Pixracers without
+		# fully understanding the critical parts of the
+		# schematic and BOM, leading to sensor brownouts
+		# on boot. Original Pixracers following the
+		# open hardware design do not require this.
+		fmu sensor_reset 20
+	fi
+
 	if ms5611 -s start
 	then
 	fi
