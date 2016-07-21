@@ -90,6 +90,8 @@ public:
 	 */
 	int		stop();
 
+	void print_calibration();
+
 private:
 	int _publish(struct mag_sensor_data &data);
 
@@ -247,6 +249,15 @@ void DfAK8963Wrapper::_update_mag_calibration()
 	}
 }
 
+void DfAK8963Wrapper::print_calibration()
+{
+	PX4_INFO("calibration x_offset: %f", (double)_mag_calibration.x_offset);
+	PX4_INFO("calibration x_scale: %f", (double)_mag_calibration.x_scale);
+	PX4_INFO("calibration y_offset: %f", (double)_mag_calibration.y_offset);
+	PX4_INFO("calibration y_scale: %f", (double)_mag_calibration.y_scale);
+	PX4_INFO("calibration z_offset: %f", (double)_mag_calibration.z_offset);
+	PX4_INFO("calibration z_scale: %f", (double)_mag_calibration.z_scale);
+}
 
 int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 {
@@ -267,30 +278,19 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
 
-  // TODO: check sensor orientation
-	/* The standard external mag by 3DR has x pointing to the
-	 * right, y pointing backwards, and z down, therefore switch x
-	 * and y and invert y. */
-	const float tmp = data.field_x_ga;
-	data.field_x_ga = -data.field_y_ga;
-	data.field_y_ga = tmp;
-
 	// TODO: remove these (or get the values)
 	mag_report.x_raw = NAN;
 	mag_report.y_raw = NAN;
 	mag_report.z_raw = NAN;
 
-
-	math::Vector<3> mag_val((data.field_x_ga - _mag_calibration.x_offset) * _mag_calibration.x_scale,
-				(data.field_y_ga - _mag_calibration.y_offset) * _mag_calibration.y_scale,
-				(data.field_z_ga - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+	math::Vector<3> mag_val(data.field_x_ga, data.field_y_ga, data.field_z_ga);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
 
-	mag_report.x = mag_val(0);
-	mag_report.y = mag_val(1);
-	mag_report.z = mag_val(2);
+	mag_report.x = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;;
+	mag_report.y = (mag_val(1) - _mag_calibration.y_offset) * _mag_calibration.y_scale;;
+	mag_report.z = (mag_val(2) - _mag_calibration.z_offset) * _mag_calibration.z_scale;;
 
 
 	// TODO: get these right
@@ -393,6 +393,8 @@ info()
 	}
 
 	PX4_DEBUG("state @ %p", g_dev);
+
+  g_dev->print_calibration();
 
 	return 0;
 }
