@@ -71,7 +71,7 @@ int val_read(void *dest, volatile const void *src, int bytes)
 int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char *signature)
 {
 
-	warnx("write_otp: PX4 / %02X / %02lX / %02lX  / ... etc  \n", id_type, (unsigned long)vid, (unsigned long)pid);
+	warnx("write_otp: PX4 / %02X / %02X / %02X  / ... etc  \n", id_type, vid, pid);
 
 	int errors = 0;
 
@@ -118,31 +118,9 @@ int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char *signature)
 	return errors;
 }
 
-int lock_otp(void)
+int lock_otp(int blocknum)
 {
-	//determine the required locking size - can only write full lock bytes */
-//	int size = sizeof(struct otp) / 32;
-//
-//	struct otp_lock otp_lock_mem;
-//
-//	memset(&otp_lock_mem, OTP_LOCK_UNLOCKED, sizeof(otp_lock_mem));
-//	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
-//		otp_lock_mem.lock_bytes[i] = OTP_LOCK_LOCKED;
-	//XXX add the actual call here to write the OTP_LOCK bytes only at final stage
-	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
-
-	int locksize = 5;
-
-	int errors = 0;
-
-	// or just realise it's exctly 5x 32byte blocks we need to lock.  1 block for ID,type,vid,pid, and 4 blocks for certificate, which is 128 bytes.
-	for (int i = 0 ; i < locksize ; i++) {
-		if (F_write_byte(ADDR_OTP_LOCK_START + i, OTP_LOCK_LOCKED)) {
-			errors++;
-		}
-	}
-
-	return errors;
+	return F_write_byte(ADDR_OTP_LOCK_START + blocknum, OTP_LOCK_LOCKED);
 }
 
 
@@ -185,7 +163,7 @@ void F_lock(void)
 }
 
 // flash write word.
-int F_write_word(unsigned long Address, uint32_t Data)
+int F_write_word(uint32_t Address, uint32_t Data)
 {
 	unsigned char octet[4] = {0, 0, 0, 0};
 
@@ -200,7 +178,7 @@ int F_write_word(unsigned long Address, uint32_t Data)
 }
 
 // flash write byte
-int F_write_byte(unsigned long Address, uint8_t Data)
+int F_write_byte(uint32_t Address, uint8_t Data)
 {
 	volatile int status = F_COMPLETE;
 
