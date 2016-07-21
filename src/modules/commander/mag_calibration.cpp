@@ -664,6 +664,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
 				struct mag_calibration_s mscale;
+				mscale.x_scale = 1.0;
+				mscale.y_scale = 1.0;
+				mscale.z_scale = 1.0;
+
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 				int fd_mag = -1;
 
