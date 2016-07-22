@@ -122,7 +122,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 	C(Y_flow_x, X_x) = 1;
 	C(Y_flow_y, X_y) = 1;
 
-	Matrix<float, n_y_flow, n_y_flow> R;
+	SquareMatrix<float, n_y_flow> R;
 	R.setZero();
 	R(Y_flow_x, Y_flow_x) =
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
@@ -131,6 +131,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	// residual
 	Vector<float, 2> r = y - C * _x;
+	_pub_innov.get().flow_innov[0] = r(0);
+	_pub_innov.get().flow_innov[1] = r(1);
+	_pub_innov.get().flow_innov_var[0] = R(0, 0);
+	_pub_innov.get().flow_innov_var[1] = R(1, 1);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_flow, n_y_flow> S_I =

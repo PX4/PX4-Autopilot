@@ -77,7 +77,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	C(Y_lidar_z, X_tz) = 1; // measured altitude, negative down dir.
 
 	// use parameter covariance unless sensor provides reasonable value
-	Matrix<float, n_y_lidar, n_y_lidar> R;
+	SquareMatrix<float, n_y_lidar> R;
 	R.setZero();
 	float cov = _sub_lidar->get().covariance;
 
@@ -91,6 +91,8 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	// residual
 	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>((C * _P * C.transpose()) + R);
 	Vector<float, n_y_lidar> r = y - C * _x;
+	_pub_innov.get().hagl_innov = r(0);
+	_pub_innov.get().hagl_innov_var = R(0, 0);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
