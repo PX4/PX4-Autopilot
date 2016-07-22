@@ -137,7 +137,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 #else
 	ret = px4_access(path, F_OK);
 	if (ret == -1 && meta != nullptr && _remote_topics.size() > 0) {
-		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end());
+		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : ERROR;
 	}
 	return ret;
 #endif

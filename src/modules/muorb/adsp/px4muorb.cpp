@@ -158,6 +158,7 @@ int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value,
 	release_shmem_lock(__FILE__, __LINE__);
 
 	return 0;
+}
 
 int px4muorb_topic_advertised(const char *topic_name)
 {
