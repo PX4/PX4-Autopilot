@@ -234,7 +234,7 @@ TAP_ESC::init()
 
 	EscPacket packet = {0xfe, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
-	memset(&config, sizeof(ConfigInfoBasicRequest), 0);
+	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
 	config.maxChannelInUse = _channels_count;
 
 	/* Asign the id's to the ESCs to match the mux */
