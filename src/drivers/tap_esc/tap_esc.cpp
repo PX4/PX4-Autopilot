@@ -114,7 +114,7 @@ private:
 	// It needs to support the numbe of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
-	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
@@ -155,7 +155,7 @@ actuator_armed_s TAP_ESC::_armed = {};
 
 namespace
 {
-TAP_ESC	*tap_esc;
+TAP_ESC	*tap_esc = nullptr;
 }
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
@@ -292,7 +292,7 @@ TAP_ESC::init()
 			}
 		}
 
-		if (retries == 0 || !valid) {
+		if (!valid) {
 			return -EIO;
 		}
 	}
@@ -921,6 +921,7 @@ int tap_esc_start(void)
 			ret = tap_esc->init();
 
 			if (ret != OK) {
+				PX4_ERR("failed to initialize tap_esc (%i)", ret);
 				delete tap_esc;
 				tap_esc = nullptr;
 			}
@@ -946,7 +947,7 @@ int tap_esc_stop(void)
 int initialise_uart()
 {
 	// open uart
-	_uart_fd = px4_open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	_uart_fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	int termios_state = -1;
 
 	if (_uart_fd < 0) {
@@ -964,14 +965,14 @@ int initialise_uart()
 
 	// set baud rate
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERR SET BAUD %s: %d\n", _device, termios_state);
-		::close(_uart_fd);
+		PX4_ERR("failed to set baudrate for %s: %d\n", _device, termios_state);
+		close(_uart_fd);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_WARN("ERR SET CONF %s\n", _device);
-		px4_close(_uart_fd);
+		PX4_ERR("tcsetattr failed for %s\n", _device);
+		close(_uart_fd);
 		return -1;
 	}
 
@@ -1027,7 +1028,9 @@ void task_main(int argc, char *argv[])
 	}
 
 	if (tap_esc_start() != OK) {
-		PX4_ERR("Failed to start TAP_ESC.");
+		PX4_ERR("failed to start tap_esc.");
+		_is_running = false;
+		return;
 	}
 
 
@@ -1062,7 +1065,8 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
+		_task_handle = -1;
 		return;
 	}
 }
@@ -1117,6 +1121,10 @@ int tap_esc_main(int argc, char *argv[])
 			tap_esc_drv::_supported_channel_count = atoi(myoptarg);
 			break;
 		}
+	}
+
+	if (!tap_esc && tap_esc_drv::_task_handle != -1) {
+		tap_esc_drv::_task_handle = -1;
 	}
 
 	// Start/load the driver.
