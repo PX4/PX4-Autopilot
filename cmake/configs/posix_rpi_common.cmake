@@ -60,7 +60,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/load_mon
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer

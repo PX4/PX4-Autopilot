@@ -30,7 +30,6 @@ set(config_module_list
 	modules/logger
 	modules/simulator
 	modules/commander
-	modules/load_mon
 
 	lib/mathlib
 	lib/mathlib/math/filter
