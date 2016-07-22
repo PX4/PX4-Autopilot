@@ -1944,8 +1944,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
-		if (!_yaw_lock_engaged || fabsf(_manual.y) > HDG_HOLD_MAN_INPUT_THRESH ||
-		    fabsf(_manual.r) > HDG_HOLD_MAN_INPUT_THRESH) {
+		if (!_yaw_lock_engaged || fabsf(_manual.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
+		    fabsf(_manual.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
