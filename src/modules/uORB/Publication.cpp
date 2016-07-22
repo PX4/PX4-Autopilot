@@ -50,6 +50,7 @@
 #include "topics/tecs_status.h"
 #include "topics/rc_channels.h"
 #include "topics/filtered_bottom_flow.h"
+#include "topics/ekf2_innovations.h"
 
 #include <px4_defines.h>
 
@@ -120,5 +121,6 @@ template class __EXPORT Publication<actuator_direct_s>;
 template class __EXPORT Publication<tecs_status_s>;
 template class __EXPORT Publication<rc_channels_s>;
 template class __EXPORT Publication<filtered_bottom_flow_s>;
+template class __EXPORT Publication<ekf2_innovations_s>;
 
 }

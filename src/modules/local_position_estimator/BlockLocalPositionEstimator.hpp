@@ -28,6 +28,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 using namespace matrix;
 using namespace control;
@@ -235,6 +236,7 @@ private:
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
+	uORB::Publication<ekf2_innovations_s> _pub_innov;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;

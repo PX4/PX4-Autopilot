@@ -114,7 +114,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	C(Y_gps_vz, X_vz) = 1;
 
 	// gps covariance matrix
-	Matrix<float, n_y_gps, n_y_gps> R;
+	SquareMatrix<float, n_y_gps> R;
 	R.setZero();
 
 	// default to parameter, use gps cov if provided
@@ -141,10 +141,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 
 	// get delayed x and P
 	float t_delay = 0;
-	int i = 0;
+	int i_hist = 0;
 
-	for (i = 1; i < HIST_LEN; i++) {
-		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i)(0, 0));
+	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
+		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
 
 		if (t_delay > _gps_delay.get()) {
 			break;
@@ -158,10 +158,16 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		return;
 	}
 
-	Vector<float, n_x> x0 = _xDelay.get(i);
+	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 
 	// residual
 	Vector<float, n_y_gps> r = y - C * x0;
+
+	for (int i = 0; i < 6; i ++) {
+		_pub_innov.get().vel_pos_innov[i] = r(i);
+		_pub_innov.get().vel_pos_innov_var[i] = R(i, i);
+	}
+
 	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * _P * C.transpose() + R);
 
 	// fault detection
