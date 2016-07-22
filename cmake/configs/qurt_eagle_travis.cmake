@@ -56,7 +56,6 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/load_mon
 
 	#
 	# Libraries

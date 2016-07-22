@@ -42,7 +42,6 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 	modules/navigator
-	modules/load_mon
 
 	lib/controllib
 	lib/mathlib
