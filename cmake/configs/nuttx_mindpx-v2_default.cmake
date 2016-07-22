@@ -64,13 +64,16 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
-	#systemcmds/topic_listener
+	systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/sd_bench
+	systemcmds/tests
+	systemcmds/motor_ramp
 
 	#
 	# General system control
@@ -95,7 +98,6 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	# modules/segway # XXX Needs GCC 4.7 fix
 	modules/fw_pos_control_l1
 	modules/fw_att_control
 	modules/mc_att_control
