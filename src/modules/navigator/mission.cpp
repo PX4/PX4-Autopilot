@@ -524,8 +524,8 @@ Mission::set_mission_items()
 			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
 			has_next_position_item = true;
 
-			/* hold current altitude when no altitude is given */
-			if (_mission_item.altitude < 0.5f) {
+			/* hold current altitude when no altitude is given, QGC defaults this to 0 */
+			if (_mission_item.altitude < 0.01f && _mission_item.altitude > -0.01f ) {
 				float altitude = _navigator->get_global_position()->alt;
 				if (pos_sp_triplet->current.valid) {
 					altitude = pos_sp_triplet->current.alt;
