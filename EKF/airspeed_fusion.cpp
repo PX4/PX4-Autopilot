@@ -150,18 +150,25 @@ void Ekf::fuseAirspeed()
 		// Airspeed measurement sample has passed check so record it
 		_time_last_arsp_fuse = _time_last_imu;
 
-		// update covariance matrix via Pnew = (I - KH)P = P - KHP
+		// apply covariance correction via P_new = (I -K*H)*P
+		// first calculate expression for KHP
+		// then calculate P - KHP
 		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) { // Here it will be a lot of zeros, should optimize that...
-				KH[row][column] = Kfusion[row] * H_TAS[column];
-			}
+			KH[row][4] = Kfusion[row] * H_TAS[4];
+			KH[row][5] = Kfusion[row] * H_TAS[5];
+			KH[row][6] = Kfusion[row] * H_TAS[6];
+			KH[row][22] = Kfusion[row] * H_TAS[22];
+			KH[row][23] = Kfusion[row] * H_TAS[23];
 		}
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				for (unsigned i = 0; i < _k_num_states; i++) { // Check if this is correct matrix multiplication!
-					KHP[row][column] += KH[row][i] * P[i][column];
-				}
+				float tmp = KH[row][4] * P[4][column];
+				tmp += KH[row][5] * P[5][column];
+				tmp += KH[row][6] * P[6][column];
+				tmp += KH[row][22] * P[22][column];
+				tmp += KH[row][23] * P[23][column];
+				KHP[row][column] = tmp;
 			}
 		}
 
