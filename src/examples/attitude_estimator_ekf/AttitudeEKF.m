@@ -41,8 +41,14 @@ function [xa_apo,Pa_apo,Rot_matrix,eulerAngles,debugOutput]...
 
 %% model specific parameters
 
+%%ATTENTION PLEASE!!! HERE ARE WHAT I DID! 
+J=[0.0018 0 0;0 0.0018 0;0 0 0.0037];
+use_inertia_matrix=eye(3);
+approx_prediction=ones(12,1);
 
 
+
+%%
 % compute once the inverse of the Inertia
 persistent Ji;
 if isempty(Ji)
@@ -100,13 +106,14 @@ end
 %body angular rates
 wk =[wx;  wy; wz] + dt*wak;
 
-%derivative of the prediction rotation matrix
+%derivative of the prediction rotation matrix 反对称矩阵
 O=[0,-wz,wy;wz,0,-wx;-wy,wx,0]';
 
 %prediction of the earth z vector
 if (approx_prediction==1)
     %e^(Odt)=I+dt*O+dt^2/2!O^2
     % so we do a first order approximation of the exponential map
+    % 一阶近似指数映射
     zek =(O*dt+single(eye(3)))*[zex;zey;zez];
     
 else
@@ -148,7 +155,7 @@ A_lin=[ Z,  E,  Z,  Z
     EZ, Z,  O,  Z
     MA, Z,  Z,  O];
 
-A_lin=eye(12)+A_lin*dt;
+A_lin=eye(12)+A_lin.*dt;
 
 %process covariance matrix
 
@@ -157,7 +164,7 @@ if (isempty(Q))
     Q=diag([ q_rotSpeed,q_rotSpeed,q_rotSpeed,...
         q_rotAcc,q_rotAcc,q_rotAcc,...
         q_acc,q_acc,q_acc,...
-        q_mag,q_mag,q_mag]);
+        q_mag,q_mag,q_mag]); % 12*12的对角矩阵
 end
 
 P_apr=A_lin*P_apo*A_lin'+Q;
@@ -176,7 +183,7 @@ if zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==1
 %         0,0,0,0,0,0,0,r_mag,0;
 %         0,0,0,0,0,0,0,0,r_mag];
      R_v=[r_gyro,r_gyro,r_gyro,r_accel,r_accel,r_accel,r_mag,r_mag,r_mag];
-    %observation matrix
+    %observation matrix 观测矩阵
     %[zw;ze;zmk];
     H_k=[  E,     Z,      Z,    Z;
         Z,     Z,      E,    Z;
@@ -186,13 +193,13 @@ if zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==1
     
     
     %S_k=H_k*P_apr*H_k'+R;
-     S_k=H_k*P_apr*H_k';
-     S_k(1:9+1:end) = S_k(1:9+1:end) + R_v;
-    K_k=(P_apr*H_k'/(S_k));
+     S_k=H_k*P_apr*H_k';  %EKF黄金公式1
+     S_k(1:9+1:end) = S_k(1:9+1:end) + R_v; %EKF黄金公式2
+     K_k=(P_apr*H_k'/(S_k)); %EKF黄金公式3
     
     
-    x_apo=x_apr+K_k*y_k;
-    P_apo=(eye(12)-K_k*H_k)*P_apr;
+    x_apo=x_apr+K_k*y_k; %EKF黄金公式4
+    P_apo=(eye(12)-K_k*H_k)*P_apr; %EKF黄金公式5
 else
     if zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==0
         

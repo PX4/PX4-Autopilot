@@ -212,8 +212,8 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
  *
  * Estimates the attitude recursively once started.
  *
- * @param argc number of commandline arguments (plus command name)
- * @param argv strings containing the arguments
+ * @param argc number of commandline arguments (plus command name)命令行参数个数
+ * @param argv strings containing the arguments 命令行参数排列
  */
 int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
@@ -235,6 +235,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
 				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
 				    }; /**< init: diagonal matrix with big values */
+						/* 初始化:对角矩阵 */
 
 	float x_aposteriori[12];
 	float P_aposteriori[144];
