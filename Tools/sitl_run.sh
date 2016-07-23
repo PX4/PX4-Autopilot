@@ -43,7 +43,7 @@ fi
 # kill process names that might stil
 # be running from last time
 pkill gazebo
-pkill mainapp
+pkill px4
 jmavsim_pid=`jps | grep Simulator | cut -d" " -f1`
 if [ -n "$jmavsim_pid" ]
 then
@@ -114,21 +114,21 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-# Start Java simulator
+# Start sitl
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
+	lldb -- px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+	gdb --args px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+	ddd --debugger gdb --args px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
+	valgrind ./px4 ../../../../${rc_script}_${program}_${model}
 else
-	$sudo_enabled ./mainapp $chroot_enabled ../../../../${rc_script}_${program}_${model}
+	$sudo_enabled ./px4 $chroot_enabled ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]

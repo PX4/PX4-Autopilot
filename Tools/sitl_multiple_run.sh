@@ -16,7 +16,7 @@ src_path=`pwd`
 rc_script="posix-configs/SITL/init/rcS_multiple"
 build_path=${src_path}/build_posix_sitl_default
 
-pkill mainapp
+pkill px4
 sleep 2
 
 cd $build_path/src/firmware/posix
@@ -39,7 +39,7 @@ while [ $n -le $sitl_num ]; do
 
  cd $n
 
- sudo -b -u $user ../mainapp -d rcS >out.log 2>err.log
+ sudo -b -u $user ../px4 -d rcS >out.log 2>err.log
 
  cd ../
 
