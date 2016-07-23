@@ -498,7 +498,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     0, 0, 0, 0, 0, 1 };
 
   float b_z[6];
-
+  // AttitudeEKF.m   MATLAB文件 
   /* LQG Position Estimator and Controller */
   /*  Observer: */
   /*         x[n|n]   = x[n|n-1] + M(y[n] - Cx[n|n-1] - Du[n]) */
@@ -613,16 +613,17 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     }
   } else {
     /* 'AttitudeEKF:96' else */
-    /* 'AttitudeEKF:97' wak =[wax;way;waz]; */
+    /* 'AttitudeEKF:97' wak =[wax;way;waz]; wak为机体的三轴角加速度 */
     wak[0] = x_apo[3];
     wak[1] = x_apo[4];
     wak[2] = x_apo[5];
   }
 
   /* body angular rates */
-  /* 'AttitudeEKF:101' wk =[wx;  wy; wz] + dt*wak; */
-  /* derivative of the prediction rotation matrix */
+  /* 'AttitudeEKF:101' wk =[wx;  wy; wz] + dt*wak; 机体角速度 */
+  /* derivative of the prediction rotation matrix 预测旋转矩阵的微分 */
   /* 'AttitudeEKF:104' O=[0,-wz,wy;wz,0,-wx;-wy,wx,0]'; */
+  /*  这里的O矩阵相当于A矩阵中的旋转矩阵的转置矩阵 */
   O[0] = 0.0F;
   O[1] = -x_apo[2];
   O[2] = x_apo[1];
@@ -633,11 +634,13 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
   O[7] = x_apo[0];
   O[8] = 0.0F;
 
-  /* prediction of the earth z vector */
+  // 预测转过一个小角度之后的重力向量三轴投影
+  /* prediction of the earth z vector 地理坐标系z轴向量的预测值 */
   /* 'AttitudeEKF:107' if (approx_prediction==1) */
   if (approx_prediction == 1) {
     /* e^(Odt)=I+dt*O+dt^2/2!O^2 */
     /*  so we do a first order approximation of the exponential map */
+	// 一阶近似指数映射
     /* 'AttitudeEKF:110' zek =(O*dt+single(eye(3)))*[zex;zey;zez]; */
     for (r2 = 0; r2 < 3; r2++) {
       for (i = 0; i < 3; i++) {
@@ -649,7 +652,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     fv2[1] = x_apo[7];
     fv2[2] = x_apo[8];
     for (r2 = 0; r2 < 3; r2++) {
-      zek[r2] = 0.0F;
+      zek[r2] = 0.0F; //zek为重力向量
       for (i = 0; i < 3; i++) {
         zek[r2] += b_O[r2 + 3 * i] * fv2[i];
       }
@@ -688,12 +691,13 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     /* precision */
   }
 
+  /* 预测转过一个小角度之后的磁力向量三轴投影 */
   /* prediction of the magnetic vector */
   /* 'AttitudeEKF:121' if (approx_prediction==1) */
   if (approx_prediction == 1) {
     /* e^(Odt)=I+dt*O+dt^2/2!O^2 */
     /*  so we do a first order approximation of the exponential map */
-    /* 'AttitudeEKF:124' muk =(O*dt+single(eye(3)))*[mux;muy;muz]; */
+    /* 'AttitudeEKF:124' muk =(O*dt+single(eye(3)))*[mux;muy;muz];mux为磁场向量 */
     for (r2 = 0; r2 < 3; r2++) {
       for (i = 0; i < 3; i++) {
         b_O[i + 3 * r2] = O[i + 3 * r2] * dt + (float)iv0[i + 3 * r2];
@@ -743,22 +747,25 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     /* precision */
   }
 
-  /* 'AttitudeEKF:131' x_apr=[wk;wak;zek;muk]; */
+  /* 'AttitudeEKF:131' x_apr=[wk;wak;zek;muk]; 状态向量x_zpr 列向量维数12 */
   x_apr[0] = x_apo[0] + dt * wak[0];
   x_apr[1] = x_apo[1] + dt * wak[1];
   x_apr[2] = x_apo[2] + dt * wak[2];
+  
+  //得到状态先验估计
   for (i = 0; i < 3; i++) {
-    x_apr[i + 3] = wak[i];
+    x_apr[i + 3] = wak[i];    // 角速度
   }
 
   for (i = 0; i < 3; i++) {
-    x_apr[i + 6] = zek[i];
+    x_apr[i + 6] = zek[i];    // 加速度
   }
 
-  for (i = 0; i < 3; i++) {
-    x_apr[i + 9] = muk[i];
+  for (i = 0; i < 3; i++) {  
+    x_apr[i + 9] = muk[i];    // 磁力计
   }
 
+  // 从前一刻的后验估计中计算当前先验误差的协方差估计值
   /*  compute the apriori error covariance estimate from the previous */
   /* aposteriori estimate */
   /* 'AttitudeEKF:136' EZ=[0,zez,-zey; */
@@ -846,7 +853,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
     }
   }
 
-  /* process covariance matrix */
+  /* process covariance matrix 过程噪声协方差矩阵 */
   /* 'AttitudeEKF:156' if (isempty(Q)) */
   if (!Q_not_empty) {
     /* 'AttitudeEKF:157' Q=diag([ q_rotSpeed,q_rotSpeed,q_rotSpeed,... */
