@@ -240,10 +240,12 @@ private:
 
 	float _mag_declination;		// magnetic declination used by reset and fusion functions (rad)
 
-	// complementary filter states
+	// output predictor states
 	Vector3f _delta_angle_corr;	// delta angle correction vector
 	imuSample _imu_down_sampled;	// down sampled imu data (sensor rate -> filter update rate)
 	Quaternion _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
+	Vector3f _vel_err_integ;	// integral of velocity tracking error
+	Vector3f _pos_err_integ;	// integral of position tracking error
 
 	// variables used for the GPS quality checks
 	float _gpsDriftVelN;		// GPS north position derivative (m/s)
