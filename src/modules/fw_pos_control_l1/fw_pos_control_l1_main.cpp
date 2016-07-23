@@ -281,7 +281,7 @@ private:
 		float airspeed_trim;
 		float airspeed_max;
 		float airspeed_trans;
-		int	airspeed_mode;
+		int airspeed_mode;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
@@ -2342,13 +2342,16 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	// we're in transition
 	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
 		_was_in_transition = true;
+
 		// set this to transition airspeed to init tecs correctly
-		if(_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED){
+		if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
 			// some vtols fly without airspeed sensor
 			_asp_after_transition = _parameters.airspeed_trans;
+
 		} else {
 			_asp_after_transition = _ctrl_state.airspeed;
 		}
+
 		_asp_after_transition = math::constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
 
 	} else if (_was_in_transition) {
