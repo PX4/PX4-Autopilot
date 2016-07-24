@@ -74,7 +74,6 @@ private:
 	} _params;
 
 	int _airspeedSub;
-	int _parameterSub;
 
 	struct airspeed_s _airspeed;
 
