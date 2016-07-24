@@ -98,15 +98,9 @@ then
 fi
 
 # This is a FMUv2+ thing
-if ver hwcmp PX4FMU_V1
+if [ $BOARD == PX4FMU_V1 -o $BOARD == MINDPX_V2 ]
 then
 	set MIXER_AUX none
-fi
-
-#MindPX has not aux mixer
-if ver hwcmp MINDPX_V2
-then
-        set MIXER_AUX none
 fi
 
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
