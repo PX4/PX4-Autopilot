@@ -283,6 +283,12 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_flow_topic(&flow);
 		break;
 
+	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+		mavlink_distance_sensor_t dist;
+		mavlink_msg_distance_sensor_decode(msg, &dist);
+		publish_distance_topic(&dist);
+		break;
+
 	case MAVLINK_MSG_ID_HIL_GPS:
 		mavlink_hil_gps_t gps_sim;
 		mavlink_msg_hil_gps_decode(msg, &gps_sim);
@@ -863,11 +869,33 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	flow.gyro_y_rate_integral = flow_mavlink->integrated_ygyro;
 	flow.gyro_z_rate_integral = flow_mavlink->integrated_zgyro;
 	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
-	flow.pixel_flow_x_integral = flow_mavlink->integrated_y;
+	flow.pixel_flow_y_integral = flow_mavlink->integrated_y;
 	flow.quality = flow_mavlink->quality;
 
 	int flow_multi;
 	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
+
+	return OK;
+}
+
+int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
+{
+	uint64_t timestamp = hrt_absolute_time();
+
+	struct distance_sensor_s dist;
+	memset(&dist, 0, sizeof(dist));
+
+	dist.timestamp = timestamp;
+	dist.min_distance = dist_mavlink->min_distance / 100.0f;
+	dist.max_distance = dist_mavlink->max_distance / 100.0f;
+	dist.current_distance = dist_mavlink->current_distance / 100.0f;
+	dist.type = dist_mavlink->type;
+	dist.id = dist_mavlink->id;
+	dist.orientation = dist_mavlink->orientation;
+	dist.covariance = dist_mavlink->covariance / 100.0f;
+
+	int dist_multi;
+	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);
 
 	return OK;
 }
