@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +33,19 @@
 
 /**
  * @file VtolLandDetector.h
- * Land detection algorithm for vtol
+ * Land detection implementation for VTOL also called hybrids.
  *
  * @author Roman Bapst <bapstr@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef __VTOL_LAND_DETECTOR_H__
-#define __VTOL_LAND_DETECTOR_H__
+#pragma once
 
-#include "MulticopterLandDetector.h"
 #include <uORB/topics/airspeed.h>
 
-namespace landdetection
+#include "MulticopterLandDetector.h"
+
+namespace land_detector
 {
 
 class VtolLandDetector : public MulticopterLandDetector
@@ -52,34 +53,21 @@ class VtolLandDetector : public MulticopterLandDetector
 public:
 	VtolLandDetector();
 
+protected:
+	virtual void _initialize_topics() override;
+
+	virtual void _update_params() override;
+
+	virtual void _update_topics() override;
+
+	virtual bool _get_landed_state() override;
+
+	virtual bool _get_freefall_state() override;
 
 private:
-	/**
-	* @brief  polls all subscriptions and pulls any data that has changed
-	**/
-	void updateSubscriptions() override;
-
-	/**
-	* @brief Runs one iteration of the land detection algorithm
-	**/
-	LandDetectionResult update() override;
-
-	/**
-	* @brief Initializes the land detection algorithm
-	**/
-	void initialize() override;
-
-	/**
-	* @brief download and update local parameter cache
-	**/
-	void updateParameterCache(const bool force) override;
-
-	/**
-	* @brief Handles for interesting parameters
-	**/
 	struct {
 		param_t maxAirSpeed;
-	}		_paramHandle;
+	} _paramHandle;
 
 	struct {
 		float maxAirSpeed;
@@ -94,6 +82,5 @@ private:
 	float _airspeed_filtered; /**< low pass filtered airspeed */
 };
 
-#endif
 
-}
+} // namespace land_detector
