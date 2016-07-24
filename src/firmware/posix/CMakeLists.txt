@@ -154,4 +154,12 @@ foreach(viewer none jmavsim gazebo replay)
 	endforeach()
 endforeach()
 
+#=============================================================================
+# install
+#
+
+install(TARGETS mainapp DESTINATION bin)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
