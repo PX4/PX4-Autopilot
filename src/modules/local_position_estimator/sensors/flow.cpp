@@ -82,6 +82,9 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float gyro_y_rad = _flow_gyro_y_high_pass.update(
 				   _sub_flow.get().gyro_y_rate_integral);
 
+	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
+	//double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
+
 	// compute velocities in camera frame using ground distance
 	// assume camera frame is body frame
 	Vector3f delta_b(
