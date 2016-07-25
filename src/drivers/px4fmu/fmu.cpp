@@ -1533,7 +1533,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_DISARM:
-		update_pwm_out_state(false);
+
+		/* Ignore disarm if disarmed PWM is set already. */
+		if (_num_disarmed_set == 0) {
+			update_pwm_out_state(false);
+		}
+
 		break;
 
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
