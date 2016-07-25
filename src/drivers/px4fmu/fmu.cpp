@@ -221,7 +221,10 @@ private:
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
 
-	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
+	static bool	arm_nothrottle()
+	{
+		return ((_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode);
+	}
 
 	static void	cycle_trampoline(void *arg);
 	void		cycle();
@@ -338,6 +341,14 @@ PX4FMU::PX4FMU() :
 
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
+
+	// Safely initialize armed flags.
+	_armed.armed = false;
+	_armed.prearmed = false;
+	_armed.ready_to_arm = false;
+	_armed.lockdown = false;
+	_armed.force_failsafe = false;
+	_armed.in_esc_calibration_mode = false;
 
 	// rc input, published to ORB
 	memset(&_rc_in, 0, sizeof(_rc_in));
@@ -977,6 +988,19 @@ PX4FMU::cycle()
 
 				poll_id++;
 			}
+
+			/* During ESC calibration, we overwrite the throttle value. */
+			if (i == 0 && _armed.in_esc_calibration_mode) {
+
+				/* Set all controls to 0 */
+				memset(&_controls[i], 0, sizeof(_controls[i]));
+
+				/* except thrust to maximum. */
+				_controls[i].control[3] = 1.0f;
+
+				/* Switch off the PWM limit ramp for the calibration. */
+				_pwm_limit.state = PWM_LIMIT_STATE_ON;
+			}
 		}
 
 		/* can we mix? */
@@ -1095,11 +1119,14 @@ PX4FMU::cycle()
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-		/* update the armed status and check that we're not locked down */
-		_throttle_armed = _safety_off && _armed.armed && !_armed.lockdown;
+		/* Update the armed status and check that we're not locked down.
+		 * We also need to arm throttle for the ESC calibration. */
+		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) ||
+				  (_safety_off && _armed.in_esc_calibration_mode);
+
 
 		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = _armed.armed || _num_disarmed_set > 0;
+		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
@@ -1446,7 +1473,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	}
 
 	/* throttle not arming - mark throttle input as invalid */
-	if (arm_nothrottle()) {
+	if (arm_nothrottle() && !_armed.in_esc_calibration_mode) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
