@@ -860,6 +860,12 @@ int Logger::create_log_dir(tm *tt)
 
 	if (tt) {
 		int n = snprintf(_log_dir, sizeof(_log_dir), "%s/", LOG_ROOT);
+
+		if (n >= sizeof(_log_dir)) {
+			PX4_ERR("log path too long");
+			return -1;
+		}
+
 		strftime(_log_dir + n, sizeof(_log_dir) - n, "%Y-%m-%d", tt);
 		mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -874,7 +880,13 @@ int Logger::create_log_dir(tm *tt)
 		/* look for the next dir that does not exist */
 		while (!_has_log_dir && dir_number <= MAX_NO_LOGFOLDER) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
-			sprintf(_log_dir, "%s/sess%03u", LOG_ROOT, dir_number);
+			int n = snprintf(_log_dir, sizeof(_log_dir), "%s/sess%03u", LOG_ROOT, dir_number);
+
+			if (n >= sizeof(_log_dir)) {
+				PX4_ERR("log path too long");
+				return -1;
+			}
+
 			mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
@@ -1030,7 +1042,7 @@ void Logger::start_log()
 
 	PX4_INFO("start log");
 
-	char file_name[64] = "";
+	char file_name[LOG_DIR_LEN] = "";
 
 	if (get_log_file_name(file_name, sizeof(file_name))) {
 		PX4_ERR("logger: failed to get log file name");
