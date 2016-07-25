@@ -774,7 +774,8 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_ms;
+	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_us;
+
  	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air){
  		fuseSideslip();
  	}
