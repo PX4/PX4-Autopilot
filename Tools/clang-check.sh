@@ -1,4 +1,5 @@
 #!/bin/bash
+# This script is specific for Raspberry Pi
 COMPILE_DB=$(/bin/pwd)/build_posix_rpi_cross;
 BIN=${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
 
