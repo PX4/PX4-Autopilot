@@ -103,14 +103,13 @@ private:
 	unsigned	_poll_fds_num;
 	Mode		_mode;
 	// subscriptions
-	unsigned	_num_outputs;
 	int	_armed_sub;
 	int _test_motor_sub;
 	orb_advert_t        	_outputs_pub = nullptr;
 	actuator_outputs_s      _outputs;
 	static actuator_armed_s	_armed;
 
-	//todo:refactor dynamic based on _num_outputs or _channels_count
+	//todo:refactor dynamic based on _channels_count
 	// It needs to support the numbe of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
@@ -122,7 +121,7 @@ private:
 
 	orb_advert_t        _esc_feedback_pub = nullptr;
 	esc_status_s      _esc_feedback;
-	uint8_t           _channels_count; // The numbe of ESC channels
+	uint8_t           _channels_count; // The number of ESC channels
 
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
@@ -165,7 +164,6 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_is_armed(false),
 	_poll_fds_num(0),
 	_mode(MODE_4PWM),
-	_num_outputs(0),
 	_armed_sub(-1),
 	_test_motor_sub(-1),
 	_outputs_pub(nullptr),
@@ -195,6 +193,7 @@ TAP_ESC::TAP_ESC(int channels_count):
 	for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
 		_outputs.output[i] = NAN;
 	}
+
 	_outputs.noutputs = 0;
 }
 
@@ -713,19 +712,20 @@ TAP_ESC::cycle()
 
 		}
 
-		const unsigned esc_count = 4;
-
+		const unsigned esc_count = num_outputs;
 		float motor_out[TAP_ESC_MAX_MOTOR_NUM];
-		motor_out[0] = _outputs.output[0];
-		motor_out[1] = _outputs.output[1];
-		motor_out[2] = _outputs.output[1];
-		motor_out[3] = 900;
+
+		for (int i = 0; i < esc_count; ++i) {
+			motor_out[i] = _outputs.output[i];
+		}
+
 		send_esc_outputs(motor_out, esc_count);
 		read_data_from_uart();
 
 		if (parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
+
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
 //					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
@@ -756,12 +756,14 @@ TAP_ESC::cycle()
 
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+
 		if (_is_armed != _armed.armed) {
 			/* reset all outputs */
 			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
 				_outputs.output[i] = NAN;
 			}
 		}
+
 		/* do not obey the lockdown value, as lockdown is for PWMSim */
 		_is_armed = _armed.armed;
 
