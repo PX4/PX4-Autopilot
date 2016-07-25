@@ -191,6 +191,11 @@ TAP_ESC::TAP_ESC(int channels_count):
 	uartbuf.tail = 0;
 	uartbuf.dat_cnt = 0;
 	memset(uartbuf.esc_feedback_buf, 0, sizeof(uartbuf.esc_feedback_buf));
+
+	for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+		_outputs.output[i] = NAN;
+	}
+	_outputs.noutputs = 0;
 }
 
 TAP_ESC::~TAP_ESC()
