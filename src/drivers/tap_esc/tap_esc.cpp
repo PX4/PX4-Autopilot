@@ -163,7 +163,7 @@ TAP_ESC::TAP_ESC(int channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	_is_armed(false),
 	_poll_fds_num(0),
-	_mode(MODE_4PWM),
+	_mode(MODE_4PWM), //FIXME: what is this mode used for???
 	_armed_sub(-1),
 	_test_motor_sub(-1),
 	_outputs_pub(nullptr),
@@ -623,8 +623,10 @@ TAP_ESC::cycle()
 			}
 		}
 
-		size_t num_outputs = 0;
+		size_t num_outputs = _channels_count;
 
+		/*
+		// FIXME: don't know what this mode should be used for. It's hardcoded in initialization and never changed.
 		switch (_mode) {
 		case MODE_2PWM:
 			num_outputs = 2;
@@ -646,6 +648,7 @@ TAP_ESC::cycle()
 			num_outputs = 0;
 			break;
 		}
+		*/
 
 		/* can we mix? */
 		if (_is_armed && _mixers != nullptr) {
