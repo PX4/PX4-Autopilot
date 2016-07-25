@@ -417,8 +417,8 @@ void TAP_ESC:: send_esc_outputs(const float *pwm, const unsigned num_pwm)
 		if (rpm[i] > RPMMAX) {
 			rpm[i] = RPMMAX;
 
-		} else if (rpm[i] < RPMMIN) {
-			rpm[i] = RPMMIN;
+		} else if (rpm[i] < RPMSTOPPED) {
+			rpm[i] = RPMSTOPPED;
 		}
 	}
 
@@ -678,7 +678,7 @@ TAP_ESC::cycle()
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
 					 * spinning motors. It would be deadly in flight.
 					 */
-					_outputs.output[i] = 900;
+					_outputs.output[i] = RPMSTOPPED;
 				}
 			}
 
@@ -694,7 +694,7 @@ TAP_ESC::cycle()
 			if (test_motor_updated) {
 				struct test_motor_s test_motor;
 				orb_copy(ORB_ID(test_motor), _test_motor_sub, &test_motor);
-				_outputs.output[test_motor.motor_number] = 900.f + (1100.f * test_motor.value); //scale to [900, 2000]
+				_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
 				PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
 					 (double)_outputs.output[test_motor.motor_number]);
 			}
@@ -702,7 +702,7 @@ TAP_ESC::cycle()
 			/* set the invalid values to the minimum */
 			for (unsigned i = 0; i < num_outputs; i++) {
 				if (!PX4_ISFINITE(_outputs.output[i])) {
-					_outputs.output[i] = 900;
+					_outputs.output[i] = RPMSTOPPED;
 				}
 			}
 
