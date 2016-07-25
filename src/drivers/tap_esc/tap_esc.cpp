@@ -445,7 +445,7 @@ void TAP_ESC:: send_esc_outputs(const float *pwm, const unsigned num_pwm)
 
 void TAP_ESC::read_data_from_uart()
 {
-	uint8_t tmp_serial_buf[UART_BUFFER_SIZE] = {0};
+	uint8_t tmp_serial_buf[UART_BUFFER_SIZE];
 
 	int len =::read(_uart_fd, tmp_serial_buf, arraySize(tmp_serial_buf));
 
@@ -518,7 +518,7 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 				if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
 					packetdata->crc_data = serial_buf->esc_feedback_buf[serial_buf->head];
 
-					if (++serial_buf->head >= 128) {
+					if (++serial_buf->head >= UART_BUFFER_SIZE) {
 						serial_buf->head = 0;
 					}
 
@@ -726,20 +726,22 @@ TAP_ESC::cycle()
 		if (parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
-				_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
-//				_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
-				_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
-				_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
-				// printf("vol is %d\n",feed_back_data.voltage );
-				// printf("speed is %d\n",feed_back_data.speed );
+				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
+					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
+//					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
+					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
+					_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
+					// printf("vol is %d\n",feed_back_data.voltage );
+					// printf("speed is %d\n",feed_back_data.speed );
 
-				_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
-				_esc_feedback.counter++;
-				_esc_feedback.esc_count = esc_count;
+					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
+					_esc_feedback.counter++;
+					_esc_feedback.esc_count = esc_count;
 
-				_esc_feedback.timestamp = hrt_absolute_time();
+					_esc_feedback.timestamp = hrt_absolute_time();
 
-				orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
+					orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
+				}
 			}
 		}
 
