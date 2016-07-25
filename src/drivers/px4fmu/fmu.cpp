@@ -861,9 +861,6 @@ PX4FMU::update_pwm_out_state(bool on)
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
-
-	} else {
-		_pwm_initialized = false;
 	}
 
 	up_pwm_servo_arm(on);
