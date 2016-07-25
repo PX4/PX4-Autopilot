@@ -754,13 +754,15 @@ TAP_ESC::cycle()
 
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+		if (_is_armed != _armed.armed) {
+			/* reset all outputs */
+			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				_outputs.output[i] = NAN;
+			}
+		}
 		/* do not obey the lockdown value, as lockdown is for PWMSim */
 		_is_armed = _armed.armed;
 
-		/* reset all outputs */
-		for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-			_outputs.output[i] = NAN;
-		}
 	}
 
 
