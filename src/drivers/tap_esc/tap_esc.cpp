@@ -98,7 +98,7 @@ private:
 	static const uint8_t crcTable[256];
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 
-	bool IS_armed;
+	bool _is_armed;
 
 	unsigned	_poll_fds_num;
 	Mode		_mode;
@@ -162,7 +162,7 @@ TAP_ESC	*tap_esc = nullptr;
 
 TAP_ESC::TAP_ESC(int channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
-	IS_armed(false),
+	_is_armed(false),
 	_poll_fds_num(0),
 	_mode(MODE_4PWM),
 	_num_outputs(0),
@@ -442,7 +442,7 @@ void TAP_ESC::read_data_from_uart()
 {
 	uint8_t tmp_serial_buf[UART_BUFFER_SIZE] = {0};
 
-	int len =::read(_uart_fd, &tmp_serial_buf[0], arraySize(tmp_serial_buf));
+	int len =::read(_uart_fd, tmp_serial_buf, arraySize(tmp_serial_buf));
 
 	if (len > 0 && (uartbuf.dat_cnt + len < UART_BUFFER_SIZE)) {
 		for (int i = 0; i < len; i++) {
@@ -467,14 +467,16 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 
 		for (int i = 0; i < count; i++) {
 			switch (state) {
-			case HEAD: if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
+			case HEAD:
+				if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
 					packetdata->head = 0xFE; //just_keep the format
 					state = LEN;
 				}
 
 				break;
 
-			case LEN:  if (serial_buf->esc_feedback_buf[serial_buf->head] < sizeof(packetdata->d)) {
+			case LEN:
+				if (serial_buf->esc_feedback_buf[serial_buf->head] < sizeof(packetdata->d)) {
 					packetdata->len = serial_buf->esc_feedback_buf[serial_buf->head];
 					state = ID;
 
@@ -484,7 +486,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 
 				break;
 
-			case ID:   if (serial_buf->esc_feedback_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
+			case ID:
+				if (serial_buf->esc_feedback_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
 					packetdata->msg_id = serial_buf->esc_feedback_buf[serial_buf->head];
 					data_index = 0;
 					state = DATA;
@@ -495,7 +498,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 
 				break;
 
-			case DATA: packetdata->d.bytes[data_index++] = serial_buf->esc_feedback_buf[serial_buf->head];
+			case DATA:
+				packetdata->d.bytes[data_index++] = serial_buf->esc_feedback_buf[serial_buf->head];
 
 				if (data_index >= packetdata->len) {
 
@@ -505,7 +509,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 
 				break;
 
-			case CRC: if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
+			case CRC:
+				if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
 					packetdata->crc_data = serial_buf->esc_feedback_buf[serial_buf->head];
 
 					if (++serial_buf->head >= 128) {
@@ -520,7 +525,8 @@ bool TAP_ESC:: parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packe
 				state = HEAD;
 				break;
 
-			default : state = HEAD;
+			default:
+				state = HEAD;
 				break;
 
 			}
@@ -638,7 +644,7 @@ TAP_ESC::cycle()
 		}
 
 		/* can we mix? */
-		if (IS_armed && _mixers != nullptr) {
+		if (_is_armed && _mixers != nullptr) {
 
 
 			/* do mixing */
@@ -735,9 +741,6 @@ TAP_ESC::cycle()
 		/* and publish for anyone that cares to see */
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
-
-		/* overwrite outputs in case of lockdown with disarmed PWM values */
-
 	}
 
 	bool updated;
@@ -747,7 +750,7 @@ TAP_ESC::cycle()
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		/* do not obey the lockdown value, as lockdown is for PWMSim */
-		IS_armed = _armed.armed;
+		_is_armed = _armed.armed;
 
 		/* reset all outputs */
 		for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
