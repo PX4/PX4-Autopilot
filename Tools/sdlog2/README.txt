@@ -14,4 +14,8 @@ geo_tag_images.py: Use this script to geotag a set of images. It uses GPS time a
 
 	python geo_tag_images.py --logfile=mylog.bin --input=images/ --output=tagged/
 
+geotagging.py: Use this script to geotag a set of images. It uses the CAM trigger data from the log file for image association.
+
+	python geotagging.py --logfile=mylog.bin --input=images/ --output=tagged/
+
 Python can be downloaded from http://python.org, but is available as default on Mac OS and Linux.
