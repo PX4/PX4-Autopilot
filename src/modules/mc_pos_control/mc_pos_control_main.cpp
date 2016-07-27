@@ -198,6 +198,7 @@ private:
 		param_t hold_max_z;
 		param_t acc_hor_max;
 		param_t alt_mode;
+		param_t opt_recover;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -223,6 +224,8 @@ private:
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
+
+		int opt_recover;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -474,6 +477,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
+	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -591,6 +595,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
+
+		int i;
+		param_get(_params_handles.opt_recover, &i);
+		_params.opt_recover = i;
 
 		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
@@ -2011,8 +2019,10 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if we no aiding velocity controller is active */
-			if (!_control_mode.flag_control_velocity_enabled) {
+			/* control roll and pitch directly if no aiding velocity controller is active
+			 * and only if optimal recovery is not used */
+			if (!_control_mode.flag_control_velocity_enabled
+				&& !_params.opt_recover > 0) {
 				math::Matrix<3, 3> R_sp;
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
