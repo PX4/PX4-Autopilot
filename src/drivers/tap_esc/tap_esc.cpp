@@ -395,10 +395,11 @@ uint8_t TAP_ESC::crc_packet(EscPacket &p)
 }
 void TAP_ESC::select_responder(uint8_t sel)
 {
+#if defined(GPIO_S0)
 	px4_arch_gpiowrite(GPIO_S0, sel & 1);
 	px4_arch_gpiowrite(GPIO_S1, sel & 2);
 	px4_arch_gpiowrite(GPIO_S2, sel & 4);
-
+#endif
 }
 
 
