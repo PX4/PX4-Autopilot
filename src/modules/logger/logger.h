@@ -47,6 +47,12 @@ extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 #define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
+#ifdef __PX4_NUTTX
+#define LOG_DIR_LEN 64
+#else
+#define LOG_DIR_LEN 256
+#endif
+
 namespace px4
 {
 namespace logger
@@ -210,7 +216,7 @@ private:
 	uint8_t						*_msg_buffer = nullptr;
 	int						_msg_buffer_len = 0;
 	bool						_task_should_exit = true;
-	char 						_log_dir[64];
+	char 						_log_dir[LOG_DIR_LEN];
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
 	bool						_was_armed = false;

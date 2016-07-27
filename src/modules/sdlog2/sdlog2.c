@@ -170,7 +170,11 @@ struct logbuffer_s lb;
 static pthread_mutex_t logbuffer_mutex;
 static pthread_cond_t logbuffer_cond;
 
+#ifdef __PX4_NUTTX
 #define LOG_BASE_PATH_LEN	64
+#else
+#define LOG_BASE_PATH_LEN	256
+#endif
 
 static char log_dir[LOG_BASE_PATH_LEN];
 
@@ -452,6 +456,10 @@ int create_log_dir()
 
 	if (log_name_timestamp && time_ok) {
 		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
+		if (n >= sizeof(log_dir)) {
+			PX4_ERR("log path too long");
+			return -1;
+		}
 		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &tt);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -466,7 +474,12 @@ int create_log_dir()
 		 * let's re-use it. */
 		while (dir_number <= MAX_NO_LOGFOLDER && !sess_folder_created) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
-			sprintf(log_dir, "%s/sess%03u", log_root, dir_number);
+			int n = snprintf(log_dir, sizeof(log_dir), "%s/sess%03u", log_root, dir_number);
+			if (n >= sizeof(log_dir)) {
+				PX4_ERR("log path too long");
+				return -1;
+			}
+
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
