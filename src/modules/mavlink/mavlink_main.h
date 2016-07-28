@@ -69,6 +69,7 @@
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
+#include "mavlink_shell.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -411,7 +412,7 @@ public:
 	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
 	/**
-	 * Wether or not the system should be logging
+	 * Whether or not the system should be logging
 	 */
 	bool			get_logging_enabled() { return _logging_enabled; }
 
@@ -419,6 +420,12 @@ public:
 
 	int			get_data_rate() { return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) _datarate = rate; }
+
+	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
+	 *  Returns nullptr if shell cannot be created */
+	MavlinkShell		*get_shell();
+	/** close the Mavlink shell if it is open */
+	void			close_shell();
 
 protected:
 	Mavlink			*next;
@@ -451,6 +458,7 @@ private:
 	MavlinkParametersManager	*_parameters_manager;
 	MavlinkFTP			*_mavlink_ftp;
 	MavlinkLogHandler		*_mavlink_log_handler;
+	MavlinkShell			*_mavlink_shell;
 
 	MAVLINK_MODE 		_mode;
 

@@ -185,6 +185,7 @@ Mavlink::Mavlink() :
 	_parameters_manager(nullptr),
 	_mavlink_ftp(nullptr),
 	_mavlink_log_handler(nullptr),
+	_mavlink_shell(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
@@ -1517,6 +1518,35 @@ Mavlink::get_rate_mult()
 	return _rate_mult;
 }
 
+MavlinkShell*
+Mavlink::get_shell()
+{
+	if (!_mavlink_shell) {
+		_mavlink_shell = new MavlinkShell();
+		if (!_mavlink_shell) {
+			PX4_ERR("Failed to allocate a shell");
+		} else {
+			int ret = _mavlink_shell->start();
+			if (ret != 0) {
+				PX4_ERR("Failed to start shell (%i)", ret);
+				delete _mavlink_shell;
+				_mavlink_shell = nullptr;
+			}
+		}
+	}
+
+	return _mavlink_shell;
+}
+
+void
+Mavlink::close_shell()
+{
+	if (_mavlink_shell) {
+		delete _mavlink_shell;
+		_mavlink_shell = nullptr;
+	}
+}
+
 void
 Mavlink::update_rate_mult()
 {
@@ -2076,6 +2106,17 @@ Mavlink::task_main(int argc, char *argv[])
 		struct mavlink_log_s mavlink_log;
 		if (mavlink_log_sub->update_if_changed(&mavlink_log)) {
 			_logbuffer.put(&mavlink_log);
+		}
+
+		/* check for shell output */
+		if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			mavlink_serial_control_t msg;
+			msg.baudrate = 0;
+			msg.flags = SERIAL_CONTROL_FLAG_REPLY;
+			msg.timeout = 0;
+			msg.device = SERIAL_CONTROL_DEV_SHELL;
+			msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 		}
 
 		/* check for requested subscriptions */
