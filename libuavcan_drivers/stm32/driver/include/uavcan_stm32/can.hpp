@@ -217,7 +217,7 @@ public:
      * Range is [1, 3].
      * Value of 3 suggests that priority inversion could be taking place.
      */
-    uavcan::uint8_t getPeakNumTxMailboxesUsed() const { return peak_tx_mailbox_index_ + 1; }
+    uavcan::uint8_t getPeakNumTxMailboxesUsed() const { return uavcan::uint8_t(peak_tx_mailbox_index_ + 1); }
 };
 
 /**
