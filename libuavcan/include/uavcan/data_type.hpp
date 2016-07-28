@@ -19,9 +19,10 @@ class UAVCAN_EXPORT TransferCRC;
 enum DataTypeKind
 {
     DataTypeKindService,
-    DataTypeKindMessage,
-    NumDataTypeKinds
+    DataTypeKindMessage
 };
+
+static const uint8_t NumDataTypeKinds = 2;
 
 
 static inline DataTypeKind getDataTypeKindForTransferType(const TransferType tt)

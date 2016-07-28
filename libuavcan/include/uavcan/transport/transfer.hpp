@@ -19,9 +19,10 @@ enum TransferType
 {
     TransferTypeServiceResponse  = 0,
     TransferTypeServiceRequest   = 1,
-    TransferTypeMessageBroadcast = 2,
-    NumTransferTypes = 3
+    TransferTypeMessageBroadcast = 2
 };
+
+static const uint8_t NumTransferTypes = 3;
 
 
 class UAVCAN_EXPORT TransferPriority
