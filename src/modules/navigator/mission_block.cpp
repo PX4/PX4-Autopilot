@@ -167,13 +167,13 @@ MissionBlock::is_mission_item_reached()
 			&& _navigator->get_vstatus()->is_rotary_wing) {
 			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
 			if (_navigator->get_global_position()->alt >
-				altitude_amsl - _navigator->get_acceptance_radius()) {
+				altitude_amsl - _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
-				&& dist_z <= _navigator->get_default_acceptance_radius()) {
+				&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (!_navigator->get_vstatus()->is_rotary_wing &&
@@ -186,7 +186,7 @@ MissionBlock::is_mission_item_reached()
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
-				&& dist_z <= _navigator->get_default_acceptance_radius()) {
+				&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
 			} else {
@@ -214,7 +214,7 @@ MissionBlock::is_mission_item_reached()
 								&dist_xy, &dist_z);
 
 				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
-					&& dist_z <= _navigator->get_default_acceptance_radius()) {
+					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
 					curr_sp->alt = altitude_amsl;
@@ -223,7 +223,7 @@ MissionBlock::is_mission_item_reached()
 
 			} else {
 				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
-					&& dist_z <= _navigator->get_default_acceptance_radius()) {
+					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					_waypoint_position_reached = true;
 
@@ -253,7 +253,8 @@ MissionBlock::is_mission_item_reached()
 			}
 
 			if (dist >= 0.0f && dist <= mission_acceptance_radius
-				&& dist_z <= _navigator->get_default_acceptance_radius()) {
+				&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
+				printf("reached acrad: %f \n", (double)_navigator->get_altitude_acceptance_radius());
 				_waypoint_position_reached = true;
 			}
 		}

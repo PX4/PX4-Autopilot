@@ -155,6 +155,8 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 	_param_datalinkloss_act(this, "DLL_ACT"),
 	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
@@ -722,6 +724,18 @@ Navigator::get_acceptance_radius()
 {
 	return get_acceptance_radius(_param_acceptance_radius.get());
 }
+
+float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!this->get_vstatus()->is_rotary_wing) {
+		return _param_fw_alt_acceptance_radius.get();
+	} else {
+		return _param_mc_alt_acceptance_radius.get();
+	}
+}
+
+
 
 float
 Navigator::get_cruising_speed()
