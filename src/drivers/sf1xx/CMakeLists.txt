@@ -32,12 +32,12 @@
 ############################################################################
 px4_add_module(
 
-	MODULE drivers__sf10a
-	MAIN sf10a
+	MODULE drivers__sf1xx
+	MAIN sf1xx
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		sf10a.cpp
+		sf1xx.cpp
 	DEPENDS
 		platforms__common
 	)

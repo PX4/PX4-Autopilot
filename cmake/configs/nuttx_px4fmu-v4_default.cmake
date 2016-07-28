@@ -23,7 +23,7 @@ set(config_module_list
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
-	drivers/sf10a
+	drivers/sf1xx
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
