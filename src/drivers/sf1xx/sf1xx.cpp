@@ -265,7 +265,7 @@ SF1XX::init()
 		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 	}
 
-        // Select altitude register
+	// Select altitude register
 	int ret2 = measure();
 
 	if (ret2 == 0) {
@@ -561,8 +561,8 @@ SF1XX::start()
 	/* reset the report ring and state machine */
 	_reports->flush();
 
-        /* set register to '0' */
-        measure();
+	/* set register to '0' */
+	measure();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, 5);
