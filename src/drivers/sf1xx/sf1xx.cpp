@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file sf10a.cpp
+ * @file sf1xx.cpp
  *
  * @author ecmnet <ecm@gmx.de>
+ * @author Vasily Evseenko <svpcom@gmail.com>
  *
- * Driver for the Lightware SF10x lidar range finder series.
+ * Driver for the Lightware SF1xx lidar range finder series.
  * Default I2C address 0x55 is used.
  */
 
@@ -75,18 +76,18 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SF10A_BUS 		PX4_I2C_BUS_EXPANSION
-#define SF10A_BASEADDR 	0x55
-#define SF10A_DEVICE_PATH	"/dev/sf10a"
+#define SF1XX_BUS 		PX4_I2C_BUS_EXPANSION
+#define SF1XX_BASEADDR 	0x55
+#define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
 /* Device limits */
-#define SF10A_MIN_DISTANCE 	(0.01f)
-#define SF10A_MAX_DISTANCE 	(25.0f)
+#define SF1XX_MIN_DISTANCE 	(0.01f)
+#define SF1XX_MAX_DISTANCE 	(120.0f)
 
 
 /* conversion rates */
 
-#define SF10A_CONVERSION_INTERVAL 		31250		// Maximum rate according to datasheet is 32Hz
+#define SF1XX_CONVERSION_INTERVAL 		50000		// Maximum rate according to datasheet is 20Hz
 
 
 /* oddly, ERROR is not defined for c++ */
@@ -99,11 +100,11 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class SF10A : public device::I2C
+class SF1XX : public device::I2C
 {
 public:
-	SF10A(int bus = SF10A_BUS, int address = SF10A_BASEADDR);
-	virtual ~SF10A();
+	SF1XX(int bus = SF1XX_BUS, int address = SF1XX_BASEADDR);
+	virtual ~SF1XX();
 
 	virtual int 		init();
 
@@ -160,8 +161,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults SF10A_MIN_DISTANCE
-	* and SF10A_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults SF1XX_MIN_DISTANCE
+	* and SF1XX_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -189,21 +190,21 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int sf10a_main(int argc, char *argv[]);
+extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
-SF10A::SF10A(int bus, int address) :
-	I2C("SF10A", SF10A_DEVICE_PATH, bus, address, 100000),
-	_min_distance(SF10A_MIN_DISTANCE),
-	_max_distance(SF10A_MAX_DISTANCE),
+SF1XX::SF1XX(int bus, int address) :
+	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
+	_min_distance(SF1XX_MIN_DISTANCE),
+	_max_distance(SF1XX_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "sf10a_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf10a_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "sf10a_buf_of"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "sf1xx_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "sf1xx_com_err")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "sf1xx_buf_of"))
 
 {
 	/* enable debug() calls */
@@ -213,7 +214,7 @@ SF10A::SF10A(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-SF10A::~SF10A()
+SF1XX::~SF1XX()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -234,7 +235,7 @@ SF10A::~SF10A()
 }
 
 int
-SF10A::init()
+SF1XX::init()
 {
 	int ret = ERROR;
 
@@ -246,7 +247,7 @@ SF10A::init()
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	set_address(SF10A_BASEADDR);
+	set_address(SF1XX_BASEADDR);
 
 	if (_reports == nullptr) {
 		return ret;
@@ -264,50 +265,50 @@ SF10A::init()
 		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 	}
 
-
+        // Select altitude register
 	int ret2 = measure();
 
 	if (ret2 == 0) {
 		ret = OK;
 		_sensor_ok = true;
-		DEVICE_LOG("SF10x with address %d found", SF10A_BASEADDR);
+		DEVICE_LOG("SF1xx with address %d found", SF1XX_BASEADDR);
 	}
 
 	return ret;
 }
 
 int
-SF10A::probe()
+SF1XX::probe()
 {
 	return measure();
 }
 
 void
-SF10A::set_minimum_distance(float min)
+SF1XX::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-SF10A::set_maximum_distance(float max)
+SF1XX::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-SF10A::get_minimum_distance()
+SF1XX::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-SF10A::get_maximum_distance()
+SF1XX::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-SF10A::ioctl(struct file *filp, int cmd, unsigned long arg)
+SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -334,7 +335,7 @@ SF10A::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(SF10A_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(SF1XX_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -354,7 +355,7 @@ SF10A::ioctl(struct file *filp, int cmd, unsigned long arg)
 					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(SF10A_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(SF1XX_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -422,7 +423,7 @@ SF10A::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-SF10A::read(struct file *filp, char *buffer, size_t buflen)
+SF1XX::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -463,7 +464,7 @@ SF10A::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(SF10A_CONVERSION_INTERVAL);
+		usleep(SF1XX_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -482,17 +483,16 @@ SF10A::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-SF10A::measure()
+SF1XX::measure()
 {
 	int ret;
 
 	/*
-	 * Send the command to begin a measurement.
+	 * Send the command '0' -- read altitude
 	 */
 
-	uint8_t cmd[1];
-	cmd[0] = SF10A_BASEADDR;
-	ret = transfer(cmd, 1, nullptr, 0);
+	uint8_t cmd = 0;
+	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -506,16 +506,14 @@ SF10A::measure()
 }
 
 int
-SF10A::collect()
+SF1XX::collect()
 {
 	int	ret = -EIO;
 
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
-	uint8_t cmd = SF10A_BASEADDR;
 	perf_begin(_sample_perf);
 
-	ret = transfer(&cmd, 1, nullptr, 0);
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
@@ -558,34 +556,35 @@ SF10A::collect()
 }
 
 void
-SF10A::start()
+SF1XX::start()
 {
 	/* reset the report ring and state machine */
 	_reports->flush();
 
+        /* set register to '0' */
+        measure();
+
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SF10A::cycle_trampoline, this, 5);
+	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, 5);
 }
 
 void
-SF10A::stop()
+SF1XX::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-SF10A::cycle_trampoline(void *arg)
+SF1XX::cycle_trampoline(void *arg)
 {
-	SF10A *dev = (SF10A *)arg;
+	SF1XX *dev = (SF1XX *)arg;
 
 	dev->cycle();
 }
 
 void
-SF10A::cycle()
+SF1XX::cycle()
 {
-	set_address(SF10A_BASEADDR);
-
 	/* Collect results */
 	if (OK != collect()) {
 		DEVICE_DEBUG("collection error");
@@ -594,24 +593,17 @@ SF10A::cycle()
 		return;
 	}
 
-
-	/* Trigger measurement */
-	if (OK != measure()) {
-		DEVICE_DEBUG("measure error lidar");
-	}
-
-
-
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&SF10A::cycle_trampoline,
+		   (worker_t)&SF1XX::cycle_trampoline,
 		   this,
-		   USEC2TICK(SF10A_CONVERSION_INTERVAL));
+		   USEC2TICK(SF1XX_CONVERSION_INTERVAL));
+
 }
 
 void
-SF10A::print_info()
+SF1XX::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -623,7 +615,7 @@ SF10A::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace sf10a
+namespace sf1xx
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -632,7 +624,7 @@ namespace sf10a
 #endif
 const int ERROR = -1;
 
-SF10A	*g_dev;
+SF1XX	*g_dev;
 
 void	start();
 void	stop();
@@ -653,7 +645,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new SF10A(SF10A_BUS);
+	g_dev = new SF1XX(SF1XX_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -664,7 +656,7 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SF10A_DEVICE_PATH, O_RDONLY);
+	fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -714,10 +706,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(SF10A_DEVICE_PATH, O_RDONLY);
+	int fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf10a start' if the driver is not running", SF10A_DEVICE_PATH);
+		err(1, "%s open failed (try 'sf1xx start' if the driver is not running", SF1XX_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -777,7 +769,7 @@ test()
 void
 reset()
 {
-	int fd = open(SF10A_DEVICE_PATH, O_RDONLY);
+	int fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -813,41 +805,41 @@ info()
 } /* namespace */
 
 int
-sf10a_main(int argc, char *argv[])
+sf1xx_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		sf10a::start();
+		sf1xx::start();
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		sf10a::stop();
+		sf1xx::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		sf10a::test();
+		sf1xx::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		sf10a::reset();
+		sf1xx::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		sf10a::info();
+		sf1xx::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");

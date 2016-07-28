@@ -35,7 +35,7 @@ if meas_airspeed start
 then
 fi
 
-if sf10a start
+if sf1xx start
 then
 fi
 
