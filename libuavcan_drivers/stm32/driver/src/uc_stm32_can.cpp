@@ -247,7 +247,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     /*
      * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
-    uavcan::uint8_t bs1_bs2_sum = max_quanta_per_bit - 1;
+    uavcan::uint8_t bs1_bs2_sum = uavcan::uint8_t(max_quanta_per_bit - 1);
 
     while ((prescaler_bs % (1 + bs1_bs2_sum)) != 0)
     {
@@ -296,8 +296,8 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
 
         BsPair(uavcan::uint8_t bs1_bs2_sum, uavcan::uint8_t arg_bs1) :
             bs1(arg_bs1),
-            bs2(bs1_bs2_sum - bs1),
-            sample_point_permill(1000 * (1 + bs1) / (1 + bs1 + bs2))
+            bs2(uavcan::uint8_t(bs1_bs2_sum - bs1)),
+            sample_point_permill(uavcan::uint16_t(1000 * (1 + bs1) / (1 + bs1 + bs2)))
         {
             UAVCAN_ASSERT(bs1_bs2_sum > arg_bs1);
         }
@@ -305,11 +305,13 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
         bool isValid() const { return (bs1 >= 1) && (bs1 <= MaxBS1) && (bs2 >= 1) && (bs2 <= MaxBS2); }
     };
 
-    BsPair solution(bs1_bs2_sum, ((7 * bs1_bs2_sum - 1) + 4) / 8);      // First attempt with rounding to nearest
+    // First attempt with rounding to nearest
+    BsPair solution(bs1_bs2_sum, uavcan::uint8_t(((7 * bs1_bs2_sum - 1) + 4) / 8));
 
     if (solution.sample_point_permill > MaxSamplePointLocation)
     {
-        solution = BsPair(bs1_bs2_sum, (7 * bs1_bs2_sum - 1) / 8);      // Second attempt with rounding to zero
+        // Second attempt with rounding to zero
+        solution = BsPair(bs1_bs2_sum, uavcan::uint8_t((7 * bs1_bs2_sum - 1) / 8));
     }
 
     /*

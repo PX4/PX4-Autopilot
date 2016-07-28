@@ -148,7 +148,7 @@ public:
         kind_(kind),
         id_(id)
     {
-        UAVCAN_ASSERT(kind < NumDataTypeKinds);
+        UAVCAN_ASSERT((kind == DataTypeKindMessage) || (kind == DataTypeKindService));
         UAVCAN_ASSERT(name);
         UAVCAN_ASSERT(std::strlen(name) <= MaxFullNameLen);
     }
