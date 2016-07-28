@@ -1135,6 +1135,7 @@ gps_main(int argc, char *argv[])
 	return 0;
 
 out:
-	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
+	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'");
+	PX4_ERR("[-d " GPS_DEFAULT_UART_PORT "][-f (for enabling fake)][-s (to enable sat info)]");
 	return 1;
 }
