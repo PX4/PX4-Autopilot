@@ -593,6 +593,12 @@ then
 		sf0x start
 	fi
 
+	# mb12xx sonar sensor
+	if param compare SENS_EN_MB12XX 1
+	then
+		mb12xx start
+	fi
+
 	if ver hwcmp PX4FMU_V4
 	then
 		frsky_telemetry start -d /dev/ttyS6
