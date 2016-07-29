@@ -66,6 +66,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <platforms/px4_getopt.h>
 
 #include "ms5611.h"
 
@@ -1249,9 +1250,11 @@ ms5611_main(int argc, char *argv[])
 	enum MS5611_BUS busid = MS5611_BUS_ALL;
 	int device_type = 5611; // Default to MS5611
 	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "T:XISs")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISs", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
@@ -1270,7 +1273,7 @@ ms5611_main(int argc, char *argv[])
 			break;
 
 		case 'T':
-			device_type = atoi(optarg);
+			device_type = atoi(myoptarg);
 
 			if (device_type == 5611 || device_type == 5607) {
 				break;
@@ -1284,7 +1287,7 @@ ms5611_main(int argc, char *argv[])
 	}
 
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
