@@ -29,9 +29,14 @@ namespace uavcan
  *  void first(const ReceivedDataStructure<Foo>& msg);
  *  void second(const Foo& msg);
  * In the latter case, an implicit cast will happen before the callback is invoked.
+ *
+ * This class is not copyable because it holds a reference to a stack-allocated transfer descriptor object.
+ * You can slice cast it to the underlying data type though, which would be copyable:
+ *  DataType dt = rds;  // where rds is of type ReceivedDataStructure<DataType>
+ *  // dt is now copyable
  */
 template <typename DataType_>
-class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
+class UAVCAN_EXPORT ReceivedDataStructure : public DataType_, Noncopyable
 {
     const IncomingTransfer* const _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
 
