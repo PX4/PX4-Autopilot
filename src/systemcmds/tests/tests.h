@@ -74,6 +74,7 @@ __BEGIN_DECLS
 
 extern int	test_adc(int argc, char *argv[]);
 extern int	test_autodeclination(int argc, char *argv[]);
+extern int	test_hysteresis(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_conv(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);

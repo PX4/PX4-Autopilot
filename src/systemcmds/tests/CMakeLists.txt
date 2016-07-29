@@ -34,6 +34,7 @@
 set(srcs
 	test_adc.c
 	test_autodeclination.cpp
+	test_hysteresis.cpp
 	test_bson.c
 	test_conv.cpp
 	test_file.c
@@ -86,4 +87,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

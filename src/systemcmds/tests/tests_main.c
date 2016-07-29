@@ -97,6 +97,7 @@ const struct {
 	{"uorb",		uorb_tests_main,	0},
 
 	{"autodeclination",		test_autodeclination,	0},
+	{"hysteresis",		test_hysteresis,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
 	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
