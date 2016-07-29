@@ -70,7 +70,7 @@ class UAVCAN_EXPORT Multiset : Noncopyable
     };
 
 private:
-    struct Chunk : LinkedListNode<Chunk>, ::uavcan::Noncopyable
+    struct Chunk : LinkedListNode<Chunk>
     {
         enum { NumItems = (MemPoolBlockSize - sizeof(LinkedListNode<Chunk>)) / sizeof(Item) };
         Item items[NumItems];

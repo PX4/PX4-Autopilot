@@ -96,7 +96,7 @@ public:
 /**
  * Internal, refer to the transport dispatcher class.
  */
-class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>, Noncopyable
+class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>
 {
     const DataTypeDescriptor& data_type_;
     TransferBufferManager bufmgr_;

@@ -37,7 +37,7 @@ TEST(Frame, MessageParseCompile)
      * Parse
      */
     // Invalid CAN frames
-    ASSERT_FALSE(frame.parse(CanFrame(can_id | CanFrame::FlagRTR, (const uint8_t*)"", 0)));
+    ASSERT_FALSE(frame.parse(CanFrame(can_id | CanFrame::FlagRTR, reinterpret_cast<const uint8_t*>(""), 0)));
     ASSERT_FALSE(frame.parse(makeCanFrame(can_id, payload_string, STD)));
 
     // Valid
@@ -119,7 +119,7 @@ TEST(Frame, ServiceParseCompile)
      * Parse
      */
     // Invalid CAN frames
-    ASSERT_FALSE(frame.parse(CanFrame(can_id | CanFrame::FlagRTR, (const uint8_t*)"", 0)));
+    ASSERT_FALSE(frame.parse(CanFrame(can_id | CanFrame::FlagRTR, reinterpret_cast<const uint8_t*>(""), 0)));
     ASSERT_FALSE(frame.parse(makeCanFrame(can_id, payload_string, STD)));
 
     // Valid

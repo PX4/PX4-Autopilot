@@ -24,7 +24,7 @@ class UAVCAN_EXPORT Dispatcher;
 /**
  * Inherit this class to receive notifications about all TX CAN frames that were transmitted with the loopback flag.
  */
-class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
+class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>
 {
     Dispatcher& dispatcher_;
 
