@@ -149,7 +149,7 @@ Mission::on_inactive()
 		/* Reset work item type to default if auto take-off has been paused or aborted,
 		   and we landed in manual mode. */
 		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
-			_work_item_type = WORK_ITEM_TYPE_DEFAULT;		
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
 	}
 }
