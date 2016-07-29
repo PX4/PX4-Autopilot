@@ -65,6 +65,12 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: parameters.xml)")
+    parser.add_argument("-i", "--inject-xml",
+                        nargs='?',
+                        const="../Tools/parameters_injected.xml",
+                        metavar="FILENAME",
+                        help="Inject additional param XML file"
+                             " (default FILENAME: ../Tools/parameters_injected.xml)")
     parser.add_argument("-b", "--board",
                          nargs='?',
                          const="",
@@ -101,6 +107,7 @@ def main():
                         metavar="SUMMARY",
                         default="Automagically updated parameter documentation from code.",
                         help="DokuWiki page edit summary")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
     args = parser.parse_args()
 
     # Check for valid command
@@ -114,14 +121,17 @@ def main():
     parser = srcparser.SourceParser()
 
     # Scan directories, and parse the files
-    print("Scanning source path " + args.src_path)
-    scanner.ScanDir(args.src_path, parser)
+    if (args.verbose): print("Scanning source path " + args.src_path)
+    if not scanner.ScanDir(args.src_path, parser):
+        sys.exit(1)
+    if not parser.Validate():
+        sys.exit(1)
     param_groups = parser.GetParamGroups()
 
     # Output to XML file
     if args.xml:
-        print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups, args.board)
+        if args.verbose: print("Creating XML file " + args.xml)
+        out = xmlout.XMLOutput(param_groups, args.board, os.path.join(args.src_path, args.inject_xml))
         out.Save(args.xml)
 
     # Output to DokuWiki tables
@@ -138,7 +148,7 @@ def main():
             else:
                 print("Error: You need to specify DokuWiki XML-RPC username and password!")
 
-    print("All done!")
+    #print("All done!")
 
 
 if __name__ == "__main__":

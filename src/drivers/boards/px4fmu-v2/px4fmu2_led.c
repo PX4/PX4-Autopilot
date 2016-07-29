@@ -37,7 +37,7 @@
  * PX4FMU LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
@@ -64,34 +64,33 @@ __EXPORT void led_init()
 {
 	/* Configure LED1 GPIO for output */
 
-	stm32_configgpio(GPIO_LED1);
+	px4_arch_configgpio(GPIO_LED1);
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1)
-	{
+	if (led == 1) {
 		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED1, false);
+		px4_arch_gpiowrite(GPIO_LED1, false);
 	}
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1)
-	{
+	if (led == 1) {
 		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED1, true);
+		px4_arch_gpiowrite(GPIO_LED1, true);
 	}
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1)
-	{
-		if (stm32_gpioread(GPIO_LED1))
-			stm32_gpiowrite(GPIO_LED1, false);
-		else
-			stm32_gpiowrite(GPIO_LED1, true);
+	if (led == 1) {
+		if (px4_arch_gpioread(GPIO_LED1)) {
+			px4_arch_gpiowrite(GPIO_LED1, false);
+
+		} else {
+			px4_arch_gpiowrite(GPIO_LED1, true);
+		}
 	}
 }

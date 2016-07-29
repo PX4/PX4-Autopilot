@@ -4,29 +4,34 @@
 # att & pos estimator, att & pos control.
 #
 
-# previously (2014) the system was relying on
-# INAV, which defaults to 0 now. 
-if param compare INAV_ENABLED 1
+
+#---------------------------------------
+# Estimator group selction
+#
+# INAV
+if param compare SYS_MC_EST_GROUP 0
 then
-	attitude_estimator_ekf start
+	attitude_estimator_q start
 	position_estimator_inav start
-else
-	ekf_att_pos_estimator start
 fi
 
-if mc_att_control start
+# LPE
+if param compare SYS_MC_EST_GROUP 1
 then
-else
-	# try the multiplatform version
-	mc_att_control_m start
+	attitude_estimator_q start
+	local_position_estimator start
 fi
 
-if mc_pos_control start
+# EKF
+if param compare SYS_MC_EST_GROUP 2
 then
-else
-	# try the multiplatform version
-	mc_pos_control_m start
+	ekf2 start
 fi
+#---------------------------------------
+
+mc_att_control start
+
+mc_pos_control start
 
 #
 # Start Land Detector

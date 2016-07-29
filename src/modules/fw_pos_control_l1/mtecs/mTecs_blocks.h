@@ -68,21 +68,25 @@ public:
 	 *
 	 * @param value is changed to be on the interval _min to _max
 	 * @param difference if the value is changed this corresponds to the change of value * (-1)
-     * otherwise unchanged
+	* otherwise unchanged
 	 * @return: true if the limit is applied, false otherwise
 	 */
-	bool limit(float& value, float& difference) {
+	bool limit(float &value, float &difference)
+	{
 		float minimum = getIsAngularLimit() ? getMin() * M_DEG_TO_RAD_F : getMin();
 		float maximum = getIsAngularLimit() ? getMax() * M_DEG_TO_RAD_F : getMax();
+
 		if (value < minimum) {
 			difference = value - minimum;
 			value = minimum;
 			return true;
+
 		} else if (value > maximum) {
 			difference = value - maximum;
 			value = maximum;
 			return true;
 		}
+
 		return false;
 	}
 //accessor:
@@ -126,15 +130,18 @@ protected:
 	BlockOutputLimiter _outputLimiter;
 
 	float calcUnlimitedOutput(float inputValue, float inputError) {return getOffset() + getKFF() * inputValue + getKP() * inputError + getKI() * getIntegral().update(inputError);}
-	float calcLimitedOutput(float inputValue, float inputError, BlockOutputLimiter &outputLimiter) {
+	float calcLimitedOutput(float inputValue, float inputError, BlockOutputLimiter &outputLimiter)
+	{
 		float difference = 0.0f;
 		float integralYPrevious = _integral.getY();
 		float output = calcUnlimitedOutput(inputValue, inputError);
-		if(outputLimiter.limit(output, difference) &&
-			(((difference < 0) && (getKI() * getIntegral().getY() < 0)) ||
-			((difference > 0) && (getKI() * getIntegral().getY() > 0)))) {
-				getIntegral().setY(integralYPrevious);
+
+		if (outputLimiter.limit(output, difference) &&
+		    (((difference < 0) && (getKI() * getIntegral().getY() < 0)) ||
+		     ((difference > 0) && (getKI() * getIntegral().getY() > 0)))) {
+			getIntegral().setY(integralYPrevious);
 		}
+
 		return output;
 	}
 private:
@@ -152,9 +159,10 @@ public:
 // methods
 	BlockFFPILimitedCustom(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
 		BlockFFPILimited(parent, name, isAngularLimit)
-		{};
+	{};
 	virtual ~BlockFFPILimitedCustom() {};
-	float update(float inputValue, float inputError, BlockOutputLimiter *outputLimiter = NULL) {
+	float update(float inputValue, float inputError, BlockOutputLimiter *outputLimiter = NULL)
+	{
 		return calcLimitedOutput(inputValue, inputError, outputLimiter == NULL ? _outputLimiter : *outputLimiter);
 	}
 };
@@ -170,7 +178,8 @@ public:
 		_outputLimiter(this, "", isAngularLimit)
 	{};
 	virtual ~BlockPLimited() {};
-	float update(float input) {
+	float update(float input)
+	{
 		float difference = 0.0f;
 		float output = getKP() * input;
 		getOutputLimiter().limit(output, difference);
@@ -197,7 +206,8 @@ public:
 		_outputLimiter(this, "", isAngularLimit)
 	{};
 	virtual ~BlockPDLimited() {};
-	float update(float input) {
+	float update(float input)
+	{
 		float difference = 0.0f;
 		float output = getKP() * input + (getDerivative().getDt() > 0.0f ? getKD() * getDerivative().update(input) : 0.0f);
 		getOutputLimiter().limit(output, difference);

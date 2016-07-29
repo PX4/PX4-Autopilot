@@ -112,15 +112,15 @@ interface_init(void)
 	modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C1RST, 0);
 
 	/* configure the i2c GPIOs */
-	stm32_configgpio(GPIO_I2C1_SCL);
-	stm32_configgpio(GPIO_I2C1_SDA);
+	px4_arch_configgpio(GPIO_I2C1_SCL);
+	px4_arch_configgpio(GPIO_I2C1_SDA);
 
 	/* soft-reset the block */
 	rCR1 |= I2C_CR1_SWRST;
 	rCR1 = 0;
 
 	/* set for DMA operation */
-	rCR2 |= I2C_CR2_ITEVFEN |I2C_CR2_ITERREN | I2C_CR2_DMAEN;
+	rCR2 |= I2C_CR2_ITEVFEN | I2C_CR2_ITERREN | I2C_CR2_DMAEN;
 
 	/* set the frequency value in CR2 */
 	rCR2 &= ~I2C_CR2_FREQ_MASK;
@@ -128,8 +128,11 @@ interface_init(void)
 
 	/* set divisor and risetime for fast mode */
 	uint16_t result = STM32_PCLK1_FREQUENCY / (400000 * 25);
-	if (result < 1)
+
+	if (result < 1) {
 		result = 1;
+	}
+
 	result = 3;
 	rCCR &= ~I2C_CCR_CCR_MASK;
 	rCCR |= I2C_CCR_DUTY | I2C_CCR_FS | result;
@@ -163,7 +166,7 @@ i2c_reset(void)
 	rCR1 = 0;
 
 	/* set for DMA operation */
-	rCR2 |= I2C_CR2_ITEVFEN |I2C_CR2_ITERREN | I2C_CR2_DMAEN;
+	rCR2 |= I2C_CR2_ITEVFEN | I2C_CR2_ITERREN | I2C_CR2_DMAEN;
 
 	/* set the frequency value in CR2 */
 	rCR2 &= ~I2C_CR2_FREQ_MASK;
@@ -171,8 +174,11 @@ i2c_reset(void)
 
 	/* set divisor and risetime for fast mode */
 	uint16_t result = STM32_PCLK1_FREQUENCY / (400000 * 25);
-	if (result < 1)
+
+	if (result < 1) {
 		result = 1;
+	}
+
 	result = 3;
 	rCCR &= ~I2C_CCR_CCR_MASK;
 	rCCR |= I2C_CCR_DUTY | I2C_CCR_FS | result;
@@ -203,13 +209,16 @@ i2c_interrupt(int irq, FAR void *context)
 		case DIR_TX:
 			i2c_tx_complete();
 			break;
+
 		case DIR_RX:
 			i2c_rx_complete();
 			break;
+
 		default:
 			/* not currently transferring - must be a new txn */
 			break;
 		}
+
 		direction = DIR_NONE;
 	}
 
@@ -232,8 +241,9 @@ i2c_interrupt(int irq, FAR void *context)
 	}
 
 	/* clear any errors that might need it (this handles AF as well */
-	if (sr1 & I2C_SR1_ERRORMASK)
+	if (sr1 & I2C_SR1_ERRORMASK) {
 		rSR1 = 0;
+	}
 
 	return 0;
 }
@@ -248,13 +258,13 @@ i2c_rx_setup(void)
 	 */
 	rx_len = 0;
 	stm32_dmasetup(rx_dma, (uintptr_t)&rDR, (uintptr_t)&rx_buf[0], sizeof(rx_buf),
-		DMA_CCR_CIRC |
-		DMA_CCR_MINC |
-		DMA_CCR_PSIZE_32BITS |
-		DMA_CCR_MSIZE_8BITS |
-		DMA_CCR_PRIMED);
+		       DMA_CCR_CIRC |
+		       DMA_CCR_MINC |
+		       DMA_CCR_PSIZE_32BITS |
+		       DMA_CCR_MSIZE_8BITS |
+		       DMA_CCR_PRIMED);
 
-	stm32_dmastart(rx_dma, NULL, NULL, false);			
+	stm32_dmastart(rx_dma, NULL, NULL, false);
 }
 
 static void
@@ -269,8 +279,10 @@ i2c_rx_complete(void)
 
 		/* work out how many registers are being written */
 		unsigned count = (rx_len - 2) / 2;
+
 		if (count > 0) {
 			registers_set(selected_page, selected_offset, (const uint16_t *)&rx_buf[2], count);
+
 		} else {
 			/* no registers written, must be an address cycle */
 			uint16_t *regs;
@@ -278,21 +290,23 @@ i2c_rx_complete(void)
 
 			/* work out which registers are being addressed */
 			int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
+
 			if (ret == 0) {
 				tx_buf = (uint8_t *)regs;
 				tx_len = reg_count * 2;
+
 			} else {
 				tx_buf = junk_buf;
 				tx_len = sizeof(junk_buf);
 			}
 
 			/* disable interrupts while reconfiguring DMA for the selected registers */
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			stm32_dmastop(tx_dma);
 			i2c_tx_setup();
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 		}
 	}
 
@@ -306,16 +320,16 @@ i2c_tx_setup(void)
 	/*
 	 * Note that we configure DMA in circular mode; this means that a too-long
 	 * transfer will copy the buffer more than once, but that avoids us having
-	 * to deal with bailing out of a transaction while the master is still 
+	 * to deal with bailing out of a transaction while the master is still
 	 * babbling at us.
 	 */
 	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], tx_len,
-		DMA_CCR_DIR |
-		DMA_CCR_CIRC |
-		DMA_CCR_MINC |
-		DMA_CCR_PSIZE_8BITS |
-		DMA_CCR_MSIZE_8BITS |
-		DMA_CCR_PRIMED);
+		       DMA_CCR_DIR |
+		       DMA_CCR_CIRC |
+		       DMA_CCR_MINC |
+		       DMA_CCR_PSIZE_8BITS |
+		       DMA_CCR_MSIZE_8BITS |
+		       DMA_CCR_PRIMED);
 
 	stm32_dmastart(tx_dma, NULL, NULL, false);
 }

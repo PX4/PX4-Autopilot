@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 [ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
     # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules
@@ -6,138 +6,78 @@
     exit 0
 }
 
-if [ -d NuttX/nuttx ];
-	then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i "NuttX" | grep "<")
-	if [ -z "$STATUSRETVAL" ]; then
-		echo "Checked NuttX submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "   NuttX sub repo not at correct version. Try 'git submodule update'"
-		echo "   or follow instructions on http://pixhawk.org/dev/git/submodules"
-		echo ""
-		echo "   DO NOT FORGET TO RUN 'make distclean && make archives' AFTER EACH NUTTX UPDATE!"
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
 
+GITSTATUS=$(git status)
 
-if [ -d mavlink/include/mavlink/v1.0 ];
-	then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i "mavlink/include/mavlink/v1.0" | grep "<")
-	if [ -z "$STATUSRETVAL" ]; then
-		echo "Checked mavlink submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
+function check_git_submodule {
 
-
-if [ -d uavcan ]
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ] || [ -d $1"/.git" ];
 then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i uavcan | grep "<")
-	if [ -z "$STATUSRETVAL" ]
+	SUBMODULE_STATUS=$(git submodule summary "$1")
+	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
+	if ! [[ -z "$STATUSRETVAL" ]];
 	then
-		echo "Checked uavcan submodule, correct version found"
-	else
+		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
+		echo ""
+		echo -e "Different commits:"
+		echo -e "$SUBMODULE_STATUS"
 		echo ""
 		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
+		echo -e " *******************************************************************************"
+		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
+		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
+		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
+		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
+		echo -e " *******************************************************************************"
 		echo ""
 		echo ""
-		echo "uavcan sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
+		echo -e "   Only for EXPERTS:"
+		echo -e "   $1 submodule is not in the recommended version."
+		echo -e "   Hit 'y' and <ENTER> to continue the build with this version. Hit <ENTER> to resolve manually."
+		echo -e "   Use \033[94mgit add $1 && git commit -m 'Updated $1'\033[0m to choose this version (careful!)"
+		echo ""
+		read user_cmd
+		if [ "$user_cmd" == "y" ]
+		then
+			echo "Continuing build with manually overridden submodule.."
+		else
+			if [ "$user_cmd" == "u" ]
+			then
+				git submodule sync --recursive
+				git submodule update --init --recursive
+				echo "Submodule fixed, continuing build.."
+			else
+				echo "Build aborted."
+				exit 1
+			fi
+		fi
 	fi
 else
-	git submodule init;
-	git submodule update;
+	echo "REINITIALIZING GIT SUBMODULES"
+	echo "no git repo found in $1/.git"
+	git submodule sync --recursive;
+	git submodule update --init --recursive $1;
 fi
 
-if [ -d src/lib/eigen ]
-then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i eigen | grep "<")
-	if [ -z "$STATUSRETVAL" ]
-	then
-		echo "Checked Eigen submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "eigen sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
+}
 
-if [ -d Tools/gencpp ]
-then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i gencpp | grep "<")
-	if [ -z "$STATUSRETVAL" ]
-	then
-		echo "Checked gencpp submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "gencpp sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
-
-if [ -d Tools/genmsg ]
-then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i genmsg | grep "<")
-	if [ -z "$STATUSRETVAL" ]
-	then
-		echo "Checked genmsg submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "genmsg sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
+check_git_submodule NuttX
+check_git_submodule Tools/gencpp
+check_git_submodule Tools/genmsg
+check_git_submodule Tools/jMAVSim
+check_git_submodule Tools/sitl_gazebo
+check_git_submodule cmake/cmake_hexagon
+check_git_submodule mavlink/include/mavlink/v1.0
+check_git_submodule mavlink/include/mavlink/v2.0
+check_git_submodule src/lib/DriverFramework
+check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
+check_git_submodule src/lib/DriverFramework/dspal
+check_git_submodule src/lib/ecl
+check_git_submodule src/lib/matrix
+check_git_submodule src/modules/uavcan/libuavcan
+check_git_submodule unittests/googletest
+check_git_submodule src/drivers/gps/devices
 
 exit 0
+

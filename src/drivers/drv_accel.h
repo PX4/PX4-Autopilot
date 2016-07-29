@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,28 +51,11 @@
 #define ACCEL1_DEVICE_PATH	"/dev/accel1"
 #define ACCEL2_DEVICE_PATH	"/dev/accel2"
 
-/**
- * accel report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct accel_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	float x;		/**< acceleration in the NED X board axis in m/s^2 */
-	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
-	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
-	float temperature;	/**< temperature in degrees celsius */
-	float range_m_s2;	/**< range in m/s^2 (+- this value) */
-	float scaling;
-
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-	int16_t temperature_raw;
-};
+#include <uORB/topics/sensor_accel.h>
+#define accel_report sensor_accel_s
 
 /** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
-struct accel_scale {
+struct accel_calibration_s {
 	float	x_offset;
 	float	x_scale;
 	float	y_offset;
@@ -80,12 +63,6 @@ struct accel_scale {
 	float	z_offset;
 	float	z_scale;
 };
-
-/*
- * ObjDev tag for raw accelerometer data.
- */
-ORB_DECLARE(sensor_accel);
-
 /*
  * ioctl() definitions
  *
@@ -94,7 +71,7 @@ ORB_DECLARE(sensor_accel);
  */
 
 #define _ACCELIOCBASE		(0x2100)
-#define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
+#define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
 
 /** set the accel internal sample rate to at least (arg) Hz */
@@ -125,5 +102,11 @@ ORB_DECLARE(sensor_accel);
 
 /** get the result of a sensor self-test */
 #define ACCELIOCSELFTEST	_ACCELIOC(9)
+
+/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
+#define ACCELIOCSHWLOWPASS	_ACCELIOC(10)
+
+/** get the hardware low-pass filter cut-off in Hz*/
+#define ACCELIOCGHWLOWPASS	_ACCELIOC(11)
 
 #endif /* _DRV_ACCEL_H */

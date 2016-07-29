@@ -59,18 +59,18 @@
 
 using namespace px4;
 
-class MulticopterPositionControl
+class MulticopterPositionControlMultiplatform
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterPositionControl();
+	MulticopterPositionControlMultiplatform();
 
 	/**
 	 * Destructor, also kills task.
 	 */
-	~MulticopterPositionControl();
+	~MulticopterPositionControlMultiplatform();
 
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);
@@ -84,7 +84,7 @@ protected:
 
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
-	int		_mavlink_fd;			/**< mavlink fd */
+	//orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
 	Publisher<px4_vehicle_attitude_setpoint>	*_att_sp_pub;			/**< attitude setpoint publication */
 	Publisher<px4_vehicle_local_position_setpoint>	*_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -106,6 +106,8 @@ protected:
 	px4_vehicle_global_velocity_setpoint _global_vel_sp_msg;
 
 	px4::NodeHandle _n;
+
+	px4::AppState _appState;
 
 	struct {
 		px4::ParameterFloat thr_min;

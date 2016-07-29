@@ -116,12 +116,14 @@ void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, do
 
 	if (val + offset > deadzone || val + offset < -deadzone) {
 		out = (float)((val + offset)) * scale;
+
 	} else {
 		out = 0.0f;
 	}
 }
 
-void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp) {
+void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp)
+{
 	msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
 
 	if (_buttons_state[MAIN_STATE_MANUAL] != msg->buttons[_param_buttons_map[MAIN_STATE_MANUAL]] == true) {
@@ -150,6 +152,7 @@ void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_co
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		return;
+
 	} else if (_buttons_state[MAIN_STATE_OFFBOARD] != msg->buttons[_param_buttons_map[MAIN_STATE_OFFBOARD]] == true) {
 		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_MIDDLE;
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;

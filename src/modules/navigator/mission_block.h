@@ -43,9 +43,14 @@
 
 #include <drivers/drv_hrt.h>
 
+#include <navigator/navigation.h>
+
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/follow_target.h>
 
 #include "navigator_mode.h"
 
@@ -63,6 +68,9 @@ public:
 	 * Destructor
 	 */
 	virtual ~MissionBlock();
+
+	/* TODO: move this to a helper class in navigator */
+	static bool item_contains_position(const struct mission_item_s *item);
 
 protected:
 	/**
@@ -91,12 +99,53 @@ protected:
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
-	void set_loiter_item(struct mission_item_s *item);
+	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
+
+	/**
+	 * Set a takeoff mission item
+	 */
+	void set_takeoff_item(struct mission_item_s *item, float min_clearance = -1.0f, float min_pitch = 0.0f);
+
+	/**
+	 * Set a land mission item
+	 */
+	void set_land_item(struct mission_item_s *item, bool at_current_location);
+
+	void set_current_position_item(struct mission_item_s *item);
+
+	/**
+	 * Set idle mission item
+	 */
+	void set_idle_item(struct mission_item_s *item);
+
+	/**
+	 * Convert a mission item to a command
+	 */
+	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+
+	/**
+	 * Set follow_target item
+	 */
+	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw);
+
+	void issue_command(const struct mission_item_s *item);
 
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
+	hrt_abstime _action_start;
+	hrt_abstime _time_wp_reached;
+
+	actuator_controls_s _actuators;
+	orb_advert_t    _actuator_pub;
+	orb_advert_t	_cmd_pub;
+
+	control::BlockParamFloat _param_loiter_min_alt;
+	control::BlockParamFloat _param_yaw_timeout;
+	control::BlockParamFloat _param_yaw_err;
+	control::BlockParamInt _param_vtol_wv_land;
+	control::BlockParamInt _param_vtol_wv_loiter;
 };
 
 #endif

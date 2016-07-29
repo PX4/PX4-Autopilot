@@ -54,7 +54,7 @@
 class UavcanEscController
 {
 public:
-	UavcanEscController(uavcan::INode& node);
+	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
 
 	int init();
@@ -78,17 +78,18 @@ private:
 
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
+	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
-	typedef uavcan::MethodBinder<UavcanEscController*,
+	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
 		StatusCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController*, void (UavcanEscController::*)(const uavcan::TimerEvent&)>
-		TimerCbBinder;
+	typedef uavcan::MethodBinder<UavcanEscController *, void (UavcanEscController::*)(const uavcan::TimerEvent &)>
+	TimerCbBinder;
 
 	bool		_armed = false;
 	esc_status_s	_esc_status = {};
-	orb_advert_t	_esc_status_pub = -1;
+	orb_advert_t	_esc_status_pub = nullptr;
 
 	/*
 	 * libuavcan related things

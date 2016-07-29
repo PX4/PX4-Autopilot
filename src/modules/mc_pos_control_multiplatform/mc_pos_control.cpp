@@ -49,11 +49,11 @@
 #define SIGMA		0.000001f
 #define MIN_DIST	0.01f
 
-MulticopterPositionControl::MulticopterPositionControl() :
+MulticopterPositionControlMultiplatform::MulticopterPositionControlMultiplatform() :
 
 	_task_should_exit(false),
 	_control_task(-1),
-	_mavlink_fd(-1),
+	//_mavlink_log_pub(nullptr),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -65,31 +65,31 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp_msg(),
 	_global_vel_sp_msg(),
 
-	_n(),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({
-		.thr_min	    = px4::ParameterFloat("MPC_THR_MIN", PARAM_MPC_THR_MIN_DEFAULT),
-		.thr_max	    = px4::ParameterFloat("MPC_THR_MAX", PARAM_MPC_THR_MAX_DEFAULT),
-		.z_p		    = px4::ParameterFloat("MPC_Z_P", PARAM_MPC_Z_P_DEFAULT),
-		.z_vel_p	    = px4::ParameterFloat("MPC_Z_VEL_P", PARAM_MPC_Z_VEL_P_DEFAULT),
-		.z_vel_i	    = px4::ParameterFloat("MPC_Z_VEL_I", PARAM_MPC_Z_VEL_I_DEFAULT),
-		.z_vel_d	    = px4::ParameterFloat("MPC_Z_VEL_D", PARAM_MPC_Z_VEL_D_DEFAULT),
-		.z_vel_max	    = px4::ParameterFloat("MPC_Z_VEL_MAX", PARAM_MPC_Z_VEL_MAX_DEFAULT),
-		.z_ff		    = px4::ParameterFloat("MPC_Z_FF", PARAM_MPC_Z_FF_DEFAULT),
-		.xy_p		    = px4::ParameterFloat("MPC_XY_P", PARAM_MPC_XY_P_DEFAULT),
-		.xy_vel_p	    = px4::ParameterFloat("MPC_XY_VEL_P", PARAM_MPC_XY_VEL_P_DEFAULT),
-		.xy_vel_i	    = px4::ParameterFloat("MPC_XY_VEL_I", PARAM_MPC_XY_VEL_I_DEFAULT),
-		.xy_vel_d	    = px4::ParameterFloat("MPC_XY_VEL_D", PARAM_MPC_XY_VEL_D_DEFAULT),
-		.xy_vel_max	    = px4::ParameterFloat("MPC_XY_VEL_MAX", PARAM_MPC_XY_VEL_MAX_DEFAULT),
-		.xy_ff		    = px4::ParameterFloat("MPC_XY_FF", PARAM_MPC_XY_FF_DEFAULT),
-		.tilt_max_air	    = px4::ParameterFloat("MPC_TILTMAX_AIR", PARAM_MPC_TILTMAX_AIR_DEFAULT),
-		.land_speed	    = px4::ParameterFloat("MPC_LAND_SPEED", PARAM_MPC_LAND_SPEED_DEFAULT),
-		.tilt_max_land	    = px4::ParameterFloat("MPC_TILTMAX_LND", PARAM_MPC_TILTMAX_LND_DEFAULT),
-		.man_roll_max	    = px4::ParameterFloat("MPC_MAN_R_MAX", PARAM_MPC_MAN_R_MAX_DEFAULT),
-		.man_pitch_max	    = px4::ParameterFloat("MPC_MAN_P_MAX", PARAM_MPC_MAN_P_MAX_DEFAULT),
-		.man_yaw_max	    = px4::ParameterFloat("MPC_MAN_Y_MAX", PARAM_MPC_MAN_Y_MAX_DEFAULT),
-		.mc_att_yaw_p	    = px4::ParameterFloat("MC_YAW_P", PARAM_MC_YAW_P_DEFAULT)
+		.thr_min	    = px4::ParameterFloat("MPP_THR_MIN", PARAM_MPP_THR_MIN_DEFAULT),
+		.thr_max	    = px4::ParameterFloat("MPP_THR_MAX", PARAM_MPP_THR_MAX_DEFAULT),
+		.z_p		    = px4::ParameterFloat("MPP_Z_P", PARAM_MPP_Z_P_DEFAULT),
+		.z_vel_p	    = px4::ParameterFloat("MPP_Z_VEL_P", PARAM_MPP_Z_VEL_P_DEFAULT),
+		.z_vel_i	    = px4::ParameterFloat("MPP_Z_VEL_I", PARAM_MPP_Z_VEL_I_DEFAULT),
+		.z_vel_d	    = px4::ParameterFloat("MPP_Z_VEL_D", PARAM_MPP_Z_VEL_D_DEFAULT),
+		.z_vel_max	    = px4::ParameterFloat("MPP_Z_VEL_MAX", PARAM_MPP_Z_VEL_MAX_DEFAULT),
+		.z_ff		    = px4::ParameterFloat("MPP_Z_FF", PARAM_MPP_Z_FF_DEFAULT),
+		.xy_p		    = px4::ParameterFloat("MPP_XY_P", PARAM_MPP_XY_P_DEFAULT),
+		.xy_vel_p	    = px4::ParameterFloat("MPP_XY_VEL_P", PARAM_MPP_XY_VEL_P_DEFAULT),
+		.xy_vel_i	    = px4::ParameterFloat("MPP_XY_VEL_I", PARAM_MPP_XY_VEL_I_DEFAULT),
+		.xy_vel_d	    = px4::ParameterFloat("MPP_XY_VEL_D", PARAM_MPP_XY_VEL_D_DEFAULT),
+		.xy_vel_max	    = px4::ParameterFloat("MPP_XY_VEL_MAX", PARAM_MPP_XY_VEL_MAX_DEFAULT),
+		.xy_ff		    = px4::ParameterFloat("MPP_XY_FF", PARAM_MPP_XY_FF_DEFAULT),
+		.tilt_max_air	    = px4::ParameterFloat("MPP_TILTMAX_AIR", PARAM_MPP_TILTMAX_AIR_DEFAULT),
+		.land_speed	    = px4::ParameterFloat("MPP_LAND_SPEED", PARAM_MPP_LAND_SPEED_DEFAULT),
+		.tilt_max_land	    = px4::ParameterFloat("MPP_TILTMAX_LND", PARAM_MPP_TILTMAX_LND_DEFAULT),
+		.man_roll_max	    = px4::ParameterFloat("MPP_MAN_R_MAX", PARAM_MPP_MAN_R_MAX_DEFAULT),
+		.man_pitch_max	    = px4::ParameterFloat("MPP_MAN_P_MAX", PARAM_MPP_MAN_P_MAX_DEFAULT),
+		.man_yaw_max	    = px4::ParameterFloat("MPP_MAN_Y_MAX", PARAM_MPP_MAN_Y_MAX_DEFAULT),
+		.mc_att_yaw_p	    = px4::ParameterFloat("MP_YAW_P", PARAM_MP_YAW_P_DEFAULT)
 	}),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
@@ -105,14 +105,14 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/*
 	 * Do subscriptions
 	 */
-	_att = _n.subscribe<px4_vehicle_attitude>(&MulticopterPositionControl::handle_vehicle_attitude, this, 0);
+	_att = _n.subscribe<px4_vehicle_attitude>(&MulticopterPositionControlMultiplatform::handle_vehicle_attitude, this, 0);
 	_control_mode = _n.subscribe<px4_vehicle_control_mode>(0);
 	_parameter_update = _n.subscribe<px4_parameter_update>(
-			&MulticopterPositionControl::handle_parameter_update, this, 1000);
+			&MulticopterPositionControlMultiplatform::handle_parameter_update, this, 1000);
 	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
 	_armed = _n.subscribe<px4_actuator_armed>(0);
 	_local_pos = _n.subscribe<px4_vehicle_local_position>(0);
-	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>(&MulticopterPositionControl::handle_position_setpoint_triplet, this, 0);
+	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>(&MulticopterPositionControlMultiplatform::handle_position_setpoint_triplet, this, 0);
 	_local_pos_sp = _n.subscribe<px4_vehicle_local_position_setpoint>(0);
 	_global_vel_sp = _n.subscribe<px4_vehicle_global_velocity_setpoint>(0);
 
@@ -139,12 +139,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_R.identity();
 }
 
-MulticopterPositionControl::~MulticopterPositionControl()
+MulticopterPositionControlMultiplatform::~MulticopterPositionControlMultiplatform()
 {
 }
 
 int
-MulticopterPositionControl::parameters_update()
+MulticopterPositionControlMultiplatform::parameters_update()
 {
 	_params.thr_min = _params_handles.thr_min.update();
 	_params.thr_max = _params_handles.thr_max.update();
@@ -180,7 +180,7 @@ MulticopterPositionControl::parameters_update()
 
 
 float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz)
+MulticopterPositionControlMultiplatform::scale_control(float ctl, float end, float dz)
 {
 	if (ctl > dz) {
 		return (ctl - dz) / (end - dz);
@@ -194,7 +194,7 @@ MulticopterPositionControl::scale_control(float ctl, float end, float dz)
 }
 
 void
-MulticopterPositionControl::update_ref()
+MulticopterPositionControlMultiplatform::update_ref()
 {
 	if (_local_pos->data().ref_timestamp != _ref_timestamp) {
 		double lat_sp, lon_sp;
@@ -221,7 +221,7 @@ MulticopterPositionControl::update_ref()
 }
 
 void
-MulticopterPositionControl::reset_pos_sp()
+MulticopterPositionControlMultiplatform::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
@@ -232,13 +232,13 @@ MulticopterPositionControl::reset_pos_sp()
 				// - _params.vel_ff(1) * _sp_move_rate(1)) / _params.pos_p(1);
 
 		//XXX: port this once a mavlink like interface is available
-		// mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
 		PX4_INFO("[mpc] reset pos sp: %2.3f, %2.3f", (double)_pos_sp(0), (double)_pos_sp(1));
 	}
 }
 
 void
-MulticopterPositionControl::reset_alt_sp()
+MulticopterPositionControlMultiplatform::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
@@ -249,13 +249,13 @@ MulticopterPositionControl::reset_alt_sp()
 		_att_sp_msg.data().yaw_body = _att->data().yaw;
 
 		//XXX: port this once a mavlink like interface is available
-		// mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 		PX4_INFO("[mpc] reset alt sp: %2.3f", -(double)_pos_sp(2));
 	}
 }
 
 void
-MulticopterPositionControl::limit_pos_sp_offset()
+MulticopterPositionControlMultiplatform::limit_pos_sp_offset()
 {
 	math::Vector<3> pos_sp_offs;
 	pos_sp_offs.zero();
@@ -278,7 +278,7 @@ MulticopterPositionControl::limit_pos_sp_offset()
 }
 
 void
-MulticopterPositionControl::control_manual(float dt)
+MulticopterPositionControlMultiplatform::control_manual(float dt)
 {
 	_sp_move_rate.zero();
 
@@ -343,7 +343,7 @@ MulticopterPositionControl::control_manual(float dt)
 }
 
 void
-MulticopterPositionControl::control_offboard(float dt)
+MulticopterPositionControlMultiplatform::control_offboard(float dt)
 {
 	if (_pos_sp_triplet->data().current.valid) {
 		if (_control_mode->data().flag_control_position_enabled && _pos_sp_triplet->data().current.position_valid) {
@@ -390,7 +390,7 @@ MulticopterPositionControl::control_offboard(float dt)
 }
 
 bool
-MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, float sphere_r,
+MulticopterPositionControlMultiplatform::cross_sphere_line(const math::Vector<3>& sphere_c, float sphere_r,
 		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3>& res)
 {
 	/* project center of sphere on line */
@@ -415,7 +415,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, f
 }
 
 void
-MulticopterPositionControl::control_auto(float dt)
+MulticopterPositionControlMultiplatform::control_auto(float dt)
 {
 	if (!_mode_auto) {
 		_mode_auto = true;
@@ -537,7 +537,7 @@ MulticopterPositionControl::control_auto(float dt)
 		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
-		if (isfinite(_pos_sp_triplet->data().current.yaw)) {
+		if (PX4_ISFINITE(_pos_sp_triplet->data().current.yaw)) {
 			_att_sp_msg.data().yaw_body = _pos_sp_triplet->data().current.yaw;
 		}
 
@@ -546,22 +546,22 @@ MulticopterPositionControl::control_auto(float dt)
 	}
 }
 
-void MulticopterPositionControl::handle_parameter_update(const px4_parameter_update &msg)
+void MulticopterPositionControlMultiplatform::handle_parameter_update(const px4_parameter_update &msg)
 {
 	parameters_update();
 }
 
-void MulticopterPositionControl::handle_position_setpoint_triplet(const px4_position_setpoint_triplet &msg)
+void MulticopterPositionControlMultiplatform::handle_position_setpoint_triplet(const px4_position_setpoint_triplet &msg)
 {
 	/* Make sure that the position setpoint is valid */
-	if (!isfinite(_pos_sp_triplet->data().current.lat) ||
-			!isfinite(_pos_sp_triplet->data().current.lon) ||
-			!isfinite(_pos_sp_triplet->data().current.alt)) {
+	if (!PX4_ISFINITE(_pos_sp_triplet->data().current.lat) ||
+			!PX4_ISFINITE(_pos_sp_triplet->data().current.lon) ||
+			!PX4_ISFINITE(_pos_sp_triplet->data().current.alt)) {
 		_pos_sp_triplet->data().current.valid = false;
 	}
 }
 
-void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_attitude &msg)
+void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4_vehicle_attitude &msg)
 {
 	static bool reset_int_z = true;
 	static bool reset_int_z_manual = false;
@@ -646,6 +646,21 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 			math::Vector<3> pos_err = _pos_sp - _pos;
 
 			_vel_sp = pos_err.emult(_params.pos_p) + _vel_ff;
+
+			/* make sure velocity setpoint is saturated in xy*/
+			float vel_norm_xy = sqrtf(_vel_sp(0)*_vel_sp(0) +
+				_vel_sp(1)*_vel_sp(1));
+			if (vel_norm_xy > _params.vel_max(0)) {
+				/* note assumes vel_max(0) == vel_max(1) */
+				_vel_sp(0) = _vel_sp(0)*_params.vel_max(0)/vel_norm_xy;
+				_vel_sp(1) = _vel_sp(1)*_params.vel_max(1)/vel_norm_xy;
+			}
+
+			/* make sure velocity setpoint is saturated in z*/
+			float vel_norm_z = sqrtf(_vel_sp(2)*_vel_sp(2));
+			if (vel_norm_z > _params.vel_max(2)) {
+				_vel_sp(2) = _vel_sp(2)*_params.vel_max(2)/vel_norm_z;
+			}
 
 			if (!_control_mode->data().flag_control_altitude_enabled) {
 				_reset_alt_sp = true;

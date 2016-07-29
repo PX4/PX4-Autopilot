@@ -57,10 +57,11 @@ open_uart(const char *device)
 	if (uart < 0) {
 		err(1, "ERR: opening %s", device);
 	}
-	
-	/* Back up the original uart configuration to restore it after exit */	
+
+	/* Back up the original uart configuration to restore it after exit */
 	int termios_state;
 	struct termios uart_config_original;
+
 	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
 		close(uart);
 		err(1, "ERR: %s: %d", device, termios_state);
@@ -77,7 +78,7 @@ open_uart(const char *device)
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 		close(uart);
 		err(1, "ERR: %s: %d (cfsetispeed, cfsetospeed)",
-			 device, termios_state);
+		    device, termios_state);
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {

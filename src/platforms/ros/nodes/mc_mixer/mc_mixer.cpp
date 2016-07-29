@@ -221,14 +221,19 @@ void MultirotorMixer::actuatorControlsCallback(const px4::actuator_controls_0 &m
 	// switch mixer if necessary
 	std::string mixer_name;
 	_n.getParamCached("mixer", mixer_name);
+
 	if (mixer_name == "x") {
 		_rotors = _config_index[0];
+
 	} else if (mixer_name == "+") {
 		_rotors = _config_index[1];
+
 	} else if (mixer_name == "e") {
 		_rotors = _config_index[2];
+
 	} else if (mixer_name == "w") {
 		_rotors = _config_index[3];
+
 	} else if (mixer_name == "i") {
 		_rotors = _config_index[4];
 	}

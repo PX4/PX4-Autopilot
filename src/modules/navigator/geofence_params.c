@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,24 +39,28 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * Geofence parameters, accessible via MAVLink
  */
 
 /**
- * Geofence mode.
+ * Geofence violation action.
  *
- * 0 = disabled, 1 = geofence file only, 2 = max horizontal (GF_MAX_HOR_DIST) and vertical (GF_MAX_VER_DIST) distances, 3 = both
+ * Note: Setting this value to 4 enables flight termination,
+ * which will kill the vehicle on violation of the fence.
+ * Due to the inherent danger of this, this function is
+ * disabled using a software circuit breaker, which needs
+ * to be reset to 0 to really shut down the system.
  *
  * @min 0
- * @max 3
+ * @max 4
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Loiter
+ * @value 3 Return to Land
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_MODE, 0);
+PARAM_DEFINE_INT32(GF_ACTION, 1);
 
 /**
  * Geofence altitude mode
@@ -66,6 +70,8 @@ PARAM_DEFINE_INT32(GF_MODE, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 WGS84
+ * @value 1 AMSL
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ALTMODE, 0);
@@ -79,6 +85,8 @@ PARAM_DEFINE_INT32(GF_ALTMODE, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 GPOS
+ * @value 1 GPS
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_SOURCE, 0);
@@ -90,6 +98,7 @@ PARAM_DEFINE_INT32(GF_SOURCE, 0);
  *
  * @min -1
  * @max 10
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_COUNT, -1);
@@ -97,8 +106,12 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
 /**
  * Max horizontal distance in meters.
  *
- * Set to > 0 to activate RTL if horizontal distance to home exceeds this value.
+ * Set to > 0 to activate a geofence action if horizontal distance to home exceeds this value.
  *
+ * @unit m
+ * @min -1
+ * @max 5000
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
@@ -106,8 +119,11 @@ PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
 /**
  * Max vertical distance in meters.
  *
- * Set to > 0 to activate RTL if vertical distance to home exceeds this value.
+ * Set to > 0 to activate a geofence action if vertical distance to home exceeds this value.
  *
+ * @unit m
+ * @min -1
+ * @increment 1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_VER_DIST, -1);

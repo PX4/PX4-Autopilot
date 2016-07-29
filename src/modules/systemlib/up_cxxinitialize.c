@@ -38,11 +38,12 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <stdint.h>
 
-#include <debug.h>
+//#include <debug.h>
 
-#include <nuttx/arch.h>
+//#include <nuttx/arch.h>
 
 //#include <arch/stm32/chip.h>
 //#include "chip.h"
@@ -117,34 +118,33 @@ extern uint32_t _etext;
  *   This function should then be called in the application-specific
  *   user_start logic in order to perform the C++ initialization.  NOTE
  *   that no component of the core NuttX RTOS logic is involved; This
- *   function defintion only provides the 'contract' between application
+ *   function definition only provides the 'contract' between application
  *   specific C++ code and platform-specific toolchain support
  *
  ***************************************************************************/
 
-__EXPORT void up_cxxinitialize(void)
+__EXPORT void up_cxxinitialize(void);
+void up_cxxinitialize(void)
 {
-  initializer_t *initp;
+	initializer_t *initp;
 
-  cxxdbg("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
-         &_sinit, &_einit, &_stext, &_etext);
+	cxxdbg("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
+	       &_sinit, &_einit, &_stext, &_etext);
 
-  /* Visit each entry in the initialzation table */
+	/* Visit each entry in the initialzation table */
 
-  for (initp = &_sinit; initp != &_einit; initp++)
-    {
-      initializer_t initializer = *initp;
-      cxxdbg("initp: %p initializer: %p\n", initp, initializer);
+	for (initp = &_sinit; initp != &_einit; initp++) {
+		initializer_t initializer = *initp;
+		cxxdbg("initp: %p initializer: %p\n", initp, initializer);
 
-      /* Make sure that the address is non-NULL and lies in the text region
-       * defined by the linker script.  Some toolchains may put NULL values
-       * or counts in the initialization table
-       */
+		/* Make sure that the address is non-NULL and lies in the text region
+		 * defined by the linker script.  Some toolchains may put NULL values
+		 * or counts in the initialization table
+		 */
 
-      if ((void*)initializer > (void*)&_stext && (void*)initializer < (void*)&_etext)
-        {
-          cxxdbg("Calling %p\n", initializer);
-          initializer();
-        }
-    }
+		if ((void *)initializer > (void *)&_stext && (void *)initializer < (void *)&_etext) {
+			cxxdbg("Calling %p\n", initializer);
+			initializer();
+		}
+	}
 }

@@ -37,7 +37,7 @@
  * AeroCore LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
@@ -63,19 +63,19 @@ __END_DECLS
 
 __EXPORT void led_init()
 {
-	stm32_configgpio(GPIO_LED0);
-	stm32_configgpio(GPIO_LED1);
+	px4_arch_configgpio(GPIO_LED0);
+	px4_arch_configgpio(GPIO_LED1);
 }
 
 __EXPORT void led_on(int led)
 {
 	switch (led) {
 	case 0:
-		stm32_gpiowrite(GPIO_LED0, true);
+		px4_arch_gpiowrite(GPIO_LED0, true);
 		break;
 
 	case 1:
-		stm32_gpiowrite(GPIO_LED1, true);
+		px4_arch_gpiowrite(GPIO_LED1, true);
 		break;
 
 	default:
@@ -87,11 +87,11 @@ __EXPORT void led_off(int led)
 {
 	switch (led) {
 	case 0:
-		stm32_gpiowrite(GPIO_LED0, false);
+		px4_arch_gpiowrite(GPIO_LED0, false);
 		break;
 
 	case 1:
-		stm32_gpiowrite(GPIO_LED1, false);
+		px4_arch_gpiowrite(GPIO_LED1, false);
 		break;
 
 	default:
@@ -103,17 +103,23 @@ __EXPORT void led_toggle(int led)
 {
 	switch (led) {
 	case 0:
-		if (stm32_gpioread(GPIO_LED0))
-			stm32_gpiowrite(GPIO_LED0, false);
-		else
-			stm32_gpiowrite(GPIO_LED0, true);
+		if (px4_arch_gpioread(GPIO_LED0)) {
+			px4_arch_gpiowrite(GPIO_LED0, false);
+
+		} else {
+			px4_arch_gpiowrite(GPIO_LED0, true);
+		}
+
 		break;
 
 	case 1:
-		if (stm32_gpioread(GPIO_LED1))
-			stm32_gpiowrite(GPIO_LED1, false);
-		else
-			stm32_gpiowrite(GPIO_LED1, true);
+		if (px4_arch_gpioread(GPIO_LED1)) {
+			px4_arch_gpiowrite(GPIO_LED1, false);
+
+		} else {
+			px4_arch_gpiowrite(GPIO_LED1, true);
+		}
+
 		break;
 
 	default:

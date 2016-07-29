@@ -1,9 +1,10 @@
 #!nsh
 #
-# Generic Tricopter Y Geometry
-# Yaw Servo +Output ==> +Yaw Vehicle Rotation
+# @name Generic Tricopter Y+ Geometry
 #
-# Trent Lukaczyk <aerialhedgehog@gmail.com>
+# @type Tricopter Y+
+#
+# @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
 #
 
 sh /etc/init.d/rc.mc_defaults

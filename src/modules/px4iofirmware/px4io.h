@@ -37,7 +37,7 @@
  * General defines and structures for the PX4IO module firmware.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -49,10 +49,15 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 
 /*
+ hotfix: we are critically short of memory in px4io and this is the
+ easiest way to reclaim about 800 bytes.
+ */
+#define perf_alloc(a,b) NULL
+
+/*
  * Constants and limits.
  */
-#define PX4IO_SERVO_COUNT		16
-#define PX4IO_SERVO_HARDWARE_COUNT	8
+#define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
 #define PX4IO_CONTROL_GROUPS		4
 #define PX4IO_RC_INPUT_CHANNELS		18
@@ -112,6 +117,16 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #endif
 #define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
 
+#define r_setup_pwm_reverse	r_page_setup[PX4IO_P_SETUP_PWM_REVERSE]
+
+#define r_setup_trim_roll	r_page_setup[PX4IO_P_SETUP_TRIM_ROLL]
+#define r_setup_trim_pitch	r_page_setup[PX4IO_P_SETUP_TRIM_PITCH]
+#define r_setup_trim_yaw	r_page_setup[PX4IO_P_SETUP_TRIM_YAW]
+#define r_setup_scale_roll 	r_page_setup[PX4IO_P_SETUP_SCALE_ROLL]
+#define r_setup_scale_pitch	r_page_setup[PX4IO_P_SETUP_SCALE_PITCH]
+#define r_setup_scale_yaw	r_page_setup[PX4IO_P_SETUP_SCALE_YAW]
+#define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
+
 #define r_control_values	(&r_page_controls[0])
 
 /*
@@ -139,22 +154,22 @@ extern pwm_limit_t pwm_limit;
 /*
  * GPIO handling.
  */
-#define LED_BLUE(_s)			stm32_gpiowrite(GPIO_LED1, !(_s))
-#define LED_AMBER(_s)			stm32_gpiowrite(GPIO_LED2, !(_s))
-#define LED_SAFETY(_s)			stm32_gpiowrite(GPIO_LED3, !(_s))
-#define LED_RING(_s)			stm32_gpiowrite(GPIO_LED4, (_s))
+#define LED_BLUE(_s)			px4_arch_gpiowrite(GPIO_LED1, !(_s))
+#define LED_AMBER(_s)			px4_arch_gpiowrite(GPIO_LED2, !(_s))
+#define LED_SAFETY(_s)			px4_arch_gpiowrite(GPIO_LED3, !(_s))
+#define LED_RING(_s)			px4_arch_gpiowrite(GPIO_LED4, (_s))
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 
 # define PX4IO_RELAY_CHANNELS		4
-# define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-# define POWER_ACC1(_s)			stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
-# define POWER_ACC2(_s)			stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
-# define POWER_RELAY1(_s)		stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
-# define POWER_RELAY2(_s)		stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+# define POWER_SERVO(_s)		px4_arch_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
+# define POWER_ACC1(_s)			px4_arch_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+# define POWER_ACC2(_s)			px4_arch_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
+# define POWER_RELAY1(_s)		px4_arch_gpiowrite(GPIO_RELAY1_EN, (_s))
+# define POWER_RELAY2(_s)		px4_arch_gpiowrite(GPIO_RELAY2_EN, (_s))
 
-# define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
-# define OVERCURRENT_SERVO		(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
+# define OVERCURRENT_ACC		(!px4_arch_gpioread(GPIO_ACC_OC_DETECT))
+# define OVERCURRENT_SERVO		(!px4_arch_gpioread(GPIO_SERVO_OC_DETECT))
 
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VBATT			4
@@ -165,10 +180,9 @@ extern pwm_limit_t pwm_limit;
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
-# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
-# define ENABLE_SBUS_OUT(_s)		stm32_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
+# define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
-# define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
+# define VDD_SERVO_FAULT		(!px4_arch_gpioread(GPIO_SERVO_FAULT_DETECT))
 
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VSERVO			4
@@ -176,7 +190,7 @@ extern pwm_limit_t pwm_limit;
 
 #endif
 
-#define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
+#define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
 
 #define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
 
@@ -185,6 +199,8 @@ extern pwm_limit_t pwm_limit;
  */
 extern void	mixer_tick(void);
 extern int	mixer_handle_text(const void *buffer, size_t length);
+/* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
+extern void	mixer_set_failsafe(void);
 
 /**
  * Safety switch/LED.
@@ -217,14 +233,6 @@ extern uint16_t	adc_measure(unsigned channel);
  */
 extern void	controls_init(void);
 extern void	controls_tick(void);
-extern int	dsm_init(const char *device);
-extern bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes);
-extern void	dsm_bind(uint16_t cmd, int pulses);
-extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
-			   uint16_t max_channels);
-extern void	sbus1_output(uint16_t *values, uint16_t num_values);
-extern void	sbus2_output(uint16_t *values, uint16_t num_values);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

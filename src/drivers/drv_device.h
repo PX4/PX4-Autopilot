@@ -46,24 +46,15 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-/*
- * ioctl() definitions
- */
+#include "DevIOCTL.h"
 
-#define _DEVICEIOCBASE		(0x100)
-#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
+#ifdef __PX4_POSIX
 
-/** ask device to stop publishing */
-#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
+#ifndef SIOCDEVPRIVATE
+#define SIOCDEVPRIVATE 1
+#endif
 
-/** check publication block status */
-#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
-
-/**
- * Return device ID, to enable matching of configuration parameters
- * (such as compass offsets) to specific sensors
- */
-#define DEVIOCGDEVICEID	_DEVICEIOC(2)
-
+#define DIOC_GETPRIV    SIOCDEVPRIVATE
+#endif
 
 #endif /* _DRV_DEVICE_H */

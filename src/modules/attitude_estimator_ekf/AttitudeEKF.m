@@ -2,7 +2,7 @@ function [xa_apo,Pa_apo,Rot_matrix,eulerAngles,debugOutput]...
     = AttitudeEKF(approx_prediction,use_inertia_matrix,zFlag,dt,z,q_rotSpeed,q_rotAcc,q_acc,q_mag,r_gyro,r_accel,r_mag,J)
 
 
-%LQG Postion Estimator and Controller
+%LQG Position Estimator and Controller
 % Observer:
 %        x[n|n]   = x[n|n-1] + M(y[n] - Cx[n|n-1] - Du[n])
 %        x[n+1|n] = Ax[n|n] + Bu[n]

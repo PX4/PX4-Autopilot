@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_orb_listener.h
- * MAVLink 1.0 uORB listener definition
+ * @file mavlink_receiver.h
+ * MAVLink receiver thread
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #pragma once
@@ -58,13 +58,12 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -74,6 +73,10 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
 #include <uORB/topics/time_offset.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/follow_target.h>
+#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/gps_inject_data.h>
 
 #include "mavlink_ftp.h"
 
@@ -106,12 +109,11 @@ public:
 	 */
 	void		print_status();
 
-	static pthread_t receive_start(Mavlink *parent);
+	static void receive_start(pthread_t *thread, Mavlink *parent);
 
 	static void *start_helper(void *context);
 
 private:
-	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
@@ -119,7 +121,7 @@ private:
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
-	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
@@ -127,6 +129,7 @@ private:
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
+	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
@@ -135,19 +138,50 @@ private:
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
+	void handle_message_distance_sensor(mavlink_message_t *msg);
+	void handle_message_follow_target(mavlink_message_t *msg);
+	void handle_message_adsb_vehicle(mavlink_message_t *msg);
+	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
+	void handle_message_battery_status(mavlink_message_t *msg);
+	void handle_message_serial_control(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
 	/**
-	* Convert remote timestamp to local hrt time (usec)
-	* Use timesync if available, monotonic boot time otherwise
-	*/
-	uint64_t sync_stamp(uint64_t usec);
-	/**
-	* Exponential moving average filter to smooth time offset
-	*/
-	void smooth_time_offset(uint64_t offset_ns);
+	 * Set the interval at which the given message stream is published.
+	 * The rate is the number of messages per second.
+	 *
+	 * @param msgId the message ID of to change the interval of
+	 * @param interval the interval in us to send the message at
+	 * @param data_rate the total link data rate in bytes per second
+	 */
+	void set_message_interval(int msgId, float interval, int data_rate=-1);
+	void get_message_interval(int msgId);
 
+	/**
+	 * Convert remote timestamp to local hrt time (usec)
+	 * Use timesync if available, monotonic boot time otherwise
+	 */
+	uint64_t sync_stamp(uint64_t usec);
+
+	/**
+	 * Exponential moving average filter to smooth time offset
+	 */
+	void smooth_time_offset(int64_t offset_ns);
+
+	/**
+	 * Decode a switch position from a bitfield
+	 */
+	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
+
+	/**
+	 * Decode a switch position from a bitfield and state
+	 */
+	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
+
+	bool	evaluate_target_ok(int command, int target_system, int target_component);
+
+	Mavlink	*_mavlink;
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_land_detected_s hil_land_detector;
@@ -165,7 +199,9 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _range_pub;
+	orb_advert_t _hil_distance_sensor_pub;
+	orb_advert_t _flow_distance_sensor_pub;
+	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _global_vel_sp_pub;
@@ -173,23 +209,38 @@ private:
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _force_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _vicon_position_pub;
+	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;
+	orb_advert_t _follow_target_pub;
+	orb_advert_t _transponder_report_pub;
+	static const int _gps_inject_data_pub_size = 4;
+	orb_advert_t _gps_inject_data_pub[_gps_inject_data_pub_size];
+	int _gps_inject_data_next_idx = 0;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
+	uint64_t _hil_last_frame;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
+	float _hil_prev_gyro[3];
+	float _hil_prev_accel[3];
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
+	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
-	uint64_t _time_offset;
+	int64_t _time_offset;
+	int	_orb_class_instance;
+
+	static constexpr unsigned MOM_SWITCH_COUNT = 8;
+
+	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
+	uint16_t _mom_switch_state;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);

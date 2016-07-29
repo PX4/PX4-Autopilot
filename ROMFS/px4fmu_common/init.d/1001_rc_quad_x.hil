@@ -1,8 +1,10 @@
 #!nsh
 #
-# HIL Quadcopter X
+# @name HIL Quadcopter X
 #
-# Anton Babushkin <anton@px4.io>
+# @type Simulation
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

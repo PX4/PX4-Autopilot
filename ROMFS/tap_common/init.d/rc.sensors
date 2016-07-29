@@ -1,0 +1,46 @@
+#!nsh
+#
+# Standard startup script for TAP v1 onboard sensor drivers.
+#
+
+if adc start
+then
+fi
+
+# External I2C bus
+if hmc5883 -C -T -X start
+then
+fi
+
+if lis3mdl -R 2 start
+then
+fi
+
+# Internal SPI bus is rotated 90 deg yaw
+if hmc5883 -C -T -S -R 2 start
+then
+fi
+
+# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+if mpu6000 -R 2 -T 20608 start
+then
+fi
+
+# Internal SPI bus mpu9250 is rotated 90 deg yaw
+if mpu9250 -R 2 start
+then
+fi
+
+if meas_airspeed start
+then
+fi
+
+if sf10a start
+then
+fi
+
+# Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
+usleep 20000
+if sensors start
+then
+fi

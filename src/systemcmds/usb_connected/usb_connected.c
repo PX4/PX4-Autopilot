@@ -39,7 +39,7 @@
  * @author Andrew Tridgell
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,5 +52,5 @@ __EXPORT int usb_connected_main(int argc, char *argv[]);
 int
 usb_connected_main(int argc, char *argv[])
 {
-	return stm32_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
+	return px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
 }

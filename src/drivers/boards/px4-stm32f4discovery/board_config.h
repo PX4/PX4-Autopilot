@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -54,24 +54,25 @@ __BEGIN_DECLS
 #include <arch/board/board.h>
 
 #define UDID_START		0x1FFF7A10
- 
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* PX4FMU GPIOs ***********************************************************************************/
+/* PX4-STM32F4Discovery GPIOs ***********************************************************************************/
 /* LEDs */
-/* LEDs */
+// LED1 green, LED2 orange, LED3 red, LED4 blue
+
 
 #define GPIO_LED1       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN12)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN12)
 #define GPIO_LED2       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
 #define GPIO_LED3       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 #define GPIO_LED4       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
 
 /* SPI chip selects */
 #define GPIO_SPI_CS_MEMS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
@@ -85,6 +86,8 @@ __BEGIN_DECLS
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
+
+#define BOARD_NAME "PX4_STM32F4DISCOVERY"
 
 /****************************************************************************************************
  * Public Types
@@ -130,6 +133,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

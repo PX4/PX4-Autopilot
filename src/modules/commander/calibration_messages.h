@@ -49,9 +49,10 @@
 // instead of visual calibration until such a time as QGC is update to the new version.
 
 // The number in the cal started message is used to indicate the version stamp for the current calibration code.
-#define CAL_QGC_STARTED_MSG			"[cal] calibration started: 1 %s"
+#define CAL_QGC_STARTED_MSG			"[cal] calibration started: 2 %s"
 #define CAL_QGC_DONE_MSG			"[cal] calibration done: %s"
 #define CAL_QGC_FAILED_MSG			"[cal] calibration failed: %s"
+#define CAL_QGC_WARNING_MSG			"[cal] calibration warning: %s"
 #define CAL_QGC_CANCELLED_MSG			"[cal] calibration cancelled"
 #define CAL_QGC_PROGRESS_MSG			"[cal] progress <%u>"
 #define CAL_QGC_ORIENTATION_DETECTED_MSG	"[cal] %s orientation detected"

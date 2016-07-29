@@ -1,0 +1,4 @@
+uorb start
+accelsim start
+px4_simple_app
+shutdown

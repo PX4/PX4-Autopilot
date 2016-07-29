@@ -37,8 +37,13 @@
 /// @brief	A class to implement a second order low pass filter 
 /// Author: Leonard Hall <LeonardTHall@gmail.com>
 
+#include <px4_defines.h>
 #include "LowPassFilter2p.hpp"
 #include "math.h"
+
+#ifndef M_PI_F
+#define M_PI_F 3.14159f
+#endif
 
 namespace math
 {
@@ -69,7 +74,7 @@ float LowPassFilter2p::apply(float sample)
 
     // do the filtering
     float delay_element_0 = sample - _delay_element_1 * _a1 - _delay_element_2 * _a2;
-    if (isnan(delay_element_0) || isinf(delay_element_0)) {
+    if (!PX4_ISFINITE(delay_element_0)) {
         // don't allow bad values to propagate via the filter
         delay_element_0 = sample;
     }

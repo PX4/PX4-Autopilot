@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -111,9 +111,12 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_EXT1	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN14)
 #define GPIO_SPI_CS_EXT2	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
 #define GPIO_SPI_CS_EXT3	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_SPI_CS_LIS 	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
 
 #define PX4_SPI_BUS_SENSORS	1
+#define PX4_SPI_BUS_RAMTRON	2
 #define PX4_SPI_BUS_EXT		4
+#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO		1
@@ -121,6 +124,8 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_BARO		3
 #define PX4_SPIDEV_MPU		4
 #define PX4_SPIDEV_HMC		5
+#define PX4_SPIDEV_LIS		7
+#define	PX4_SPIDEV_BMI		8
 
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
@@ -134,6 +139,8 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT2
 #define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
 
+#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT_GYRO
+
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
 #define PX4_I2C_BUS_ONBOARD	2
@@ -145,6 +152,20 @@ __BEGIN_DECLS
  */
 #define PX4_I2C_OBDEV_LED	0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
+#define PX4_I2C_OBDEV_LIS3MDL	0x1e
+
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15)
+
+// ADC defines to be used in sensors.cpp to read from a particular channel
+#define ADC_BATTERY_VOLTAGE_CHANNEL	2
+#define ADC_BATTERY_CURRENT_CHANNEL	3
+#define ADC_5V_RAIL_SENSE		4
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 
 /* User GPIOs
  *
@@ -190,12 +211,21 @@ __BEGIN_DECLS
  * CH5 : PD13 : TIM4_CH2
  * CH6 : PD14 : TIM4_CH3
  */
-#define GPIO_TIM1_CH1OUT	GPIO_TIM1_CH1OUT_2
-#define GPIO_TIM1_CH2OUT	GPIO_TIM1_CH2OUT_2
-#define GPIO_TIM1_CH3OUT	GPIO_TIM1_CH3OUT_2
-#define GPIO_TIM1_CH4OUT	GPIO_TIM1_CH4OUT_2
-#define GPIO_TIM4_CH2OUT	GPIO_TIM4_CH2OUT_2
-#define GPIO_TIM4_CH3OUT	GPIO_TIM4_CH3OUT_2
+#define GPIO_TIM1_CH1OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN9)
+#define GPIO_TIM1_CH2OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN11)
+#define GPIO_TIM1_CH3OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN13)
+#define GPIO_TIM1_CH4OUT	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTE|GPIO_PIN14)
+#define GPIO_TIM4_CH2OUT	(GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN13)
+#define GPIO_TIM4_CH3OUT	(GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN14)
+#define DIRECT_PWM_OUTPUT_CHANNELS	6
+
+#define GPIO_TIM1_CH1IN		GPIO_TIM1_CH1IN_2
+#define GPIO_TIM1_CH2IN		GPIO_TIM1_CH2IN_2
+#define GPIO_TIM1_CH3IN		GPIO_TIM1_CH3IN_2
+#define GPIO_TIM1_CH4IN		GPIO_TIM1_CH4IN_2
+#define GPIO_TIM4_CH2IN		GPIO_TIM4_CH2IN_2
+#define GPIO_TIM4_CH3IN		GPIO_TIM4_CH3IN_2
+#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /* USB OTG FS
  *
@@ -212,6 +242,37 @@ __BEGIN_DECLS
 #define PWMIN_TIMER_CHANNEL	2
 #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
+#define BOARD_NAME "PX4FMU_V2"
+
+/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
+ * system_power interface, and therefore provides the true logic
+ * GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID   (!px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_SERVO_VALID   (!px4_arch_gpioread(GPIO_VDD_SERVO_VALID))
+#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
+#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB { \
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
+		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
+		{0,                      GPIO_VDD_5V_PERIPH_EN,   0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
+		{GPIO_VDD_BRICK_VALID,   0,                       0}, \
+		{GPIO_VDD_SERVO_VALID,   0,                       0}, \
+		{GPIO_VDD_5V_HIPOWER_OC, 0,                       0}, \
+		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
+
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -235,8 +296,11 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+extern void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
+
+extern void board_peripheral_reset(int ms);
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -256,6 +320,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

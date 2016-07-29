@@ -40,7 +40,8 @@
 #define BARO_CALIBRATION_H_
 
 #include <stdint.h>
+#include <uORB/uORB.h>
 
-int do_baro_calibration(int mavlink_fd);
+int do_baro_calibration(orb_advert_t *mavlink_log_pub);
 
 #endif /* BARO_CALIBRATION_H_ */

@@ -141,7 +141,8 @@ __EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder
  * @param private		Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback, void *private);
+__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback,
+				   void *private);
 
 /**
  * Process the next node from the stream and invoke the callback.
@@ -198,7 +199,7 @@ __EXPORT int bson_encoder_init_file(bson_encoder_t encoder, int fd);
  * @param encoder		Encoder state structure to be initialised.
  * @param buf			Buffer pointer to use, or NULL if the buffer
  *				should be allocated by the encoder.
- * @param bufsize		Maximum buffer size, or zero for no limit. If 
+ * @param bufsize		Maximum buffer size, or zero for no limit. If
  *				the buffer is supplied, the size of the supplied buffer.
  * @return			Zero on success.
  */
@@ -238,7 +239,7 @@ __EXPORT int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, 
  *
  * @param encoder		Encoder state.
  * @param name			Node name.
- * @param value			Value to be encoded. 
+ * @param value			Value to be encoded.
  */
 __EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, int64_t value);
 
@@ -269,7 +270,8 @@ __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name
  * @param size			Data size.
  * @param data			Buffer containing data to be encoded.
  */
-__EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype, size_t size, const void *data);
+__EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype,
+					size_t size, const void *data);
 
 
 #endif

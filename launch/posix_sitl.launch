@@ -1,0 +1,19 @@
+<launch>
+    <!-- Posix SITL environment launch script -->
+
+    <arg name="headless" default="false"/>
+    <arg name="gui" default="true"/>
+    <arg name="ns" default="/"/>
+    <arg name="world" default="iris"/>
+    <arg name="build" default="posix_sitl_default"/>
+
+    <node pkg="px4" type="sitl_run.sh" name="simulator" args="posix-configs/SITL/init/rcS none gazebo $(arg world) $(find px4)/build_$(arg build)">
+        <env name="no_sim" value="1" />
+    </node>
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="world_name" value="$(find px4)/Tools/sitl_gazebo/worlds/$(arg world).world" />
+    </include>
+</launch>

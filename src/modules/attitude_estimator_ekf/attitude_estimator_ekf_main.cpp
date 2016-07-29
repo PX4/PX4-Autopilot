@@ -41,7 +41,9 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,9 +51,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
-#include <termios.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
@@ -64,6 +63,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <drivers/drv_hrt.h>
 
 #include <lib/mathlib/mathlib.h>
@@ -101,11 +101,51 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
+}
+
+int parameters_init(struct attitude_estimator_ekf_param_handles *h)
+{
+	/* PID parameters */
+	h->q0 	=	param_find("EKF_ATT_V3_Q0");
+	h->q1 	=	param_find("EKF_ATT_V3_Q1");
+	h->q2 	=	param_find("EKF_ATT_V3_Q2");
+	h->q3 	=	param_find("EKF_ATT_V3_Q3");
+
+	h->r0 	=	param_find("EKF_ATT_V4_R0");
+	h->r1 	=	param_find("EKF_ATT_V4_R1");
+	h->r2 	=	param_find("EKF_ATT_V4_R2");
+
+	h->moment_inertia_J[0]  =   param_find("ATT_J11");
+	h->moment_inertia_J[1]  =   param_find("ATT_J22");
+	h->moment_inertia_J[2]  =   param_find("ATT_J33");
+	h->use_moment_inertia	=   param_find("ATT_J_EN");
+
+	return OK;
+}
+
+int parameters_update(const struct attitude_estimator_ekf_param_handles *h, struct attitude_estimator_ekf_params *p)
+{
+	param_get(h->q0, &(p->q[0]));
+	param_get(h->q1, &(p->q[1]));
+	param_get(h->q2, &(p->q[2]));
+	param_get(h->q3, &(p->q[3]));
+
+	param_get(h->r0, &(p->r[0]));
+	param_get(h->r1, &(p->r[1]));
+	param_get(h->r2, &(p->r[2]));
+
+	for (int i = 0; i < 3; i++) {
+		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
+	}
+
+	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+
+	return OK;
 }
 
 /**
@@ -114,12 +154,13 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_task_spawn_cmd().
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -127,39 +168,39 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running\n");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
+		attitude_estimator_ekf_task = px4_task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      7700,
+					      7000,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("running");
-			exit(0);
+			return 0;
 
 		} else {
 			warnx("not started");
-			exit(1);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 /*
@@ -243,8 +284,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
-	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to GPS */
 	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -260,6 +299,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to vision estimate */
 	int vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+
+	/* subscribe to mocap data */
+	int mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
@@ -290,7 +332,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
 
-	struct vision_position_estimate vision {};
+	struct vision_position_estimate_s vision {};
+	struct att_pos_mocap_s mocap {};
 
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
@@ -298,12 +341,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* Main loop*/
 	while (!thread_should_exit) {
 
-		struct pollfd fds[2];
+		px4_pollfd_struct_t fds[2];
 		fds[0].fd = sub_raw;
 		fds[0].events = POLLIN;
 		fds[1].fd = sub_params;
 		fds[1].events = POLLIN;
-		int ret = poll(fds, 2, 1000);
+		int ret = px4_poll(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
@@ -338,7 +381,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
-					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						/* update mag declination rotation matrix */
@@ -356,9 +399,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					// XXX disabling init for now
 					initialized = true;
 
-					// gyro_offsets[0] += raw.gyro_rad_s[0];
-					// gyro_offsets[1] += raw.gyro_rad_s[1];
-					// gyro_offsets[2] += raw.gyro_rad_s[2];
+					// gyro_offsets[0] += raw.gyro_rad[0];
+					// gyro_offsets[1] += raw.gyro_rad[1];
+					// gyro_offsets[2] += raw.gyro_rad[2];
 					// offset_count++;
 
 					// if (hrt_absolute_time() - start_time > 3000000LL) {
@@ -384,29 +427,20 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
-					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
-					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
-					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
+					z_k[0] =  raw.gyro_rad[0] - gyro_offsets[0];
+					z_k[1] =  raw.gyro_rad[1] - gyro_offsets[1];
+					z_k[2] =  raw.gyro_rad[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
+					if (sensor_last_timestamp[1] != raw.timestamp + raw.accelerometer_timestamp_relative) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
+						sensor_last_timestamp[1] = raw.timestamp + raw.accelerometer_timestamp_relative;
 					}
 
 					hrt_abstime vel_t = 0;
 					bool vel_valid = false;
-					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
-						vel_valid = true;
-						if (gps_updated) {
-							vel_t = gps.timestamp_velocity;
-							vel(0) = gps.vel_n_m_s;
-							vel(1) = gps.vel_e_m_s;
-							vel(2) = gps.vel_d_m_s;
-						}
-
-					} else if (ekf_params.acc_comp == 2 && gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
+					if (gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
@@ -441,24 +475,43 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
+					if (sensor_last_timestamp[2] != raw.timestamp + raw.magnetometer_timestamp_relative &&
 						/* check that the mag vector is > 0 */
 						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
+						sensor_last_timestamp[2] = raw.timestamp + raw.magnetometer_timestamp_relative;
 					}
 
 					bool vision_updated = false;
 					orb_check(vision_sub, &vision_updated);
 
+					bool mocap_updated = false;
+					orb_check(mocap_sub, &mocap_updated);
+
 					if (vision_updated) {
 						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
 					}
 
-					if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
+					if (mocap_updated) {
+						orb_copy(ORB_ID(att_pos_mocap), mocap_sub, &mocap);
+					}
+
+					if (mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000)) {
+
+						math::Quaternion q(mocap.q);
+						math::Matrix<3, 3> Rmoc = q.to_dcm();
+
+						math::Vector<3> v(1.0f, 0.0f, 0.4f);
+
+						math::Vector<3> vn = Rmoc.transposed() * v; //Rmoc is Rwr (robot respect to world) while v is respect to world. Hence Rmoc must be transposed having (Rwr)' * Vw
+											    // Rrw * Vw = vn. This way we have consistency
+						z_k[6] = vn(0);
+						z_k[7] = vn(1);
+						z_k[8] = vn(2);
+					} else if (vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000)) {
 
 						math::Quaternion q(vision.q);
 						math::Matrix<3, 3> Rvis = q.to_dcm();
@@ -484,11 +537,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp) < 1000000) {
 							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
-						} else {
-							mag_decl = ekf_params.mag_decl;
 						}
 
 						/* update mag declination rotation matrix */
@@ -536,7 +587,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 							debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
-					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
+					if (PX4_ISFINITE(euler[0]) && PX4_ISFINITE(euler[1]) && PX4_ISFINITE(euler[2])) {
 						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
 						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 
@@ -546,7 +597,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					if (last_data > 0 && raw.timestamp - last_data > 30000) {
-						warnx("sensor data missed! (%llu)\n", raw.timestamp - last_data);
+						warnx("sensor data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
 					}
 
 					last_data = raw.timestamp;
@@ -583,8 +634,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
 
-					if (isfinite(att.q[0]) && isfinite(att.q[1])
-						&& isfinite(att.q[2]) && isfinite(att.q[3])) {
+					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
+						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 

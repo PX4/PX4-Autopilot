@@ -1,0 +1,50 @@
+#!nsh
+#
+# @name Bormatec Maja
+#
+# @type Standard Plane
+#
+# @output MAIN1 aileron
+# @output MAIN2 aileron
+# @output MAIN3 elevator
+# @output MAIN4 rudder
+# @output MAIN5 throttle
+# @output MAIN6 wheel
+# @output MAIN7 flaps
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Andreas Antener <andreas@uaventure.com>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF == yes ]
+then
+    param set FW_AIRSPD_MIN 10
+    param set FW_AIRSPD_TRIM 15
+    param set FW_AIRSPD_MAX 20
+
+    param set FW_MAN_P_MAX 55
+    param set FW_MAN_R_MAX 55
+    param set FW_R_LIM 55
+
+    param set FW_WR_FF 0.2
+    param set FW_WR_I 0.2
+    param set FW_WR_IMAX 0.8
+    param set FW_WR_P 1
+    param set FW_W_RMAX 0
+
+    # set disarmed value for the ESC
+    param set PWM_DISARMED 1000
+fi
+
+set MIXER AAERTWF
+
+# use PWM parameters for throttle channel
+set PWM_OUT 5
+set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX

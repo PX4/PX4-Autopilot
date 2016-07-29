@@ -1,8 +1,11 @@
+#
 #!nsh
 #
-# Viper
+# @name Viper
 #
-# Simon Wilks <simon@px4.io>
+# @type Flying Wing
+#
+# @maintainer Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults

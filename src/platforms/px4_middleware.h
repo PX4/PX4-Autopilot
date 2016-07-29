@@ -54,12 +54,19 @@ __EXPORT uint64_t get_time_micros();
  * Returns true if the app/task should continue to run
  */
 inline bool ok() { return ros::ok(); }
-#else
+#elif defined(__PX4_NUTTX)
 extern bool task_should_exit;
 /**
  * Returns true if the app/task should continue to run
  */
 __EXPORT inline bool ok() { return !task_should_exit; }
+#elif defined(__PX4_QURT)
+// FIXME - usleep not supported by DSPAL
+inline void usleep(uint64_t sleep_interval) { }
+#else
+/**
+ * Linux needs to have globally unique checks for thread/task status
+ */
 #endif
 
 class Rate

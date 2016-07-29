@@ -40,7 +40,8 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
 
 #include <drivers/device/i2c.h>
 
@@ -54,7 +55,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -88,7 +89,7 @@ public:
 	virtual int		init();
 	virtual int		probe();
 	virtual int		info();
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 private:
 	work_s			_work;
@@ -100,11 +101,13 @@ private:
 	uint8_t			_g;
 	uint8_t			_b;
 	float			_brightness;
+	float			_max_brightness;
 
 	bool			_running;
 	int			_led_interval;
 	bool			_should_run;
 	int			_counter;
+	int			_param_sub;
 
 	void 			set_color(rgbled_color_t ledcolor);
 	void			set_mode(rgbled_mode_t mode);
@@ -116,6 +119,7 @@ private:
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+	void		update_params();
 };
 
 /* for now, we only support one RGBLED */
@@ -129,16 +133,22 @@ void rgbled_usage();
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000 /* maximum speed supported */),
+	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
+#ifdef __PX4_NUTTX
+	    , 100000 /* maximum speed supported */
+#endif
+	   ),
 	_mode(RGBLED_MODE_OFF),
 	_r(0),
 	_g(0),
 	_b(0),
 	_brightness(1.0f),
+	_max_brightness(1.0f),
 	_running(false),
 	_led_interval(0),
 	_should_run(false),
-	_counter(0)
+	_counter(0),
+	_param_sub(-1)
 {
 	memset(&_work, 0, sizeof(_work));
 	memset(&_pattern, 0, sizeof(_pattern));
@@ -185,9 +195,9 @@ RGBLED::probe()
 	unsigned prevretries = _retries;
 	_retries = 4;
 
-	if ((ret=get(on, powersave, r, g, b)) != OK ||
-	    (ret=send_led_enable(false) != OK) ||
-	    (ret=send_led_enable(false) != OK)) {
+	if ((ret = get(on, powersave, r, g, b)) != OK ||
+	    (ret = send_led_enable(false) != OK) ||
+	    (ret = send_led_enable(false) != OK)) {
 		return ret;
 	}
 
@@ -207,8 +217,8 @@ RGBLED::info()
 
 	if (ret == OK) {
 		/* we don't care about power-save mode */
-		log("state: %s", on ? "ON" : "OFF");
-		log("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
+		DEVICE_LOG("state: %s", on ? "ON" : "OFF");
+		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
 		warnx("failed to read led");
@@ -218,7 +228,7 @@ RGBLED::info()
 }
 
 int
-RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
+RGBLED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = ENOTTY;
 
@@ -249,7 +259,11 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* see if the parent class can make any use of it */
+#ifdef __PX4_NUTTX
 		ret = CDev::ioctl(filp, cmd, arg);
+#else
+		ret = VDev::ioctl(filp, cmd, arg);
+#endif
 		break;
 	}
 
@@ -276,12 +290,30 @@ RGBLED::led()
 		return;
 	}
 
+	if (_param_sub < 0) {
+		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+	}
+
+	if (_param_sub >= 0) {
+		bool updated = false;
+		orb_check(_param_sub, &updated);
+
+		if (updated) {
+			parameter_update_s pupdate;
+			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+			update_params();
+			// Immediately update to change brightness
+			send_led_rgb();
+		}
+	}
+
 	switch (_mode) {
 	case RGBLED_MODE_BLINK_SLOW:
 	case RGBLED_MODE_BLINK_NORMAL:
 	case RGBLED_MODE_BLINK_FAST:
-		if (_counter >= 2)
+		if (_counter >= 2) {
 			_counter = 0;
+		}
 
 		send_led_enable(_counter == 0);
 
@@ -289,8 +321,9 @@ RGBLED::led()
 
 	case RGBLED_MODE_BREATHE:
 
-		if (_counter >= 62)
+		if (_counter >= 62) {
 			_counter = 0;
+		}
 
 		int n;
 
@@ -308,8 +341,9 @@ RGBLED::led()
 	case RGBLED_MODE_PATTERN:
 
 		/* don't run out of the pattern array and stop if the next frame is 0 */
-		if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0)
+		if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0) {
 			_counter = 0;
+		}
 
 		set_color(_pattern.color[_counter]);
 		send_led_rgb();
@@ -519,8 +553,9 @@ RGBLED::send_led_enable(bool enable)
 {
 	uint8_t settings_byte = 0;
 
-	if (enable)
+	if (enable) {
 		settings_byte |= SETTING_ENABLE;
+	}
 
 	settings_byte |= SETTING_NOT_POWERSAVE;
 
@@ -537,9 +572,9 @@ RGBLED::send_led_rgb()
 {
 	/* To scale from 0..255 -> 0..15 shift right by 4 bits */
 	const uint8_t msg[6] = {
-		SUB_ADDR_PWM0, (uint8_t)((int)(_b * _brightness) >> 4),
-		SUB_ADDR_PWM1, (uint8_t)((int)(_g * _brightness) >> 4),
-		SUB_ADDR_PWM2, (uint8_t)((int)(_r * _brightness) >> 4)
+		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness * _max_brightness + 0.5f),
+		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness * _max_brightness + 0.5f),
+		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness * _max_brightness + 0.5f)
 	};
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
@@ -565,6 +600,22 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 }
 
 void
+RGBLED::update_params()
+{
+	int32_t maxbrt = 15;
+	param_get(param_find("LED_RGB_MAXBRT"), &maxbrt);
+	maxbrt = maxbrt > 15 ? 15 : maxbrt;
+	maxbrt = maxbrt <  0 ?  0 : maxbrt;
+
+	// A minimum of 2 "on" steps is required for breathe effect
+	if (maxbrt == 1) {
+		maxbrt = 2;
+	}
+
+	_max_brightness = maxbrt / 15.0f;
+}
+
+void
 rgbled_usage()
 {
 	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
@@ -582,35 +633,40 @@ rgbled_main(int argc, char *argv[])
 	int ch;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			rgbledadr = strtol(optarg, NULL, 0);
+			rgbledadr = strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = strtol(optarg, NULL, 0);
+			i2cdevice = strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
 			rgbled_usage();
-			exit(0);
+			return 1;
 		}
 	}
 
-        if (optind >= argc) {
-            rgbled_usage();
-            exit(1);
-        }
+	if (myoptind >= argc) {
+		rgbled_usage();
+		return 1;
+	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	int fd;
 	int ret;
 
 	if (!strcmp(verb, "start")) {
-		if (g_rgbled != nullptr)
-			errx(1, "already started");
+		if (g_rgbled != nullptr) {
+			warnx("already started");
+			return 1;
+		}
 
 		if (i2cdevice == -1) {
 			// try the external bus first
@@ -625,8 +681,10 @@ rgbled_main(int argc, char *argv[])
 			if (g_rgbled == nullptr) {
 				// fall back to default bus
 				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					errx(1, "no RGB led on bus #%d", i2cdevice);
+					warnx("no RGB led on bus #%d", i2cdevice);
+					return 1;
 				}
+
 				i2cdevice = PX4_I2C_BUS_LED;
 			}
 		}
@@ -634,88 +692,97 @@ rgbled_main(int argc, char *argv[])
 		if (g_rgbled == nullptr) {
 			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
 
-			if (g_rgbled == nullptr)
-				errx(1, "new failed");
+			if (g_rgbled == nullptr) {
+				warnx("new failed");
+				return 1;
+			}
 
 			if (OK != g_rgbled->init()) {
 				delete g_rgbled;
 				g_rgbled = nullptr;
-				errx(1, "no RGB led on bus #%d", i2cdevice);
+				warnx("no RGB led on bus #%d", i2cdevice);
+				return 1;
 			}
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
 		warnx("not started");
 		rgbled_usage();
-		exit(1);
+		return 1;
 	}
 
 	if (!strcmp(verb, "test")) {
-		fd = open(RGBLED0_DEVICE_PATH, 0);
+		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			return 1;
 		}
 
 		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
 			{500, 500, 500, 500, 1000, 0 }	// "0" indicates end of pattern
 		};
 
-		ret = ioctl(fd, RGBLED_SET_PATTERN, (unsigned long)&pattern);
-		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_PATTERN);
+		ret = px4_ioctl(fd, RGBLED_SET_PATTERN, (unsigned long)&pattern);
+		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_PATTERN);
 
-		close(fd);
-		exit(ret);
+		px4_close(fd);
+		return ret;
 	}
 
 	if (!strcmp(verb, "info")) {
 		g_rgbled->info();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "off") || !strcmp(verb, "stop")) {
-		fd = open(RGBLED0_DEVICE_PATH, 0);
+		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			return 1;
 		}
 
-		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
-		close(fd);
+		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
+		px4_close(fd);
+
 		/* delete the rgbled object if stop was requested, in addition to turning off the LED. */
 		if (!strcmp(verb, "stop")) {
 			delete g_rgbled;
 			g_rgbled = nullptr;
-			exit(0);
+			return 0;
 		}
-		exit(ret);
+
+		return ret;
 	}
 
 	if (!strcmp(verb, "rgb")) {
 		if (argc < 5) {
-			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
+			warnx("Usage: rgbled rgb <red> <green> <blue>");
+			return 1;
 		}
 
-		fd = open(RGBLED0_DEVICE_PATH, 0);
+		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
+			warnx("Unable to open " RGBLED0_DEVICE_PATH);
+			return 1;
 		}
 
 		rgbled_rgbset_t v;
 		v.red   = strtol(argv[2], NULL, 0);
 		v.green = strtol(argv[3], NULL, 0);
 		v.blue  = strtol(argv[4], NULL, 0);
-		ret = ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
-		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_ON);
-		close(fd);
-		exit(ret);
+		ret = px4_ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
+		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_ON);
+		px4_close(fd);
+		return ret;
 	}
 
 	rgbled_usage();
-	exit(0);
+	return 1;
 }

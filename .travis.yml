@@ -3,51 +3,51 @@
 
 language: cpp
 
-# use travis-ci docker based infrastructure
-sudo: false
+matrix:
+  fast_finish: true
+  include:
+    - os: linux
+      sudo: required
+      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base:2016-07-14"
+      services:
+        - docker
+    - os: osx
+      sudo: true
+      osx_image: xcode7.3
+      env: CCACHE_CPP2=1
 
 cache:
+  ccache: true
+  pip: true
   directories:
-    - $HOME/.ccache
+    - $HOME/.pip/cache/
+    - $HOME/Library/Caches/pip
 
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - build-essential
-    - ccache
-    - cmake
-    - g++-4.8
-    - gcc-4.8
-    - genromfs
-    - libc6-i386
-    - libncurses5-dev
-    - python-argparse
-    - python-empy
-    - python-serial
-    - s3cmd
-    - texinfo
-    - zlib1g-dev
-
-before_script:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-# General toolchain dependencies
-  - pushd .
-  - cd ~
-  - wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-  - tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-  - exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
-  - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
-  - . ~/.profile
-  - popd
-# setup ccache
-  - mkdir -p ~/bin
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
-  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
-  - ln -s /usr/bin/ccache ~/bin/g++-4.8
-  - ln -s /usr/bin/ccache ~/bin/gcc-4.8
-  - export PATH=~/bin:$PATH
+before_install:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         cd ${TRAVIS_BUILD_DIR}
+      && git fetch --unshallow && git fetch --all --tags
+      && docker pull ${DOCKER_REPO}
+      ;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+         sudo -H easy_install pip
+      && sudo -H pip install empy
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
+      && sudo mv ccache /usr/local/bin
+      && chmod +x /usr/local/bin/ccache
+      && mkdir -p ~/bin
+      && sudo ln -s /usr/local/bin/ccache ~/bin/c++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/cc
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang
+      && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/g++
+      && sudo ln -s /usr/local/bin/ccache ~/bin/gcc
+      && export PATH=~/bin:$PATH
+      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
+      && sudo mv ninja /usr/local/bin
+      && chmod +x /usr/local/bin/ninja
+      ;
+    fi
 
 env:
   global:
@@ -56,53 +56,76 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
+    - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
-  - ccache -z
-  - arm-none-eabi-gcc --version
-  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
-  - make tests
-  - cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  - echo -en 'travis_fold:end:script.1\\r'
-  - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
-  - make archives
+  - ccache -M 1GB; ccache -z
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      make check_posix_sitl_default;
+    fi
   - ccache -s
-  - echo -en 'travis_fold:end:script.2\\r'
-  - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make -j4
-  - ccache -s
-  - echo -en 'travis_fold:end:script.3\\r'
-  - zip Firmware.zip Images/*.px4
 
-after_script:
-  - git clone git://github.com/PX4/CI-Tools.git
-  - ./CI-Tools/s3cmd-configure
-# upload newest build for this branch with s3 index
-  - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
-# archive newest build by date with s3 index
-  - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
-  - ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
-# upload top level index.html and timestamp.html
-  - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
-  - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
-  - echo ""
-  - echo "Binaries have been posted to:"
-  - echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+after_success:
+  - make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
+# find all px4 firmware (*.px4) and rename
+  - find . -type f -name 'nuttx-*-default.px4' -exec cp "{}" . \;
+  - find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
+  - mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch/
+# only deploy GCC 4.8 builds on master/beta/stable
+  - if [[ "$GCC_VER" == "4.8" && ( "$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == "beta" || "$TRAVIS_BRANCH" == "stable" ) ]]; then
+      export PX4_S3_DEPLOY=1;
+    fi
 
 deploy:
-  provider: releases
-  api_key:
-    secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-  file: "Firmware.zip"
-  skip_cleanup: true
-  on:
-    tags: true
-    all_branches: true
-    repo: PX4/Firmware
+# deploy *.px4 to S3 px4-travis/Firmware/$TRAVIS_BRANCH
+  - provider: s3
+    access_key_id: $PX4_AWS_KEY
+    secret_access_key:
+      secure: $PX4_AWS_SECRET
+    bucket: px4-travis
+    local_dir: s3deploy-branch
+    upload-dir: Firmware/$TRAVIS_BRANCH
+    acl: public_read
+    skip_cleanup: true
+    on:
+      all_branches: true
+      condition: $PX4_S3_DEPLOY = 1
+
+# deploy Firmware.zip to S3 px4-travis/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
+  - provider: s3
+    access_key_id: $PX4_AWS_KEY
+    secret_access_key:
+      secure: $PX4_AWS_SECRET
+    bucket: px4-travis
+    local_dir: s3deploy-archive
+    upload-dir: archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
+    acl: public_read
+    skip_cleanup: true
+    on:
+      all_branches: true
+      condition: $PX4_S3_DEPLOY = 1
+
+# on tags deploy Firmware.zip to Github releases
+  - provider: releases
+    api_key: 
+      secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
+    file: "Firmware.zip"
+    skip_cleanup: true
+    on:
+      tags: true
+      all_branches: true
+      repo: PX4/Firmware
+      condition: $GCC_VER = 4.8
 
 notifications:
   webhooks:
     urls:
       - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
     on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+  slack:
+    secure: "QKw73Zel/s3JAbe/7XyO9tPnJwiiGFpYzSjdR8lG3tYFjRdXZnhxG4c+G7bkgkaPTS4Hult33VXE3kcEqOI7+C+eRwRlZhDfL0knQbXVCxjcLjzmUFdoPOwurlgZDw66PFWCi5tZcLKSRo3u4U8ibT4WKi3jm9sDSyOcfBAucMU="
+    on_success: change  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always

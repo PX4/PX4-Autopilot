@@ -46,12 +46,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef CONFIG_ARCH_ARM
-#include "../CMSIS/Include/arm_math.h"
-#else
-#include <platforms/ros/eigen_math.h>
-#include <Eigen/Eigen>
-#endif
+#include "matrix/math.hpp"
 #include <platforms/px4_defines.h>
 
 namespace math
@@ -73,11 +68,7 @@ public:
 	/**
 	 * struct for using arm_math functions
 	 */
-#ifdef CONFIG_ARCH_ARM
-	arm_matrix_instance_f32 arm_mat;
-#else
 	eigen_matrix_instance arm_mat;
-#endif
 
 	/**
 	 * trivial ctor
@@ -126,14 +117,23 @@ public:
 		memcpy(data, d, sizeof(data));
 	}
 
-#if defined(__PX4_ROS)
 	/**
-	 * set data from boost::array
+	 * set row from vector
 	 */
-	void set(const boost::array<float, 9ul> d) {
-	set(static_cast<const float*>(d.data()));
+	void set_row(unsigned int row, const Vector<N> v) {
+		for (unsigned i = 0; i < N; i++) {
+			data[row][i] = v.data[i];
+		}
 	}
-#endif
+
+	/**
+	 * set column from vector
+	 */
+	void set_col(unsigned int col, const Vector<M> v) {
+		for (unsigned i = 0; i < M; i++) {
+			data[i][col] = v.data[i];
+		}
+	}
 
 	/**
 	 * access by index
@@ -276,7 +276,7 @@ public:
 
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				res[i][j] = data[i][j] / num;
+				res.data[i][j] = data[i][j] / num;
 
 		return res;
 	}
@@ -294,53 +294,29 @@ public:
 	 */
 	template <unsigned int P>
 	Matrix<M, P> operator *(const Matrix<N, P> &m) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<M, P> res;
-		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
-		return res;
-#else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::Matrix<float, N, P, Eigen::RowMajor> Him = Eigen::Map<Eigen::Matrix<float, N, P, Eigen::RowMajor> >
-				(m.arm_mat.pData);
-		Eigen::Matrix<float, M, P, Eigen::RowMajor> Product = Me * Him;
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		matrix::Matrix<float, N, P> Him(m.arm_mat.pData);
+		matrix::Matrix<float, M, P> Product = Me * Him;
 		Matrix<M, P> res(Product.data());
 		return res;
-#endif
 	}
 
 	/**
 	 * transpose the matrix
 	 */
 	Matrix<N, M> transposed(void) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<N, M> res;
-		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		Matrix<N, M> res(Me.transpose().data());
 		return res;
-#else
-		Eigen::Matrix<float, N, M, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, N, M, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Me.transposeInPlace();
-		Matrix<N, M> res(Me.data());
-		return res;
-#endif
 	}
 
 	/**
 	 * invert the matrix
 	 */
 	Matrix<M, N> inversed(void) const {
-#ifdef CONFIG_ARCH_ARM
-		Matrix<M, N> res;
-		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
+		matrix::SquareMatrix<float, M> Me = matrix::Matrix<float, M, N>(this->arm_mat.pData);
+		Matrix<M, N> res(Me.I().data());
 		return res;
-#else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
-		Matrix<M, N> res(MyInverse.data());
-		return res;
-#endif
 	}
 
 	/**
@@ -366,7 +342,7 @@ public:
 			printf("[ ");
 
 			for (unsigned int j = 0; j < N; j++)
-				printf("%.3f\t", data[i][j]);
+				printf("%.3f\t", (double)data[i][j]);
 
 			printf(" ]\n");
 		}
@@ -399,17 +375,10 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<M> operator *(const Vector<N> &v) const {
-#ifdef CONFIG_ARCH_ARM
-		Vector<M> res;
-		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
-#else
-		//probably nicer if this could go into a function like "eigen_mat_mult" or so
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::VectorXf Vec = Eigen::Map<Eigen::VectorXf>(v.arm_col.pData, N);
-		Eigen::VectorXf Product = Me * Vec;
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		matrix::Matrix<float, N, 1> Vec(v.arm_col.pData);
+		matrix::Matrix<float, M, 1> Product = Me * Vec;
 		Vector<M> res(Product.data());
-#endif
 		return res;
 	}
 };
@@ -427,6 +396,21 @@ public:
 	Matrix(const float *d) : MatrixBase<3, 3>(d) {}
 
 	Matrix(const float d[3][3]) : MatrixBase<3, 3>(d) {}
+	/**
+	 * set data
+	 */
+	void set(const float d[9]) {
+		memcpy(data, d, sizeof(data));
+	}
+
+#if defined(__PX4_ROS)
+	/**
+	 * set data from boost::array
+	 */
+	void set(const boost::array<float, 9ul> d) {
+	set(static_cast<const float*>(d.data()));
+	}
+#endif
 
 	/**
 	 * set to value

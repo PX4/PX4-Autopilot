@@ -38,8 +38,26 @@
  */
 
 #define ADDR_RESET_CMD				0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D1_OSR256		0x40	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR512		0x42	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR1024		0x44	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR2048		0x46	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR4096		0x48	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D2_OSR256		0x50	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR512		0x52	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR1024		0x54	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR2048		0x56	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR4096		0x58	/* write to this address to start temperature conversion */
+
+/*
+  use an OSR of 1024 to reduce the self-heating effect of the
+  sensor. Information from MS tells us that some individual sensors
+  are quite sensitive to this effect and that reducing the OSR can
+  make a big difference
+ */
+#define ADDR_CMD_CONVERT_D1			ADDR_CMD_CONVERT_D1_OSR1024
+#define ADDR_CMD_CONVERT_D2			ADDR_CMD_CONVERT_D2_OSR1024
+
 #define ADDR_DATA							0x00	/* address of 3 bytes / 32bit pressure data */
 #define ADDR_PROM_SETUP				0xA0	/* address of 8x 2 bytes factory and calibration data */
 #define ADDR_PROM_C1					0xA2	/* address of 6x 2 bytes calibration data */
@@ -80,6 +98,7 @@ extern bool crc4(uint16_t *n_prom);
 } /* namespace */
 
 /* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
+extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
+extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
+extern device::Device *MS5611_sim_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
 typedef device::Device *(*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);

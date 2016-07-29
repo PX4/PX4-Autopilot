@@ -43,27 +43,25 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/uORB.h>
 
 __EXPORT int ex_hwtest_main(int argc, char *argv[]);
 
 int ex_hwtest_main(int argc, char *argv[])
 {
-	warnx("DO NOT FORGET TO STOP THE COMMANDER APP!");
-	warnx("(run <commander stop> to do so)");
+	warnx("DO NOT FORGET TO STOP THE DEFAULT CONTROL APPS!");
+	warnx("(run <commander stop>,)");
+	warnx("(    <mc_att_control stop> and)");
+	warnx("(    <fw_att_control stop> to do so)");
 	warnx("usage: http://px4.io/dev/examples/write_output");
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
-	orb_advert_t actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
+	orb_advert_t actuator_pub_ptr = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
 
 	struct actuator_armed_s arm;
 	memset(&arm, 0 , sizeof(arm));
@@ -71,8 +69,8 @@ int ex_hwtest_main(int argc, char *argv[])
 	arm.timestamp = hrt_absolute_time();
 	arm.ready_to_arm = true;
 	arm.armed = true;
-	orb_advert_t arm_pub_fd = orb_advertise(ORB_ID(actuator_armed), &arm);
-	orb_publish(ORB_ID(actuator_armed), arm_pub_fd, &arm);
+	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm);
+	orb_publish(ORB_ID(actuator_armed), arm_pub_ptr, &arm);
 
 	/* read back values to validate */
 	int arm_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
@@ -118,7 +116,7 @@ int ex_hwtest_main(int argc, char *argv[])
 			}
 
 			actuators.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_controls_0), actuator_pub_fd, &actuators);
+			orb_publish(ORB_ID(actuator_controls_0), actuator_pub_ptr, &actuators);
 			usleep(10000);
 		}
 

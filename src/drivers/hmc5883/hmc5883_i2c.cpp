@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
- /**
-  * @file HMC5883_I2C.cpp
-  *
-  * I2C interface for HMC5883 / HMC 5983
-  */
+/**
+ * @file HMC5883_I2C.cpp
+ *
+ * I2C interface for HMC5883 / HMC 5983
+ */
 
 /* XXX trim includes */
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -72,7 +72,7 @@ public:
 	virtual ~HMC5883_I2C();
 
 	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count); 
+	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -118,11 +118,13 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 		if (_bus == PX4_I2C_BUS_EXPANSION) {
 			return 1;
+
 		} else {
 			return 0;
 		}
+
 #else
-                return 1;
+		return 1;
 #endif
 
 	case DEVIOCGDEVICEID:
@@ -145,7 +147,7 @@ HMC5883_I2C::probe()
 	if (read(ADDR_ID_A, &data[0], 1) ||
 	    read(ADDR_ID_B, &data[1], 1) ||
 	    read(ADDR_ID_C, &data[2], 1)) {
-		debug("read_reg fail");
+		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
@@ -154,7 +156,7 @@ HMC5883_I2C::probe()
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
 	    (data[2] != ID_C_WHO_AM_I)) {
-		debug("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
+		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
 	}
 

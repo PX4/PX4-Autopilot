@@ -1,5 +1,6 @@
 <launch>
 <arg name="ns"/>
+<arg name="mavlink_fcu_url"/>
 
 <group ns="$(arg ns)">
 	<node pkg="joy" name="joy_node" type="joy_node"/>
@@ -10,7 +11,9 @@
 	<node pkg="px4" name="position_estimator" type="position_estimator"/>
 	<node pkg="px4" name="mc_att_control" type="mc_att_control"/>
 	<node pkg="px4" name="mc_pos_control" type="mc_pos_control"/>
-	<node pkg="px4" name="mavlink" type="mavlink"/>
+	<node pkg="px4" name="mavlink" type="mavlink">  
+	  <param name="mavlink_fcu_url" value="$(arg mavlink_fcu_url)" type="str"/>
+	</node>
 	<!-- <node pkg="rosbag" type="record" name="record" output="screen" args="-a -O px4_multicopter"/> -->
 </group>
 

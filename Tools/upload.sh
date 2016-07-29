@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 EXEDIR=`pwd`
 BASEDIR=$(dirname $0)
@@ -17,7 +17,7 @@ fi
 
 if [ $SYSTYPE = "Linux" ];
 then
-SERIAL_PORTS="/dev/serial/by-id/usb-3D_Robotics*"
+SERIAL_PORTS="/dev/serial/by-id/usb-3D_Robotics*,/dev/serial/by-id/usb-The_Autopilot*"
 fi
 
 if [ $SYSTYPE = "" ];

@@ -51,13 +51,15 @@ enum LaunchDetectionResult {
 							  up and still be set to 'throttlePreTakeoff'.
 							  For instance this is used to have a delay for the motor
 							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, teh controller should control
+	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
 							attitude and also throttle up the motors. */
 };
 
 class LaunchMethod
 {
 public:
+	virtual ~LaunchMethod() {};
+
 	virtual void update(float accel_x) = 0;
 	virtual LaunchDetectionResult getLaunchDetected() const = 0;
 	virtual void reset() = 0;

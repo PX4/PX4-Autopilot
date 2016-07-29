@@ -54,19 +54,24 @@
 
 #include "mc_att_control.h"
 
-bool thread_running = false;     /**< Deamon status flag */
+bool mc_att_control_thread_running = false;     /**< Deamon status flag */
 
+#if defined(__PX4_ROS)
 int main(int argc, char **argv)
+#else
+int mc_att_control_start_main(int argc, char **argv);  // Prototype for missing declearation error with nuttx
+int mc_att_control_start_main(int argc, char **argv)
+#endif
 {
 	px4::init(argc, argv, "mc_att_control_m");
 
 	PX4_INFO("starting");
-	MulticopterAttitudeControl attctl;
-	thread_running = true;
+	MulticopterAttitudeControlMultiplatform attctl;
+	mc_att_control_thread_running = true;
 	attctl.spin();
 
 	PX4_INFO("exiting.");
-	thread_running = false;
+	mc_att_control_thread_running = false;
 	return 0;
 }
 

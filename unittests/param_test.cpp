@@ -44,16 +44,18 @@ void _add_parameters()
 	param_array[2] = rc_x;
 	param_array[3] = rc2_x;
 	param_info_base = (struct param_info_s *) &param_array[0];
-	param_info_limit = (struct param_info_s *) &param_array[4]; 	// needs to point at the end of the data,
-	// therefore number of params + 1
+	// needs to point at the end of the data,
+	//  therefore number of params + 1
+	param_info_limit = (struct param_info_s *) &param_array[4];
+
 }
 
 void _assert_parameter_int_value(param_t param, int32_t expected)
 {
 	int32_t value;
 	int result = param_get(param, &value);
-	ASSERT_EQ(0, result) << printf("param_get (%i) did not return parameter\n", param);
-	ASSERT_EQ(expected, value) << printf("value for param (%i) doesn't match default value\n", param);
+	ASSERT_EQ(0, result) << printf("param_get (%lu) did not return parameter\n", param);
+	ASSERT_EQ(expected, value) << printf("value for param (%lu) doesn't match default value\n", param);
 }
 
 void _set_all_int_parameters_to(int32_t value)

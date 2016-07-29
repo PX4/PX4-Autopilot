@@ -41,8 +41,18 @@
 #ifndef __LAND_DETECTOR_H__
 #define __LAND_DETECTOR_H__
 
+#include <px4_workqueue.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_land_detected.h>
+
+namespace landdetection
+{
+
+enum LandDetectionResult {
+	LANDDETECTION_RES_FLYING = 0,	/**< UAV is flying */
+	LANDDETECTION_RES_LANDED = 1,	/**< Land has been detected */
+	LANDDETECTION_RES_FREEFALL = 2	/**< Free-fall has been detected */
+};
 
 class LandDetector
 {
@@ -52,20 +62,27 @@ public:
 	virtual ~LandDetector();
 
 	/**
-	* @return true if this task is currently running
-	**/
+	 * @return true if this task is currently running
+	 **/
 	inline bool isRunning() const {return _taskIsRunning;}
 
 	/**
-	* @brief  Tells the Land Detector task that it should exit
-	**/
+	 * @return the current landed state
+	 */
+	bool isLanded() { return _landDetected.landed; }
+
+	/**
+	 * @brief  Tells the Land Detector task that it should exit
+	 **/
 	void shutdown();
 
 	/**
-	* @brief Blocking function that should be called from it's own task thread. This method will
-	*        run the underlying algorithm at the desired update rate and publish if the landing state changes.
-	**/
-	void start();
+	 * @brief Blocking function that should be called from it's own task thread. This method will
+	 *        run the underlying algorithm at the desired update rate and publish if the landing state changes.
+	 **/
+	int start();
+
+	static void	cycle_trampoline(void *arg);
 
 protected:
 
@@ -73,7 +90,7 @@ protected:
 	* @brief Pure abstract method that must be overriden by sub-classes. This actually runs the underlying algorithm
 	* @return true if a landing was detected and this should be broadcast to the rest of the system
 	**/
-	virtual bool update() = 0;
+	virtual LandDetectionResult update() = 0;
 
 	/**
 	* @brief Pure abstract method that is called by this class once for initializing the uderlying algorithm (memory allocation,
@@ -82,7 +99,7 @@ protected:
 	virtual void initialize() = 0;
 
 	/**
-	* @brief Convinience function for polling uORB subscriptions
+	* @brief Convenience function for polling uORB subscriptions
 	* @return true if there was new data and it was successfully copied
 	**/
 	bool orb_update(const struct orb_metadata *meta, int handle, void *buffer);
@@ -91,14 +108,24 @@ protected:
 
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                           before triggering a land */
+	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME =
+		2000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 
 protected:
-	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
-	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
+	orb_advert_t				_landDetectedPub;		/**< publisher for position in local frame */
+	struct vehicle_land_detected_s		_landDetected;			/**< local vehicle position */
+	uint64_t				_arming_time;			/**< timestamp of arming time */
+	LandDetectionResult
+	_state;		/**< Result of land detection. Can be LANDDETECTION_RES_FLYING, LANDDETECTION_RES_LANDED or LANDDETECTION_RES_FREEFALL */
 
 private:
 	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
 	bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+	struct work_s	_work;
+
+	void		cycle();
 };
+
+}
 
 #endif //__LAND_DETECTOR_H__

@@ -38,7 +38,7 @@
  * Tool for drive testing
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ __EXPORT int motor_test_main(int argc, char *argv[]);
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
-static orb_advert_t _test_motor_pub;
+static orb_advert_t _test_motor_pub = NULL;
 
 void motor_test(unsigned channel, float value)
 {
@@ -69,13 +69,16 @@ void motor_test(unsigned channel, float value)
 	_test_motor.timestamp = hrt_absolute_time();
 	_test_motor.value = value;
 
-    if (_test_motor_pub > 0) {
-    /* publish test state */
-        orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
-    } else {
-        /* advertise and publish */
-        _test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
-    }
+	if (_test_motor_pub != NULL) {
+		/* publish test state */
+		orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
+
+	} else {
+		/* advertise and publish */
+		_test_motor_pub = orb_advertise_queue(ORB_ID(test_motor), &_test_motor, 4);
+	}
+
+	printf("motor %d set to %.2f\n", channel, (double)value);
 }
 
 static void usage(const char *reason)
@@ -85,48 +88,77 @@ static void usage(const char *reason)
 	}
 
 	errx(1,
-		"usage:\n"
-		"motor_test\n"
-		"    -m <channel>            Motor to test (0..7)\n"
-		"    -p <power>              Power (0..100)\n");
+	     "usage:\n"
+	     "motor_test\n"
+	     "    -m <channel>            Motor to test (0..7), all if -m not given\n"
+	     "    -p <power>              Power (0..100), 0 if -p not given\n"
+	     "motor_test stop             Stop all motors\n"
+	     "motor_test iterate          Iterate all motors starting and stopping one after the other\n");
 }
 
 int motor_test_main(int argc, char *argv[])
 {
-	unsigned long channel = 0;
+	int channel = -1; //default to all channels
 	unsigned long lval;
 	float value = 0.0f;
 	int ch;
-
-	if (argc != 5) {
-		usage("please specify motor and power");
-	}
 
 	while ((ch = getopt(argc, argv, "m:p:")) != EOF) {
 		switch (ch) {
 
 		case 'm':
 			/* Read in motor number */
-			channel = strtoul(optarg, NULL, 0);
+			channel = (int)strtoul(optarg, NULL, 0);
 			break;
 
 		case 'p':
 			/* Read in power value */
 			lval = strtoul(optarg, NULL, 0);
 
-			if (lval > 100)
+			if (lval > 100) {
 				usage("value invalid");
+			}
 
-			value = ((float)lval)/100.f;
+			value = ((float)lval) / 100.f;
 			break;
+
 		default:
 			usage(NULL);
 		}
 	}
 
-	motor_test(channel, value);
+	bool run_test = true;
 
-	printf("motor %d set to %.2f\n", channel, (double)value);
+	if (argc > 1) {
+		if (strcmp("stop", argv[1]) == 0) {
+			channel = -1;
+			value = 0.f;
+
+		} else if (strcmp("iterate", argv[1]) == 0) {
+			value = 0.3f;
+
+			for (int i = 0; i < 8; ++i) {
+				motor_test(i, value);
+				usleep(500000);
+				motor_test(i, 0.f);
+				usleep(10000);
+			}
+
+			run_test = false;
+		}
+	}
+
+	if (run_test) {
+		if (channel == -1) {
+			for (int i = 0; i < 8; ++i) {
+				motor_test(i, value);
+				usleep(10000);
+			}
+
+		} else {
+			motor_test(channel, value);
+		}
+	}
 
 	exit(0);
 }

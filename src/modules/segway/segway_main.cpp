@@ -39,7 +39,7 @@
  * Segway controller using control library
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,8 +74,9 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: segway {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
@@ -106,12 +107,12 @@ int segway_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 
-		deamon_task = task_spawn_cmd("segway",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 5120,
-					 segway_thread_main,
-					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+		deamon_task = px4_task_spawn_cmd("segway",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 10,
+						 5120,
+						 segway_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
 

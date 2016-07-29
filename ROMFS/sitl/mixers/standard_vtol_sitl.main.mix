@@ -1,0 +1,26 @@
+Mixer for standard vtol plane (SITL) with motor x configuration
+=========================================================
+
+This file defines a single mixer for a standard vtol plane (SITL gazebo) with motors in X configuration. The plane has two ailerons and one elevator.
+
+R: 4x 10000 10000 10000 0
+
+# mixer for the pusher/puller throttle
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 1 3      0  20000 -10000 -10000  10000
+
+# mixer for the left aileron
+M: 1
+O:      10000  10000   0 -10000  10000
+S: 1 0  10000  10000    0 -10000  10000
+
+# mixer for the right aileron
+M: 1
+O:      10000  10000   0 -10000  10000
+S: 1 0  -10000  -10000    0 -10000  10000
+
+# mixer for the elevator
+M: 1
+O:       10000   10000   0 -10000  10000
+S: 1 1   10000   10000    0 -10000  10000

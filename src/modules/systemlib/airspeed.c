@@ -60,13 +60,14 @@ float calc_indicated_airspeed(float differential_pressure)
 {
 
 	if (differential_pressure > 0.0f) {
-		return sqrtf((2.0f*differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
 	} else {
-		return -sqrtf((2.0f*fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+		return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	}
 
 }
- 
+
 /**
  * Calculate true airspeed from indicated airspeed.
  *
@@ -79,9 +80,10 @@ float calc_indicated_airspeed(float differential_pressure)
  */
 float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient, float temperature_celsius)
 {
-	return speed_indicated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient, temperature_celsius));
+	return speed_indicated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
+				       temperature_celsius));
 }
- 
+
 /**
  * Directly calculate true airspeed
  *
@@ -103,9 +105,10 @@ float calc_true_airspeed(float total_pressure, float static_pressure, float temp
 	float pressure_difference = total_pressure - static_pressure;
 
 	if (pressure_difference > 0) {
-		return sqrtf((2.0f*(pressure_difference)) / density);
+		return sqrtf((2.0f * (pressure_difference)) / density);
+
 	} else {
-		return -sqrtf((2.0f*fabsf(pressure_difference)) / density);
+		return -sqrtf((2.0f * fabsf(pressure_difference)) / density);
 	}
 }
 

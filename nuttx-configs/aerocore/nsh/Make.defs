@@ -36,6 +36,8 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
+include $(TOPDIR)/PX4_Warnings.mk
+
 #
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
@@ -53,7 +55,7 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 = -Os
 ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 			   -mthumb \
 			   -march=armv7e-m \
@@ -91,7 +93,7 @@ else
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
-    # Linux/Cygwin-native toolchain 
+    # Linux/Cygwin-native toolchain
     MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
@@ -108,10 +110,10 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
-   			   -funsafe-math-optimizations \
-   			   -fno-builtin-printf \
-   			   -ffunction-sections \
-   			   -fdata-sections
+			   -funsafe-math-optimizations \
+			   -fno-builtin-printf \
+			   -ffunction-sections \
+			   -fdata-sections
 
 ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
 ARCHOPTIMIZATION	+= -g
@@ -119,32 +121,9 @@ endif
 
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
-ARCHWARNINGS		 = -Wall \
-			   -Wno-sign-compare \
-			   -Wextra \
-			   -Wdouble-promotion \
-			   -Wshadow \
-			   -Wfloat-equal \
-			   -Wframe-larger-than=1024 \
-			   -Wpointer-arith \
-			   -Wlogical-op \
-			   -Wmissing-declarations \
-			   -Wpacked \
-			   -Wno-unused-parameter
-#   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
-#   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
-#   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
-
-ARCHCWARNINGS		 = $(ARCHWARNINGS) \
-			   -Wbad-function-cast \
-			   -Wstrict-prototypes \
-			   -Wold-style-declaration \
-			   -Wmissing-parameter-type \
-			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
-ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
-			   -Wno-psabi
+ARCHWARNINGS		 = $(PX4_ARCHWARNINGS)
+ARCHCWARNINGS		 = $(PX4_ARCHWARNINGS) $(PX4_ARCHCWARNINGS)
+ARCHWARNINGSXX		 = $(ARCHWARNINGS) $(PX4_ARCHWARNINGSXX)
 ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 

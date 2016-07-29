@@ -44,6 +44,7 @@
 #define SDLOG2_RINGBUFFER_H_
 
 #include <stdbool.h>
+#include <systemlib/perf_counter.h>
 
 struct logbuffer_s {
 	// pointers and size are in bytes
@@ -51,6 +52,7 @@ struct logbuffer_s {
 	int read_ptr;
 	int size;
 	char *data;
+	perf_counter_t perf_dropped;
 };
 
 int logbuffer_init(struct logbuffer_s *lb, int size);
@@ -64,5 +66,9 @@ bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size);
 int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part);
 
 void logbuffer_mark_read(struct logbuffer_s *lb, int n);
+
+void logbuffer_free(struct logbuffer_s *lb);
+
+void logbuffer_reset(struct logbuffer_s *lb);
 
 #endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,20 +42,35 @@
 #include "LandDetector.h"
 #include <unistd.h>                 //usleep
 #include <drivers/drv_hrt.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+
+namespace landdetection
+{
 
 LandDetector::LandDetector() :
-	_landDetectedPub(-1),
-	_landDetected({0, false}),
-	      _taskShouldExit(false),
-	      _taskIsRunning(false)
+	_landDetectedPub(nullptr),
+	_landDetected{0, false, false},
+	_arming_time(0),
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_work{}
 {
 	// ctor
 }
 
 LandDetector::~LandDetector()
 {
+	work_cancel(HPWORK, &_work);
 	_taskShouldExit = true;
-	close(_landDetectedPub);
+}
+
+int LandDetector::start()
+{
+	/* schedule a cycle to start things */
+	work_queue(HPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, 0);
+
+	return 0;
 }
 
 void LandDetector::shutdown()
@@ -63,44 +78,46 @@ void LandDetector::shutdown()
 	_taskShouldExit = true;
 }
 
-void LandDetector::start()
+void
+LandDetector::cycle_trampoline(void *arg)
 {
-	// make sure this method has not already been called by another thread
-	if (isRunning()) {
-		return;
+	LandDetector *dev = reinterpret_cast<LandDetector *>(arg);
+
+	dev->cycle();
+}
+
+void LandDetector::cycle()
+{
+	if (!_taskIsRunning) {
+		// advertise the first land detected uORB
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.landed = false;
+		_landDetected.freefall = false;
+
+		// initialize land detection algorithm
+		initialize();
+
+		// task is now running, keep doing so until shutdown() has been called
+		_taskIsRunning = true;
+		_taskShouldExit = false;
 	}
 
-	// advertise the first land detected uORB
-	_landDetected.timestamp = hrt_absolute_time();
-	_landDetected.landed = false;
-	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	LandDetectionResult current_state = update();
+	bool landDetected = (current_state == LANDDETECTION_RES_LANDED);
+	bool freefallDetected = (current_state == LANDDETECTION_RES_FREEFALL);
 
-	// initialize land detection algorithm
-	initialize();
-
-	// task is now running, keep doing so until shutdown() has been called
-	_taskIsRunning = true;
-	_taskShouldExit = false;
-
-	while (isRunning()) {
-
-		bool landDetected = update();
-
-		// publish if land detection state has changed
-		if (_landDetected.landed != landDetected) {
-			_landDetected.timestamp = hrt_absolute_time();
-			_landDetected.landed = landDetected;
-
-			// publish the land detected broadcast
-			orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
-		}
-
-		// limit loop rate
-		usleep(1000000 / LAND_DETECTOR_UPDATE_RATE);
+	if (_landDetectedPub == nullptr || _landDetected.landed != landDetected || _landDetected.freefall != freefallDetected) {
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.landed = (current_state == LANDDETECTION_RES_LANDED);
+		_landDetected.freefall = (current_state == LANDDETECTION_RES_FREEFALL);
+		int instance;
+		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected, &instance, ORB_PRIO_DEFAULT);
 	}
 
-	_taskIsRunning = false;
-	_exit(0);
+	if (!_taskShouldExit) {
+		work_queue(HPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this,
+			   USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE));
+	}
 }
 
 bool LandDetector::orb_update(const struct orb_metadata *meta, int handle, void *buffer)
@@ -121,4 +138,6 @@ bool LandDetector::orb_update(const struct orb_metadata *meta, int handle, void 
 	}
 
 	return true;
+}
+
 }

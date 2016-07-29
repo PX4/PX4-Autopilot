@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -145,25 +145,13 @@ static struct spi_dev_s *spi3;
 
 #include <math.h>
 
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
 __EXPORT int nsh_archinitialize(void)
 {
 	int result;
 
 	/* configure always-on ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
+	px4_arch_configgpio(GPIO_ADC1_IN10);
+	px4_arch_configgpio(GPIO_ADC1_IN11);
 	/* IN12 and IN13 further below */
 
 	/* configure the high-resolution time/callout interface */
@@ -199,7 +187,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = px4_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\r\n");
@@ -221,27 +209,27 @@ __EXPORT int nsh_archinitialize(void)
 	 * Keep the SPI2 init optional and conditionally initialize the ADC pins
 	 */
 
-	#ifdef CONFIG_STM32_SPI2
-		spi2 = up_spiinitialize(2);
-		/* Default SPI2 to 1MHz and de-assert the known chip selects. */
-		SPI_SETFREQUENCY(spi2, 10000000);
-		SPI_SETBITS(spi2, 8);
-		SPI_SETMODE(spi2, SPIDEV_MODE3);
-		SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
-		SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
+#ifdef CONFIG_STM32_SPI2
+	spi2 = px4_spibus_initialize(2);
+	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi2, 10000000);
+	SPI_SETBITS(spi2, 8);
+	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
 
-		message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
-	#else
-		spi2 = NULL;
-		message("[boot] Enabling IN12/13 instead of SPI2\n");
-		/* no SPI2, use pins for ADC */
-		stm32_configgpio(GPIO_ADC1_IN12);
-		stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
-	#endif
+	message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
+#else
+	spi2 = NULL;
+	message("[boot] Enabling IN12/13 instead of SPI2\n");
+	/* no SPI2, use pins for ADC */
+	px4_arch_configgpio(GPIO_ADC1_IN12);
+	px4_arch_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+#endif
 
 	/* Get the SPI port for the microSD slot */
 
-	spi3 = up_spiinitialize(3);
+	spi3 = px4_spibus_initialize(3);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");

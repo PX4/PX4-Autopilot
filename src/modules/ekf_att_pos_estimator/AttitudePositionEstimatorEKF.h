@@ -49,30 +49,37 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_range_finder.h>
+
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <geo/geo.h>
+#include <terrain_estimation/terrain_estimator.h>
 #include <systemlib/perf_counter.h>
+#include "estimator_22states.h"
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
 //Forward declaration
 class AttPosEKF;
 
-class AttitudePositionEstimatorEKF
+class AttitudePositionEstimatorEKF : public control::SuperBlock
 {
 public:
     /**
@@ -127,6 +134,8 @@ public:
      */
     int set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
+    static constexpr unsigned MAX_PREDICITION_STEPS = 3; /**< maximum number of prediction steps between updates */
+
 private:
     bool        _task_should_exit;      /**< if true, sensor task should exit */
     bool        _task_running;          /**< if true, task is running in its mainloop */
@@ -137,7 +146,8 @@ private:
     int     _airspeed_sub;          /**< airspeed subscription */
     int     _baro_sub;          /**< barometer subscription */
     int     _gps_sub;           /**< GPS subscription */
-    int     _vstatus_sub;           /**< vehicle status subscription */
+    int     _vehicle_status_sub;
+    int     _vehicle_land_detected_sub;
     int     _params_sub;            /**< notification of parameter updates */
     int     _manual_control_sub;        /**< notification of manual control updates */
     int     _mission_sub;
@@ -146,35 +156,38 @@ private:
     int     _armedSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
+    orb_advert_t    _ctrl_state_pub;        /**< control state */
     orb_advert_t    _global_pos_pub;        /**< global position */
     orb_advert_t    _local_pos_pub;         /**< position in local frame */
     orb_advert_t    _estimator_status_pub;      /**< status of the estimator */
     orb_advert_t    _wind_pub;          /**< wind estimate */
 
     struct vehicle_attitude_s           _att;           /**< vehicle attitude */
+    struct control_state_s              _ctrl_state;    /**< control state */
     struct gyro_report                  _gyro;
     struct accel_report                 _accel;
     struct mag_report                   _mag;
     struct airspeed_s                   _airspeed;      /**< airspeed */
     struct baro_report                  _baro;          /**< baro readings */
-    struct vehicle_status_s             _vstatus;       /**< vehicle status */
+    struct vehicle_status_s		_vehicle_status;
+    struct vehicle_land_detected_s      _vehicle_land_detected;
     struct vehicle_global_position_s    _global_pos;        /**< global vehicle position */
     struct vehicle_local_position_s     _local_pos;     /**< local vehicle position */
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
     struct wind_estimate_s              _wind;          /**< wind estimate */
-    struct range_finder_report          _distance;      /**< distance estimate */
-    struct vehicle_land_detected_s      _landDetector;
+    struct distance_sensor_s            _distance;      /**< distance estimate */
     struct actuator_armed_s             _armed;
 
-    struct gyro_scale               _gyro_offsets[3];
-    struct accel_scale              _accel_offsets[3];
-    struct mag_scale                _mag_offsets[3];
+    hrt_abstime _last_accel;
+    hrt_abstime _last_mag;
+    unsigned _prediction_steps;
+    uint64_t _prediction_last;
 
     struct sensor_combined_s            _sensor_combined;
 
     struct map_projection_reference_s   _pos_ref;
 
-    float                       _baro_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
+    float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
 
@@ -193,27 +206,25 @@ private:
     bool            _gpsIsGood;               ///< True if the current GPS fix is good enough for us to use
     uint64_t        _previousGPSTimestamp;    ///< Timestamp of last good GPS fix we have received
     bool            _baro_init;
-    float           _baroAltRef;
     bool            _gps_initialized;
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
-    hrt_abstime     _last_run;
     hrt_abstime     _distance_last_valid;
-    bool            _gyro_valid;
-    bool            _accel_valid;
-    bool            _mag_valid;
-    int             _gyro_main;         ///< index of the main gyroscope
-    int             _accel_main;        ///< index of the main accelerometer
-    int             _mag_main;          ///< index of the main magnetometer
+    bool            _data_good;         ///< all required filter data is ok
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
+    bool            _was_landed;        ///< indicates if was landed in previous iteration
 
     bool            _newHgtData;
     bool            _newAdsData;
     bool            _newDataMag;
     bool            _newRangeData;
 
-    int             _mavlink_fd;
+    orb_advert_t    _mavlink_log_pub;
+
+    control::BlockParamFloat _mag_offset_x;
+    control::BlockParamFloat _mag_offset_y;
+    control::BlockParamFloat _mag_offset_z;
 
     struct {
         int32_t vel_delay_ms;
@@ -234,6 +245,7 @@ private:
         float magb_pnoise;
         float eas_noise;
         float pos_stddev_threshold;
+        int32_t airspeed_mode;
     }       _parameters;            /**< local copies of interesting parameters */
 
     struct {
@@ -255,9 +267,17 @@ private:
         param_t magb_pnoise;
         param_t eas_noise;
         param_t pos_stddev_threshold;
+        param_t airspeed_mode;
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;
+
+    TerrainEstimator            *_terrain_estimator;
+
+    /* Low pass filter for attitude rates */
+    math::LowPassFilter2p _LP_att_P;
+    math::LowPassFilter2p _LP_att_Q;
+    math::LowPassFilter2p _LP_att_R;
 
 private:
     /**
@@ -272,9 +292,14 @@ private:
     void        control_update();
 
     /**
-     * Check for changes in vehicle status.
+     * Check for changes in land detected.
      */
     void        vehicle_status_poll();
+
+    /**
+     * Check for changes in land detected.
+     */
+    void        vehicle_land_detected_poll();
 
     /**
      * Shim for calling task_main from task_create.
@@ -301,6 +326,12 @@ private:
 
     /**
     * @brief
+    *   Publish the system state for control modules
+    **/
+    void publishControlState();
+
+    /**
+    * @brief
     *   Publish local position relative to reference point where filter was initialized
     **/
     void publishLocalPosition();
@@ -323,7 +354,7 @@ private:
     *   Runs the sensor fusion step of the filter. The parameters determine which of the sensors
     *   are fused with each other
     **/
-    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor, 
+    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor,
             const bool fuseBaro, const bool fuseAirSpeed);
 
     /**
@@ -332,6 +363,12 @@ private:
     *   Should only be required to call once
     **/
     void initializeGPS();
+
+    /**
+     * Initialize the reference position for the local coordinate frame
+     */
+    void initReferencePosition(hrt_abstime timestamp, bool gps_valid,
+            double lat, double lon, float gps_alt, float baro_alt);
 
     /**
     * @brief

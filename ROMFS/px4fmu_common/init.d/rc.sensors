@@ -1,15 +1,53 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
+# Standard startup script for PX4FMU v1, v2, v3, v4 onboard sensor drivers.
 #
 
-ms5611 start
-adc start
+if ver hwcmp PX4FMU_V1
+then
+	if ms5611 start
+	then
+	fi
+else
+	# Configure all I2C buses to 100 KHz as they
+	# are all external or slow
+	fmu i2c 1 100000
+	fmu i2c 2 100000
+
+	if ver hwcmp PX4FMU_V4
+	then
+		# We know there are sketchy boards out there
+		# as chinese companies produce Pixracers without
+		# fully understanding the critical parts of the
+		# schematic and BOM, leading to sensor brownouts
+		# on boot. Original Pixracers following the
+		# open hardware design do not require this.
+		fmu sensor_reset 20
+	fi
+
+	if ms5611 -s start
+	then
+	fi
+
+	# Blacksheep telemetry
+	if bst start
+	then
+	fi
+fi
+
+if adc start
+then
+fi
 
 if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
+	then
+	fi
+
+	# External I2C bus
+	if lis3mdl -X start
 	then
 	fi
 
@@ -47,6 +85,10 @@ then
 		then
 		fi
 
+		if meas_airspeed start -b 2
+		then
+		fi
+
 	else
 		# FMUv2
 		if mpu6000 start
@@ -61,7 +103,37 @@ then
 		then
 		fi
 	fi
-else
+fi
+
+if ver hwcmp PX4FMU_V4
+then
+	# External I2C bus
+	if hmc5883 -C -T -X start
+	then
+	fi
+
+	if lis3mdl -R 2 start
+	then
+	fi
+
+	# Internal SPI bus is rotated 90 deg yaw
+	if hmc5883 -C -T -S -R 2 start
+	then
+	fi
+
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	if mpu9250 -R 2 start
+	then
+	fi
+fi
+
+if ver hwcmp PX4FMU_V1
+then
 	# FMUv1
 	if mpu6000 start
 	then
@@ -93,6 +165,30 @@ else
 	fi
 fi
 
+if ver hwcmp MINDPX_V2
+then
+	if mpu6500 start
+	then
+	fi
+
+	if lsm303d start
+	then
+	fi
+
+	if l3gd20 start
+	then
+	fi
+
+	# External I2C bus
+	if hmc5883 -C -T -X start
+	then
+	fi
+
+	if lis3mdl -R 2 start
+	then
+	fi
+fi
+
 if meas_airspeed start
 then
 else
@@ -105,17 +201,12 @@ else
 	fi
 fi
 
-# Check for flow sensor
-if px4flow start
+if sf10a start
 then
 fi
 
-if ll40ls start
+# Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
+usleep 20000
+if sensors start
 then
 fi
-
-#
-# Start sensors
-#
-sensors start
-

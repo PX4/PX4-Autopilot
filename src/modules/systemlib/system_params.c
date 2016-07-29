@@ -37,14 +37,14 @@
  * System wide parameters
  */
 
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
-
 /**
  * Auto-start script index.
  *
- * Defines the auto-start script used to bootstrap the system.
+ * CHANGING THIS VALUE REQUIRES A RESTART. Defines the auto-start script used to bootstrap the system.
  *
+ * @reboot_required true
+ * @min 0
+ * @max 99999
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
@@ -58,54 +58,96 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
  *
  * @min 0
  * @max 1
+ * @value 0 Keep parameters
+ * @value 1 Reset parameters
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 /**
-* Set usage of IO board
-*
-* Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
-*
-* @min 0
-* @max 1
-* @group System
-*/
+ * Set usage of IO board
+ *
+ * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
+ *
+ * @boolean
+ * @min 0
+ * @max 1
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 
 /**
-* Set restart type
-*
-* Set by px4io to indicate type of restart
-*
-* @min 0
-* @max 2
-* @group System
-*/
+ * Set restart type
+ *
+ * Set by px4io to indicate type of restart
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Data survives resets
+ * @value 1 Data survives in-flight resets only
+ * @value 2 Data does not survive reset
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 
 /**
-* Companion computer interface
-*
-* Configures the baud rate of the companion computer interface.
-* Set to zero to disable, set to 921600 to enable.
-* CURRENTLY ONLY SUPPORTS 921600 BAUD! Use extras.txt for
-* other baud rates.
-*
-* @min 0
-* @max 921600
-* @group System
-*/
-PARAM_DEFINE_INT32(SYS_COMPANION, 0);
+ * Set multicopter estimator group
+ *
+ * Set the group of estimators used for multicopters and vtols
+ *
+ * @value 0 position_estimator_inav, attitude_estimator_q
+ * @value 1 local_position_estimator, attitude_estimator_q
+ * @value 2 ekf2
+ *
+ * @min 0
+ * @max 2
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 0);
 
 /**
-* Parameter version
-*
-* This monotonically increasing number encodes the parameter compatibility set.
-* whenever it increases parameters might not be backwards compatible and
-* ground control stations should suggest a fresh configuration.
-*
-* @min 0
-* @group System
-*/
+ * TELEM2 as companion computer link
+ *
+ * CHANGING THIS VALUE REQUIRES A RESTART. Configures the baud rate of the TELEM2 connector as
+ * companion computer interface.
+ *
+ * @value 0 Disabled
+ * @value 10 FrSky Telemetry
+ * @value 921600 Companion Link (921600 baud, 8N1)
+ * @value 57600 Companion Link (57600 baud, 8N1)
+ * @value 157600 OSD (57600 baud, 8N1)
+ * @value 257600 Command Receiver (57600 baud, 8N1)
+ * @value 357600 Normal Telemetry (57600 baud, 8N1)
+ * @value 1921600 ESP8266 (921600 baud, 8N1)
+ *
+ * @min 0
+ * @max 1921600
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
+
+/**
+ * Parameter version
+ *
+ * This monotonically increasing number encodes the parameter compatibility set.
+ * whenever it increases parameters might not be backwards compatible and
+ * ground control stations should suggest a fresh configuration.
+ *
+ * @min 0
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
+
+/**
+ * SD logger
+ *
+ * @value 0 sdlog2 (default)
+ * @value 1 new logger
+ * @min 0
+ * @max 1
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_LOGGER, 0);

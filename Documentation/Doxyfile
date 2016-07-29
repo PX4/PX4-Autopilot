@@ -281,7 +281,7 @@ TYPEDEF_HIDES_STRUCT   = NO
 # causing a significant performance penality.
 # If the system has enough physical memory increasing the cache will improve the
 # performance by keeping more symbols in memory. Note that the value works on
-# a logarithmic scale so increasing the size by one will rougly double the
+# a logarithmic scale so increasing the size by one will roughly double the
 # memory usage. The cache size is given by this formula:
 # 2^(16+SYMBOL_CACHE_SIZE). The valid range is 0..9, the default is 0,
 # corresponding to a cache size of 2^16 = 65536 symbols
@@ -599,8 +599,7 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = ../src/lib/mathlib/CMSIS \
-			 ../src/modules/attitude_estimator_ekf/codegen
+EXCLUDE                = ../src/modules/attitude_estimator_ekf/codegen
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
 # directories that are symbolic links (a Unix filesystem feature) are excluded

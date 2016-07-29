@@ -40,12 +40,10 @@
  * uORB published object driver.
  */
 
+#include <px4_defines.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
-
-/* XXX for ORB_DECLARE used in many drivers */
-#include "../modules/uORB/uORB.h"
 
 /*
  * ioctl() definitions
@@ -61,7 +59,7 @@
 #define ORB_MAXNAME		32
 
 #define _ORBIOCBASE		(0x2600)
-#define _ORBIOC(_n)		(_IOC(_ORBIOCBASE, _n))
+#define _ORBIOC(_n)		(_PX4_IOC(_ORBIOCBASE, _n))
 
 /*
  * IOCTLs for the uORB control device
@@ -88,5 +86,11 @@
 
 /** Get the priority for the topic */
 #define ORBIOCGPRIORITY		_ORBIOC(14)
+
+/** Set the queue size of the topic */
+#define ORBIOCSETQUEUESIZE	_ORBIOC(15)
+
+/** Get the minimum interval at which the topic can be seen to be updated for this subscription */
+#define ORBIOCGETINTERVAL	_ORBIOC(16)
 
 #endif /* _DRV_UORB_H */

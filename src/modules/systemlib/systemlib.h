@@ -43,28 +43,10 @@
 #include <stdint.h>
 #include <sched.h>
 
+// OS specific settings defined in px4_tasks.h
+#include <px4_tasks.h>
+
 __BEGIN_DECLS
-
-/** Reboots the board */
-__EXPORT void systemreset(bool to_bootloader) noreturn_function;
-
-/** Sends SIGUSR1 to all processes */
-__EXPORT void killall(void);
-
-/** Default scheduler type */
-#if CONFIG_RR_INTERVAL > 0
-# define SCHED_DEFAULT	SCHED_RR
-#else
-# define SCHED_DEFAULT	SCHED_FIFO
-#endif
-
-/** Starts a task and performs any specific accounting, scheduler setup, etc. */
-__EXPORT int task_spawn_cmd(const char *name,
-			int priority,
-			int scheduler,
-			int stack_size,
-			main_t entry,
-			char * const argv[]);
 
 enum MULT_PORTS {
 	MULT_0_US2_RXTX = 0,
@@ -73,9 +55,9 @@ enum MULT_PORTS {
 	MULT_COUNT
 };
 
+#if defined(__cplusplus)
 /* Check max multi port count */
-#if (MULT_COUNT > 33)
-#error "MULT_COUNT HAS TO BE LESS THAN OR EQUAL 33"
+static_assert(MULT_COUNT <= 33, "MULT_COUNT HAS TO BE LESS THAN OR EQUAL 33");
 #endif
 
 /* FMU board info, to be stored in the first 64 bytes of the FMU EEPROM */

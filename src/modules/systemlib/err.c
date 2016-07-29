@@ -38,7 +38,9 @@
  * the same names.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+
+#include <inttypes.h>
 
 #include <stdlib.h>
 #include <errno.h>
@@ -57,43 +59,38 @@ extern int lib_lowvprintf(const char *fmt, va_list ap);
 #  warning Cannot output without one of CONFIG_NFILE_STREAMS or CONFIG_ARCH_LOWPUTC
 #endif
 
-const char *
-getprogname(void)
-{
-#if CONFIG_TASK_NAME_SIZE > 0
-	FAR struct tcb_s	*thisproc = sched_self();
-
-	return thisproc->name;
-#else
-	return "app";
-#endif
-}
+// XXX not used anymore
+#if 0
 
 static void
 warnerr_core(int errcode, const char *fmt, va_list args)
 {
 #if CONFIG_NFILE_STREAMS > 0
-	fprintf(stderr, "%s: ", getprogname());
+	fprintf(stderr, "%s: ", px4_get_taskname());
 	vfprintf(stderr, fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
-	if (errcode < 0)
+	if (errcode < 0) {
 		errcode = -errcode;
+	}
 
-	if (errcode < NOCODE)
+	if (errcode < NOCODE) {
 		fprintf(stderr, ": %s", strerror(errcode));
+	}
 
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
-	lowsyslog("%s: ", getprogname());
+	lowsyslog("%s: ", px4_get_taskname());
 	lowvsyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
-	if (errcode < 0)
+	if (errcode < 0) {
 		errcode = -errcode;
+	}
 
-	if (errcode < NOCODE)
+	if (errcode < NOCODE) {
 		lowsyslog(": %s", strerror(errcode));
+	}
 
 	lowsyslog("\n");
 #endif
@@ -194,3 +191,4 @@ vwarnx(const char *fmt, va_list args)
 {
 	warnerr_core(NOCODE, fmt, args);
 }
+#endif

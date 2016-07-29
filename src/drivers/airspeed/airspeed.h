@@ -38,7 +38,7 @@
  * Generic driver for airspeed sensors connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -55,9 +55,14 @@
 #include <math.h>
 #include <unistd.h>
 
+#ifdef __PX4_NUTTX
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
+#
+#else
+#include <px4_workqueue.h>
+#endif
 
 #include <arch/board/board.h>
 
@@ -95,8 +100,8 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -104,7 +109,7 @@ public:
 	virtual void	print_info();
 
 private:
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	perf_counter_t		_buffer_overflows;
 
 	/* this class has pointer data members and should not be copied */

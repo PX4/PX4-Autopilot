@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H
-#define __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H
+#ifndef __CONFIG_DISCOVERY_INCLUDE_BOARD_H
+#define __CONFIG_DISCOVERY_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -200,6 +200,18 @@
 
 #define GPIO_USART2_RX GPIO_USART2_RX_1
 #define GPIO_USART2_TX GPIO_USART2_TX_1
+
+/* UART6:
+ *
+ * The STM32F4 Discovery has no on-board serial devices, PC6 (TX) and PC7 (RX) 
+ * for connection to an external serial device.
+ */
+
+#define GPIO_USART6_RX GPIO_USART6_RX_1
+#define GPIO_USART6_TX GPIO_USART6_TX_1
+
+/* USART6 require a RX DMA configuration */
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_1
  
 /* SPI - There is a MEMS device on SPI1 using these pins: */
 
@@ -270,4 +282,4 @@ EXTERN void stm32_setleds(uint8_t ledset);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H */
+#endif  /* __CONFIG_DISCOVERY_INCLUDE_BOARD_H */

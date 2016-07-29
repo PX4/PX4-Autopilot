@@ -2,6 +2,7 @@
 !ROMFS/*/*.d
 !ROMFS/*/*/*.d
 !ROMFS/*/*/*/*.d
+*.px4log
 *.dSYM
 *.o
 *.pyc
@@ -17,10 +18,15 @@
 .~lock.*
 Archives/*
 Build/*
+Testing/
 build/*
+build_*/
 core
 cscope.out
+cscope.in.out
+cscope.po.out
 Firmware.sublime-workspace
+user.sublime*
 Images/*.bin
 Images/*.px4
 mavlink/include/mavlink/v0.9/
@@ -48,3 +54,21 @@ unittests/build
 .vagrant
 *.pretty
 xcode
+src/platforms/posix/px4_messages/
+src/platforms/posix-arm/px4_messages/
+src/platforms/qurt/px4_messages/
+ROMFS/*/*/rc.autostart
+rootfs/
+*.autosave
+CMakeLists.txt.user
+GPATH
+GRTAGS
+GTAGS
+*.creator
+*.creator.user
+*.files
+*.includes
+
+# uavcan firmware
+ROMFS/px4fmu_common/uavcan/
+vectorcontrol/

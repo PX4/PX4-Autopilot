@@ -55,7 +55,7 @@
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -85,7 +85,7 @@ __EXPORT float _wrap_pi(float bearing)
 __EXPORT float _wrap_2pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -115,7 +115,7 @@ __EXPORT float _wrap_2pi(float bearing)
 __EXPORT float _wrap_180(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -145,7 +145,7 @@ __EXPORT float _wrap_180(float bearing)
 __EXPORT float _wrap_360(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -182,7 +182,8 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 	return ref->timestamp;
 }
 
-__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
+		uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 
 	ref->lat_rad = lat_0 * M_DEG_TO_RAD;
@@ -196,12 +197,14 @@ __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *
 	return 0;
 }
 
-__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0,
+				 double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	return map_projection_init_timestamped(ref, lat_0, lon_0, px4::get_time_micros());
 }
 
-__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
+				      double *ref_lon_rad)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -213,7 +216,8 @@ __EXPORT int map_projection_reference(const struct map_projection_reference_s *r
 	return 0;
 }
 
-__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
+				    float *y)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -235,7 +239,8 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 	return 0;
 }
 
-__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
+				      double *lon)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
