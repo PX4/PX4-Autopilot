@@ -3065,6 +3065,21 @@ PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 
 /**
+ * Lightware SF1xx laser rangefinder
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 4
+ * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 SF10/a (25m)
+ * @value 2 SF10/b (50m)
+ * @value 3 SF10/c (100m)
+ * @value 4 SF11/c (120m)
+ */
+PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
+
+/**
  * Set the minimum PWM for the MAIN outputs
  *
  * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
