@@ -82,16 +82,16 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 	if (apps.find(command) != apps.end()) {
 
-		// Allocate 1 byte more for the 0 termination.
+		// Note that argv[argc] always needs to be a nullptr.
+		// Therefore add one more entry.
 		const char *arg[words.size() + 1];
 
 		for (unsigned i = 0; i < words.size(); ++i) {
 			arg[i] = (char *)words[i].c_str();
 		}
 
-		// Write 0 termination.
-		arg[words.size()] = (char)0;
-
+		// Explicitly set this nullptr.
+		arg[words.size()] = nullptr;
 
 		int retval = apps[command](words.size(), (char **)arg);
 
