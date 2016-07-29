@@ -165,7 +165,7 @@ else
 	echo "Please set parameter to select airframe:"
 	echo "    SYS_AUTOSTART 4100: generic (flight) Quad"
 	echo "    SYS_AUTOSTART 4200: Microheli 200QX"
-	echo "    SYS_AUTOSTART 4210: Microheli 210QC"
+	echo "    SYS_AUTOSTART 4210: 210QC"
 fi
 
 
