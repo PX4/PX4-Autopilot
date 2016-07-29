@@ -27,7 +27,7 @@ public:
     struct pos_handle_t;
 
     // Informs the tracker about a new home position.
-    void set_home(home_position_s *position);
+    void set_home(home_position_s *position) { set_home(position->x, position->y, position->z); }
     
     // Informs the tracker about a new current vehicle position.
     void update(vehicle_local_position_s *position) { if (position->xy_valid && position->z_valid) update(position->x, position->y, position->z); }
@@ -89,7 +89,7 @@ private:
     static constexpr int GRAPH_SEARCH_RANGE = GRAPH_LENGTH;
 
     // A larger value increases RAM usage, while a smaller value increases CPU usage
-    static constexpr int UNVISITED_NODES_BUFFER_SIZE = 5;
+    static constexpr int DIRTY_NODES_BUFFER_SIZE = 5;
 
     // The number of path elements to store in the return path. This should be sized according to what the client needs.
     static constexpr int RETURN_PATH_SIZE = 6;
@@ -156,7 +156,7 @@ private:
     static inline int round(float f) { return (int)(f + (f < 0 ? -0.5f : 0.5f)); };
     static inline bool is_close(fpos_t pos1, fpos_t pos2);
     static inline bool is_close(ipos_t pos1, fpos_t pos2);
-    bool is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, float *coefficient);
+    bool is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist_squared, float *coefficient);
     static inline fpos_t to_fpos(ipos_t pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
     static inline ipos_t to_ipos(fpos_t pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
 
@@ -220,7 +220,7 @@ private:
 
         inline void reset_dist_to_home_coef() { _dist_to_home_coef = _dist_to_node_coef; }
 
-        // improvement: should be in [-2 +2] to prevent overflow. +1 if node-to-home was reduced by the delta-length.
+        // improvement: should be in [-2, +2] to prevent overflow. +1 means the node-to-home was reduced by the delta-length.
         void update_node_to_home(float improvement) {
             _dist_to_home_coef += (int8_t)(improvement * 0x40);
             if (!is_valid())
@@ -237,6 +237,9 @@ private:
         }
     };
 
+
+    // Informs the tracker about a new home position.
+    void set_home(float x, float y, float z);
 
     // Informs the tracker about a new current vehicle position.
     void update(float x, float y, float z);
@@ -351,15 +354,18 @@ private:
     // Hence, when iterating through the links of a node, start at the node head and call walk_node AFTER each iteration.
     inline bool walk_node(size_t node, size_t &index);
 
-    // Registers that a node just received a new value (or was newly created).
-    // This ensures that when the distance-to-home values are demanded, the new/updated node is respected.
-    void unvisit_node(size_t node);
+    // Registers that a node just received a new value or wants to receive a new value.
+    // This ensures that when the distance-to-home values are demanded, this node and all it's neighbors are updated.
+    void invalidate_node(size_t node);
 
-    // Ensures, that each node has a valid distance-to-home value.
-    void calc_distances(void);
+    // Ensures that each node has a valid distance-to-home value.
+    void refresh_distances(void);
 
     // Calculates the distance to home from a specific index in both forward and backward directions.
     void get_distance_to_home(size_t index, float bias, float &dist_forward, float &dist_backward);
+
+    // Returns the index (and bias) which is closest to the specified position.
+    size_t get_closest_index(ipos_t position, float *bias);
 
     // Calculates the next best move to get back home, starting at the specified index.
     // index: The index from which to return home. If this is a node, all adjacent intervals are considered.
@@ -431,18 +437,20 @@ private:
     // The index in the graph that represents the position that is closest to the true home position.
     size_t graph_home_index = 0;
 
-    // A buffer to hold the smallest nodes that have a new distance-to-home.
-    // This contains only (unique) cycle heads and is sorted by size.
-    size_t unvisited_nodes[UNVISITED_NODES_BUFFER_SIZE];
-    size_t unvisited_nodes_count = 0;
+    // This bias reflects the possibility, that the closest position to home does not exactly coincide with a line end
+    float graph_home_bias = 0;
 
-    // The end of the linearily visited area.
-    // Up to this index, all nodes have a consistent and up-to-date distance-to-home, except the ones mentioned in unvisited_nodes.
-    // This is always larger than the greatest unvisited node.
-    size_t visited_area_end = 0;
+    // A buffer to hold the smallest nodes that have or require a new distance-to-home.
+    // This contains only (unique) node indices and is sorted by size.
+    size_t dirty_nodes[DIRTY_NODES_BUFFER_SIZE];
+    size_t dirty_nodes_count = 0;
+
+    // The end of the controlled area. All nodes beyond this area shall be considered dirty.
+    // This is always larger than the greatest dirty node.
+    size_t controlled_area_end = 0;
     
-    // The distance-to-home at the end of the visited area
-    float visited_area_end_distance = 0;
+    // The distance-to-home at the end of the controlled area
+    float controlled_area_end_distance = 0;
     
 };
 

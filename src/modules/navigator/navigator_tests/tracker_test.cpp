@@ -89,11 +89,11 @@ private:
 
     // Makes the tracker return along the shortest path home and tests whether it chooses the right path.
     // Returns false if the test fails and fills msg with an appropriate error message.
-    bool try_return_controlled(Tracker &tracker, const test_t *test, char *msg);
+    bool try_return_supervised(Tracker &tracker, const test_t *test, char *msg);
 
     // Makes the tracker return along the shortest path home. Use this if there is no well known return path. 
     // Returns false if the test fails and fills msg with an appropriate error message.
-    bool try_return_uncontrolled(Tracker &tracker, const test_t *test, char *msg);
+    bool try_return_unsupervised(Tracker &tracker, const test_t *test, float home_x, float home_y, float home_z, char *msg);
 
     // Simulates a flight along the defined test path,
     // and then returns on the shortest path while verifying that
@@ -104,6 +104,10 @@ private:
     // returns half of the shortest path, flies to some other pseudorandom (deterministic)
     // position in the graph, and then returns along the shortest path from there. 
     bool fly_and_leave_return_path_test();
+
+    // Simulates flight along the defined test path, selects some pseudorandom
+    // new home along the path and returns to that new home
+    bool fly_and_change_home_test();
 
     // An array of flight paths and their correct return paths
     // We can do various tests on each of these.
@@ -212,7 +216,7 @@ TrackerTest::return_state_t TrackerTest::init_return_state(float x, float y, flo
     } while (0)
 
 
-bool TrackerTest::try_return_controlled(Tracker &tracker, const test_t *test, char *msg) {
+bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, char *msg) {
     // Return along the shortest path while checking if it's what we expect
     
     Tracker::pos_handle_t pos;
@@ -254,20 +258,21 @@ bool TrackerTest::try_return_controlled(Tracker &tracker, const test_t *test, ch
 }
 
 
-bool TrackerTest::try_return_uncontrolled(Tracker &tracker, const test_t *test, char *msg) {
-    // As long as we're not home, return along the proposed path
+bool TrackerTest::try_return_unsupervised(Tracker &tracker, const test_t *test, float home_x, float home_y, float home_z, char *msg) {
     int steps = 0;
     float x, y, z;
     Tracker::pos_handle_t pos;
+    
+    // As long as we're not home, return along the proposed path
     inner_assert(tracker.get_current_pos(pos, x, y, z), "tracker did not report current position");
-    while (get_distance(x, y, z, test->path[0], test->path[1], test->path[2]) > Tracker::ACCURACY) {
-        TRACKER_DBG("return from %d, %d, %d, home is %d, %d, %d", (int)x, (int)y, (int)z, test->path[0], test->path[1], test->path[2]);
-        inner_assert(tracker.get_path_to_home(pos, x, y, z), "the vehicle didn't return home");
+    while (tracker.get_path_to_home(pos, x, y, z)) {
         tracker.update(x, y, z);
         inner_assert(steps++ < 256, "return-to-home did take too many steps"); // make sure the loop terminates
+        TRACKER_DBG("return from %d, %d, %d, home is %.3f, %.3f, %.3f", (int)x, (int)y, (int)z, home_x, home_y, home_z);
     }
-    // Check if the tracker agrees that we're home
-    inner_assert(!tracker.get_path_to_home(pos, x, y, z), "the vehicle returned home but the tracker doesn't think so");
+
+    // Check if we're actually home
+    inner_assert(get_distance(x, y, z, home_x, home_y, home_z) <= Tracker::ACCURACY, "the vehicle didn't return home");
 
     return true;
 }
@@ -293,7 +298,7 @@ bool TrackerTest::fly_and_return_test(void) {
  
         // Return home
         char msg[1024];
-        if (!try_return_controlled(tracker, test, msg)) {
+        if (!try_return_supervised(tracker, test, msg)) {
             ut_assert(msg, false);
         }
     }
@@ -343,7 +348,7 @@ bool TrackerTest::fly_and_leave_return_path_test(void) {
 
         // Return home
         char msg[1024];
-        if (!try_return_uncontrolled(tracker, test, msg)) {
+        if (!try_return_unsupervised(tracker, test, test->path[0], test->path[1], test->path[2], msg)) {
             ut_assert(msg, false);
         }
     }
@@ -351,9 +356,45 @@ bool TrackerTest::fly_and_leave_return_path_test(void) {
 	return true;
 }
 
+
+bool TrackerTest::fly_and_change_home_test(void) {
+    for (size_t t = 0; t < sizeof(test_cases) / sizeof(test_cases[0]); t++) {
+        Tracker tracker;
+
+        const test_t *test = test_cases + t;
+        TRACKER_DBG("running fly-and-change-home on %s", test->name);
+        
+        // Simulate flight along the specified path
+        for (size_t p = 0; p < test->path_size; p += 3)
+            tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
+
+        // Select a home using a deterministic pseudorandom index
+        size_t dest_index = (test->path[0] + test->path[1] + test->path[2] + test->ret[test->ret_size / 2]) % (test->path_size / 3);
+        int home_x = test->path[dest_index * 3];
+        int home_y = test->path[dest_index * 3 + 1] + Tracker::ACCURACY / 2; // add a little bit of offset
+        int home_z = test->path[dest_index * 3 + 2] + Tracker::ACCURACY / 2; // add a little bit of offset
+
+        tracker.set_home(home_x, home_y, home_z);
+
+#ifdef DEBUG_TRACKER
+        tracker.dump_graph();
+#endif
+
+        // Return home
+        char msg[1024];
+        if (!try_return_unsupervised(tracker, test, home_x, home_y, home_z, msg)) {
+            ut_assert(msg, false);
+        }
+    }
+
+	return true;
+}
+
+
 bool TrackerTest::run_tests(void) {
 	ut_run_test(fly_and_return_test);
 	ut_run_test(fly_and_leave_return_path_test);
+	ut_run_test(fly_and_change_home_test);
 
 	return (_tests_failed == 0);
 }
