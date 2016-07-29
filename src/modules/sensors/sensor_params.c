@@ -3072,10 +3072,10 @@ PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
  * @max 4
  * @group Sensor Enable
  * @value 0 Disabled
- * @value 1 SF10/a (25m)
- * @value 2 SF10/b (50m)
- * @value 3 SF10/c (100m)
- * @value 4 SF11/c (120m)
+ * @value 1 SF10/a
+ * @value 2 SF10/b
+ * @value 3 SF10/c
+ * @value 4 SF11/c
  */
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
