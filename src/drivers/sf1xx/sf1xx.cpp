@@ -80,15 +80,6 @@
 #define SF1XX_BASEADDR 	0x55
 #define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
-/* Device limits */
-#define SF1XX_MIN_DISTANCE 	(0.01f)
-#define SF1XX_MAX_DISTANCE 	(120.0f)
-
-
-/* conversion rates */
-
-#define SF1XX_CONVERSION_INTERVAL 		50000		// Maximum rate according to datasheet is 20Hz
-
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -122,12 +113,13 @@ protected:
 private:
 	float				_min_distance;
 	float				_max_distance;
+	int                             _conversion_interval;
 	work_s				_work;
-	ringbuffer::RingBuffer	*_reports;
+	ringbuffer::RingBuffer  *_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
-	int					_class_instance;
-	int					_orb_class_instance;
+	int				_measure_ticks;
+	int				_class_instance;
+	int				_orb_class_instance;
 
 	orb_advert_t		_distance_sensor_topic;
 
@@ -194,8 +186,9 @@ extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
 SF1XX::SF1XX(int bus, int address) :
 	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
-	_min_distance(SF1XX_MIN_DISTANCE),
-	_max_distance(SF1XX_MAX_DISTANCE),
+	_min_distance(-1.0f),
+	_max_distance(-1.0f),
+	_conversion_interval(-1),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -224,6 +217,10 @@ SF1XX::~SF1XX()
 		delete _reports;
 	}
 
+	if (_distance_sensor_topic != nullptr) {
+		orb_unadvertise(_distance_sensor_topic);
+	}
+
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
@@ -238,6 +235,43 @@ int
 SF1XX::init()
 {
 	int ret = ERROR;
+	int hw_model;
+	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
+
+	switch (hw_model) {
+	case 0:
+		DEVICE_LOG("disabled.");
+		return ret;
+
+	case 1:  /* SF10/a (25m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 25.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 2:  /* SF10/b (50m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 50.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 3:  /* SF10/c (100m 16Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 100.0f;
+		_conversion_interval = 62500;
+		break;
+
+	case 4:
+		/* SF11/c (120m 20Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 120.0f;
+		_conversion_interval = 50000;
+		break;
+
+	default:
+		DEVICE_LOG("invalid HW model %d.", hw_model);
+		return ret;
+	}
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -271,7 +305,8 @@ SF1XX::init()
 	if (ret2 == 0) {
 		ret = OK;
 		_sensor_ok = true;
-		DEVICE_LOG("SF1xx with address %d found", SF1XX_BASEADDR);
+		DEVICE_LOG("(%dm %dHz) with address %d found", (int)_max_distance,
+			   (int)(1e6f / _conversion_interval), SF1XX_BASEADDR);
 	}
 
 	return ret;
@@ -335,7 +370,7 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(SF1XX_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -355,7 +390,7 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(SF1XX_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(_conversion_interval)) {
 						return -EINVAL;
 					}
 
@@ -464,7 +499,7 @@ SF1XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(SF1XX_CONVERSION_INTERVAL);
+		usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -598,7 +633,7 @@ SF1XX::cycle()
 		   &_work,
 		   (worker_t)&SF1XX::cycle_trampoline,
 		   this,
-		   USEC2TICK(SF1XX_CONVERSION_INTERVAL));
+		   USEC2TICK(_conversion_interval));
 
 }
 
@@ -638,7 +673,7 @@ void	info();
 void
 start()
 {
-	int fd;
+	int fd = -1;
 
 	if (g_dev != nullptr) {
 		errx(1, "already started");
@@ -663,9 +698,11 @@ start()
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		::close(fd);
 		goto fail;
 	}
 
+	::close(fd);
 	exit(0);
 
 fail:
@@ -760,6 +797,7 @@ test()
 		errx(1, "failed to set default poll rate");
 	}
 
+	::close(fd);
 	errx(0, "PASS");
 }
 
@@ -783,6 +821,7 @@ reset()
 		err(1, "driver poll restart failed");
 	}
 
+	::close(fd);
 	exit(0);
 }
 
