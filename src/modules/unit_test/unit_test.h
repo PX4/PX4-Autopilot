@@ -106,6 +106,28 @@ protected:
 /// @brief Used to assert a value within a unit test.
 #define ut_test(test) ut_assert("test", test)
 
+/// @brief To assert specifically to true.
+#define ut_assert_true(test)						\
+	do {									\
+		if (test != true) {							\
+			_print_assert("result not true", #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
+/// @brief To assert specifically to true.
+#define ut_assert_false(test)						\
+	do {									\
+		if (test != false) {							\
+			_print_assert("result not false", #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
 /// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
 /// since it will give you better error reporting of the actual values being compared.
 #define ut_compare(message, v1, v2)								\
