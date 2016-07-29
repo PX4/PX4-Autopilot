@@ -89,7 +89,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vtol_vehicle_status_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_v_att_sp_pub(nullptr),
-
+	_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
 	_abort_front_transition(false)
 
 {
@@ -481,11 +481,15 @@ VtolAttitudeControl::handle_command()
 bool
 VtolAttitudeControl::is_fixed_wing_requested()
 {
-	bool to_fw = _manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+	bool to_fw = false;
 
-	// listen to transition commands if not in manual
-	if (!_v_control_mode.flag_control_manual_enabled) {
-		to_fw = _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
+	    _v_control_mode.flag_control_manual_enabled) {
+		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+
+	} else {
+		// listen to transition commands if not in manual or mode switch is not mapped
+		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	}
 
 	// handle abort request
