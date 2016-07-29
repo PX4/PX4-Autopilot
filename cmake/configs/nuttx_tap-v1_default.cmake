@@ -39,6 +39,7 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/topic_listener
 
 	#
 	# General system control
