@@ -143,9 +143,10 @@ private:
         UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
 
         // Term
-        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex()) != NULL);
-        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex())->term
-                      <= persistent_state_.getCurrentTerm());
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex()) !=
+                      UAVCAN_NULLPTR);
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex())->term <=
+                      persistent_state_.getCurrentTerm());
 
         // Elections
         UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !request_vote_client_.hasPendingCalls() ||
@@ -281,7 +282,7 @@ private:
             req.prev_log_index = Log::Index(cluster_.getServerNextIndex(node_id) - 1U);
 
             const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(req.prev_log_index);
-            if (entry == NULL)
+            if (entry == UAVCAN_NULLPTR)
             {
                 UAVCAN_ASSERT(0);
                 handlePersistentStateUpdateError(-ErrLogic);
@@ -470,7 +471,7 @@ private:
          * Reject the request if the assumed log index does not exist on the local node.
          */
         const Entry* const prev_entry = persistent_state_.getLog().getEntryAtIndex(request.prev_log_index);
-        if (prev_entry == NULL)
+        if (prev_entry == UAVCAN_NULLPTR)
         {
             response.setResponseEnabled(true);
             return;
@@ -880,7 +881,7 @@ public:
         for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index >= 0; index--)
         {
             const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(Log::Index(index));
-            UAVCAN_ASSERT(entry != NULL);
+            UAVCAN_ASSERT(entry != UAVCAN_NULLPTR);
             const LogEntryInfo info(*entry, Log::Index(index) <= commit_index_);
             if (predicate(info))
             {

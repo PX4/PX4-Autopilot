@@ -809,7 +809,7 @@ public:
      */
     bool operator==(const char* ch) const
     {
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             return false;
         }
@@ -830,7 +830,7 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
         Base::clear();
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator=(const char*)");
         }
@@ -849,7 +849,7 @@ public:
     {
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator+=(const char*)");
         }

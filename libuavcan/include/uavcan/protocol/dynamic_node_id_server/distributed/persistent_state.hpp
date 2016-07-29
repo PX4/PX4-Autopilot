@@ -63,7 +63,7 @@ public:
         }
 
         const Entry* const last_entry = log_.getEntryAtIndex(log_.getLastIndex());
-        if (last_entry == NULL)
+        if (last_entry == UAVCAN_NULLPTR)
         {
             UAVCAN_ASSERT(0);
             return -ErrLogic;

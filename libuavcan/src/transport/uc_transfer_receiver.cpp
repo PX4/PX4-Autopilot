@@ -148,11 +148,11 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
 
     // Payload write
     ITransferBuffer* buf = tba.access();
-    if (buf == NULL)
+    if (buf == UAVCAN_NULLPTR)
     {
         buf = tba.create();
     }
-    if (buf == NULL)
+    if (buf == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
         prepareForNextTransfer();

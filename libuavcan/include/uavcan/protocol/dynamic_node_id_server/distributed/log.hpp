@@ -285,7 +285,7 @@ public:
     const Entry* getEntryAtIndex(Index index) const
     {
         UAVCAN_ASSERT(last_index_ < Capacity);
-        return (index <= last_index_) ? &entries_[index] : NULL;
+        return (index <= last_index_) ? &entries_[index] : UAVCAN_NULLPTR;
     }
 
     Index getLastIndex() const { return last_index_; }

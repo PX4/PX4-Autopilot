@@ -84,7 +84,7 @@ private:
                 return &servers_[i];
             }
         }
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 
     virtual void handleTimerEvent(const TimerEvent&)
@@ -338,7 +338,7 @@ public:
     Log::Index getServerNextIndex(NodeID server_node_id) const
     {
         const Server* const s = findServer(server_node_id);
-        if (s != NULL)
+        if (s != UAVCAN_NULLPTR)
         {
             return s->next_index;
         }
@@ -349,7 +349,7 @@ public:
     void incrementServerNextIndexBy(NodeID server_node_id, Log::Index increment)
     {
         Server* const s = findServer(server_node_id);
-        if (s != NULL)
+        if (s != UAVCAN_NULLPTR)
         {
             s->next_index = Log::Index(s->next_index + increment);
         }
@@ -362,7 +362,7 @@ public:
     void decrementServerNextIndex(NodeID server_node_id)
     {
         Server* const s = findServer(server_node_id);
-        if (s != NULL)
+        if (s != UAVCAN_NULLPTR)
         {
             s->next_index--;
         }
@@ -378,7 +378,7 @@ public:
     Log::Index getServerMatchIndex(NodeID server_node_id) const
     {
         const Server* const s = findServer(server_node_id);
-        if (s != NULL)
+        if (s != UAVCAN_NULLPTR)
         {
             return s->match_index;
         }
@@ -389,7 +389,7 @@ public:
     void setServerMatchIndex(NodeID server_node_id, Log::Index match_index)
     {
         Server* const s = findServer(server_node_id);
-        if (s != NULL)
+        if (s != UAVCAN_NULLPTR)
         {
             s->match_index = match_index;
         }

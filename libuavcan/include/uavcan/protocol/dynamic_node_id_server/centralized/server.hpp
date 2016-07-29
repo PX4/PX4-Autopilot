@@ -108,7 +108,7 @@ class Server : public AbstractServer
             return;
         }
 
-        const int res = storage_.add(node_id, (unique_id_or_null == NULL) ? UniqueID() : *unique_id_or_null);
+        const int res = storage_.add(node_id, (unique_id_or_null == UAVCAN_NULLPTR) ? UniqueID() : *unique_id_or_null);
         if (res < 0)
         {
             tracer_.onEvent(TraceError, res);

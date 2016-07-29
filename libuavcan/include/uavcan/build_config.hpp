@@ -39,6 +39,18 @@
 #endif
 
 /**
+ * The library uses UAVCAN_NULLPTR instead of UAVCAN_NULLPTR and nullptr in order to allow the use of
+ * -Wzero-as-null-pointer-constant.
+ */
+#ifndef UAVCAN_NULLPTR
+# if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+#  define UAVCAN_NULLPTR nullptr
+# else
+#  define UAVCAN_NULLPTR NULL
+# endif
+#endif
+
+/**
  * By default, libuavcan enables all features if it detects that it is being built for a general-purpose
  * target like Linux. Value of this macro influences other configuration options located below in this file.
  * This macro can be overriden if needed.

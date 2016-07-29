@@ -46,7 +46,7 @@ struct UAVCAN_EXPORT CanFrame
         id(can_id),
         dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
-        UAVCAN_ASSERT(can_data != NULL);
+        UAVCAN_ASSERT(can_data != UAVCAN_NULLPTR);
         UAVCAN_ASSERT(data_len == dlc);
         (void)copy(can_data, can_data + dlc, this->data);
     }
@@ -232,7 +232,7 @@ public:
      * The pending TX argument contains an array of pointers to CAN frames that the library wants to transmit
      * next, per interface. This is intended to allow the driver to properly prioritize transmissions; many
      * drivers will not need to use it. If a write flag for the given interface is set to one in the select mask
-     * structure, then the corresponding pointer is guaranteed to be valid (not NULL).
+     * structure, then the corresponding pointer is guaranteed to be valid (not UAVCAN_NULLPTR).
      *
      * @param [in,out] inout_masks        Masks indicating which interfaces are needed/available for IO.
      * @param [in]     pending_tx         Array of frames, per interface, that are likely to be transmitted next.

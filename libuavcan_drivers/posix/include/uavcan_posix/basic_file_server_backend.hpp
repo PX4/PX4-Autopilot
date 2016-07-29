@@ -85,15 +85,15 @@ protected:
             enum { InvalidFD = -1 };
 
             FDCacheItem() :
-                next_(NULL),
+                next_(UAVCAN_NULLPTR),
                 last_access_(0),
                 fd_(InvalidFD),
                 oflags_(0),
-                path_(NULL)
+                path_(UAVCAN_NULLPTR)
             { }
 
             FDCacheItem(int fd, const char* path, int oflags) :
-                next_(NULL),
+                next_(UAVCAN_NULLPTR),
                 last_access_(0),
                 fd_(fd),
                 oflags_(oflags),
@@ -111,7 +111,7 @@ protected:
 
             bool valid() const
             {
-                return path_ != NULL;
+                return path_ != UAVCAN_NULLPTR;
             }
 
             int getFD() const
@@ -127,7 +127,7 @@ protected:
             std::time_t acessed()
             {
                 using namespace std;
-                last_access_ = time(NULL);
+                last_access_ = time(UAVCAN_NULLPTR);
                 return getAccess();
             }
 
@@ -139,7 +139,7 @@ protected:
             bool expired() const
             {
                 using namespace std;
-                return 0 == last_access_ || (time(NULL) - last_access_) > MaxAgeSeconds;
+                return 0 == last_access_ || (time(UAVCAN_NULLPTR) - last_access_) > MaxAgeSeconds;
             }
 
             bool equals(const char* path, int oflags) const
@@ -165,7 +165,7 @@ protected:
                     return pi;
                 }
             }
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
 
         FDCacheItem* find(int fd)
@@ -177,7 +177,7 @@ protected:
                     return pi;
                 }
             }
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
 
         FDCacheItem* add(FDCacheItem* pi)
@@ -239,7 +239,7 @@ protected:
     public:
         FDCache(uavcan::INode& node) :
             TimerBase(node),
-            head_(NULL)
+            head_(UAVCAN_NULLPTR)
         { }
 
         virtual ~FDCache()
@@ -259,7 +259,7 @@ protected:
 
             FDCacheItem* pi = find(path, oflags);
 
-            if (pi != NULL)
+            if (pi != UAVCAN_NULLPTR)
             {
                 pi->acessed();
             }
@@ -281,10 +281,10 @@ protected:
                 {
                     /* Allocation worked but clone or path failed */
                     delete pi;
-                    pi = NULL;
+                    pi = UAVCAN_NULLPTR;
                 }
 
-                if (pi == NULL)
+                if (pi == UAVCAN_NULLPTR)
                 {
                     /*
                      * If allocation fails no harm just can not cache it
@@ -301,7 +301,7 @@ protected:
         virtual int close(int fd, bool done)
         {
             FDCacheItem* pi = find(fd);
-            if (pi == NULL)
+            if (pi == UAVCAN_NULLPTR)
             {
                 /*
                  * If not found just close it
@@ -318,11 +318,11 @@ protected:
 
     FDCacheBase& getFDCache()
     {
-        if (fdcache_ == NULL)
+        if (fdcache_ == UAVCAN_NULLPTR)
         {
             fdcache_ = new FDCache(node_);
 
-            if (fdcache_ == NULL)
+            if (fdcache_ == UAVCAN_NULLPTR)
             {
                 fdcache_ = &fallback_;
             }
@@ -435,7 +435,7 @@ protected:
 
 public:
     BasicFileServerBackend(uavcan::INode& node) :
-        fdcache_(NULL),
+        fdcache_(UAVCAN_NULLPTR),
         node_(node)
     { }
 
@@ -444,7 +444,7 @@ public:
         if (fdcache_ != &fallback_)
         {
             delete fdcache_;
-            fdcache_ = NULL;
+            fdcache_ = UAVCAN_NULLPTR;
         }
     }
 };

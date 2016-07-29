@@ -86,7 +86,7 @@ class UAVCAN_EXPORT GenericPublisher : public GenericPublisherBase
 {
     struct ZeroTransferBuffer : public StaticTransferBufferImpl
     {
-        ZeroTransferBuffer() : StaticTransferBufferImpl(NULL, 0) { }
+        ZeroTransferBuffer() : StaticTransferBufferImpl(UAVCAN_NULLPTR, 0) { }
     };
 
     typedef typename Select<DataStruct::MaxBitLen == 0,
@@ -138,7 +138,7 @@ public:
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
                 MonotonicTime blocking_deadline = MonotonicTime())
     {
-        return genericPublish(message, transfer_type, dst_node_id, NULL, blocking_deadline);
+        return genericPublish(message, transfer_type, dst_node_id, UAVCAN_NULLPTR, blocking_deadline);
     }
 
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id, TransferID tid,

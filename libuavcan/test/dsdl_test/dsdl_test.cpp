@@ -107,7 +107,7 @@ TEST(Dsdl, CloseComparison)
 //    /*
 //     * Descriptors
 //     */
-//    const uavcan::DataTypeDescriptor* desc = NULL;
+//    const uavcan::DataTypeDescriptor* desc = UAVCAN_NULLPTR;
 //
 //    desc = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, "root_ns_a.EmptyMessage");
 //    ASSERT_TRUE(desc);

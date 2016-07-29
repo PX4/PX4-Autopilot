@@ -31,7 +31,7 @@ void init()
 
     chibios_rt::System::init();
 
-    sdStart(&STDOUT_SD, NULL);
+    sdStart(&STDOUT_SD, UAVCAN_NULLPTR);
 }
 
 __attribute__((noreturn))

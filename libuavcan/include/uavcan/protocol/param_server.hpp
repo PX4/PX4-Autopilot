@@ -90,7 +90,7 @@ class UAVCAN_EXPORT ParamServer
 
     void handleGetSet(const protocol::param::GetSet::Request& in, protocol::param::GetSet::Response& out)
     {
-        UAVCAN_ASSERT(manager_ != NULL);
+        UAVCAN_ASSERT(manager_ != UAVCAN_NULLPTR);
 
         // Recover the name from index
         if (in.name.empty())
@@ -131,7 +131,7 @@ class UAVCAN_EXPORT ParamServer
     void handleExecuteOpcode(const protocol::param::ExecuteOpcode::Request& in,
                              protocol::param::ExecuteOpcode::Response& out)
     {
-        UAVCAN_ASSERT(manager_ != NULL);
+        UAVCAN_ASSERT(manager_ != UAVCAN_NULLPTR);
 
         if (in.opcode == protocol::param::ExecuteOpcode::Request::OPCODE_SAVE)
         {
@@ -152,7 +152,7 @@ public:
     explicit ParamServer(INode& node)
         : get_set_srv_(node)
         , save_erase_srv_(node)
-        , manager_(NULL)
+        , manager_(UAVCAN_NULLPTR)
     { }
 
     /**
@@ -161,7 +161,7 @@ public:
      */
     int start(IParamManager* manager)
     {
-        if (manager == NULL)
+        if (manager == UAVCAN_NULLPTR)
         {
             return -ErrInvalidParam;
         }

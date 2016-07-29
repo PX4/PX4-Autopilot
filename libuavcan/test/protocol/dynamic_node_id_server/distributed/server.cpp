@@ -5,6 +5,7 @@
 #if __GNUC__
 // We need auto_ptr for compatibility reasons
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
 #include <gtest/gtest.h>

@@ -217,7 +217,7 @@ public:
 
         for (unsigned i = 0; i < ifaces.size(); i++)
         {
-            ifaces.at(i).pending_tx = (pending_tx[i] == NULL) ? uavcan::CanFrame() : *pending_tx[i];
+            ifaces.at(i).pending_tx = (pending_tx[i] == UAVCAN_NULLPTR) ? uavcan::CanFrame() : *pending_tx[i];
         }
 
         if (select_failure)

@@ -211,7 +211,7 @@ void Dispatcher::handleLoopbackFrame(const CanRxFrame& can_frame)
 
 void Dispatcher::notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags)
 {
-    if (rx_listener_ != NULL)
+    if (rx_listener_ != UAVCAN_NULLPTR)
     {
         rx_listener_->handleRxFrame(can_frame, flags);
     }

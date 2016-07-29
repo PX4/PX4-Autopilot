@@ -135,7 +135,7 @@ public:
         transfers_.push(rx);
         std::cout << "Received transfer: " << rx.toString() << std::endl;
 
-        const bool single_frame = dynamic_cast<uavcan::SingleFrameIncomingTransfer*>(&transfer) != NULL;
+        const bool single_frame = dynamic_cast<uavcan::SingleFrameIncomingTransfer*>(&transfer) != UAVCAN_NULLPTR;
 
         const bool anonymous = single_frame &&
                                transfer.getSrcNodeID().isBroadcast() &&
@@ -314,7 +314,7 @@ public:
 class NullAllocator : public uavcan::IPoolAllocator
 {
 public:
-    virtual void* allocate(std::size_t) { return NULL; }
+    virtual void* allocate(std::size_t) { return UAVCAN_NULLPTR; }
     virtual void deallocate(const void*) { }
     virtual uint16_t getBlockCapacity() const { return 0; }
 };

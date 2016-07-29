@@ -22,7 +22,7 @@ int GenericPublisherBase::doInit(DataTypeKind dtkind, const char* dtname, CanTxQ
     GlobalDataTypeRegistry::instance().freeze();
 
     const DataTypeDescriptor* const descr = GlobalDataTypeRegistry::instance().find(dtkind, dtname);
-    if (descr == NULL)
+    if (descr == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("GenericPublisher", "Type [%s] is not registered", dtname);
         return -ErrUnknownDataType;

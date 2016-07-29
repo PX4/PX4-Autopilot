@@ -79,7 +79,7 @@ public:
     virtual uavcan::UtcTime getUtc() const
     {
         struct timeval tv;
-        const int ret = gettimeofday(&tv, NULL);
+        const int ret = gettimeofday(&tv, UAVCAN_NULLPTR);
         if (ret != 0)
         {
             assert(0);

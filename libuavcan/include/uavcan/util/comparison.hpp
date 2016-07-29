@@ -77,7 +77,7 @@ struct HasIsCloseMethod
 
     template <typename U, typename R> static NotApplicable test(...);
 
-    enum { Result = sizeof(test<This, Rhs>(NULL)) };
+    enum { Result = sizeof(test<This, Rhs>(UAVCAN_NULLPTR)) };
 };
 
 /// First stage: bool L::isClose(R)

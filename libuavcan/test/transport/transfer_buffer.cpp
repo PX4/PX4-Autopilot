@@ -2,6 +2,12 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+// We need auto_ptr for compatibility reasons
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
+
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <memory>
@@ -238,7 +244,7 @@ TEST(TransferBufferManager, Basic)
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageBroadcast)));
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TransferTypeServiceRequest)));
 
-    ITransferBuffer* tbb = NULL;
+    ITransferBuffer* tbb = UAVCAN_NULLPTR;
 
     const TransferBufferManagerKey keys[5] =
     {

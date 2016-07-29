@@ -38,7 +38,7 @@ class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
     template <typename Ret, Ret(IncomingTransfer::*Fun) () const>
     Ret safeget() const
     {
-        if (_transfer_ == NULL)
+        if (_transfer_ == UAVCAN_NULLPTR)
         {
             return Ret();
         }
@@ -47,13 +47,13 @@ class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 
 protected:
     ReceivedDataStructure()
-        : _transfer_(NULL)
+        : _transfer_(UAVCAN_NULLPTR)
     { }
 
     ReceivedDataStructure(const IncomingTransfer* arg_transfer)
         : _transfer_(arg_transfer)
     {
-        UAVCAN_ASSERT(arg_transfer != NULL);
+        UAVCAN_ASSERT(arg_transfer != UAVCAN_NULLPTR);
     }
 
 public:
@@ -230,7 +230,7 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
     GlobalDataTypeRegistry::instance().freeze();
     const DataTypeDescriptor* const descr =
         GlobalDataTypeRegistry::instance().find(DataTypeKind(DataSpec::DataTypeKind), DataSpec::getDataTypeFullName());
-    if (descr == NULL)
+    if (descr == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("GenericSubscriber", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
         return -ErrUnknownDataType;

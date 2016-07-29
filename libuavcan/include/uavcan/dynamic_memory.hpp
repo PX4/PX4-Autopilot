@@ -153,15 +153,15 @@ PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::PoolAllocator() :
         // coverity[dead_error_line : FALSE]
         free_list_[i].next = free_list_ + i + 1;
     }
-    free_list_[NumBlocks - 1].next = NULL;
+    free_list_[NumBlocks - 1].next = UAVCAN_NULLPTR;
 }
 
 template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
 void* PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::allocate(std::size_t size)
 {
-    if (free_list_ == NULL || size > BlockSize)
+    if (free_list_ == UAVCAN_NULLPTR || size > BlockSize)
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 
     RaiiSynchronizer lock;
@@ -184,7 +184,7 @@ void* PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::allocate(std::size_t
 template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
 void PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::deallocate(const void* ptr)
 {
-    if (ptr == NULL)
+    if (ptr == UAVCAN_NULLPTR)
     {
         return;
     }

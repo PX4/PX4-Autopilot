@@ -131,7 +131,7 @@ private:
 
         bool operator()(INodeInfoListener* key)
         {
-            UAVCAN_ASSERT(key != NULL);
+            UAVCAN_ASSERT(key != UAVCAN_NULLPTR);
             key->handleNodeInfoRetrieved(node_id, node_info);
             return false;
         }
@@ -150,7 +150,7 @@ private:
 
         bool operator()(INodeInfoListener* key)
         {
-            UAVCAN_ASSERT(key != NULL);
+            UAVCAN_ASSERT(key != UAVCAN_NULLPTR);
             (key->*method)(event);
             return false;
         }
@@ -385,10 +385,10 @@ public:
      */
     int addListener(INodeInfoListener* listener)
     {
-        if (listener != NULL)
+        if (listener != UAVCAN_NULLPTR)
         {
             removeListener(listener);
-            return (NULL == listeners_.emplace(listener)) ? -ErrMemory : 0;
+            return (UAVCAN_NULLPTR == listeners_.emplace(listener)) ? -ErrMemory : 0;
         }
         else
         {
@@ -402,7 +402,7 @@ public:
      */
     void removeListener(INodeInfoListener* listener)
     {
-        if (listener != NULL)
+        if (listener != UAVCAN_NULLPTR)
         {
             listeners_.removeAll(listener);
         }

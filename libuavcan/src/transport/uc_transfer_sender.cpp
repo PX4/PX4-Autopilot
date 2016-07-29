@@ -156,7 +156,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
                                                          OutgoingTransferRegistry::MinEntryLifetime);
 
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
-    if (tid == NULL)
+    if (tid == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("TransferSender", "OTR access failure, dtid=%d tt=%i",
                      int(data_type_id_.get()), int(transfer_type));

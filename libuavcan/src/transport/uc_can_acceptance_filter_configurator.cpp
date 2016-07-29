@@ -23,7 +23,7 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
         CanFilterConfig anon_frame_cfg;
         anon_frame_cfg.id = DefaultAnonMsgID | CanFrame::FlagEFF;
         anon_frame_cfg.mask = DefaultAnonMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
-        if (multiset_configs_.emplace(anon_frame_cfg) == NULL)
+        if (multiset_configs_.emplace(anon_frame_cfg) == UAVCAN_NULLPTR)
         {
             return -ErrMemory;
         }
@@ -33,18 +33,18 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
     service_cfg.id = DefaultFilterServiceID;
     service_cfg.id |= (static_cast<uint32_t>(node_.getNodeID().get()) << 8) | CanFrame::FlagEFF;
     service_cfg.mask = DefaultFilterServiceMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
-    if (multiset_configs_.emplace(service_cfg) == NULL)
+    if (multiset_configs_.emplace(service_cfg) == UAVCAN_NULLPTR)
     {
         return -ErrMemory;
     }
 
     const TransferListener* p = node_.getDispatcher().getListOfMessageListeners().get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         CanFilterConfig cfg;
         cfg.id = (static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8) | CanFrame::FlagEFF;
         cfg.mask = DefaultFilterMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
-        if (multiset_configs_.emplace(cfg) == NULL)
+        if (multiset_configs_.emplace(cfg) == UAVCAN_NULLPTR)
         {
             return -ErrMemory;
         }
@@ -149,7 +149,7 @@ int CanAcceptanceFilterConfigurator::applyConfiguration(void)
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
     {
         ICanIface* iface = can_driver.getIface(i);
-        if (iface == NULL)
+        if (iface == UAVCAN_NULLPTR)
         {
             UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
             return -ErrDriver;
@@ -202,7 +202,7 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
         for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
         {
             const ICanIface* iface = can_driver.getIface(i);
-            if (iface == NULL)
+            if (iface == UAVCAN_NULLPTR)
             {
                 UAVCAN_ASSERT(0);
                 out = 0;
@@ -226,7 +226,7 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 
 int CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)
 {
-    if (multiset_configs_.emplace<const CanFilterConfig&>(config) == NULL)
+    if (multiset_configs_.emplace<const CanFilterConfig&>(config) == UAVCAN_NULLPTR)
     {
         return -ErrMemory;
     }

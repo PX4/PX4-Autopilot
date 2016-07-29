@@ -66,20 +66,20 @@ private:
         static KVGroup* instantiate(IPoolAllocator& allocator)
         {
             void* const praw = allocator.allocate(sizeof(KVGroup));
-            if (praw == NULL)
+            if (praw == UAVCAN_NULLPTR)
             {
-                return NULL;
+                return UAVCAN_NULLPTR;
             }
             return new (praw) KVGroup();
         }
 
         static void destroy(KVGroup*& obj, IPoolAllocator& allocator)
         {
-            if (obj != NULL)
+            if (obj != UAVCAN_NULLPTR)
             {
                 obj->~KVGroup();
                 allocator.deallocate(obj);
-                obj = NULL;
+                obj = UAVCAN_NULLPTR;
             }
         }
 
@@ -92,7 +92,7 @@ private:
                     return kvs + i;
                 }
             }
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
     };
 
@@ -167,7 +167,7 @@ public:
     /**
      * Complexity is O(1).
      */
-    bool isEmpty() const { return find(YesPredicate()) == NULL; }
+    bool isEmpty() const { return find(YesPredicate()) == UAVCAN_NULLPTR; }
 
     /**
      * Complexity is O(N).
@@ -193,7 +193,7 @@ typename Map<Key, Value>::KVPair* Map<Key, Value>::findKey(const Key& key)
         }
         p = p->getNextListNode();
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 template <typename Key, typename Value>
@@ -226,7 +226,7 @@ Value* Map<Key, Value>::access(const Key& key)
 {
     UAVCAN_ASSERT(!(key == Key()));
     KVPair* const kv = findKey(key);
-    return kv ? &kv->value : NULL;
+    return kv ? &kv->value : UAVCAN_NULLPTR;
 }
 
 template <typename Key, typename Value>
@@ -243,9 +243,9 @@ Value* Map<Key, Value>::insert(const Key& key, const Value& value)
     }
 
     KVGroup* const kvg = KVGroup::instantiate(allocator_);
-    if (kvg == NULL)
+    if (kvg == UAVCAN_NULLPTR)
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     list_.insert(kvg);
     kvg->kvs[0] = KVPair(key, value);
@@ -271,7 +271,7 @@ void Map<Key, Value>::removeAllWhere(Predicate predicate)
     unsigned num_removed = 0;
 
     KVGroup* p = list_.get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         KVGroup* const next_group = p->getNextListNode();
 
@@ -302,7 +302,7 @@ template <typename Predicate>
 const Key* Map<Key, Value>::find(Predicate predicate) const
 {
     KVGroup* p = list_.get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         KVGroup* const next_group = p->getNextListNode();
 
@@ -320,7 +320,7 @@ const Key* Map<Key, Value>::find(Predicate predicate) const
 
         p = next_group;
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 template <typename Key, typename Value>
@@ -334,7 +334,7 @@ typename Map<Key, Value>::KVPair* Map<Key, Value>::getByIndex(unsigned index)
 {
     // Slowly crawling through the dynamic storage
     KVGroup* p = list_.get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         KVGroup* const next_group = p->getNextListNode();
 
@@ -354,7 +354,7 @@ typename Map<Key, Value>::KVPair* Map<Key, Value>::getByIndex(unsigned index)
         p = next_group;
     }
 
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 template <typename Key, typename Value>
