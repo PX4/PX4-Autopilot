@@ -292,13 +292,27 @@ Tracker::ipos_t Tracker::get_intra_node_delta(size_t link1, size_t link2) {
     if (node1 != node2)
         PX4_WARN("intra-node distance requested for unrelated links (%zu and %zu)", link1, link2);
 
+    if (!node1)
+        PX4_WARN("intra-node distance requested for non-link indices (%zu and %zu)", link1, link2);
+
     ipos_t delta;
     walk_backward(node1, &delta, NULL, true);
     fpos_t fdelta = to_fpos(delta);
 
-    float coef1 = link1 == node1 ? 0 : link_attributes_t{ *get_link_attr_ptr(link1) }.get_dist_to_node_coef();
-    float coef2 = link2 == node1 ? 0 : link_attributes_t{ *get_link_attr_ptr(link2) }.get_dist_to_node_coef();
+    // note that node1 != node2 by now
+    float coef1 = link1 == node2 ? 0 : link_attributes_t{ *get_link_attr_ptr(link1) }.get_dist_to_node_coef();
+    float coef2 = link2 == node2 ? 0 : link_attributes_t{ *get_link_attr_ptr(link2) }.get_dist_to_node_coef();
+
     return to_ipos(fdelta * coef1) - to_ipos(fdelta * coef2);
+}
+
+
+float Tracker::get_link_dist_to_node(size_t node, float node_delta_length, size_t index) {
+    if (!node || index == node)
+        return 0;
+    
+    link_attributes_t link_attributes(*get_link_attr_ptr(index));
+    return link_attributes.get_dist_to_node_coef() * node_delta_length;
 }
 
 
@@ -320,20 +334,26 @@ float Tracker::get_link_dist_to_home(size_t node, float node_delta_length, size_
 }
 
 
-bool Tracker::set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance) {
+bool Tracker::set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance, bool backward) {
     if (!node)
         return false;
 
+    // We consider the base the point on the line where we're just reducing the distance-to-home
     float base_dist_to_node = 0;
-    if (index != node)
+    if (index != node) {
         base_dist_to_node = node_delta_length * link_attributes_t{ *get_link_attr_ptr(index) }.get_dist_to_node_coef();
+    } else if (backward) {
+        base_dist_to_node = node_delta_length;
+        distance -= node_delta_length;
+    }
 
-    // The node cycle head gets special handling
+    // Update the true node-to-home distance
     graph_item_t *payload_ptr = get_node_payload_ptr(node);
     int old_node_dist_to_home = as_unsigned_data_item(*payload_ptr);
     int new_node_dist_to_home = std::min(round(distance + base_dist_to_node), old_node_dist_to_home);
     *payload_ptr = make_data_item(new_node_dist_to_home);
 
+    // All other link distances are stored relative to the true node distance, so we need to adjust them accordingly
     float node_improvement = (old_node_dist_to_home - new_node_dist_to_home) / node_delta_length;
     bool significant_improvement = std::abs(node_improvement) >= 2;
     bool did_change_anything = false;
@@ -341,7 +361,7 @@ bool Tracker::set_link_dist_to_home(size_t node, float node_delta_length, size_t
     // Update every link in the node (except the cycle head)
     index = node;
     while (walk_node(node, index)) {
-        // Calculate the alternative distance-to-home for this link, if we would use the link that was updated initially
+        // Calculate the alternative distance-to-home for this link, if we would use the base point that was updated initially
         graph_item_t *link_attr_ptr = get_link_attr_ptr(index);
         link_attributes_t curr_link_attributes(*link_attr_ptr);
         float curr_dist_to_node = node_delta_length * curr_link_attributes.get_dist_to_node_coef();
@@ -534,10 +554,19 @@ void Tracker::push_graph(fpos_t &position) {
             // Check if we're close to the line we just found (in case it is valid)
             if (compact_delta && is_close_to_line(delta, head, new_pos, &coefficient)) {
                 graph_current_attributes = { coefficient, coefficient };
+                TRACKER_DBG("I'm close to line %zu - %zu, with coefficient %f", next_index, prev_index, coefficient);
 
                 // If the closeness-check tells us that we're at the beginning of the line, ignore it because we can't store a coefficient of 1.
-                // If there is an adjacent line, we will find it later anyway. 
-                if (graph_current_attributes.is_valid()) {
+                // If there is an adjacent line, we will find it later anyway.
+                // The very first line we handle specially.
+                if (!next_index && !graph_current_attributes.is_valid()) {
+                    graph_current_attributes = { 0, 0 };
+                    graph_current_delta = { .x = 0, .y = 0, .z = 0 };
+                    graph_current_line_end = head;
+                    graph_current_index = 0;
+                    TRACKER_DBG("vehicle moved to the graph start");
+
+                } else if (graph_current_attributes.is_valid()) {
                     graph_current_delta = delta;
                     graph_current_line_end = head;
 
@@ -747,12 +776,12 @@ void Tracker::calc_distances() {
         // Update node at beginning or end of the current interval, if the interval enables a shorter path
         float alt_distance = std::min(dist_at_interval_start, dist_at_interval_end) + interval_length;
         if (walk_origin_node && dist_at_interval_start > alt_distance) {
-            if (set_link_dist_to_home(walk_origin_node, walk_origin_node_delta_length, walk_origin, alt_distance)) {
+            if (set_link_dist_to_home(walk_origin_node, walk_origin_node_delta_length, walk_origin, alt_distance, !walking_forward)) {
                 TRACKER_DBG("  distance at interval start improved to %f", alt_distance);
                 dump_nodes();
             }
         } else if (node && dist_at_interval_end > alt_distance) {
-            if (set_link_dist_to_home(node, node_delta_length, index, alt_distance)) {
+            if (set_link_dist_to_home(node, node_delta_length, index, alt_distance, walking_forward)) {
                 TRACKER_DBG("  distance at interval end improved to %f", alt_distance);
                 dump_nodes();
             }
@@ -768,10 +797,38 @@ void Tracker::calc_distances() {
 }
 
 
-size_t Tracker::calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward) {
+void Tracker::get_distance_to_home(size_t index, float bias, float &dist_forward, float &dist_backward) {
+    // Calculate the distance if walking forward from index
+    dist_forward = bias;
+    size_t index_forward = index;
+    size_t node_forward = walk_far_forward(index_forward, graph_home_index, dist_forward);
+    if (node_forward)
+        dist_forward += get_link_dist_to_home(node_forward, get_delta_length(node_forward), index_forward);
+    else if (index_forward != graph_home_index)
+        dist_forward = INFINITY;
+
+    // Calculate the distance if walking backward from index
+    dist_backward = -bias;
+    size_t index_backward = index;
+    size_t node_backward = walk_far_backward(index_backward, graph_home_index, dist_backward);
+    if (node_backward)
+        dist_backward += get_link_dist_to_home(node_backward, get_delta_length(node_backward), index_backward);
+    else if (index_backward != graph_home_index)
+        dist_backward = INFINITY;
+
+    if (isinf(dist_forward) && node_forward)
+        dist_forward = FLT_MAX;
+
+    if (isinf(dist_backward) && node_backward)
+        dist_backward = FLT_MAX;
+}
+
+
+size_t Tracker::calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward, bool &did_select_link) {
     if (index == graph_home_index) {
         // todo: consider that home_index may be on a node
         move_forward = move_backward = false;
+        TRACKER_DBG("calc return path, but I'm already home");
         return index;
     }
 
@@ -779,55 +836,21 @@ size_t Tracker::calc_return_path(size_t index, float bias, bool &move_forward, b
     size_t walk_origin_node = get_node_or_null(index); // will be 0 if there is no node
     TRACKER_DBG("calc return path from %zu (node %zu)", index, walk_origin_node);
 
-    // If we're in the middle of an interval and already have a movement direction, don't change it
-    if (!walk_origin_node && (move_forward || move_backward))
+    // If have a movement direction, don't change it unless we're at a node and haven't yet selected the best link
+    if ((!walk_origin_node || did_select_link) && (move_forward || move_backward)) {
+        did_select_link = false;
         return index;
+    }
 
     // Make sure all nodes and links have a valid distance-to-home
     calc_distances();
 
-    // Depending on the circumstances, either select a link or a direction.
-    if (!walk_origin_node || (move_forward && move_backward)) {
-        // Select a direction
+    float dist_forward = 0, dist_backward = 0;
 
-        // Calculate the distance if walking forward from index
-        float dist_forward = bias;
-        size_t index_forward = index;
-        size_t node_forward = walk_far_forward(index_forward, graph_home_index, dist_forward);
-        if (node_forward)
-            dist_forward += get_link_dist_to_home(node_forward, get_delta_length(node_forward), index_forward);
-        else if (index_forward != graph_home_index)
-            dist_forward = INFINITY;
-        
-        // Calculate the distance if walking backward from index
-        float dist_backward = -bias;
-        size_t index_backward = index;
-        size_t node_backward = walk_far_backward(index_backward, graph_home_index, dist_backward);
-        if (node_backward)
-            dist_backward += get_link_dist_to_home(node_backward, get_delta_length(node_backward), index_backward);
-        else if (index_backward != graph_home_index)
-            dist_backward = INFINITY;
-
-        TRACKER_DBG("distance from %zu is: %f forward, %f backward", index, dist_forward, dist_backward);
-
-        // Note that we prefer to move backward in case of equal cost
-        move_backward = !(move_forward = dist_forward < dist_backward);
-        
-        // Only if both directions have unknown cost AND walking backwards wouldn't take us to a node, we either move forward (if there's a node there) or give up.
-        if (isinf(dist_forward) && isinf(dist_backward) && !node_backward) {
-            if (node_forward) {
-                move_backward = !(move_forward = true);
-            } else {
-                move_backward = move_forward = false;
-                PX4_WARN("I don't see any path home from graph index %zu.", index);
-            }
-        }
-
-        return index;
-
-    } else {
+    if (walk_origin_node && !did_select_link) {
         // Select a link
 
+        // By default, we assume that it's best to walk backwards on the line of the node head
         float best_distance = INFINITY;
         size_t best_link = index;
 
@@ -836,25 +859,55 @@ size_t Tracker::calc_return_path(size_t index, float bias, bool &move_forward, b
 
         // Look at all the links in the current node and select the one that is closest to home.
         do {
-            float link_distance = get_link_dist_to_home(walk_origin_node, walk_origin_node_delta_length, index);
+            get_distance_to_home(index, index == walk_origin_node ? bias : 0, dist_forward, dist_backward);
+
+            if (index != walk_origin_node) {
+                float dist_to_link = std::abs(bias - get_link_dist_to_node(walk_origin_node, walk_origin_node_delta_length, index));
+                dist_forward += dist_to_link;
+                dist_backward += dist_to_link;
+            }
+
+            float link_distance = std::min(dist_forward, dist_backward);
+            TRACKER_DBG("link %zu has distance %f to home", index, link_distance);
             if (best_distance > link_distance) {
                 best_distance = link_distance;
                 best_link = index;
+                move_backward = !(move_forward = dist_forward < dist_backward);
             }
         } while (walk_node(walk_origin_node, index));
 
-        move_forward = move_backward = true;
-
-        // If no link is a known path to home, try the earliest link (e.g. the cycle head), or abort.
-        if (best_distance == INFINITY && best_link == walk_origin_node) {
+        // If no link has a known path to home, try the earliest link (i.e. the cycle head), or abort.
+        if (best_distance == INFINITY) {
             move_forward = move_backward = false;
-
-            dump_graph();
-            PX4_WARN("I don't see any path home from node %zu", walk_origin_node);
+            if (best_link == walk_origin_node) {
+                dump_graph();
+                PX4_WARN("I don't see any path home from node %zu", walk_origin_node);
+            }
         }
 
+        did_select_link = true;
         return best_link;
     }
+
+
+    // Select a direction
+
+    did_select_link = false;
+
+    // Calculate the distances for both directions
+    get_distance_to_home(index, bias, dist_forward, dist_backward);
+    TRACKER_DBG("distance from %zu is: %f forward, %f backward", index, dist_forward, dist_backward);
+    
+    // Note that we prefer to move backward in case of equal cost
+    move_backward = !(move_forward = dist_forward < dist_backward);
+
+    // Only if both directions have unknown cost AND walking backwards wouldn't take us to a node, we either move forward (if there's a node there) or give up.
+    if (isinf(dist_forward) && isinf(dist_backward)) {
+        move_backward = move_forward = false;
+        PX4_WARN("I don't see any path home from graph index %zu.", index);
+    }
+
+    return index;
 }
 
 
@@ -871,7 +924,8 @@ bool Tracker::get_current_pos(pos_handle_t &pos, float &x, float &y, float &z) {
         .bias = fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false),
         .position = graph_current_line_end,
         .did_move_forward = false,
-        .did_move_backward = false
+        .did_move_backward = false,
+        .did_select_link = false
     };
 
     return true;
@@ -880,24 +934,31 @@ bool Tracker::get_current_pos(pos_handle_t &pos, float &x, float &y, float &z) {
 
 bool Tracker::get_path_to_home(pos_handle_t &pos, float &x, float &y, float &z) {
     // Calculate where to go next
-    size_t new_index = calc_return_path(pos.index, pos.bias, pos.did_move_forward, pos.did_move_backward);
+    size_t new_index = calc_return_path(pos.index, pos.bias, pos.did_move_forward, pos.did_move_backward, pos.did_select_link);
 
-    // If we change the link without changing the position, we get a second chance to make progress.
-    // The second attempt is guaranteed to yield something else than change-link.
-    if (pos.did_move_forward && pos.did_move_backward) {
-        pos.index = new_index;
+    // If we change the link within a node we need to move along the line.
+    if (pos.did_select_link) {
         ipos_t delta = get_intra_node_delta(pos.index, new_index);
-        if (delta == ipos_t{ .x = 0, .y = 0, .z = 0 }) {
-            TRACKER_DBG("link change didn't result in position change... second chance");
-            calc_return_path(pos.index, 0, pos.did_move_forward, pos.did_move_backward);
+        TRACKER_DBG("intra-node delta: (%d, %d, %d) + (%d, %d, %d)", pos.position.x, pos.position.y, pos.position.z, delta.x, delta.y, delta.z);
+        pos.index = new_index;
+        pos.position += delta;
+
+
+        if (get_node_or_null(new_index) == new_index && pos.did_move_backward) {
+            // If we need to walk to the beginning of the line, we act as if we're not at a node.
+            TRACKER_DBG("I will move to the beginning of node %zu (which ends at %d, %d, %d)", new_index, pos.position.x, pos.position.y, pos.position.z);
+            pos.did_select_link = false;
+        } else if (delta == ipos_t{ .x = 0, .y = 0, .z = 0 }) {
+            // If the link change does not result in a new position, we try another update.
+            TRACKER_DBG("incomplete position change... second chance");
+            calc_return_path(pos.index, 0, pos.did_move_forward, pos.did_move_backward, pos.did_select_link);
         } else {
             TRACKER_DBG("link change resulted in position change (%d, %d, %d)", delta.x, delta.y, delta.z);
-            pos.position += delta;
         }
     }
 
     // Apply move-forward-or-backward-instruction
-    if (pos.did_move_forward && pos.did_move_backward) {
+    if (pos.did_select_link) {
         // already handled
     } else if (pos.did_move_forward) {
         ipos_t delta;

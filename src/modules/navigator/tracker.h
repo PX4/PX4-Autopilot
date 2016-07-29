@@ -285,6 +285,11 @@ private:
     // The caller must ensure that both indices point to links in the same node.
     ipos_t get_intra_node_delta(size_t link1, size_t link2);
 
+    // Retrieves the distance of a particular link element to the node head.
+    // Even though the node and node_delta_length could be inferred from the index, they are expected as a parameter for improved efficiency.
+    // If node is invalid (0), the function returns 0.
+    float get_link_dist_to_node(size_t node, float node_delta_length, size_t index);
+
     // Retrieves the distance of a particular link element to home, based on the precalculated value stored in the node.
     // Even though the node and node_delta_length could be inferred from the index, they are expected as a parameter for improved efficiency.
     // If node is invalid (0), the function returns 0.
@@ -296,7 +301,7 @@ private:
     // Even though the node and node_delta_length could be inferred from the index, they are expected as a parameter for improved efficiency.
     // If node is invalid (0), no action is taken.
     // Returns false iif nothing was changed.
-    bool set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance);
+    bool set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance, bool backward);
     
     // Returns true iif the two indices are equal or belong to the same node.
     bool is_same_pos(size_t index1, size_t index2);
@@ -353,6 +358,9 @@ private:
     // Ensures, that each node has a valid distance-to-home value.
     void calc_distances(void);
 
+    // Calculates the distance to home from a specific index in both forward and backward directions.
+    void get_distance_to_home(size_t index, float bias, float &dist_forward, float &dist_backward);
+
     // Calculates the next best move to get back home, starting at the specified index.
     // index: The index from which to return home. If this is a node, all adjacent intervals are considered.
     // bias: The actual starting position may be anywhere on the line specified by index. This bias specifies the distance to the end of this line.
@@ -364,7 +372,7 @@ private:
     //      If a relocation within the same node is recommended, both values are set to false.
     //      If the index already points at the home index, both values are set to false.
     // Returns: In case of an intra-node relocation, the index of the destination link, otherwise the input index.
-    size_t calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward);
+    size_t calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward, bool &did_select_link);
 
     
     
@@ -444,6 +452,7 @@ struct Tracker::pos_handle_t {
     float bias; // Indicates how far the actual position is from the one stored in the position field. 
     bool did_move_backward; // Tells us from which direction this position was reached.
     bool did_move_forward; // Tells us from which direction this position was reached.
+    bool did_select_link; // Tells us if we already decided for a specific link in case we're at a node.
 };
 
 #endif // NAVIGATOR_TRACKER_H
