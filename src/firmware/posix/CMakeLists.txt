@@ -33,7 +33,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
+				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
 			 DEPENDS px4
 			 DEST /home/linaro)
 
@@ -94,7 +94,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 						 ${CMAKE_SOURCE_DIR}/posix-configs/bebop/px4.config
 			 DEPENDS px4
 			 DEST /usr/bin)
-			 
+
 else()
 
 	add_executable(px4
