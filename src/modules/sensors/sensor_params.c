@@ -3055,6 +3055,16 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 
 /**
+ * Maxbotix Soanr (mb12xx)
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensor Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
+
+/**
  * Set the minimum PWM for the MAIN outputs
  *
  * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
