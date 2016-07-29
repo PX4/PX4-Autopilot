@@ -1272,6 +1272,22 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
 	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
+	// l1 navigation logic breaks down when wind speed exceeds max airspeed
+	// compute 2D groundspeed from airspeed-heading projection
+	math::Vector<2> air_speed_2d = {_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
+	math::Vector<2> nav_speed_2d = {0, 0};
+
+	// angle between air_speed_2d and ground_speed_2d
+	float air_gnd_angle = acosf((air_speed_2d * ground_speed_2d) / (air_speed_2d.length() * ground_speed_2d.length()));
+
+	// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
+	if ((fabs(air_gnd_angle) > M_PI) || (ground_speed_2d.length() < 3.0f)) {
+		nav_speed_2d = air_speed_2d;
+
+	} else {
+		nav_speed_2d = ground_speed_2d;
+	}
+
 	/* define altitude error */
 	float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
 
@@ -1363,7 +1379,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
-			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -1376,7 +1392,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* waypoint is a loiter waypoint */
 			_l1_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
-						    pos_sp_triplet.current.loiter_direction, ground_speed_2d);
+						    pos_sp_triplet.current.loiter_direction, nav_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -1468,14 +1484,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 //					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
-				_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed_2d);
+				_l1_control.navigate_heading(_target_bearing, _yaw, nav_speed_2d);
 
 				_land_noreturn_horizontal = true;
 
 			} else {
 
 				/* normal navigation */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
 			}
 
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1688,7 +1704,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
 				 * If we use the navigator heading or not is decided later.
 				 */
-				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
+				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, nav_speed_2d);
 
 				// update tecs
 				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
@@ -1752,7 +1768,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 					/* Launch has been detected, hence we have to control the plane. */
 
-					_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+					_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
 					_att_sp.roll_body = _l1_control.nav_roll();
 					_att_sp.yaw_body = _l1_control.nav_bearing();
 
