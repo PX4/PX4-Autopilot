@@ -134,9 +134,16 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $no_pxh $chroot_enabled $src_path $src_path/${rcS_dir}/${model}"
+sitl_command="$sudo_enabled $sitl_bin $no_pxh $src_path etc/init/${rc_script}"
 
 echo SITL COMMAND: $sitl_command
+
+# Prepend to path to prioritize PX4 commands over potentially already
+# installed PX4 commands.
+export PATH="$build_path/bin":$PATH
+
+export SIM_MODEL=${model}
+export SIM_PROGRAM=${program}
 
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
