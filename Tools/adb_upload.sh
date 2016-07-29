@@ -5,13 +5,17 @@ if [[ "$#" < 2 ]]; then
 	exit
 fi
 
-echo "Wait for device..."
-adb wait-for-device
-echo "Uploading..."
-
 # Get last argument
 for last; do true; done
 
+echo "Wait for device..."
+adb wait-for-device
+
+echo "Creating folder structure..."
+#echo "creating folder: $last"
+adb shell mkdir -p $last
+
+echo "Uploading..."
 # Go through source files and push them one by one.
 i=0
 for arg
