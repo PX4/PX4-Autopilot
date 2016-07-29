@@ -110,7 +110,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 			)
 	endif()
 
-	configure_file(gdbinit.in .gdbinit)
+	configure_file(cmake/nuttx/gdbinit.in .gdbinit)
 
 	add_custom_target(debug
 		COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx

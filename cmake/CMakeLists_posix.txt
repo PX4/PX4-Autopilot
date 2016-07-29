@@ -1,8 +1,19 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
+set(PX4_BASH_PREFIX "px4-")
+
 px4_posix_generate_builtin_commands(
 	OUT apps
 	MODULE_LIST ${module_libraries})
+)
+
+px4_posix_generate_alias(
+	OUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/alias.sh
+	MODULE_LIST ${module_libraries}
+	PREFIX ${PX4_BASH_PREFIX}
+)
 
 # Define build target
 set(APP_NAME px4)
@@ -14,7 +25,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
-	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
+	FASTRPC_STUB_GEN(${CMAKE_SOURCE_DIR}/src/platforms/qurt/px4muorb.idl)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
@@ -128,6 +139,7 @@ else()
 			pthread m
 			)
 	endif()
+
 endif()
 
 #=============================================================================
@@ -136,6 +148,34 @@ endif()
 
 install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs/SITL/init DESTINATION ${CMAKE_BINARY_DIR}/rootfs/etc/init)
+
+add_custom_command(TARGET px4
+	POST_BUILD
+	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
+	)
+
+add_custom_command(TARGET px4
+	POST_BUILD
+	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
+	)
+
+add_custom_command(TARGET px4
+	POST_BUILD
+	COMMAND cp -R ${PROJECT_SOURCE_DIR}/posix-configs/SITL/init ${CMAKE_BINARY_DIR}/rootfs/etc/
+)
+
+add_custom_command(TARGET px4
+	POST_BUILD
+	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/sitl/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
+)
+
+add_custom_command(TARGET px4
+	POST_BUILD
+	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/px4fmu_common/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
+)
+
+
+
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
