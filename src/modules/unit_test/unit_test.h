@@ -37,6 +37,17 @@
 
 #include <systemlib/err.h>
 
+#define ut_declare_test_c(test_function, test_class)	\
+	extern "C" {										\
+		int test_function(int argc, char *argv[])		\
+		{												\
+			test_class* test = new test_class();		\
+			bool success = test->run_tests();			\
+			test->print_results();						\
+			return success ? 0 : -1;					\
+		}												\
+	}
+
 /// @brief Base class to be used for unit tests.
 class __EXPORT UnitTest
 {
@@ -91,6 +102,9 @@ protected:
 			_assertions++;						\
 		}								\
 	} while (0)
+
+/// @brief Used to assert a value within a unit test.
+#define ut_test(test) ut_assert("test", test)
 
 /// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
 /// since it will give you better error reporting of the actual values being compared.

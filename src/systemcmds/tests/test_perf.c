@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,39 @@
  *
  ****************************************************************************/
 
-#ifndef _uORBGtestTopics_hpp_
-#define _uORBGtestTopics_hpp_
+#include <px4_config.h>
+#include <px4_posix.h>
 
-#include "uORB/uORB.h"
+#include <systemlib/perf_counter.h>
 
-namespace uORB_test
+#include "tests.h"
+
+int
+test_perf(int argc, char *argv[])
 {
-   struct orb_topic_A
-   {
-     int16_t val;
-   };
+	perf_counter_t cc = perf_alloc(PC_COUNT, "test_count");
+	perf_counter_t ec = perf_alloc(PC_ELAPSED, "test_elapsed");
 
-   struct orb_topic_B
-   {
-     int16_t val;
-   };
+	if ((cc == NULL) || (ec == NULL)) {
+		printf("perf: counter alloc failed\n");
+		return 1;
+	}
 
-   ORB_DEFINE(topicA, struct orb_topic_A, nullptr, "TOPICA:int16 val;");
-   ORB_DEFINE(topicB, struct orb_topic_B, nullptr, "TOPICB:int16 val;");
+	perf_begin(ec);
+	perf_count(cc);
+	perf_count(cc);
+	perf_count(cc);
+	perf_count(cc);
+	printf("perf: expect count of 4\n");
+	perf_print_counter(cc);
+	perf_end(ec);
+	printf("perf: expect count of 1\n");
+	perf_print_counter(ec);
+	printf("perf: expect at least two counters\n");
+	perf_print_all(0);
 
-   ORB_DEFINE(topicA_clone, struct orb_topic_A, nullptr, "TOPICA_CLONE:int16 val;";
-   ORB_DEFINE(topicB_clone, struct orb_topic_B, nullptr, "TOPICB_CLONE:int16 val;");
+	perf_free(cc);
+	perf_free(ec);
+
+	return OK;
 }
-
-#endif // _UnitTest_uORBTopics_hpp_
