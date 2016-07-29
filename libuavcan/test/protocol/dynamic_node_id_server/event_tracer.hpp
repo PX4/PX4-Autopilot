@@ -43,7 +43,7 @@ public:
     {
         const uavcan::MonotonicDuration ts = SystemClockDriver().getMonotonic() - startup_ts_;
         std::cout << "EVENT [" << id_ << "]\t" << ts.toString() << "\t"
-                  << code << "\t" << getEventName(code) << "\t" << argument << std::endl;
+                  << int(code) << "\t" << getEventName(code) << "\t" << argument << std::endl;
         event_log_.push_back(EventLogEntry(code, argument));
     }
 
@@ -67,7 +67,7 @@ public:
             }
         }
 
-        std::cout << "No such event in the event log, code " << code << ", log length " << event_log_.size()
+        std::cout << "No such event in the event log, code " << int(code) << ", log length " << event_log_.size()
             << std::endl;
 
         throw std::runtime_error("EventTracer::getLastEventArgumentOrFail()");

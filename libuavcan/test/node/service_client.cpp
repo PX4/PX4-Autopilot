@@ -43,7 +43,7 @@ struct ServiceCallResultHandler
         }
         else
         {
-            std::cout << "MISMATCH: status=" << last_status << ", last_server_node_id="
+            std::cout << "MISMATCH: status=" << int(last_status) << ", last_server_node_id="
                 << int(last_server_node_id.get()) << ", last response:\n" << last_response << std::endl;
             return false;
         }

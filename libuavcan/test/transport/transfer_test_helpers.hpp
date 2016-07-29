@@ -102,7 +102,7 @@ struct Transfer
         os << "ts_m="    << ts_monotonic
            << " ts_utc=" << ts_utc
            << " prio="   << int(priority.get())
-           << " tt="     << transfer_type
+           << " tt="     << int(transfer_type)
            << " tid="    << int(transfer_id.get())
            << " snid="   << int(src_node_id.get())
            << " dnid="   << int(dst_node_id.get())

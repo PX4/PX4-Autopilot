@@ -73,11 +73,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
     {
-        if (iface_index == 0)
-        {
-            return this;
-        }
-        return UAVCAN_NULLPTR;
+        return (iface_index == 0) ? this : UAVCAN_NULLPTR;
+    }
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const
+    {
+        return (iface_index == 0) ? this : UAVCAN_NULLPTR;
     }
 
     virtual uavcan::uint8_t getNumIfaces() const { return 1; }
