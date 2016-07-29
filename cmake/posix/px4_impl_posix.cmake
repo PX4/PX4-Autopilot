@@ -107,6 +107,64 @@ function(px4_posix_generate_builtin_commands)
 		${OUT}.h)
 endfunction()
 
+
+function(px4_posix_generate_alias)
+	px4_parse_function_args(
+		NAME px4_posix_generate_alias
+		ONE_VALUE OUT
+		MULTI_VALUE MODULE_LIST
+		REQUIRED ONE_VALUE PREFIX
+		REQUIRED MODULE_LIST OUT
+		ARGN ${ARGN})
+
+	set(alias_string)
+	foreach(module ${MODULE_LIST})
+		foreach(property MAIN STACK PRIORITY)
+			get_target_property(${property} ${module} ${property})
+			if(NOT ${property})
+				set(${property} ${${property}_DEFAULT})
+			endif()
+		endforeach()
+		if (MAIN)
+			set(alias_string
+				"${alias_string}alias ${MAIN}='${PREFIX}${MAIN}'\n"
+			)
+		endif()
+	endforeach()
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/posix/alias.sh_in
+		${OUT}
+	)
+endfunction()
+
+
+function(px4_posix_generate_symlinks)
+	px4_parse_function_args(
+		NAME px4_posix_generate_symlinks
+		MULTI_VALUE MODULE_LIST
+		REQUIRED ONE_VALUE PREFIX
+		REQUIRED ONE_VALUE TARGET
+		ARGN ${ARGN})
+
+	foreach(module ${MODULE_LIST})
+
+		foreach(property MAIN STACK PRIORITY)
+			get_target_property(${property} ${module} ${property})
+			if(NOT ${property})
+				set(${property} ${${property}_DEFAULT})
+			endif()
+		endforeach()
+		if (MAIN)
+			set(ln_name "${PREFIX}${MAIN}")
+			add_custom_command(TARGET ${TARGET}
+				POST_BUILD
+				COMMAND ln -s -f ${TARGET} ${ln_name}
+				WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+				USES_TERMINAL
+			)
+		endif()
+	endforeach()
+endfunction()
+
 #=============================================================================
 #
 #	px4_os_add_flags

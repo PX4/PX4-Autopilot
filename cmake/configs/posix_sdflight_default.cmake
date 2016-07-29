@@ -82,4 +82,5 @@ set(config_module_list
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
+	platforms/posix/px4_daemon
 	)

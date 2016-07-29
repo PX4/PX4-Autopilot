@@ -170,7 +170,15 @@ using ::isfinite;
 
 #define px4_statfs_buf_f_bavail_t unsigned long
 
-#ifdef __PX4_QURT
+#if defined(__PX4_QURT)
+#define PX4_ROOTFSDIR
+#elif defined(__PX4_POSIX_EAGLE)
+#define PX4_ROOTFSDIR "/home/linaro"
+#elif defined(__PX4_POSIX_BEBOP)
+#define PX4_ROOTFSDIR "/home/root"
+#else
+#define PX4_ROOTFSDIR "."
+#endif
 
 // QURT specific
 #  include "dspal_math.h"

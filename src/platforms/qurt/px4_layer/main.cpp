@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,11 @@
  ****************************************************************************/
 /**
  * @file main.cpp
- * Basic shell to execute builtin "apps"
+ *
+ * Basic shell to execute builtin "apps" on QURT.
  *
  * @author Mark Charlebois <charlebm@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <px4_middleware.h>
@@ -47,19 +49,20 @@
 #include <map>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "get_commands.h"
 #include "apps.h"
 #include "DriverFramework.hpp"
 
 #define MAX_ARGS 8 // max number of whitespace separated args after app name
 
-using namespace std;
 
 static px4_task_t g_dspal_task = -1;
 
 __BEGIN_DECLS
 // The commands to run are specified in a target file: commands_<target>.c
 extern const char *get_commands(void);
+
 // Enable external library hook
 void qurt_external_hook(void) __attribute__((weak));
 __END_DECLS
@@ -71,7 +74,7 @@ void qurt_external_hook(void)
 static void run_cmd(apps_map_type &apps, const vector<string> &appargs)
 {
 	// command is appargs[0]
-	string command = appargs[0];
+	std::string command = appargs[0];
 
 	//replaces app.find with iterator code to avoid null pointer exception
 	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it)
@@ -117,7 +120,7 @@ void eat_whitespace(const char *&b, int &i)
 
 static void process_commands(apps_map_type &apps, const char *cmds)
 {
-	vector<string> appargs;
+	vector<std::string> appargs;
 	int i = 0;
 	const char *b = cmds;
 	char arg[256];
@@ -177,39 +180,12 @@ int dspal_main(int argc, char *argv[]);
 __END_DECLS
 
 
-#define COMMANDS_ADSP_FILE	"/dev/fs/px4.config"
-
 const char *get_commands()
 {
-	PX4_INFO("attempting to open the ADSP command file: %s", COMMANDS_ADSP_FILE);
-	int fd = open(COMMANDS_ADSP_FILE, O_RDONLY);
-
-	if (fd > 0) {
-		static char *commands;
-		char buf[4096];
-		int bytes_read, total_bytes = 0;
-		PX4_INFO("reading commands from %s\n", COMMANDS_ADSP_FILE);
-
-		do {
-			bytes_read = read(fd, (void *)buf, sizeof(buf));
-
-			if (bytes_read > 0) {
-				commands = (char *)realloc(commands, total_bytes + bytes_read);
-				memcpy(commands + total_bytes, buf, bytes_read);
-				total_bytes += bytes_read;
-			}
-		} while ((unsigned int)bytes_read > 0);
-
-		close(fd);
-
-		return (const char *)commands;
-	}
-
-	PX4_ERR("Could not open %s\n", COMMANDS_ADSP_FILE);
-
-	static const char *commands =
-		"uorb start\nqshell start\n"
-		;
+	// All that needs to be started automatically on the DSP side
+	// are uorb and qshell. After that, everything else can get
+	// started from the main startup script on the Linux side.
+	static const char *commands = "uorb start\nqshell start\n";
 
 	return commands;
 }

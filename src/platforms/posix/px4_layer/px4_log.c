@@ -2,6 +2,7 @@
 #include <px4_log.h>
 #ifdef __PX4_POSIX
 #include <execinfo.h>
+#include <platforms/posix/px4_daemon/server_io.h>
 #endif
 #include <uORB/uORB.h>
 #include <uORB/topics/log_message.h>
@@ -52,25 +53,71 @@ void px4_backtrace()
 #endif
 }
 
+//TODO: remove again
+#define __px4_log_level_current 0
+
+
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
-	PX4_LOG_COLOR_START
-	printf(__px4__log_level_fmt __px4__log_level_arg(level));
-	PX4_LOG_COLOR_MODULE
-	printf(__px4__log_modulename_pfmt, moduleName);
-	PX4_LOG_COLOR_MESSAGE
-	va_list argptr;
-	va_start(argptr, fmt);
-	vprintf(fmt, argptr);
-	va_end(argptr);
-	PX4_LOG_COLOR_END
-	printf("\n");
+#ifdef __PX4_POSIX
 
+	char *buffer;
+	unsigned max_length;
+	bool is_atty = false;
+
+	if (get_stdout_pipe_buffer(&buffer, &max_length, &is_atty) == 0) {
+		if (level <= __px4_log_level_current) {
+
+			unsigned pos = 0;
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
+
+			pos += snprintf(buffer + pos, max_length - pos, __px4__log_level_fmt __px4__log_level_arg(level));
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_GRAY); }
+
+			pos += snprintf(buffer + pos, max_length - pos, __px4__log_modulename_pfmt, moduleName);
+			va_list argptr;
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
+
+			va_start(argptr, fmt);
+			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
+			va_end(argptr);
+			pos += snprintf(buffer + pos, max_length - pos, "\n");
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
+
+			// +1 for the terminating 0 char.
+			send_stdout_pipe_buffer(pos + 1);
+		}
+
+	} else {
+#endif
+
+		if (level <= __px4_log_level_current) {
+			PX4_LOG_COLOR_START
+			printf(__px4__log_level_fmt __px4__log_level_arg(level));
+			PX4_LOG_COLOR_MODULE
+			printf(__px4__log_modulename_pfmt, moduleName);
+			PX4_LOG_COLOR_MESSAGE
+			va_list argptr;
+			va_start(argptr, fmt);
+			vprintf(fmt, argptr);
+			va_end(argptr);
+			PX4_LOG_COLOR_END
+			printf("\n");
+		}
+
+#ifdef __PX4_POSIX
+	}
+
+#endif
 	/* publish an orb log message */
 	if (level >= _PX4_LOG_LEVEL_WARN && orb_log_message_pub) { //only publish important messages
 
 		struct log_message_s log_message;
-		const unsigned max_length = sizeof(log_message.text);
+		const unsigned max_length_pub = sizeof(log_message.text);
 		log_message.timestamp = hrt_absolute_time();
 
 		const uint8_t log_level_table[] = {
@@ -84,14 +131,14 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 
 		unsigned pos = 0;
 
-		pos += snprintf((char *)log_message.text + pos, max_length - pos, __px4__log_modulename_pfmt, moduleName);
+		va_list argptr;
+
+		pos += snprintf((char *)log_message.text + pos, max_length_pub - pos, __px4__log_modulename_pfmt, moduleName);
 		va_start(argptr, fmt);
-		pos += vsnprintf((char *)log_message.text + pos, max_length - pos, fmt, argptr);
+		pos += vsnprintf((char *)log_message.text + pos, max_length_pub - pos, fmt, argptr);
 		va_end(argptr);
-		log_message.text[max_length - 1] = 0; //ensure 0-termination
+		log_message.text[max_length_pub - 1] = 0; //ensure 0-termination
 
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
-
 	}
 }
-

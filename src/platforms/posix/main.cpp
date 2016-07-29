@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,75 +32,82 @@
  ****************************************************************************/
 /**
  * @file main.cpp
- * Basic shell to execute builtin "apps"
+ *
+ * This is the main() of PX4 for POSIX.
+ *
+ * The application is designed as a daemon/server app with multiple clients.
+ * Both, the server and the client is started using this main() function.
+ *
+ * If the executable is called with its usual name 'px4', it will start the
+ * server. However, if it is started with an alias starting with 'px4-' such
+ * as 'px4-navigator', it will start as a client and try to connect to the
+ * server.
+ *
+ * The alias for all modules need to be created using the build system.
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  * @author Roman Bapst <bapstroman@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <iostream>
-#include <fstream>
 #include <string>
-#include <sstream>
-#include <vector>
+#include <fstream>
 #include <signal.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+#include <px4_log.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <px4_log.h>
+
 #include "apps.h"
 #include "px4_middleware.h"
-#include "px4_posix.h"
-#include "px4_log.h"
 #include "DriverFramework.hpp"
-#include <termios.h>
-#include <sys/stat.h>
+#include "px4_middleware.h"
+#include "px4_daemon/client.h"
+#include "px4_daemon/server.h"
+#include "px4_daemon/pxh.h"
+
+
+static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
+
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
+
+static bool _exit_requested = false;
+
 
 namespace px4
 {
-void init_once();
+void init_once(void);
 }
-
-using namespace std;
-
-typedef int (*px4_main_t)(int argc, char *argv[]);
-
-#define CMD_BUFF_SIZE	100
-
-#ifdef PATH_MAX
-const unsigned path_max_len = PATH_MAX;
-#else
-const unsigned path_max_len = 1024;
-#endif
-
-static bool _ExitFlag = false;
-
-static struct termios orig_term;
 
 extern "C" {
-	void _SigIntHandler(int sig_num);
-	void _SigIntHandler(int sig_num)
-	{
-		cout.flush();
-		cout << endl << "Exiting..." << endl;
-		cout.flush();
-		_ExitFlag = true;
-	}
-	void _SigFpeHandler(int sig_num);
-	void _SigFpeHandler(int sig_num)
-	{
-		cout.flush();
-		cout << endl << "floating point exception" << endl;
-		PX4_BACKTRACE();
-		cout.flush();
-	}
+	static void _SigIntHandler(int sig_num);
+	static void _SigFpeHandler(int sig_num);
 }
 
-static inline bool fileExists(const string &name)
+static void register_sig_handler();
+static void set_cpu_scaling();
+static void run_startup_bash_script(const char *commands_file);
+static void use_chroot();
+static void wait_to_exit();
+static bool is_already_running();
+static void print_usage();
+
+static inline bool fileExists(const std::string &name)
 {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
 }
 
-static inline bool dirExists(const string &path)
+static inline bool dirExists(const std::string &path)
 {
 	struct stat info;
 
@@ -115,10 +122,10 @@ static inline bool dirExists(const string &path)
 	}
 }
 
-static inline void touch(const string &name)
+static inline void touch(const std::string &name)
 {
-	fstream fs;
-	fs.open(name, ios::out);
+	std::fstream fs;
+	fs.open(name, std::ios::out);
 	fs.close();
 }
 
@@ -178,112 +185,10 @@ static int mkpath(const char *path, mode_t mode)
 	return (status);
 }
 
-static string pwd()
+static std::string pwd()
 {
-	char temp[path_max_len];
-	return (getcwd(temp, path_max_len) ? string(temp) : string(""));
-}
-
-static void print_prompt()
-{
-	cout.flush();
-	cout << "pxh> ";
-	cout.flush();
-}
-
-static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
-{
-	static apps_map_type apps;
-	static bool initialized = false;
-
-	if (!initialized) {
-		init_app_map(apps);
-		initialized = true;
-	}
-
-	// command is appargs[0]
-	string command = appargs[0];
-
-	if (apps.find(command) != apps.end()) {
-		const char *arg[appargs.size() + 2];
-
-		unsigned int i = 0;
-
-		while (i < appargs.size() && appargs[i] != "") {
-			arg[i] = (char *)appargs[i].c_str();
-			++i;
-		}
-
-		arg[i] = (char *)nullptr;
-
-		int retval = apps[command](i, (char **)arg);
-
-		if (retval) {
-			cout << "Command '" << command << "' failed, returned " << retval << endl;
-
-			if (exit_on_fail && retval) {
-				exit(retval);
-			}
-		}
-
-	} else if (command == "help") {
-		list_builtins(apps);
-
-	} else if (command.length() == 0 || command[0] == '#') {
-		// Do nothing
-
-	} else if (!silently_fail) {
-		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
-
-	}
-}
-
-static void usage()
-{
-
-	cout << "./px4 [-d] [data_directory] startup_config [-h]" << endl;
-	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
-	     endl;
-	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << endl;
-	cout << "<data_directory> - directory where ROMFS and posix-configs are located (if not given, CWD is used)" << endl;
-	cout << "<startup_config> - config file for starting/stopping px4 modules" << endl;
-	cout << "   -h            - help/usage information" << endl;
-}
-
-static void process_line(string &line, bool exit_on_fail)
-{
-	vector<string> appargs(20);
-
-	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
-			   appargs[7] >> appargs[8] >> appargs[9] >> appargs[10] >> appargs[11] >> appargs[12] >> appargs[13] >>
-			   appargs[14] >> appargs[15] >> appargs[16] >> appargs[17] >> appargs[18] >> appargs[19];
-	run_cmd(appargs, exit_on_fail);
-}
-
-static void restore_term()
-{
-	cout << "Restoring terminal\n";
-	tcsetattr(0, TCSANOW, &orig_term);
-}
-
-bool px4_exit_requested(void)
-{
-	return _ExitFlag;
-}
-
-static void set_cpu_scaling()
-{
-#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
-	// at the maximum frequency all the time.
-	// Interestingely, cpu0 and cpu3 set the scaling for all 4 CPUs on Snapdragon.
-	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
-	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
-
-	// Alternatively we could also raise the minimum frequency to save some power,
-	// unfortunately this still lead to some drops.
-	//system("echo 1190400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq");
-#endif
+	char temp[PATH_MAX];
+	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
 }
 
 #ifdef __PX4_SITL_MAIN_OVERRIDE
@@ -294,75 +199,94 @@ int SITL_MAIN(int argc, char **argv)
 int main(int argc, char **argv)
 #endif
 {
+	bool is_client = false;
+	bool chroot_on = false;
+	bool pxh_off = false;
+
+	/* Symlinks point to all commands that can be used as a client
+	 * with a 'px4-' prefix. */
+
+	const char prefix[] = "px4-";
+
+	if (strstr(argv[0], prefix)) {
+		is_client = true;
+	}
+
+{
 	bool daemon_mode = false;
 	bool chroot_on = false;
+	if (argc < 2) {
+		PX4_ERR("Not enough arguments.");
+		print_usage();
+		return -1;
+	}
 
-	tcgetattr(0, &orig_term);
-	atexit(restore_term);
+	if (is_client) {
 
-	struct sigaction sig_int;
-	memset(&sig_int, 0, sizeof(struct sigaction));
-	sig_int.sa_handler = _SigIntHandler;
-	sig_int.sa_flags = 0;// not SA_RESTART!;
+		if (!is_already_running()) {
+			PX4_ERR("PX4 daemon not running yet");
+			return -1;
+		}
 
-	struct sigaction sig_fpe;
-	memset(&sig_fpe, 0, sizeof(struct sigaction));
-	sig_fpe.sa_handler = _SigFpeHandler;
-	sig_fpe.sa_flags = 0;// not SA_RESTART!;
+		/* Remove the prefix by moving argv[0] and 1 more for the 0 termination. */
+		memmove(argv[0], argv[0] + strlen(prefix), strlen(argv[0]) + 1);
 
-	sigaction(SIGINT, &sig_int, nullptr);
-	//sigaction(SIGTERM, &sig_int, NULL);
-	sigaction(SIGFPE, &sig_fpe, nullptr);
+		px4_daemon::Client client;
+		client.generate_uuid();
+		client.register_sig_handler();
+		return client.process_args(argc, (const char **)argv);
 
-	set_cpu_scaling();
+	} else {
+		/* Server/daemon apps need to parse the command line arguments. */
 
 	int index = 1;
-	string  commands_file;
+	std::string  commands_file = "";
 	int positional_arg_count = 0;
-	string data_path;
-	string node_name;
+	std::string data_path = "";
+	std::string node_name = "";
 
 	// parse arguments
 	while (index < argc) {
-		//cout << "arg: " << index << " : " << argv[index] << endl;
+		for (int i = 1; i < argc; ++i) {
+			if (argv[i][0] == '-') {
 
-		if (argv[index][0] == '-') {
-			// the arg starts with -
-			if (strncmp(argv[index], "-d", 2) == 0) {
-				daemon_mode = true;
+				if (strcmp(argv[i], "-h") == 0) {
+					print_usage();
+					return 0;
 
-			} else if (strncmp(argv[index], "-h", 2) == 0) {
-				usage();
-				return 0;
+				} else if (strcmp(argv[i], "-d") == 0) {
+					pxh_off = true;
 
-			} else if (strncmp(argv[index], "-c", 2) == 0) {
-				chroot_on = true;
+				} else if (strcmp(argv[i], "-c") == 0) {
+					chroot_on = true;
+
+				} else {
+					PX4_ERR("Unknown/unhandled parameter: %s", argv[i]);
+					print_usage();
+					return 1;
+				}
+
+			} else if (!strncmp(argv[index], "__", 2)) {
+				PX4_DEBUG("ros argument");
+
+				// ros arguments
+				if (!strncmp(argv[index], "__name:=", 8)) {
+					std::string name_arg = argv[index];
+					node_name = name_arg.substr(8);
+					PX4_INFO("node name: %s", node_name.c_str());
+				}
 
 			} else {
-				PX4_ERR("Unknown/unhandled parameter: %s", argv[index]);
-				return 1;
-			}
+				PX4_DEBUG("positional argument");
 
-		} else if (!strncmp(argv[index], "__", 2)) {
-			//cout << "ros argument" << endl;
+				positional_arg_count += 1;
 
-			// ros arguments
-			if (!strncmp(argv[index], "__name:=", 8)) {
-				string name_arg = argv[index];
-				node_name = name_arg.substr(8);
-				cout << "node name: " << node_name << endl;
-			}
+				if (positional_arg_count == 1) {
+					data_path = argv[index];
 
-		} else {
-			//cout << "positional argument" << endl;
-
-			positional_arg_count += 1;
-
-			if (positional_arg_count == 1) {
-				data_path = argv[index];
-
-			} else if (positional_arg_count == 2) {
-				commands_file = argv[index];
+				} else if (positional_arg_count == 2) {
+					commands_file = argv[index];
+				}
 			}
 		}
 
@@ -371,7 +295,7 @@ int main(int argc, char **argv)
 
 	if (positional_arg_count != 2 && positional_arg_count != 1) {
 		PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
-		usage();
+		print_usage();
 		return -1;
 	}
 
@@ -382,10 +306,10 @@ int main(int argc, char **argv)
 		symlinks_needed = false;
 
 	} else {
-		cout << "data path: " << data_path << endl;
+		PX4_INFO("data path: %s", data_path.c_str());
 	}
 
-	cout << "commands file: " << commands_file << endl;
+	PX4_INFO("commands file: %s", commands_file.c_str());
 
 	if (commands_file.empty()) {
 		PX4_ERR("Error commands file not specified");
@@ -399,16 +323,16 @@ int main(int argc, char **argv)
 
 	// create sym-links
 	if (symlinks_needed) {
-		vector<string> path_sym_links;
+		std::vector<std::string> path_sym_links;
 		path_sym_links.push_back("ROMFS");
 		path_sym_links.push_back("posix-configs");
 		path_sym_links.push_back("test_data");
 
 		for (int i = 0; i < path_sym_links.size(); i++) {
-			string path_sym_link = path_sym_links[i];
-			//cout << "path sym link: " << path_sym_link << endl;
-			string src_path = data_path + "/" + path_sym_link;
-			string dest_path =  pwd() + "/" +  path_sym_link;
+			std::string path_sym_link = path_sym_links[i];
+			PX4_DEBUG("path sym link: %s", path_sym_link.c_str());;
+			std::string src_path = data_path + "/" + path_sym_link;
+			std::string dest_path =  pwd() + "/" +  path_sym_link;
 
 			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
@@ -430,194 +354,228 @@ int main(int argc, char **argv)
 	}
 
 	// setup rootfs
-	const string eeprom_path = "./rootfs/eeprom/";
-	const string microsd_path = "./rootfs/fs/microsd/";
+	const std::string eeprom_path = "./rootfs/eeprom/";
+	const std::string microsd_path = "./rootfs/fs/microsd/";
 
 	if (!fileExists(eeprom_path + "parameters")) {
-		cout << "creating new parameters file" << endl;
+		PX4_INFO("creating new parameters file");
 		mkpath(eeprom_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
 		touch(eeprom_path + "parameters");
-	}
+
+		}
+
+		if (is_already_running()) {
+			PX4_ERR("PX4 daemon already running");
+			return -1;
+		}
+
+		if (chroot_on) {
+			// Lock this application in the current working dir
+			// this is not an attempt to secure the environment,
+			// rather, to replicate a deployed file system.
+			use_chroot();
+		}
+
+		px4_daemon::Server server;
+		server.start();
+
+		register_sig_handler();
+		set_cpu_scaling();
 
 	if (!fileExists(microsd_path + "dataman")) {
-		cout << "creating new dataman file" << endl;
+		PX4_INFO("creating new dataman file");
 		mkpath(microsd_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
 		touch(microsd_path + "dataman");
 	}
 
-	// initialize
-	DriverFramework::Framework::initialize();
-	px4::init_once();
+		DriverFramework::Framework::initialize();
 
-	px4::init(argc, argv, "px4");
+		px4::init_once();
+		px4::init(argc, argv, "px4");
 
-	// if commandfile is present, process the commands from the file
-	if (!commands_file.empty()) {
-		ifstream infile(commands_file.c_str());
+		run_startup_bash_script(commands_file.c_str());
 
-		if (infile.is_open()) {
-			for (string line; getline(infile, line, '\n');) {
-
-				if (px4_exit_requested()) {
-					break;
-				}
-
-				// TODO: this should be true but for that we have to check all startup files
-				process_line(line, false);
-			}
+		// We now block here until we need to exit.
+		if (pxh_off) {
+			wait_to_exit();
 
 		} else {
-			PX4_ERR("Error opening commands file: %s", commands_file.c_str());
+			px4_daemon::Pxh pxh;
+			pxh.run_pxh();
+		}
+
+		// When we exit, we need to stop muorb on Snapdragon.
+
+#ifdef __PX4_POSIX_EAGLE
+		// Sending muorb stop is needed if it is running to exit cleanly.
+		// TODO: we should check with px4_task_is_running("muorb") before stopping it.
+		std::string muorb_stop_cmd("muorb stop");
+		px4_daemon::Pxh::process_line(muorb_stop_cmd, true);
+#endif
+
+		std::string shutdown_cmd("shutdown");
+		px4_daemon::Pxh::process_line(shutdown_cmd, true);
+
+		return OK;
+	}
+}
+
+static void register_sig_handler()
+{
+	struct sigaction sig_int;
+	memset(&sig_int, 0, sizeof(struct sigaction));
+	sig_int.sa_handler = _SigIntHandler;
+	sig_int.sa_flags = 0;// not SA_RESTART!;
+
+	struct sigaction sig_fpe;
+	memset(&sig_fpe, 0, sizeof(struct sigaction));
+	sig_int.sa_handler = _SigFpeHandler;
+	sig_int.sa_flags = 0;// not SA_RESTART!;
+
+	// We want to ignore if a PIPE has been closed.
+	struct sigaction sig_pipe;
+	memset(&sig_pipe, 0, sizeof(struct sigaction));
+	sig_pipe.sa_handler = SIG_IGN;
+
+	sigaction(SIGINT, &sig_int, NULL);
+	//sigaction(SIGTERM, &sig_int, NULL);
+	sigaction(SIGFPE, &sig_fpe, NULL);
+	sigaction(SIGPIPE, &sig_pipe, NULL);
+}
+
+static void _SigIntHandler(int sig_num)
+{
+	fflush(stdout);
+	printf("\nExiting...\n");
+	fflush(stdout);
+	px4_daemon::Pxh::stop();
+	_exit_requested = true;
+}
+
+static void _SigFpeHandler(int sig_num)
+{
+	fflush(stdout);
+	printf("\nfloating point exception\n");
+	PX4_BACKTRACE();
+	fflush(stdout);
+}
+
+static void set_cpu_scaling()
+{
+#ifdef __PX4_POSIX_EAGLE
+	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
+	// at the maximum frequency all the time.
+	// Interestingely, cpu0 and cpu3 set the scaling for all 4 CPUs on Snapdragon.
+	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
+	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
+
+	// Alternatively we could also raise the minimum frequency to save some power,
+	// unfortunately this still lead to some drops.
+	//system("echo 1190400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq");
+#endif
+}
+
+static void run_startup_bash_script(const char *commands_file)
+{
+	std::string bash_command("bash ");
+
+	bash_command += commands_file;
+
+	PX4_INFO("Calling bash script: %s", bash_command.c_str());
+
+	if (!bash_command.empty()) {
+		int ret = system(bash_command.c_str());
+
+		if (ret == 0) {
+			PX4_INFO("Startup script returned successfully");
+
+		} else {
+			PX4_WARN("Startup script returned with return value: %d", ret);
+		}
+	}
+	PX4_INFO("Startup script empty");
+}
+
+static void use_chroot()
+{
+	char pwd_path[PATH_MAX];
+	const char *folderpath = "/../rootfs/";
+
+	if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
+		PX4_ERR("Failed acquiring working dir, abort.");
+		exit(1);
+	}
+
+	if (nullptr == strcat(pwd_path, folderpath)) {
+		PX4_ERR("Failed completing path, abort.");
+		exit(1);
+	}
+
+	if (chroot(pwd_path)) {
+		PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
+		exit(1);
+	}
+
+	if (chdir("/")) {
+		PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
+		exit(1);
+	}
+}
+
+static void wait_to_exit()
+{
+	while (!_exit_requested) {
+		usleep(100000);
+	}
+}
+
+static void print_usage()
+{
+	printf("Usage for Server/daemon process: \n");
+	printf("\n");
+	printf("    px4 [-h|-c|-d] [data_directory] startup_file\n");
+	printf("\n");
+	printf("    <startup_file> bash start script to be used as startup\n");
+	printf("    <data_directory> directory where ROMFS and posix-configs are located (if not given, CWD is used)");
+	printf("        -h           help/usage information\n");
+	printf("        -c           use chroot\n");
+	printf("        -d           daemon mode, don't start pxh shell\n");
+	printf("\n");
+	printf("Usage for client: \n");
+	printf("\n");
+	printf("    px4-MODULE command using an alias.\n");
+	printf("        e.g.: px4-commander status\n");
+}
+
+static bool is_already_running()
+{
+	struct flock fl;
+	int fd = open(LOCK_FILE_PATH, O_RDWR | O_CREAT, 0666);
+
+	if (fd < 0) {
+		return false;
+	}
+
+	fl.l_type   = F_WRLCK;
+	fl.l_whence = SEEK_SET;
+	fl.l_start  = 0;
+	fl.l_len    = 0;
+	fl.l_pid    = getpid();
+
+	if (fcntl(fd, F_SETLK, &fl) == -1) {
+		// We failed to create a file lock, must be already locked.
+
+		if (errno == EACCES || errno == EAGAIN) {
+			return true;
 		}
 	}
 
-	if (chroot_on) {
-		// Lock this application in the current working dir
-		// this is not an attempt to secure the environment,
-		// rather, to replicate a deployed file system.
+	return false;
+}
 
-		char pwd_path[path_max_len];
-		const char *folderpath = "/rootfs/";
-
-		if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
-			PX4_ERR("Failed acquiring working dir, abort.");
-			exit(1);
-		}
-
-		if (nullptr == strcat(pwd_path, folderpath)) {
-			PX4_ERR("Failed completing path, abort.");
-			exit(1);
-		}
-
-		if (chroot(pwd_path)) {
-			PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
-			exit(1);
-		}
-
-		if (chdir("/")) {
-			PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
-			exit(1);
-		}
-	}
-
-	if (!daemon_mode) {
-		string mystr;
-		string string_buffer[CMD_BUFF_SIZE];
-		int buf_ptr_write = 0;
-		int buf_ptr_read = 0;
-
-		print_prompt();
-
-		// change input mode so that we can manage shell
-		struct termios term;
-		tcgetattr(0, &term);
-		term.c_lflag &= ~ICANON;
-		term.c_lflag &= ~ECHO;
-		tcsetattr(0, TCSANOW, &term);
-		setbuf(stdin, nullptr);
-
-		while (!_ExitFlag) {
-
-			char c = getchar();
-
-			switch (c) {
-			case 127:	// backslash
-				if (mystr.length() > 0) {
-					mystr.pop_back();
-					printf("%c[2K", 27);	// clear line
-					cout << (char)13;
-					print_prompt();
-					cout << mystr;
-				}
-
-				break;
-
-			case'\n':	// user hit enter
-				if (buf_ptr_write == CMD_BUFF_SIZE) {
-					buf_ptr_write = 0;
-				}
-
-				if (buf_ptr_write > 0) {
-					if (!mystr.empty() && mystr != string_buffer[buf_ptr_write - 1]) {
-						string_buffer[buf_ptr_write] = mystr;
-						buf_ptr_write++;
-					}
-
-				} else {
-					if (!mystr.empty() && mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
-						string_buffer[buf_ptr_write] = mystr;
-						buf_ptr_write++;
-					}
-				}
-
-				cout << endl;
-				process_line(mystr, false);
-				mystr = "";
-				buf_ptr_read = buf_ptr_write;
-
-				print_prompt();
-				break;
-
-			case '\033': {	// arrow keys
-					c = getchar();	// skip first one, does not have the info
-					c = getchar();
-
-					// arrow up
-					if (c == 'A') {
-						buf_ptr_read--;
-						// arrow down
-
-					} else if (c == 'B') {
-						if (buf_ptr_read < buf_ptr_write) {
-							buf_ptr_read++;
-						}
-
-					} else {
-						// TODO: Support editing current line
-					}
-
-					if (buf_ptr_read < 0) {
-						buf_ptr_read = 0;
-					}
-
-					string saved_cmd = string_buffer[buf_ptr_read];
-					printf("%c[2K", 27);
-					cout << (char)13;
-					mystr = saved_cmd;
-					print_prompt();
-					cout << mystr;
-					break;
-				}
-
-			default:	// any other input
-				if (c > 3) {
-					cout << c;
-					mystr += c;
-				}
-
-				break;
-			}
-		}
-
-	} else {
-		while (!_ExitFlag) {
-			usleep(100000);
-		}
-	}
-
-	// TODO: Always try to stop muorb for QURT because px4_task_is_running doesn't seem to work.
-	if (true) {
-		//if (px4_task_is_running("muorb")) {
-		// sending muorb stop is needed if it is running to exit cleanly
-		vector<string> muorb_stop_cmd = { "muorb", "stop" };
-		run_cmd(muorb_stop_cmd, !daemon_mode, true);
-	}
-
-	vector<string> shutdown_cmd = { "shutdown" };
-	run_cmd(shutdown_cmd, true);
-	DriverFramework::Framework::shutdown();
-
-	return OK;
+bool px4_exit_requested(void)
+{
+	return _exit_requested;
 }
 
 /* vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
