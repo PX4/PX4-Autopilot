@@ -305,7 +305,7 @@ run_tests_posix: posix_sitl_default
 	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/fs/microsd
 	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/eeprom
 	@touch build_posix_sitl_default/src/firmware/posix/rootfs/eeprom/parameters
-	@(cd build_posix_sitl_default/src/firmware/posix && ./mainapp -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
+	@(cd build_posix_sitl_default/src/firmware/posix && ./px4 -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
 	@(cd build_posix_sitl_default/src/firmware/posix && grep --color=always "All tests passed" test_output)
 
 tests: check_unittest run_tests_posix
