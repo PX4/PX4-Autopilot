@@ -600,7 +600,7 @@ SF1XX::start()
 	measure();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, 5);
+	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, USEC2TICK(_conversion_interval));
 }
 
 void
