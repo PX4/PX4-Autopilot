@@ -74,6 +74,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "VT_NAV_FORCE_VT", false),
+	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_onboard_mission{},
 	_offboard_mission{},
 	_current_onboard_mission_index(-1),
@@ -226,7 +227,15 @@ Mission::on_active()
 	     && _param_yawmode.get() < MISSION_YAWMODE_MAX
 	     && _mission_type != MISSION_TYPE_NONE)
 	    || _navigator->get_vstatus()->is_vtol) {
+
 		heading_sp_update();
+	}
+
+	/* check if landing needs to be aborted */
+	if ((_mission_item.nav_cmd == NAV_CMD_LAND)
+	    && (_navigator->abort_landing())) {
+
+		do_abort_landing();
 	}
 
 }
@@ -382,6 +391,7 @@ Mission::set_mission_items()
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get()
 	    && prepare_mission_items(true, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
+
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Executing internal mission");
@@ -819,6 +829,7 @@ Mission::heading_sp_update()
 	    || _mission_item.nav_cmd == NAV_CMD_LAND
 	    || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
 	    || _work_item_type == WORK_ITEM_TYPE_ALIGN) {
+
 		return;
 	}
 
@@ -852,6 +863,7 @@ Mission::heading_sp_update()
 		    // (which would result in a wrong yaw setpoint spike during back transition)
 		    && _navigator->get_vstatus()->is_rotary_wing
 		    && !(_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION || _navigator->get_vstatus()->in_transition_mode)) {
+
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
@@ -955,6 +967,47 @@ void
 Mission::altitude_sp_foh_reset()
 {
 	_min_current_sp_distance_xy = FLT_MAX;
+}
+
+void
+Mission::do_abort_landing()
+{
+	// Abort FW landing
+	//  turn the land waypoint into a loiter and stay there
+
+	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
+		return;
+	}
+
+	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
+	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
+	float alt_landing = get_absolute_altitude_for_item(_mission_item);
+	float alt_sp =  math::max(alt_landing + _param_loiter_min_alt.get(),
+				  _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+
+	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	_mission_item.altitude_is_relative = false;
+	_mission_item.altitude = alt_sp;
+	_mission_item.yaw = NAN;
+	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_direction = 1;
+	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+	_mission_item.autocontinue = false;
+	_mission_item.origin = ORIGIN_ONBOARD;
+
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+	_navigator->set_position_setpoint_triplet_updated();
+
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %dm above landing)",
+			 (int)(alt_sp - alt_landing));
+
+	// move mission index back 1 (landing approach point) so that re-entering
+	//  the mission doesn't try to land from the loiter above land
+	// TODO: reset index to MAV_CMD_DO_LAND_START
+	_current_offboard_mission_index -= 1;
 }
 
 bool

@@ -279,7 +279,7 @@ checks_last: \
 	check_format \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
-quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_posix_sitl_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")

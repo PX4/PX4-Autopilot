@@ -164,6 +164,11 @@ private:
 	 */
 	void altitude_sp_foh_reset();
 
+	/**
+	 * Abort landing
+	 */
+	void do_abort_landing();
+
 	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
 	/**
@@ -230,6 +235,7 @@ private:
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
+	control::BlockParamFloat _param_fw_climbout_diff;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;

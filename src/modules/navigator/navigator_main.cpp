@@ -540,15 +540,8 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				if (_fw_pos_ctrl_status.abort_landing) {
-					// pos controller aborted landing, requests loiter
-					// above landing waypoint
-					_navigation_mode = &_loiter;
-					_pos_sp_triplet_published_invalid_once = false;
-				} else {
-					_pos_sp_triplet_published_invalid_once = false;
-					_navigation_mode = &_mission;
-				}
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_mission;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
@@ -780,16 +773,36 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	return radius;
 }
 
-void Navigator::add_fence_point(int argc, char *argv[])
+void
+Navigator::add_fence_point(int argc, char *argv[])
 {
 	_geofence.addPoint(argc, argv);
 }
 
-void Navigator::load_fence_from_file(const char *filename)
+void
+Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
 }
 
+bool
+Navigator::abort_landing()
+{
+	bool should_abort = false;
+
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
+		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+
+			if (get_position_setpoint_triplet()->current.valid
+			&& get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+				should_abort = _fw_pos_ctrl_status.abort_landing;
+			}
+		}
+	}
+
+	return should_abort;
+}
 
 static void usage()
 {
