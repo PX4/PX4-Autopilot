@@ -1505,6 +1505,9 @@ MulticopterQuatPositionControl::map_projection(void)
 	return output;
 }
 
+//change gps vel z to minus
+//Use baro instead of gps z to fly
+
 void
 MulticopterQuatPositionControl::task_main()
 {
