@@ -215,3 +215,17 @@ void Ekf::get_wind_velocity(float *wind)
 	wind[0] = _state.wind_vel(0);
 	wind[1] = _state.wind_vel(1);
 }
+
+/*
+ * Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
+*/
+void Ekf::resetWindStates()
+{
+	// get euler yaw angle
+	matrix::Euler<float> euler321(_state.quat_nominal);
+	float euler_yaw = euler321(2);
+
+	// estimate wind assuming zero sideslip
+	_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
+	_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
+}
