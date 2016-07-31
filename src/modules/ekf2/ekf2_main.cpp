@@ -745,8 +745,8 @@ void Ekf2::task_main()
 
 			// Position of body origin in local NED frame
 			_ekf.get_position(pos);
-			lpos.x = pos[0];
-			lpos.y = pos[1];
+			lpos.x = (_ekf.local_position_is_valid()) ? pos[0] : 0.0f;
+			lpos.y = (_ekf.local_position_is_valid()) ? pos[1] : 0.0f;
 			lpos.z = pos[2];
 
 			// Velocity of body origin in local NED frame (m/s)
