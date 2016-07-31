@@ -54,7 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
+#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
