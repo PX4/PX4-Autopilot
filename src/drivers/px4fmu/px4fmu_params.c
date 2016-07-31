@@ -107,3 +107,23 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+
+/**
+ * Transmission mode for ESP8266 WIFI module
+ *
+ * @value 0 Disable WIFI
+ * @value 1 Disable WIFI while armed
+ * @value 2 Always enable WIFI
+ *
+ * @group WIFI Control
+ */
+PARAM_DEFINE_INT32(WIFI_TX_MODE, 2);
+
+/**
+ * Reset the ESP8266 WIFI module to factory defaults
+ *
+ * @boolean
+ *
+ * @group WIFI Control
+ */
+PARAM_DEFINE_INT32(WIFI_FACTORY_RST, 0);

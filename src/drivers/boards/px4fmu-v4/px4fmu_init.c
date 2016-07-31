@@ -192,6 +192,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	px4_arch_configgpio(GPIO_SBUS_INV);
 	px4_arch_configgpio(GPIO_8266_GPIO0);
+	px4_arch_configgpio(GPIO_8266_GPIO2);
 	px4_arch_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	px4_arch_configgpio(GPIO_8266_PD);
 	px4_arch_configgpio(GPIO_8266_RST);
