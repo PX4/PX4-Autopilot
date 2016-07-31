@@ -146,9 +146,17 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// transition to mc mode
-			_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-			_flag_enable_mc_motors = true;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			if (_vtol_vehicle_status->vtol_transition_failsafe == true){
+				// Failsafe event, engage mc motors immediately
+				_vtol_schedule.flight_mode = MC_MODE;
+				_flag_enable_mc_motors = true;
+
+			} else {
+				// Regular backtransition
+				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
+				_flag_enable_mc_motors = true;
+				_vtol_schedule.transition_start = hrt_absolute_time();
+			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
