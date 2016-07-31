@@ -129,15 +129,25 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 1);
 PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
 
 /**
- * Parameter version
+ * Companion computer port (TTY)
  *
- * This monotonically increasing number encodes the parameter compatibility set.
- * whenever it increases parameters might not be backwards compatible and
- * ground control stations should suggest a fresh configuration.
- *
- * @min 0
+ * @min -1
+ * @max 3
+ * @reboot_required true
  * @group System
  */
+PARAM_DEFINE_INT32(SYS_COMP_TTY, -1);
+
+/**
+* Parameter version
+*
+* This monotonically increasing number encodes the parameter compatibility set.
+* whenever it increases parameters might not be backwards compatible and
+* ground control stations should suggest a fresh configuration.
+*
+* @min 0
+* @group System
+*/
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 
 /**

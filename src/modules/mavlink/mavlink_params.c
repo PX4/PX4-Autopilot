@@ -122,3 +122,17 @@ PARAM_DEFINE_INT32(MAV_BROADCAST, 0);
  * @max 1000
  */
 PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
+
+/**
+ * Main link baudrate
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_LNK_BDR, -1);
+
+/**
+ * Main link port (TTY)
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_LNK_TTY, -1);
