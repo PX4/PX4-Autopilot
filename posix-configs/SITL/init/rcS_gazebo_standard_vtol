@@ -44,9 +44,6 @@ param set RTL_LAND_DELAY 0
 param set COM_DISARM_LAND 5
 param set COM_DL_LOSS_EN 1
 param set MPC_ACC_HOR_MAX 2
-param set GF_ACTION 3
-param set GF_MAX_HOR_DIST 500
-param set GF_MAX_VER_DIST 500
 replay tryapplyparams
 simulator start -s 
 rgbledsim start
