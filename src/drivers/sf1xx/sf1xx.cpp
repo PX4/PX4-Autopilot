@@ -38,7 +38,7 @@
  * @author Vasily Evseenko <svpcom@gmail.com>
  *
  * Driver for the Lightware SF1xx lidar range finder series.
- * Default I2C address 0x55 is used.
+ * Default I2C address 0x66 is used.
  */
 
 #include <px4_config.h>
@@ -77,7 +77,7 @@
 
 /* Configuration Constants */
 #define SF1XX_BUS 		PX4_I2C_BUS_EXPANSION
-#define SF1XX_BASEADDR 	0x55
+#define SF1XX_BASEADDR 	0x66
 #define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
 
