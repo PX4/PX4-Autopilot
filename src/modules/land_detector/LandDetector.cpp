@@ -94,7 +94,6 @@ LandDetector::_cycle_trampoline(void *arg)
 void LandDetector::_cycle()
 {
 	if (!_taskIsRunning) {
-		PX4_INFO("we are doing the init");
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = false;
