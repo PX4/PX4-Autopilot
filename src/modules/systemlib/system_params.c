@@ -133,6 +133,11 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
  *
  * @min -1
  * @max 3
+ * @value -1 default
+ * @value 0 /dev/ttyS0
+ * @value 1 /dev/ttyS1
+ * @value 2 /dev/ttyS2
+ * @value 3 /dev/ttyS3
  * @reboot_required true
  * @group System
  */

@@ -126,6 +126,12 @@ PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
 /**
  * Main link baudrate
  *
+ * @value -1 default
+ * @value 57600 57600
+ * @value 115200 115200
+ * @value 230400 230400
+ * @value 460800 460800
+ * @value 921600 921600
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_LNK_BDR, -1);
@@ -133,6 +139,11 @@ PARAM_DEFINE_INT32(MAV_LNK_BDR, -1);
 /**
  * Main link port (TTY)
  *
+ * @value -1 default
+ * @value 0 /dev/ttyS0
+ * @value 1 /dev/ttyS1
+ * @value 2 /dev/ttyS2
+ * @value 3 /dev/ttyS3
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_LNK_TTY, -1);
