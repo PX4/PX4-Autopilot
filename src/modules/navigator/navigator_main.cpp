@@ -325,13 +325,11 @@ Navigator::task_main()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2] = {};
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _vehicle_command_sub;
-	fds[1].events = POLLIN;
 
 	bool global_pos_available_once = false;
 
@@ -353,8 +351,15 @@ Navigator::task_main()
 			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
 		} else {
-			/* success, global pos was available */
-			global_pos_available_once = true;
+
+			if (fds[0].revents & POLLIN) {
+				/* success, global pos is available */
+				global_position_update();
+				if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+					have_geofence_position_data = true;
+				}
+				global_pos_available_once = true;
+			}
 		}
 
 		perf_begin(_loop_perf);
@@ -488,14 +493,6 @@ Navigator::task_main()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
 				warnx("navigator: got pause/continue command");
-			}
-		}
-
-		/* global position updated */
-		if (fds[0].revents & POLLIN) {
-			global_position_update();
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-				have_geofence_position_data = true;
 			}
 		}
 
