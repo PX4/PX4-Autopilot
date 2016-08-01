@@ -276,6 +276,7 @@ private:
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
 	void safety_check_button(void);
+	void flash_safety_button(void);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] =	BOARD_FMU_GPIO_TAB;
@@ -465,7 +466,15 @@ PX4FMU:: safety_check_button(void)
 		counter = 0;
 	}
 
-	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
+#endif
+}
+
+void
+PX4FMU::flash_safety_button()
+{
+#ifdef GPIO_BTN_SAFETY
+
+	/* Select the appropriate LED flash pattern depending on the current arm state */
 	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
 	/* cycle the blink state machine at 10Hz */
@@ -1083,14 +1092,15 @@ PX4FMU::cycle()
 		struct safety_s safety = {};
 
 		if (_safety_disabled) {
-			/* safety switch disabled, turn LED on solid */
-			px4_arch_gpiowrite(GPIO_LED_SAFETY, 0);
 			_safety_off = true;
 
 		} else {
 			/* read safety switch input and control safety switch LED at 10Hz */
 			safety_check_button();
 		}
+
+		/* Make the safety button flash anyway, no matter if it's used or not. */
+		flash_safety_button();
 
 		safety.timestamp = hrt_absolute_time();
 
