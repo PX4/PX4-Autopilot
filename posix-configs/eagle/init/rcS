@@ -17,6 +17,11 @@ then
 
 	qshell pwm_out_rc_in start -d /dev/tty-2
 
+	qshell gps start -d /dev/tty-4
+	qshell df_hmc5883_wrapper start
+	qshell df_trone_wrapper start
+	#qshell df_isl29501_wrapper start
+
 # Qualcomm 200qx microheli platform
 elif param compare SYS_AUTOSTART 4200
 then
@@ -169,12 +174,8 @@ else
 fi
 
 
-qshell gps start -d /dev/tty-4
-qshell df_hmc5883_wrapper start
 qshell df_mpu9250_wrapper start
 qshell df_bmp280_wrapper start
-qshell df_trone_wrapper start
-#qshell df_isl29501_wrapper start
 qshell sensors start
 
 if param compare SYS_MC_EST_GROUP 0
