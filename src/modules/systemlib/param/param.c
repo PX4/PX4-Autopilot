@@ -895,49 +895,63 @@ param_export(int fd, bool only_unsaved)
 
 		/* append the appropriate BSON type object */
 
-		/* lock as short as possible */
-		param_bus_lock(true);
 
 		switch (param_type(s->param)) {
 
-		case PARAM_TYPE_INT32:
-			param_get(s->param, &i);
+		case PARAM_TYPE_INT32: {
+				param_get(s->param, &i);
+				const char *name = param_name(s->param);
 
-			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_int(&encoder, name, i)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_FLOAT:
-			param_get(s->param, &f);
+		case PARAM_TYPE_FLOAT: {
 
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
+				param_get(s->param, &f);
+				const char *name = param_name(s->param);
+
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_double(&encoder, name, f)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_encoder_append_binary(&encoder,
-						       param_name(s->param),
-						       BSON_BIN_BINARY,
-						       param_size(s->param),
-						       param_get_value_ptr(s->param))) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
-			}
+		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
 
+				const char *name = param_name(s->param);
+				const size_t size = param_size(s->param);
+				const void *value_ptr = param_get_value_ptr(s->param);
+
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_binary(&encoder,
+							       name,
+							       BSON_BIN_BINARY,
+							       size,
+							       value_ptr)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
+			}
 			break;
 
 		default:
 			debug("unrecognized parameter type");
-			param_bus_lock(false);
 			goto out;
 		}
 
