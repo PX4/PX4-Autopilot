@@ -232,6 +232,8 @@ void Standard::update_vtol_state()
 
 void Standard::update_transition_state()
 {
+	VtolType::update_transition_state();
+
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
