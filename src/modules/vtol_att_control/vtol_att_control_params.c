@@ -304,3 +304,13 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_NAV_FORCE_VT, 1);
+
+/**
+ * Add altitude after VTOL_LAND back transition to aid stability
+ *
+ * @unit m
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_ADD_ALT, 0.0f);

@@ -74,6 +74,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "VT_NAV_FORCE_VT", false),
+	_param_vt_b_add_alt(this, "VT_B_ADD_ALT", 0.0f),
 	_onboard_mission{},
 	_offboard_mission{},
 	_current_onboard_mission_index(-1),
@@ -570,7 +571,7 @@ Mission::set_mission_items()
 			 * XXX: We might want to change that at some point if it is clear to the user
 			 * what the altitude means on this waypoint type.
 			 */
-			float altitude = _navigator->get_global_position()->alt;
+			float altitude = _navigator->get_global_position()->alt + _param_vt_b_add_alt.get();
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
