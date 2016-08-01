@@ -510,7 +510,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
  * Abort front transition
  */
 void
-VtolAttitudeControl::abort_front_transition(char *reason)
+VtolAttitudeControl::abort_front_transition(const char *reason)
 {
 	if (!_abort_front_transition) {
 		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
