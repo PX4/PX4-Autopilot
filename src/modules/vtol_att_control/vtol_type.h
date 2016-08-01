@@ -124,6 +124,11 @@ public:
 	virtual void waiting_on_tecs() {};
 
 	/**
+	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
+	 */
+	void check_quadchute_condition();
+
+	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
 	bool can_transition_on_ground();

@@ -180,27 +180,25 @@ void VtolType::update_fw_state()
 		waiting_on_tecs();
 	}
 
-	// quadchute
-	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
-		if (-(_local_pos->z) < _params->fw_min_alt) {
-			_attc->abort_front_transition();
-		}
-	}
-
+	check_quadchute_condition();
 }
 
 void VtolType::update_transition_state()
 {
-	// quadchute
-	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
-		if (-(_local_pos->z) < _params->fw_min_alt) {
-			_attc->abort_front_transition();
-		}
-	}
-
+	check_quadchute_condition();
 }
 
 bool VtolType::can_transition_on_ground()
 {
 	return !_armed->armed || _land_detected->landed;
+}
+
+void VtolType::check_quadchute_condition()
+{
+	// fixed-wing minimum altitude
+	if(_params->fw_min_alt > FLT_EPSILON && _armed->armed){
+		if(-(_local_pos->z) < _params->fw_min_alt){
+			_attc->abort_front_transition("Minimum altitude");
+		}
+	}
 }

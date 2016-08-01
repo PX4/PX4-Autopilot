@@ -285,7 +285,7 @@ void Standard::update_transition_state()
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
 			if ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
 				// transition timeout occured, abort transition
-				_attc->abort_front_transition();
+				_attc->abort_front_transition("Transition timeout");
 			}
 		}
 
