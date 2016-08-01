@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 2.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 3.0f);
 
 /**
  * Transition blending airspeed

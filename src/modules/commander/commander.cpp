@@ -1908,8 +1908,12 @@ int commander_thread_main(int argc, char *argv[])
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
-				status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
+
+				// wait for back transition to complete before switching to RTL
+				if(!status.in_transition_mode){
+					status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+					status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
+				}
 			}
 
 			status_changed = true;
