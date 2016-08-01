@@ -33,7 +33,7 @@ inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
     float delta_x = pos1.x - pos2.x;
     float delta_y = pos1.y - pos2.y;
     float delta_z = pos1.z - pos2.z;
-    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < ACCURACY * ACCURACY + 0.001;
+    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < GRID_SIZE * GRID_SIZE + 0.001;
 }
 
 inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {
@@ -52,14 +52,14 @@ bool Tracker::is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist
     int dummy;
 
     // If the point is not even close to the line, we omit the more expensive check.
-    if (distance_to_end > fast_sqrt(delta_length_squared, true) + ACCURACY && !dist_squared)
+    if (distance_to_end > fast_sqrt(delta_length_squared, true) + GRID_SIZE && !dist_squared)
         return false;
 
     // If the point is beyond the line end, check distance to end
     if (delta.x * point_to_end.x + delta.y * point_to_end.y + delta.z * point_to_end.z <= 0) { // dot(delta, point_to_end) negative?
         if (coefficient)
             *coefficient = 0;
-        return (*(dist_squared ? dist_squared : &dummy) = point_to_end.x * point_to_end.x + point_to_end.y * point_to_end.y + point_to_end.z * point_to_end.z) <= ACCURACY * ACCURACY;
+        return (*(dist_squared ? dist_squared : &dummy) = point_to_end.x * point_to_end.x + point_to_end.y * point_to_end.y + point_to_end.z * point_to_end.z) <= GRID_SIZE * GRID_SIZE;
     }
 
     ipos_t point_to_start = point_to_end - delta;
@@ -68,7 +68,7 @@ bool Tracker::is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist
     if (delta.x * point_to_start.x + delta.y * point_to_start.y + delta.z * point_to_start.z >= 0) { // dot(delta, point_to_start) positive?
         if (coefficient)
             *coefficient = 1;
-        return (*(dist_squared ? dist_squared : &dummy) = point_to_start.x * point_to_start.x + point_to_start.y * point_to_start.y + point_to_start.z * point_to_start.z) <= ACCURACY * ACCURACY;
+        return (*(dist_squared ? dist_squared : &dummy) = point_to_start.x * point_to_start.x + point_to_start.y * point_to_start.y + point_to_start.z * point_to_start.z) <= GRID_SIZE * GRID_SIZE;
     }
 
     // Calculate the area of the parallelogram that is spanned by line start, line end and the point
@@ -83,7 +83,7 @@ bool Tracker::is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist
     if (dist_squared)
         *dist_squared = area_squared / delta_length_squared;
 
-    bool is_close = area_squared <= ACCURACY * ACCURACY * delta_length_squared;
+    bool is_close = area_squared <= GRID_SIZE * GRID_SIZE * delta_length_squared;
     
     // coefficient = length(end - closest-point-on-line) / length(end - start)
     if (coefficient && (dist_squared || is_close))
@@ -139,6 +139,9 @@ void Tracker::set_home(float x, float y, float z) {
     // Determine which index on the graph is now closest to home.
     graph_home_index = get_closest_index(to_ipos(home_position), &graph_home_bias);
     TRACKER_DBG("tracker received new home position: (%.2f, %.2f, %.2f), index %zu, bias %.3f", x, y, z, graph_home_index, graph_home_bias);
+
+    // The home position shall not be consumed by the line detection
+    consolidate_index(graph_home_index);
 
     // Reset dirty nodes to contain only the new home position
     dirty_nodes_count = 0;
@@ -558,6 +561,12 @@ inline bool Tracker::walk_node(size_t node, size_t &index) {
 
 
 void Tracker::push_graph(fpos_t &position) {
+    if (graph_next_write > 4) {
+        if (is_link_item(graph[4]) && as_link_item(graph[4]) != 9) {
+            PX4_WARN("TRACKER INTEGRITY SUFFERED RECENTLY: %zu", as_link_item(graph[4]));
+        }
+    }
+
     ipos_t new_pos = to_ipos(position);
 
     // Skip most checks if the graph is empty.
@@ -600,6 +609,8 @@ void Tracker::push_graph(fpos_t &position) {
                 } else if (graph_current_attributes.is_valid()) {
                     graph_current_delta = delta;
                     graph_current_line_end = head;
+
+                    consolidate_index(prev_index);
 
                     // If we were at the end of the graph, we append a delta and a link.
                     // However, if we just moved back by one position, we don't want to create a link there.
@@ -644,6 +655,8 @@ void Tracker::push_graph(fpos_t &position) {
 
 
 void Tracker::push_compact_delta(ipos_t destination) {
+    aggeregate_line(&destination);
+
     if (graph_next_write + 1 > GRAPH_LENGTH)
         return;
 
@@ -653,6 +666,8 @@ void Tracker::push_compact_delta(ipos_t destination) {
 
 
 void Tracker::push_far_delta(ipos_t destination) {
+    aggeregate_line(NULL);
+
     if (graph_next_write + 4 > GRAPH_LENGTH)
         return;
 
@@ -665,6 +680,12 @@ void Tracker::push_far_delta(ipos_t destination) {
 
 
 void Tracker::push_link(size_t index, link_attributes_t attributes) {
+    if (index == 4)
+        PX4_WARN("create node 4 to %zu (if master)", graph_next_write + 3);
+
+    consolidate_index(index);
+    aggeregate_line(NULL);
+
     if (graph_next_write + 4 > GRAPH_LENGTH)
         return;
 
@@ -679,15 +700,18 @@ void Tracker::push_link(size_t index, link_attributes_t attributes) {
 
 	// Evict existing item by inserting a link to the current position (which is where the back-link will be placed)
 	graph_item_t item = graph[index];
+    TRACKER_DBG("evict item at %zu by putting link to %zu", index, graph_next_write);
 	graph[index] = make_link_item(graph_next_write);
 
 	if (!is_link_item(item)) {
+        TRACKER_DBG("append master link");
         // Append master link
 	    graph[graph_next_write++] = make_link_item(node = index); // new link item pointing to the cycle head
         graph[graph_next_write++] = attributes.as_attr_item(); // attributes
 	    graph[graph_next_write++] = item; // evicted delta item
 	    graph[graph_next_write++] = make_data_item(UNSIGNED_DATA_ITEM_MAX); // node payload
     } else {
+        TRACKER_DBG("append regular link to head %zu", as_link_item(item));
         // Append regular link
 	    graph[graph_next_write++] = item; // evicted link item
         graph[graph_next_write++] = attributes.as_attr_item(); // attributes
@@ -696,6 +720,84 @@ void Tracker::push_link(size_t index, link_attributes_t attributes) {
     
 	// Make sure the node will be updated when required.
 	invalidate_node(node);
+}
+
+
+void Tracker::aggeregate_line(ipos_t *new_pos) {
+    ipos_t new_line_delta = new_pos ? (*new_pos - graph_head) : ipos_t{ .x = 0, .y = 0, .z = 0 };
+    bool should_aggeregate = !new_pos;
+
+    bool current_index_is_at_head = is_same_pos(graph_current_index, graph_next_write - 1);
+    if (!current_index_is_at_head)
+        consolidate_index(graph_current_index);
+
+    // Don't proceed if there graph is empty
+    if (!graph_next_write)
+        return;
+
+    ipos_t delta;
+    ipos_t head = graph_head;
+    size_t index = graph_next_write - 1;
+
+    // Determine where the line (if any) should start from.
+    while (index > line_detection_bound) {
+
+        // Don't aggeregate beyond a node
+        if (get_node_or_null(index))
+            break;
+
+        // Don't aggeregate beyond a far jump
+        size_t prev_index = index;
+        if (!walk_backward(index, &delta, NULL, false)) {
+            index = prev_index;
+            break;
+        }
+
+        head -= delta;
+        new_line_delta += delta;
+
+        // If expanding to the new point would make the delta too long, we need to aggeregate before it is too late
+        if (is_too_large(new_line_delta)) {
+            should_aggeregate = true;
+            break;
+        }
+    }
+
+    ipos_t line_start = head;
+    line_detection_bound = index;
+    // head does now coincide with line_detection_bound
+
+    if (!should_aggeregate) {
+        // Check if expanding the line to the new point would violate the recording accuracy for any point 
+        while (walk_forward(index, &delta, NULL, false)) {
+            head += delta;
+            if (!is_close_to_line(new_line_delta, *new_pos, head, NULL, NULL)) {
+                should_aggeregate = true;
+                break;
+            }
+        }
+    }
+
+    if (line_detection_bound == graph_next_write - 1)
+        should_aggeregate = false;
+
+    // If we decided to aggeregate the recent deltas to a line, append the line delta item and go on from there
+    if (should_aggeregate) {
+        if (line_detection_bound + 1 < graph_next_write - 1)
+            TRACKER_DBG("aggeregated %zu deltas into a line at %zu", graph_next_write - 1 - line_detection_bound, line_detection_bound + 1);
+        
+        graph_next_write = line_detection_bound + 1;
+        graph[graph_next_write++] = make_delta_item(line_start, graph_head);
+        //if (current_index_is_at_head)
+        //    graph_current_index = graph_next_write - 1;
+        line_detection_bound++; // any later line detection must not remove the end of this line, so we move the search bound there
+    }
+}
+
+
+void Tracker::consolidate_index(size_t index) {
+    if (line_detection_bound < index)
+        line_detection_bound = index;
 }
 
 
@@ -1014,6 +1116,7 @@ bool Tracker::get_current_pos(pos_handle_t &pos, float &x, float &y, float &z) {
         .did_select_link = false
     };
 
+    consolidate_index(pos.index);
     return true;
 }
 
@@ -1081,6 +1184,7 @@ bool Tracker::get_path_to_home(pos_handle_t &pos, float &x, float &y, float &z) 
         }
     }
 
+    consolidate_index(pos.index);
     return true;
 }
 

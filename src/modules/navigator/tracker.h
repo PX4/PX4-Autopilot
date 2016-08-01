@@ -75,6 +75,8 @@ private:
     
     // Tracking accuracy in meters
 	static constexpr float ACCURACY = 2;
+	static constexpr float GRID_SIZE = ACCURACY / 2;
+    // todo: grid size should equal GRID_SIZE
     
     // Number of positions that are retained in the recent path buffer.
     // This must be a multiple of 16 (?)
@@ -159,6 +161,7 @@ private:
     bool is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist_squared, float *coefficient);
     static inline fpos_t to_fpos(ipos_t pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
     static inline ipos_t to_ipos(fpos_t pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
+    static inline bool is_too_large(ipos_t delta) { return delta.x < DELTA_MIN || delta.x > DELTA_MAX || delta.y < DELTA_MIN || delta.y > DELTA_MAX || delta.z < DELTA_MIN || delta.z > DELTA_MAX; }
 
     typedef uint16_t graph_item_t;
 
@@ -169,6 +172,8 @@ private:
     static constexpr int REGULAR_LINK_SIZE = 2;
     static constexpr int FAR_JUMP_SIZE = MASTER_LINK_SIZE;
     static constexpr uint16_t UNSIGNED_DATA_ITEM_MAX = 0x3FFF;
+    static constexpr int DELTA_MIN = -16;
+    static constexpr int DELTA_MAX = 15;
 
     static inline graph_item_t make_delta_item(ipos_t &from_pos, ipos_t &to_pos);
     static inline graph_item_t make_link_item(uint16_t index) { return (1 << 15) | (index & 0x3FFF); }
@@ -176,7 +181,6 @@ private:
     static inline bool is_delta_item(graph_item_t &item) { return !(item >> 15); }
     static inline bool is_link_item(graph_item_t &item) { return (item >> 14) == 2; }
     static inline bool is_data_item(graph_item_t &item) { return (item >> 14) == 3; }
-
 
     // Returns the delta position stored in a delta item. The caller must ensure that the item is really a delta item.
     static inline ipos_t as_delta_item(graph_item_t &delta);
@@ -263,6 +267,15 @@ private:
     // If there is already a node at that index, the new link is integrated in the node cycle.
     // The end of the graph must be a pure delta (near or far) without a link.
     void push_link(size_t index, link_attributes_t attributes);
+
+    // Aggeregates the latest few positions into a line if neccessary.
+    // A line is only created if adding the new point would violate accuracy constraints.
+    // If no new point is provided (NULL), the aggeregation is done in any case.
+    void aggeregate_line(ipos_t *new_pos);
+
+    // Makes sure that the position at the specified index is no longer altered.
+    // This prevents that an index is referenced somewhere and later consumed by the line detection mechanism.
+    void consolidate_index(size_t index);
 
     // Returns the index of the head of the cycle that the specified link item belongs to.
     // The caller must ensure that index points to a valid link item.
@@ -439,6 +452,9 @@ private:
 
     // This bias reflects the possibility, that the closest position to home does not exactly coincide with a line end
     float graph_home_bias = 0;
+
+    // The line detection will not consume this index or anything before it.
+    size_t line_detection_bound = 0;
 
     // A buffer to hold the smallest nodes that have or require a new distance-to-home.
     // This contains only (unique) node indices and is sorted by size.

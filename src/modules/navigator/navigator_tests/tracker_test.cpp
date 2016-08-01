@@ -287,7 +287,7 @@ bool TrackerTest::fly_and_return_test(void) {
         
         // Simulate flight along the specified path
         for (size_t p = 0; p < test->path_size; p += 3) {
-            TRACKER_DBG("push %zu", p / 3);
+            TRACKER_DBG("push (%d, %d, %d)", test->path[p], test->path[p + 1], test->path[p + 2]);
             tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
         }
 
@@ -393,8 +393,8 @@ bool TrackerTest::fly_and_change_home_test(void) {
 
 bool TrackerTest::run_tests(void) {
 	ut_run_test(fly_and_return_test);
-	ut_run_test(fly_and_leave_return_path_test);
-	ut_run_test(fly_and_change_home_test);
+	//ut_run_test(fly_and_leave_return_path_test);
+	//ut_run_test(fly_and_change_home_test);
 
 	return (_tests_failed == 0);
 }
