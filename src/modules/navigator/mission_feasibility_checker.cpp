@@ -324,11 +324,11 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 				} else {
 					/* Last wp is in flare region */
 					//xxx give recommendations
-					mavlink_log_critical(_mavlink_log_pub, "Warning: Landing: last waypoint in flare region");
+					mavlink_log_critical(_mavlink_log_pub, "Last waypoint too close to landing waypoint");
 					return false;
 				}
 			} else {
-				mavlink_log_critical(_mavlink_log_pub, "Warning: starting with land waypoint");
+				mavlink_log_critical(_mavlink_log_pub, "Invalid mission: starts with land waypoint");
 				return false;
 			}
 		}
