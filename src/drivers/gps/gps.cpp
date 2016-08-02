@@ -138,9 +138,7 @@ private:
 	bool				_fake_gps;					///< fake gps output
 	int 				_gps_num;					///< number of GPS connected
 
-	static const int _orb_inject_data_fd_count = 4;
-	int _orb_inject_data_fd[_orb_inject_data_fd_count];
-	int _orb_inject_data_next = 0;
+	int _orb_inject_data_fd;
 
 	orb_advert_t _dump_communication_pub;			///< if non-null, dump communication
 	gps_dump_s *_dump_to_device;
@@ -259,6 +257,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_last_rate_rtcm_injection_count(0),
 	_fake_gps(fake_gps),
 	_gps_num(gps_num),
+	_orb_inject_data_fd(-1),
 	_dump_communication_pub(nullptr),
 	_dump_to_device(nullptr),
 	_dump_from_device(nullptr)
@@ -275,10 +274,6 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 		_sat_info = new GPS_Sat_Info();
 		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
-	}
-
-	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
-		_orb_inject_data_fd[i] = -1;
 	}
 }
 
@@ -426,27 +421,24 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 void GPS::handleInjectDataTopic()
 {
-	if (_orb_inject_data_fd[0] == -1) {
+	if (_orb_inject_data_fd == -1) {
 		return;
 	}
 
 	bool updated = false;
 
 	do {
-		int orb_inject_data_cur_fd = _orb_inject_data_fd[_orb_inject_data_next];
-		orb_check(orb_inject_data_cur_fd, &updated);
+		orb_check(_orb_inject_data_fd, &updated);
 
 		if (updated) {
 			struct gps_inject_data_s msg;
-			orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
+			orb_copy(ORB_ID(gps_inject_data), _orb_inject_data_fd, &msg);
 
 			/* Write the message to the gps device. Note that the message could be fragmented.
 			 * But as we don't write anywhere else to the device during operation, we don't
 			 * need to assemble the message first.
 			 */
 			injectData(msg.data, msg.len);
-
-			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd_count;
 
 			++_last_rate_rtcm_injection_count;
 		}
@@ -658,9 +650,7 @@ GPS::task_main()
 	fcntl(_serial_fd, F_SETFL, flags | O_NONBLOCK);
 #endif
 
-	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
-		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
-	}
+	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
 
@@ -834,10 +824,7 @@ GPS::task_main()
 
 	PX4_INFO("exiting");
 
-	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
-		orb_unsubscribe(_orb_inject_data_fd[i]);
-		_orb_inject_data_fd[i] = -1;
-	}
+	orb_unsubscribe(_orb_inject_data_fd);
 
 	if (_dump_communication_pub) {
 		orb_unadvertise(_dump_communication_pub);
