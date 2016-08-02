@@ -486,6 +486,9 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
+			if (range_finder.min_distance >= range_finder.current_distance || range_finder.max_distance <= range_finder.current_distance) {
+				range_finder_updated = false;
+			}
 		}
 
 		orb_check(_ev_pos_sub, &vision_position_updated);
@@ -816,9 +819,14 @@ void Ekf2::task_main()
 				global_pos.eph = sqrt(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
 				global_pos.epv = sqrt(pos_var(2)); // Standard deviation of position vertically
 
-				// TODO: implement terrain estimator
-				global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
-				global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
+				if (lpos.dist_bottom_valid) {
+					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
+					global_pos.terrain_alt_valid = true; // Terrain altitude estimate is valid
+	                        } else {
+					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
+				}
+
 				// TODO use innovatun consistency check timouts to set this
 				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
