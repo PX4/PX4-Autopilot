@@ -104,7 +104,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	memset(&_vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	memset(&_actuators_out_0, 0, sizeof(_actuators_out_0));
 	memset(&_actuators_out_1, 0, sizeof(_actuators_out_1));
 	memset(&_actuators_mc_in, 0, sizeof(_actuators_mc_in));
