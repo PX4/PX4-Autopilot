@@ -392,7 +392,6 @@ CameraTrigger::test()
 {
 	struct vehicle_command_s cmd = {};
 	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
-
 	cmd.param5 = 1.0f;
 
 	orb_advert_t pub;
@@ -478,7 +477,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
 						trig->turnOnOff();
 						trig->keepAlive(true);
-						poll_interval_usec = 2000000;
+						// Give the camera time to turn on, before starting to send trigger signals
+						poll_interval_usec = 5000000;
 						turning_on = true;
 
 					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {

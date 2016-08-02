@@ -29,10 +29,7 @@ public:
 private:
 	void setup();
 
-	param_t				_p_pin;
-	orb_advert_t		_pwm_pub[2];
-	int					_orb_id[2];
-
-	bool				_camera_is_on;
+	param_t _p_pin;
+	bool _camera_is_on;
 
 };
