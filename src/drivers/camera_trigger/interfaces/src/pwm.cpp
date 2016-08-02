@@ -2,7 +2,6 @@
 #include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 
-#include <uORB/topics/trigger_pwm.h>
 #include "drivers/drv_pwm_output.h"
 #include "pwm.h"
 
@@ -19,7 +18,6 @@
 
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface(),
-	_pwm_pub {nullptr, nullptr},
 	_camera_is_on(false)
 {
 	_p_pin = param_find("TRIG_PINS");
@@ -36,23 +34,16 @@ CameraInterfacePWM::CameraInterfacePWM():
 	int single_pin;
 
 	while ((single_pin = pin_list % 10)) {
+
 		_pins[i] = single_pin - 1;
 
 		if (_pins[i] < 0) {
 			_pins[i] = -1;
 		}
 
-		// Wingtra safety check, pins can only be on 5 or 6!!!
-		if (_pins[i] != 4 && _pins[i] != 5) {
-			_pins[i] = -1;
-		}
-
 		pin_list /= 10;
 		i++;
 	}
-
-	_orb_id[0] = 0;
-	_orb_id[1] = 1;
 
 	setup();
 }
@@ -72,13 +63,6 @@ void CameraInterfacePWM::setup()
 			up_pwm_servo_init(pin_bitmask);
 			up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
 			up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
-
-			trigger_pwm_s pwm;
-			pwm.timestamp = hrt_absolute_time();
-			pwm.pwm = PWM_CAMERA_DISARMED;
-			orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[1]), &pwm, &(_orb_id[1]), ORB_PRIO_DEFAULT);
-			pwm.pwm = PWM_CAMERA_DISARMED;
-			orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[0]), &pwm, &(_orb_id[0]), ORB_PRIO_DEFAULT);
 		}
 	}
 }
@@ -91,18 +75,11 @@ void CameraInterfacePWM::trigger(bool enable)
 		return;
 	}
 
-
-	trigger_pwm_s pwm;
-	pwm.timestamp = hrt_absolute_time();
-
 	if (enable) {
 		// Set all valid pins to shoot level
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_INSTANT_SHOOT, 1000, 2000));
-
-				pwm.pwm = PWM_CAMERA_INSTANT_SHOOT;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[1]), &pwm, &(_orb_id[1]), ORB_PRIO_DEFAULT);
 			}
 		}
 
@@ -111,9 +88,6 @@ void CameraInterfacePWM::trigger(bool enable)
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-
-				pwm.pwm = PWM_CAMERA_NEUTRAL;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[1]), &pwm, &(_orb_id[1]), ORB_PRIO_DEFAULT);
 			}
 		}
 	}
@@ -127,17 +101,11 @@ void CameraInterfacePWM::keep_alive(bool signal_on)
 		return;
 	}
 
-	trigger_pwm_s pwm;
-	pwm.timestamp = hrt_absolute_time();
-
 	if (signal_on) {
 		// Set channel 2 pin to keep_alive signal
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i], math::constrain(PWM_2_CAMERA_KEEP_ALIVE, 1000, 2000));
-
-				pwm.pwm = PWM_2_CAMERA_KEEP_ALIVE;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[0]), &pwm, &(_orb_id[0]), ORB_PRIO_DEFAULT);
 			}
 		}
 
@@ -146,9 +114,6 @@ void CameraInterfacePWM::keep_alive(bool signal_on)
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-
-				pwm.pwm = PWM_CAMERA_NEUTRAL;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[0]), &pwm, &(_orb_id[0]), ORB_PRIO_DEFAULT);
 			}
 		}
 	}
@@ -156,21 +121,12 @@ void CameraInterfacePWM::keep_alive(bool signal_on)
 
 void CameraInterfacePWM::turn_on_off(bool enable)
 {
-
-	trigger_pwm_s pwm;
-	pwm.timestamp = hrt_absolute_time();
-
 	if (enable) {
 		// For now, set channel one on neutral upon startup.
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
 				up_pwm_servo_set(_pins[i], math::constrain(PWM_2_CAMERA_ON_OFF, 1000, 2000));
-
-				pwm.pwm = PWM_CAMERA_NEUTRAL;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[1]), &pwm, &(_orb_id[1]), ORB_PRIO_DEFAULT);
-				pwm.pwm = PWM_2_CAMERA_ON_OFF;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[0]), &pwm, &(_orb_id[0]), ORB_PRIO_DEFAULT);
 			}
 		}
 
@@ -180,11 +136,6 @@ void CameraInterfacePWM::turn_on_off(bool enable)
 			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 				up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
 				up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-
-				pwm.pwm = PWM_CAMERA_NEUTRAL;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[1]), &pwm, &(_orb_id[1]), ORB_PRIO_DEFAULT);
-				pwm.pwm = PWM_CAMERA_NEUTRAL;
-				orb_publish_auto(ORB_ID(trigger_pwm), &(_pwm_pub[0]), &pwm, &(_orb_id[0]), ORB_PRIO_DEFAULT);
 			}
 		}
 

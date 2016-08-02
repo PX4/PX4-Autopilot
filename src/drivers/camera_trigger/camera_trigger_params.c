@@ -67,7 +67,7 @@ PARAM_DEFINE_INT32(TRIG_INTERFACE, 2);
  * @decimal 1
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 3000.0f);
+PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
 
 /**
  * Camera trigger polarity
@@ -93,7 +93,7 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * @decimal 1
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 500.0f);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
 
 /**
  * Camera trigger mode
@@ -115,7 +115,7 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  *
  * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6 on px4fmu-v2 and the rail
  * pins on px4fmu-v4). The PWM interface takes two pins per camera, while relay
- * triggers on every pin individually. Example: Value 34 would trigger on pins 3 and 4.
+ * triggers on every pin individually. Example: Value 56 would trigger on pins 5 and 6.
  *
  * @min 1
  * @max 123456
