@@ -109,6 +109,11 @@ public:
 	void		keepAlive(bool on);
 
 	/**
+	 * Toggle camera on/off functionality
+	 */
+	void        turnOnOff();
+
+	/**
 	 * Start the task.
 	 */
 	void		start();
@@ -132,6 +137,8 @@ private:
 
 	struct hrt_call		_engagecall;
 	struct hrt_call		_disengagecall;
+	struct hrt_call     _engage_turn_on_off_call;
+	struct hrt_call     _disengage_turn_on_off_call;
 	struct hrt_call		_keepalivecall_up;
 	struct hrt_call		_keepalivecall_down;
 
@@ -176,6 +183,14 @@ private:
 	 */
 	static void	disengage(void *arg);
 	/**
+	 * Fires on/off
+	 */
+	static void engange_turn_on_off(void *arg);
+	/**
+	 * Resets  on/off
+	 */
+	static void disengage_turn_on_off(void *arg);
+	/**
 	 * Fires trigger
 	 */
 	static void	keep_alive_up(void *arg);
@@ -197,6 +212,10 @@ CameraTrigger	*g_camera_trigger;
 CameraTrigger::CameraTrigger() :
 	_engagecall {},
 	_disengagecall {},
+	_engage_turn_on_off_call {},
+	_disengage_turn_on_off_call {},
+	_keepalivecall_up {},
+	_keepalivecall_down {},
 	_gpio_fd(-1),
 	_mode(0),
 	_activation_time(0.5f /* ms */),
@@ -307,6 +326,18 @@ CameraTrigger::keepAlive(bool on)
 }
 
 void
+CameraTrigger::turnOnOff()
+{
+	// schedule trigger on and off calls
+	hrt_call_after(&_engage_turn_on_off_call, 0,
+		       (hrt_callout)&CameraTrigger::engange_turn_on_off, this);
+
+	// schedule trigger on and off calls
+	hrt_call_after(&_disengage_turn_on_off_call, 0 + (200 * 1000),
+		       (hrt_callout)&CameraTrigger::disengage_turn_on_off, this);
+}
+
+void
 CameraTrigger::shootOnce()
 {
 	// schedule trigger on and off calls
@@ -327,7 +358,8 @@ CameraTrigger::start()
 	}
 
 	// Prevent camera from sleeping, if triggering is enabled
-	if (_mode > 0) {
+	if (_mode > 0 && _mode < 4) {
+		turnOnOff();
 		keepAlive(true);
 
 	} else {
@@ -345,6 +377,8 @@ CameraTrigger::stop()
 	work_cancel(LPWORK, &_work);
 	hrt_cancel(&_engagecall);
 	hrt_cancel(&_disengagecall);
+	hrt_cancel(&_engage_turn_on_off_call);
+	hrt_cancel(&_disengage_turn_on_off_call);
 	hrt_cancel(&_keepalivecall_up);
 	hrt_cancel(&_keepalivecall_down);
 
@@ -358,6 +392,7 @@ CameraTrigger::test()
 {
 	struct vehicle_command_s cmd = {};
 	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+
 	cmd.param5 = 1.0f;
 
 	orb_advert_t pub;
@@ -429,6 +464,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		if (pos.xy_valid) {
 
+			bool turning_on = false;
+
 			if (updated && trig->_mode == 4) {
 
 				// Check update from command
@@ -439,10 +476,16 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 					// Set trigger to disabled if the set distance is not positive
 					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
-						trig->_camera_interface->powerOn();
+						trig->turnOnOff();
+						trig->keepAlive(true);
+						poll_interval_usec = 2000000;
+						turning_on = true;
 
 					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
-						trig->_camera_interface->powerOff();
+						hrt_cancel(&(trig->_engagecall));
+						hrt_cancel(&(trig->_disengagecall));
+						trig->keepAlive(false);
+						trig->turnOnOff();
 					}
 
 					trig->_trigger_enabled = cmd.param1 > 0.0f;
@@ -450,7 +493,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 				}
 			}
 
-			if (trig->_trigger_enabled || trig->_mode < 4) {
+			if ((trig->_trigger_enabled || trig->_mode < 4) && !turning_on) {
 
 				// Initialize position if not done yet
 				math::Vector<2> current_position(pos.x, pos.y);
@@ -502,6 +545,23 @@ CameraTrigger::disengage(void *arg)
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);
+}
+
+void
+CameraTrigger::engange_turn_on_off(void *arg)
+{
+
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	trig->_camera_interface->turn_on_off(true);
+}
+
+void
+CameraTrigger::disengage_turn_on_off(void *arg)
+{
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	trig->_camera_interface->turn_on_off(false);
 }
 
 void
