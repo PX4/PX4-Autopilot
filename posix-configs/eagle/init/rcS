@@ -85,7 +85,7 @@ then
 	qshell uart_esc start -D /dev/tty-2
 	qshell rc_receiver start -D /dev/tty-1
 
-# Qualcomm 210qc platform
+# Qualcomm internal 210qc platform
 elif param compare SYS_AUTOSTART 4210
 then
 	param set CAL_GYRO0_ID 100
@@ -170,7 +170,6 @@ else
 	echo "Please set parameter to select airframe:"
 	echo "    SYS_AUTOSTART 4100: generic (flight) Quad"
 	echo "    SYS_AUTOSTART 4200: Microheli 200QX"
-	echo "    SYS_AUTOSTART 4210: 210QC"
 fi
 
 
