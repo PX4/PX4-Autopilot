@@ -288,9 +288,9 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
 
-	mag_report.x = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;;
-	mag_report.y = (mag_val(1) - _mag_calibration.y_offset) * _mag_calibration.y_scale;;
-	mag_report.z = (mag_val(2) - _mag_calibration.z_offset) * _mag_calibration.z_scale;;
+	mag_report.x = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;
+	mag_report.y = (mag_val(1) - _mag_calibration.y_offset) * _mag_calibration.y_scale;
+	mag_report.z = (mag_val(2) - _mag_calibration.z_offset) * _mag_calibration.z_scale;
 
 
 	// TODO: get these right
@@ -394,7 +394,7 @@ info()
 
 	PX4_DEBUG("state @ %p", g_dev);
 
-  g_dev->print_calibration();
+	g_dev->print_calibration();
 
 	return 0;
 }
