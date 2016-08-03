@@ -39,11 +39,11 @@
  * Both, the server and the client is started using this main() function.
  *
  * If the executable is called with its usual name 'px4', it will start the
- * server. However, if it is started with an alias starting with 'px4-' such
- * as 'px4-navigator', it will start as a client and try to connect to the
- * server.
+ * server. However, if it is started with an executable name (symlink) starting
+ * with 'px4-' such as 'px4-navigator', it will start as a client and try to
+ * connect to the server.
  *
- * The alias for all modules need to be created using the build system.
+ * The symlinks for all modules are created using the build system.
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  * @author Roman Bapst <bapstroman@gmail.com>
@@ -543,7 +543,7 @@ static void print_usage()
 	printf("\n");
 	printf("Usage for client: \n");
 	printf("\n");
-	printf("    px4-MODULE command using an alias.\n");
+	printf("    px4-MODULE command using symlink.\n");
 	printf("        e.g.: px4-commander status\n");
 }
 
