@@ -58,6 +58,7 @@ public:
 public:
 
 	bool        get_entry           (int idx, uint32_t& size, uint32_t& date, char* filename = 0);
+	bool        open_for_transmit();
 	size_t      get_log_data        (uint8_t len, uint8_t* buffer);
 
 	enum {
@@ -75,6 +76,7 @@ public:
 	uint32_t    current_log_size;
 	uint32_t    current_log_data_offset;
 	uint32_t    current_log_data_remaining;
+	FILE*       current_log_filep;
 	char        current_log_filename[128];
 
 private:

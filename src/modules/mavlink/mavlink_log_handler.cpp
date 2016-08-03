@@ -207,11 +207,15 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 	}
 	//-- If we were sending log entries, stop it
 	_pLogHandlerHelper->current_status = LogListHelper::LOG_HANDLER_IDLE;
-	//-- Init send log dataset
-	_pLogHandlerHelper->current_log_filename[0] = 0;
-	_pLogHandlerHelper->current_log_index = request.id;
-	uint32_t time_utc = 0;
-	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->current_log_index, _pLogHandlerHelper->current_log_size, time_utc, _pLogHandlerHelper->current_log_filename);
+	if (_pLogHandlerHelper->current_log_index != request.id) {
+		//-- Init send log dataset
+		_pLogHandlerHelper->current_log_filename[0] = 0;
+		_pLogHandlerHelper->current_log_index = request.id;
+		uint32_t time_utc = 0;
+		_pLogHandlerHelper->get_entry(_pLogHandlerHelper->current_log_index, _pLogHandlerHelper->current_log_size, time_utc, _pLogHandlerHelper->current_log_filename);
+		_pLogHandlerHelper->open_for_transmit();
+	}
+
 	_pLogHandlerHelper->current_log_data_offset = request.ofs;
 	if (_pLogHandlerHelper->current_log_data_offset >= _pLogHandlerHelper->current_log_size) {
 		_pLogHandlerHelper->current_log_data_remaining = 0;
@@ -331,10 +335,11 @@ LogListHelper::LogListHelper()
 	, last_entry(0)
 	, log_count(0)
 	, current_status(LOG_HANDLER_IDLE)
-	, current_log_index(0)
+	, current_log_index(UINT16_MAX)
 	, current_log_size(0)
 	, current_log_data_offset(0)
 	, current_log_data_remaining(0)
+	, current_log_filep(0)
 {
 	_init();
 }
@@ -380,23 +385,38 @@ LogListHelper::get_entry(int idx, uint32_t& size, uint32_t& date, char* filename
 }
 
 //-------------------------------------------------------------------
+bool
+LogListHelper::open_for_transmit()
+{
+	if (current_log_filep) {
+		::fclose(current_log_filep);
+		current_log_filep = 0;
+	}
+	current_log_filep = ::fopen(current_log_filename, "rb");
+	if (!current_log_filep) {
+		PX4LOG_WARN("MavlinkLogHandler::open_for_transmit Could not open %s\n", current_log_filename);
+		return false;
+	}
+	return true;
+}
+
+//-------------------------------------------------------------------
 size_t
 LogListHelper::get_log_data(uint8_t len, uint8_t* buffer)
 {
 	if(!current_log_filename[0])
 		return 0;
-	FILE* f = fopen(current_log_filename, "r");
-	if (!f) {
-		PX4LOG_WARN("MavlinkLogHandler::get_log_data Could not open %s\n", current_log_filename);
+	if (!current_log_filep) {
+		PX4LOG_WARN("MavlinkLogHandler::get_log_data file not open %s\n", current_log_filename);
 		return 0;
 	}
-	if(fseek(f, current_log_data_offset, SEEK_SET)) {
-		fclose(f);
+	long int offset = current_log_data_offset - ftell(current_log_filep);
+	if(offset && fseek(current_log_filep, offset, SEEK_CUR)) {
+		fclose(current_log_filep);
 		PX4LOG_WARN("MavlinkLogHandler::get_log_data Seek error in %s\n", current_log_filename);
 		return 0;
 	}
-	size_t result = fread(buffer, 1, len, f);
-	fclose(f);
+	size_t result = fread(buffer, 1, len, current_log_filep);
 	return result;
 }
 
