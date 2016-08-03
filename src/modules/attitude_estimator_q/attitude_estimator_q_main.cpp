@@ -355,7 +355,7 @@ void AttitudeEstimatorQ::task_main()
 				_accel(2) = _lp_accel_z.apply(sensors.accelerometer_m_s2[2]);
 
 				if (_accel.length() < 0.01f) {
-					warnx("WARNING: degenerate accel!");
+					PX4_DEBUG("WARNING: degenerate accel!");
 					continue;
 				}
 			}
@@ -366,7 +366,7 @@ void AttitudeEstimatorQ::task_main()
 				_mag(2) = sensors.magnetometer_ga[2];
 
 				if (_mag.length() < 0.01f) {
-					warnx("WARNING: degenerate mag!");
+					PX4_DEBUG("WARNING: degenerate mag!");
 					continue;
 				}
 			}
