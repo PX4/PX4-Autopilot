@@ -361,7 +361,8 @@ void Standard::update_mc_state()
 		// desired roll angle in heading frame stays the same
 		float roll_new = -atan2f(body_z_sp(1), body_z_sp(2));
 
-		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max)) * _v_att_sp->thrust;
+		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
+				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
 
 		// limit desired pitch
 		float pitch_new = -_params_standard.down_pitch_max;
