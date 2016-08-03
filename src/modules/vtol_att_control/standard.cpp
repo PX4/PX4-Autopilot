@@ -324,6 +324,13 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
+	// enable MC motors here in case we transitioned directly to MC mode
+	if (_flag_enable_mc_motors) {
+		set_max_mc(2000);
+		set_idle_mc();
+		_flag_enable_mc_motors = false;
+	}
+
 	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
 	if (_params_standard.forward_thrust_scale < FLT_EPSILON) {
 		return;
