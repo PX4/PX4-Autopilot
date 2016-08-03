@@ -173,11 +173,6 @@ private:
 	Vector<3>	_vel_prev;
 	Vector<3>	_pos_acc;
 
-	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;
-	math::LowPassFilter2p _lp_pitch_rate;
-	math::LowPassFilter2p _lp_yaw_rate;
-
 	/* Low pass filter for accel/gyro */
 	math::LowPassFilter2p _lp_accel_x;
 	math::LowPassFilter2p _lp_accel_y;
@@ -213,9 +208,6 @@ private:
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_vel_prev(0, 0, 0),
 	_pos_acc(0, 0, 0),
-	_lp_roll_rate(250.0f, 30.0f),
-	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f),
 	_lp_accel_x(250.0f, 30.0f),
 	_lp_accel_y(250.0f, 30.0f),
 	_lp_accel_z(250.0f, 30.0f),
@@ -519,11 +511,11 @@ void AttitudeEstimatorQ::task_main()
 			ctrl_state.z_acc = _accel(2);
 
 			/* attitude rates for control state */
-			ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+			ctrl_state.roll_rate = _rates(0);
 
-			ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+			ctrl_state.pitch_rate = _rates(1);
 
-			ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+			ctrl_state.yaw_rate = _rates(2);
 
 			ctrl_state.airspeed_valid = false;
 
