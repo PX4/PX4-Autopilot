@@ -66,7 +66,7 @@ public:
 	Server();
 	~Server();
 
-	/*
+	/**
 	 * Start the server. This will spawn a thread with a
 	 * while loop waiting for clients sending commands.
 	 *

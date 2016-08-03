@@ -58,18 +58,19 @@ public:
 	Pxh();
 	~Pxh();
 
-	/* Process and run one command line.
+	/**
+	 * Process and run one command line.
 	 *
 	 * @param silently_fail: don't make a fuss on failure
 	 * @return 0 if successful. */
 	static int process_line(const std::string &line, bool silently_fail);
 
-	/*
+	/**
 	 * Run the pxh shell. This will only return if stop() is called.
 	 */
 	void run_pxh();
 
-	/*
+	/**
 	 * Can be called to stop pxh.
 	 */
 	static void stop();

@@ -51,7 +51,7 @@ namespace px4_daemon
 class History
 {
 public:
-	/*
+	/**
 	 * Try to append the current line to the history.
 	 * Ignore the line if it is empty or duplicate of the
 	 * last added one.
@@ -60,12 +60,13 @@ public:
 	 */
 	void try_to_add(const std::string &line);
 
-	/* After executing a command in the shell, we want to be at
+	/**
+	 * After executing a command in the shell, we want to be at
 	 * the end of the history again.
 	 */
 	void reset_to_end();
 
-	/*
+	/**
 	 * If we start scrolling up in the history, we can try to save
 	 * the current command line. When we scroll back down, we can
 	 * get it out again.
@@ -75,14 +76,14 @@ public:
 	void try_to_save_current_line(const std::string &line);
 
 
-	/*
+	/**
 	 * Set the previous (earlier) command from the history.
 	 *
 	 * @param line: swap to previous line if available.
 	 */
 	void get_previous(std::string &line);
 
-	/*
+	/**
 	 * Set the next (more recent) command from the history.
 	 *
 	 * @param line: swap to next line if available, otherwise saved current.

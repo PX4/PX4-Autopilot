@@ -59,19 +59,19 @@ public:
 	Client();
 	~Client();
 
-	/*
+	/**
 	 * Initialize the unique ID of the client.
 	 *
 	 * @return 0 on success.
 	 */
 	int generate_uuid();
 
-	/*
+	/**
 	 * Make sure to catch signals in order to forward them to the server.
 	 */
 	void register_sig_handler();
 
-	/*
+	/**
 	 * Process the supplied command line arguments and send them to server.
 	 *
 	 * @param argc: number of arguments

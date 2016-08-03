@@ -45,7 +45,7 @@
 
 __BEGIN_DECLS
 
-/*
+/**
  * Get the stdout pipe buffer in order to write to fill it.
  *
  * @param buffer: pointer to buffer that will be set in function.
@@ -55,7 +55,7 @@ __BEGIN_DECLS
  */
 __EXPORT int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty);
 
-/*
+/**
  * Write the filled bytes to the pipe.
  *
  * @param buffer_length: the number of bytes that should be written.
