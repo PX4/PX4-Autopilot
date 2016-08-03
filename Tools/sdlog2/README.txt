@@ -8,14 +8,22 @@ logconv.m: This is a MATLAB script which will automatically convert and display 
 
 sdlog2_dump.py: This is a Python script (compatible with v2 and v3) which converts the self-describing binary log format to a CSV file. To export a CSV file from within a shell (Windows CMD or BASH on Linux / Mac OS), run:
 
-	python sdlog2_dump.py log001.bin -f "export.csv" -t "TIME" -d "," -n ""
+```
+python sdlog2_dump.py log001.bin -f "export.csv" -t "TIME" -d "," -n ""
+```
 
-geo_tag_images.py: Use this script to geotag a set of images. It uses GPS time and file creation date to synchronize the images, so it needs that the images have a valid creation date.
+geo_tag_images.py: Use this script to geotag a set of images. It uses GPS time and file creation date to synchronize the images, so it needs that the images have a valid creation date. Can generate a KML file to view where the photos were taken in Google Earth (including height).
 
-	python geo_tag_images.py --logfile=mylog.bin --input=images/ --output=tagged/
+```sh
+python geo_tag_images.py --logfile=mylog.bin --input=images/ --output=tagged/ --kml -v
+
+python geo_tag_images.py -l=mylog.bin -i=images/ -o=tagged/ --kml -v
+```
 
 geotagging.py: Use this script to geotag a set of images. It uses the CAM trigger data from the log file for image association.
-
-	python geotagging.py --logfile=mylog.bin --input=images/ --output=tagged/
+	
+```sh
+python geotagging.py --logfile=mylog.bin --input=images/ --output=tagged/
+```
 
 Python can be downloaded from http://python.org, but is available as default on Mac OS and Linux.
