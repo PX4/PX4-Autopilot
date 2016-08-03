@@ -37,6 +37,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -79,16 +80,17 @@ Client::generate_uuid()
 		PX4_ERR("open urandom");
 		return rand_fd;
 	}
+	int ret = 0;
 
 	int rand_read = read(rand_fd, &_uuid, sizeof(_uuid));
 
 	if (rand_read != sizeof(_uuid)) {
 		PX4_ERR("rand read fail");
-		return rand_read;
+		ret = -errno;
 	}
 
 	close(rand_fd);
-	return 0;
+	return ret;
 }
 
 int
