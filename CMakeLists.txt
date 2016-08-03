@@ -132,7 +132,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(CMAKE_BUILD_TYPE "" CACHE STRING "build type")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 	STRINGS ";Debug;Release;RelWithDebInfo;MinSizeRel")
-set(CONFIG "nuttx_px4fmu-v2_default" CACHE STRING "desired configuration")
+set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 set(THREADS "4" CACHE STRING
