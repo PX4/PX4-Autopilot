@@ -25,7 +25,12 @@ TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 # EXPORT_CHARTS=/sitl/testing/export_charts.py
 
 # source ROS env
-source /opt/ros/indigo/setup.bash
+if [ -f /opt/ros/indigo/setup.bash ]
+then
+	source /opt/ros/indigo/setup.bash
+else
+	source /opt/ros/kinetic/setup.bash
+fi
 source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
 
 echo "deleting previous test results ($TEST_RESULT_TARGET_DIR)"
