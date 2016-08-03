@@ -43,7 +43,7 @@ static void list_builtins(void)
 {
 	printf("Builtin Commands:\n");
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
-		printf("\t%s", (char *)&it->first);
+		printf("\t%s", it->first.c_str());
 }
 
 static int shutdown_main(int argc, char *argv[])
@@ -79,7 +79,7 @@ static int list_files_main(int argc, char *argv[])
 static int sleep_main(int argc, char *argv[])
 {
 	if (argc != 2) {
-		printf("Usage: sleep <seconds>");
+		printf("Usage: sleep <seconds>\n");
 		return 1;
 	}
 	sleep(atoi(argv[1]));
