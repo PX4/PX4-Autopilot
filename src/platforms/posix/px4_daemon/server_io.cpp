@@ -127,7 +127,7 @@ int send_stdout_pipe_buffer(unsigned buffer_length)
 	int bytes_sent = write(pipe_fd, packet, bytes_to_send);
 
 	if (bytes_sent != bytes_to_send) {
-		printf("write fail\b");
+		printf("write fail\n");
 		return -1;
 	}
 
