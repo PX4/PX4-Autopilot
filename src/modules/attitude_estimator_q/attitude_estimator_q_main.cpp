@@ -178,6 +178,14 @@ private:
 	math::LowPassFilter2p _lp_pitch_rate;
 	math::LowPassFilter2p _lp_yaw_rate;
 
+	/* Low pass filter for accel/gyro */
+	math::LowPassFilter2p _lp_accel_x;
+	math::LowPassFilter2p _lp_accel_y;
+	math::LowPassFilter2p _lp_accel_z;
+	math::LowPassFilter2p _lp_gyro_x;
+	math::LowPassFilter2p _lp_gyro_y;
+	math::LowPassFilter2p _lp_gyro_z;
+
 	hrt_abstime _vel_prev_t = 0;
 
 	bool		_inited = false;
@@ -207,7 +215,13 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_pos_acc(0, 0, 0),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f)
+	_lp_yaw_rate(250.0f, 20.0f),
+	_lp_accel_x(250.0f, 30.0f),
+	_lp_accel_y(250.0f, 30.0f),
+	_lp_accel_z(250.0f, 30.0f),
+	_lp_gyro_x(250.0f, 30.0f),
+	_lp_gyro_y(250.0f, 30.0f),
+	_lp_gyro_z(250.0f, 30.0f)
 {
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
@@ -328,15 +342,17 @@ void AttitudeEstimatorQ::task_main()
 			// Feed validator with recent sensor data
 
 			if (sensors.timestamp > 0) {
-				_gyro(0) = sensors.gyro_rad[0];
-				_gyro(1) = sensors.gyro_rad[1];
-				_gyro(2) = sensors.gyro_rad[2];
+				// Filter gyro signal since it is not fildered in the drivers.
+				_gyro(0) = _lp_gyro_x.apply(sensors.gyro_rad[0]);
+				_gyro(1) = _lp_gyro_y.apply(sensors.gyro_rad[1]);
+				_gyro(2) = _lp_gyro_z.apply(sensors.gyro_rad[2]);
 			}
 
 			if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-				_accel(0) = sensors.accelerometer_m_s2[0];
-				_accel(1) = sensors.accelerometer_m_s2[1];
-				_accel(2) = sensors.accelerometer_m_s2[2];
+				// Filter accel signal since it is not fildered in the drivers.
+				_accel(0) = _lp_accel_x.apply(sensors.accelerometer_m_s2[0]);
+				_accel(1) = _lp_accel_y.apply(sensors.accelerometer_m_s2[1]);
+				_accel(2) = _lp_accel_z.apply(sensors.accelerometer_m_s2[2]);
 
 				if (_accel.length() < 0.01f) {
 					warnx("WARNING: degenerate accel!");
