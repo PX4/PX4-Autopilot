@@ -28,8 +28,12 @@ TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 if [ -f /opt/ros/indigo/setup.bash ]
 then
 	source /opt/ros/indigo/setup.bash
-else
+elif [ -f /opt/ros/kinetic/setup.bash ]
+then
 	source /opt/ros/kinetic/setup.bash
+else
+	echo "could not find /opt/ros/{ros-distro}/setup.bash"
+	exit 1
 fi
 source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
 
