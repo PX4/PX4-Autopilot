@@ -58,6 +58,7 @@ set(config_module_list
 	systemcmds/config
 	systemcmds/dumpfile
 	#systemcmds/esc_calib
+	systemcmds/hardfault_log
 	systemcmds/mixer
 	systemcmds/motor_ramp
 	systemcmds/mtd
