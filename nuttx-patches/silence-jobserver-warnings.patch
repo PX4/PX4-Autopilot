@@ -1,9 +1,9 @@
 diff --git NuttX/apps/Makefile NuttX/apps/Makefile
-index 1b580c0..7ba85ff 100644
+index 4093b0e..3bdc36a 100644
 --- NuttX/apps/Makefile
 +++ NuttX/apps/Makefile
 @@ -79,13 +79,13 @@ all: $(BIN)
- .PHONY: import install context context_serialize context_rest .depdirs preconfig depend clean distclean
+ .PHONY: import install dirlinks context context_serialize context_rest .depdirs preconfig depend clean distclean
  
  define MAKE_template
 -	$(Q) $(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" BIN_DIR="$(BIN_DIR)"
@@ -18,13 +18,16 @@ index 1b580c0..7ba85ff 100644
  
  endef
  
-@@ -108,13 +108,13 @@ install: $(BIN_DIR) .install
+@@ -108,7 +108,7 @@ install: $(BIN_DIR) .install
  .import: $(BIN) install
  
  import:
 -	$(Q) $(MAKE) .import TOPDIR="$(APPDIR)$(DELIM)import"
 +	+$(Q) $(MAKE) .import TOPDIR="$(APPDIR)$(DELIM)import"
  
+ dirlinks:
+ 	$(Q) $(MAKE) -C platform dirlinks TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+@@ -116,8 +116,8 @@ dirlinks:
  context_rest: $(foreach SDIR, $(CONFIGURED_APPS), $(SDIR)_context)
  
  context_serialize:

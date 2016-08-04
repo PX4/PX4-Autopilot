@@ -55,6 +55,7 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/drivers/drivers.h>
 
 #include <arch/board/board.h>
 
