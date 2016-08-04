@@ -42,7 +42,7 @@ endif
 CMAKE_VER := $(shell Tools/check_cmake.sh; echo $$?)
 ifneq ($(CMAKE_VER),0)
     $(warning Not a valid CMake version or CMake not installed.)
-    $(warning On Ubuntu, install or upgrade via:)
+    $(warning On Ubuntu 16.04, install or upgrade via:)
     $(warning )
     $(warning 3rd party PPA:)
     $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
@@ -146,6 +146,9 @@ endef
 
 tap-v1_default:
 	$(call cmake-build,nuttx_tap-v1_default)
+
+asc-v1_default:
+	$(call cmake-build,nuttx_asc-v1_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
@@ -254,6 +257,7 @@ checks_defaults: \
 	check_mindpx-v2_default \
 	check_px4-stm32f4discovery_default \
 	check_tap-v1_default \
+	check_asc-v1_default
 
 checks_bootloaders: \
 
