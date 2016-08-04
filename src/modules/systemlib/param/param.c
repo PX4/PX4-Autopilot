@@ -146,8 +146,6 @@ FLASH_PARAMS_EXPOSE UT_array        *param_values;
 FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 #if !defined(PARAM_NO_ORB)
-
-#if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
 #endif
