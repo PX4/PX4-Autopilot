@@ -155,12 +155,15 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 	_param_datalinkloss_act(this, "DLL_ACT"),
 	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
-	_mission_cruising_speed(-1.0f)
+	_mission_cruising_speed(-1.0f),
+	_mission_throttle(-1.0f)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -500,7 +503,7 @@ Navigator::task_main()
 		if (have_geofence_position_data &&
 			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, home_position_valid());
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -721,6 +724,18 @@ Navigator::get_acceptance_radius()
 {
 	return get_acceptance_radius(_param_acceptance_radius.get());
 }
+
+float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!this->get_vstatus()->is_rotary_wing) {
+		return _param_fw_alt_acceptance_radius.get();
+	} else {
+		return _param_mc_alt_acceptance_radius.get();
+	}
+}
+
+
 
 float
 Navigator::get_cruising_speed()

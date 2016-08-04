@@ -236,7 +236,7 @@ bool MavlinkFtpTest::_list_test(void)
 	return true;
 }
 
-/// @brief Tests for correct reponse to a List command on a valid directory, but with an offset that
+/// @brief Tests for correct response to a List command on a valid directory, but with an offset that
 /// is beyond the last directory entry.
 bool MavlinkFtpTest::_list_eof_test(void)
 {
@@ -263,7 +263,7 @@ bool MavlinkFtpTest::_list_eof_test(void)
 	return true;
 }
 
-/// @brief Tests for correct reponse to an Open command on a file which does not exist.
+/// @brief Tests for correct response to an Open command on a file which does not exist.
 bool MavlinkFtpTest::_open_badfile_test(void)
 {
 	MavlinkFTP::PayloadHeader		payload;

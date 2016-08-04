@@ -56,10 +56,6 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 
 #include "board_config.h"
@@ -72,12 +68,14 @@
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
-#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
-
 #include <systemlib/hardfault_log.h>
-
 #include <systemlib/systemlib.h>
+
+# if defined(FLASH_BASED_PARAMS)
+#  include <systemlib/flashparams/flashfs.h>
+#endif
+
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -134,10 +132,32 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
+		/* Hold power state */
+
+	board_pwr_init(0);
+
+	/* TEMP ctrl Off (active high, init is clear) */
+
+	stm32_configgpio(GPIO_TEMP_CONT);
+
+
+	/* Select 0 */
+
+	stm32_configgpio(GPIO_S0);
+	stm32_configgpio(GPIO_S1);
+	stm32_configgpio(GPIO_S2);
+
+	/* Radio Off (active low, init is set) */
+
+	stm32_configgpio(GPIO_PCON_RADIO);
+
+
 	/* configure always-on ADC pins */
+
 	stm32_configgpio(GPIO_ADC1_IN10);
 
 	/* configure SPI interfaces */
+
 	stm32_spiinitialize();
 
 	/* configure LEDs */
@@ -151,9 +171,6 @@ __EXPORT void stm32_boardinitialize(void)
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
-
-static struct spi_dev_s *spi;
-
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -203,6 +220,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
+
+	board_pwr_init(1);
 
 #if defined(CONFIG_STM32_BBSRAM)
 
@@ -340,23 +359,32 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	drv_led_start();
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
+	
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t  sector_map[] = {
+		{1, 16 * 1024, 0x08004000},
+		{2, 16 * 1024, 0x08008000},
+		{0, 0, 0},
+	};
 
-	/* Get the SPI port for the microSD slot */
+	/* Initalizee the flashfs layer to use heap allocated memory */
 
-	spi = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	result = parameter_flashfs_init(sector_map, NULL, 0);
 
-	if (!spi) {
-		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-		board_autoled_on(LED_AMBER);
+	if (result != OK) {
+		message("[boot] FAILED to init params in FLASH %d\n", result);
+		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
-	/* Now bind the SPI interface to the MMCSD driver */
-	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi);
+#endif
+
+	/* Init the microSD slot */
+
+	result = board_sdio_initialize();
 
 	if (result != OK) {
-		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
-		board_autoled_on(LED_AMBER);
+		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 

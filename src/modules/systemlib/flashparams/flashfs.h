@@ -117,8 +117,14 @@ typedef struct sector_descriptor_t {
  *    buffer      - A pointer to a memory to make available to callers
  *                  for write operations. When allocated to the caller
  *                  space is reserved in the front for the
- *                  flash_entry_header_t
- *   size         - The size of the buffer in bytes.
+ *                  flash_entry_header_t.
+ *                  If this is passes as NULL. The buffer will be
+ *                  allocated from the heap on callse to
+ *                  parameter_flashfs_alloc and fread on calls calls
+ *                  to parameter_flashfs_write
+ *
+ *   size         - The size of the buffer in bytes. Should be be 0 if buffer
+ *                  is NULL
  *
  * Returned value:
  *                - A pointer to the next file header location
@@ -126,7 +132,7 @@ typedef struct sector_descriptor_t {
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flashfs_init(sector_descriptor_t *pconfig, uint8_t *buffer, uint16_t largest_block);
+__EXPORT int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16_t size);
 
 /****************************************************************************
  * Name: parameter_flashfs_read
@@ -166,6 +172,8 @@ __EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, siz
  *
  * Returned value:
  *   On success the number of bytes written On Error a negative value of errno
+ *   If static buffer was not provided to parameter_flashfs_init the
+ *   buffer will be freed.
  *
  ****************************************************************************/
 

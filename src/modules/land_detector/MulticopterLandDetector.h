@@ -33,28 +33,28 @@
 
 /**
  * @file MulticopterLandDetector.h
- * Land detection algorithm for multicopters
+ * Land detection implementation for multicopters.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Morten Lysgaard <morten@lysgaard.no>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef __MULTICOPTER_LAND_DETECTOR_H__
-#define __MULTICOPTER_LAND_DETECTOR_H__
+#pragma once
 
-#include "LandDetector.h"
+#include <systemlib/param/param.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <systemlib/param/param.h>
 
-namespace landdetection
+#include "LandDetector.h"
+
+namespace land_detector
 {
 
 class MulticopterLandDetector : public LandDetector
@@ -63,36 +63,15 @@ public:
 	MulticopterLandDetector();
 
 protected:
-	/**
-	* @brief  polls all subscriptions and pulls any data that has changed
-	**/
-	virtual void updateSubscriptions();
+	virtual void _initialize_topics() override;
 
-	/**
-	* @brief Runs one iteration of the land detection algorithm
-	**/
-	virtual LandDetectionResult update() override;
+	virtual void _update_params() override;
 
-	/**
-	* @brief Initializes the land detection algorithm
-	**/
-	virtual void initialize() override;
+	virtual void _update_topics() override;
 
-	/**
-	* @brief download and update local parameter cache
-	**/
-	virtual void updateParameterCache(const bool force);
+	virtual bool _get_landed_state() override;
 
-	/**
-	* @brief get multicopter landed state
-	**/
-	bool get_landed_state();
-
-	/**
-	* @brief returns true if multicopter is in free-fall state
-	**/
-	bool get_freefall_state();
-
+	virtual bool _get_freefall_state() override;
 private:
 
 	/**
@@ -106,7 +85,7 @@ private:
 		param_t minManThrottle;
 		param_t acc_threshold_m_s2;
 		param_t ff_trigger_time;
-	}		_paramHandle;
+	} _paramHandle;
 
 	struct {
 		float maxClimbRate;
@@ -118,11 +97,9 @@ private:
 		float ff_trigger_time;
 	} _params;
 
-private:
 	int _vehicleLocalPositionSub;
 	int _actuatorsSub;
 	int _armingSub;
-	int _parameterSub;
 	int _attitudeSub;
 	int _manualSub;
 	int _ctrl_state_sub;
@@ -136,11 +113,9 @@ private:
 	struct control_state_s			_ctrl_state;
 	struct vehicle_control_mode_s		_ctrl_mode;
 
-	uint64_t _landTimer;			///< timestamp in microseconds since a possible land was detected
-	uint64_t _freefallTimer;		///< timestamp in microseconds since a possible freefall was detected
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
+	uint64_t _arming_time;
 };
 
-}
 
-#endif //__MULTICOPTER_LAND_DETECTOR_H__
+} // namespace land_detector

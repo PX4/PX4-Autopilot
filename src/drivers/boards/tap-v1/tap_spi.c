@@ -80,6 +80,6 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-	return stm32_gpioread(GPIO_SPI_SD_SW);
+	return !stm32_gpioread(GPIO_SPI_SD_SW);
 }
 

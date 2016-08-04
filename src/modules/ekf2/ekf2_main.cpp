@@ -486,6 +486,9 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
+			if (range_finder.min_distance >= range_finder.current_distance || range_finder.max_distance <= range_finder.current_distance) {
+				range_finder_updated = false;
+			}
 		}
 
 		orb_check(_ev_pos_sub, &vision_position_updated);
@@ -505,14 +508,30 @@ void Ekf2::task_main()
 		}
 
 		// push imu data into estimator
-		_ekf.setIMUData(now, sensors.gyro_integral_dt[0], sensors.accelerometer_integral_dt[0],
-				&sensors.gyro_integral_rad[0], &sensors.accelerometer_integral_m_s[0]);
+		float gyro_integral[3];
+		gyro_integral[0] = sensors.gyro_rad[0] * sensors.gyro_integral_dt;
+		gyro_integral[1] = sensors.gyro_rad[1] * sensors.gyro_integral_dt;
+		gyro_integral[2] = sensors.gyro_rad[2] * sensors.gyro_integral_dt;
+		float accel_integral[3];
+		accel_integral[0] = sensors.accelerometer_m_s2[0] * sensors.accelerometer_integral_dt;
+		accel_integral[1] = sensors.accelerometer_m_s2[1] * sensors.accelerometer_integral_dt;
+		accel_integral[2] = sensors.accelerometer_m_s2[2] * sensors.accelerometer_integral_dt;
+		_ekf.setIMUData(now, sensors.gyro_integral_dt * 1.e6f, sensors.accelerometer_integral_dt * 1.e6f,
+				gyro_integral, accel_integral);
 
 		// read mag data
-		_ekf.setMagData(sensors.magnetometer_timestamp[0], &sensors.magnetometer_ga[0]);
+		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
+			_ekf.setMagData(0, sensors.magnetometer_ga);
+		} else {
+			_ekf.setMagData(sensors.timestamp + sensors.magnetometer_timestamp_relative, sensors.magnetometer_ga);
+		}
 
 		// read baro data
-		_ekf.setBaroData(sensors.baro_timestamp[0], &sensors.baro_alt_meter[0]);
+		if (sensors.baro_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
+			_ekf.setBaroData(0, &sensors.baro_alt_meter);
+		} else {
+			_ekf.setBaroData(sensors.timestamp + sensors.baro_timestamp_relative, &sensors.baro_alt_meter);
+		}
 
 		// read gps data if available
 		if (gps_updated) {
@@ -592,8 +611,8 @@ void Ekf2::task_main()
 				ev_data.angErr = _default_ev_ang_noise;
 			}
 
-			// use timestamp from external computer - requires clocks to be synchronised so may not be a good idea
-			_ekf.setExtVisionData(ev.timestamp_computer, &ev_data);
+			// use timestamp from external computer, clocks are synchronized when using MAVROS
+			_ekf.setExtVisionData(ev.timestamp, &ev_data);
 		}
 
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
@@ -615,9 +634,13 @@ void Ekf2::task_main()
 			float gyro_bias[3] = {};
 			_ekf.get_gyro_bias(gyro_bias);
 			ctrl_state.timestamp = hrt_absolute_time();
-			ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]) - gyro_bias[0];
-			ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]) - gyro_bias[1];
-			ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]) - gyro_bias[2];
+			float gyro_rad[3];
+			gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
+			gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
+			gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
+			ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
 
 			// Velocity in body frame
 			float velocity[3];
@@ -644,7 +667,7 @@ void Ekf2::task_main()
 			ctrl_state.q[3] = q(3);
 
 			// Acceleration data
-			matrix::Vector<float, 3> acceleration = {&sensors.accelerometer_m_s2[0]};
+			matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
 
 			float accel_bias[3];
 			_ekf.get_accel_bias(accel_bias);
@@ -705,9 +728,9 @@ void Ekf2::task_main()
 			att.q[3] = q(3);
 			att.q_valid = true;
 
-			att.rollspeed = sensors.gyro_rad_s[0];
-			att.pitchspeed = sensors.gyro_rad_s[1];
-			att.yawspeed = sensors.gyro_rad_s[2];
+			att.rollspeed = gyro_rad[0];
+			att.pitchspeed = gyro_rad[1];
+			att.yawspeed = gyro_rad[2];
 
 			// publish vehicle attitude data
 			if (_att_pub == nullptr) {
@@ -725,8 +748,8 @@ void Ekf2::task_main()
 
 			// Position of body origin in local NED frame
 			_ekf.get_position(pos);
-			lpos.x = pos[0];
-			lpos.y = pos[1];
+			lpos.x = (_ekf.local_position_is_valid()) ? pos[0] : 0.0f;
+			lpos.y = (_ekf.local_position_is_valid()) ? pos[1] : 0.0f;
 			lpos.z = pos[2];
 
 			// Velocity of body origin in local NED frame (m/s)
@@ -796,13 +819,18 @@ void Ekf2::task_main()
 				global_pos.eph = sqrt(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
 				global_pos.epv = sqrt(pos_var(2)); // Standard deviation of position vertically
 
-				// TODO: implement terrain estimator
-				global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
-				global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
+				if (lpos.dist_bottom_valid) {
+					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
+					global_pos.terrain_alt_valid = true; // Terrain altitude estimate is valid
+	                        } else {
+					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
+				}
+
 				// TODO use innovatun consistency check timouts to set this
 				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
-				global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
+				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
 				if (_vehicle_global_position_pub == nullptr) {
 					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
@@ -896,15 +924,14 @@ void Ekf2::task_main()
 		if (publish_replay_message) {
 			struct ekf2_replay_s replay = {};
 			replay.time_ref = now;
-			replay.gyro_integral_dt = sensors.gyro_integral_dt[0];
-			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt[0];
-			replay.magnetometer_timestamp = sensors.magnetometer_timestamp[0];
-			replay.baro_timestamp = sensors.baro_timestamp[0];
-			memcpy(&replay.gyro_integral_rad[0], &sensors.gyro_integral_rad[0], sizeof(replay.gyro_integral_rad));
-			memcpy(&replay.accelerometer_integral_m_s[0], &sensors.accelerometer_integral_m_s[0],
-			       sizeof(replay.accelerometer_integral_m_s));
-			memcpy(&replay.magnetometer_ga[0], &sensors.magnetometer_ga[0], sizeof(replay.magnetometer_ga));
-			replay.baro_alt_meter = sensors.baro_alt_meter[0];
+			replay.gyro_integral_dt = sensors.gyro_integral_dt;
+			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
+			replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
+			replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
+			memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
+			memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
+			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
+			replay.baro_alt_meter = sensors.baro_alt_meter;
 
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
@@ -960,7 +987,7 @@ void Ekf2::task_main()
 			}
 
 			if (vision_position_updated) {
-				replay.ev_timestamp = ev.timestamp_computer;
+				replay.ev_timestamp = ev.timestamp;
 				replay.pos_ev[0] = ev.x;
 				replay.pos_ev[1] = ev.y;
 				replay.pos_ev[2] = ev.z;
@@ -1001,7 +1028,7 @@ int Ekf2::start()
 	// On the DSP we seem to get random crashes with a stack size below 13000.
 	const unsigned stack_size = 15000;
 #else
-	const unsigned stack_size = 9000;
+	const unsigned stack_size = 8500;
 #endif
 
 

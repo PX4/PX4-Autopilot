@@ -98,20 +98,10 @@ __EXPORT void led_off(int led)
 __EXPORT void led_toggle(int led)
 {
 	if (led == 0) {
-		if (stm32_gpioread(GPIO_BLUE_LED)) {
-			stm32_gpiowrite(GPIO_BLUE_LED, false);
-
-		} else {
-			stm32_gpiowrite(GPIO_BLUE_LED, true);
-		}
+		stm32_gpiowrite(GPIO_BLUE_LED, !stm32_gpioread(GPIO_BLUE_LED));
 	}
 
 	if (led == 1) {
-		if (stm32_gpioread(GPIO_RED_LED)) {
-			stm32_gpiowrite(GPIO_RED_LED, false);
-
-		} else {
-			stm32_gpiowrite(GPIO_RED_LED, true);
-		}
+		stm32_gpiowrite(GPIO_RED_LED, !stm32_gpioread(GPIO_RED_LED));
 	}
 }

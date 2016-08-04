@@ -45,10 +45,10 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <crc32.h>
+#include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <errno.h>
 #include "flashfs.h"
@@ -111,6 +111,7 @@ typedef struct packed_struct flash_entry_header_t {
  ****************************************************************************/
 static uint8_t *working_buffer;
 static uint16_t working_buffer_size;
+static bool working_buffer_static;
 static sector_descriptor_t *sector_map;
 static int last_erased;
 
@@ -125,6 +126,25 @@ const flash_file_token_t parameters_token = {
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: parameter_flashfs_free
+ *
+ * Description:
+ *   Frees  dynamicaly allocated memory
+ *
+ *
+ ****************************************************************************/
+
+static void parameter_flashfs_free(void)
+{
+	if (!working_buffer_static && working_buffer != NULL) {
+		free(working_buffer);
+		working_buffer = NULL;
+		working_buffer_size = 0;
+	}
+}
+
 /****************************************************************************
  * Name: blank_flash
  *
@@ -785,6 +805,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 			/* No Space */
 
 			if (pf == 0) {
+				parameter_flashfs_free();
 				return -ENOSPC;
 			}
 
@@ -807,6 +828,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				rv = erase_entry(pf);
 
 				if (rv < 0) {
+					parameter_flashfs_free();
 					return rv;
 				}
 
@@ -825,6 +847,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				/* Will the data fit */
 
 				if (current_sector->size < total_size) {
+					parameter_flashfs_free();
 					return -ENOSPC;
 				}
 
@@ -837,6 +860,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				rv = erase_entry(pf);
 
 				if (rv < 0) {
+					parameter_flashfs_free();
 					return rv;
 				}
 
@@ -867,6 +891,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		}
 	}
 
+	parameter_flashfs_free();
 	return rv;
 }
 
@@ -880,9 +905,10 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
  *
  * Input Parameters:
  *   token      - File Token File to read (not used)
- *   buffer     - Memory of buf_size length suitable for calling
- *                parameter_flashfs_write
- *   buf_size   - The maximum number of bytes that can be written to
+ *   buffer     - A pointer to return a pointer to Memory of buf_size length
+ *   			  suitable for calling parameter_flashfs_write
+ *   buf_size   - In: the size needed for the write operation.
+ *   			  Out: The maximum number of bytes that can be written to
  *                the buffer
  *
  * Returned value:
@@ -895,10 +921,31 @@ int parameter_flashfs_alloc(flash_file_token_t token, uint8_t **buffer, size_t *
 	int rv = -ENXIO;
 
 	if (sector_map) {
-		(*buffer) = &working_buffer[sizeof(flash_entry_header_t)];
-		*buf_size = working_buffer_size - sizeof(flash_entry_header_t);
-		memset(working_buffer, 0xff , working_buffer_size);
-		rv = 0;
+
+		rv = -ENOMEM;
+
+		if (!working_buffer_static) {
+
+			working_buffer_size = *buf_size + sizeof(flash_entry_header_t);
+			working_buffer = malloc(working_buffer_size);
+
+		}
+
+		/* Allocation failed or not provided */
+
+		if (working_buffer == NULL) {
+
+			working_buffer_size = 0;
+
+		} else {
+
+			/* We have a buffer reserve space and init it */
+			*buffer = &working_buffer[sizeof(flash_entry_header_t)];
+			*buf_size = working_buffer_size - sizeof(flash_entry_header_t);
+			memset(working_buffer, 0xff , working_buffer_size);
+			rv = 0;
+
+		}
 	}
 
 	return rv;
@@ -952,8 +999,14 @@ int parameter_flashfs_erase(void)
  *    buffer      - A pointer to a memory to make available to callers
  *                  for write operations. When allocated to the caller
  *                  space is reserved in the front for the
- *                  flash_entry_header_t
- *   size         - The size of the buffer in bytes.
+ *                  flash_entry_header_t.
+ *                  If this is passes as NULL. The buffer will be
+ *                  allocated from the heap on callse to
+ *                  parameter_flashfs_alloc and fread on calls calls
+ *                  to parameter_flashfs_write
+ *
+ *   size         - The size of the buffer in bytes. Should be be 0 if buffer
+ *                  is NULL
  *
  * Returned value:
  *                - A pointer to the next file header location
@@ -963,14 +1016,44 @@ int parameter_flashfs_erase(void)
 
 int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16_t size)
 {
+	int rv = 0;
 	sector_map = fconfig;
+	working_buffer_static = buffer != NULL;
+
+	if (!working_buffer_static) {
+		size = 0;
+	}
+
 	working_buffer = buffer;
 	working_buffer_size = size;
 	last_erased = -1;
-	return 0;
+
+	/* Sanity check */
+
+	flash_entry_header_t *pf = find_entry(parameters_token);
+
+	/*  No paramaters */
+
+	if (pf == NULL) {
+		size_t total_size = size + sizeof(flash_entry_header_t);
+		size_t alignment = sizeof(h_magic_t) - 1;
+		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
+		total_size += size_adjust;
+
+		/* Do we have free space ?*/
+
+		if (find_free(total_size) == NULL) {
+
+			/* No paramates and no free space => neeed erase */
+
+			rv  = parameter_flashfs_erase();
+		}
+	}
+
+	return rv;
 }
 
-#if FLASH_UNIT_TEST
+#if defined(FLASH_UNIT_TEST)
 
 static sector_descriptor_t  test_sector_map[] = {
 	{1, 16 * 1024, 0x08004000},
@@ -1034,4 +1117,4 @@ __EXPORT void test(void)
 	er++;
 	free(buffer);
 }
-#endif
+#endif /* FLASH_UNIT_TEST */

@@ -169,6 +169,8 @@
 #define BITS_DLPF_CFG_3600HZ		0x07
 #define BITS_DLPF_CFG_MASK		0x07
 
+#define BITS_ACCEL_CONFIG2_41HZ		0x03
+
 #define BIT_RAW_RDY_EN			0x01
 #define BIT_INT_ANYRD_2CLEAR		0x10
 
@@ -469,6 +471,9 @@ int MPU9250::reset()
 	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 	usleep(1000);
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
+	usleep(1000);
+
+	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
 	usleep(1000);
 
 	uint8_t retries = 10;

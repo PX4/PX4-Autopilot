@@ -54,7 +54,6 @@
 #include "flashparams.h"
 #include "flashfs.h"
 
-
 #if 0
 # define debug(fmt, args...)            do { warnx(fmt, ##args); } while(0)
 #else
@@ -96,12 +95,9 @@ param_export_internal(bool only_unsaved)
 
 	param_lock();
 
-	uint8_t *buffer = 0;
-	size_t buf_size;
+	/* Use realloc */
 
-	parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
-
-	bson_encoder_init_buf(&encoder, buffer, buf_size);
+	bson_encoder_init_buf(&encoder, NULL, 0);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -167,13 +163,47 @@ param_export_internal(bool only_unsaved)
 	}
 
 	result = 0;
-	parameter_flashfs_write(parameters_token, bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
 
 out:
 	param_unlock();
 
 	if (result == 0) {
-//                result = bson_encoder_fini(&encoder);
+
+		/* Finalize the bison encoding*/
+
+		bson_encoder_fini(&encoder);
+
+		/* Get requiered space */
+
+		size_t buf_size = bson_encoder_buf_size(&encoder);
+
+		/* Get a buffer from the flash driver with enough space */
+
+		uint8_t *buffer;
+		result = parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
+
+		if (result == OK) {
+
+			/* Check for a write that has no changes */
+
+			uint8_t *was_buffer;
+			size_t was_buf_size;
+			int was_result = parameter_flashfs_read(parameters_token, &was_buffer, &was_buf_size);
+
+			void *enc_buff = bson_encoder_buf_data(&encoder);
+
+			bool commit = was_result < OK || was_buf_size != buf_size || 0 != memcmp(was_buffer, enc_buff, was_buf_size);
+
+			if (commit) {
+
+				memcpy(buffer, enc_buff, buf_size);
+				result = parameter_flashfs_write(parameters_token, buffer, buf_size);
+				result = result == buf_size ? OK : -EFBIG;
+
+			}
+
+			free(enc_buff);
+		}
 	}
 
 	return result;
@@ -269,7 +299,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_external(param, v, state->mark_saved, true)) {
+	if (param_set_external(param, v, state->mark_saved, true, false)) {
 
 		debug("error setting value for '%s'", node->name);
 		goto out;
@@ -346,4 +376,3 @@ int flash_param_import(void)
 {
 	return 0;
 }
-

@@ -33,7 +33,7 @@
 
 /**
  * @file ms5611.cpp
- * Driver for the MS5611 barometric pressure sensor connected via I2C or SPI.
+ * Driver for the MS5611 and MS6507 barometric pressure sensor connected via I2C or SPI.
  */
 
 #include <px4_config.h>
@@ -66,8 +66,14 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <platforms/px4_getopt.h>
 
 #include "ms5611.h"
+
+enum MS56XX_DEVICE_TYPES {
+	MS5611_DEVICE	= 0,
+	MS5607_DEVICE	= 1
+};
 
 enum MS5611_BUS {
 	MS5611_BUS_ALL = 0,
@@ -94,11 +100,11 @@ static const int ERROR = -1;
 #define POW2(_x)		((_x) * (_x))
 
 /*
- * MS5611 internal constants and data structures.
+ * MS5611/MS5607 internal constants and data structures.
  */
 
 /* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
-#define MS5611_CONVERSION_INTERVAL	40000	/* microseconds */
+#define MS5611_CONVERSION_INTERVAL	25000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 #define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
 #define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
@@ -106,7 +112,7 @@ static const int ERROR = -1;
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
 	~MS5611();
 
 	virtual int		init();
@@ -128,11 +134,11 @@ protected:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-
+	enum MS56XX_DEVICE_TYPES _device_type;
 	bool			_collect_phase;
 	unsigned		_measure_phase;
 
-	/* intermediate temperature values per MS5611 datasheet */
+	/* intermediate temperature values per MS5611/MS5607 datasheet */
 	int32_t			_TEMP;
 	int64_t			_OFF;
 	int64_t			_SENS;
@@ -214,12 +220,14 @@ protected:
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path) :
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
+	       enum MS56XX_DEVICE_TYPES device_type) :
 	CDev("MS5611", path),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
 	_reports(nullptr),
+	_device_type(device_type),
 	_collect_phase(false),
 	_measure_phase(0),
 	_TEMP(0),
@@ -691,27 +699,62 @@ MS5611::collect()
 		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.c6_temp_coeff_temp) >> 23);
 
 		/* base sensor scale/offset values */
-		_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
-		_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
+		if (_device_type == MS5611_DEVICE) {
 
-		/* temperature compensation */
-		if (_TEMP < 2000) {
+			/* Perform MS5611 Caculation */
 
-			int32_t T2 = POW2(dT) >> 31;
+			_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
+			_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
 
-			int64_t f = POW2((int64_t)_TEMP - 2000);
-			int64_t OFF2 = 5 * f >> 1;
-			int64_t SENS2 = 5 * f >> 2;
+			/* MS5611 temperature compensation */
 
-			if (_TEMP < -1500) {
-				int64_t f2 = POW2(_TEMP + 1500);
-				OFF2 += 7 * f2;
-				SENS2 += 11 * f2 >> 1;
+			if (_TEMP < 2000) {
+
+				int32_t T2 = POW2(dT) >> 31;
+
+				int64_t f = POW2((int64_t)_TEMP - 2000);
+				int64_t OFF2 = 5 * f >> 1;
+				int64_t SENS2 = 5 * f >> 2;
+
+				if (_TEMP < -1500) {
+
+					int64_t f2 = POW2(_TEMP + 1500);
+					OFF2 += 7 * f2;
+					SENS2 += 11 * f2 >> 1;
+				}
+
+				_TEMP -= T2;
+				_OFF  -= OFF2;
+				_SENS -= SENS2;
 			}
 
-			_TEMP -= T2;
-			_OFF  -= OFF2;
-			_SENS -= SENS2;
+		} else if (_device_type == MS5607_DEVICE) {
+
+			/* Perform MS5607 Caculation */
+
+			_OFF  = ((int64_t)_prom.c2_pressure_offset << 17) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 6);
+			_SENS = ((int64_t)_prom.c1_pressure_sens << 16) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 7);
+
+			/* MS5607 temperature compensation */
+
+			if (_TEMP < 2000) {
+
+				int32_t T2 = POW2(dT) >> 31;
+
+				int64_t f = POW2((int64_t)_TEMP - 2000);
+				int64_t OFF2 = 61 * f >> 4;
+				int64_t SENS2 = 2 * f;
+
+				if (_TEMP < -1500) {
+					int64_t f2 = POW2(_TEMP + 1500);
+					OFF2 += 15 * f2;
+					SENS2 += 8 * f2;
+				}
+
+				_TEMP -= T2;
+				_OFF  -= OFF2;
+				_SENS -= SENS2;
+			}
 		}
 
 	} else {
@@ -840,9 +883,9 @@ struct ms5611_bus_option {
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-bool	start_bus(struct ms5611_bus_option &bus);
+bool	start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type);
 struct ms5611_bus_option &find_bus(enum MS5611_BUS busid);
-void	start(enum MS5611_BUS busid);
+void	start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type);
 void	test(enum MS5611_BUS busid);
 void	reset(enum MS5611_BUS busid);
 void	info();
@@ -900,7 +943,7 @@ crc4(uint16_t *n_prom)
  * Start the driver.
  */
 bool
-start_bus(struct ms5611_bus_option &bus)
+start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 {
 	if (bus.dev != nullptr) {
 		errx(1, "bus option already started");
@@ -915,7 +958,7 @@ start_bus(struct ms5611_bus_option &bus)
 		return false;
 	}
 
-	bus.dev = new MS5611(interface, prom_buf, bus.devpath);
+	bus.dev = new MS5611(interface, prom_buf, bus.devpath, device_type);
 
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
@@ -947,7 +990,7 @@ start_bus(struct ms5611_bus_option &bus)
  * is either successfully up and running or failed to start.
  */
 void
-start(enum MS5611_BUS busid)
+start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
 {
 	uint8_t i;
 	bool started = false;
@@ -963,7 +1006,7 @@ start(enum MS5611_BUS busid)
 			continue;
 		}
 
-		started = started | start_bus(bus_options[i]);
+		started = started | start_bus(bus_options[i], device_type);
 	}
 
 	if (!started) {
@@ -1195,6 +1238,8 @@ usage()
 	warnx("    -I    (intternal I2C bus)");
 	warnx("    -S    (external SPI bus)");
 	warnx("    -s    (internal SPI bus)");
+	warnx("    -T    5611|5607 (default 5611)");
+
 }
 
 } // namespace
@@ -1203,10 +1248,13 @@ int
 ms5611_main(int argc, char *argv[])
 {
 	enum MS5611_BUS busid = MS5611_BUS_ALL;
+	int device_type = 5611; // Default to MS5611
 	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISs")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISs", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
@@ -1224,19 +1272,28 @@ ms5611_main(int argc, char *argv[])
 			busid = MS5611_BUS_SPI_INTERNAL;
 			break;
 
+		case 'T':
+			device_type = atoi(myoptarg);
+
+			if (device_type == 5611 || device_type == 5607) {
+				break;
+			}
+
+		//no break
 		default:
 			ms5611::usage();
 			exit(0);
 		}
 	}
 
-	const char *verb = argv[optind];
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		ms5611::start(busid);
+		ms5611::start(busid, device_type == 5607 ? MS5607_DEVICE : MS5611_DEVICE);
 	}
 
 	/*

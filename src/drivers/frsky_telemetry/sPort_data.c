@@ -236,7 +236,7 @@ void sPort_send_CUR(int uart)
 void sPort_send_ALT(int uart)
 {
 	/* send data */
-	uint32_t alt = (int)(100 * sensor_combined->baro_alt_meter[0]);
+	uint32_t alt = (int)(100 * sensor_combined->baro_alt_meter);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 

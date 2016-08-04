@@ -185,6 +185,7 @@ Mavlink::Mavlink() :
 	_parameters_manager(nullptr),
 	_mavlink_ftp(nullptr),
 	_mavlink_log_handler(nullptr),
+	_mavlink_shell(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
@@ -224,6 +225,7 @@ Mavlink::Mavlink() :
 	_src_addr_initialized(false),
 	_broadcast_address_found(false),
 	_broadcast_address_not_found_warned(false),
+	_broadcast_failed_warned(false),
 	_network_buf{},
 	_network_buf_len(0),
 #endif
@@ -920,7 +922,12 @@ Mavlink::send_packet()
 						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
-					PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+					if (!_broadcast_failed_warned) {
+						PX4_ERR("sending broadcast failed, errno: %d: %s", errno, strerror(errno));
+						_broadcast_failed_warned = true;
+					}
+				} else {
+					_broadcast_failed_warned = false;
 				}
 			}
 		}
@@ -1511,6 +1518,35 @@ Mavlink::get_rate_mult()
 	return _rate_mult;
 }
 
+MavlinkShell*
+Mavlink::get_shell()
+{
+	if (!_mavlink_shell) {
+		_mavlink_shell = new MavlinkShell();
+		if (!_mavlink_shell) {
+			PX4_ERR("Failed to allocate a shell");
+		} else {
+			int ret = _mavlink_shell->start();
+			if (ret != 0) {
+				PX4_ERR("Failed to start shell (%i)", ret);
+				delete _mavlink_shell;
+				_mavlink_shell = nullptr;
+			}
+		}
+	}
+
+	return _mavlink_shell;
+}
+
+void
+Mavlink::close_shell()
+{
+	if (_mavlink_shell) {
+		delete _mavlink_shell;
+		_mavlink_shell = nullptr;
+	}
+}
+
 void
 Mavlink::update_rate_mult()
 {
@@ -1521,15 +1557,20 @@ Mavlink::update_rate_mult()
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (stream->const_rate()) {
-			const_rate += stream->get_size() * 1000000.0f / stream->get_interval();
+			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
 
 		} else {
-			rate += stream->get_size() * 1000000.0f / stream->get_interval();
+			rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
 		}
 	}
 
-	/* don't scale up rates, only scale down if needed */
-	float bandwidth_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+	/* scale up and down as the link permits */
+	float bandwidth_mult = (float)(_datarate - const_rate) / rate;
+
+	/* if we do not have flow control, limit to the set data rate */
+	if (!get_flow_control_enabled()) {
+		bandwidth_mult = fminf(1.0f, bandwidth_mult);
+	}
 
 	/* check if we have radio feedback */
 	struct telemetry_status_s &tstatus = get_rx_status();
@@ -1807,7 +1848,6 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
 	uint64_t ack_time = 0;
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
-	uint64_t mavlink_log_time = 0;
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
@@ -1851,76 +1891,76 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("HOME_POSITION", 0.5f);
-		configure_stream("HIGHRES_IMU", 2.0f);
-		configure_stream("ATTITUDE", 20.0f);
-		configure_stream("VFR_HUD", 8.0f);
-		configure_stream("GPS_RAW_INT", 1.0f);
-		configure_stream("GLOBAL_POSITION_INT", 3.0f);
-		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("RC_CHANNELS", 1.0f);
-		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
-		configure_stream("ATTITUDE_TARGET", 8.0f);
-		configure_stream("DISTANCE_SENSOR", 0.5f);
-		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("HIGHRES_IMU", 1.5f);
+		configure_stream("ATTITUDE", 20.0f);
+		configure_stream("RC_CHANNELS", 5.0f);
+		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
-		configure_stream("VISION_POSITION_NED", 10.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream("ESTIMATOR_STATUS", 0.5f);
+		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ADSB_VEHICLE", 2.0f);
-		configure_stream("NAV_CONTROLLER_OUTPUT", 2.0f);
-		configure_stream("WIND", 2.0f);
+		configure_stream("DISTANCE_SENSOR", 0.5f);
+		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
+		configure_stream("VISION_POSITION_NED", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 0.5f);
+		configure_stream("NAV_CONTROLLER_OUTPUT", 1.5f);
+		configure_stream("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream("LOCAL_POSITION_NED", 1.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.5f);
+		configure_stream("ATTITUDE_TARGET", 2.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("VFR_HUD", 4.0f);
+		configure_stream("WIND_COV", 1.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 250.0f);
+		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
-		configure_stream("GPS_RAW_INT", 5.0f);
-		configure_stream("GLOBAL_POSITION_INT", 50.0f);
-		configure_stream("LOCAL_POSITION_NED", 30.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
-		configure_stream("CAMERA_CAPTURE", 2.0f);
-		configure_stream("HOME_POSITION", 0.5f);
-		configure_stream("ATTITUDE_TARGET", 10.0f);
-		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
-		configure_stream("DISTANCE_SENSOR", 10.0f);
-		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream("ATTITUDE", 250.0f);
 		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
-		configure_stream("VFR_HUD", 10.0f);
-		configure_stream("SYSTEM_TIME", 1.0f);
-		configure_stream("TIMESYNC", 10.0f);
-		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		//camera trigger is rate limited at the source, do not limit here
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("GPS_RAW_INT", 5.0f);
+		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
-		configure_stream("ADSB_VEHICLE", 10.0f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream("WIND", 10.0f);
+		configure_stream("GLOBAL_POSITION_INT", 50.0f);
+		configure_stream("LOCAL_POSITION_NED", 30.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("VFR_HUD", 10.0f);
+		configure_stream("WIND_COV", 10.0f);
+		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);
+		configure_stream("TIMESYNC", 10.0f);
+		configure_stream("CAMERA_CAPTURE", 2.0f);
+		//camera trigger is rate limited at the source, do not limit here
+		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
+		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 25.0f);
-		configure_stream("GPS_RAW_INT", 1.0f);
-		configure_stream("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream("HOME_POSITION", 0.5f);
-		configure_stream("ATTITUDE_TARGET", 10.0f);
-		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
-		configure_stream("WIND", 2.0f);
+		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("VFR_HUD", 25.0f);
+		configure_stream("WIND_COV", 2.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1930,32 +1970,32 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("HOME_POSITION", 0.5f);
-		configure_stream("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream("ATTITUDE_TARGET", 8.0f);
-		configure_stream("MISSION_ITEM", 50.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
-		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream("DISTANCE_SENSOR", 10.0f);
-		configure_stream("VFR_HUD", 20.0f);
+		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+		configure_stream("HIGHRES_IMU", 50.0f);
 		configure_stream("ATTITUDE", 100.0f);
-		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("RC_CHANNELS", 10.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
-		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream("LOCAL_POSITION_NED", 30.0f);
-		configure_stream("MANUAL_CONTROL", 5.0f);
-		configure_stream("HIGHRES_IMU", 50.0f);
-		configure_stream("GPS_RAW_INT", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("GPS_RAW_INT", 10.0f);
+		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);
-		configure_stream("ADSB_VEHICLE", 20.0f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream("WIND", 10.0f);
+		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("LOCAL_POSITION_NED", 30.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 8.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream("VFR_HUD", 20.0f);
+		configure_stream("WIND_COV", 10.0f);
+		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("MISSION_ITEM", 50.0f);
+		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
 	default:
 		break;
 	}
@@ -2064,8 +2104,19 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		struct mavlink_log_s mavlink_log;
-		if (mavlink_log_sub->update(&mavlink_log_time, &mavlink_log)) {
+		if (mavlink_log_sub->update_if_changed(&mavlink_log)) {
 			_logbuffer.put(&mavlink_log);
+		}
+
+		/* check for shell output */
+		if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			mavlink_serial_control_t msg;
+			msg.baudrate = 0;
+			msg.flags = SERIAL_CONTROL_FLAG_REPLY;
+			msg.timeout = 0;
+			msg.device = SERIAL_CONTROL_DEV_SHELL;
+			msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 		}
 
 		/* check for requested subscriptions */

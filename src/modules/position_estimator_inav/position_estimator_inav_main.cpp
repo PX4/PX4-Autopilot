@@ -151,7 +151,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
-					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5300,
+					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
 					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
 		return 0;
@@ -425,14 +425,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter[0])) {
-							baro_offset += sensor.baro_alt_meter[0];
+						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
+							baro_offset += sensor.baro_alt_meter;
 							baro_init_cnt++;
 						}
 
@@ -502,7 +502,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_timestamp[0] != accel_timestamp) {
+				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
@@ -524,13 +524,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(acc, 0, sizeof(acc));
 					}
 
-					accel_timestamp = sensor.accelerometer_timestamp[0];
+					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 					accel_updates++;
 				}
 
-				if (sensor.baro_timestamp[0] != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter[0] - z_est[0];
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_updates++;
 				}
 			}
@@ -769,8 +769,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					static hrt_abstime last_vision_time = 0;
 
-					float vision_dt = (vision.timestamp_boot - last_vision_time) / 1e6f;
-					last_vision_time = vision.timestamp_boot;
+					float vision_dt = (vision.timestamp - last_vision_time) / 1e6f;
+					last_vision_time = vision.timestamp;
 
 					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
 						vision.vx = (vision.x - last_vision_x) / vision_dt;
@@ -951,14 +951,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (vision.timestamp_boot + vision_topic_timeout))) {
+		if (vision_valid && (t > (vision.timestamp + vision_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] VISION timeout");
 		}
 
 		/* check for timeout on mocap topic */
-		if (mocap_valid && (t > (mocap.timestamp_boot + mocap_topic_timeout))) {
+		if (mocap_valid && (t > (mocap.timestamp + mocap_topic_timeout))) {
 			mocap_valid = false;
 			warnx("MOCAP timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP timeout");
@@ -1362,7 +1362,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.terrain_alt_valid = false;
 				}
 
-				global_pos.pressure_alt = sensor.baro_alt_meter[0];
+				global_pos.pressure_alt = sensor.baro_alt_meter;
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

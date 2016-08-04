@@ -286,15 +286,15 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
 
 /**
- * Terrain random walk noise density, hilly/outdoor (1e-1), flat/Indoor (1e-3)
+ * Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
  *
  * @group Local Position Estimator
- * @unit m/s/sqrt(Hz)
+ * @unit %
  * @min 0
- * @max 1
+ * @max 100
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_PN_T, 1e-1f);
+PARAM_DEFINE_FLOAT(LPE_T_MAX_GRADE, 1.0f);
 
 /**
  * Flow gyro high pass filter cut off frequency
@@ -308,7 +308,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_T, 1e-1f);
 PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
 
 /**
- * Home latitude for nav w/o GPS
+ * Local origin latitude for nav w/o GPS
  *
  * @group Local Position Estimator
  * @unit deg
@@ -319,7 +319,7 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
 
 /**
- * Home longitude for nav w/o GPS
+ * Local origin longitude for nav w/o GPS
  *
  * @group Local Position Estimator
  * @unit deg

@@ -77,7 +77,7 @@ endif
 # in that directory with the target upload.
 
 #  explicity set default build target
-all: px4fmu-v2_default
+all: posix_sitl_default
 
 # Parsing
 # --------------------------------------------------------------------
@@ -104,20 +104,27 @@ endif
     PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
+# check if replay env variable is set & set build dir accordingly
+ifdef replay
+	BUILD_DIR_SUFFIX := _replay
+else
+	BUILD_DIR_SUFFIX :=
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@); fi
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e ./build_$@$(BUILD_DIR_SUFFIX)/Makefile ]; then rm -rf ./build_$@$(BUILD_DIR_SUFFIX); fi
++@if [ ! -e ./build_$@$(BUILD_DIR_SUFFIX)/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p ./build_$@$(BUILD_DIR_SUFFIX) && cd ./build_$@$(BUILD_DIR_SUFFIX) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf ./build_$@$(BUILD_DIR_SUFFIX)); fi
 +@Tools/check_submodules.sh
-+@(echo "PX4 CONFIG: $@" && cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@(echo "PX4 CONFIG: $@$(BUILD_DIR_SUFFIX)" && cd ./build_$@$(BUILD_DIR_SUFFIX) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 define cmake-build-other
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake $(2) -G$(PX4_CMAKE_GENERATOR) || (cd .. && rm -rf $(PWD)/build_$@); fi
-+@(cd $(PWD)/build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e ./build_$@/Makefile ]; then rm -rf ./build_$@; fi
++@if [ ! -e ./build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p ./build_$@ && cd ./build_$@ && cmake $(2) -G$(PX4_CMAKE_GENERATOR) || (cd .. && rm -rf ./build_$@); fi
++@(cd ./build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 # create empty targets to avoid msgs for targets passed to cmake
@@ -145,7 +152,7 @@ px4fmu-v1_default:
 
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
-	
+
 px4fmu-v2_test:
 	$(call cmake-build,nuttx_px4fmu-v2_test)
 
@@ -199,11 +206,8 @@ mindpx-v2_default:
 
 posix_sitl_default:
 	$(call cmake-build,$@)
-	
-posix_sitl_lpe:
-	$(call cmake-build,$@)
 
-posix_sitl_test:
+posix_sitl_lpe:
 	$(call cmake-build,$@)
 
 posix_sitl_replay:
@@ -228,10 +232,10 @@ eagle_default: posix_eagle_default qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
 
 qurt_eagle_legacy_driver_default:
-	$(call cmake-build,$@)	
-	
+	$(call cmake-build,$@)
+
 posix_eagle_legacy_driver_default:
-	$(call cmake-build,$@) 
+	$(call cmake-build,$@)
 
 qurt_excelsior_default:
 	$(call cmake-build,$@)
@@ -241,16 +245,13 @@ posix_excelsior_default:
 
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
-posix_rpi2_default:
+posix_rpi_native:
 	$(call cmake-build,$@)
 
-posix_rpi2_release:
+posix_rpi_cross:
 	$(call cmake-build,$@)
 
 posix_bebop_default:
-	$(call cmake-build,$@)
-
-posix_navio2_release:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_default
@@ -273,7 +274,7 @@ run_sitl_ros: sitl_deprecation
 
 gazebo_build:
 	@mkdir -p build_gazebo
-	@if [ ! -e $(PWD)/build_gazebo/CMakeCache.txt ];then cd build_gazebo && cmake -Wno-dev -G$(PX4_CMAKE_GENERATOR) $(PWD)/Tools/sitl_gazebo; fi
+	@if [ ! -e ./build_gazebo/CMakeCache.txt ];then cd build_gazebo && cmake -Wno-dev -G$(PX4_CMAKE_GENERATOR) ../Tools/sitl_gazebo; fi
 	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS)
 	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS) sdf
 
@@ -315,14 +316,14 @@ checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
 
 checks_sitls: \
-	check_posix_sitl_default \
-	check_posix_sitl_test \
+	check_posix_sitl_default
 
 checks_last: \
-	check_unittest \
+	check_tests \
 	check_format \
 
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_sitls checks_last
+check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -344,15 +345,18 @@ ifeq ($(VECTORCONTROL),1)
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-unittest: posix_sitl_test
+unittest: posix_sitl_default
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
-tests: posix_sitl_test unittest
+run_tests_posix: posix_sitl_default
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/fs/microsd
+	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/eeprom
+	@touch build_posix_sitl_default/src/firmware/posix/rootfs/eeprom/parameters
+	@(cd build_posix_sitl_default/src/firmware/posix && ./px4 -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
+	@(cd build_posix_sitl_default/src/firmware/posix && grep --color=always "All tests passed" test_output)
 
-test_onboard_sitl:
-	@HEADLESS=1 make posix_sitl_test gazebo_iris
-
+tests: check_unittest run_tests_posix
 
 # QGroundControl flashable firmware
 qgc_firmware: \
@@ -383,7 +387,7 @@ distclean: submodulesclean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
+cmake_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
 	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
 	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo gazebo_typhoon_h480

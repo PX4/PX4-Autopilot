@@ -102,6 +102,11 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
 
+#define AXIS_INDEX_ROLL 0
+#define AXIS_INDEX_PITCH 1
+#define AXIS_INDEX_YAW 2
+#define AXIS_COUNT 3
+
 class MulticopterAttitudeControl
 {
 public:
@@ -774,12 +779,14 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* update integral only if not saturated on low limit and if motor commands are not saturated */
 	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
-		for (int i = 0; i < 3; i++) {
+		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
+				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
 					_rates_int(i) = rate_i;
 				}
 			}

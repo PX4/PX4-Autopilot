@@ -179,7 +179,7 @@
  * PC4     BLUE_LED                  D4 Blue LED cathode
  * PC5     RED_LED                   D5 Red LED cathode
 */
-#define BOARD_RED         0
+#define BOARD_LED1        0
 #define BOARD_LED2        1
 #define BOARD_NLEDS       2
 
@@ -348,13 +348,13 @@
 
 /*
  * GPIO
- * todo:Revisit - cannnot tell from schematic - some could be ADC
+ *
  * Port     Signal Name               CONN
- * PA4     POWER                     JP1-23,24
- * PB4     TEMP_CONT                 J2-2,11,14,23 MPU6050 TEMP
- * PC0     VOLTAGE                   JP2-13,14
- * PC1     KEY_AD                    JP1-31,32
- * PC2     SD_SW                     SD-9 SW
+ * PA4     POWER                     JP1-23,            - Must be held High to run w/o USB
+ * PB4     TEMP_CONT                 J2-2,11,14,23      - Gyro Heater
+ * PC0     VOLTAGE                   JP2-13,14          - 1.84 @16.66  1.67 @15.12 Scale 0.1105
+ * PC1     KEY_AD                    JP1-31,32          - Low when Power button is depressed
+ * PC2     SD_SW                     SD-9 SW            - Card Present
  * PC3     PCON_RADIO                JP1-29,30
  * PC13    S2                        U8-9 74HCT151
  * PC14    S1                        U8-10 74HCT151
@@ -428,28 +428,12 @@ extern "C" {
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-
-/************************************************************************************
- * Name:  stm32_ledinit, stm32_setled, and stm32_setleds
- *
- * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
- *   CONFIG_ARCH_LEDS is not defined, then the following interfacesare available to
- *   control the LEDs from user applications.
- *
- ************************************************************************************/
-
-#ifndef CONFIG_ARCH_LEDS
-EXTERN void stm32_ledinit(void);
-EXTERN void stm32_setled(int led, bool ledon);
-EXTERN void stm32_setleds(uint8_t ledset);
-#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

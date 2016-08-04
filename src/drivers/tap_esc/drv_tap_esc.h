@@ -59,49 +59,122 @@
 #define TAP_ESC_MAX_PACKET_LEN 20
 #define TAP_ESC_MAX_MOTOR_NUM 8
 
+/* ESC_POS maps the values stored in the channelMapTable to reorder the ESC's
+ * id so that that match the mux setting, so that the ressonder's data
+ * will be read.
+ * The index on channelMapTable[p] p is the physical ESC
+ * The value it is set to is the logical value from ESC_POS[p]
+ *  Phy Log
+ *  0   0
+ *  1   1
+ *  2   4
+ *  3   3
+ *  4   2
+ *  5   5
+ *   ....
+ *
+ */
+#define ESC_POS {0, 1, 4, 3, 2, 5, 7, 8}
+
 #define RPMMAX 1900
-#define RPMMIN 1100
+#define RPMMIN 1200
+#define RPMSTOPPED (RPMMIN - 10)
 
-#define RUN_CHANNEL_VALUE_MASK	 (uint16_t)0x07ff
-#define RUN_RED_LED_ON_MASK	 (uint16_t)0x0800
-#define RUN_GREEN_LED_ON_MASK	 (uint16_t)0x1000
-#define RUN_BLUE_LED_ON_MASK	 (uint16_t)0x2000
-#define RUN_LED_ON_MASK	 (uint16_t)0x3800
-#define RUN_FEEDBACK_ENABLE_MASK	(uint16_t)0x4000
-#define RUN_REVERSE_MASK	 (uint16_t)0x8000
 
+#define MAX_BOOT_TIME_MS		 (500) // Minimum time to wait after Power on before sending commands
 
 #pragma pack(push,1)
-typedef  struct {
-	uint8_t ESC_ID;
-	uint8_t ESC_STATUS;
-	int16_t speed;
-#ifdef VOLTAGE_SENSOR_HAVE
-	uint16_t voltage;
-#endif
-#ifdef CURRENT_SENSOR_HAVE
-	uint16_t current;
-#endif
-#ifdef TEMPERATURE_SENSOR_HAVE
-	uint8_t temperature;
-#endif
 
-} ESC_FEEDBACK_DATA;
+/****** Run ***********/
+
+#define RUN_CHANNEL_VALUE_MASK   (uint16_t)0x07ff
+#define RUN_RED_LED_ON_MASK      (uint16_t)0x0800
+#define RUN_GREEN_LED_ON_MASK    (uint16_t)0x1000
+#define RUN_BLUE_LED_ON_MASK     (uint16_t)0x2000
+#define RUN_LED_ON_MASK          (uint16_t)0x3800
+#define RUN_FEEDBACK_ENABLE_MASK (uint16_t)0x4000
+#define RUN_REVERSE_MASK         (uint16_t)0x8000
+
+typedef struct {
+
+	uint16_t rpm_flags[TAP_ESC_MAX_MOTOR_NUM];
+} RunReq;
+
+typedef struct {
+	uint8_t channelID;
+	uint8_t ESCStatus;
+	int16_t speed; // -32767 - 32768
+#if defined(ESC_HAVE_VOLTAGE_SENSOR)
+	uint16_t voltage; // 0.00 - 100.00 V
+#endif
+#if defined(ESC_HAVE_CURRENT_SENSOR)
+	uint16_t current; // 0.0 - 200.0 A
+#endif
+#if defined(ESC_HAVE_TEMPERATURE_SENSOR)
+	uint8_t temperature; // 0 - 256 degree celsius
+#endif
+} RunInfoRepsonse;
+/****** Run ***********/
+
+/****** ConFigInfoBasic ***********/
+typedef  struct {
+	uint8_t  maxChannelInUse;
+	uint8_t  channelMapTable[TAP_ESC_MAX_MOTOR_NUM];
+	uint8_t  monitorMsgType;
+	uint8_t  controlMode;
+	uint16_t minChannelValue;
+	uint16_t maxChannelValue;
+} ConfigInfoBasicRequest;
+
+typedef  struct {
+	uint8_t  channelID;
+	ConfigInfoBasicRequest resp;
+} ConfigInfoBasicResponse;
+
+#define ESC_CHANNEL_MAP_CHANNEL           0x0f
+#define ESC_CHANNEL_MAP_RUNNING_DIRECTION 0xf0
+/****** ConFigInfoBasicResponse ***********/
+
+/****** InfoRequest  ***********/
+typedef enum {
+	REQEST_INFO_BASIC = 0,
+	REQEST_INFO_FUll,
+	REQEST_INFO_RUN,
+	REQEST_INFO_STUDY,
+	REQEST_INFO_COMM,
+	REQEST_INFO_DEVICE,
+} InfoTypes;
+
+typedef  struct {
+	uint8_t  channelID;
+	uint8_t  requestInfoType;
+} InfoRequest;
+
+/****** InfoRequest ***********/
 
 typedef  struct {
 	uint8_t head;
 	uint8_t len;
 	uint8_t msg_id;
-	uint8_t data[100];
+	union {
+		InfoRequest 			reqInfo;
+		ConfigInfoBasicRequest 	reqConfigInfoBasic;
+		RunReq					reqRun;
+
+		ConfigInfoBasicResponse rspConfigInfoBasic;
+		RunInfoRepsonse			rspRunInfo;
+		uint8_t bytes[100];
+	} d;
 	uint8_t crc_data;
 
-} ESC_FEEDBACK_PACKET;
+} EscPacket;
 
+#define UART_BUFFER_SIZE 128
 typedef  struct {
 	uint8_t head;
 	uint8_t tail;
 	uint8_t dat_cnt;
-	uint8_t esc_feedback_buf[128];
+	uint8_t esc_feedback_buf[UART_BUFFER_SIZE];
 } ESC_UART_BUF;
 
 #pragma pack(pop)
@@ -140,6 +213,8 @@ typedef enum {
 	ESC_STATUS_ERROR_HARDWARE,
 	ESC_STATUS_ERROR_LOSE_PROPELLER,
 	ESC_STATUS_ERROR_OVER_CURRENT,
+	ESC_STATUS_ERROR_MOTOR_HIGH_SPEED_LOSE_STEP,
+	ESC_STATUS_ERROR_LOSE_CMD,
 } ESCBUS_ENUM_ESC_STATUS;
 
 

@@ -67,7 +67,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 {
 	if (attitude->R_valid) {
 		matrix::Matrix<float, 3, 3> R_att(attitude->R);
-		matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+		matrix::Vector<float, 3> a(sensor->accelerometer_m_s2);
 		matrix::Vector<float, 3> u;
 		u = R_att * a;
 		_u_z = u(2) + 9.81f; // compensate for gravity

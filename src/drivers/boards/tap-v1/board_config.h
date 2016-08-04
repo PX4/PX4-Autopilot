@@ -69,7 +69,7 @@ __BEGIN_DECLS
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_LED2		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN5)
 #define GPIO_BLUE_LED GPIO_LED1
-#define GPIO_RED_LED  GPIO_LED1
+#define GPIO_RED_LED  GPIO_LED2
 /*
  * SPI
  *
@@ -104,6 +104,8 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_SONAR      2
 #define PX4_I2C_BUS_EXPANSION  3
 
+#define PX4_I2C_OBDEV_HMC5883	0x1e
+
 /*
  * Devices on the onboard bus.
  *
@@ -126,6 +128,8 @@ __BEGIN_DECLS
  * ADC channels
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ * PC0     VOLTAGE                   JP2-13,14          - 1.84 @16.66  1.67 @15.12 Scale 0.1105
+ *
  */
 #define ADC_CHANNELS (1 << 10)
 /* todo:Revisit - cannnot tell from schematic - some could be ADC */
@@ -164,10 +168,10 @@ __BEGIN_DECLS
  * Tone alarm output
  */
 /* todo:Revisit - cannnot tell from schematic - one could be tone alarm*/
-#define TONE_ALARM_TIMER	3	/* timer 3 */
-#define TONE_ALARM_CHANNEL	3	/* channel 3 */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN8)
-#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
+#define TONE_ALARM_TIMER        8   /* timer 8 */
+#define TONE_ALARM_CHANNEL      3   /* channel 3 */
+#define GPIO_TONE_ALARM_IDLE    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN8)
+#define GPIO_TONE_ALARM         (GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
 
 /*
  * PWM
@@ -187,6 +191,12 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH3OUT	GPIO_TIM3_CH3OUT_1
 #define GPIO_TIM3_CH4OUT	GPIO_TIM3_CH4OUT_1
 #define DIRECT_PWM_OUTPUT_CHANNELS	4
+
+#define BOARD_HAS_LED_PWM
+#define LED_TIM3_CH1OUT  GPIO_TIM3_CH1OUT
+#define LED_TIM3_CH2OUT  GPIO_TIM3_CH2OUT
+#define LED_TIM3_CH3OUT  GPIO_TIM3_CH3OUT
+
 
 /* USB OTG FS
  *
@@ -225,6 +235,23 @@ __BEGIN_DECLS
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+#define MS_PWR_BUTTON_DOWN 750
+#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTC|GPIO_PIN1)
+#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
+#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN4)
+
+#define GPIO_S0  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_S1  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_S2  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+
+#define GPIO_PCON_RADIO (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN3)
+#define RF_RADIO_CONTOL(_on_true)	px4_arch_gpiowrite(GPIO_PCON_RADIO, !(_on_true))
+
+#define GPIO_TEMP_CONT (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN4)
+#define TEMP_CONTROL(_on_true)	px4_arch_gpiowrite(GPIO_TEMP_CONT, (_on_true))
+
+#define  FLASH_BASED_PARAMS
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -254,6 +281,16 @@ extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 
+/************************************************************************************
+ * Name: board_sdio_initialize
+ *
+ * Description:
+ *   Called to configure SDIO.
+ *
+ ************************************************************************************/
+
+extern int board_sdio_initialize(void);
+
 /****************************************************************************
  * Name: nsh_archinitialize
  *
@@ -272,6 +309,39 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+
+/************************************************************************************
+ * Name: board_pwr_init()
+ *
+ * Description:
+ *   Called to configure power control for the tap-v1 board.
+ *
+ * Input Parameters:
+ *   stage- 0 for boot, 1 for board init
+ *
+ ************************************************************************************/
+
+void board_pwr_init(int stage);
+
+/****************************************************************************
+ * Name: board_pwr_button_down
+ *
+ * Description:
+ *   Called to Read the logical state of the power button
+ ****************************************************************************/
+
+bool board_pwr_button_down(void);
+
+/****************************************************************************
+ * Name: board_pwr
+ *
+ * Description:
+ *   Called to turn on or off the TAP
+ *
+ ****************************************************************************/
+
+void board_pwr(bool on_not_off);
 
 #include "../common/board_common.h"
 

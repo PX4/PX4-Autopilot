@@ -60,7 +60,7 @@ private:
 	void calculateSlopeValues();
 
 public:
-	Landingslope() {}
+	Landingslope();
 	~Landingslope() {}
 
 

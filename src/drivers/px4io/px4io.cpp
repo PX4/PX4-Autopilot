@@ -218,6 +218,16 @@ public:
 	 */
 	int			print_debug();
 
+	/*
+	 * To test what happens if IO stops receiving updates from FMU.
+	 *
+	 * @param is_fail	true for failure condition, false for normal operation.
+	 */
+	void			test_fmu_fail(bool is_fail)
+	{
+		_test_fmu_fail = is_fail;
+	};
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	/**
 	 * Set the DSM VCC is controlled by relay one flag
@@ -315,6 +325,7 @@ private:
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
 	float			_last_throttle; ///< last throttle value for battery calculation
+	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -549,7 +560,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_rssi_pwm_min(0),
 	_analog_rc_rssi_stable(false),
 	_analog_rc_rssi_volt(-1.0f),
-	_last_throttle(0.0f)
+	_last_throttle(0.0f),
+	_test_fmu_fail(false)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -1126,7 +1138,7 @@ PX4IO::task_main()
 				}
 
 				int32_t safety_param_val;
-				param_t safety_param = param_find("RC_FAILS_THR");
+				param_t safety_param = param_find("CBRK_IO_SAFETY");
 
 				if (safety_param != PARAM_INVALID) {
 
@@ -1166,28 +1178,49 @@ PX4IO::task_main()
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
-				float trim_val;
+				float param_val;
 				param_t parm_handle;
 
 				parm_handle = param_find("TRIM_ROLL");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(param_val));
 				}
 
 				parm_handle = param_find("TRIM_PITCH");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(param_val));
 				}
 
 				parm_handle = param_find("TRIM_YAW");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &trim_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_R_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_ROLL, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_P_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_PITCH, FLOAT_TO_REG(param_val));
+				}
+
+				parm_handle = param_find("FW_MAN_Y_SC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_YAW, FLOAT_TO_REG(param_val));
 				}
 
 				/* S.BUS output */
@@ -1328,8 +1361,13 @@ PX4IO::io_set_control_state(unsigned group)
 		_last_throttle = controls.control[3];
 	}
 
-	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
+	if (!_test_fmu_fail) {
+		/* copy values to registers in IO */
+		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
+
+	} else {
+		return OK;
+	}
 }
 
 
@@ -2714,8 +2752,15 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				/* send a direct PWM value */
-				ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
+				if (!_test_fmu_fail) {
+					/* send a direct PWM value */
+					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
+
+				} else {
+					/* Just silently accept the ioctl without doing anything
+					 * in test mode. */
+					ret = OK;
+				}
 			}
 
 			break;
@@ -3016,7 +3061,14 @@ PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
 	if (count > 0) {
 
 		perf_begin(_perf_write);
-		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
+
+		int ret = OK;
+
+		/* The write() is silently ignored in test mode. */
+		if (!_test_fmu_fail) {
+			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
+		}
+
 		perf_end(_perf_write);
 
 		if (ret != OK) {
@@ -3848,8 +3900,31 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "test_fmu_fail")) {
+		if (g_dev != nullptr) {
+			g_dev->test_fmu_fail(true);
+			exit(0);
+
+		} else {
+
+			errx(1, "px4io must be started first");
+		}
+	}
+
+	if (!strcmp(argv[1], "test_fmu_ok")) {
+		if (g_dev != nullptr) {
+			g_dev->test_fmu_fail(false);
+			exit(0);
+
+		} else {
+
+			errx(1, "px4io must be started first");
+		}
+	}
+
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
-	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm'");
+	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
+	     "'test_fmu_fail', 'test_fmu_ok'");
 }

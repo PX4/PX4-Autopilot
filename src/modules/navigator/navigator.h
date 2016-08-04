@@ -167,6 +167,13 @@ public:
 	float		get_acceptance_radius();
 
 	/**
+	 * Get the altitude acceptance radius
+	 *
+	 * @return the distance from the target altitude before considering the waypoint reached
+	 */
+	float		get_altitude_acceptance_radius();
+
+	/**
 	 * Get the cruising speed
 	 *
 	 * @return the desired cruising speed for this mission
@@ -285,6 +292,8 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
+	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
 	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
