@@ -373,7 +373,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		message("[boot] FAILED to init params in FLASH %d\n", result);
-		up_ledon(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -384,7 +384,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	result = board_sdio_initialize();
 
 	if (result != OK) {
-		up_ledon(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 

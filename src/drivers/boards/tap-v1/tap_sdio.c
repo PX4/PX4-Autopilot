@@ -50,7 +50,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
 
@@ -102,7 +102,7 @@ __EXPORT int board_sdio_initialize(void)
 {
 	/* Get the SPI port for the microSD slot */
 
-	spi = up_spiinitialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	spi = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
 	if (!spi) {
 		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
