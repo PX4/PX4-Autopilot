@@ -746,9 +746,9 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		/* datalink loss disabled:
 		 * check if both, RC and datalink are lost during the mission
-		 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
+		 * or RC is lost after the mission finishes in air: this should always trigger RCRECOVER */
 		} else if (!data_link_loss_enabled && ((status->rc_signal_lost && status->data_link_lost) ||
-						       (status->rc_signal_lost && mission_finished))) {
+							   (status->rc_signal_lost && !landed && mission_finished))) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
