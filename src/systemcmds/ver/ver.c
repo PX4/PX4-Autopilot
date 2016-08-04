@@ -67,7 +67,7 @@ const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
 const char *px4_git_tag = PX4_GIT_TAG_STR;
 
 #if defined(__PX4_NUTTX)
-__EXPORT const char *os_git_tag = "7.15";
+__EXPORT const char *os_git_tag = "7.17";
 __EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
 #else
 __EXPORT const char *os_git_tag = "";
