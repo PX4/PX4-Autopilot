@@ -584,6 +584,7 @@ VtolAttitudeControl::parameters_update()
 */
 void VtolAttitudeControl::fill_mc_att_rates_sp()
 {
+	_v_rates_sp.timestamp 	= _mc_virtual_v_rates_sp.timestamp;
 	_v_rates_sp.roll 	= _mc_virtual_v_rates_sp.roll;
 	_v_rates_sp.pitch 	= _mc_virtual_v_rates_sp.pitch;
 	_v_rates_sp.yaw 	= _mc_virtual_v_rates_sp.yaw;
@@ -595,6 +596,7 @@ void VtolAttitudeControl::fill_mc_att_rates_sp()
 */
 void VtolAttitudeControl::fill_fw_att_rates_sp()
 {
+	_v_rates_sp.timestamp 	= _fw_virtual_v_rates_sp.timestamp;
 	_v_rates_sp.roll 	= _fw_virtual_v_rates_sp.roll;
 	_v_rates_sp.pitch 	= _fw_virtual_v_rates_sp.pitch;
 	_v_rates_sp.yaw 	= _fw_virtual_v_rates_sp.yaw;
