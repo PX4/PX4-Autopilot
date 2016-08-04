@@ -259,7 +259,6 @@ void BlockLocalPositionEstimator::update()
 		// we just armed, we are at origin on the ground
 		_x(X_x) = 0;
 		_x(X_y) = 0;
-		_x(X_z) = 0;
 
 		// reset flow integral
 		_flowX = 0;
