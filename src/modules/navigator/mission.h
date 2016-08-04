@@ -211,7 +211,7 @@ private:
 	/**
 	 * Check wether a mission is ready to go
 	 */
-	bool check_mission_valid();
+	void check_mission_valid();
 
 	/**
 	 * Reset offboard mission
@@ -244,7 +244,6 @@ private:
 	} _mission_type;
 
 	bool _inited;
-	bool _home_inited;
 	bool _need_mission_reset;
 
 	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
