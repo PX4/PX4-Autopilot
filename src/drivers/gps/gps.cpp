@@ -977,9 +977,11 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 void
 stop()
 {
-	delete g_dev[0];
-	g_dev[0] = nullptr;
-
+	// if start fails g_dev[0] could be null.
+	if (g_dev[0] != nullptr) {
+		delete g_dev[0];
+		g_dev[0] = nullptr;
+	}
 	if (g_dev[1] != nullptr) {
 		delete g_dev[1];
 	}
