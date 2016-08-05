@@ -16,7 +16,7 @@
 #if !defined(CONFIG_ARCH_BOARD_SITL)
 #define TEST_DATA_PATH "/fs/microsd"
 #else
-#define TEST_DATA_PATH "../../../../src/lib/rc/rc_tests/test_data/"
+#define TEST_DATA_PATH "./src/lib/rc/rc_tests/test_data/"
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
@@ -51,8 +51,8 @@ bool RCTest::dsmTest(void)
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
+	warnx("loading data from: %s", filepath);
 	ut_test(fp != nullptr);
-	//warnx("loading data from: %s", filepath);
 
 	float f;
 	unsigned x;

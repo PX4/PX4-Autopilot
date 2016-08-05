@@ -63,7 +63,7 @@ px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
 include_directories(
 	${include_dirs}
-	${CMAKE_BINARY_DIR}/src/modules/systemlib/mixer
+	${PX4_BINARY_DIR}/src/modules/systemlib/mixer
 	.
 	)
 link_directories(${link_dirs})
@@ -117,10 +117,10 @@ add_dependencies(${fw_io_name}
 	mixer_gen
 	)
 
-set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)
+set(nuttx_export_dir ${PX4_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)
 set(main_link_flags
 	"-T${nuttx_export_dir}/build/ld.script"
-	"-Wl,-Map=${CMAKE_BINARY_DIR}/${config_io_board}/main.map"
+	"-Wl,-Map=${PX4_BINARY_DIR}/${config_io_board}/main.map"
 	)
 px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
 set_target_properties(${fw_io_name} PROPERTIES LINK_FLAGS ${main_link_flags})

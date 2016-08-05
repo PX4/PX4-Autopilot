@@ -18,7 +18,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 		APPS_DEST "/home/linaro"
 		SOURCES
 			px4muorb_stub.c
-			${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+			${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 			apps.h
 		LINK_LIBS
 			-Wl,--start-group
@@ -33,14 +33,14 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-				 ${CMAKE_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
+				 ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
 			 DEPENDS px4
 			 DEST /home/linaro)
 
 elseif ("${BOARD}" STREQUAL "rpi")
 
 	add_executable(px4
-		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
 
@@ -57,7 +57,7 @@ elseif ("${BOARD}" STREQUAL "rpi")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-				 ${CMAKE_SOURCE_DIR}/posix-configs/rpi/px4.config
+				 ${PX4_SOURCE_DIR}/posix-configs/rpi/px4.config
 			 DEPENDS px4
 			 DEST /home/pi)
 
@@ -67,7 +67,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
 	add_executable(px4
-		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
 
@@ -91,14 +91,14 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-						 ${CMAKE_SOURCE_DIR}/posix-configs/bebop/px4.config
+						 ${PX4_SOURCE_DIR}/posix-configs/bebop/px4.config
 			 DEPENDS px4
 			 DEST /usr/bin)
 
 else()
 
 	add_executable(px4
-		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
+		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
 	if (NOT APPLE)
@@ -118,17 +118,43 @@ else()
 	endif()
 endif()
 
+#=============================================================================
+# sitl run targets
+#
+
+set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
+file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
+
 add_custom_target(run_config
-	COMMAND Tools/sitl_run.sh "${config_sitl_rcS}" "${config_sitl_debugger}"
-	"${config_sitl_viewer}" "${config_sitl_model}" "${CMAKE_BINARY_DIR}"
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND Tools/sitl_run.sh
+	"$<TARGET_FILE:px4>"
+	"${config_sitl_rcS}"
+	"${config_sitl_debugger}"
+	"${config_sitl_viewer}"
+	"${config_sitl_model}" 
+	"${PX4_SOURCE_DIR}"
+	"${PX4_BINARY_DIR}"
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
 	USES_TERMINAL
 	)
 add_dependencies(run_config px4)
 
-foreach(viewer none jmavsim gazebo replay)
-	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris iris_opt_flow tailsitter standard_vtol plane solo typhoon_h480)
+# project to build sitl_gazebo if necessary
+ExternalProject_Add(sitl_gazebo
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sitl_gazebo
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
+	INSTALL_COMMAND ""
+	)
+set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# create targets for each viewer/model/debugger combination
+set(viewers none jmavsim gazebo replay)
+set(debuggers none gdb lldb ddd valgrind)
+set(models none iris iris_opt_flow tailsitter standard_vtol plane solo typhoon_h480)
+foreach(viewer ${viewers})
+	foreach(debugger ${debuggers})
+		foreach(model ${models})
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")
@@ -143,13 +169,20 @@ foreach(viewer none jmavsim gazebo replay)
 				endif()
 			endif()
 			add_custom_target(${_targ_name}
-				COMMAND Tools/sitl_run.sh "${config_sitl_rcS}"
-				"${debugger}"
-				"${viewer}" "${model}" "${CMAKE_BINARY_DIR}"
-				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+				COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+				$<TARGET_FILE:px4>
+				${config_sitl_rcS}
+				${debugger}
+				${viewer}
+				${model}
+				${PX4_SOURCE_DIR}
+				${PX4_BINARY_DIR}
+				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				)
-			add_dependencies(${_targ_name} px4)
+			if (viewer STREQUAL "gazebo")
+				add_dependencies(${_targ_name} sitl_gazebo)
+			endif()
 		endforeach()
 	endforeach()
 endforeach()
@@ -158,8 +191,25 @@ endforeach()
 # install
 #
 
-install(TARGETS px4 DESTINATION bin)
+install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+
+#=============================================================================
+# tests
+#
+
+add_test(NAME rcS_tests
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+		$<TARGET_FILE:px4>
+		posix-configs/SITL/init/rcS_tests
+		none
+		none
+		none
+		${PX4_SOURCE_DIR}
+		${PX4_BINARY_DIR}
+		WORKING_DIRECTORY ${SITL_WORKING_DIR})
+set_tests_properties(rcS_tests PROPERTIES
+	PASS_REGULAR_EXPRESSION "All tests passed")
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

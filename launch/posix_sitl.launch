@@ -1,19 +1,31 @@
 <launch>
+
     <!-- Posix SITL environment launch script -->
+
+    <arg name="vehicle" default="iris"/>
+    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/rcS_gazebo_$(arg vehicle)"/>
 
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="ns" default="/"/>
-    <arg name="world" default="iris"/>
     <arg name="build" default="posix_sitl_default"/>
 
-    <node pkg="px4" type="sitl_run.sh" name="simulator" args="posix-configs/SITL/init/rcS none gazebo $(arg world) $(find px4)/build_$(arg build)">
-        <env name="no_sim" value="1" />
+    <node name="sitl" pkg="px4" type="px4" output="screen"
+        args="$(find px4) $(arg rcS)">
     </node>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="headless" value="$(arg headless)"/>
         <arg name="gui" value="$(arg gui)"/>
-        <arg name="world_name" value="$(find px4)/Tools/sitl_gazebo/worlds/$(arg world).world" />
+        <arg name="world_name" value="$(arg world)" />
     </include>
+
+    <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -file $(arg sdf) -model $(arg vehicle)"/>
+
+
 </launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

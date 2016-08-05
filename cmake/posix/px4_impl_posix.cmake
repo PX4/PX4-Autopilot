@@ -49,7 +49,7 @@
 #
 
 include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/posix)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
 
 #=============================================================================
 #
@@ -101,7 +101,7 @@ function(px4_posix_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/posix/apps.h_in
+	configure_file(${PX4_SOURCE_DIR}/cmake/posix/apps.h_in
 		${OUT})
 endfunction()
 
