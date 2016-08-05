@@ -34,7 +34,7 @@ void BlockLocalPositionEstimator::sonarInit()
 			_sonarStats.reset();
 
 		} else {
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
+			PX4_INFO("[lpe] sonar init "
 						     "mean %d cm std %d cm",
 						     int(100 * _sonarStats.getMean()(0)),
 						     int(100 * _sonarStats.getStdDev()(0)));

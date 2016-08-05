@@ -254,28 +254,34 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// reset pos, vel, and terrain on arming
-	if (!_lastArmedState && armedState) {
 
-		// we just armed, we are at origin on the ground
-		_x(X_x) = 0;
-		_x(X_y) = 0;
+	// XXX this will be re-enabled for indoor use cases using a
+	// selection param, but is really not helping outdoors
+	// right now.
 
-		// reset flow integral
-		_flowX = 0;
-		_flowY = 0;
+	// if (!_lastArmedState && armedState) {
 
-		// we aren't moving, all velocities are zero
-		_x(X_vx) = 0;
-		_x(X_vy) = 0;
-		_x(X_vz) = 0;
+	// 	// we just armed, we are at origin on the ground
+	// 	_x(X_x) = 0;
+	// 	_x(X_y) = 0;
+	// 	// reset Z or not? _x(X_z) = 0;
 
-		// assume we are on the ground, so terrain alt is local alt
-		_x(X_tz) = _x(X_z);
+	// 	// reset flow integral
+	// 	_flowX = 0;
+	// 	_flowY = 0;
 
-		// reset lowpass filter as well
-		_xLowPass.setState(_x);
-		_aglLowPass.setState(0);
-	}
+	// 	// we aren't moving, all velocities are zero
+	// 	_x(X_vx) = 0;
+	// 	_x(X_vy) = 0;
+	// 	_x(X_vz) = 0;
+
+	// 	// assume we are on the ground, so terrain alt is local alt
+	// 	_x(X_tz) = _x(X_z);
+
+	// 	// reset lowpass filter as well
+	// 	_xLowPass.setState(_x);
+	// 	_aglLowPass.setState(0);
+	// }
 
 	_lastArmedState = armedState;
 

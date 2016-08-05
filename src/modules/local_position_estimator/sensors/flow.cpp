@@ -180,7 +180,7 @@ void BlockLocalPositionEstimator::flowCheckTimeout()
 		if (_flowInitialized) {
 			_flowInitialized = false;
 			_flowQStats.reset();
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] flow timeout ");
+			mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
 		}
 	}
 }
