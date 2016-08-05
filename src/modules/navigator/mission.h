@@ -211,7 +211,8 @@ private:
 	/**
 	 * Check wether a mission is ready to go
 	 */
-	bool check_mission_valid();
+	void check_mission_valid(bool force);
+
 
 	/**
 	 * Reset offboard mission
