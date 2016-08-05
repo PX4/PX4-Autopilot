@@ -35,9 +35,9 @@ void BlockLocalPositionEstimator::sonarInit()
 
 		} else {
 			PX4_INFO("[lpe] sonar init "
-						     "mean %d cm std %d cm",
-						     int(100 * _sonarStats.getMean()(0)),
-						     int(100 * _sonarStats.getStdDev()(0)));
+				 "mean %d cm std %d cm",
+				 int(100 * _sonarStats.getMean()(0)),
+				 int(100 * _sonarStats.getStdDev()(0)));
 			_sonarInitialized = true;
 			_sonarFault = FAULT_NONE;
 		}
