@@ -132,7 +132,7 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-		/* Hold power state */
+	/* Hold power state */
 
 	board_pwr_init(0);
 
@@ -359,7 +359,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	drv_led_start();
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
-	
+
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t  sector_map[] = {
 		{1, 16 * 1024, 0x08004000},
