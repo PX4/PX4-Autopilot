@@ -81,6 +81,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_need_takeoff(true),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
+	_home_inited(false),
 	_need_mission_reset(false),
 	_missionFeasibilityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
@@ -99,11 +100,6 @@ Mission::~Mission()
 void
 Mission::on_inactive()
 {
-	/* Without home a mission can't be valid yet anyway, let's wait. */
-	if (!_navigator->home_position_valid()) {
-		return;
-	}
-
 	if (_inited) {
 		/* check if missions have changed so that feedback to ground station is given */
 		bool onboard_updated = false;
@@ -142,11 +138,10 @@ Mission::on_inactive()
 			_current_offboard_mission_index = mission_state.current_seq;
 		}
 
-		/* On init let's check the mission, maybe there is already one available. */
-		check_mission_valid();
-
 		_inited = true;
 	}
+
+	check_mission_valid();
 
 	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_land_detected()->landed) {
@@ -279,14 +274,24 @@ Mission::update_offboard_mission()
 			/* otherwise, just leave it */
 		}
 
-		check_mission_valid();
+		/* Check mission feasibility, for now do not handle the return value,
+		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-		failed = !_navigator->get_mission_result()->valid;
+		failed = !_missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_log_pub(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
+				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_default_acceptance_radius(),
+				_navigator->get_land_detected()->landed);
 
+		_navigator->get_mission_result()->valid = !failed;
 		if (!failed) {
 			/* reset mission failure if we have an updated valid mission */
 			_navigator->get_mission_result()->mission_failure = false;
 		}
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
 
 	} else {
 		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
@@ -1126,28 +1131,28 @@ Mission::set_mission_finished()
 	_navigator->set_mission_result_updated();
 }
 
-void
+bool
 Mission::check_mission_valid()
 {
+	/* check if the home position became valid in the meantime */
+	if (!_home_inited && _navigator->home_position_valid()) {
 
-	dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-	_navigator->get_mission_result()->valid =
-		_missionFeasibilityChecker.checkMissionFeasible(
-			_navigator->get_mavlink_log_pub(),
-			(_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
-			dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-			_navigator->get_home_position()->alt,
-			_navigator->home_position_valid(),
-			_navigator->get_global_position()->lat,
-			_navigator->get_global_position()->lon,
-			_param_dist_1wp.get(),
-			_navigator->get_mission_result()->warning,
-			_navigator->get_default_acceptance_radius(),
-			_navigator->get_land_detected()->landed);
+		_navigator->get_mission_result()->valid = _missionFeasibilityChecker.checkMissionFeasible(_navigator->get_mavlink_log_pub(), (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
+				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_default_acceptance_radius(),
+				_navigator->get_land_detected()->landed);
 
-	_navigator->increment_mission_instance_count();
-	_navigator->set_mission_result_updated();
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+
+		_home_inited = true;
+	}
+
+	return _navigator->get_mission_result()->valid;
 }
 
 void
