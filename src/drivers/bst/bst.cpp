@@ -49,6 +49,7 @@
 #include <math.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/battery_status.h>
+#include <matrix/math.hpp>
 
 #define BST_DEVICE_PATH "/dev/bst0"
 
@@ -289,11 +290,12 @@ void BST::cycle()
 		if (updated) {
 			vehicle_attitude_s att;
 			orb_copy(ORB_ID(vehicle_attitude), _attitude_sub, &att);
+			matrix::Eulerf euler(matrix::Quatf(&att.q[0]));
 			BSTPacket<BSTAttitude> bst_att = {};
 			bst_att.type = 0x1E;
-			bst_att.payload.roll = swap_int32(att.roll * 10000);
-			bst_att.payload.pitch = swap_int32(att.pitch * 10000);
-			bst_att.payload.yaw = swap_int32(att.yaw * 10000);
+			bst_att.payload.roll = swap_int32(euler(0) * 10000);
+			bst_att.payload.pitch = swap_int32(euler(1) * 10000);
+			bst_att.payload.yaw = swap_int32(euler(2) * 10000);
 			send_packet(bst_att);
 		}
 

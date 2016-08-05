@@ -105,6 +105,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
+#include <matrix/math.hpp>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -1131,7 +1132,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.y = localPosition.y;
 	home.z = localPosition.z;
 
-	home.yaw = attitude.yaw;
+	matrix::Eulerf euler(matrix::Quatf(&attitude.q[0]));
+	home.yaw = euler(2);
 
 	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
