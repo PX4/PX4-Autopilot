@@ -10,6 +10,10 @@ if [ -z "$WORKSPACE" ]; then
     exit 1
 fi
 
+echo "===> check cpu resources"
+top -n1 -b
+echo "<==="
+
 # Pulling latest image
 echo "===> pull latest Docker image"
 docker pull px4io/px4-dev-ros
