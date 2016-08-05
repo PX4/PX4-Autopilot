@@ -41,6 +41,7 @@ param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
+param set EKF2_MAG_TYPE 1
 replay tryapplyparams
 simulator start -s
 rgbledsim start

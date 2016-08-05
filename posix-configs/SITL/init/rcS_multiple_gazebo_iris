@@ -32,6 +32,9 @@ param set COM_RC_IN_MODE 1
 param set NAV_ACC_RAD 2.0
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
+param set EKF2_GBIAS_INIT 0.01
+param set EKF2_ANGERR_INIT 0.01
+param set EKF2_MAG_TYPE 1
 replay tryapplyparams
 rgbledsim start
 tone_alarm start
@@ -46,8 +49,7 @@ sensors start
 commander start
 land_detector start multicopter
 navigator start
-attitude_estimator_q start
-position_estimator_inav start
+ekf2 start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 quad_w.main.mix

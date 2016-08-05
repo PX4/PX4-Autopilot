@@ -44,6 +44,9 @@ param set RTL_LAND_DELAY 0
 param set COM_DISARM_LAND 5
 param set COM_DL_LOSS_EN 1
 param set MPC_ACC_HOR_MAX 2
+param set EKF2_GBIAS_INIT 0.01
+param set EKF2_ANGERR_INIT 0.01
+param set EKF2_MAG_TYPE 1
 replay tryapplyparams
 simulator start -s 
 rgbledsim start
