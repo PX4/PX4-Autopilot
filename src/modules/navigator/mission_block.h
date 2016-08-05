@@ -64,6 +64,9 @@ public:
 	 */
 	MissionBlock(Navigator *navigator, const char *name);
 
+	MissionBlock(const MissionBlock &) = delete;
+	MissionBlock &operator=(const MissionBlock &) = delete;
+
 	/**
 	 * Destructor
 	 */

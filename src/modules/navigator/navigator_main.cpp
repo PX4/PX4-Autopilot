@@ -105,6 +105,7 @@ Navigator::Navigator() :
 	_mavlink_log_pub(nullptr),
 	_global_pos_sub(-1),
 	_gps_pos_sub(-1),
+	_sensor_combined_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_land_detected_sub(-1),
