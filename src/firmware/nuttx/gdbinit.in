@@ -4,4 +4,4 @@ attach 1
 monitor vector_catch disable hard
 set mem inaccessible-by-default off
 set print pretty
-source ${PX4_SOURCE_DIR}/Debug/PX4
+source ${CMAKE_SOURCE_DIR}/Debug/PX4

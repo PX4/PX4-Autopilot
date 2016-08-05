@@ -70,7 +70,7 @@
 /**
  * A UAVCAN Server Sub node.
  */
-class __EXPORT UavcanServers
+class UavcanServers
 {
 	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
 

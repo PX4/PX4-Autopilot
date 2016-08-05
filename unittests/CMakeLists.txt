@@ -13,19 +13,15 @@ enable_testing()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=gnu99 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=c++11 -g -fno-exceptions -fno-rtti -fno-threadsafe-statics")
 
-if (NOT PX4_SOURCE_DIR)
-	set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
-endif()
 
-
-set(GTEST_DIR ${PX4_SOURCE_DIR}/unittests/googletest)
+set(GTEST_DIR ${CMAKE_SOURCE_DIR}/googletest)
 add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
-set(PX4_SRC ${PX4_SOURCE_DIR}/src)
+set(PX4_SRC ${CMAKE_SOURCE_DIR}/../src)
 set(PX4_SITL_BUILD ${PX4_SRC}/../build_posix_sitl_default)
 
-include_directories(${PX4_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${PX4_SITL_BUILD}/src)
 include_directories(${PX4_SITL_BUILD}/src/modules)
 include_directories(${PX4_SITL_BUILD}/src/modules/param)
@@ -98,7 +94,7 @@ target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms/posix/work_q
 # check
 add_custom_target(check
 		COMMAND ${CMAKE_CTEST_COMMAND} -j2 --output-on-failure
-		WORKING_DIR ${PX4_BINARY_DIR}
+		WORKING_DIR ${CMAKE_BINARY_DIR}
 		USES_TERMINAL)
 
 # add_gtest
@@ -109,7 +105,7 @@ function(add_gtest)
 		else()
 			target_link_libraries(${test_name} gtest_main pthread rt px4_platform)
 		endif()
-		add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${PX4_SOURCE_DIR})
+		add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 		add_dependencies(check ${test_name})
 	endforeach()
 endfunction()
