@@ -12,7 +12,7 @@
     <arg name="ns" default="/"/>
     <arg name="build" default="posix_sitl_default"/>
 
-    <node name="sitl" pkg="px4" type="px4" output="screen"
+    <node name="sitl" pkg="px4" type="px4" output="log"
         args="$(find px4) $(arg rcS)">
     </node>
 
@@ -22,7 +22,7 @@
         <arg name="world_name" value="$(arg world)" />
     </include>
 
-    <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
+    <node name="$(anon vehicle_spawn)" output="log" pkg="gazebo_ros" type="spawn_model"
         args="-sdf -file $(arg sdf) -model $(arg vehicle)"/>
 
 
