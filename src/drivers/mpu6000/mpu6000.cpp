@@ -850,31 +850,31 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	   choose next highest filter frequency available
 	 */
 	if (frequency_hz == 0) {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
 
 	} else if (frequency_hz <= 5) {
-		filter = BITS_DLPF_CFG_5HZ;
+		filter = MPU_GYRO_DLPF_CFG_5HZ;
 
 	} else if (frequency_hz <= 10) {
-		filter = BITS_DLPF_CFG_10HZ;
+		filter = MPU_GYRO_DLPF_CFG_10HZ;
 
 	} else if (frequency_hz <= 20) {
-		filter = BITS_DLPF_CFG_20HZ;
+		filter = MPU_GYRO_DLPF_CFG_20HZ;
 
 	} else if (frequency_hz <= 42) {
-		filter = BITS_DLPF_CFG_42HZ;
+		filter = MPU_GYRO_DLPF_CFG_42HZ;
 
 	} else if (frequency_hz <= 98) {
-		filter = BITS_DLPF_CFG_98HZ;
+		filter = MPU_GYRO_DLPF_CFG_98HZ;
 
 	} else if (frequency_hz <= 188) {
-		filter = BITS_DLPF_CFG_188HZ;
+		filter = MPU_GYRO_DLPF_CFG_188HZ;
 
 	} else if (frequency_hz <= 256) {
-		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+		filter = MPU_GYRO_DLPF_CFG_256HZ_NOLPF2;
 
 	} else {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
