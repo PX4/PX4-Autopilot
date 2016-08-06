@@ -98,7 +98,6 @@ set(config_module_list
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/ekf2
 	modules/local_position_estimator
@@ -183,6 +182,9 @@ set(config_module_list
 
 	# Hardware test
 	#examples/hwtest
+
+	# EKF
+	examples/ekf_att_pos_estimator
 )
 
 set(config_extra_builtin_cmds
