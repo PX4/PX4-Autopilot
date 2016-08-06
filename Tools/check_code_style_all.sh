@@ -18,7 +18,6 @@ find src/ \
     -path src/modules/commander -prune -o \
     -path src/modules/ekf_att_pos_estimator -prune -o \
     -path src/modules/mavlink -prune -o \
-    -path src/modules/mc_att_control -prune -o \
     -path src/modules/mc_att_control_multiplatform -prune -o \
     -path src/modules/mc_pos_control -prune -o \
     -path src/modules/mc_pos_control_multiplatform -prune -o \
