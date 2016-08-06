@@ -396,7 +396,8 @@ private:
 	/*
 	  set low pass filter frequency
 	 */
-	void			_set_dlpf_filter(uint16_t frequency_hz);
+	void 			_set_dlpf_filter(uint16_t frequency_hz);
+	void 			_set_icm_acc_dlpf_filter(uint16_t frequency_hz);
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
@@ -743,6 +744,7 @@ int MPU6000::reset()
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
+	_set_icm_acc_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -878,6 +880,45 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
+}
+
+void
+MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
+{
+	uint8_t filter;
+
+	/*
+	   choose next highest filter frequency available
+	 */
+	if (frequency_hz == 0) {
+		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+
+	} else if (frequency_hz <= 5) {
+		filter = ICM_ACC_DLPF_CFG_5HZ;
+
+	} else if (frequency_hz <= 10) {
+		filter = ICM_ACC_DLPF_CFG_10HZ;
+
+	} else if (frequency_hz <= 21) {
+		filter = ICM_ACC_DLPF_CFG_21HZ;
+
+	} else if (frequency_hz <= 44) {
+		filter = ICM_ACC_DLPF_CFG_44HZ;
+
+	} else if (frequency_hz <= 99) {
+		filter = ICM_ACC_DLPF_CFG_99HZ;
+
+	} else if (frequency_hz <= 218) {
+		filter = ICM_ACC_DLPF_CFG_218HZ;
+
+	} else if (frequency_hz <= 420) {
+		filter = ICM_ACC_DLPF_CFG_420HZ;
+
+	} else {
+		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+	}
+
+	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
 }
 
 ssize_t
@@ -1288,6 +1329,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
 					_set_dlpf_filter(cutoff_freq_hz);
+					_set_icm_acc_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -1368,6 +1410,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
 		_set_dlpf_filter(arg);
+		_set_icm_acc_dlpf_filter(arg);
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
