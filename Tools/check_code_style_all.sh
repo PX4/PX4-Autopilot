@@ -8,7 +8,7 @@ fi
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-find src/ \
+find src \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/external_lgpl -prune -o \
@@ -16,10 +16,9 @@ find src/ \
     -path src/lib/matrix -prune -o \
     -path src/modules/attitude_estimator_ekf -prune -o \
     -path src/modules/commander -prune -o \
-    -path src/modules/ekf_att_pos_estimator -prune -o \
+    -path src/examples/ekf_att_pos_estimator -prune -o \
     -path src/modules/mavlink -prune -o \
-    -path src/modules/mc_att_control_multiplatform -prune -o \
-    -path src/modules/mc_pos_control_multiplatform -prune -o \
+    -path src/examples/attitude_estimator_ekf -prune -o \
     -path src/modules/navigator -prune -o \
     -path src/modules/sdlog2 -prune -o \
     -path src/modules/uavcan -prune -o \
