@@ -89,6 +89,15 @@
 #define MPUREG_TRIM2			0x0E
 #define MPUREG_TRIM3			0x0F
 #define MPUREG_TRIM4			0x10
+#define MPU_GYRO_DLPF_CFG_256HZ_NOLPF2	0x00
+#define MPU_GYRO_DLPF_CFG_188HZ		0x01
+#define MPU_GYRO_DLPF_CFG_98HZ		0x02
+#define MPU_GYRO_DLPF_CFG_42HZ		0x03
+#define MPU_GYRO_DLPF_CFG_20HZ		0x04
+#define MPU_GYRO_DLPF_CFG_10HZ		0x05
+#define MPU_GYRO_DLPF_CFG_5HZ		0x06
+#define MPU_GYRO_DLPF_CFG_2100HZ_NOLPF	0x07
+#define MPU_DLPF_CFG_MASK		0x07
 
 // Configuration bits MPU 3000 and MPU 6000 (not revised)?
 #define BIT_SLEEP				0x40
@@ -105,15 +114,6 @@
 #define BITS_FS_1000DPS			0x10
 #define BITS_FS_2000DPS			0x18
 #define BITS_FS_MASK			0x18
-#define BITS_DLPF_CFG_256HZ_NOLPF2	0x00
-#define BITS_DLPF_CFG_188HZ		0x01
-#define BITS_DLPF_CFG_98HZ		0x02
-#define BITS_DLPF_CFG_42HZ		0x03
-#define BITS_DLPF_CFG_20HZ		0x04
-#define BITS_DLPF_CFG_10HZ		0x05
-#define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_2100HZ_NOLPF	0x07
-#define BITS_DLPF_CFG_MASK		0x07
 #define BIT_INT_ANYRD_2CLEAR	0x10
 #define BIT_RAW_RDY_EN			0x01
 #define BIT_I2C_IF_DIS			0x10
@@ -124,6 +124,15 @@
 
 // ICM2608 specific registers
 
+#define ICMREG_ACCEL_CONFIG2		0x1D
+#define ICM_ACC_DLPF_CFG_1046HZ_NOLPF	0x00
+#define ICM_ACC_DLPF_CFG_218HZ		0x01
+#define ICM_ACC_DLPF_CFG_99HZ		0x02
+#define ICM_ACC_DLPF_CFG_44HZ		0x03
+#define ICM_ACC_DLPF_CFG_21HZ		0x04
+#define ICM_ACC_DLPF_CFG_10HZ		0x05
+#define ICM_ACC_DLPF_CFG_5HZ		0x06
+#define ICM_ACC_DLPF_CFG_420HZ		0x07
 /* this is an undocumented register which
    if set incorrectly results in getting a 2.7m/s/s offset
    on the Y axis of the accelerometer
