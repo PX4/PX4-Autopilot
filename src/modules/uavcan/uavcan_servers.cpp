@@ -506,6 +506,8 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						_esc_count = 0;
 						beep(_esc_enumeration_active ? 500.0F : 1000.0F, 0.5F);
 						uavcan::protocol::enumeration::Begin::Request req;
+						// TODO: Incorrect implementation; the parameter name field should be left empty.
+						//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 						req.parameter_name = "esc_index";
 						req.timeout_sec = _esc_enumeration_active ? 65535 : 0;
 						call_res = _enumeration_client.call(get_next_active_node_id(1), req);
@@ -776,6 +778,8 @@ void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan:
 	if (next_id < 128) {
 		// Still other active nodes to send the request to
 		uavcan::protocol::enumeration::Begin::Request req;
+		// TODO: Incorrect implementation; the parameter name field should be left empty.
+		//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 		req.parameter_name = "esc_index";
 		req.timeout_sec = _esc_enumeration_active ? 65535 : 0;
 
@@ -811,7 +815,7 @@ void UavcanServers::cb_enumeration_indication(const uavcan::ReceivedDataStructur
 	}
 
 	uavcan::protocol::param::GetSet::Request req;
-	req.name = "esc_index";
+	req.name = msg.parameter_name;                                           // 'esc_index' or something alike, the name is not standardized
 	req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
 
 	int call_res = _enumeration_getset_client.call(msg.getSrcNodeID(), req);
@@ -868,6 +872,8 @@ void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::
 
 		// Tell all ESCs to stop enumerating
 		uavcan::protocol::enumeration::Begin::Request req;
+		// TODO: Incorrect implementation; the parameter name field should be left empty.
+		//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 		req.parameter_name = "esc_index";
 		req.timeout_sec = 0;
 		int call_res = _enumeration_client.call(get_next_active_node_id(1), req);
