@@ -89,6 +89,7 @@
 #define MPUREG_CONFIG			0x1A
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
+#define MPUREG_ACCEL_CONFIG2		0x1D
 #define MPUREG_FIFO_EN			0x23
 #define MPUREG_INT_PIN_CFG		0x37
 #define MPUREG_INT_ENABLE		0x38
@@ -149,7 +150,7 @@
 #define BITS_ACC_DLPF_CFG_21HZ		0x04
 #define BITS_ACC_DLPF_CFG_10HZ		0x05
 #define BITS_ACC_DLPF_CFG_5HZ		0x06
-#define BITS_ACC_DLPF_CFG_420		0x07
+#define BITS_ACC_DLPF_CFG_420HZ		0x07
 #define BITS_DLPF_CFG_MASK		0x07
 #define BIT_INT_ANYRD_2CLEAR		0x10
 #define BIT_RAW_RDY_EN			0x01
@@ -456,6 +457,7 @@ private:
 	  set low pass filter frequency
 	 */
 	void _set_dlpf_filter(uint16_t frequency_hz);
+	void _set_acc_dlpf_filter(uint16_t frequency_hz);
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
@@ -782,6 +784,7 @@ int MPU6000::reset()
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
+	_set_acc_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -916,6 +919,45 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
+}
+
+void
+MPU6000::_set_acc_dlpf_filter(uint16_t frequency_hz)
+{
+	uint8_t filter;
+
+	/*
+	   choose next highest filter frequency available
+	 */
+	if (frequency_hz == 0) {
+		filter = BITS_ACC_DLPF_CFG_1046HZ_NOLPF;
+
+	} else if (frequency_hz <= 5) {
+		filter = BITS_ACC_DLPF_CFG_5HZ;
+
+	} else if (frequency_hz <= 10) {
+		filter = BITS_ACC_DLPF_CFG_10HZ;
+
+	} else if (frequency_hz <= 21) {
+		filter = BITS_ACC_DLPF_CFG_21HZ;
+
+	} else if (frequency_hz <= 44) {
+		filter = BITS_ACC_DLPF_CFG_44HZ;
+
+	} else if (frequency_hz <= 99) {
+		filter = BITS_ACC_DLPF_CFG_99HZ;
+
+	} else if (frequency_hz <= 218) {
+		filter = BITS_ACC_DLPF_CFG_218HZ;
+
+	} else if (frequency_hz <= 420) {
+		filter = BITS_ACC_DLPF_CFG_420HZ;
+
+	} else {
+		filter = BITS_ACC_DLPF_CFG_1046HZ_NOLPF;
+	}
+
+	write_checked_reg(MPUREG_ACCEL_CONFIG2, filter);
 }
 
 ssize_t
@@ -1326,6 +1368,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
 					_set_dlpf_filter(cutoff_freq_hz);
+					_set_acc_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -1400,6 +1443,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
 		_set_dlpf_filter(arg);
+		_set_acc_dlpf_filter(arg);
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
