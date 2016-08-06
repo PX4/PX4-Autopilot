@@ -660,6 +660,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	{
+		std::int32_t idle_throttle_when_armed = 0;
+		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &idle_throttle_when_armed);
+		_esc_controller.enable_idle_throttle_when_armed(idle_throttle_when_armed > 0);
+	}
+
 	ret = _hardpoint_controller.init();
 
 	if (ret < 0) {
