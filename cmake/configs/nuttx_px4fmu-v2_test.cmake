@@ -94,10 +94,9 @@ set(config_module_list
 	modules/land_detector
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	#modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/local_position_estimator
 	modules/ekf2
