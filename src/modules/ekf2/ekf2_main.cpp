@@ -486,7 +486,9 @@ void Ekf2::task_main()
 
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
-			if (range_finder.min_distance >= range_finder.current_distance || range_finder.max_distance <= range_finder.current_distance) {
+
+			if (range_finder.min_distance >= range_finder.current_distance
+			    || range_finder.max_distance <= range_finder.current_distance) {
 				range_finder_updated = false;
 			}
 		}
@@ -522,6 +524,7 @@ void Ekf2::task_main()
 		// read mag data
 		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
 			_ekf.setMagData(0, sensors.magnetometer_ga);
+
 		} else {
 			_ekf.setMagData(sensors.timestamp + sensors.magnetometer_timestamp_relative, sensors.magnetometer_ga);
 		}
@@ -529,6 +532,7 @@ void Ekf2::task_main()
 		// read baro data
 		if (sensors.baro_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
 			_ekf.setBaroData(0, &sensors.baro_alt_meter);
+
 		} else {
 			_ekf.setBaroData(sensors.timestamp + sensors.baro_timestamp_relative, &sensors.baro_alt_meter);
 		}
@@ -822,7 +826,8 @@ void Ekf2::task_main()
 				if (lpos.dist_bottom_valid) {
 					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
 					global_pos.terrain_alt_valid = true; // Terrain altitude estimate is valid
-	                        } else {
+
+				} else {
 					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
