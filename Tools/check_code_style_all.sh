@@ -21,7 +21,6 @@ find src/ \
     -path src/modules/mc_att_control_multiplatform -prune -o \
     -path src/modules/mc_pos_control_multiplatform -prune -o \
     -path src/modules/navigator -prune -o \
-    -path src/modules/position_estimator_inav -prune -o \
     -path src/modules/sdlog2 -prune -o \
     -path src/modules/uavcan -prune -o \
     -path src/modules/uavcan/libuavcan -prune -o \
