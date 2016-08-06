@@ -5,6 +5,14 @@
 #  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 
+# Serial map:
+# /dev/ttyS0: payload bay, e.g. gimbal
+# /dev/ttyS1: ?
+# /dev/ttyS2: nsh shell
+# /dev/ttyS3: ?
+# /dev/ttyS4: esc bus
+# /dev/ttyS5: ?
+
 #
 # Start CDC/ACM serial driver
 #
