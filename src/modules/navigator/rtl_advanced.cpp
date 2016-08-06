@@ -57,7 +57,7 @@ void RTLAdvanced::on_activation() {
 
 	// Init return path and setpoint triplet
 	float x, y, z;
-	if ((pos_sp_triplet->current.valid = _tracker->get_current_pos(current_pos_handle, x, y, z)))
+	if ((pos_sp_triplet->current.valid = _tracker->init_return_path(current_return_context, x, y, z)))
 		setpoint_from_xyz(pos_sp_triplet->current, x, y, z);
 
 	pos_sp_triplet->next.valid = false;
@@ -88,7 +88,7 @@ void RTLAdvanced::on_active() {
 			_navigator->set_rtl_variant(false);
 		}
 
-	} else if (_tracker && _tracker->is_close_to_pos(current_pos_handle)) {
+	} else if (_tracker && _tracker->is_context_close_to_head(current_return_context)) {
 		if (advance_setpoint_triplet(_navigator->get_position_setpoint_triplet()))
 			update_deadline(); // We made progress, update the deadline.
 		else
@@ -99,7 +99,7 @@ void RTLAdvanced::on_active() {
 void RTLAdvanced::update_deadline() {
 	updateParams();
 
-	land_after_deadline = _tracker->is_close_to_home(current_pos_handle);
+	land_after_deadline = _tracker->is_context_close_to_home(current_return_context);
 	float delay = land_after_deadline ? _param_land_delay.get() : _param_fallback_delay.get();
 	
 	if (delay < 0)
@@ -150,14 +150,14 @@ bool RTLAdvanced::advance_setpoint_triplet(position_setpoint_triplet_s *pos_sp_t
 		if (pos_sp_triplet->current.valid)
 			pos_sp_triplet->previous = pos_sp_triplet->current;
 		pos_sp_triplet->current = pos_sp_triplet->next;
-		current_pos_handle = next_pos_handle;
+		current_return_context = next_return_context;
 	} else {
-		next_pos_handle = current_pos_handle;
+		next_return_context = current_return_context;
 	}
 
 	// Load next setpoint
 	float x, y, z;
-	if ((pos_sp_triplet->next.valid = _tracker->get_path_to_home(next_pos_handle, x, y, z)))
+	if ((pos_sp_triplet->next.valid = _tracker->init_return_path(next_return_context, x, y, z)))
 		setpoint_from_xyz(pos_sp_triplet->next, x, y, z);
 	
 	// Apply updated setpoint triplet
@@ -167,5 +167,5 @@ bool RTLAdvanced::advance_setpoint_triplet(position_setpoint_triplet_s *pos_sp_t
 	//dump_setpoint("current", pos_sp_triplet->current, false);
 	//dump_setpoint("next", pos_sp_triplet->next, false);
 
-	return pos_sp_triplet->next.valid && !_tracker->is_same_pos(current_pos_handle, next_pos_handle);
+	return pos_sp_triplet->next.valid && !_tracker->is_same_pos(current_return_context, next_return_context);
 }
