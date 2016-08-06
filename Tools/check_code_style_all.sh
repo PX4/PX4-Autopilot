@@ -16,7 +16,6 @@ find src/ \
     -path src/lib/matrix -prune -o \
     -path src/modules/attitude_estimator_ekf -prune -o \
     -path src/modules/commander -prune -o \
-    -path src/modules/ekf2 -prune -o \
     -path src/modules/ekf_att_pos_estimator -prune -o \
     -path src/modules/mavlink -prune -o \
     -path src/modules/mc_att_control -prune -o \
