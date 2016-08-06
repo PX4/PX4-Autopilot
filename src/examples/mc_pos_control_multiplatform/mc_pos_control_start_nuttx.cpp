@@ -69,11 +69,11 @@ int mc_pos_control_m_main(int argc, char *argv[])
 		mc_pos_control_task_should_exit = false;
 
 		mc_pos_control_daemon_task = px4_task_spawn_cmd("mc_pos_control_m",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2500,
-				       mc_pos_control_start_main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 5,
+					     2500,
+					     mc_pos_control_start_main,
+					     (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		return 0;
 	}

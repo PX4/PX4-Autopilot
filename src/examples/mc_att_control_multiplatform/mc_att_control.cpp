@@ -72,28 +72,29 @@ MulticopterAttitudeControlMultiplatform::MulticopterAttitudeControlMultiplatform
 	_n(_appState),
 
 	/* parameters */
-	_params_handles({
-			.roll_p		= px4::ParameterFloat("MP_ROLL_P", PARAM_MP_ROLL_P_DEFAULT),
-			.roll_rate_p	= px4::ParameterFloat("MP_ROLLRATE_P", PARAM_MP_ROLLRATE_P_DEFAULT),
-			.roll_rate_i	= px4::ParameterFloat("MP_ROLLRATE_I", PARAM_MP_ROLLRATE_I_DEFAULT),
+	_params_handles(
+{
+	.roll_p		= px4::ParameterFloat("MP_ROLL_P", PARAM_MP_ROLL_P_DEFAULT),
+		.roll_rate_p	= px4::ParameterFloat("MP_ROLLRATE_P", PARAM_MP_ROLLRATE_P_DEFAULT),
+		    .roll_rate_i	= px4::ParameterFloat("MP_ROLLRATE_I", PARAM_MP_ROLLRATE_I_DEFAULT),
 			.roll_rate_d	= px4::ParameterFloat("MP_ROLLRATE_D", PARAM_MP_ROLLRATE_D_DEFAULT),
-			.pitch_p	= px4::ParameterFloat("MP_PITCH_P", PARAM_MP_PITCH_P_DEFAULT),
-			.pitch_rate_p	= px4::ParameterFloat("MP_PITCHRATE_P", PARAM_MP_PITCHRATE_P_DEFAULT),
-			.pitch_rate_i	= px4::ParameterFloat("MP_PITCHRATE_I", PARAM_MP_PITCHRATE_I_DEFAULT),
-			.pitch_rate_d	= px4::ParameterFloat("MP_PITCHRATE_D", PARAM_MP_PITCHRATE_D_DEFAULT),
-			.yaw_p		= px4::ParameterFloat("MP_YAW_P", PARAM_MP_YAW_P_DEFAULT),
-			.yaw_rate_p	= px4::ParameterFloat("MP_YAWRATE_P", PARAM_MP_YAWRATE_P_DEFAULT),
-			.yaw_rate_i	= px4::ParameterFloat("MP_YAWRATE_I", PARAM_MP_YAWRATE_I_DEFAULT),
-			.yaw_rate_d	= px4::ParameterFloat("MP_YAWRATE_D", PARAM_MP_YAWRATE_D_DEFAULT),
-			.yaw_ff		= px4::ParameterFloat("MP_YAW_FF", PARAM_MP_YAW_FF_DEFAULT),
-			.yaw_rate_max	= px4::ParameterFloat("MP_YAWRATE_MAX", PARAM_MP_YAWRATE_MAX_DEFAULT),
-			.acro_roll_max	= px4::ParameterFloat("MP_ACRO_R_MAX", PARAM_MP_ACRO_R_MAX_DEFAULT),
-			.acro_pitch_max	= px4::ParameterFloat("MP_ACRO_P_MAX", PARAM_MP_ACRO_P_MAX_DEFAULT),
-			.acro_yaw_max	= px4::ParameterFloat("MP_ACRO_Y_MAX", PARAM_MP_ACRO_Y_MAX_DEFAULT)
-	}),
+			    .pitch_p	= px4::ParameterFloat("MP_PITCH_P", PARAM_MP_PITCH_P_DEFAULT),
+				    .pitch_rate_p	= px4::ParameterFloat("MP_PITCHRATE_P", PARAM_MP_PITCHRATE_P_DEFAULT),
+				       .pitch_rate_i	= px4::ParameterFloat("MP_PITCHRATE_I", PARAM_MP_PITCHRATE_I_DEFAULT),
+					  .pitch_rate_d	= px4::ParameterFloat("MP_PITCHRATE_D", PARAM_MP_PITCHRATE_D_DEFAULT),
+					     .yaw_p		= px4::ParameterFloat("MP_YAW_P", PARAM_MP_YAW_P_DEFAULT),
+						      .yaw_rate_p	= px4::ParameterFloat("MP_YAWRATE_P", PARAM_MP_YAWRATE_P_DEFAULT),
+							   .yaw_rate_i	= px4::ParameterFloat("MP_YAWRATE_I", PARAM_MP_YAWRATE_I_DEFAULT),
+								.yaw_rate_d	= px4::ParameterFloat("MP_YAWRATE_D", PARAM_MP_YAWRATE_D_DEFAULT),
+								     .yaw_ff		= px4::ParameterFloat("MP_YAW_FF", PARAM_MP_YAW_FF_DEFAULT),
+									     .yaw_rate_max	= px4::ParameterFloat("MP_YAWRATE_MAX", PARAM_MP_YAWRATE_MAX_DEFAULT),
+										.acro_roll_max	= px4::ParameterFloat("MP_ACRO_R_MAX", PARAM_MP_ACRO_R_MAX_DEFAULT),
+										  .acro_pitch_max	= px4::ParameterFloat("MP_ACRO_P_MAX", PARAM_MP_ACRO_P_MAX_DEFAULT),
+										   .acro_yaw_max	= px4::ParameterFloat("MP_ACRO_Y_MAX", PARAM_MP_ACRO_Y_MAX_DEFAULT)
+}),
 
-	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+/* performance counters */
+_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
 {
 	/* fetch initial parameter values */
@@ -107,7 +108,7 @@ MulticopterAttitudeControlMultiplatform::MulticopterAttitudeControlMultiplatform
 	_v_rates_sp = _n.subscribe<px4_vehicle_rates_setpoint>(0);
 	_v_control_mode = _n.subscribe<px4_vehicle_control_mode>(0);
 	_parameter_update = _n.subscribe<px4_parameter_update>(
-			&MulticopterAttitudeControlMultiplatform::handle_parameter_update, this, 1000);
+				    &MulticopterAttitudeControlMultiplatform::handle_parameter_update, this, 1000);
 	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
 	_armed = _n.subscribe<px4_actuator_armed>(0);
 	_v_status = _n.subscribe<px4_vehicle_status>(0);
@@ -156,7 +157,8 @@ void MulticopterAttitudeControlMultiplatform::handle_parameter_update(const px4_
 	parameters_update();
 }
 
-void  MulticopterAttitudeControlMultiplatform::handle_vehicle_attitude(const px4_vehicle_attitude &msg) {
+void  MulticopterAttitudeControlMultiplatform::handle_vehicle_attitude(const px4_vehicle_attitude &msg)
+{
 
 	perf_begin(_loop_perf);
 
@@ -185,6 +187,7 @@ void  MulticopterAttitudeControlMultiplatform::handle_vehicle_attitude(const px4
 
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
+
 		} else {
 			if (_v_status->data().is_vtol) {
 				//XXX add a second publisher?
