@@ -134,14 +134,22 @@
 #define BITS_FS_1000DPS			0x10
 #define BITS_FS_2000DPS			0x18
 #define BITS_FS_MASK			0x18
-#define BITS_DLPF_CFG_256HZ_NOLPF2	0x00
-#define BITS_DLPF_CFG_188HZ		0x01
-#define BITS_DLPF_CFG_98HZ		0x02
-#define BITS_DLPF_CFG_42HZ		0x03
-#define BITS_DLPF_CFG_20HZ		0x04
-#define BITS_DLPF_CFG_10HZ		0x05
-#define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_2100HZ_NOLPF	0x07
+#define BITS_GYRO_DLPF_CFG_256HZ_NOLPF2	0x00
+#define BITS_GYRO_DLPF_CFG_188HZ	0x01
+#define BITS_GYRO_DLPF_CFG_98HZ		0x02
+#define BITS_GYRO_DLPF_CFG_42HZ		0x03
+#define BITS_GYRO_DLPF_CFG_20HZ		0x04
+#define BITS_GYRO_DLPF_CFG_10HZ		0x05
+#define BITS_GYRO_DLPF_CFG_5HZ		0x06
+#define BITS_GYRO_DLPF_CFG_2100HZ_NOLPF	0x07
+#define BITS_ACC_DLPF_CFG_1046HZ_NOLPF	0x00
+#define BITS_ACC_DLPF_CFG_218HZ		0x01
+#define BITS_ACC_DLPF_CFG_99HZ		0x02
+#define BITS_ACC_DLPF_CFG_44HZ		0x03
+#define BITS_ACC_DLPF_CFG_21HZ		0x04
+#define BITS_ACC_DLPF_CFG_10HZ		0x05
+#define BITS_ACC_DLPF_CFG_5HZ		0x06
+#define BITS_ACC_DLPF_CFG_420		0x07
 #define BITS_DLPF_CFG_MASK		0x07
 #define BIT_INT_ANYRD_2CLEAR		0x10
 #define BIT_RAW_RDY_EN			0x01
@@ -163,7 +171,7 @@
 // Product ID Description for ICM2608
 // There is none
 
-#define ICM20608_REV_00		0
+#define ICM20608_REV_00			0
 
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
@@ -880,31 +888,31 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	   choose next highest filter frequency available
 	 */
 	if (frequency_hz == 0) {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = BITS_GYRO_DLPF_CFG_2100HZ_NOLPF;
 
 	} else if (frequency_hz <= 5) {
-		filter = BITS_DLPF_CFG_5HZ;
+		filter = BITS_GYRO_DLPF_CFG_5HZ;
 
 	} else if (frequency_hz <= 10) {
-		filter = BITS_DLPF_CFG_10HZ;
+		filter = BITS_GYRO_DLPF_CFG_10HZ;
 
 	} else if (frequency_hz <= 20) {
-		filter = BITS_DLPF_CFG_20HZ;
+		filter = BITS_GYRO_DLPF_CFG_20HZ;
 
 	} else if (frequency_hz <= 42) {
-		filter = BITS_DLPF_CFG_42HZ;
+		filter = BITS_GYRO_DLPF_CFG_42HZ;
 
 	} else if (frequency_hz <= 98) {
-		filter = BITS_DLPF_CFG_98HZ;
+		filter = BITS_GYRO_DLPF_CFG_98HZ;
 
 	} else if (frequency_hz <= 188) {
-		filter = BITS_DLPF_CFG_188HZ;
+		filter = BITS_GYRO_DLPF_CFG_188HZ;
 
 	} else if (frequency_hz <= 256) {
-		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+		filter = BITS_GYRO_DLPF_CFG_256HZ_NOLPF2;
 
 	} else {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = BITS_GYRO_DLPF_CFG_2100HZ_NOLPF;
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
@@ -2384,7 +2392,6 @@ factorytest(bool external_bus)
 	}
 
 	(*g_dev_ptr)->factory_self_test();
-
 	exit(0);
 }
 
