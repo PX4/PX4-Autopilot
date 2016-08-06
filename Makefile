@@ -233,8 +233,8 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 
 gazebo_build:
 	@mkdir -p build_gazebo
@@ -282,6 +282,11 @@ check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
 	@./Tools/check_code_style_all.sh
+
+format:
+	$(call colorecho,"Formatting with astyle")
+	@./Tools/fix_code_style.sh
+	@./Tools/check_code_style_all.sh --fix
 
 check_%:
 	@echo
