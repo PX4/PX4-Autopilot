@@ -435,6 +435,7 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
+
 	if (_ts_opt_recovery != nullptr) {
 		delete _ts_opt_recovery;
 	}
@@ -717,7 +718,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		 * calculate angle and axis for R -> R_sp rotation directly */
 		math::Quaternion q_error;
 		q_error.from_dcm(R.transposed() * R_sp);
-		math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f: -q_error.imag() * 2.0f;
+		math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f : -q_error.imag() * 2.0f;
 
 		/* use fusion of Z axis based rotation and direct rotation */
 		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
