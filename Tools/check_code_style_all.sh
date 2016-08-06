@@ -19,7 +19,6 @@ find src/ \
     -path src/modules/ekf_att_pos_estimator -prune -o \
     -path src/modules/mavlink -prune -o \
     -path src/modules/mc_att_control_multiplatform -prune -o \
-    -path src/modules/mc_pos_control -prune -o \
     -path src/modules/mc_pos_control_multiplatform -prune -o \
     -path src/modules/navigator -prune -o \
     -path src/modules/position_estimator_inav -prune -o \
