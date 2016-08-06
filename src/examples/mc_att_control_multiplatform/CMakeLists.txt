@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__mc_att_control_multiplatform
+	MODULE examples__mc_att_control_multiplatform
 	MAIN mc_att_control_m
 	SRCS
 		mc_att_control_main.cpp

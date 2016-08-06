@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__mc_pos_control_multiplatform
+	MODULE examples__mc_pos_control_multiplatform
 	MAIN mc_pos_control_m
 	SRCS
 		mc_pos_control_main.cpp

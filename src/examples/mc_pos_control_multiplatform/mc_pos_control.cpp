@@ -43,7 +43,7 @@
 #include "mc_pos_control_params.h"
 /* The following inclue is needed because the pos controller depens on a parameter from attitude control to set a
  * reasonable yaw setpoint in manual mode */
-#include <mc_att_control_multiplatform/mc_att_control_params.h>
+#include "../mc_att_control_multiplatform/mc_att_control_params.h"
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA		0.000001f

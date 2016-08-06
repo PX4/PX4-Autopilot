@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__attitude_estimator_ekf
+	MODULE examples__attitude_estimator_ekf
 	MAIN attitude_estimator_ekf
 	STACK_MAIN 1200
 	COMPILE_FLAGS

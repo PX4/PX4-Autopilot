@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__ekf_att_pos_estimator
+	MODULE examples__ekf_att_pos_estimator
 	MAIN ekf_att_pos_estimator
 	COMPILE_FLAGS -Os
 	STACK_MAIN 3000
