@@ -40,67 +40,151 @@ inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {
     return is_close(to_fpos(pos1), pos2);
 }
 
-// dist_squared: Set to NULL to save some time if the value is not required
-//  If not NULL, it is guaranteed to receive a valid value.
-// coefficient: Set to NULL to save some time if the value is not required
-//  If not NULL, the output is only guaranteed to be valid if the function returned true OR dist_squared was also requested
-bool Tracker::is_close_to_line(ipos_t delta, ipos_t end, ipos_t point, int *dist_squared, float *coefficient) {
-    ipos_t point_to_end = end - point;
-    int distance_to_end_squared = point_to_end.x * point_to_end.x + point_to_end.y * point_to_end.y + point_to_end.z * point_to_end.z;
-    float distance_to_end = fast_sqrt(distance_to_end_squared, true);
-    int delta_length_squared = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
-    int dummy;
 
-    // If the point is not even close to the line, we omit the more expensive check.
-    if (distance_to_end > fast_sqrt(delta_length_squared, true) + GRID_SIZE && !dist_squared)
-        return false;
+int Tracker::dot(ipos_t vec1, ipos_t vec2) {
+    if (!fits_into_far_delta(vec1) || !fits_into_far_delta(vec2))
+        return INT_MAX;
+    return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
+}
 
-    // If the point is beyond the line end, check distance to end
-    if (delta.x * point_to_end.x + delta.y * point_to_end.y + delta.z * point_to_end.z <= 0) { // dot(delta, point_to_end) negative?
-        if (coefficient)
-            *coefficient = 0;
-        return (*(dist_squared ? dist_squared : &dummy) = point_to_end.x * point_to_end.x + point_to_end.y * point_to_end.y + point_to_end.z * point_to_end.z) <= GRID_SIZE * GRID_SIZE;
-    }
 
-    ipos_t point_to_start = point_to_end - delta;
+Tracker::ipos_t Tracker::get_point_to_line_delta(ipos_t point, ipos_t line_delta, ipos_t line_end, int &coef) {
+    // The negative coefficient is obtained by projecting the point along the line direction
+    coef = float_to_coef(dot(line_end - point, line_delta) / (float)dot(line_delta));
 
-    // If the point is beyond the line start, check distance to start
-    if (delta.x * point_to_start.x + delta.y * point_to_start.y + delta.z * point_to_start.z >= 0) { // dot(delta, point_to_start) positive?
-        if (coefficient)
-            *coefficient = 1;
-        return (*(dist_squared ? dist_squared : &dummy) = point_to_start.x * point_to_start.x + point_to_start.y * point_to_start.y + point_to_start.z * point_to_start.z) <= GRID_SIZE * GRID_SIZE;
-    }
+    // Constrain coefficient to beginning or end of line
+    int max_coefficient = MAX_COEFFICIENT;
+    coef = std::max(0, std::min(max_coefficient, coef));
 
-    // Calculate the area of the parallelogram that is spanned by line start, line end and the point
-    ipos_t cross = {
-        .x = delta.y * point_to_end.z - delta.z * point_to_end.y,
-        .y = delta.z * point_to_end.x - delta.x * point_to_end.z,
-        .z = delta.x * point_to_end.y - delta.y * point_to_end.x
-    };
-    int area_squared = cross.x * cross.x + cross.y * cross.y + cross.z * cross.z; 
+    // Return result
+    return line_end - apply_coef(line_delta, coef);
+}
 
-    // The parallelogram's area divided by the length of it's base (the length of delta) is it's height, aka the minimum distance between the point and the line.
-    if (dist_squared)
-        *dist_squared = area_squared / delta_length_squared;
 
-    bool is_close = area_squared <= GRID_SIZE * GRID_SIZE * delta_length_squared;
+Tracker::ipos_t Tracker::get_line_to_line_delta(ipos_t delta1, ipos_t end1, ipos_t delta2, ipos_t end2, int &coef1, int &coef2, bool pin_coef1, bool pin_coef2) {
     
-    // coefficient = length(end - closest-point-on-line) / length(end - start)
-    if (coefficient && (dist_squared || is_close))
-        *coefficient = fast_sqrt(distance_to_end_squared * delta_length_squared - area_squared, false) / (float)delta_length_squared;
+    // If either of the two coefficients is pinned, apply it to the line end
+    if (pin_coef1)
+        end1 -= apply_coef(delta1, coef1);
+    if (pin_coef2)
+        end2 -= apply_coef(delta2, coef2);
+    
+    if (pin_coef1 && pin_coef2)
+        return end2 - end1;
 
-    return is_close;
+    // A point-to-line distance is sufficient if a coefficient is pinned.
+    if (pin_coef1)
+        return get_point_to_line_delta(end1, delta2, end2, coef2);
+    if (pin_coef2)
+        return -get_point_to_line_delta(end2, delta1, end1, coef1);
+
+    // None of the coefficients are pinned, so we go on to calculate the true line-to-line delta
+    
+    // Find the direction that is normal to both lines (using cross product)
+    ipos_t normal = {
+        .x = delta1.y * delta2.z - delta1.z * delta2.y,
+        .y = delta1.z * delta2.x - delta1.x * delta2.z,
+        .z = delta1.x * delta2.y - delta1.y * delta2.x
+    };
+
+    TRACKER_DBG("line to line normal: %d %d %d", normal.x, normal.y, normal.z);
+
+    // Project a connection between both lines along the direction of the normal.
+    ipos_t end_to_end_delta = end2 - end1;
+    ipos_t temp_delta = to_ipos(to_fpos(normal) * (dot(end_to_end_delta, normal) / (float)dot(normal)));
+    
+    TRACKER_DBG("end-to-end factor: %d / %d = %.3f temp delta: %d %d %d", dot(end_to_end_delta, normal), dot(normal), (dot(end_to_end_delta, normal) / (float)dot(normal)), temp_delta.x, temp_delta.y, temp_delta.z);
+
+    // Remove the orthogonal component - the end-to-end delta is now a linear combination of both line directions
+    end_to_end_delta -= temp_delta;
+
+    // Now we have the following system of equations:
+    // (-delta1 delta2) * (coef1 coef2)^T = end_to_end_delta
+    //
+    // This is over-determined, so what we solve instead is:
+    // (coef1 coef2)^T = ((-delta1 delta2)^T * (-delta1 delta2))^-1 * (-delta1 delta2)^T * end_to_end_delta
+    //                    \---------------- A ----------------/       \---------------- b ----------------/
+    //
+    // A = | dot(-deltaA, -deltaA)   dot(-deltaA, deltaB) |
+    //     | dot(-deltaA, deltaB)    dot(deltaB, deltaB)  |
+
+    // Precalculate A and b
+    int delta1delta1 = dot(delta1, delta1);
+    int delta1delta2 = dot(delta1, delta2);
+    int delta2delta2 = dot(delta2, delta2);
+    int b1 = -dot(delta1, end_to_end_delta);
+    int b2 = dot(delta2, end_to_end_delta);
+
+    // Prepare inverse of A
+    float determinant = delta1delta1 * delta2delta2 - delta1delta2 * delta1delta2;
+
+    // Calculate coefficients and convert to integers
+    coef1 = float_to_coef((delta2delta2 * b1 + delta1delta2 * b2) / determinant);
+    coef2 = float_to_coef((delta1delta2 * b1 + delta1delta1 * b2) / determinant);
+
+    // If both coefficients are within the representable range, we can use this as the result
+    if (coef1 >= 0 && coef1 <= MAX_COEFFICIENT && coef2 >= 0 && coef2 <= MAX_COEFFICIENT) {
+        end1 -= apply_coef(delta1, coef1);
+        end2 -= apply_coef(delta2, coef2);
+
+        // The result should theoretically be equal to temp_delta.
+        // In practice, we will probably have a different discretization error when applying the coefficients.
+        // We want to be sure here that the delta is really what is obtained by applying the returned coefficient.
+        return end2 - end1;
+    }
+
+
+    // If a coefficient is out of reach, we need return one out of four possible point-to-line distances.
+    // There are probably optimizations we could apply to this, but it's probably not neccessary.
+
+    // Calculate the delta from each point to the other line.
+    int temp_coef1, temp_coef2;
+    ipos_t start1 = end1 - apply_coef(delta1, MAX_COEFFICIENT);
+    ipos_t start2 = end2 - apply_coef(delta2, MAX_COEFFICIENT);
+    ipos_t start1_to_line2 = get_point_to_line_delta(start1, delta2, end2, temp_coef2);
+    ipos_t start2_to_line1 = get_point_to_line_delta(start2, delta1, end1, temp_coef1);
+    ipos_t end1_to_line2 = get_point_to_line_delta(end1, delta2, end2, coef2);
+    ipos_t end2_to_line1 = get_point_to_line_delta(end2, delta1, end1, coef1);
+
+
+    TRACKER_DBG("delta1: (%d %d %d), delta2: (%d %d %d), delta3: (%d %d %d), delta4: (%d %d %d)",
+        start1_to_line2.x, start1_to_line2.y, start1_to_line2.z,
+        end1_to_line2.x, end1_to_line2.y, end1_to_line2.z,
+        start2_to_line1.x, start2_to_line1.y, start2_to_line1.z,
+        end2_to_line1.x, end2_to_line1.y, end2_to_line1.z);
+        
+
+    // Of all the point-to-line deltas, return the smallest one.
+    int best_to_line1 = std::min(dot(start2_to_line1), dot(end2_to_line1));
+    int best_to_line2 = std::min(dot(start1_to_line2), dot(end1_to_line2));
+
+    if (best_to_line1 < best_to_line2) {
+        if (dot(start2_to_line1) < best_to_line1) {
+            coef1 = temp_coef1;
+            coef2 = MAX_COEFFICIENT;
+            return -start2_to_line1;
+        } else { // end2_to_line1 is the shortest delta
+            coef2 = 0;
+            return -end2_to_line1;
+        }
+    } else {
+        if (dot(start1_to_line2) < best_to_line2) {
+            coef1 = MAX_COEFFICIENT; 
+            coef2 = temp_coef2;
+            return start1_to_line2;
+        } else { // end1_to_line2 is the shortest delta
+            coef1 = 0;
+            return end1_to_line2;
+        }
+    }
 }
 
 
-inline Tracker::graph_item_t Tracker::make_delta_item(ipos_t &from_pos, ipos_t &to_pos) {
-    int delta_x = to_pos.x - from_pos.x;
-    int delta_y = to_pos.y - from_pos.y;
-    int delta_z = to_pos.z - from_pos.z;
-    return ((delta_x & 0x1F) << 10) | ((delta_y & 0x1F) << 5) | ((delta_z & 0x1F) << 0);
+inline Tracker::delta_item_t Tracker::pack_compact_delta_item(ipos_t delta) {
+    return ((delta.x & 0x1F) << 10) | ((delta.y & 0x1F) << 5) | ((delta.z & 0x1F) << 0);
 }
 
-inline Tracker::ipos_t Tracker::as_delta_item(graph_item_t &delta) {
+inline Tracker::ipos_t Tracker::unpack_compact_delta_item(delta_item_t delta) {
     const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 5;
     return {
         .x = ((int)(delta << (SHIFT_COUNT - 10))) >> SHIFT_COUNT,
@@ -109,45 +193,30 @@ inline Tracker::ipos_t Tracker::as_delta_item(graph_item_t &delta) {
     };
 }
 
-inline int16_t Tracker::as_signed_data_item(graph_item_t &item) {
-    const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 14;
-    return ((int)((item & 0x3FFF) << SHIFT_COUNT)) >> SHIFT_COUNT;
+inline bool Tracker::fits_into_far_delta(ipos_t vec) {
+    return  (((vec.x >> 14) == 0) || ((vec.x >> 14) == -1)) &&
+            (((vec.y >> 14) == 0) || ((vec.y >> 14) == -1)) &&
+            (((vec.z >> 14) == 0) || ((vec.z >> 14) == -1));
+}
+
+int Tracker::get_accuracy_at(ipos_t pos) {
+    // todo: adapt accuracy to memory pressure
+    return GRID_SIZE * GRID_SIZE;
 }
 
 void Tracker::set_home(float x, float y, float z) {
-    home_position.x = x;
-    home_position.y = y;
-    home_position.z = z;
+    home_position = to_ipos({ .x = x, .y = y, .z = z });
 
-    // Reset the distance-to-home of all nodes and links to infinity
-    for (size_t index = 0; walk_forward(index, NULL, NULL, true);) {
-        size_t node = get_node_or_null(index);
- 
-        if (node == index) {
-            *get_node_payload_ptr(node) = make_data_item(UNSIGNED_DATA_ITEM_MAX);
-            
-            size_t link = node;
-            while (walk_node(node, link)) {
-                graph_item_t *link_attr_ptr = get_link_attr_ptr(link);
-                link_attributes_t attributes(*link_attr_ptr);
-                attributes.reset_dist_to_home_coef();
-                *link_attr_ptr = attributes.as_attr_item();
-            };
-        }
+    nodes->dirty = 1;
+
+    // Reset the distance-to-home of all nodes to infinity (except the home node)
+    for (size_t i = 1; i < node_count; i++) {
+        nodes[i].distance = MAX_DISTANCE;
     }
 
-    // Determine which index on the graph is now closest to home.
-    graph_home_index = get_closest_index(to_ipos(home_position), &graph_home_bias);
-    TRACKER_DBG("tracker received new home position: (%.2f, %.2f, %.2f), index %zu, bias %.3f", x, y, z, graph_home_index, graph_home_bias);
+    consolidate_graph();
 
-    // The home position shall not be consumed by the line detection
-    consolidate_index(graph_home_index);
-
-    // Reset dirty nodes to contain only the new home position
-    dirty_nodes_count = 0;
-    controlled_area_end = graph_next_write - 1;
-    controlled_area_end_distance = INFINITY;
-    invalidate_node(graph_home_index);
+    TRACKER_DBG("tracker received new home position %zu-%.2f (%.2f, %.2f, %.2f)", x, y, z, nodes->index1, coef_to_float(nodes->coef1));
 }
 
 void Tracker::update(float x, float y, float z) {
@@ -181,16 +250,16 @@ void Tracker::push_recent_path(fpos_t &position) {
         do {
             index = (index ? index : RECENT_PATH_LENGTH) - 1;
             
-            if (!is_delta_item(recent_path[index])) // If this item is a bumper, we shouldn't roll over this invalid position
+            if ((recent_path[index] >> 15) & 1) // If this item is a bumper, we shouldn't roll over this invalid position (todo: use far jump element as bumper)
                 break; 
 
-            head -= as_delta_item(recent_path[index]);
+            head -= unpack_compact_delta_item(recent_path[index]);
             rollback = is_close(head, position);
         } while ((index != recent_path_next_read) && !rollback);
 
         // If the preceding item would be a bumper, we shouldn't roll back to this invalid position
         if (rollback && index != recent_path_next_read)
-            if (!is_delta_item(recent_path[(index ? index : RECENT_PATH_LENGTH) - 1]))
+            if ((recent_path[(index ? index : RECENT_PATH_LENGTH) - 1] >> 15) & 1)
                 rollback = false;
     }
     
@@ -217,7 +286,7 @@ void Tracker::push_recent_path(fpos_t &position) {
         ipos_t old_head = to_ipos(recent_path_head);
         ipos_t new_head = to_ipos(position);
         
-        graph_item_t item = make_delta_item(old_head, new_head);
+        delta_item_t item = pack_compact_delta_item(new_head - old_head);
         
         recent_path_head = position;
         recent_path[recent_path_next_write] = item;
@@ -244,12 +313,12 @@ bool Tracker::pop_recent_path(fpos_t &position) {
     int last_index = (recent_path_next_write ? recent_path_next_write : RECENT_PATH_LENGTH) - 1;
 
     // Don't consume bumper item
-    if (!is_delta_item(recent_path[last_index]))
+    if ((recent_path[last_index] >> 15) & 1)
         return false;
     
     // Roll back most recent position
     ipos_t head = to_ipos(recent_path_head);
-    head -= as_delta_item(recent_path[last_index]);
+    head -= unpack_compact_delta_item(recent_path[last_index]);
     recent_path_head = to_fpos(head);
     
     if ((recent_path_next_write = last_index) == recent_path_next_read) {
@@ -270,673 +339,616 @@ bool Tracker::pop_recent_path(double &lat, double &lon, float &alt) {
 }
 
 
-size_t Tracker::get_cycle_head(size_t index) {
-    // Generally, we scan the entire link cycle to find the lowest index, but often we may recognize the cycle head earlier.
-    size_t initial_index = index;
-    size_t lowest_index = index;
-    do {
-        if (index + 1 < graph_next_write && !is_data_item(graph[index + 1]))
-            return index; // If a link item is not followed by a data item, it MUST be the cycle head 
-
-        index = as_link_item(graph[index]);
-
-        if (index < lowest_index)
-            lowest_index = index;
-    } while (index != initial_index);
-    return lowest_index;
-}
-
-
-size_t Tracker::get_node_or_null(size_t index) {
-    if (is_link_item(graph[index])) {
-        return index; // Index points to a cycle head
-    } else if (is_delta_item(graph[index])) {
-        return 0; // Index points to a compact delta item
-    }
-
-    if (is_link_item(graph[index - REGULAR_LINK_SIZE + 1])) {
-        index -= REGULAR_LINK_SIZE - 1; // Index points to a regular link
-    } else if (is_link_item(graph[index - MASTER_LINK_SIZE + 1])) {
-        index -= MASTER_LINK_SIZE - 1; // Index points to a master link
-    } else {
-        return 0; // Index points to a far jump
-    }
-
-    return get_cycle_head(index);
-}
-
-
-float Tracker::get_delta_length(size_t index) {
-    float result = 0;
-    walk_backward(index, NULL, &result, true);
-    return result;
-}
-
-
-Tracker::ipos_t Tracker::get_intra_node_delta(size_t link1, size_t link2) {
-    size_t node1 = get_node_or_null(link1);
-    size_t node2 = get_node_or_null(link2);
-
-    if (node1 != node2)
-        PX4_WARN("intra-node distance requested for unrelated links (%zu and %zu)", link1, link2);
-
-    if (!node1)
-        PX4_WARN("intra-node distance requested for non-link indices (%zu and %zu)", link1, link2);
-
-    ipos_t delta;
-    walk_backward(node1, &delta, NULL, true);
-    fpos_t fdelta = to_fpos(delta);
-
-    // note that node1 != node2 by now
-    float coef1 = link1 == node2 ? 0 : link_attributes_t{ *get_link_attr_ptr(link1) }.get_dist_to_node_coef();
-    float coef2 = link2 == node2 ? 0 : link_attributes_t{ *get_link_attr_ptr(link2) }.get_dist_to_node_coef();
-
-    return to_ipos(fdelta * coef1) - to_ipos(fdelta * coef2);
-}
-
-
-float Tracker::get_link_dist_to_node(size_t node, float node_delta_length, size_t index) {
-    if (!node || index == node)
-        return 0;
-    
-    link_attributes_t link_attributes(*get_link_attr_ptr(index));
-    return link_attributes.get_dist_to_node_coef() * node_delta_length;
-}
-
-
-float Tracker::get_link_dist_to_home(size_t node, float node_delta_length, size_t index) {
-    if (!node)
-        return 0;
-
-    if (index == graph_home_index)
-        return graph_home_bias;
-    
-    uint16_t node_to_home = as_unsigned_data_item(*get_node_payload_ptr(node));
-
-    if (node_to_home >= UNSIGNED_DATA_ITEM_MAX && node != graph_home_index)
-        return INFINITY;
-
-    if (index == node)
-        return node_to_home;
-    
-    link_attributes_t link_attributes(*get_link_attr_ptr(index));
-
-    if (node == graph_home_index)
-        return std::abs(graph_home_bias - link_attributes.get_dist_to_home_coef() * node_delta_length);
-
-    return (float)node_to_home + link_attributes.get_dist_to_home_coef() * node_delta_length;
-}
-
-
-bool Tracker::set_link_dist_to_home(size_t node, float node_delta_length, size_t index, float distance, bool backward) {
-    if (!node)
-        return false;
-
-    // We consider the base the point on the line where we're just reducing the distance-to-home
-    float base_dist_to_node = 0;
-    if (index != node) {
-        base_dist_to_node = node_delta_length * link_attributes_t{ *get_link_attr_ptr(index) }.get_dist_to_node_coef();
-    } else if (backward) {
-        base_dist_to_node = node_delta_length;
-        distance -= node_delta_length;
-    }
-
-    // Update the true node-to-home distance
-    graph_item_t *payload_ptr = get_node_payload_ptr(node);
-    int old_node_dist_to_home = as_unsigned_data_item(*payload_ptr);
-    int new_node_dist_to_home = std::min(round(distance + base_dist_to_node), old_node_dist_to_home);
-    *payload_ptr = make_data_item(new_node_dist_to_home);
-
-    // All other link distances are stored relative to the true node distance, so we need to adjust them accordingly
-    float node_improvement = (old_node_dist_to_home - new_node_dist_to_home) / node_delta_length;
-    bool significant_improvement = std::abs(node_improvement) >= 2;
-    bool did_change_anything = false;
-
-    // Update every link in the node (except the cycle head)
-    index = node;
-    while (walk_node(node, index)) {
-        // Calculate the alternative distance-to-home for this link, if we would use the base point that was updated initially
-        graph_item_t *link_attr_ptr = get_link_attr_ptr(index);
-        link_attributes_t curr_link_attributes(*link_attr_ptr);
-        float curr_dist_to_node = node_delta_length * curr_link_attributes.get_dist_to_node_coef();
-        float alt_dist_to_home = distance + std::fabs(base_dist_to_node - curr_dist_to_node);
- 
-        // Handle change in node-to-home distance
-        if (old_node_dist_to_home != new_node_dist_to_home) {
-            if (significant_improvement)
-                curr_link_attributes.reset_dist_to_home_coef();
-            else
-                curr_link_attributes.update_node_to_home(node_improvement);
-        }
-
-        // Update the attribute based on the alternative distance
-        // todo: not sure if this is ALWAYS evaluated, even if the left value is already true 
-        did_change_anything |= curr_link_attributes.decrease_dist_to_home_coef((alt_dist_to_home - new_node_dist_to_home) / node_delta_length);
-        *link_attr_ptr = curr_link_attributes.as_attr_item();
-    }
-
-    did_change_anything |= old_node_dist_to_home != new_node_dist_to_home;
-    
-    // If we just updated a node (potentially inside the controlled area), make sure it is marked dirty
-    if (did_change_anything)
-        invalidate_node(node);
-
-    return did_change_anything;
-}
-
-
-bool Tracker::is_same_pos(size_t index1, size_t index2) {
-    if (index1 == index2)
-        return true;
-
-    size_t node1 = get_node_or_null(index1);
-    size_t node2 = get_node_or_null(index2);
-    return node1 && node1 == node2;
-}
-
-
-bool Tracker::walk_forward(size_t &index, ipos_t *delta, float *distance, bool *compact_delta) {
-    if (index + 1 >= graph_next_write)
-        return (*compact_delta = false);
-    
-    ipos_t local_delta;
-    if (!delta)
-        delta = &local_delta;
-
-    graph_item_t item = graph[++index];
-
-    if (is_data_item(item)) {
-        delta->x = as_signed_data_item(item);
-        delta->y = as_signed_data_item(graph[++index]);
-        delta->z = as_signed_data_item(graph[++index]);
-        item = graph[++index]; // fetch link or reserved field (must be a data item)
-    }
-
-    if (is_link_item(item))
-        item = graph[as_link_item(item) + 2];
-    
-    if ((*compact_delta = is_delta_item(item))) {
-        *delta = as_delta_item(item);
-    } else {
-        // ignore reserved item for now
-    }
-
-    if (distance)
-        *distance += fast_sqrt(delta->x * delta->x + delta->y * delta->y + delta->z * delta->z, false);
-
-    // If this element contains a link, make sure we point at the end of it
-    if (index + 1 < graph_next_write && is_link_item(graph[index + 1])) {
-        size_t link = get_cycle_head(index + 1);
-        if (link != index + 1) {
-            link = as_link_item(graph[link]);
-            if (link == index + 1) {
-                index += MASTER_LINK_SIZE; // go to end of master link
-            } else {
-                index += REGULAR_LINK_SIZE; // go to end of regular link
-            }
-        }
-    }
-    
-    return true;
-}
-
-bool Tracker::walk_backward(size_t &index, ipos_t *delta, float *distance, bool *compact_delta) {
-    if (index <= 0)
-        return (*compact_delta = false);
-
-    ipos_t local_delta;
-    if (!delta)
-        delta = &local_delta;
-
-    graph_item_t item = graph[index--];
-
-    // Skip over link, possibly fetching the evicted item
-    if (is_link_item(item)) {
-        item = graph[as_link_item(item) + 2]; // skip over cycle head
-    } else if (is_data_item(item)) {
-        if (is_link_item(graph[index])) {
-            item = graph[(index -= REGULAR_LINK_SIZE) + 1]; // skip over regular link
-        } else if (is_link_item(graph[index - 2])) {
-            item = graph[(index -= MASTER_LINK_SIZE) + 1]; // skip over master link
-        } // else the item is part of a far jump - don't skip it
-    }
-
-    // Fetch compact or far delta
-    if ((*compact_delta = is_delta_item(item))) {
-        *delta = as_delta_item(item);
-    } else {
-        index -= FAR_JUMP_SIZE - 1;
-        delta->x = as_signed_data_item(graph[index + 1]);
-        delta->y = as_signed_data_item(graph[index + 2]);
-        delta->z = as_signed_data_item(graph[index + 3]);
-        // "item" holds a reserved value - ignore it for now
-    }
-
-    if (distance)
-        *distance += fast_sqrt(delta->x * delta->x + delta->y * delta->y + delta->z * delta->z, false);
-
-    return true;
-}
-
-
-size_t Tracker::walk_far_forward(size_t &index, size_t checkpoint, float &interval_length) {
-    while (walk_forward(index, NULL, &interval_length, false)) {
-        uint16_t node = get_node_or_null(index);
-        if (node)
-            return node;
-        else if (index == checkpoint)
-            return 0;
-    };
-
-    return 0;
-}
-
-
-size_t Tracker::walk_far_backward(size_t &index, size_t checkpoint, float &interval_length) {
-    while (walk_backward(index, NULL, &interval_length, false)) {
-        uint16_t node = get_node_or_null(index);
-        if (node)
-            return node;
-        else if (index == checkpoint)
-            return 0;
-    };
-
-    return 0;
-}
-
-
-inline bool Tracker::walk_node(size_t node, size_t &index) {
-    if (!node)
-        return false;
-    
-    if (index == as_link_item(graph[node]) + MASTER_LINK_SIZE - 1) {
-        index -= MASTER_LINK_SIZE - 1;
-    } else if (index != node){
-        index -= REGULAR_LINK_SIZE - 1;
-    }
-
-    index = as_link_item(graph[index]) + (index == node ? MASTER_LINK_SIZE : REGULAR_LINK_SIZE) - 1;
-    return index - 1 != node;
-}
-
-
 void Tracker::push_graph(fpos_t &position) {
-    if (graph_next_write > 4) {
-        if (is_link_item(graph[4]) && as_link_item(graph[4]) != 9) {
-            PX4_WARN("TRACKER INTEGRITY SUFFERED RECENTLY: %zu", as_link_item(graph[4]));
-        }
-    }
-
     ipos_t new_pos = to_ipos(position);
 
-    // Skip most checks if the graph is empty.
+    // Don't update if we're still close to the last known line
     if (graph_next_write) {
+        int coef;
+        bool is_jump;
+        ipos_t delta = get_point_to_line_delta(new_pos, fetch_delta(graph_next_write - 1, is_jump), graph_head_pos, coef);
+        if (!is_jump && dot(delta) <= get_accuracy_at(new_pos))
+            return;
+    }
 
-        // Don't update if we're still close to the last known line
-        float coefficient;
-        if (is_close_to_line(graph_current_delta, graph_current_line_end, new_pos, NULL, &coefficient)) {
-            graph_current_attributes = { coefficient, coefficient };
-            if (graph_current_attributes.is_valid())
-                return;
-        }
+    // Don't update if the graph is full
+    if (graph_next_write + FAR_DELTA_SIZE <= GRAPH_LENGTH) {
+        if (!graph_next_write)
+            consolidated_head_pos = new_pos;
 
-        int search_bound = GRAPH_SEARCH_RANGE < graph_next_write ? graph_next_write - GRAPH_SEARCH_RANGE : 0;
-        bool compact_delta;
+        push_delta(graph_next_write, new_pos - graph_head_pos, false);
+        graph_head_pos = new_pos;
         
-        ipos_t head = graph_head;
-        ipos_t delta;
-        size_t prev_index = graph_next_write - 1;
-        size_t next_index = graph_next_write - 1;
-        bool inhibit_link = true;
-
-        while (next_index > search_bound && walk_backward(next_index, &delta, NULL, &compact_delta)) {
-
-            // Check if we're close to the line we just found (in case it is valid)
-            if (compact_delta && is_close_to_line(delta, head, new_pos, NULL, &coefficient)) {
-                graph_current_attributes = { coefficient, coefficient };
-                TRACKER_DBG("I'm close to line %zu - %zu, with coefficient %f", next_index, prev_index, coefficient);
-
-                // If the closeness-check tells us that we're at the beginning of the line, ignore it because we can't store a coefficient of 1.
-                // If there is an adjacent line, we will find it later anyway.
-                // The very first line we handle specially.
-                if (!next_index && !graph_current_attributes.is_valid()) {
-                    graph_current_attributes = { 0, 0 };
-                    graph_current_delta = { .x = 0, .y = 0, .z = 0 };
-                    graph_current_line_end = head;
-                    graph_current_index = 0;
-                    TRACKER_DBG("vehicle moved to the graph start");
-
-                } else if (graph_current_attributes.is_valid()) {
-                    graph_current_delta = delta;
-                    graph_current_line_end = head;
-
-                    consolidate_index(prev_index);
-
-                    // If we were at the end of the graph, we append a delta and a link.
-                    // However, if we just moved back by one position, we don't want to create a link there.
-                    if (is_same_pos(graph_current_index, graph_next_write - 1)) {
-                        if (!inhibit_link) {
-                            push_compact_delta(graph_get_current_pos());
-                            push_link(prev_index, graph_current_attributes);
-                        }
-                    }
- 
-                    graph_current_index = prev_index;
-                    TRACKER_DBG("vehicle moved to already visited index %zu - %.3f * delta", graph_current_index, graph_current_attributes.get_dist_to_node_coef());
-                    return;
-                }
-            }
-
-            inhibit_link = prev_index == graph_next_write - 1;
-            prev_index = next_index;
-            head -= delta;
-        }
-
-
-        // If we were not at the end if the graph, we need to append a far jump and link it to the index we're coming from
-        if (!is_same_pos(graph_current_index, graph_next_write - 1)) {
-            ipos_t true_pos = graph_get_current_pos();
-            TRACKER_DBG("insert jump after %zu (node %zu), because current index is %zu (node %zu, pos %d, %d, %d)", graph_next_write - 1, get_node_or_null(graph_next_write - 1), graph_current_index, get_node_or_null(graph_current_index), true_pos.x, true_pos.y, true_pos.z);
-            push_far_delta(true_pos);
-            push_link(graph_current_index, graph_current_attributes);
-        }
-    }
-
-
-    // Add compact delta to current position
-    push_compact_delta(new_pos);
-
-    // Go to the new position
-    graph_current_index = graph_next_write - 1;
-    graph_current_delta = as_delta_item(graph[graph_current_index]);
-    graph_current_line_end = graph_head;
-    graph_current_attributes = { 0, 0 };
-}
-
-
-void Tracker::push_compact_delta(ipos_t destination) {
-    aggeregate_line(&destination);
-
-    if (graph_next_write + 1 > GRAPH_LENGTH)
-        return;
-
-    graph[graph_next_write++] = make_delta_item(graph_head, destination);
-    graph_head = destination;
-}
-
-
-void Tracker::push_far_delta(ipos_t destination) {
-    aggeregate_line(NULL);
-
-    if (graph_next_write + 4 > GRAPH_LENGTH)
-        return;
-
-    graph[graph_next_write++] = make_data_item(destination.x - graph_head.x);
-    graph[graph_next_write++] = make_data_item(destination.y - graph_head.y);
-    graph[graph_next_write++] = make_data_item(destination.z - graph_head.z);
-    graph[graph_next_write++] = make_data_item(0); // append reserved item
-    graph_head = destination;
-}
-
-
-void Tracker::push_link(size_t index, link_attributes_t attributes) {
-    if (index == 4)
-        PX4_WARN("create node 4 to %zu (if master)", graph_next_write + 3);
-
-    consolidate_index(index);
-    aggeregate_line(NULL);
-
-    if (graph_next_write + 4 > GRAPH_LENGTH)
-        return;
-
-	size_t node;
-
-	if (is_data_item(graph[index])) {
-	    if (is_link_item(graph[index - REGULAR_LINK_SIZE + 1]))
-            index -= REGULAR_LINK_SIZE - 1;
-        else if (is_link_item(graph[index - MASTER_LINK_SIZE + 1]))
-	        index -= MASTER_LINK_SIZE - 1;
-    }
-
-	// Evict existing item by inserting a link to the current position (which is where the back-link will be placed)
-	graph_item_t item = graph[index];
-    TRACKER_DBG("evict item at %zu by putting link to %zu", index, graph_next_write);
-	graph[index] = make_link_item(graph_next_write);
-
-	if (!is_link_item(item)) {
-        TRACKER_DBG("append master link");
-        // Append master link
-	    graph[graph_next_write++] = make_link_item(node = index); // new link item pointing to the cycle head
-        graph[graph_next_write++] = attributes.as_attr_item(); // attributes
-	    graph[graph_next_write++] = item; // evicted delta item
-	    graph[graph_next_write++] = make_data_item(UNSIGNED_DATA_ITEM_MAX); // node payload
+        if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEPT)
+            consolidate_graph();
     } else {
-        TRACKER_DBG("append regular link to head %zu", as_link_item(item));
-        // Append regular link
-	    graph[graph_next_write++] = item; // evicted link item
-        graph[graph_next_write++] = attributes.as_attr_item(); // attributes
-	    node = get_cycle_head(index);
+        // todo: cleanup-pass
+        consolidate_graph();
     }
+}
+
+bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_space) {
+    int max_val = std::max(std::max(delta.x, delta.y), delta.z);
+    int min_val = std::min(std::min(delta.x, delta.y), delta.z);
+
+    // If the delta is too large for a single compact delta item, we split it into multiple items
+    int split_count = 1;
+    if (max_val > COMPACT_DELTA_MAX || min_val < COMPACT_DELTA_MIN)
+        split_count = (int)ceil(std::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
+
+    int far_delta_size = FAR_DELTA_SIZE;
+    split_count = std::min(split_count, far_delta_size);
     
-	// Make sure the node will be updated when required.
-	invalidate_node(node);
+    if (max_space < split_count)
+        return false;
+
+    if (split_count >= FAR_DELTA_SIZE || jump) {
+        if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
+            PX4_ERR("delta overflow in tracker");
+
+        graph[index++] = (delta.x & 0x7FFF) | 0x8000;
+        graph[index++] = (delta.y & 0x7FFF) | jump ? 0x8000 : 0;
+        graph[index++] = (delta.z & 0x7FFF) | 0x8000;
+
+    } else {
+
+        ipos_t compact_delta_sum = { .x = 0, .y = 0, .z = 0 };
+        for (int i = 1; i < split_count; i++) {
+            ipos_t compact_delta = to_ipos(to_fpos(delta) * ((float)i / (float)split_count)) - compact_delta_sum;
+            graph[index++] = pack_compact_delta_item(compact_delta);
+            compact_delta_sum += compact_delta;
+        }
+        delta -= compact_delta_sum;
+
+        graph[index++] = pack_compact_delta_item(delta);
+    }
+
+    return true;
+}
+
+Tracker::ipos_t Tracker::fetch_delta(size_t index, bool &is_jump) {
+    const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 15;
+
+    if (!((graph[index] >> 15) & 1)) {
+        is_jump = false;
+        return unpack_compact_delta_item(graph[index]);
+    }
+
+    is_jump = (graph[index - 1] >> 15) & 1;
+    return {
+        .x = ((int)((graph[index - 2] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
+        .y = ((int)((graph[index - 1] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
+        .z = ((int)((graph[index - 0] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT
+    };
+}
+
+Tracker::ipos_t Tracker::walk_forward(size_t &index, bool &is_jump) {
+    if ((graph[index + 1] >> 15) & 1)
+        return fetch_delta(index += FAR_DELTA_SIZE, is_jump);
+    else
+        return fetch_delta(index += 1, is_jump);
+}
+
+Tracker::ipos_t Tracker::walk_backward(size_t &index, bool &is_jump) {
+    ipos_t delta = fetch_delta(index, is_jump);
+
+    if ((graph[index] >> 15) & 1)
+        index -= FAR_DELTA_SIZE;
+    else
+        index -= 1;
+
+    return delta;
 }
 
 
-void Tracker::aggeregate_line(ipos_t *new_pos) {
-    ipos_t new_line_delta = new_pos ? (*new_pos - graph_head) : ipos_t{ .x = 0, .y = 0, .z = 0 };
-    bool should_aggeregate = !new_pos;
+bool Tracker::push_node(node_t &node) {
+    if (node_count >= NODE_BUFFER_SIZE)
+        return false;
 
-    bool current_index_is_at_head = is_same_pos(graph_current_index, graph_next_write - 1);
-    if (!current_index_is_at_head)
-        consolidate_index(graph_current_index);
+    nodes[node_count++] = node;
+    have_dirty_nodes = true;
+    return true; // todo: take some action if the buffer becomes full
+}
 
-    // Don't proceed if there graph is empty
+
+void Tracker::remove_nodes(size_t lower_bound, size_t upper_bound) {
+    for (size_t i = 1; i < node_count; i++) {
+        if ((lower_bound < nodes[i].index1 && nodes[i].index1 <= upper_bound) ||
+            (lower_bound < nodes[i].index2 && nodes[i].index2 <= upper_bound)) {
+            memcpy(nodes + i, nodes + i + 1, --node_count - i);
+            i--;
+        }
+    }
+}
+
+
+bool Tracker::is_close_to_graph(ipos_t position, size_t lower_bound, size_t upper_bound, ipos_t pos_at_upper_bound) {
+    int accuracy_squared = get_accuracy_at(position);
+
+    while (upper_bound > lower_bound) {
+        bool is_jump;
+        ipos_t delta = walk_backward(upper_bound, is_jump);
+        
+        int coef;
+        delta = is_jump ? (position - pos_at_upper_bound) : get_point_to_line_delta(position, delta, pos_at_upper_bound, coef);
+        
+        if (dot(delta) <= accuracy_squared)
+            return true;
+
+        pos_at_upper_bound -= delta;
+    }
+
+    return false;
+}
+
+
+Tracker::ipos_t Tracker::get_closest_position(ipos_t position, size_t &best_index, unsigned int &best_coef) {
+
+    ipos_t pos = graph_head_pos;
+    size_t index = graph_next_write ? (graph_next_write - 1) : 0;
+    int coef;
+
+    int best_dist_squared = INT_MAX;
+    ipos_t best_pos = { .x = 0, .y = 0, .z = 0 };
+    best_index = 0;
+    best_coef = 0;
+
+    while (index) {
+        size_t prev_index = index;
+        bool is_jump;
+        ipos_t delta = walk_backward(index, is_jump);
+        
+        int dummy = 0;
+        delta = get_line_to_line_delta(delta, pos, { .x = 0, .y = 0, .z = 0 }, position, coef = 0, dummy, is_jump, true);
+        int distance_squared = dot(delta);
+        
+        if (best_dist_squared > distance_squared) {
+            best_dist_squared = distance_squared;
+            best_pos = position - delta;
+            best_index = prev_index;
+            best_coef = coef;
+        }
+
+        pos -= delta;
+    }
+
+    return best_pos;
+}
+
+
+bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size_t end_index, bool should_be_jump) {
+    ipos_t line_delta = end_pos - start_pos;
+    ipos_t pos = end_pos;
+
+    // The efficiency gain of prefetching the accuracy seems to outweigh the corner-cases there the accuracy along the line should be higher than on both ends.
+    int squared_accuracy = std::min(get_accuracy_at(start_pos), get_accuracy_at(end_pos));
+
+    // Intuitively, it seems that walking backward allows us to break earlier than walking forward.
+
+    for (;;) {
+        bool is_jump;
+        pos -= walk_backward(end_index, is_jump);
+
+        // The line must have a uniform jump property.
+        if (is_jump != should_be_jump)
+            return false;
+
+        if (end_index <= start_index)
+            return true;
+
+        int coef;
+        ipos_t delta = get_point_to_line_delta(pos, line_delta, end_pos, coef);
+        if (dot(delta) > squared_accuracy)
+            return false;
+    }
+}
+
+
+void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end_pos, size_t &end_index, bool &is_jump, size_t bound) {
+    ipos_t next_end_pos = start_pos;
+    size_t next_end_index = start_index;
+
+    do {
+        end_index = next_end_index;
+        end_pos = next_end_pos;
+        next_end_pos += walk_forward(next_end_index, is_jump);
+    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, is_jump) && next_end_index <= bound);
+}
+
+
+// Finds the line on the graph that is closest to the provided line. Jumps are not considered lines.
+//  line_delta, line_end: the delta and end of the line against which we want to compare
+//  lower_bound, upper_bound: marks the search bounds (lower bound < returned index <= upper bound)
+//  pos_at_bound: the position corresponding to upper_bound
+//  index: set to the index of the closest line (0 if no line was found)
+// Returns: the delta from somewhere (coef1) on the input line to somewhere (coef2) on another line.
+/*Tracker::ipos_t Tracker::get_best_line_to_line_delta(ipos_t line_delta, ipos_t line_end, size_t lower_bound, size_t upper_bound, ipos_t pos_at_bound, size_t &index, int &coef1, int &coef2) {
+    int best_distance_squared = MAX_INT;
+    ipos_t best_index = 0;
+    ipos_t best_delta = { .x = FAR_DELTA_MAX, .y = FAR_DELTA_MAX, .z = FAR_DELTA_MAX };
+
+    while (upper_bound > lower_bound) {
+        size_t prev_index = upper_bound;
+        bool is_jump;
+        walk_backward(upper_bound, delta, is_jump);
+
+        // Ignore jumps
+        if (is_jump) {
+            pos_at_upper_bound -= delta;
+            continue;
+        }
+        
+        int temp_coef1, temp_coef2;
+        size_t line_to_line_delta = get_line_to_line_delta(delta, pos_at_index, line_delta, line_end, temp_coef1, temp_coef2);
+
+        pos_at_upper_bound -= delta;
+
+        int distance_squared = dot(line_to_line_delta) 
+        if (best_distance_squared > distance_squared) {
+            best_distance_squared = distance_squared;
+            best_delta = line_to_line_delta;
+            best_index = prev_index;
+            coef1 = temp_coef1;
+            coef2 = temp_coef2;
+        }
+    }
+
+    index = best_index;
+    return best_delta;
+}*/
+
+
+// Consolidates the most recent positions on the graph, by applying some optimizations:
+//  1. Consecutive positions that lie roughly on a line are aggeregated.
+//  2. If multiple consecutive positions lie close to the graph, they are removed and replaced by a jump.
+//  3. For lines that pass close to each other, a node is created.
+// The entire tracker is guaranteed to remain consistent, however exposed indices may become invalid.
+void Tracker::consolidate_graph() {
+    TRACKER_DBG("consolidating graph from %zu to %zu", consolidated_head_index, graph_next_write - 1);
+
+    // Abort if the graph is empty
     if (!graph_next_write)
         return;
 
-    ipos_t delta;
-    ipos_t head = graph_head;
-    size_t index = graph_next_write - 1;
+    // Remove any nodes that refer to the area that will be modified.
+    // Any nodes for that area will be newly created anyway.
+    remove_nodes(consolidated_head_index, graph_next_write - 1);
 
-    // Determine where the line (if any) should start from.
-    while (index > line_detection_bound) {
+    /*** Pass 1: detect lines ***/
 
-        // Don't aggeregate beyond a node
-        if (get_node_or_null(index))
-            break;
+    ipos_t pos = consolidated_head_pos;
+    size_t read_index = consolidated_head_index;
+    size_t write_index = read_index + 1;
 
-        // Don't aggeregate beyond a far jump
-        size_t prev_index = index;
-        if (!walk_backward(index, &delta, NULL, false)) {
-            index = prev_index;
-            break;
+    // read_index and (write_index - 1) always correspond to the same position.
+    // They start out to be equal, and the gap between them increases as consolidation moves on.
+
+    while (read_index < graph_next_write - 1) {
+        bool is_jump;
+        ipos_t line_end_pos;
+        size_t line_end_index;
+        get_longest_line(pos, read_index, line_end_pos, line_end_index, is_jump, graph_next_write - 1);
+        
+        // Push the line delta ONLY if it uses less space than the original deltas
+        if (push_delta(write_index, line_end_pos - pos, is_jump, line_end_index - read_index)) {
+            TRACKER_DBG("aggeregated %zu to %zu into line %zu", read_index, line_end_index, write_index - 1);
+            read_index = line_end_index;
         }
 
-        head -= delta;
-        new_line_delta += delta;
+        // Copy the deltas that were not aggeregated into a line
+        while (read_index < line_end_index)
+            push_delta(write_index, walk_forward(read_index, is_jump), is_jump);
+        
+        pos = line_end_pos;
+    }
+    
+    graph_next_write = write_index;
 
-        // If expanding to the new point would make the delta too long, we need to aggeregate before it is too late
-        if (is_too_large(new_line_delta)) {
-            should_aggeregate = true;
-            break;
+
+    /*** Pass 2: remove positions that are already in the graph ***/
+
+    pos = consolidated_head_pos;
+    read_index = consolidated_head_index;
+    write_index = read_index + 1;
+
+    // Keep track of the index/position from where we may overwrite previously copied deltas.
+    size_t overwrite_index = write_index;
+    ipos_t pos_at_overwrite_index = pos;
+    bool is_close = false;
+
+    while (read_index < graph_next_write - 1) {
+        bool is_jump;
+        ipos_t prev_pos = pos;
+        ipos_t delta = walk_forward(read_index, is_jump);
+        pos += delta;
+
+        // We copy each position optimistically, even if it turns out that it will be deleted later on.
+        size_t prev_write_index = write_index;
+        push_delta(write_index, delta, is_jump);
+
+        // If the last position wasn't close to the graph, we must definitely keep this one.
+        if (!is_close) {
+            overwrite_index = write_index;
+            pos_at_overwrite_index = pos;
+        }
+
+        // Scan the graph to see if any line is close to the current position
+        is_close = is_close_to_graph(pos, overwrite_index > GRAPH_SEARCH_RANGE ? overwrite_index - GRAPH_SEARCH_RANGE : 0, overwrite_index - 1, pos_at_overwrite_index);
+
+        // As soon as we encounter a position which is not close to the graph, we see if we can remove some preceeding positions
+        if (!is_close) {
+            
+            // If the last few positions were close to the graph, replace them by a jump
+            if (overwrite_index < prev_write_index) {
+                size_t max_space = prev_write_index - overwrite_index;
+                if (push_delta(overwrite_index, prev_pos - pos_at_overwrite_index, true, max_space)) {
+                    // We append the last position once again and go on from there
+                    push_delta(write_index = overwrite_index, delta, is_jump);
+
+                    TRACKER_DBG("replaced redundant path of size %zu by a jump at %zu", max_space, write_index - 1);
+                }
+            }
+
+            // If this branch was taken, the last important position will be re-initialized once it becomes relevant
         }
     }
 
-    ipos_t line_start = head;
-    line_detection_bound = index;
-    // head does now coincide with line_detection_bound
+    graph_next_write = write_index;
 
-    if (!should_aggeregate) {
-        // Check if expanding the line to the new point would violate the recording accuracy for any point 
-        while (walk_forward(index, &delta, NULL, false)) {
-            head += delta;
-            if (!is_close_to_line(new_line_delta, *new_pos, head, NULL, NULL)) {
-                should_aggeregate = true;
+
+    /*** Pass 3: detect nodes ***/
+
+    pos = consolidated_head_pos;
+    read_index = consolidated_head_index;
+
+    while (read_index < graph_next_write - 1) {
+
+        ipos_t inner_pos = pos;
+        size_t search_index = read_index;
+
+        bool is_jump;
+        ipos_t delta = walk_forward(read_index, is_jump);
+        pos += delta;
+
+        int squared_accuracy = get_accuracy_at(pos);
+        size_t search_bound = read_index > GRAPH_SEARCH_RANGE ? read_index - GRAPH_SEARCH_RANGE : 0;
+
+        while (search_index > search_bound) {
+
+            // Prepare a node in case we need it
+            node_t node = {
+                .index1 = (uint16_t)read_index,
+                .index2 = (uint16_t)search_index,
+                .coef1 = 0,
+                .coef2 = 0,
+                .use_line2 = 0,
+                .dirty = 1,
+                .distance = MAX_DISTANCE
+            };
+
+            bool is_inner_jump;
+            int coef1, coef2;
+            ipos_t inner_delta = walk_backward(search_index, is_inner_jump);
+            ipos_t line_to_line = get_line_to_line_delta(delta, pos, inner_delta, inner_pos, coef1, coef2, is_jump, is_inner_jump);
+
+            // If the node would be at the beginning of the line, defer the node creation to the next line (unless we're about to terminate the search)
+            if (node.coef2 >= MAX_COEFFICIENT && search_index > search_bound)
+                continue;
+
+            if (dot(line_to_line) <= squared_accuracy) {
+                if (coef1 < 0 || coef1 > MAX_COEFFICIENT || coef2 < 0 || coef2 > MAX_COEFFICIENT)
+                    PX4_WARN("delta coefficient out of range: have %d and %d", coef1, coef2);
+                node.coef1 = coef1;
+                node.coef2 = coef2;
+                node.delta = pack_compact_delta_item(line_to_line);                
+                
+                push_node(node);
+            }
+            
+            inner_pos -= inner_delta;
+        }
+    }
+
+
+    // Sanitize home position
+    size_t home_index;
+    unsigned int home_coef;
+    home_on_graph = get_closest_position(home_position, home_index, home_coef);
+    if (nodes->index1 != home_index || nodes->coef1 != home_coef) {
+        nodes->index1 = home_index;
+        nodes->coef1 = home_coef;
+        have_dirty_nodes = true;
+    }
+
+    // Finalize the consolidation
+    consolidated_head_pos = graph_head_pos;
+    consolidated_head_index = graph_next_write - 1;
+    graph_version++;
+
+    TRACKER_DBG("consolidation complete, graph reduced to %zu", graph_next_write - 1);
+}
+
+
+bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forward, size_t search_bound) {
+    bool is_jump;
+    ipos_t delta = fetch_delta(index, is_jump);
+    float pos_to_line_end_dist = fast_sqrt(dot(apply_coef(delta, coef)), false);
+
+    // Tweak the starting position a bit, so we don't match the exact same position where we left off
+    if (!forward)
+        coef++;
+
+    for (;;) {
+        // Look through all nodes to find one that lies on the current line in the direction of travel
+        for (size_t i = 0; i < node_count; i++) {
+            if (nodes[i].index1 == index || nodes[i].index2 == index) {
+                int node_coef = nodes[i].index1 == index ? nodes[i].coef1 : nodes[i].coef2;
+                if (forward ? (node_coef < coef) : (node_coef >= coef)) {
+                    float node_to_line_end_dist = fast_sqrt(dot(apply_coef(delta, node_coef)), false);
+                    distance += std::abs(pos_to_line_end_dist - node_to_line_end_dist);
+                    coef = node_coef;
+                    return true;
+                }
+            }
+        }
+
+        // Walk in the direction of travel
+        if (forward) {
+            distance += pos_to_line_end_dist;
+            if (index >= search_bound)
                 break;
+            delta = walk_forward(index, is_jump);
+            if (is_jump)
+                break;
+            coef = MAX_COEFFICIENT + 1;
+            pos_to_line_end_dist = fast_sqrt(dot(delta), false);
+        } else {
+            if (is_jump)
+                break;
+            distance += fast_sqrt(dot(delta), false) - pos_to_line_end_dist;
+            delta = walk_backward(index, is_jump);
+            if (index <= search_bound)
+                break;
+            coef = 0;
+            pos_to_line_end_dist = 0;
+        }
+    }
+
+    return false;
+}
+
+
+float Tracker::apply_node_delta(size_t &index, unsigned int &coef, ipos_t *delta) {
+    float best_distance = INFINITY;
+    size_t best_index = index;
+    int best_coef = coef;
+    
+    if (delta)
+        *delta = { .x = 0, .y = 0, .z = 0 };
+
+    // Consider all intersections at the specified position and use the one with the smallest distance home.
+    for (size_t i = 0; i < node_count; i++) {
+        if ((nodes[i].index1 == index && nodes[i].coef1 == coef) || (nodes[i].index2 == index && nodes[i].coef2 == coef)) {
+            float distance = nodes[i].distance == MAX_DISTANCE ? FLT_MAX : (float)nodes[i].distance;
+            
+            // If the node is far from home, we arbitrarily prefer the line with the lowest index.
+            // This is in line with the decision that we prefer to walk backward. Thus, in case of
+            // unknown distances, at least we strictly minimize the index and don't get stuck in an infinite loop.
+            if (distance >= FLT_MAX)
+                nodes[i].use_line2 = nodes[i].index2 < nodes[i].index1;
+
+            if (best_distance > distance) {
+                best_distance = distance;
+                best_index = nodes[i].use_line2 ? nodes[i].index2 : nodes[i].index1;
+                best_coef = nodes[i].use_line2 ? nodes[i].coef2 : nodes[i].coef1;
+                //move_forward = node[i].move_forward;
+                
+                if (delta) {
+                    // If we don't change lines, the delta is 0
+                    if (index == (nodes[i].use_line2 ? nodes[i].index2 : nodes[i].index1))
+                        *delta = { .x = 0, .y = 0, .z = 0 };
+                    else if (nodes[i].use_line2)
+                        *delta = unpack_compact_delta_item(nodes[i].delta);
+                    else
+                        *delta = -unpack_compact_delta_item(nodes[i].delta);
+                }
             }
         }
     }
 
-    if (line_detection_bound == graph_next_write - 1)
-        should_aggeregate = false;
-
-    // If we decided to aggeregate the recent deltas to a line, append the line delta item and go on from there
-    if (should_aggeregate) {
-        if (line_detection_bound + 1 < graph_next_write - 1)
-            TRACKER_DBG("aggeregated %zu deltas into a line at %zu", graph_next_write - 1 - line_detection_bound, line_detection_bound + 1);
-        
-        graph_next_write = line_detection_bound + 1;
-        graph[graph_next_write++] = make_delta_item(line_start, graph_head);
-        //if (current_index_is_at_head)
-        //    graph_current_index = graph_next_write - 1;
-        line_detection_bound++; // any later line detection must not remove the end of this line, so we move the search bound there
-    }
+    index = best_index;
+    coef = best_coef;
+    return best_distance;
 }
 
 
-void Tracker::consolidate_index(size_t index) {
-    if (line_detection_bound < index)
-        line_detection_bound = index;
-}
+bool Tracker::set_node_distance(size_t index, int coef, float distance, bool go_forward) {
+    bool improvement = false;
 
+    // Update all intersections at the specified position (if the new distance is an improvement)
+    for (size_t i = 0; i < node_count; i++) {
+        if ((nodes[i].index1 == index && nodes[i].coef1 == coef) || (nodes[i].index2 == index && nodes[i].coef2 == coef)) {
+            float new_distance = distance + fast_sqrt(dot(unpack_compact_delta_item(nodes[i].delta)), false);
+            int int_distance = new_distance > MAX_DISTANCE ? MAX_DISTANCE : round(new_distance);
 
-void Tracker::invalidate_node(size_t node) {
-    // No need to cache the node if it's invalid (0) or outside of the controlled area
-    if (!node || node >= controlled_area_end)
-        return;
-
-    TRACKER_DBG("  did update node inside controlled area: %zu", node);
-    bool unique = true;
-    uint16_t insert_index;
-    for (insert_index = 0; insert_index < dirty_nodes_count; insert_index++) {
-        if (dirty_nodes[insert_index] == node)
-            unique = false;
-        if (dirty_nodes[insert_index] >= node)
-            break;
-    }
-
-    // No need to cache the same node more than once
-    if (!unique)
-        return;
-
-    // If we evict a node from the dirty list, make sure that the controlled area gets cropped accordingly 
-    if (dirty_nodes_count == DIRTY_NODES_BUFFER_SIZE) {
-        uint16_t evicted_node = dirty_nodes[DIRTY_NODES_BUFFER_SIZE - 2];
-        if (evicted_node < controlled_area_end) {
-            controlled_area_end = evicted_node;
-            controlled_area_end_distance = as_unsigned_data_item(*get_node_payload_ptr(evicted_node));
-            TRACKER_DBG("  crop controlled area to %zu", controlled_area_end);
+            if (nodes[i].distance > int_distance) {
+                nodes[i].distance = int_distance;
+                nodes[i].use_line2 = index == nodes[i].index2 && coef == nodes[i].coef2;
+                nodes[i].go_forward = go_forward;
+                improvement = true;
+                have_dirty_nodes = true;
+            }
         }
-    } else {
-        dirty_nodes_count++;
     }
 
-    memcpy(dirty_nodes + insert_index + 1, dirty_nodes + insert_index, (dirty_nodes_count - insert_index - 1) * sizeof(dirty_nodes[0]));
-    dirty_nodes[insert_index] = node;
+    TRACKER_DBG("  distance at %zu (coef %d), improved to %f + deltalength", index, coef, distance);
+    return improvement;
 }
-
 
 void Tracker::refresh_distances() {
-    size_t walk_origin = 0;
-    size_t walk_origin_node = 0;
-    float walk_origin_node_delta_length = 0;
-    bool walking_forward = true;
+    if (!graph_next_write)
+        return;
 
     // Only log if we're gonna do something
-    bool should_log = controlled_area_end + 1 < graph_next_write || dirty_nodes_count;
+    bool should_log = have_dirty_nodes;
     if (should_log)
         TRACKER_DBG("calculating distances...");
 
     // This loop is guaranteed to terminate.
     // Proof outline:
-    //  The loop terminates when the set of dirty nodes becomes empty. This set is only expanded, if there
-    //  is a reduction in some node distance. Also, at the beginning of every iteration, the set is reduced
-    //  by one node. A node distance cannot be increased. There are no intervals with negative length, so
-    //  every node distance will eventually reach a lower bound.
-    //  When this happens, the set of dirty nodes is no longer expanded and thus reduced in every iteration.
-    //  It follows that the set will eventually become empty, which means that the loop terminates. 
-    for (;;) {
+    //  The loop terminates when the set of dirty nodes is empty at the end of an iteration. This set is
+    //  cleared at the beginning of every iteration. A node only gets added to this set, if its distance-
+    //  to-home improves. A node distance cannot be increased and there are no intervals with negative
+    //  length, so every node distance will eventually reach a lower bound. When this state is reached,
+    //  the set of dirty nodes remains empty during an entire iteration, thus the loop terminates.
 
-        // Determine which interval we want to walk next
-        if (!walking_forward) {
-            walking_forward = true;
-        } else {
-            walking_forward = false;
+    while (have_dirty_nodes) {
+        have_dirty_nodes = false;
 
-            // If we're walking a node, walk_node takes care of everything, else we need to determine where to look next
-            if (!walk_node(walk_origin_node, walk_origin)) {
-                if (dirty_nodes_count) {
-                    walk_origin = dirty_nodes[0];
-                    memcpy(dirty_nodes, dirty_nodes + 1, --dirty_nodes_count * sizeof(dirty_nodes[0]));
-                } else if (controlled_area_end + 1 < graph_next_write) {
-                    walk_origin = controlled_area_end;
-                } else {
-                    break; // nothing more to be updated - we're done!
+        for (size_t i = 0; i < node_count; i++) {
+            node_t node = nodes[i];
+
+            // At every dirty node, we look in all four directions of the intersection.
+            if (node.dirty) {
+                node.dirty = 0;
+
+                size_t index;
+                int coef;
+                float interval_length;
+
+                float distance_here = get_node_distance(node.index1, node.coef1);
+                float distance_there;
+
+                // Walk forward from index1
+                if (walk_to_node(index = node.index1, coef = node.coef1, interval_length = 0, true, graph_next_write - 1)) {
+                    distance_there = get_node_distance(index, coef); // may return old distance
+                    set_node_distance(index, coef, distance_here + interval_length, false);
+                    set_node_distance(node.index1, node.coef1, distance_there + interval_length, true);
                 }
 
-                walk_origin_node = get_node_or_null(walk_origin);
-                walk_origin_node_delta_length = get_delta_length(walk_origin_node);
+                // Walk backward from index1
+                if (walk_to_node(index = node.index1, coef = node.coef1, interval_length = 0, false, 0)) {
+                    distance_there = get_node_distance(index, coef);
+                    set_node_distance(index, coef, distance_here + interval_length, true);
+                    set_node_distance(node.index1, node.coef1, distance_there + interval_length, false);
+                }
 
-                // If we're not looking at a node head, don't walk the node.
-                // If we moreover continue from the controlled area end, we don't have to walk backwards anymore.
-                if (walk_origin != walk_origin_node) {
-                    walk_origin_node = 0;
-                    walk_origin_node_delta_length = 0;
-                    walking_forward = walk_origin == controlled_area_end;
+                distance_here = get_node_distance(node.index2, node.coef2);
+
+                // Walk forward from index2
+                if (walk_to_node(index = node.index2, coef = node.coef2, interval_length = 0, true, graph_next_write - 1)) {
+                    distance_there = get_node_distance(index, coef); // may return old distance
+                    set_node_distance(index, coef, distance_here + interval_length, false);
+                    set_node_distance(node.index2, node.coef2, distance_there + interval_length, true);
+                }
+
+                // Walk backward from index2
+                if (walk_to_node(index = node.index2, coef = node.coef2, interval_length = 0, false, 0)) {
+                    distance_there = get_node_distance(index, coef);
+                    set_node_distance(index, coef, distance_here + interval_length, true);
+                    set_node_distance(node.index2, node.coef2, distance_there + interval_length, false);
                 }
             }
-        }
-
-        // Walk along the interval until we encounter the next node or an end
-        TRACKER_DBG("  walking interval from %zu (node: %zu) %s...", walk_origin, walk_origin_node, walking_forward ? "forward" : "backward");
-        if (!walk_origin && controlled_area_end) {
-            PX4_WARN("tracker integrity became questionable");
-            dump_graph();
-        }
-
-        // Walk forward or backward until we reach the next interesting index (node, jump, home or end-of-graph).
-        size_t walk_end = walk_origin;
-        size_t walk_end_node = 0;
-        float interval_length = 0;
-        if (walking_forward)
-            walk_end_node = walk_far_forward(walk_end, graph_home_index, interval_length);
-        else
-            walk_end_node = walk_far_backward(walk_end, graph_home_index, interval_length);
-        
-        float walk_end_node_delta_length = get_delta_length(walk_end_node);
-        TRACKER_DBG("  interval from %zu (node: %zu, l: %.3f) to %zu (node: %zu, l: %.3f): length %f", walk_origin, walk_origin_node, walk_origin_node_delta_length, walk_end, walk_end_node, walk_end_node_delta_length, interval_length);
-
-        // Retrieve the distance to home at the beginning and end of the interval we just visited
-        float dist_at_interval_start = walk_origin_node ? get_link_dist_to_home(walk_origin_node, walk_origin_node_delta_length, walk_origin) : controlled_area_end_distance;
-        if (walk_origin == graph_home_index)
-            dist_at_interval_start = walking_forward ? graph_home_bias : -graph_home_bias;
-
-        float dist_at_interval_end = walk_end_node ? get_link_dist_to_home(walk_end_node, walk_end_node_delta_length, walk_end) : (dist_at_interval_start + interval_length);
-        if (walk_end == graph_home_index)
-            dist_at_interval_end = walking_forward ? -graph_home_bias : graph_home_bias;
-
-        // Register expansion of the controlled area if applicable
-        if (walking_forward && walk_origin == controlled_area_end) {
-            controlled_area_end = walk_end;
-            controlled_area_end_distance = dist_at_interval_end;
-            TRACKER_DBG("  expand controlled area to %zu", controlled_area_end);
-        }
-
-        // Update node at beginning or end of the current interval, if the interval enables a shorter path
-        float alt_distance = std::min(dist_at_interval_start, dist_at_interval_end) + interval_length;
-        if (walk_origin_node && dist_at_interval_start > alt_distance && walk_origin_node != graph_home_index) {
-            if (set_link_dist_to_home(walk_origin_node, walk_origin_node_delta_length, walk_origin, alt_distance, !walking_forward)) {
-                TRACKER_DBG("  distance at interval start improved to %f", alt_distance);
-                dump_nodes();
-            }
-        } else if (walk_end_node && dist_at_interval_end > alt_distance && walk_end_node != graph_home_index) {
-            if (set_link_dist_to_home(walk_end_node, walk_end_node_delta_length, walk_end, alt_distance, walking_forward)) {
-                TRACKER_DBG("  distance at interval end improved to %f", alt_distance);
-                dump_nodes();
-            }
-        } else {
-            TRACKER_DBG("  nothing is improving through this interval");
         }
     }
 
@@ -946,7 +958,7 @@ void Tracker::refresh_distances() {
 #endif
 }
 
-
+/*
 void Tracker::get_distance_to_home(size_t index, float bias, float &dist_forward, float &dist_backward) {
     // Calculate the distance if walking forward from index
     dist_forward = bias;
@@ -972,237 +984,148 @@ void Tracker::get_distance_to_home(size_t index, float bias, float &dist_forward
     if (isinf(dist_backward) && node_backward)
         dist_backward = FLT_MAX;
 }
+*/
 
 
-size_t Tracker::get_closest_index(ipos_t position, float *bias) {
-    bool compact_delta;
-    ipos_t head = graph_head;
-    ipos_t delta;
-    size_t prev_index = graph_next_write - 1;
-    size_t next_index = graph_next_write - 1;
-
-    *bias = 0;
-    size_t best_index = 0;
-    int best_distance = INT_MAX;
-
-    while (walk_backward(next_index, &delta, NULL, &compact_delta)) {
-        if (compact_delta) {
-            int distance;
-            float coefficient;
-
-            is_close_to_line(delta, head, position, &distance, &coefficient);
-            
-            if (best_distance > distance) {
-                best_distance = distance;
-                best_index = prev_index;
-                *bias = fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false) * coefficient;
-            }
-        }
-
-        prev_index = next_index;
-        head -= delta;
-    }
-
-    return best_index;
-}
-
-
-size_t Tracker::calc_return_path(size_t index, float bias, bool &move_forward, bool &move_backward, bool &did_select_link) {
-    // Special handling if we're already at the home node
-    if (index == graph_home_index) { // todo: consider that graph_home_index may be on a node
-        move_forward = move_backward = false;
-        if (std::abs(bias - graph_home_bias) > FLT_EPSILON) {
-            move_backward = true;
-            TRACKER_DBG("calc return path, I'm almost home");
-        } else {  
-            TRACKER_DBG("calc return path, but I'm already home");
-        }
-        return index;
-    }
-
-    // Detect if the current position is at a node (in which case we'd have to walk the cycle)
-    size_t walk_origin_node = get_node_or_null(index); // will be 0 if there is no node
-    TRACKER_DBG("calc return path from %zu (node %zu)", index, walk_origin_node);
-
-    // If have a movement direction, don't change it unless we're at a node and haven't yet selected the best link
-    if ((!walk_origin_node || did_select_link) && (move_forward || move_backward)) {
-        did_select_link = false;
-        return index;
-    }
-
-    // Make sure all nodes and links have a valid distance-to-home
+bool Tracker::calc_return_path(path_finding_context_t context) {
+    // Before making any decision, make sure we know the distance of every node to home.
     refresh_distances();
 
-    float dist_forward = 0, dist_backward = 0;
+    TRACKER_DBG("calculate return path from %zu-%.2f.", context.current_index, coef_to_float(context.current_coef));
 
-    if (walk_origin_node && !did_select_link) {
-        // Select a link
+    ipos_t delta = { .x = 0, .y = 0, .z = 0 };
+    
+    // If we reached the checkpoint, re-evaluate next checkpoint and potentially switch lines.
+    if (context.current_index == context.checkpoint_index && context.current_coef == context.checkpoint_coef) {
+        TRACKER_DBG("checkpoint!");
 
-        // By default, we assume that it's best to walk backwards on the line of the node head
-        float best_distance = INFINITY;
-        size_t best_link = index;
+        if (context.checkpoint_index == nodes->index1 && context.checkpoint_coef == nodes->coef1)
+            return false;
+        
+        // If we're at a node (which doesn't have to be the case), this will switch to the line that gives the best path home. 
+        apply_node_delta(context.current_index, context.current_coef, &delta);
+        
+        // Determine cost and bound of walking forward
+        float forward_dist;
+        size_t forward_node_index = context.current_index;
+        int forward_node_coef = context.current_coef;
+        if (walk_to_node(forward_node_index, forward_node_coef, forward_dist = 0, true, graph_next_write - 1))
+            forward_dist += get_node_distance(forward_node_index, forward_node_coef);
+        else
+            forward_dist = INFINITY;
 
-        index = walk_origin_node;
-        float walk_origin_node_delta_length = get_delta_length(walk_origin_node);
+        // Determine cost and bound of walking backward
+        float backward_dist;
+        size_t backward_node_index = context.current_index;
+        int backward_node_coef = context.current_coef;
+        if (walk_to_node(backward_node_index, backward_node_coef, backward_dist = 0, false, 0))
+            backward_dist += get_node_distance(backward_node_index, backward_node_coef);
+        else
+            backward_dist = INFINITY;
 
-        // Look at all the links in the current node and select the one that is closest to home.
-        do {
-            get_distance_to_home(index, index == walk_origin_node ? bias : 0, dist_forward, dist_backward);
+        TRACKER_DBG("distance from %zu-%.2f is %f forward (to %zu-%.2f) and %f backward (to %zu-%.2f)", context.current_index, coef_to_float(context.current_coef), forward_dist, forward_node_index, coef_to_float(forward_node_coef), backward_dist, backward_node_index, backward_node_coef);
 
-            if (index != walk_origin_node) {
-                float dist_to_link = std::abs(bias - get_link_dist_to_node(walk_origin_node, walk_origin_node_delta_length, index));
-                dist_forward += dist_to_link;
-                dist_backward += dist_to_link;
-            }
-
-            float link_distance = std::min(dist_forward, dist_backward);
-            TRACKER_DBG("link %zu has distance %f to home", index, link_distance);
-            if (best_distance > link_distance) {
-                best_distance = link_distance;
-                best_link = index;
-                move_backward = !(move_forward = dist_forward < dist_backward);
-            }
-        } while (walk_node(walk_origin_node, index));
-
-        // If no link has a known path to home, try the earliest link (i.e. the cycle head), or abort.
-        if (best_distance == INFINITY) {
-            move_forward = move_backward = false;
-            if (best_link == walk_origin_node) {
-                dump_graph();
-                PX4_WARN("I don't see any path home from node %zu", walk_origin_node);
-            }
+        // Abort if we don't know what to do
+        if (isinf(backward_dist) && forward_dist >= FLT_MAX) {
+            PX4_WARN("Could not find any path home from %zu-%.2f.", context.current_index, coef_to_float(context.current_coef));
+            return false;
         }
 
-        did_select_link = true;
-        return best_link;
+        // Note that we prefer to walk backward
+        if (forward_dist < backward_dist) {
+            context.checkpoint_index = forward_node_index;
+            context.checkpoint_coef = forward_node_coef;
+        } else {
+            context.checkpoint_index = backward_node_index;
+            context.checkpoint_coef = backward_node_coef;
+        }
     }
 
+    // If the (potential) node switch above did not yield a position update yet, advance in the direction of the next checkpoint
+    if (!(delta.x || delta.y || delta.z)) {
+        bool is_jump;
+        ipos_t current_delta = fetch_delta(context.current_index, is_jump);
+        delta = apply_coef(delta, context.current_coef);
 
-    // Select a direction
-
-    did_select_link = false;
-
-    // Calculate the distances for both directions
-    get_distance_to_home(index, bias, dist_forward, dist_backward);
-    TRACKER_DBG("distance from %zu is: %f forward, %f backward", index, dist_forward, dist_backward);
-    
-    // Note that we prefer to move backward in case of equal cost
-    move_backward = !(move_forward = dist_forward < dist_backward);
-
-    // Only if both directions have unknown cost AND walking backwards wouldn't take us to a node, we either move forward (if there's a node there) or give up.
-    if (isinf(dist_forward) && isinf(dist_backward)) {
-        move_backward = move_forward = false;
-        PX4_WARN("I don't see any path home from graph index %zu.", index);
+        if (context.current_index < context.checkpoint_index) {
+            current_delta = walk_forward(context.current_index, is_jump);
+            if (is_jump)
+                PX4_WARN("path finding algorithm is moving forward along jump delta");
+            context.current_coef = MAX_COEFFICIENT + 1;
+        } else if (context.current_index > context.checkpoint_index) {
+            delta -= current_delta;
+            if (is_jump)
+                PX4_WARN("path finding algorithm is moving backward along jump delta");
+            current_delta = walk_backward(context.current_index, is_jump);
+            context.current_coef = 0;
+        } else {
+            if (is_jump)
+                PX4_WARN("path finding algorithm is moving along jump delta");
+            delta -= apply_coef(current_delta, context.checkpoint_coef);
+            context.current_coef = context.checkpoint_coef;
+        }
     }
 
-    return index;
+    context.current_pos += delta;
+
+    return true;
 }
 
 
-bool Tracker::get_current_pos(pos_handle_t &pos, float &x, float &y, float &z) {
-    ipos_t true_pos = graph_get_current_pos();
-    x = true_pos.x;
-    y = true_pos.y;
-    z = true_pos.z;
+bool Tracker::init_return_path(path_finding_context_t &context, float &x, float &y, float &z) {
+    // We prefer that the index we're about to expose remains valid, so we consolidate the graph first
+    consolidate_graph();
 
-    ipos_t delta = graph_current_line_end - true_pos;
+    if (!graph_next_write)
+        return false;
 
-    pos = {
-        .index = graph_current_index,
-        .bias = fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false),
-        .position = graph_current_line_end,
-        .did_move_forward = false,
-        .did_move_backward = false,
-        .did_select_link = false
+    // Use graph head as starting point
+    context = {
+        .current_pos = graph_head_pos,
+        .current_index = graph_next_write - 1,
+        .current_coef = 0,
+        .graph_version = graph_version
     };
 
-    consolidate_index(pos.index);
+    context.checkpoint_index = context.current_index;
+    context.checkpoint_coef = context.current_coef;
+
+    x = context.current_pos.x;
+    y = context.current_pos.y;
+    z = context.current_pos.z;
+    
     return true;
 }
 
-
-bool Tracker::get_path_to_home(pos_handle_t &pos, float &x, float &y, float &z) {
-    // Calculate where to go next
-    size_t new_index = calc_return_path(pos.index, pos.bias, pos.did_move_forward, pos.did_move_backward, pos.did_select_link);
-
-    // If we change the link within a node we need to move along the line.
-    if (pos.did_select_link) {
-        ipos_t delta = get_intra_node_delta(pos.index, new_index);
-        TRACKER_DBG("intra-node delta: (%d, %d, %d) + (%d, %d, %d)", pos.position.x, pos.position.y, pos.position.z, delta.x, delta.y, delta.z);
-        pos.index = new_index;
-        pos.position += delta;
-
-
-        if (get_node_or_null(new_index) == new_index && pos.did_move_backward) {
-            // If we need to walk to the beginning of the line, we act as if we're not at a node.
-            TRACKER_DBG("I will move to the beginning of node %zu (which ends at %d, %d, %d)", new_index, pos.position.x, pos.position.y, pos.position.z);
-            pos.did_select_link = false;
-        } else if (delta == ipos_t{ .x = 0, .y = 0, .z = 0 }) {
-            // If the link change does not result in a new position, we try another update.
-            TRACKER_DBG("incomplete position change... second chance");
-            calc_return_path(pos.index, 0, pos.did_move_forward, pos.did_move_backward, pos.did_select_link);
-        } else {
-            TRACKER_DBG("link change resulted in position change (%d, %d, %d)", delta.x, delta.y, delta.z);
-        }
+bool Tracker::advance_return_path(path_finding_context_t &context, float &x, float &y, float &z) {
+    // If the graph version changed, we need to sanitize the path finding context
+    if (context.graph_version != graph_version) {
+        context.current_pos = get_closest_position(context.current_pos, context.current_index, context.current_coef);
+        context.checkpoint_index = context.current_index;
+        context.checkpoint_coef = context.current_coef;
     }
 
-    pos.bias = 0;
-    ipos_t delta = { .x = 0, .y = 0, .z = 0 };
+    bool result = calc_return_path(context);
 
-    // Apply move-forward-or-backward-instruction
-    if (pos.did_select_link) {
-        // already handled
-    } else if (pos.did_move_forward) {
-        walk_forward(pos.index, &delta, NULL, false);
-        pos.position += delta;
+    x = context.current_pos.x;
+    y = context.current_pos.y;
+    z = context.current_pos.z;
 
-        if (pos.index == graph_home_index) 
-            pos.bias = graph_home_bias;
-    } else if (pos.did_move_backward) {
-        if (pos.index == graph_home_index) {
-            size_t dummy = pos.index;
-            walk_backward(dummy, &delta, NULL, false);
-            pos.bias = graph_home_bias;
-        } else {
-            walk_backward(pos.index, &delta, NULL, false);
-            pos.position -= delta;
-        }
-    } else {
-        return false;
-    }
-
-    x = pos.position.x;
-    y = pos.position.y;
-    z = pos.position.z;
-
-    if (pos.bias) {
-        float coef = pos.bias / fast_sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z, false);
-        if (!isinf(coef)) {
-            x -= delta.x * coef;
-            y -= delta.y * coef;
-            z -= delta.z * coef;
-        }
-    }
-
-    consolidate_index(pos.index);
-    return true;
+    return result;
 }
 
-
-bool Tracker::is_same_pos(pos_handle_t &pos1, pos_handle_t &pos2) {
-    return is_same_pos(pos1.index, pos2.index);
+bool Tracker::is_context_close_to_head(path_finding_context_t &context) {
+    ipos_t delta = context.current_pos - graph_head_pos;
+    return dot(delta) <= get_accuracy_at(context.current_pos);
 }
 
-
-bool Tracker::is_close_to_pos(pos_handle_t &pos) {
-    return is_close(pos.position, to_fpos(graph_get_current_pos()));
+bool Tracker::is_context_close_to_home(path_finding_context_t &context) {
+    ipos_t delta = context.current_pos - home_on_graph;
+    return dot(delta) <= get_accuracy_at(context.current_pos);
 }
 
-
-bool Tracker::is_close_to_home(pos_handle_t &pos) {
-    fpos_t adjusted_home_pos = home_position;
-    adjusted_home_pos.z = pos.position.z;
-    return is_close(pos.position, adjusted_home_pos);
+bool Tracker::is_same_pos(path_finding_context_t &context1, path_finding_context_t &context2) {
+    return context1.current_index == context2.current_index && context1.current_coef == context2.current_coef;
 }
 
 
@@ -1212,7 +1135,7 @@ void Tracker::dump_recent_path() {
         return;
     }
     
-    PX4_INFO("recent path (element size: %zu):", sizeof(graph_item_t));
+    PX4_INFO("recent path:");
     size_t recent_path_length = (recent_path_next_write + RECENT_PATH_LENGTH - recent_path_next_read - 1) % RECENT_PATH_LENGTH + 1;
     PX4_INFO("  length: %zu (read-ptr: %zu, write-ptr: %zu)", recent_path_length, recent_path_next_read, recent_path_next_write);
     
@@ -1224,10 +1147,10 @@ void Tracker::dump_recent_path() {
         
         index = (index ? index : RECENT_PATH_LENGTH) - 1;
 
-        if (!is_delta_item(recent_path[index]))
+        if ((recent_path[index] >> 15) & 1)
             PX4_INFO("ignore the last position");
 
-        head -= as_delta_item(recent_path[index]);
+        head -= unpack_compact_delta_item(recent_path[index]);
     } while (index != recent_path_next_read);
 }
 
@@ -1238,66 +1161,44 @@ void Tracker::dump_graph() {
         return;
     }
 
-    PX4_INFO("full path (length: %zu):", graph_next_write);
+    PX4_INFO("full path (%zu elements of size %zu bytes):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8);
+    PX4_INFO("  home: %zu-%.2f", nodes->index1, coef_to_float(nodes->coef1));
 
-    ipos_t delta = { .x = 0, .y = 0, .z = 0 };
-    ipos_t head = graph_head;
+    ipos_t pos = graph_head_pos;
 
     size_t index = graph_next_write - 1;
-    do {
-        head -= delta;
+    while (index) {
+        size_t prev_index = index;
+        bool is_jump;
+        ipos_t delta = walk_backward(index, is_jump);
 
-        size_t node = get_node_or_null(index);
-        bool is_cycle_head = node && index == node;
-        bool is_cycle_master = is_data_item(graph[index]) && !is_link_item(graph[index - REGULAR_LINK_SIZE + 1]) && is_link_item(graph[index - MASTER_LINK_SIZE + 1]);
-        bool is_regular_link = is_data_item(graph[index]) && is_link_item(graph[index - REGULAR_LINK_SIZE + 1]);
-        
-        size_t delta_item_index;
-        if (is_cycle_head)
-            delta_item_index = as_link_item(graph[node]) + 2;
-        else if (is_cycle_master)
-            delta_item_index = index - MASTER_LINK_SIZE;
-        else if (is_regular_link)
-            delta_item_index = index - REGULAR_LINK_SIZE;
-        else
-            delta_item_index = index;
+        PX4_INFO("  %zu: (%d, %d, %d)%s%s",
+            prev_index, pos.x, pos.y, pos.z,
+            is_jump ? ", jump" : "",
+            nodes->index1 == index ? " <= home" : "");
 
-        PX4_INFO("  %zu: (%d, %d, %d)%s%s%s%s",
-            index, head.x, head.y, head.z,
-            is_cycle_head ? ", head" : is_cycle_master ? ", master" : is_regular_link ? ", link" : "",
-            is_data_item(graph[delta_item_index]) ? ", jump" : "",
-            graph_current_index == index ? " <= current index" : "",
-            graph_home_index == index ? " <= home" : "");
-    } while (walk_backward(index, &delta, NULL, true));
+        pos -= delta;
+    };
 
     dump_nodes();
 }
 
 void Tracker::dump_nodes() {
-    PX4_INFO("nodes:");
-    for (size_t node = 0; walk_forward(node, NULL, NULL, true);) {
-        if (get_node_or_null(node) != node)
-            continue;
-        
-        PX4_INFO("  node %zu", node);
-        size_t link = node;
-        bool is_cycle_master = false;
-        do {
-            PX4_INFO("    link %zu: coef %.3f, dist to home %.3f%s",
-                link,
-                link == node ? 0 : link_attributes_t{ *get_link_attr_ptr(link) }.get_dist_to_node_coef(),
-                get_link_dist_to_home(node, get_delta_length(node), link),
-                is_cycle_master ? " (master)" : "");
-            is_cycle_master = link == node;
-        } while (walk_node(node, link));
+    PX4_INFO("nodes (%zu elements of size %zu bytes):", node_count, (sizeof(node_t) * CHAR_BIT) / 8);
+    for (size_t i = 0; i < node_count; i++) {
+        PX4_INFO("  node %zu: %s%zu-%.2f%s to %s%zu-%.2f%s, expansion %.3f, dist to home %d%s", i,
+            nodes[i].use_line2 ? " " : ">", (size_t)nodes[i].index1, coef_to_float(nodes[i].coef1), nodes[i].use_line2 ? " " : "<",
+            nodes[i].use_line2 ? ">" : " ", (size_t)nodes[i].index2, coef_to_float(nodes[i].coef2), nodes[i].use_line2 ? "<" : " ",
+            fast_sqrt(dot(unpack_compact_delta_item(nodes[i].delta)), false), nodes[i].distance,
+            i ? "" : " <= home");
     }
 }
 
 void Tracker::dump_path_to_home() {
-    pos_handle_t pos;
+    path_finding_context_t context;
 
     float x, y, z;
-    if (!get_current_pos(pos, x, y, z)) {
+    if (!init_return_path(context, x, y, z)) {
         PX4_INFO("shortest path to home unavailable");
         return;
     }
@@ -1305,6 +1206,6 @@ void Tracker::dump_path_to_home() {
     PX4_INFO("shortest path to home:");
 
     do {
-        PX4_INFO("  %zu: (%d, %d, %d)", pos.index, (int)x, (int)y, (int)z);
-    } while (get_path_to_home(pos, x, y, z));
+        PX4_INFO("  %zu-%.2f: (%d, %d, %d)", context.current_index, coef_to_float(context.current_coef), (int)x, (int)y, (int)z);
+    } while (advance_return_path(context, x, y, z));
 }

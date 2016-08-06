@@ -58,6 +58,12 @@ public:
 
 private:
 
+    struct line_test_t {
+        Tracker::ipos_t delta1, end1;
+        Tracker::ipos_t delta2, end2;
+        Tracker::ipos_t result;
+    };
+
     struct test_t {
         const char *name;
         const int *path;
@@ -109,9 +115,15 @@ private:
     // new home along the path and returns to that new home
     bool fly_and_change_home_test();
 
+    // Tests if the minimum line-to-line delta is calculated correctly
+    bool line_to_line_test();
+
     // An array of flight paths and their correct return paths
     // We can do various tests on each of these.
     static const test_t test_cases[];
+
+    // An array of line pairs and the shortest delta between them.
+    static line_test_t line_test_cases[];
 };
 
 const TrackerTest::test_t TrackerTest::test_cases[] = {
@@ -120,6 +132,17 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(complexLoop),
     USE_TEST(largeNodes),
     USE_TEST(fromSim)
+};
+
+TrackerTest::line_test_t TrackerTest::line_test_cases[] = {
+    { .delta1 = { 0, 0, 0 }, .end1 = { 0, 0, 0 }, .delta2 = { 0, 0, 0 }, .end2 = { 0, 0, 0 }, .result = { 0, 0, 0 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 1, -2 }, .delta2 = { 6, 2, 2 }, .end2 = { 2, 3, 0 }, .result = { -1, 2, 1 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 1, -2 }, .delta2 = { 6 , 2, 2 }, .end2 = {5,  4, 4 }, .result = { -1, 2, 0 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 2, -2 }, .delta2 = { 4 , 1, 1 }, .end2 = {5,  4, 4 }, .result = { -1, 3, 1 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 1, -2 }, .delta2 = { 3 , 1, 1 }, .end2 = {-1, 2, -2 }, .result = { -1, 2, 0 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 1, -2 }, .delta2 = { -2, 3, 2 }, .end2 = {-1, 2, -2 }, .result = { 0, 1, -1 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 2, 1, -2 }, .delta2 = { -2, 3, 2 }, .end2 = {-3, 5, 0 }, .result = { 0, 1, -1 } },
+    { .delta1 = { 4, 2, -1 }, .end1 = { 6, 3, -3 }, .delta2 = { -2, 3, 2 }, .end2 = {-3, 5, 0 }, .result = { 0, 1, -1 } }
 };
 
 
@@ -219,29 +242,27 @@ TrackerTest::return_state_t TrackerTest::init_return_state(float x, float y, flo
 bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, char *msg) {
     // Return along the shortest path while checking if it's what we expect
     
-    Tracker::pos_handle_t pos;
+    Tracker::path_finding_context_t context;
     float x, y, z;
-    inner_assert(tracker.get_current_pos(pos, x, y, z), "tracker did not report current position");
+    inner_assert(tracker.init_return_path(context, x, y, z), "tracker could not init return path");
     return_state_t state = init_return_state(x, y, z, test);
 
     for (;;) {
 
-        if (!tracker.get_path_to_home(pos, x, y, z))
+        if (!tracker.advance_return_path(context, x, y, z))
             break;
-
-        inner_assert(tracker.is_same_pos(pos, pos), "position equality test failed");
 
         bool did_divert;
         inner_assert(detect_progress(x, y, z, state, did_divert), "no progress detected from (%f, %f, %f) to (%f, %f, %f), target index is %zu", state.x, state.y, state.z, x, y, z, state.target_index);
         inner_assert(!did_divert, "vehicle diverted from expected return path");
 
         // From the current position, prefetch the return path
-        Tracker::pos_handle_t inner_pos;
+        Tracker::path_finding_context_t inner_context;
         float inner_x, inner_y, inner_z;
-        inner_assert(tracker.get_current_pos(inner_pos, inner_x, inner_y, inner_z), "tracker did not report current position");
+        inner_assert(tracker.init_return_path(inner_context, inner_x, inner_y, inner_z), "tracker could not init return path");
         return_state_t inner_state = init_return_state(inner_x, inner_y, inner_z, test);
 
-        while (tracker.get_path_to_home(inner_pos, inner_x, inner_y, inner_z)) {
+        while (tracker.advance_return_path(inner_context, inner_x, inner_y, inner_z)) {
             inner_assert(detect_progress(inner_x, inner_y, inner_z, inner_state, did_divert), "no progress detected in look-ahead return path from (%f, %f, %f) to (%f, %f, %f), target index is %zu", inner_state.x, inner_state.y, inner_state.z, inner_x, inner_y, inner_z, inner_state.target_index);
             inner_assert(!did_divert, "look-ahead return path diverted from expected return path");
         }
@@ -261,11 +282,11 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
 bool TrackerTest::try_return_unsupervised(Tracker &tracker, const test_t *test, float home_x, float home_y, float home_z, char *msg) {
     int steps = 0;
     float x, y, z;
-    Tracker::pos_handle_t pos;
+    Tracker::path_finding_context_t context;
     
     // As long as we're not home, return along the proposed path
-    inner_assert(tracker.get_current_pos(pos, x, y, z), "tracker did not report current position");
-    while (tracker.get_path_to_home(pos, x, y, z)) {
+    inner_assert(tracker.init_return_path(context, x, y, z), "tracker could not init return path");
+    while (tracker.advance_return_path(context, x, y, z)) {
         tracker.update(x, y, z);
         inner_assert(steps++ < 256, "return-to-home did take too many steps"); // make sure the loop terminates
         TRACKER_DBG("return from %d, %d, %d, home is %.3f, %.3f, %.3f", (int)x, (int)y, (int)z, home_x, home_y, home_z);
@@ -391,8 +412,50 @@ bool TrackerTest::fly_and_change_home_test(void) {
 }
 
 
+bool TrackerTest::line_to_line_test() {
+    size_t count = sizeof(line_test_cases) / sizeof(line_test_cases[0]);
+
+    for (size_t i = 0; i < 2 * count; i++) {
+        // We do each test twice, the second time we swap the lines
+        line_test_t *t = line_test_cases + (i % count);
+        if (i >= count) {
+            Tracker::ipos_t temp = t->delta1;
+            t->delta1 = t->delta2;
+            t->delta2 = temp;
+            temp = t->end1;
+            t->end1 = t->end2;
+            t->end2 = temp;
+            t->result = -t->result;
+        }
+        
+        int coef1, coef2;
+        Tracker::ipos_t delta = Tracker::get_line_to_line_delta(t->delta1, t->end1, t->delta2, t->end2, coef1, coef2, false, false);
+
+        Tracker::ipos_t p1 = t->end1 - Tracker::apply_coef(t->delta1, coef1);
+        Tracker::ipos_t p2 = t->end2 - Tracker::apply_coef(t->delta2, coef2);
+        Tracker::ipos_t implied_delta = p2 - p1;
+
+        char msg[512];
+        sprintf(msg, "(%d %d %d) - %.2f * (%d %d %d) = (%d %d %d), (%d %d %d) - %.2f * (%d %d %d) = (%d %d %d), delta should be (%d %d %d) but have (%d %d %d)",
+                t->end1.x, t->end1.y, t->end1.z, Tracker::coef_to_float(coef1), t->delta1.x, t->delta1.y, t->delta1.z, p1.x, p1.y, p1.z,
+                t->end2.x, t->end2.y, t->end2.z, Tracker::coef_to_float(coef2), t->delta2.x, t->delta2.y, t->delta2.z, p2.x, p2.y, p2.z,
+                t->result.x, t->result.y, t->result.z, delta.x, delta.y, delta.z);
+
+        ut_compare(msg, implied_delta.x, delta.x);
+        ut_compare(msg, implied_delta.y, delta.y);
+        ut_compare(msg, implied_delta.z, delta.z);
+        ut_compare(msg, delta.x, t->result.x);
+        ut_compare(msg, delta.y, t->result.y);
+        ut_compare(msg, delta.z, t->result.z);
+    }
+
+    return true;
+}
+
+
 bool TrackerTest::run_tests(void) {
-	ut_run_test(fly_and_return_test);
+	ut_run_test(line_to_line_test);
+	//ut_run_test(fly_and_return_test);
 	//ut_run_test(fly_and_leave_return_path_test);
 	//ut_run_test(fly_and_change_home_test);
 

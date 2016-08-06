@@ -43,8 +43,8 @@ private:
 
 	Tracker *_tracker;
 
-	Tracker::pos_handle_t current_pos_handle;
-	Tracker::pos_handle_t next_pos_handle;
+	Tracker::path_finding_context_t current_return_context;
+	Tracker::path_finding_context_t next_return_context;
 
 	hrt_abstime deadline = HRT_ABSTIME_MAX; // This deadline makes sure that progress is made.
 	bool land_after_deadline; // If true and the deadline is reached, land, otherwise, fall back to basic RTL.
