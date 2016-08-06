@@ -1,0 +1,19 @@
+#!nsh
+#
+# @name Generic Hexarotor x geometry
+#
+# @type Hexarotor x
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Anton Babushkin <anton@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER hexa_x
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

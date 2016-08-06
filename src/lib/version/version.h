@@ -43,44 +43,28 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
+/* The preferred method for publishing a board name up is to
+ * provide board_name()
+ *
+ */
+__BEGIN_DECLS
+
+__EXPORT const char *board_name(void);
+
+__END_DECLS
+
+#if defined(CONFIG_ARCH_BOARD_SITL)
+#  define	HW_ARCH "SITL"
+#elif defined(CONFIG_ARCH_BOARD_EAGLE)
+#  define	HW_ARCH "EAGLE"
+#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
+#  define HW_ARCH "EXCELSIOR"
+#elif defined(CONFIG_ARCH_BOARD_RPI) || defined(CONFIG_ARCH_BOARD_NAVIO2)
+#  define	HW_ARCH "RPI"
+#elif defined(CONFIG_ARCH_BOARD_BEBOP)
+#  define	HW_ARCH "BEBOP"
+#else
+#define HW_ARCH (board_name())
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-#define	HW_ARCH "PX4FMU_V4"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define HW_ARCH "MINDPX_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_EXCELSIOR
-#define HW_ARCH "LINUXTEST"
-#endif
-
-
-#ifdef CONFIG_ARCH_BOARD_RPI2
-#define	HW_ARCH "LINUXTEST"
-#endif
 #endif /* VERSION_H_ */

@@ -46,9 +46,11 @@ Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),
 	_last_integration_time(0),
 	_last_reset_time(0),
-	_integral(0.0f, 0.0f, 0.0f),
+	_alpha(0.0f, 0.0f, 0.0f),
+	_last_alpha(0.0f, 0.0f, 0.0f),
+	_beta(0.0f, 0.0f, 0.0f),
 	_last_val(0.0f, 0.0f, 0.0f),
-	_last_delta(0.0f, 0.0f, 0.0f),
+	_last_delta_alpha(0.0f, 0.0f, 0.0f),
 	_coning_comp_on(coning_compensation)
 {
 
@@ -80,28 +82,39 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 		dt = (double)(timestamp - _last_integration_time) / 1000000.0;
 	}
 
-	math::Vector<3> delta = (val + _last_val) * dt * 0.5f;
+	// Use trapezoidal integration to calculate the delta integral
+	math::Vector<3> delta_alpha = (val + _last_val) * dt * 0.5f;
+	_last_val = val;
 
-	// Apply coning compensation if required
+	// Calculate coning corrections if required
 	if (_coning_comp_on) {
 		// Coning compensation derived by Paul Riseborough and Jonathan Challinger,
 		// following:
 		// Tian et al (2010) Three-loop Integration of GPS and Strapdown INS with Coning and Sculling Compensation
-		// Available: http://www.sage.unsw.edu.au/snap/publications/tian_etal2010b.pdf
-
-		delta += ((_integral + _last_delta * (1.0f / 6.0f)) % delta) * 0.5f;
+		// Sourced: http://www.sage.unsw.edu.au/snap/publications/tian_etal2010b.pdf
+		// Simulated: https://github.com/priseborough/InertialNav/blob/master/models/imu_error_modelling.m
+		_beta += ((_last_alpha + _last_delta_alpha * (1.0f / 6.0f)) % delta_alpha) * 0.5f;
+		_last_delta_alpha = delta_alpha;
+		_last_alpha = _alpha;
 	}
 
-	_integral += delta;
+	// accumulate delta integrals
+	_alpha += delta_alpha;
 
 	_last_integration_time = timestamp;
-	_last_val = val;
-	_last_delta = delta;
 
 	// Only do auto reset if auto reset interval is not 0.
 	if (_auto_reset_interval > 0 && (timestamp - _last_reset_time) > _auto_reset_interval) {
 
-		integral = _integral;
+		// apply coning corrections if required
+		if (_coning_comp_on) {
+			integral = _alpha + _beta;
+
+		} else {
+			integral = _alpha;
+		}
+
+		// reset the integrals and coning corrections
 		_reset(integral_dt);
 
 		return true;
@@ -134,7 +147,7 @@ Integrator::put_with_interval(unsigned interval_us, math::Vector<3> &val, math::
 math::Vector<3>
 Integrator::get(bool reset, uint64_t &integral_dt)
 {
-	math::Vector<3> val = _integral;
+	math::Vector<3> val = _alpha;
 
 	if (reset) {
 		_reset(integral_dt);
@@ -143,12 +156,32 @@ Integrator::get(bool reset, uint64_t &integral_dt)
 	return val;
 }
 
+math::Vector<3>
+Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val)
+{
+	// Do the usual get with reset first but don't return yet.
+	math::Vector<3> ret_integral = get(reset, integral_dt);
+
+	// Because we need both the integral and the integral_dt.
+	filtered_val(0) = ret_integral(0) * 1000000 / integral_dt;
+	filtered_val(1) = ret_integral(1) * 1000000 / integral_dt;
+	filtered_val(2) = ret_integral(2) * 1000000 / integral_dt;
+
+	return ret_integral;
+}
+
 void
 Integrator::_reset(uint64_t &integral_dt)
 {
-	_integral(0) = 0.0f;
-	_integral(1) = 0.0f;
-	_integral(2) = 0.0f;
+	_alpha(0) = 0.0f;
+	_alpha(1) = 0.0f;
+	_alpha(2) = 0.0f;
+	_last_alpha(0) = 0.0f;
+	_last_alpha(1) = 0.0f;
+	_last_alpha(2) = 0.0f;
+	_beta(0) = 0.0f;
+	_beta(1) = 0.0f;
+	_beta(2) = 0.0f;
 
 	integral_dt = (_last_integration_time - _last_reset_time);
 	_last_reset_time = _last_integration_time;

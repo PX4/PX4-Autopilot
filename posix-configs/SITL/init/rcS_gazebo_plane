@@ -4,6 +4,7 @@ param set MAV_TYPE 1
 param set SYS_AUTOSTART 3033
 param set SYS_RESTART_TYPE 2
 dataman start
+param set BAT_N_CELLS 3
 param set CAL_GYRO0_ID 2293768
 param set CAL_ACC0_ID 1376264
 param set CAL_ACC1_ID 1310728
@@ -24,6 +25,10 @@ param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2
 param set NAV_ACC_RAD 15.0
 param set FW_THR_IDLE 0.8
+param set EKF2_GBIAS_INIT 0.01
+param set EKF2_ANGERR_INIT 0.01
+param set EKF2_MAG_TYPE 1
+replay tryapplyparams
 simulator start -s
 rgbledsim start
 tone_alarm start
@@ -37,14 +42,14 @@ pwm_out_sim mode_pwm
 sleep 1
 sensors start
 commander start
-land_detector start fixedwing
 navigator start
 ekf2 start
 fw_pos_control_l1 start
 fw_att_control start
-mixer load /dev/pwm_output0 ../../../../ROMFS/px4fmu_common/mixers/plane_sitl.main.mix
-mavlink start -u 14556 -r 2000000 -t 127.0.0.1
-mavlink start -u 14557 -r 2000000 -m onboard -o 14540 -t 127.0.0.1
+land_detector start fixedwing
+mixer load /dev/pwm_output0 ../../../../ROMFS/sitl/mixers/plane_sitl.main.mix
+mavlink start -u 14556 -r 2000000
+mavlink start -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 80 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 80 -s GLOBAL_POSITION_INT -u 14556
@@ -54,5 +59,6 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-mavlink boot_complete
 sdlog2 start -r 200 -e -t -a
+mavlink boot_complete
+replay trystart

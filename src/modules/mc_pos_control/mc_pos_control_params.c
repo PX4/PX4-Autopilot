@@ -47,6 +47,7 @@
  * @min 0.05
  * @max 1.0
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
@@ -65,6 +66,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * @min 0.2
  * @max 0.8
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
@@ -80,6 +82,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
  * @min 0.0
  * @max 0.2
  * @decimal 2
+ * @increment 0.05
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
@@ -243,7 +246,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
+PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
 
 /**
  * Proportional gain for horizontal velocity error
@@ -453,7 +456,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
  * Altitude control mode, note mode 1 only tested with LPE

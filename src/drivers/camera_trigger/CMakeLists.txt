@@ -39,6 +39,9 @@ px4_add_module(
 	SRCS
 		camera_trigger.cpp
 		camera_trigger_params.c
+                interfaces/src/camera_interface.cpp
+                interfaces/src/pwm.cpp
+                interfaces/src/relay.cpp
 	DEPENDS
 		platforms__common
 	)

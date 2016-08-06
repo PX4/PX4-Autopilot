@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -155,7 +155,7 @@ __BEGIN_DECLS
 #define GPIO_GPIO6_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN13)
 #define GPIO_GPIO7_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN12)
 #define GPIO_GPIO_DIR		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
-
+#define BOARD_GPIO_SHARED_BUFFERED_BITS 3
 /*
  * Tone alarm output
  */
@@ -203,6 +203,27 @@ __BEGIN_DECLS
 #define HRT_PPM_CHANNEL		3	/* use capture/compare channel 3 */
 #define GPIO_PPM_IN		(GPIO_ALT|GPIO_AF1|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
 
+
+#define	BOARD_NAME "PX4FMU_V1"
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB  { \
+		{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0}, \
+		{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0}, \
+		{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1}, \
+		{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, GPIO_USART2_RTS_1}, \
+		{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, GPIO_USART2_TX_1}, \
+		{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1}, \
+		{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2}, \
+		{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2}, }
+
+/* BOARD_HAS_MULTI_PURPOSE_GPIO defined because the board
+ * has alternate uses for GPIO as noted in that the third
+ * column above has entries.
+ */
+#define BOARD_HAS_MULTI_PURPOSE_GPIO 1
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -226,8 +247,11 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+#define board_spi_reset(ms)
 
 extern void stm32_usbinitialize(void);
+
+#define board_peripheral_reset(ms)
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -247,6 +271,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

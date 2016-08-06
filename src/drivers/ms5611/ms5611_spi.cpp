@@ -152,11 +152,6 @@ MS5611_SPI::init()
 		goto out;
 	}
 
-	/* sharing a bus with NuttX drivers */
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-	//set_lockmode(SPI::LOCK_THREADS);
-#endif
-
 	/* send reset command */
 	ret = _reset();
 

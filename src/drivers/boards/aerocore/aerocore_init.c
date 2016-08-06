@@ -225,10 +225,10 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	px4_arch_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -263,7 +263,7 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_AMBER);
 
 	/* Configure Sensors on SPI bus #3 */
-	spi3 = up_spiinitialize(3);
+	spi3 = px4_spibus_initialize(3);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
@@ -282,7 +282,7 @@ __EXPORT int nsh_archinitialize(void)
 	message("[boot] Initialized SPI port 3 (SENSORS)\n");
 
 	/* Configure FRAM on SPI bus #4 */
-	spi4 = up_spiinitialize(4);
+	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");

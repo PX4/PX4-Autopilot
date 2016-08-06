@@ -62,6 +62,7 @@
 #include "DriverFramework.hpp"
 
 extern void init_app_map(std::map<std::string, px4_main_t> &apps);
+extern void list_builtins(std::map<std::string, px4_main_t> &apps);
 
 using std::map;
 using std::string;
@@ -145,6 +146,11 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 {
 	// command is appargs[0]
 	std::string command = appargs[0];
+
+	if (command.compare("help") == 0) {
+		list_builtins(apps);
+		return 0;
+	}
 
 	//replaces app.find with iterator code to avoid null pointer exception
 	for (map<string, px4_main_t>::iterator it = apps.begin(); it != apps.end(); ++it) {

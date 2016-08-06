@@ -1,0 +1,12 @@
+uorb start
+param load
+param set SYS_RESTART_TYPE 0
+dataman start
+
+ver all
+
+sleep 1
+
+tests all
+
+shutdown

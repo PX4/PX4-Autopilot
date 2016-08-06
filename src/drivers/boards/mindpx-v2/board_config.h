@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -226,6 +226,11 @@ __BEGIN_DECLS
 #define GPIO_GPIO12_OUTPUT       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_GPIO13_OUTPUT       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 
+#define BOARD_HAS_LED_PWM
+#define BOARD_LED_PWM_DRIVE_ACTIVE_LOW
+#define LED_TIM3_CH3OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN0)
+#define LED_TIM3_CH2OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN7)
+#define LED_TIM3_CH4OUT  (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN1)
 
 /* Power supply control and monitoring GPIOs */
 //#define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
@@ -290,6 +295,39 @@ __BEGIN_DECLS
 #define PWMIN_TIMER_CHANNEL	1
 #define GPIO_PWM_IN		GPIO_TIM3_CH1IN_3
 
+#define BOARD_NAME "MINDPX_V2"
+
+/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
+ * system_power interface, and therefore provides the true logic
+ * GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID   (1)
+#define BOARD_ADC_SERVO_VALID   (1)
+#define BOARD_ADC_PERIPH_5V_OC  (0)
+#define BOARD_ADC_HIPOWER_5V_OC (0)
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB  { \
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
+		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
+		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0}, \
+		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0}, \
+		{GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0}, \
+		{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0}, \
+		{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,      0}, \
+		{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0}, \
+		{GPIO_GPIO12_INPUT,      GPIO_GPIO12_OUTPUT,      0}, }
+
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -313,8 +351,12 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
+
+
+#define board_peripheral_reset(ms)
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -334,6 +376,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN fw_pos_control_l1
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
+		-Os -Weffc++
 	SRCS
 		fw_pos_control_l1_main.cpp
 		landingslope.cpp

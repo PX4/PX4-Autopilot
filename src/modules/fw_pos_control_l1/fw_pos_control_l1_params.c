@@ -54,6 +54,8 @@
  * @unit m
  * @min 12.0
  * @max 50.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
@@ -65,6 +67,8 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
  *
  * @min 0.6
  * @max 0.9
+ * @decimal 2
+ * @increment 0.05
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
@@ -77,6 +81,8 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @unit norm
  * @min 0.0
  * @max 1.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
@@ -100,6 +106,8 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
  * @unit deg
  * @min -60.0
  * @max 0.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
@@ -112,6 +120,8 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
  * @unit deg
  * @min 0.0
  * @max 60.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
@@ -124,6 +134,8 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
  * @unit deg
  * @min 35.0
  * @max 65.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
@@ -138,6 +150,8 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * @unit norm
  * @min 0.0
  * @max 1.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
@@ -157,6 +171,8 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * @unit norm
  * @min 0.0
  * @max 1.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
@@ -172,6 +188,8 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @unit norm
  * @min 0.0
  * @max 0.4
+ * @decimal 2
+ * @increment 0.01
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
@@ -180,11 +198,13 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
  * Throttle limit value before flare
  *
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
- * before arcraft will flare.
+ * before aircraft will flare.
  *
  * @unit norm
  * @min 0.0
  * @max 1.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
@@ -200,9 +220,166 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * @unit m
  * @min 0.0
  * @max 150.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
+
+/**
+ * Landing slope angle
+ *
+ * @unit deg
+ * @min 1.0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
+
+/**
+ *
+ *
+ * @unit m
+ * @min 1.0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
+
+/**
+ * Landing flare altitude (relative to landing altitude)
+ *
+ * @unit m
+ * @min 0.0
+ * @max 25.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
+
+/**
+ * Landing throttle limit altitude (relative landing altitude)
+ *
+ * Default of -1.0 lets the system default to applying throttle
+ * limiting at 2/3 of the flare altitude.
+ *
+ * @unit m
+ * @min -1.0
+ * @max 30.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
+
+/**
+ * Landing heading hold horizontal distance
+ *
+ * @unit m
+ * @min 0
+ * @max 30.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Use terrain estimate during landing
+ *
+ * @boolean
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_USETER, 0);
+
+/**
+ * Flare, minimum pitch
+ *
+ * Minimum pitch during flare, a positive sign means nose up
+ * Applied once FW_LND_TLALT is reached
+ *
+ * @unit deg
+ * @min 0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
+
+/**
+ * Flare, maximum pitch
+ *
+ * Maximum pitch during flare, a positive sign means nose up
+ * Applied once FW_LND_TLALT is reached
+ *
+ * @unit deg
+ * @min 0
+ * @max 45.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
+
+/**
+ * Min. airspeed scaling factor for landing
+ *
+ * Multiplying this factor with the minimum airspeed of the plane
+ * gives the target airspeed the landing approach.
+ * FW_AIRSPD_MIN * FW_LND_AIRSPD_SC
+ *
+ * @unit norm
+ * @min 1.0
+ * @max 1.5
+ * @decimal 2
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
+
+
+
+/*
+ * TECS parameters
+ *
+ */
+
+
+/**
+ * Minimum Airspeed
+ *
+ * If the airspeed falls below this value, the TECS controller will try to
+ * increase airspeed more aggressively.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
+
+/**
+ * Maximum Airspeed
+ *
+ * If the airspeed is above this value, the TECS controller will try to decrease
+ * airspeed more aggressively.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
  * Maximum climb rate
@@ -221,8 +398,10 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
  * FW_THR_MAX reduced.
  *
  * @unit m/s
- * @min 2.0
- * @max 10.0
+ * @min 1.0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
@@ -235,6 +414,10 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  * to measure FW_T_CLMB_MAX.
  *
  * @unit m/s
+ * @min 1.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
@@ -249,6 +432,10 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  * the aircraft.
  *
  * @unit m/s
+ * @min 2.0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
@@ -261,6 +448,10 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
  * to respond.
  *
  * @unit s
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
@@ -273,6 +464,10 @@ PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
  * to respond.
  *
  * @unit s
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
@@ -283,6 +478,10 @@ PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
  * This is the damping gain for the throttle demand loop.
  * Increase to add damping to correct for oscillations in speed and height.
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 0.1
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
@@ -295,6 +494,10 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  * and height offsets are trimmed out, but reduces damping and
  * increases overshoot.
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
@@ -309,6 +512,10 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
  * from under-speed conditions.
  *
  * @unit m/s/s
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
@@ -323,6 +530,10 @@ PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
  * the solution more towards use of the accelerometer data.
  *
  * @unit rad/s
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
@@ -333,10 +544,14 @@ PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
  * This is the cross-over frequency (in radians/second) of the complementary
  * filter used to fuse longitudinal acceleration and airspeed to obtain an
  * improved airspeed estimate. Increasing this frequency weights the solution
- * more towards use of the arispeed sensor, whilst reducing it weights the
+ * more towards use of the airspeed sensor, whilst reducing it weights the
  * solution more towards use of the accelerometer data.
  *
  * @unit rad/s
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
@@ -353,6 +568,10 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  * aircraft (eg powered sailplanes) can use a lower value, whereas
  * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
  *
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.5
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
@@ -373,6 +592,8 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
  *
  * @min 0.0
  * @max 2.0
+ * @decimal 1
+ * @increment 1.0
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
@@ -385,6 +606,10 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  * will work well provided the pitch to servo controller has been tuned
  * properly.
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 0.1
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
@@ -392,6 +617,10 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 /**
  * Height rate P factor
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
@@ -399,6 +628,10 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 /**
  * Height rate FF factor
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
@@ -406,107 +639,10 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
 /**
  * Speed rate P factor
  *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
-
-/**
- * Landing slope angle
- *
- * @unit deg
- * @min 1.0
- * @max 15.0
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
-
-/**
- *
- *
- * @unit m
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
-
-/**
- * Landing flare altitude (relative to landing altitude)
- *
- * @unit m
- * @min 0.0
- * @max 25.0
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
-
-/**
- * Landing throttle limit altitude (relative landing altitude)
- *
- * Default of -1.0 lets the system default to applying throttle
- * limiting at 2/3 of the flare altitude.
- *
- * @unit m
- * @min -1.0
- * @max 30.0
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
-
-/**
- * Landing heading hold horizontal distance
- *
- * @unit m
- * @min 0
- * @max 30.0
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
-
-/**
- * Enable or disable usage of terrain estimate during landing
- *
- * 0: disabled, 1: enabled
- *
- * @boolean
- * @group FW L1 Control
- */
-PARAM_DEFINE_INT32(FW_LND_USETER, 0);
-
-/**
- * Flare, minimum pitch
- *
- * Minimum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
- *
- * @unit deg
- * @min 0
- * @max 15.0
- * @group FW L1 Control
- *
- */
-PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
-
-/**
- * Flare, maximum pitch
- *
- * Maximum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
- *
- * @unit deg
- * @min 0
- * @max 45.0
- * @group FW L1 Control
- *
- */
-PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
-
-/**
- * Landing airspeed scale factor
- *
- * Multiplying this factor with the minimum airspeed of the plane
- * gives the target airspeed the landing approach.
- *
- * @min 1.0
- * @max 1.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);

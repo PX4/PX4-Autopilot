@@ -77,10 +77,6 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
@@ -186,7 +182,6 @@ PWMSim::PWMSim() :
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_current_update_rate(0),
-	_control_subs { -1},
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
@@ -205,6 +200,10 @@ PWMSim::PWMSim() :
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		_control_subs[i] = -1;
+	}
 }
 
 PWMSim::~PWMSim()
@@ -256,12 +255,12 @@ PWMSim::init()
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_DEFAULT,
-				   1000,
+				   1200,
 				   (px4_main_t)&PWMSim::task_main_trampoline,
 				   nullptr);
 
 	if (_task < 0) {
-		DEVICE_DEBUG("task start failed: %d", errno);
+		PX4_INFO("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -286,42 +285,42 @@ PWMSim::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_2PWM:
-		DEVICE_DEBUG("MODE_2PWM");
+		PX4_INFO("MODE_2PWM");
 		/* multi-port with flow control lines as PWM */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 2;
 		break;
 
 	case MODE_4PWM:
-		DEVICE_DEBUG("MODE_4PWM");
+		PX4_INFO("MODE_4PWM");
 		/* multi-port as 4 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 4;
 		break;
 
 	case MODE_8PWM:
-		DEVICE_DEBUG("MODE_8PWM");
+		PX4_INFO("MODE_8PWM");
 		/* multi-port as 8 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 8;
 		break;
 
 	case MODE_12PWM:
-		DEVICE_DEBUG("MODE_12PWM");
+		PX4_INFO("MODE_12PWM");
 		/* multi-port as 12 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 12;
 		break;
 
 	case MODE_16PWM:
-		DEVICE_DEBUG("MODE_16PWM");
+		PX4_INFO("MODE_16PWM");
 		/* multi-port as 16 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 16;
 		break;
 
 	case MODE_NONE:
-		DEVICE_DEBUG("MODE_NONE");
+		PX4_INFO("MODE_NONE");
 		/* disable servo outputs and set a very low update rate */
 		_update_rate = 10;
 		_num_outputs = 0;
@@ -362,11 +361,11 @@ PWMSim::subscribe()
 
 		if (unsub_groups & (1 << i)) {
 			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
-			px4_close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
@@ -406,7 +405,7 @@ PWMSim::task_main()
 			}
 
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
+				if (_control_subs[i] >= 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
 				}
 			}
@@ -415,20 +414,16 @@ PWMSim::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = 0;
-
+		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
 			usleep(1000 * 1000);
 
-			/* this can happen during boot, but after the sleep its likely resolved */
-			if (_poll_fds_num == 0) {
-				PX4_WARN("pwm_out_sim: No valid fds");
-			}
-
-		} else {
-			ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
+			PX4_DEBUG("no valid fds");
+			continue;
 		}
+
+		/* sleep waiting for data, but no more than a second */
+		int ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -445,7 +440,7 @@ PWMSim::task_main()
 		unsigned poll_id = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] > 0) {
+			if (_control_subs[i] >= 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 				}
@@ -531,12 +526,12 @@ PWMSim::task_main()
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
-			px4_close(_control_subs[i]);
+		if (_control_subs[i] >= 0) {
+			orb_unsubscribe(_control_subs[i]);
 		}
 	}
 
-	px4_close(_armed_sub);
+	orb_unsubscribe(_armed_sub);
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
@@ -583,7 +578,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	default:
 		ret = -ENOTTY;
-		DEVICE_DEBUG("not in a PWM mode");
+		PX4_INFO("not in a PWM mode");
 		break;
 	}
 
@@ -797,7 +792,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					DEVICE_DEBUG("mixer load failed with %d", ret);
+					PX4_ERR("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;
@@ -957,7 +952,7 @@ extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[]);
 static void
 usage()
 {
-	PX4_WARN("pwm_out_sim: unrecognized command, try:");
+	PX4_WARN("unrecognized command, try:");
 	PX4_WARN("  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
 }
 

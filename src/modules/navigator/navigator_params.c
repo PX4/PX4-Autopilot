@@ -48,6 +48,8 @@
  * @unit m
  * @min 25
  * @max 1000
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
@@ -56,13 +58,44 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  * Acceptance Radius
  *
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * For fixed wing the L1 turning distance is used for horizontal acceptance.
  *
  * @unit m
  * @min 0.05
  * @max 200.0
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
+
+/**
+ * FW Altitude Acceptance Radius
+ *
+ * Acceptance radius for fixedwing altitude.
+ *
+ * @unit m
+ * @min 0.05
+ * @max 200.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_FW_ALT_RAD, 10.0f);
+
+/**
+ * MC Altitude Acceptance Radius
+ *
+ * Acceptance radius for multicopter altitude.
+ *
+ * @unit m
+ * @min 0.05
+ * @max 200.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 3.0f);
 
 /**
  * Set data link loss failsafe mode
@@ -98,7 +131,7 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_RCL_ACT, 0);
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
  * Airfield home Lat
@@ -131,6 +164,8 @@ PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
  *
  * @unit m
  * @min -50
+ * @decimal 1
+ * @increment 0.5
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);

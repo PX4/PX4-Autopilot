@@ -537,12 +537,12 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * fail during initialization.
 	 */
 #if defined(GPIO_CAN1_RX)
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
+	px4_arch_configgpio(GPIO_CAN1_RX);
+	px4_arch_configgpio(GPIO_CAN1_TX);
 #endif
 #if defined(GPIO_CAN2_RX)
-	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	stm32_configgpio(GPIO_CAN2_TX);
+	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
+	px4_arch_configgpio(GPIO_CAN2_TX);
 #endif
 #if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
 # error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"
@@ -550,25 +550,33 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	/*
 	 * CAN driver init
+	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
+	 * shipped with libuavcan does not support deinitialization.
 	 */
-	static CanInitHelper can;
-	static bool can_initialized = false;
+	static CanInitHelper* can = nullptr;
 
-	if (!can_initialized) {
-		const int can_init_res = can.init(bitrate);
+	if (can == nullptr) {
+		warnx("CAN driver init...");
+
+		can = new CanInitHelper();
+
+		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
+			warnx("Out of memory");
+			return -1;
+		}
+
+		const int can_init_res = can->init(bitrate);
 
 		if (can_init_res < 0) {
 			warnx("CAN driver init failed %i", can_init_res);
 			return can_init_res;
 		}
-
-		can_initialized = true;
 	}
 
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, uavcan_stm32::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		warnx("Out of memory");
@@ -1115,7 +1123,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 
-	case UAVCANIOC_HARDPOINT_SET: {
+	case UAVCAN_IOCS_HARDPOINT_SET: {
 			const auto &hp_cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
 			_hardpoint_controller.set_command(hp_cmd.hardpoint_id, hp_cmd.command);
 		}

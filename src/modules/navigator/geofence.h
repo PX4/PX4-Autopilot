@@ -59,6 +59,10 @@ class Geofence : public control::SuperBlock
 {
 public:
 	Geofence(Navigator *navigator);
+
+	Geofence(const Geofence &) = delete;
+	Geofence &operator=(const Geofence &) = delete;
+
 	~Geofence();
 
 	/* Altitude mode, corresponding to the param GF_ALTMODE */
@@ -131,7 +135,7 @@ private:
 	control::BlockParamInt _param_max_hor_distance;
 	control::BlockParamInt _param_max_ver_distance;
 
-	unsigned _outside_counter;
+	int _outside_counter;
 
 	bool inside(double lat, double lon, float altitude);
 	bool inside(const struct vehicle_global_position_s &global_position);

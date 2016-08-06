@@ -86,15 +86,28 @@ public:
 	 */
 	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
 
+	/**
+	 * Get the current integral and reset the integrator if needed. Additionally give the
+	 * integral over the samples differentiated by the integration time (mean filtered values).
+	 *
+	 * @param reset	    	Reset the integral to zero.
+	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @param filtered_val	The integral differentiated by the integration time.
+	 * @return		the integral since the last read-reset
+	 */
+	math::Vector<3>		get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val);
+
 private:
 	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
 	uint64_t _last_integration_time;		/**< timestamp of the last integration step */
 	uint64_t _last_reset_time;			/**< last auto-announcement of integral value */
-	math::Vector<3> _integral;			/**< the integrated value */
-	math::Vector<3> _last_val;			/**< previously integrated last value */
-	math::Vector<3> _last_delta;			/**< last local delta */
-	bool _coning_comp_on;				/**< coning compensation */
+	math::Vector<3> _alpha;				/**< integrated value before coning corrections are applied */
+	math::Vector<3> _last_alpha;			/**< previous value of _alpha */
+	math::Vector<3> _beta;				/**< accumulated coning corrections */
+	math::Vector<3> _last_val;			/**< previous input */
+	math::Vector<3> _last_delta_alpha;		/**< integral from previous previous sampling interval */
+	bool _coning_comp_on;				/**< true to turn on coning corrections */
 
 	/* we don't want this class to be copied */
 	Integrator(const Integrator &);

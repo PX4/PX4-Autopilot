@@ -167,6 +167,13 @@ public:
 	float		get_acceptance_radius();
 
 	/**
+	 * Get the altitude acceptance radius
+	 *
+	 * @return the distance from the target altitude before considering the waypoint reached
+	 */
+	float		get_altitude_acceptance_radius();
+
+	/**
 	 * Get the cruising speed
 	 *
 	 * @return the desired cruising speed for this mission
@@ -177,6 +184,19 @@ public:
 	 * Set the cruising speed
 	 */
 	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
+
+
+	/**
+	 * Get the target throttle
+	 *
+	 * @return the desired throttle for this mission
+	 */
+	float		get_cruising_throttle();
+
+	/**
+	 * Set the target throttle
+	 */
+	void		set_cruising_throttle(float throttle=-1.0f) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
@@ -207,7 +227,7 @@ private:
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_land_detected_sub;		/**< vehicle land detected subscription */
-	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
+	int		_fw_pos_ctrl_status_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
@@ -229,7 +249,7 @@ private:
 	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
-	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
+	fw_pos_ctrl_status_s			_fw_pos_ctrl_status;		/**< fixed wing navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 	position_setpoint_triplet_s			_reposition_triplet;	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet;	/**< triplet for non-mission direct takeoff command */
@@ -272,13 +292,17 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
+	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
 	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
+	control::BlockParamFloat _param_cruising_throttle_plane;
 
 	float _mission_cruising_speed;
+	float _mission_throttle;
 
 	/**
 	 * Retrieve global position
@@ -301,9 +325,9 @@ private:
 	void		home_position_update(bool force=false);
 
 	/**
-	 * Retreive navigation capabilities
+	 * Retrieve fixed wing navigation capabilities
 	 */
-	void		navigation_capabilities_update();
+	void		fw_pos_ctrl_status_update();
 
 	/**
 	 * Retrieve vehicle status

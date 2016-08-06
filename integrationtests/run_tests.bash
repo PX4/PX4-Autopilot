@@ -25,7 +25,16 @@ TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 # EXPORT_CHARTS=/sitl/testing/export_charts.py
 
 # source ROS env
-source /opt/ros/indigo/setup.bash
+if [ -f /opt/ros/indigo/setup.bash ]
+then
+	source /opt/ros/indigo/setup.bash
+elif [ -f /opt/ros/kinetic/setup.bash ]
+then
+	source /opt/ros/kinetic/setup.bash
+else
+	echo "could not find /opt/ros/{ros-distro}/setup.bash"
+	exit 1
+fi
 source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
 
 echo "deleting previous test results ($TEST_RESULT_TARGET_DIR)"
@@ -43,17 +52,14 @@ ln -s ${SRC_DIR} /root/Firmware
 echo "=====> compile ($SRC_DIR)"
 cd $SRC_DIR
 make ${BUILD}
-mkdir -p Tools/sitl_gazebo/Build
-cd Tools/sitl_gazebo/Build
-cmake -Wno-dev ..
-make -j4
-make sdf
+make --no-print-directory gazebo_build
 echo "<====="
 
 # don't exit on error anymore from here on (because single tests or exports might fail)
 set +e
 echo "=====> run tests"
 rostest px4 mavros_posix_tests_iris.launch
+rostest px4 mavros_posix_tests_standard_vtol.launch
 TEST_RESULT=$?
 echo "<====="
 

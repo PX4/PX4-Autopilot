@@ -397,7 +397,7 @@ static int io_timer_init_timer(unsigned timer)
 
 	if (rv == 0) {
 
-		irqstate_t flags = irqsave();
+		irqstate_t flags = px4_enter_critical_section();
 
 		set_timer_initalized(timer);
 
@@ -448,7 +448,7 @@ static int io_timer_init_timer(unsigned timer)
 
 		up_enable_irq(io_timers[timer].vectorno);
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 	}
 
 	return rv;
@@ -520,11 +520,11 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		io_timer_init_timer(channels_timer(channel));
 
-		irqstate_t flags = irqsave();
+		irqstate_t flags = px4_enter_critical_section();
 
 		/* Set up IO */
 		if (gpio) {
-			stm32_configgpio(gpio);
+			px4_arch_configgpio(gpio);
 		}
 
 
@@ -570,7 +570,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		channel_handlers[channel].callback = channel_handler;
 		channel_handlers[channel].context = context;
 		rDIER(timer) |= dier_setbits << shifts;
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 	}
 
 	return rv;
@@ -643,7 +643,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 		}
 	}
 
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 
 	for (unsigned actions = 0; actions < arraySize(action_cache) && action_cache[actions].base != 0 ; actions++) {
 		uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
@@ -667,7 +667,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 			for (unsigned chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
 				if (action_cache[actions].gpio[chan]) {
-					stm32_configgpio(action_cache[actions].gpio[chan]);
+					px4_arch_configgpio(action_cache[actions].gpio[chan]);
 					action_cache[actions].gpio[chan] = 0;
 				}
 			}
@@ -681,7 +681,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 		}
 	}
 
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	return 0;
 }

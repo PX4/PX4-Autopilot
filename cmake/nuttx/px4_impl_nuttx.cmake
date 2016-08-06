@@ -202,21 +202,32 @@ function(px4_nuttx_add_export)
 	    add_dependencies(nuttx_patch nuttx_patch_${patch_name})
 	endforeach()
 
+	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes 
+	# note: CONFIG will be BOARD in the future evaluation of ${hw_stack_check_${CONFIG}
+	file(STRINGS "${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/nsh/defconfig"
+		hw_stack_check_${CONFIG}
+		REGEX "CONFIG_ARMV7M_STACKCHECK=y"
+		)
+	if ("${hw_stack_check_${CONFIG}}" STREQUAL "CONFIG_ARMV7M_STACKCHECK=y")
+		set(config_nuttx_hw_stack_check_${CONFIG} y CACHE INTERNAL "" FORCE)
+	endif()
+
 	# copy and export
+	file(RELATIVE_PATH nuttx_cp_src ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/NuttX)
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
-		COMMAND ${RM} -rf ${nuttx_src}/.git
+		COMMAND rsync -a --delete --exclude=.git ${nuttx_cp_src}/ ${CONFIG}/NuttX/
 		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/PX4_Warnings.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh && cd ..
 		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "Building NuttX for ${CONFIG}")
 
 	# extract
@@ -428,56 +439,19 @@ function(px4_os_add_flags)
 
 	set(added_exe_linker_flags) # none currently
 
+	set(instrument_flags)
+	if ("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
+		set(instrument_flags
+			-finstrument-functions
+			-ffixed-r10
+			)
+		list(APPEND c_flags ${instrument_flags})
+		list(APPEND cxx_flags ${instrument_flags})
+	endif()
+
 	set(cpu_flags)
-	if (${BOARD} STREQUAL "px4fmu-v1")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4fmu-v2")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4fmu-v4")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4-stm32f4discovery")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "aerocore")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "mindpx-v2")
-			set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4io-v1")
+	# Handle non-F4 boards specifically here
+	if (${BOARD} STREQUAL "px4io-v1")
 		set(cpu_flags
 			-mcpu=cortex-m3
 			-mthumb
@@ -488,6 +462,14 @@ function(px4_os_add_flags)
 			-mcpu=cortex-m3
 			-mthumb
 			-march=armv7-m
+			)
+	else ()
+			set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
 			)
 	endif()
 	list(APPEND c_flags ${cpu_flags})

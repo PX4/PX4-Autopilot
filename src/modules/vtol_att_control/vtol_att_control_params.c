@@ -249,20 +249,12 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Enable optimal recovery strategy for pitch-weak tailsitters
+ * Optimal recovery strategy for pitch-weak tailsitters
  *
  * @boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
-
-/**
- * Enable weather-vane mode landings for missions
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
 
 /**
  * Weather-vane yaw rate scale.
@@ -277,14 +269,6 @@ PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
-
-/**
- * Enable weather-vane mode for loiter
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
 
 /**
  * Front transition timeout
@@ -320,3 +304,14 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_NAV_FORCE_VT, 1);
+
+/**
+ * QuadChute
+ *
+ * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
+ * the vehicle will transition back to MC mode and enter failsafe RTL
+ * @min 0.0
+ * @max 200.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);

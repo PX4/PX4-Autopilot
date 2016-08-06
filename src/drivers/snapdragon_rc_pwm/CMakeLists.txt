@@ -35,8 +35,7 @@ px4_add_module(
 	MAIN snapdragon_rc_pwm
 	COMPILE_FLAGS
 		-Os
-		-Wno-attributes
-		-Wno-packed
+		-DMAVLINK_COMM_NUM_BUFFERS=1
 	SRCS
 		snapdragon_rc_pwm.cpp
 	DEPENDS

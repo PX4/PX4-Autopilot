@@ -37,7 +37,6 @@ px4_add_module(
 		-Os
 	SRCS
 		controllib_test_main.cpp
-		test_params.c
 	DEPENDS
 		platforms__common
 	)

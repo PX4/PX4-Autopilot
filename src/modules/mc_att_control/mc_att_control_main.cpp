@@ -70,8 +70,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_virtual_fw.h>
-#include <uORB/topics/actuator_controls_virtual_mc.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
@@ -103,6 +101,11 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define RATES_I_LIMIT	0.3f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
+
+#define AXIS_INDEX_ROLL 0
+#define AXIS_INDEX_PITCH 1
+#define AXIS_INDEX_YAW 2
+#define AXIS_COUNT 3
 
 class MulticopterAttitudeControl
 {
@@ -726,32 +729,26 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* limit rates */
 	for (int i = 0; i < 3; i++) {
-		if (_v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
+		    !_v_control_mode.flag_control_manual_enabled) {
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
+
 		} else {
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 		}
 	}
 
-	/* weather-vane mode, dampen yaw rate */
-	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
-		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
-		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
-		// prevent integrator winding up in weathervane mode
-		_rates_int(2) = 0.0f;
-	}
-
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 
-	/* weather-vane mode, scale down yaw rate */
-	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+	/* weather-vane mode, dampen yaw rate */
+	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
+	    _v_att_sp.disable_mc_yaw_control == true && !_v_control_mode.flag_control_manual_enabled) {
 		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
 		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
 		// prevent integrator winding up in weathervane mode
 		_rates_int(2) = 0.0f;
 	}
-
 }
 
 /*
@@ -782,12 +779,14 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* update integral only if not saturated on low limit and if motor commands are not saturated */
 	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
-		for (int i = 0; i < 3; i++) {
+		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
+				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
 					_rates_int(i) = rate_i;
 				}
 			}

@@ -73,34 +73,9 @@ public:
 
 	unsigned get_size();
 
+	unsigned get_size_avg();
+
 	void handle_message(const mavlink_message_t *msg);
-
-	/**
-	 * Send one parameter identified by index.
-	 *
-	 * @param index		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	void		start_send_one(int index);
-
-
-	/**
-	 * Send one parameter identified by name.
-	 *
-	 * @param name		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			start_send_for_name(const char *name);
-
-	/**
-	 * Start sending the parameter queue.
-	 *
-	 * This function will not directly send parameters, but instead
-	 * activate the sending of one parameter on each call of
-	 * mavlink_pm_queued_send().
-	 * @see 		mavlink_pm_queued_send()
-	 */
-	void		start_send_all();
 
 private:
 	int		_send_all_index;
@@ -111,6 +86,7 @@ private:
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
 	void send(const hrt_abstime t);
 

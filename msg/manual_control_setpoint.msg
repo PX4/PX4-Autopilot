@@ -12,8 +12,6 @@ int8 MODE_SLOT_5 = 4			# mode slot 5 selected
 int8 MODE_SLOT_6 = 5			# mode slot 6 selected
 int8 MODE_SLOT_MAX = 6			# number of slots plus one
 
-uint64 timestamp
-
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
 # The variable names follow the definition of the
@@ -53,4 +51,5 @@ uint8 loiter_switch		 # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 acro_switch		 # acro 2 position switch (optional): _MANUAL_, ACRO
 uint8 offboard_switch	 # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
 uint8 kill_switch		 # throttle kill: _NORMAL_, KILL
+uint8 transition_switch	 # VTOL transition switch: _HOVER, FORWARD_FLIGHT
 int8 mode_slot			 # the slot a specific model selector is in

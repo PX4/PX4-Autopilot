@@ -36,19 +36,20 @@
  * Land detection algorithm for VTOL
  *
  * @author Roman Bapst <bapstroma@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#include "VtolLandDetector.h"
 #include <drivers/drv_hrt.h>
 
-namespace landdetection
+#include "VtolLandDetector.h"
+
+namespace land_detector
 {
 
 VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
 	_paramHandle(),
 	_params(),
 	_airspeedSub(-1),
-	_parameterSub(-1),
 	_airspeed{},
 	_was_in_air(false),
 	_airspeed_filtered(0)
@@ -56,29 +57,24 @@ VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 }
 
-void VtolLandDetector::initialize()
+void VtolLandDetector::_initialize_topics()
 {
-	MulticopterLandDetector::initialize();
+	MulticopterLandDetector::_initialize_topics();
+
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
-
-	// download parameters
-	updateParameterCache(true);
 }
 
-void VtolLandDetector::updateSubscriptions()
+void VtolLandDetector::_update_topics()
 {
-	MulticopterLandDetector::updateSubscriptions();
+	MulticopterLandDetector::_update_topics();
 
-	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
-LandDetectionResult VtolLandDetector::update()
+bool VtolLandDetector::_get_landed_state()
 {
-	updateSubscriptions();
-	updateParameterCache(false);
-
 	// this is returned from the mutlicopter land detector
-	bool landed = get_landed_state();
+	bool landed = MulticopterLandDetector::_get_landed_state();
 
 	// for vtol we additionally consider airspeed
 	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
@@ -97,27 +93,19 @@ LandDetectionResult VtolLandDetector::update()
 
 	_was_in_air = !landed;
 
-	_state = (landed) ? LANDDETECTION_RES_LANDED : LANDDETECTION_RES_FLYING;
-
-	return _state;
+	return landed;
 }
 
-void VtolLandDetector::updateParameterCache(const bool force)
+bool VtolLandDetector::_get_freefall_state()
 {
-	MulticopterLandDetector::updateParameterCache(force);
+	return MulticopterLandDetector::_get_freefall_state();
+}
 
-	bool updated;
-	parameter_update_s paramUpdate;
+void VtolLandDetector::_update_params()
+{
+	MulticopterLandDetector::_update_params();
 
-	orb_check(_parameterSub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _parameterSub, &paramUpdate);
-	}
-
-	if (updated || force) {
-		param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
-	}
+	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
 }
 
 }

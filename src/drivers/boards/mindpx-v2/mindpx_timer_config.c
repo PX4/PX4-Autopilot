@@ -129,3 +129,33 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 //		.default_value = 1000,
 //	}
 };
+
+__EXPORT const struct io_timers_t led_pwm_timers[1] = {
+	{
+		.base = STM32_TIM3_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM3EN,
+		.clock_freq = STM32_APB1_TIM3_CLKIN,
+	}
+};
+
+__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = {
+	{
+		.gpio_out = LED_TIM3_CH3OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 3,
+	},
+	{
+		.gpio_out = LED_TIM3_CH2OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM3_CH4OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 4,
+	}
+};

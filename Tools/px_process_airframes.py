@@ -71,7 +71,7 @@ def main():
                          const="",
                          metavar="BOARD",
                          help="Board to create airframes xml for")
-    parser.add_argument("-v", "--verbose", help="verbose output")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
     args = parser.parse_args()
 
     # Check for valid command

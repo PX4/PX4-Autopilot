@@ -96,13 +96,15 @@ public:
 	 * @param data    A pointer to the initial data to be published.
 	 *      For topics updated by interrupt handlers, the advertisement
 	 *      must be performed from non-interrupt context.
+	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
+	 *      used.
 	 * @return    nullptr on error, otherwise returns an object pointer
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data);
+	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1);
 
 	/**
 	 * Advertise as the publisher of a topic.
@@ -130,6 +132,8 @@ public:
 	 *      instances, the priority allows the subscriber to prioritize the best
 	 *      data source as long as its available. The subscriber is responsible to check
 	 *      and handle different priorities (@see orb_priority()).
+	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
+	 *      used.
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
@@ -137,7 +141,7 @@ public:
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority) ;
+					 int priority, unsigned int queue_size = 1) ;
 
 
 	/**
@@ -187,9 +191,6 @@ public:
 	 *      for the topic.
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
-	 *      If the topic in question is not known (due to an
-	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	int  orb_subscribe(const struct orb_metadata *meta) ;
 
@@ -275,7 +276,8 @@ public:
 	int  orb_check(int handle, bool *updated) ;
 
 	/**
-	 * Return the last time that the topic was updated.
+	 * Return the last time that the topic was updated. If a queue is used, it returns
+	 * the timestamp of the latest element in the queue.
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param time    Returns the absolute time that the topic was updated, or zero if it has
@@ -324,6 +326,18 @@ public:
 	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
 	 */
 	int  orb_set_interval(int handle, unsigned interval) ;
+
+
+	/**
+	 * Get the minimum interval between which updates are seen for a subscription.
+	 *
+	 * @see orb_set_interval()
+	 *
+	 * @param handle  A handle returned from orb_subscribe.
+	 * @param interval  The returned interval period in milliseconds.
+	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 */
+	int	orb_get_interval(int handle, unsigned *interval);
 
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
@@ -431,6 +445,46 @@ private: //class methods
 	 */
 	virtual int16_t process_received_message(const char *messageName,
 			int32_t length, uint8_t *data);
+
+
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	struct PublisherRule {
+		const char **topics; //null-terminated list of topic names
+		const char *module_name; //only this module is allowed to publish one of the topics
+		bool ignore_other_topics;
+	};
+
+	/**
+	 * test if str starts with pre
+	 */
+	bool startsWith(const char *pre, const char *str);
+
+	/**
+	 * find a topic in a rule
+	 */
+	bool findTopic(const PublisherRule &rule, const char *topic_name);
+
+	/**
+	 * trim whitespace from the beginning of a string
+	 */
+	void strTrim(const char **str);
+
+	/**
+	 * Read publisher rules from a file. It has the format:
+	 *
+	 * restrict_topics: <topic1>, <topic2>, <topic3>
+	 * module: <module_name>
+	 * [ignore_others:true]
+	 *
+	 * @return 0 on success, <0 otherwise
+	 */
+	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
+
+	PublisherRule _publisher_rule;
+	bool _has_publisher_rules = false;
+
+#endif /* ORB_USE_PUBLISHER_RULES */
 
 };
 

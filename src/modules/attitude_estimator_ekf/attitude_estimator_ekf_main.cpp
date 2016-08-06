@@ -175,7 +175,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		attitude_estimator_ekf_task = px4_task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      7700,
+					      7000,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		return 0;
@@ -381,7 +381,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
-					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						/* update mag declination rotation matrix */
@@ -399,9 +399,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					// XXX disabling init for now
 					initialized = true;
 
-					// gyro_offsets[0] += raw.gyro_rad_s[0];
-					// gyro_offsets[1] += raw.gyro_rad_s[1];
-					// gyro_offsets[2] += raw.gyro_rad_s[2];
+					// gyro_offsets[0] += raw.gyro_rad[0];
+					// gyro_offsets[1] += raw.gyro_rad[1];
+					// gyro_offsets[2] += raw.gyro_rad[2];
 					// offset_count++;
 
 					// if (hrt_absolute_time() - start_time > 3000000LL) {
@@ -421,21 +421,21 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_timestamp[0] != raw.gyro_timestamp[0]) {
+					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
 						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-						sensor_last_timestamp[0] = raw.gyro_timestamp[0];
+						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
-					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
-					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
-					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
+					z_k[0] =  raw.gyro_rad[0] - gyro_offsets[0];
+					z_k[1] =  raw.gyro_rad[1] - gyro_offsets[1];
+					z_k[2] =  raw.gyro_rad[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
+					if (sensor_last_timestamp[1] != raw.timestamp + raw.accelerometer_timestamp_relative) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp[0];
+						sensor_last_timestamp[1] = raw.timestamp + raw.accelerometer_timestamp_relative;
 					}
 
 					hrt_abstime vel_t = 0;
@@ -475,14 +475,14 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp[0] &&
+					if (sensor_last_timestamp[2] != raw.timestamp + raw.magnetometer_timestamp_relative &&
 						/* check that the mag vector is > 0 */
 						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp[0];
+						sensor_last_timestamp[2] = raw.timestamp + raw.magnetometer_timestamp_relative;
 					}
 
 					bool vision_updated = false;
@@ -499,7 +499,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						orb_copy(ORB_ID(att_pos_mocap), mocap_sub, &mocap);
 					}
 
-					if (mocap.timestamp_boot > 0 && (hrt_elapsed_time(&mocap.timestamp_boot) < 500000)) {
+					if (mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000)) {
 
 						math::Quaternion q(mocap.q);
 						math::Matrix<3, 3> Rmoc = q.to_dcm();
@@ -511,7 +511,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
-					}else if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
+					} else if (vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000)) {
 
 						math::Quaternion q(vision.q);
 						math::Matrix<3, 3> Rvis = q.to_dcm();
@@ -537,7 +537,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp) < 1000000) {
 							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						}

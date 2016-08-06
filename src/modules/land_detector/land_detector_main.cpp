@@ -55,7 +55,8 @@
 #include "MulticopterLandDetector.h"
 #include "VtolLandDetector.h"
 
-namespace landdetection
+
+namespace land_detector
 {
 
 //Function prototypes
@@ -83,7 +84,7 @@ static void land_detector_stop()
 		return;
 	}
 
-	land_detector_task->shutdown();
+	land_detector_task->stop();
 
 	// Wait for task to die
 	int i = 0;
@@ -92,7 +93,7 @@ static void land_detector_stop()
 		/* wait 20ms */
 		usleep(20000);
 
-	} while (land_detector_task->isRunning() && ++i < 50);
+	} while (land_detector_task->is_running() && ++i < 50);
 
 
 	delete land_detector_task;
@@ -146,8 +147,8 @@ static int land_detector_start(const char *mode)
 	usleep(10000);
 
 	/* check if the waiting involving dots and a newline are still needed */
-	if (!land_detector_task->isRunning()) {
-		while (!land_detector_task->isRunning()) {
+	if (!land_detector_task->is_running()) {
+		while (!land_detector_task->is_running()) {
 			usleep(50000);
 
 			if (hrt_absolute_time() > timeout) {
@@ -191,8 +192,27 @@ int land_detector_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (land_detector_task) {
 
-			if (land_detector_task->isRunning()) {
-				PX4_WARN("running (%s): %s", _currentMode, (land_detector_task->isLanded()) ? "LANDED" : "IN AIR");
+			if (land_detector_task->is_running()) {
+				PX4_INFO("running (%s): %s", _currentMode);
+				LandDetector::LandDetectionState state = land_detector_task->get_state();
+
+				switch (state) {
+				case LandDetector::LandDetectionState::FLYING:
+					PX4_INFO("State: Flying");
+					break;
+
+				case LandDetector::LandDetectionState::LANDED:
+					PX4_INFO("State: Landed");
+					break;
+
+				case LandDetector::LandDetectionState::FREEFALL:
+					PX4_INFO("State: Freefall");
+					break;
+
+				default:
+					PX4_ERR("State: unknown");
+					break;
+				}
 
 			} else {
 				PX4_WARN("exists, but not running (%s)", _currentMode);

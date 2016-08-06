@@ -7,6 +7,8 @@
 __EXPORT int __px4_log_level_current = PX4_LOG_LEVEL_AT_RUN_TIME;
 
 __EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "INFO", "DEBUG", "WARN", "ERROR", "PANIC" };
+__EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
+{ PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
 
 void px4_backtrace()
 {
@@ -28,3 +30,21 @@ void px4_backtrace()
 	free(callstack);
 #endif
 }
+
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+{
+	if (level <= __px4_log_level_current) {
+		PX4_LOG_COLOR_START
+		printf(__px4__log_level_fmt __px4__log_level_arg(level));
+		PX4_LOG_COLOR_MODULE
+		printf(__px4__log_modulename_pfmt, moduleName);
+		PX4_LOG_COLOR_MESSAGE
+		va_list argptr;
+		va_start(argptr, fmt);
+		vprintf(fmt, argptr);
+		va_end(argptr);
+		PX4_LOG_COLOR_END
+		printf("\n");
+	}
+}
+

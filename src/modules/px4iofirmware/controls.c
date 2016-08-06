@@ -51,7 +51,6 @@
 
 #include "px4io.h"
 
-#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
 #define RC_CHANNEL_HIGH_THRESH		5000	/* 75% threshold */
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
@@ -482,14 +481,13 @@ controls_tick()
 	/*
 	 * Check for manual override.
 	 *
-	 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
-	 * must have R/C input (NO FAILSAFE!).
-	 * Override is enabled if either the hardcoded channel / value combination
-	 * is selected, or the AP has requested it.
+	 * Firstly, manual override must be enabled, RC input available and a mixer loaded.
 	 */
-	if ((!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)) &&
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) &&
+	    !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		bool override = false;
 
@@ -500,28 +498,27 @@ controls_tick()
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH)) {
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		    (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH)) {
 			override = true;
 		}
 
 		/*
-		  if the FMU is dead then enable override if we have a
-		  mixer and OVERRIDE_IMMEDIATE is set
+		 * If the FMU is dead then enable override if we have a mixer
+		 * and we want to immediately override (instead of using the RC channel
+		 * as in the case above.
+		 *
+		 * Also, do not enter manual override if we asked for termination
+		 * failsafe and FMU is lost.
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
 		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
-		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+		    !(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)) {
 			override = true;
 		}
 
 		if (override) {
-
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
-
-			/* mix new RC input control values to servos */
-			if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated) {
-				mixer_tick();
-			}
 
 		} else {
 			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
@@ -542,7 +539,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 	}
 
 	/* avoid racing with PPM updates */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	/*
 	 * If we have received a new PPM frame within the last 200ms, accept it
@@ -571,7 +568,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		result = (*num_values > 0);
 	}
 
-	irqrestore(state);
+	px4_leave_critical_section(state);
 
 	return result;
 }

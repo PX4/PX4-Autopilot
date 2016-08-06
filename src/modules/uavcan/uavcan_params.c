@@ -39,9 +39,8 @@
 #include <systemlib/param/param.h>
 
 /**
- * Enable UAVCAN.
+ * UAVCAN mode
  *
- * Allowed values:
  *  0 - UAVCAN disabled.
  *  1 - Enabled support for UAVCAN actuators and sensors.
  *  2 - Enabled support for dynamic node ID allocation and firmware update.

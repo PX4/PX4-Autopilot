@@ -1,0 +1,486 @@
+#!nsh
+#
+# PX4FMU startup script.
+#
+#  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
+
+#
+# Start CDC/ACM serial driver
+#
+sercon
+
+#
+# Default to auto-start mode.
+#
+set MODE autostart
+
+set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set LOG_FILE /fs/microsd/bootlog.txt
+
+#
+# Try to mount the microSD card.
+#
+# REBOOTWORK this needs to start after the flight control loop
+if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	# Start playing the startup tune
+	tone_alarm start
+else
+	tone_alarm MBAGP
+	if mkfatfs /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			echo "INFO  [init] MicroSD card formatted"
+		else
+			echo "ERROR [init] Format failed"
+			tone_alarm MNBG
+			set LOG_FILE /dev/null
+		fi
+	else
+		set LOG_FILE /dev/null
+	fi
+fi
+
+#
+# Look for an init script on the microSD card.
+# Disable autostart if the script found.
+#
+set FRC /fs/microsd/etc/rc.txt
+if [ -f $FRC ]
+then
+	echo "INFO  [init] Executing script: $FRC"
+	sh $FRC
+	set MODE custom
+fi
+unset FRC
+
+if [ $MODE == autostart ]
+then
+
+	#
+	# Start the ORB (first app to start)
+	#
+	uorb start
+
+	#
+	# Load parameters
+	#
+	set PARAM_FILE /fs/microsd/params
+	if mtd start
+	then
+		set PARAM_FILE /fs/mtd_params
+	fi
+
+	param select $PARAM_FILE
+	if param load
+	then
+	else
+		if param reset
+		then
+		fi
+	fi
+
+	#
+	# Start system state indicator
+	#
+	if rgbled start
+	then
+	fi
+
+	#
+	# Set AUTOCNF flag to use it in AUTOSTART scripts
+	#
+	if param compare SYS_AUTOCONFIG 1
+	then
+		# Wipe out params except RC*
+		param reset_nostart RC*
+		set AUTOCNF yes
+	else
+		set AUTOCNF no
+	fi
+
+	#
+	# Set default values
+	#
+	set VEHICLE_TYPE none
+	set MIXER none
+	set OUTPUT_MODE none
+	set PWM_OUT none
+	set PWM_RATE none
+	set PWM_DISARMED none
+	set PWM_MIN none
+	set PWM_MAX none
+	set FMU_MODE pwm
+	set MAVLINK_F default
+	set EXIT_ON_END no
+	set MAV_TYPE none
+	set FAILSAFE none
+	set USE_IO no
+	
+
+	#
+	# Set parameters and env variables for selected AUTOSTART
+	#
+	if param compare SYS_AUTOSTART 0
+	then
+		echo "INFO  [init] No autostart"
+	else
+		sh /etc/init.d/rc.autostart
+	fi
+	unset MODE
+
+	#
+	# If autoconfig parameter was set, reset it and save parameters
+	#
+	if [ $AUTOCNF == yes ]
+	then
+		param set SYS_AUTOCONFIG 0
+		param save
+	fi
+	unset AUTOCNF
+
+	#
+	# Set default output if not set
+	#
+	if [ $OUTPUT_MODE == none ]
+	then
+		if [ $USE_IO == yes ]
+		then
+			set OUTPUT_MODE io
+		else
+			set OUTPUT_MODE fmu
+		fi
+	fi
+
+	gps start -d /dev/ttyS0
+
+	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
+	if dataman start
+	then
+	fi
+
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run)
+	#
+	sh /etc/init.d/rc.sensors
+
+	commander start
+
+	#
+	# Start CPU load monitor
+	#
+	load_mon start
+
+	#
+	# Start primary output
+	#
+	set TTYS1_BUSY no
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs
+	#
+	if param greater UAVCAN_ENABLE 2
+	then
+		set OUTPUT_MODE uavcan_esc
+	fi
+
+	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
+	if [ $OUTPUT_MODE != none ]
+	then
+		if [ $OUTPUT_MODE == uavcan_esc ]
+		then
+			if param compare UAVCAN_ENABLE 0
+			then
+				echo "INFO  [init] OVERRIDING UAVCAN_ENABLE = 1" >> $LOG_FILE
+				param set UAVCAN_ENABLE 1
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == fmu ]
+		then
+			if fmu mode_$FMU_MODE
+			then
+			else
+				echo "ERR  [init] FMU start failed" >> $LOG_FILE
+				tone_alarm $TUNE_ERR
+			fi
+		fi
+
+		if fmu mode_pwm4
+		then
+		else
+			echo "ERROR [init] FMU mode_$FMU_MODE start failed" >> $LOG_FILE
+			tone_alarm $TUNE_ERR
+		fi
+	fi
+
+	mavlink start -r 1200 -d /dev/ttyS1
+
+	#
+	# Starting stuff according to UAVCAN_ENABLE value
+	#
+	if param greater UAVCAN_ENABLE 0
+	then
+		if uavcan start
+		then
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
+
+	if param greater UAVCAN_ENABLE 1
+	then
+		if uavcan start fw
+		then
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
+
+	#
+	# Optional drivers
+	#
+
+	# Sensors on the PWM interface bank
+	if param compare SENS_EN_LL40LS 1
+	then
+		if pwm_input start
+		then
+			if ll40ls start pwm
+			then
+			fi
+		fi
+	fi
+
+	# sf0x lidar sensor
+	if param compare SENS_EN_SF0X 1
+	then
+		sf0x start
+	fi
+
+	# Start USB shell if no microSD present, MAVLink else
+	if [ $LOG_FILE == /dev/null ]
+	then
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	else
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
+
+	#
+	# Logging
+	#
+	if param compare SYS_LOGGER 0
+	then
+		if sdlog2 start -r 100 -a -b 9 -t
+		then
+		fi
+	else
+		if logger start -b 12 -t
+		then
+		fi
+	fi
+
+	#
+	# Fixed wing setup
+	#
+	if [ $VEHICLE_TYPE == fw ]
+	then
+		echo "INFO  [init] Fixedwing"
+
+		if [ $MIXER == none ]
+		then
+			# Set default mixer for fixed wing if not defined
+			set MIXER AERT
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 1 (fixed wing) if not defined
+			set MAV_TYPE 1
+		fi
+
+		param set MAV_TYPE $MAV_TYPE
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard fixedwing apps
+		sh /etc/init.d/rc.fw_apps
+	fi
+
+	#
+	# Multicopters setup
+	#
+	if [ $VEHICLE_TYPE == mc ]
+	then
+		echo "INFO  [init] Multicopter"
+
+		if [ $MIXER == none ]
+		then
+			echo "INFO  [init] Mixer undefined"
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use mixer to detect vehicle type
+			if [ $MIXER == quad_x -o $MIXER == quad_+ ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == quad_w ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == quad_h ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+			then
+				set MAV_TYPE 15
+			fi
+			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
+			then
+				set MAV_TYPE 13
+			fi
+			if [ $MIXER == hexa_cox ]
+			then
+				set MAV_TYPE 13
+			fi
+			if [ $MIXER == octo_x -o $MIXER == octo_+ ]
+			then
+				set MAV_TYPE 14
+			fi
+		fi
+
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "WARN  [init] Unknown MAV_TYPE"
+			param set MAV_TYPE 2
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard multicopter apps
+		sh /etc/init.d/rc.mc_apps
+	fi
+
+	#
+	# VTOL setup
+	#
+	if [ $VEHICLE_TYPE == vtol ]
+	then
+		echo "INFO  [init] VTOL"
+
+		if [ $MIXER == none ]
+		then
+			echo "WARN  [init] VTOL mixer undefined"
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use mixer to detect vehicle type
+			if [ $MIXER == caipirinha_vtol ]
+			then
+				set MAV_TYPE 19
+			fi
+			if [ $MIXER == firefly6 ]
+			then
+				set MAV_TYPE 21
+			fi
+			if [ $MIXER == quad_x_pusher_vtol ]
+			then
+				set MAV_TYPE 22
+			fi
+		fi
+
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "WARN  [init] Unknown MAV_TYPE"
+			param set MAV_TYPE 19
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard vtol apps
+		sh /etc/init.d/rc.vtol_apps
+	fi
+
+	#
+	# Rover setup
+	#
+	if [ $VEHICLE_TYPE == rover ]
+	then
+		# 10 is MAV_TYPE_GROUND_ROVER
+		set MAV_TYPE 10
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard rover apps
+		sh /etc/init.d/rc.axialracing_ax10_apps
+
+		param set MAV_TYPE 10
+	fi
+
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
+
+	#
+	# Start the navigator
+	#
+	navigator start
+
+	#
+	# Generic setup (autostart ID not found)
+	#
+	if [ $VEHICLE_TYPE == none ]
+	then
+		echo "WARN  [init] No autostart ID found"
+	fi
+
+	# Start any custom addons
+	set FEXTRAS /fs/microsd/etc/extras.txt
+	if [ -f $FEXTRAS ]
+	then
+		echo "INFO  [init] Addons script: $FEXTRAS"
+		sh $FEXTRAS
+	fi
+	unset FEXTRAS
+
+	# Run no SD alarm
+	if [ $LOG_FILE == /dev/null ]
+	then
+		# Play SOS
+		tone_alarm error
+	fi
+
+# End of autostart
+fi
+
+# There is no further script processing, so we can free some RAM
+# XXX potentially unset all script variables.
+unset TUNE_ERR
+
+# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+mavlink boot_complete
+
+if [ $EXIT_ON_END == yes ]
+then
+	echo "INFO  [init] NSH exit"
+	exit
+fi
+unset EXIT_ON_END

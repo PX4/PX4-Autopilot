@@ -43,7 +43,7 @@ fi
 # kill process names that might stil
 # be running from last time
 pkill gazebo
-pkill mainapp
+pkill px4
 jmavsim_pid=`jps | grep Simulator | cut -d" " -f1`
 if [ -n "$jmavsim_pid" ]
 then
@@ -58,7 +58,7 @@ cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
 SIM_PID=0
 
-if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
+if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
 	cd Tools/jMAVSim
 	ant create_run_jar copy_res
@@ -66,31 +66,33 @@ then
 	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
 	cd ../..
-elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
+elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		export GAZEBO_PLUGIN_PATH=$curr_dir/Tools/sitl_gazebo/Build:${GAZEBO_PLUGIN_PATH}
+		export GAZEBO_PLUGIN_PATH=$curr_dir/build_gazebo:${GAZEBO_PLUGIN_PATH}
 		# Set the model path so Gazebo finds the airframes
 		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
 		# The next line would disable online model lookup, can be commented in, in case of unstable behaviour.
 		# export GAZEBO_MODEL_DATABASE_URI=""
 		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
-		mkdir -p Tools/sitl_gazebo/Build
-		cd Tools/sitl_gazebo/Build
-		cmake -Wno-dev ..
-		make -j4
-		make sdf
-		gzserver --verbose ../worlds/${model}.world &
+		make --no-print-directory gazebo_build
+
+		gzserver --verbose $curr_dir/Tools/sitl_gazebo/worlds/${model}.world &
 		SIM_PID=`echo $!`
-		gzclient --verbose &
-		GUI_PID=`echo $!`
+
+		if [[ -n "$HEADLESS" ]]; then
+			echo "not running gazebo gui"
+		else
+			gzclient --verbose &
+			GUI_PID=`echo $!`
+		fi
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
-elif [ "$program" == "replay" ] && [ "$no_sim" == "" ]
+elif [ "$program" == "replay" ] && [ ! -n "$no_sim" ]
 then
 	echo "Replaying logfile: $logfile"
 	# This is not a simulator, but a log file to replay
@@ -115,18 +117,18 @@ set +e
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
+	lldb -- px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+	gdb --args px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+	ddd --debugger gdb --args px4 ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
+	valgrind ./px4 ../../../../${rc_script}_${program}_${model}
 else
-	$sudo_enabled ./mainapp $chroot_enabled ../../../../${rc_script}_${program}_${model}
+	$sudo_enabled ./px4 $chroot_enabled ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]
@@ -135,5 +137,7 @@ then
 elif [ "$program" == "gazebo" ]
 then
 	kill -9 $SIM_PID
-	kill -9 $GUI_PID
+	if [[ ! -n "$HEADLESS" ]]; then
+		kill -9 $GUI_PID
+	fi
 fi

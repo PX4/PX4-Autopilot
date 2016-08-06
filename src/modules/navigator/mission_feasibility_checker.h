@@ -44,7 +44,7 @@
 
 #include <unistd.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <dataman/dataman.h>
 #include "geofence.h"
 
@@ -54,8 +54,8 @@ class MissionFeasibilityChecker
 private:
 	orb_advert_t		*_mavlink_log_pub;
 
-	int _capabilities_sub;
-	struct navigation_capabilities_s _nav_caps;
+	int _fw_pos_ctrl_status_sub;
+	struct fw_pos_ctrl_status_s _fw_pos_ctrl_status;
 
 	bool _initDone;
 	bool _dist_1wp_ok;
@@ -78,6 +78,10 @@ private:
 public:
 
 	MissionFeasibilityChecker();
+
+	MissionFeasibilityChecker(const MissionFeasibilityChecker &) = delete;
+	MissionFeasibilityChecker &operator=(const MissionFeasibilityChecker &) = delete;
+
 	~MissionFeasibilityChecker() {}
 
 	/*

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__gpssim
 	MAIN gpssim
 	COMPILE_FLAGS
-		-Wno-packed
 		-Os
 	SRCS
 		gpssim.cpp

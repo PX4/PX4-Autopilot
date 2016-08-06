@@ -82,7 +82,7 @@ static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
-				PX4_WARN("  arg%d = '%s'\n", i, arg[i]);
+				PX4_DEBUG("  arg%d = '%s'\n", i, arg[i]);
 				++i;
 			}
 
@@ -128,10 +128,10 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 
 			// If we have a command to run
 			if (appargs.size() > 0) {
-				PX4_WARN("Processing command: %s", appargs[0].c_str());
+				PX4_DEBUG("Processing command: %s", appargs[0].c_str());
 
 				for (int ai = 1; ai < (int)appargs.size(); ai++) {
-					PX4_WARN("   > arg: %s", appargs[ai].c_str());
+					PX4_DEBUG("   > arg: %s", appargs[ai].c_str());
 				}
 
 				run_cmd(apps, appargs);
@@ -211,12 +211,12 @@ const char *get_commands()
 
 int dspal_entry(int argc, char *argv[])
 {
-	PX4_INFO("In main\n");
+	PX4_INFO("In dspal_entry");
 	map<string, px4_main_t> apps;
 	init_app_map(apps);
 	DriverFramework::Framework::initialize();
 	px4::init_once();
-	px4::init(argc, (char **)argv, "mainapp");
+	px4::init(argc, (char **)argv, "px4");
 	process_commands(apps, get_commands());
 	sleep(1); // give time for all commands to execute before starting external function
 
@@ -233,7 +233,7 @@ int dspal_entry(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: dspal {start |stop}");
+	PX4_INFO("Usage: dspal {start |stop}");
 }
 
 

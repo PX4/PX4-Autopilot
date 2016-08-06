@@ -115,7 +115,6 @@ print("""
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #ifndef PRIu64
@@ -173,6 +172,7 @@ for index,m in enumerate(messages[1:]):
 	print("\t\t\ti++;")
 	print("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
+	print("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
 			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))

@@ -150,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 
 MavlinkReceiver::~MavlinkReceiver()
 {
+	orb_unsubscribe(_control_mode_sub);
 }
 
 void
@@ -166,12 +167,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_long(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_int(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
@@ -186,6 +189,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_set_mode(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
@@ -228,6 +232,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->accepting_commands()) {
 			handle_message_request_data_stream(msg);
 		}
+
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -250,8 +255,16 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_adsb_vehicle(msg);
 		break;
 
-	case MAVLINK_MSG_ID_GPS_INJECT_DATA:
-		handle_message_gps_inject_data(msg);
+	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
+		handle_message_gps_rtcm_data(msg);
+		break;
+
+	case MAVLINK_MSG_ID_BATTERY_STATUS:
+		handle_message_battery_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_SERIAL_CONTROL:
+		handle_message_serial_control(msg);
 		break;
 
 	default:
@@ -353,6 +366,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
+		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+			get_message_interval((int)cmd_mavlink.param1);
 
 		} else {
 
@@ -490,8 +509,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	enum Rotation flow_rot;
 	param_get(param_find("SENS_FLOW_ROT"), &flow_rot);
 
-	struct optical_flow_s f;
-	memset(&f, 0, sizeof(f));
+	struct optical_flow_s f = {};
 
 	f.timestamp = flow.time_usec;
 	f.integration_timespan = flow.integration_time_us;
@@ -533,7 +551,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 		if (_flow_distance_sensor_pub == nullptr) {
 			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-						   &_orb_class_instance, ORB_PRIO_HIGH);
+						    &_orb_class_instance, ORB_PRIO_HIGH);
 
 		} else {
 			orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
@@ -663,14 +681,13 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct att_pos_mocap_s att_pos_mocap;
-	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
+	struct att_pos_mocap_s att_pos_mocap = {};
 
 	// Use the component ID to identify the mocap system
 	att_pos_mocap.id = msg->compid;
 
-	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
-	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+	att_pos_mocap.timestamp = sync_stamp(mocap.time_usec);
+	att_pos_mocap.timestamp_received = hrt_absolute_time();
 
 	att_pos_mocap.q[0] = mocap.q[0];
 	att_pos_mocap.q[1] = mocap.q[1];
@@ -943,14 +960,13 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate_s vision_position;
-	memset(&vision_position, 0, sizeof(vision_position));
+	struct vision_position_estimate_s vision_position = {};
 
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time(); // Monotonic time
-	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
+	vision_position.timestamp = sync_stamp(pos.usec);
+	vision_position.timestamp_received = hrt_absolute_time();
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -967,6 +983,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.q[1] = q(1);
 	vision_position.q[2] = q(2);
 	vision_position.q[3] = q(3);
+
+	// TODO fix this
+	vision_position.pos_err = 0.0f;
+	vision_position.ang_err = 0.0f;
 
 	if (_vision_position_pub == nullptr) {
 		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
@@ -1110,7 +1130,7 @@ void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first ORB_MULTI_MAX_INSTANCES mavlink channels */
-	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
+	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
@@ -1136,6 +1156,67 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
+{
+	// external battery measurements
+	mavlink_battery_status_t battery_mavlink;
+	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
+
+	battery_status_s battery_status = {};
+	battery_status.timestamp = hrt_absolute_time();
+
+	float voltage_sum = 0.0f;
+	uint8_t cell_count = 0;
+
+	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
+		voltage_sum += (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		cell_count++;
+	}
+
+	battery_status.voltage_v = voltage_sum;
+	battery_status.voltage_filtered_v  = voltage_sum;
+	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.current_filtered_a = battery_status.current_a;
+	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
+	battery_status.cell_count = cell_count;
+	battery_status.connected = true;
+
+	if (_battery_pub == nullptr) {
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+
+	} else {
+		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
+{
+	mavlink_serial_control_t serial_control_mavlink;
+	mavlink_msg_serial_control_decode(msg, &serial_control_mavlink);
+
+	// we only support shell commands
+	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL
+			|| (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
+		return;
+	}
+
+	MavlinkShell* shell = _mavlink->get_shell();
+	if (shell) {
+		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
+		if (serial_control_mavlink.count > 0) {
+			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
+		}
+
+		// if no response requested, assume the shell is no longer used
+		if ((serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_RESPOND) == 0) {
+			_mavlink->close_shell();
 		}
 	}
 }
@@ -1320,7 +1401,7 @@ void
 MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
+	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
@@ -1354,29 +1435,67 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 	if ((mavlink_system.sysid == ping.target_system) &&
 	    (mavlink_system.compid == ping.target_component)) {
-		mavlink_message_t msg_out;
-		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
-		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
 }
 
 void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
-	mavlink_request_data_stream_t req;
-	mavlink_msg_request_data_stream_decode(msg, &req);
+	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
+}
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid
-	    && req.req_message_rate != 0) {
-		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+void
+MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
+{
+	if (data_rate > 0) {
+		_mavlink->set_data_rate(data_rate);
+	}
 
-		MavlinkStream *stream;
-		LL_FOREACH(_mavlink->get_streams(), stream) {
-			if (req.req_stream_id == stream->get_id()) {
-				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
+	// configure_stream wants a rate (msgs/second), so convert here.
+	float rate = 0;
+
+	if (interval < 0) {
+		// stop the stream.
+		rate = 0;
+
+	} else if (interval > 0) {
+		rate = 1000000.0f / interval;
+
+	} else {
+		// note: mavlink spec says rate == 0 is requesting a default rate but our streams
+		// don't publish a default rate so for now let's pick a default rate of zero.
+	}
+
+	// The interval between two messages is in microseconds.
+	// Set to -1 to disable and 0 to request default rate
+	if (msgId != 0) {
+		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+			const StreamListItem *item = streams_list[i];
+
+			if (msgId == item->get_id()) {
+				_mavlink->configure_stream_threadsafe(item->get_name(), rate);
+				break;
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::get_message_interval(int msgId)
+{
+	unsigned interval = 0;
+
+	MavlinkStream *stream;
+	LL_FOREACH(_mavlink->get_streams(), stream) {
+		if (stream->get_id() == msgId) {
+			interval = stream->get_interval();
+			break;
+		}
+	}
+
+	// send back this value...
+	mavlink_msg_message_interval_send(_mavlink->get_channel(), msgId, interval);
 }
 
 void
@@ -1424,7 +1543,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 		rsync.tc1 = now_ns;
 		rsync.ts1 = tsync.ts1;
 
-		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
+		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
 
 		return;
 
@@ -1582,62 +1701,32 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		struct sensor_combined_s hil_sensors = {};
 
+		hil_sensors.gyro_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]);
+		hil_sensors.gyro_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]);
+		hil_sensors.gyro_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]);
+		_hil_prev_gyro[0] = imu.xgyro;
+		_hil_prev_gyro[1] = imu.ygyro;
+		_hil_prev_gyro[2] = imu.zgyro;
+		hil_sensors.gyro_integral_dt = dt;
 		hil_sensors.timestamp = timestamp;
 
-		hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
-		hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
-		hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
-		hil_sensors.gyro_rad_s[0] = imu.xgyro;
-		hil_sensors.gyro_rad_s[1] = imu.ygyro;
-		hil_sensors.gyro_rad_s[2] = imu.zgyro;
-		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
-		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
-		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
-		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_rad_s[0], sizeof(_hil_prev_gyro));
-		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
-		hil_sensors.gyro_timestamp[0] = timestamp;
-		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
+		hil_sensors.accelerometer_m_s2[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]);
+		hil_sensors.accelerometer_m_s2[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]);
+		hil_sensors.accelerometer_m_s2[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]);
+		_hil_prev_accel[0] = imu.xacc;
+		_hil_prev_accel[1] = imu.yacc;
+		_hil_prev_accel[2] = imu.zacc;
+		hil_sensors.accelerometer_integral_dt = dt;
+		hil_sensors.accelerometer_timestamp_relative = 0;
 
-		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
-		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
-		hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
-		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
-		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
-		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
-		hil_sensors.accelerometer_integral_m_s[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]) * dt;
-		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_m_s2[0], sizeof(_hil_prev_accel));
-		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
-		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
-		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
-		hil_sensors.accelerometer_timestamp[0] = timestamp;
-		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
-
-		hil_sensors.adc_voltage_v[0] = 0.0f;
-		hil_sensors.adc_voltage_v[1] = 0.0f;
-		hil_sensors.adc_voltage_v[2] = 0.0f;
-
-		hil_sensors.magnetometer_raw[0] = imu.xmag * 1000.0f;
-		hil_sensors.magnetometer_raw[1] = imu.ymag * 1000.0f;
-		hil_sensors.magnetometer_raw[2] = imu.zmag * 1000.0f;
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_range_ga[0] = 32.7f; // int16
-		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
-		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
-		hil_sensors.magnetometer_timestamp[0] = timestamp;
-		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
+		hil_sensors.magnetometer_timestamp_relative = 0;
 
-		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
-		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius[0] = imu.temperature;
-		hil_sensors.baro_timestamp[0] = timestamp;
-
-		hil_sensors.differential_pressure_pa[0] = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_filtered_pa[0] = hil_sensors.differential_pressure_pa[0];
-		hil_sensors.differential_pressure_timestamp[0] = timestamp;
+		hil_sensors.baro_alt_meter = imu.pressure_alt;
+		hil_sensors.baro_temp_celcius = imu.temperature;
+		hil_sensors.baro_timestamp_relative = 0;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
@@ -1688,20 +1777,18 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	struct vehicle_gps_position_s hil_gps;
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
-	hil_gps.timestamp_time = timestamp;
+	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
 
-	hil_gps.timestamp_position = timestamp;
+	hil_gps.timestamp = timestamp;
 	hil_gps.lat = gps.lat;
 	hil_gps.lon = gps.lon;
 	hil_gps.alt = gps.alt;
 	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
 	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
 
-	hil_gps.timestamp_variance = timestamp;
-	hil_gps.s_variance_m_s = 5.0f;
+	hil_gps.s_variance_m_s = 1.0f;
 
-	hil_gps.timestamp_velocity = timestamp;
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
 	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
@@ -1774,16 +1861,17 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	}
 }
 
-void MavlinkReceiver::handle_message_gps_inject_data(mavlink_message_t *msg)
+void MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 {
-	mavlink_gps_inject_data_t gps_inject_data_msg;
+	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
 	gps_inject_data_s gps_inject_data_topic;
 
-	mavlink_msg_gps_inject_data_decode(msg, &gps_inject_data_msg);
+	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
-	gps_inject_data_topic.len = gps_inject_data_msg.len;
-	memcpy(gps_inject_data_topic.data, gps_inject_data_msg.data,
-	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_msg.len));
+	gps_inject_data_topic.len = gps_rtcm_data_msg.len;
+	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
+	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
+	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_rtcm_data_msg.len));
 
 	orb_advert_t &pub = _gps_inject_data_pub[_gps_inject_data_next_idx];
 
@@ -2076,7 +2164,7 @@ MavlinkReceiver::receive_thread(void *arg)
 					srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
 					srcaddr_last->sin_port = srcaddr.sin_port;
 					_mavlink->set_client_source_initialized();
-					warnx("changing partner IP to: %s", inet_ntoa(srcaddr.sin_addr));
+					PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
 				}
 			}
 
@@ -2087,6 +2175,10 @@ MavlinkReceiver::receive_thread(void *arg)
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
+
+						/* check if we received version 2 */
+						// XXX todo _mavlink->set_proto_version(2);
+
 						/* handle generic messages and commands */
 						handle_message(&msg);
 
@@ -2113,8 +2205,9 @@ void MavlinkReceiver::print_status()
 
 uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 {
-	if (_time_offset > 0) {
-		return usec - (_time_offset / 1000) ;
+
+	if (_time_offset != 0) {
+		return usec + (_time_offset / 1000) ;
 
 	} else {
 		return hrt_absolute_time();

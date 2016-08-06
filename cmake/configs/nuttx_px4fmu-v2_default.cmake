@@ -48,33 +48,48 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/bmi160
 
 	#
 	# System commands
 	#
 	systemcmds/bl_update
+	systemcmds/config
+	systemcmds/dumpfile
+	#systemcmds/esc_calib
 	systemcmds/mixer
+	#systemcmds/motor_ramp
+	systemcmds/mtd
+	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
 	systemcmds/reboot
-	#systemcmds/topic_listener
+	#systemcmds/sd_bench
 	systemcmds/top
-	systemcmds/config
-	systemcmds/nshterm
-	systemcmds/mtd
-	systemcmds/dumpfile
+	#systemcmds/topic_listener
 	systemcmds/ver
+
+	#
+	# Testing
+	#
+	#drivers/sf0x/sf0x_tests
+	#drivers/test_ppm
+	#lib/rc/rc_tests
+	#modules/commander/commander_tests
+	#modules/controllib_test
+	#modules/mavlink/mavlink_tests
+	#modules/unit_test
+	#modules/uORB/uORB_tests
+	#systemcmds/tests
 
 	#
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
-	modules/gpio_led
+	#modules/gpio_led
 	modules/uavcan
 	modules/land_detector
 
@@ -82,14 +97,14 @@ set(config_module_list
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
+	#modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/ekf2
 
 	#
 	# Vehicle Control
 	#
-	# modules/segway # XXX Needs GCC 4.7 fix
 	modules/fw_pos_control_l1
 	modules/fw_att_control
 	modules/mc_att_control
@@ -99,6 +114,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	#modules/logger
 	modules/sdlog2
 
 	#

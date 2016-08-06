@@ -41,11 +41,13 @@ set(config_module_list
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
-	drivers/oreoled
+	#drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
+	#drivers/snapdragon_rc_pwm
+	#drivers/lis3mdl
 
 	#
 	# System commands
@@ -64,25 +66,25 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	#systemcmds/sd_bench
+	#systemcmds/tests
+	systemcmds/motor_ramp
 
 	#
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
-	modules/gpio_led
+	#modules/gpio_led
 	modules/uavcan
 	modules/land_detector
 
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	# Too high RAM usage due to static allocations
-	# modules/attitude_estimator_ekf
-	modules/attitude_estimator_q
 	modules/ekf2
-	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -97,6 +99,7 @@ set(config_module_list
 	#
 	# Logging
 	#
+	modules/logger
 	modules/sdlog2
 
 	#
@@ -138,7 +141,7 @@ set(config_module_list
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+	#examples/rover_steering_control
 
 	#
 	# Demo apps

@@ -302,19 +302,18 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_X, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
 
 /**
- * Disable mocap (set 0 if using fake gps)
+ * Mo-cap
  *
- * Disable mocap
+ * Set to 0 if using fake GPS
  *
- * @boolean
+ * @value 0 Mo-cap enabled
+ * @value 1 Mo-cap disabled
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
 
 /**
- * Enable LIDAR for altitude estimation
- *
- * Enable LIDAR for altitude estimation
+ * LIDAR for altitude estimation
  *
  * @boolean
  * @group Position Estimator INAV

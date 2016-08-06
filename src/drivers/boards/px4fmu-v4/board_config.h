@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -126,11 +126,13 @@ __BEGIN_DECLS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
-#define PX4_SPIDEV_ACCEL_MAG	2
+#define PX4_SPIDEV_ACCEL_MAG		2
 #define PX4_SPIDEV_MPU			4
 #define PX4_SPIDEV_HMC			5
 #define PX4_SPIDEV_ICM			6
 #define PX4_SPIDEV_LIS			7
+#define PX4_SPIDEV_BMI			8
+#define PX4_SPIDEV_BMA			9
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
@@ -249,10 +251,10 @@ __BEGIN_DECLS
 #define GPIO_PERIPH_3V3_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
 /* for R07, this signal is active low */
 //#define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
-//#define INVERT_RC_INPUT(_s)		stm32_gpiowrite(GPIO_SBUS_INV, 1-_s);
+//#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, 1-_s);
 /* for R12, this signal is active high */
 #define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define INVERT_RC_INPUT(_s)		stm32_gpiowrite(GPIO_SBUS_INV, _s);
+#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
 
 #define GPIO_8266_GPIO0			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
 #define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
@@ -261,14 +263,43 @@ __BEGIN_DECLS
 
 /* Power switch controls ******************************************************/
 
-#define POWER_SPEKTRUM(_s)			stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
+#define POWER_SPEKTRUM(_s)			px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
 //#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
-#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_USART1_RX)
 
 // FMUv4 has a separate GPIO for serial RC output
-#define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
-#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
+#define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
+#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_RC_OUT)
+#define SPEKTRUM_RX_HIGH(_s)		px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
+
+
+#define	BOARD_NAME "PX4FMU_V4"
+
+/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
+ * system_power interface, and herefore provides the true logic
+ * GPIO BOARD_ADC_xxxx macros.
+ */
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID   (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_SERVO_VALID   (1)
+#define BOARD_ADC_PERIPH_5V_OC  (0)
+#define BOARD_ADC_HIPOWER_5V_OC (0)
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB { \
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
+		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
+		{GPIO_VDD_BRICK_VALID,   0,                       0}, }
+
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /****************************************************************************************************
  * Public Types
@@ -293,8 +324,12 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
+
+extern void board_peripheral_reset(int ms);
+
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -314,6 +349,8 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

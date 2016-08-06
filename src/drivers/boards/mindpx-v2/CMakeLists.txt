@@ -35,6 +35,8 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
+		../common/board_dma_alloc.c
+		../common/board_name.c
 		mindpx_can.c
 		mindpx2_init.c
 		mindpx_timer_config.c

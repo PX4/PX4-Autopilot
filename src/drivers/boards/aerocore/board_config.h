@@ -172,6 +172,22 @@ __BEGIN_DECLS
 #define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN0)
 #define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN0)
 
+#define BOARD_NAME "AEROCORE"
+
+#define BOARD_HAS_PWM	8
+/* AeroCore breaks out User GPIOs on J11 */
+#define BOARD_FMU_GPIO_TAB  { \
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
+		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0}, \
+		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0}, \
+		{GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0}, \
+		{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0}, \
+		{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,      0}, \
+		{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0}, }
 
 /****************************************************************************************************
  * Public Types
@@ -196,6 +212,9 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+#define board_spi_reset(ms)
+
+#define board_peripheral_reset(ms)
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -215,6 +234,8 @@ extern void stm32_spiinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

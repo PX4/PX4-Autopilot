@@ -63,11 +63,20 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
-#include "uORB/uORB.h"
-#include "uORB/topics/parameter_update.h"
-#include "px4_parameters.h"
+#if !defined(PARAM_NO_ORB)
+# include "uORB/uORB.h"
+# include "uORB/topics/parameter_update.h"
+#endif
 
+#if !defined(FLASH_BASED_PARAMS)
+#  define FLASH_PARAMS_EXPOSE
+#else
+#  include "systemlib/flashparams/flashparams.h"
+#endif
+
+#include "px4_parameters.h"
 #include <crc32.h>
+
 
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -90,12 +99,11 @@
 extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
+#define param_info_count	(param_info_limit - param_info_base)
 #else
-// FIXME - start and end are reversed
 static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
-#endif
-
 #define	param_info_count		px4_parameters.param_count
+#endif /* _UNIT_TEST */
 
 /**
  * Storage for modified parameters.
@@ -132,16 +140,16 @@ get_param_info_count(void)
 }
 
 /** flexible array holding modified parameter values */
-UT_array	*param_values;
+FLASH_PARAMS_EXPOSE UT_array        *param_values;
 
 /** array info for the modified parameters array */
-const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
-/** parameter update topic */
-ORB_DEFINE(parameter_update, struct parameter_update_s);
+#if !defined(PARAM_NO_ORB)
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
+#endif
 
 static void param_set_used_internal(param_t param);
 
@@ -177,7 +185,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 	return (count && param < count);
 }
 
@@ -239,7 +247,11 @@ param_find_changed(param_t param)
 static void
 param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved};
+#if !defined(PARAM_NO_ORB)
+	struct parameter_update_s pup = {
+		.timestamp = hrt_absolute_time(),
+		.saved = is_saved
+	};
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -251,6 +263,8 @@ param_notify_changes(bool is_saved)
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
+#endif
 }
 
 param_t
@@ -438,6 +452,7 @@ param_size(param_t param)
 	return 0;
 }
 
+
 /**
  * Obtain a pointer to the storage allocated for a parameter.
  *
@@ -540,10 +555,12 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		switch (param_type(param)) {
 
 		case PARAM_TYPE_INT32:
+			params_changed = s->val.i != *(int32_t *)val;
 			s->val.i = *(int32_t *)val;
 			break;
 
 		case PARAM_TYPE_FLOAT:
+			params_changed = fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
 			break;
 
@@ -558,6 +575,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 			}
 
 			memcpy(s->val.p, val, param_size(param));
+			params_changed = true;
 			break;
 
 		default:
@@ -565,7 +583,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		}
 
 		s->unsaved = !mark_saved;
-		params_changed = true;
 		result = 0;
 	}
 
@@ -582,6 +599,19 @@ out:
 
 	return result;
 }
+
+#if defined(FLASH_BASED_PARAMS)
+int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
+{
+	return param_set_internal(param, val, mark_saved, notify_changes, is_saved);
+}
+
+const void *param_get_value_ptr_external(param_t param)
+{
+	return param_get_value_ptr(param);
+}
+
+#endif
 
 int
 param_set(param_t param, const void *val)
@@ -734,6 +764,7 @@ int
 param_save_default(void)
 {
 	int res;
+#if !defined(FLASH_BASED_PARAMS)
 	int fd;
 
 	const char *filename = param_get_default_file();
@@ -759,6 +790,9 @@ param_save_default(void)
 	}
 
 	PARAM_CLOSE(fd);
+#else
+	res = flash_param_save();
+#endif
 
 	return res;
 }
@@ -809,17 +843,17 @@ param_bus_lock(bool lock)
 
 	// XXX this would be the preferred locking method
 	// if (dev == nullptr) {
-	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// 	dev = px4_spibus_initialize(PX4_SPI_BUS_BARO);
 	// }
 
 	// SPI_LOCK(dev, lock);
 
 	// we lock like this for Pixracer for now
 	if (lock) {
-		irq_state = irqsave();
+		irq_state = px4_enter_critical_section();
 
 	} else {
-		irqrestore(irq_state);
+		px4_leave_critical_section(irq_state);
 	}
 
 #endif
@@ -861,49 +895,63 @@ param_export(int fd, bool only_unsaved)
 
 		/* append the appropriate BSON type object */
 
-		/* lock as short as possible */
-		param_bus_lock(true);
 
 		switch (param_type(s->param)) {
 
-		case PARAM_TYPE_INT32:
-			param_get(s->param, &i);
+		case PARAM_TYPE_INT32: {
+				param_get(s->param, &i);
+				const char *name = param_name(s->param);
 
-			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_int(&encoder, name, i)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_FLOAT:
-			param_get(s->param, &f);
+		case PARAM_TYPE_FLOAT: {
 
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
+				param_get(s->param, &f);
+				const char *name = param_name(s->param);
+
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_double(&encoder, name, f)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_encoder_append_binary(&encoder,
-						       param_name(s->param),
-						       BSON_BIN_BINARY,
-						       param_size(s->param),
-						       param_get_value_ptr(s->param))) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				param_bus_lock(false);
-				goto out;
-			}
+		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
 
+				const char *name = param_name(s->param);
+				const size_t size = param_size(s->param);
+				const void *value_ptr = param_get_value_ptr(s->param);
+
+				/* lock as short as possible */
+				param_bus_lock(true);
+
+				if (bson_encoder_append_binary(&encoder,
+							       name,
+							       BSON_BIN_BINARY,
+							       size,
+							       value_ptr)) {
+					param_bus_lock(false);
+					debug("BSON append failed for '%s'", name);
+					goto out;
+				}
+			}
 			break;
 
 		default:
 			debug("unrecognized parameter type");
-			param_bus_lock(false);
 			goto out;
 		}
 

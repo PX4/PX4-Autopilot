@@ -49,20 +49,11 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// calculate range to center of image for flow
-	float d = 0;
-
-	if (_lidarInitialized && (_lidarFault < fault_lvl_disable)) {
-		d = _sub_lidar->get().current_distance
-		    + (_lidar_z_offset.get() - _flow_z_offset.get());
-
-	} else if (_sonarInitialized && (_sonarFault < fault_lvl_disable)) {
-		d = _sub_sonar->get().current_distance
-		    + (_sonar_z_offset.get() - _flow_z_offset.get());
-
-	} else {
-		// no valid distance data
+	if (!_validTZ) {
 		return -1;
 	}
+
+	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
 
 	// check for global accuracy
 	if (_gpsInitialized) {
@@ -90,6 +81,9 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 				   _sub_flow.get().gyro_x_rate_integral);
 	float gyro_y_rad = _flow_gyro_y_high_pass.update(
 				   _sub_flow.get().gyro_y_rate_integral);
+
+	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
+	//double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
 
 	// compute velocities in camera frame using ground distance
 	// assume camera frame is body frame
@@ -131,7 +125,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 	C(Y_flow_x, X_x) = 1;
 	C(Y_flow_y, X_y) = 1;
 
-	Matrix<float, n_y_flow, n_y_flow> R;
+	SquareMatrix<float, n_y_flow> R;
 	R.setZero();
 	R(Y_flow_x, Y_flow_x) =
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
@@ -140,6 +134,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	// residual
 	Vector<float, 2> r = y - C * _x;
+	_pub_innov.get().flow_innov[0] = r(0);
+	_pub_innov.get().flow_innov[1] = r(1);
+	_pub_innov.get().flow_innov_var[0] = R(0, 0);
+	_pub_innov.get().flow_innov_var[1] = R(1, 1);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_flow, n_y_flow> S_I =
@@ -162,7 +160,9 @@ void BlockLocalPositionEstimator::flowCorrect()
 	if (_flowFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_flow> K =
 			_P * C.transpose() * S_I;
-		_x += K * r;
+		Vector<float, n_x> dx = K * r;
+		correctionLogic(dx);
+		_x += dx;
 		_P -= K * C * _P;
 
 	} else {
@@ -180,7 +180,7 @@ void BlockLocalPositionEstimator::flowCheckTimeout()
 		if (_flowInitialized) {
 			_flowInitialized = false;
 			_flowQStats.reset();
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] flow timeout ");
+			mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
 		}
 	}
 }

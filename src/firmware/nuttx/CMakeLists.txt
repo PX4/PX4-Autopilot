@@ -45,16 +45,25 @@ if(NOT ${BOARD} STREQUAL "sim")
 	if (config_io_board)
 		set(extras "${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
 	endif()
+	
+	set(romfs_dir "ROMFS/px4fmu_common")
+	if (${BOARD} STREQUAL "tap-v1")
+	set(romfs_dir "ROMFS/tap_common")
+	endif()
+	if (${BOARD} STREQUAL "px4fmu-v2" AND ${LABEL} STREQUAL "test")
+	    set(romfs_dir "ROMFS/px4fmu_test")
+	endif()
+
 
 	px4_nuttx_add_romfs(OUT romfs
-		ROOT ROMFS/px4fmu_common
+		ROOT ${romfs_dir}
 		EXTRAS ${extras}
 		)
 	if (config_io_board)
 	    add_dependencies(romfs fw_io)
 	endif()
-	set(fw_file
-		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+
+	set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
 	px4_nuttx_add_firmware(OUT ${fw_file}
 		BOARD ${BOARD}

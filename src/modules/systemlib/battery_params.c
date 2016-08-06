@@ -78,9 +78,9 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  *
  * @group Battery Calibration
  * @unit norm
- * @decimal 2
  * @min 0.12
  * @max 0.4
+ * @decimal 2
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
@@ -94,9 +94,9 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  *
  * @group Battery Calibration
  * @unit norm
- * @decimal 2
  * @min 0.05
  * @max 0.1
+ * @decimal 2
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
@@ -125,6 +125,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  *
  * @group Battery Calibration
  * @unit S
+ * @value 0 Unconfigured
  * @value 2 2S Battery
  * @value 3 3S Battery
  * @value 4 4S Battery
@@ -141,7 +142,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  * @value 15 15S Battery
  * @value 16 16S Battery
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
 /**
  * Battery capacity.

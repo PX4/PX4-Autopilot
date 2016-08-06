@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
+	drivers/sf1xx
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -45,6 +46,10 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
+	drivers/bmp280
+	drivers/bma180
+	drivers/bmi160
+	drivers/tap_esc
 
 	#
 	# System commands
@@ -63,12 +68,26 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/sd_bench
+	systemcmds/motor_ramp
+
+	#
+	# Testing
+	#
+	drivers/sf0x/sf0x_tests
+	drivers/test_ppm
+	modules/commander/commander_tests
+	modules/controllib_test
+	modules/mavlink/mavlink_tests
+	modules/unit_test
+	modules/uORB/uORB_tests
 	systemcmds/tests
 
 	#
 	# General system control
 	#
 	modules/commander
+	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
@@ -78,12 +97,11 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	# Too high RAM usage due to static allocations
-	# modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/ekf2
+	modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -99,6 +117,7 @@ set(config_module_list
 	# Logging
 	#
 	modules/sdlog2
+	modules/logger
 
 	#
 	# Library modules
