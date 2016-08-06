@@ -372,7 +372,7 @@ Mission::set_mission_items()
 	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "onboard mission now running");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Executing internal mission");
 			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
@@ -381,7 +381,7 @@ Mission::set_mission_items()
 	} else if (prepare_mission_items(false, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "offboard mission now running");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Executing mission");
 			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
@@ -390,10 +390,10 @@ Mission::set_mission_items()
 		if (_mission_type != MISSION_TYPE_NONE) {
 
 			if (_navigator->get_land_detected()->landed) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, landed");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "mission finished, landed");
 			} else {
 				/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "mission finished, loitering");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "mission finished, loitering");
 
 				/* use last setpoint for loiter */
 				_navigator->set_can_loiter_at_sp(true);
