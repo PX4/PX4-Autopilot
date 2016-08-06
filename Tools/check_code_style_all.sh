@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 set -eu
-failed=0
+
+if [[ "$@" == "--fix" ]]
+then
+    export PX4_ASTYLE_FIX=1
+fi
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 find src/ \
+    -path src/lib/DriverFramework -prune -o \
+    -path src/lib/ecl -prune -o \
     -path src/lib/external_lgpl -prune -o \
     -path src/lib/mathlib -prune -o \
+    -path src/lib/matrix -prune -o \
     -path src/modules/attitude_estimator_ekf -prune -o \
     -path src/modules/commander -prune -o \
     -path src/modules/ekf2 -prune -o \
