@@ -504,7 +504,6 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						_esc_enumeration_active = command_id;
 						_esc_enumeration_index = 0;
 						_esc_count = 0;
-						beep(_esc_enumeration_active ? 500.0F : 1000.0F);
 						uavcan::protocol::enumeration::Begin::Request req;
 						// TODO: Incorrect implementation; the parameter name field should be left empty.
 						//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
@@ -513,6 +512,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						call_res = _enumeration_client.call(get_next_active_node_id(1), req);
 						if (call_res < 0) {
 							warnx("UAVCAN ESC enumeration: couldn't send initial Begin request: %d", call_res);
+							beep(BeepFrequencyError);
+						} else {
+							beep(BeepFrequencyGenericIndication);
 						}
 						break;
 					}
@@ -596,11 +598,13 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 					_count_in_progress = false;
 					_count_index = 0;
 					warnx("UAVCAN command bridge: couldn't send GetSet during param count: %d", call_res);
+					beep(BeepFrequencyError);
 				}
 			} else {
 				_count_in_progress = false;
 				_count_index = 0;
 				warnx("UAVCAN command bridge: completed param count for node %hhu: %hhu", node_id, _param_counts[node_id]);
+				beep(BeepFrequencyGenericIndication);
 			}
 		} else {
 			_param_counts[node_id] = 0;
@@ -804,13 +808,12 @@ void UavcanServers::cb_enumeration_indication(const uavcan::ReceivedDataStructur
 		return;
 	}
 
-	// First, check if we've already seen an indication from this ESC. If so,
-	// just re-issue the previous get/set request.
-	int i;
-	for (i = 0; i < _esc_enumeration_index; i++) {
+	// First, check if we've already seen an indication from this ESC. If so, just ignore this indication.
+	int i = 0;
+	for (; i < _esc_enumeration_index; i++) {
 		if (_esc_enumeration_ids[i] == msg.getSrcNodeID().get()) {
-			warnx("UAVCAN ESC enumeration: already enumerated ESC ID %hhu as index %d", _esc_enumeration_ids[i], i);
-			break;
+			warnx("UAVCAN ESC enumeration: already enumerated ESC ID %hhu as index %d, ignored", _esc_enumeration_ids[i], i);
+			return;
 		}
 	}
 
@@ -853,21 +856,24 @@ void UavcanServers::cb_enumeration_getset(const uavcan::ServiceCallResult<uavcan
 
 void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
 {
+	const bool this_is_the_last_one =
+		_esc_enumeration_index >= uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1 ||
+		_esc_enumeration_index >= _esc_count;
+
 	if (!result.isSuccessful()) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu timed out.", result.getCallID().server_node_id.get());
-		beep(100.0F);
+		beep(BeepFrequencyError);
 	} else if (!result.getResponse().ok) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu rejected", result.getCallID().server_node_id.get());
-		beep(100.0F);
+		beep(BeepFrequencyError);
 	} else {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu completed OK.", result.getCallID().server_node_id.get());
-		beep(2000.0F);
+		beep(this_is_the_last_one ? BeepFrequencySuccess : BeepFrequencyGenericIndication);
 	}
 
 	warnx("UAVCAN ESC enumeration: completed %hhu of %hhu", _esc_enumeration_index, _esc_count);
 
-	if (_esc_enumeration_index == uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1 ||
-			_esc_enumeration_index == _esc_count) {
+	if (this_is_the_last_one) {
 		_esc_enumeration_active = false;
 
 		// Tell all ESCs to stop enumerating

@@ -79,6 +79,10 @@ class UavcanServers
 
 	static constexpr unsigned VirtualIfaceBlockAllocationQuota =  80;
 
+	static constexpr float BeepFrequencyGenericIndication       = 1000.0F;
+	static constexpr float BeepFrequencySuccess                 = 2000.0F;
+	static constexpr float BeepFrequencyError                   = 100.0F;
+
 public:
 	UavcanServers(uavcan::INode &main_node);
 
