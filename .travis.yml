@@ -63,7 +63,7 @@ script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
       docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=1";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      make check_posix_sitl_default;
+      make tests; 
     fi
   - ccache -s
 
