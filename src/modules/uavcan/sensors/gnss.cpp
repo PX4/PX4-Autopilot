@@ -174,6 +174,11 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	report.satellites_used = msg.sats_used;
 
+	// Using PDOP for HDOP and VDOP
+	// Relevant discussion: https://github.com/PX4/Firmware/issues/5153
+	report.hdop = msg.pdop;
+	report.vdop = msg.pdop;
+
 	if (_report_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
 
