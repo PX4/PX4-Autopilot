@@ -179,7 +179,7 @@ private:
 	void clear_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] &= ~(1 << (node_id & 31)); }
 	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
 
-	void beep(float frequency, float duration);
+	void beep(float frequency);
 
 	bool _mutex_inited;
 	volatile bool _check_fw;
