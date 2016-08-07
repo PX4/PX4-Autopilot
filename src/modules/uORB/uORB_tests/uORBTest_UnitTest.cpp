@@ -480,7 +480,11 @@ int uORBTest::UnitTest::test_multi2()
 		if (updated) {
 			struct orb_test_medium msg;
 			orb_copy(ORB_ID(orb_test_medium_multi), orb_data_cur_fd, &msg);
+#ifdef __PX4_DARWIN
+			usleep(3000);
+#else
 			usleep(1000);
+#endif
 
 			if (last_time >= msg.time && last_time != 0) {
 				return test_fail("Timestamp not increasing! (%" PRIu64 " >= %" PRIu64 ")", last_time, msg.time);
