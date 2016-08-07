@@ -71,6 +71,12 @@ static bool should_prearm = false;
 
 #define NAN_VALUE 0.0f/0.0f
 
+#ifdef __PX4_DARWIN
+#define MIXER_DIFFERENCE_THRESHOLD 30
+#else
+#define MIXER_DIFFERENCE_THRESHOLD 2
+#endif
+
 int test_mixer(int argc, char *argv[])
 {
 	/*
@@ -296,7 +302,7 @@ int test_mixer(int argc, char *argv[])
 		for (unsigned i = 0; i < mixed; i++) {
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 
-			if (abs(servo_predicted[i] - r_page_servos[i]) > 2) {
+			if (abs(servo_predicted[i] - r_page_servos[i]) > MIXER_DIFFERENCE_THRESHOLD) {
 				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
 					(int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
