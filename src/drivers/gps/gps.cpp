@@ -982,6 +982,7 @@ stop()
 		delete g_dev[0];
 		g_dev[0] = nullptr;
 	}
+
 	if (g_dev[1] != nullptr) {
 		delete g_dev[1];
 	}
