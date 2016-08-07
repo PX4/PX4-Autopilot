@@ -188,7 +188,12 @@ public:
     bool isRxBufferEmpty() const;
 
     /**
-     * Total number of hardware failures.
+     * Number of RX frames lost due to queue overflow.
+     */
+    uavcan::uint32_t getRxQueueOverflowCount() const { return rx_queue_.getOverflowCount(); }
+
+    /**
+     * Total number of hardware failures and other kinds of errors (e.g. queue overruns).
      * May increase continuously if the interface is not connected to the bus.
      */
     virtual uavcan::uint64_t getErrorCount() const;
