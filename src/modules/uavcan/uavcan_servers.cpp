@@ -504,7 +504,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						_esc_enumeration_active = command_id;
 						_esc_enumeration_index = 0;
 						_esc_count = 0;
-						beep(_esc_enumeration_active ? 500.0F : 1000.0F, 0.2F);
+						beep(_esc_enumeration_active ? 500.0F : 1000.0F);
 						uavcan::protocol::enumeration::Begin::Request req;
 						// TODO: Incorrect implementation; the parameter name field should be left empty.
 						//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
@@ -754,11 +754,11 @@ uint8_t UavcanServers::get_next_dirty_node_id(uint8_t base)
 	return base;
 }
 
-void UavcanServers::beep(float frequency, float duration)
+void UavcanServers::beep(float frequency)
 {
 	uavcan::equipment::indication::BeepCommand cmd;
 	cmd.frequency = frequency;
-	cmd.duration = duration;
+	cmd.duration = 0.1F;              // We don't want to incapacitate ESC for longer time that this
 	(void)_beep_pub.broadcast(cmd);
 }
 
@@ -855,13 +855,13 @@ void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::
 {
 	if (!result.isSuccessful()) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu timed out.", result.getCallID().server_node_id.get());
-		beep(100.0F, 0.5F);
+		beep(100.0F);
 	} else if (!result.getResponse().ok) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu rejected", result.getCallID().server_node_id.get());
-		beep(100.0F, 0.5F);
+		beep(100.0F);
 	} else {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu completed OK.", result.getCallID().server_node_id.get());
-		beep(2000.0F, 0.2F);
+		beep(2000.0F);
 	}
 
 	warnx("UAVCAN ESC enumeration: completed %hhu of %hhu", _esc_enumeration_index, _esc_count);
