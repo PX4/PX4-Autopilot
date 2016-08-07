@@ -288,7 +288,7 @@ public:
  * Normally only this class should be used by the application.
  * 145 usec per Extended CAN frame @ 1 Mbps, e.g. 32 RX slots * 145 usec --> 4.6 msec before RX queue overruns.
  */
-template <unsigned RxQueueCapacity = 32>
+template <unsigned RxQueueCapacity = 128>
 class CanInitHelper
 {
     CanRxItem queue_storage_[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity];
