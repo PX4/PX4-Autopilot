@@ -189,6 +189,7 @@ public:
 
     /**
      * Number of RX frames lost due to queue overflow.
+     * This is an atomic read, it doesn't require a critical section.
      */
     uavcan::uint32_t getRxQueueOverflowCount() const { return rx_queue_.getOverflowCount(); }
 
@@ -206,13 +207,13 @@ public:
     uavcan::uint32_t getVoluntaryTxAbortCount() const { return served_aborts_cnt_; }
 
     /**
-     * Returns number of frames pending in the RX queue.
+     * Returns the number of frames pending in the RX queue.
      * This is intended for debug use only.
      */
     unsigned getRxQueueLength() const;
 
     /**
-     * Whether this iface had at least one successful IO since previous call of this method.
+     * Whether this iface had at least one successful IO since the previous call of this method.
      * This is designed for use with iface activity LEDs.
      */
     bool hadActivity();
