@@ -638,6 +638,10 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 	bool armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
 		      || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+
+	const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
+	const bool data_lost = data_link_loss_enabled && (status->data_link_lost || status_flags->data_link_lost_cmd);
+
 	status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
@@ -649,7 +653,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
 		/* require RC for all manual modes */
-		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
+		if (rc_lost && armed) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -696,7 +700,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		break;
 
 	case commander_state_s::MAIN_STATE_POSCTL: {
-			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
 
 			if (rc_lost && armed) {
 				status->failsafe = true;
@@ -752,14 +755,14 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		if (status->engine_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->data_link_lost_cmd) {
+		} else if (data_lost) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 
 		} else if (status_flags->gps_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			status->failsafe = true;
 
-		} else if (status_flags->rc_signal_lost_cmd) {
+		} else if (rc_lost) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
 		} else if (status_flags->vtol_transition_failure_cmd) {
@@ -783,7 +786,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			/* datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
 
-		} else if (data_link_loss_enabled && status->data_link_lost) {
+		} else if (data_lost) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -801,9 +804,11 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* datalink loss disabled:
 			 * check if both, RC and datalink are lost during the mission
-			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
+			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER
+			 * NOTE: it is inconisistent that we are even looking at data_link_lost when !data_link_loss_enabled.
+			 */
 
-		} else if (!data_link_loss_enabled && status->rc_signal_lost && status->data_link_lost && !landed && mission_finished) {
+		} else if (!data_link_loss_enabled && rc_lost && status->data_link_lost && !landed && mission_finished) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -839,7 +844,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* also go into failsafe if just datalink is lost */
 
-		} else if (status->data_link_lost && data_link_loss_enabled) {
+		} else if (data_lost) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -857,7 +862,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* go into failsafe if RC is lost and datalink loss is not set up */
 
-		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
+		} else if (rc_lost && !data_link_loss_enabled) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -875,7 +880,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* don't bother if RC is lost if datalink is connected */
 
-		} else if (status->rc_signal_lost && rc_loss_enabled) {
+		} else if (rc_lost) {
 
 			/* this mode is ok, we don't need RC for loitering */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
@@ -998,7 +1003,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* require offboard control, otherwise stay where you are */
-		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
+		if (status_flags->offboard_control_signal_lost && !rc_lost) {
 			status->failsafe = true;
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
@@ -1037,7 +1042,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				}
 			}
 
-		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
+		} else if (status_flags->offboard_control_signal_lost && rc_lost) {
 			status->failsafe = true;
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
