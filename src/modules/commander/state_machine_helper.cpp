@@ -857,7 +857,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* go into failsafe if RC is lost and datalink loss is not set up */
 
-		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
+		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -875,7 +875,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* don't bother if RC is lost if datalink is connected */
 
-		} else if (status->rc_signal_lost) {
+		} else if (status->rc_signal_lost && rc_loss_enabled) {
 
 			/* this mode is ok, we don't need RC for loitering */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
