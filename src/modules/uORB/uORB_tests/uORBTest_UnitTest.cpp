@@ -480,8 +480,10 @@ int uORBTest::UnitTest::test_multi2()
 		if (updated) {
 			struct orb_test_medium msg;
 			orb_copy(ORB_ID(orb_test_medium_multi), orb_data_cur_fd, &msg);
+
+// Relax timing requirement for Darwin CI system
 #ifdef __PX4_DARWIN
-			usleep(3000);
+			usleep(10000);
 #else
 			usleep(1000);
 #endif
