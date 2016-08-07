@@ -70,27 +70,34 @@ bool HysteresisTest::_zero_case()
 
 bool HysteresisTest::_change_after_time()
 {
+	int f = 1;
+
+	// The CI system for Mac OS is not very fast
+#ifdef __PX4_DARWIN
+	f = 2;
+#endif
+
 	systemlib::Hysteresis hysteresis(false);
-	hysteresis.set_hysteresis_time_from(false, 5000);
-	hysteresis.set_hysteresis_time_from(true, 3000);
+	hysteresis.set_hysteresis_time_from(false, 5000 * f);
+	hysteresis.set_hysteresis_time_from(true, 3000 * f);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(4000);
+	usleep(4000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
-	usleep(2000);
+	usleep(2000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
 
 	// Change back to false.
 	hysteresis.set_state_and_update(false);
 	ut_assert_true(hysteresis.get_state());
-	usleep(1000);
+	usleep(1000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
 
