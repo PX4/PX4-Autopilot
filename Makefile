@@ -165,9 +165,6 @@ px4fmu-v4_default:
 px4-stm32f4discovery_default:
 	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
 
-px4fmu-v2_ekf2:
-	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
-
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
@@ -254,10 +251,9 @@ endif
 checks_defaults: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v4_default \
 	check_mindpx-v2_default \
-	check_px4-stm32f4discovery_default \
-	check_tap-v1_default \
-	check_asc-v1_default
+	check_tap-v1_default
 
 checks_bootloaders: \
 
@@ -266,7 +262,8 @@ checks_tests: \
 	check_px4fmu-v2_test
 
 checks_alts: \
-	check_px4fmu-v2_ekf2 \
+	check_asc-v1_default \
+	check_px4-stm32f4discovery_default
 
 checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
@@ -324,8 +321,7 @@ qgc_firmware: \
 
 extra_firmware: \
 	check_px4-stm32f4discovery_default \
-	check_px4fmu-v2_test \
-	check_px4fmu-v2_ekf2
+	check_px4fmu-v2_test
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
