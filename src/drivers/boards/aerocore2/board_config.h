@@ -81,6 +81,7 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_ACCEL_MAG	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN2)
 #define GPIO_SPI_CS_GYRO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_SPI_CS_BARO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
+#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* SPI4--Ramtron */
 #define PX4_SPI_BUS_RAMTRON	4
@@ -162,9 +163,21 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH4IN		GPIO_TIM3_CH4IN_2
 #define DIRECT_INPUT_TIMER_CHANNELS	8
 
+//Added
+/* USB OTG FS
+ *
+ * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
+ */
+#define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer 8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
+
+//To fix error of PWMIN needing to be defined, I copied values over from the PX4FMU-V2
+#define PWMIN_TIMER		4
+#define PWMIN_TIMER_CHANNEL	2
+#define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
 /* Tone Alarm (no onboard speaker )*/
 #define TONE_ALARM_TIMER	2	/* timer 2 */
@@ -214,7 +227,9 @@ __BEGIN_DECLS
 extern void stm32_spiinitialize(void);
 #define board_spi_reset(ms)
 
-#define board_peripheral_reset(ms)
+extern void stm32_usbinitialize(void); //added
+
+#define board_peripheral_reset(ms);
 
 /****************************************************************************
  * Name: nsh_archinitialize

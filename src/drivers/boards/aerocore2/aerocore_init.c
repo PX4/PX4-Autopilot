@@ -209,18 +209,6 @@ static struct spi_dev_s *spi4;
 
 #include <math.h>
 
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
 __EXPORT int nsh_archinitialize(void)
 {
 
@@ -261,6 +249,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
+
 
 	/* Configure Sensors on SPI bus #3 */
 	spi3 = px4_spibus_initialize(3);

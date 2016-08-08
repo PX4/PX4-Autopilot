@@ -42,7 +42,7 @@
 #include <stdint.h>
 
 #include <stm32.h>
-#include <stm32_gpio_out.h>
+#include <stm32_gpio.h>
 #include <stm32_tim.h>
 
 #include <drivers/stm32/drv_io_timer.h>
@@ -60,12 +60,13 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 3,
 		.handler = io_timer_handler0,
 		.vectorno =  STM32_IRQ_TIM1CC,
+
 	},
 	{
 		.base = STM32_TIM3_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
+		.clock_freq = STM32_APB1_TIM3_CLKIN,
 		.first_channel_index = 4,
 		.last_channel_index = 7,
 		.handler = io_timer_handler1,
@@ -73,22 +74,17 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 	}
 };
 
+//jmcwil: I have not changed the content, but I did reformat for readability
+//		I fixed a couple things that clearly appeared to be errors
+//		Those lines have been marked
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	{
-		.gpio_out = GPIO_TIM1_CH1OUT,
-		.gpio_in = GPIO_TIM1_CH1IN,
+		.gpio_out = GPIO_TIM1_CH4OUT,
+		.gpio_in  = GPIO_TIM1_CH4IN,
 		.timer_index = 0,
-		.timer_channel = 1,
-		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
-		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
-	},
-	{
-		.gpio_out = GPIO_TIM1_CH2OUT,
-		.gpio_in = GPIO_TIM1_CH2IN,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
-		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF
+		.timer_channel = 4,
+		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
+		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
 	},
 	{
 		.gpio_out = GPIO_TIM1_CH3OUT,
@@ -99,16 +95,25 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	},
 	{
-		.gpio_out = GPIO_TIM1_CH4OUT,
-		.gpio_in = GPIO_TIM1_CH4IN,
+		.gpio_out = GPIO_TIM1_CH2OUT,
+		.gpio_in = GPIO_TIM1_CH2IN,
 		.timer_index = 0,
-		.timer_channel = 4,
-		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
-		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
+		.timer_channel = 2,
+		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
+		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF
 	},
 	{
+		.gpio_out = GPIO_TIM1_CH1OUT,
+		.gpio_in = GPIO_TIM1_CH1IN,
+		.timer_index = 0,
+		.timer_channel = 1,
+		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
+		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
+	},
+//These are different, and I also needed to fix some things
+	{
 		.gpio_out = GPIO_TIM3_CH1OUT,
-		.gpio_out = GPIO_TIM3_CH1IN,
+		.gpio_in = GPIO_TIM3_CH1IN,  //changed gpio_out to gpio_in
 		.timer_index = 1,
 		.timer_channel = 1,
 		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
@@ -116,7 +121,7 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	},
 	{
 		.gpio_out = GPIO_TIM3_CH2OUT,
-		.gpio_out = GPIO_TIM3_CH2IN,
+		.gpio_in = GPIO_TIM3_CH2IN,  //changed gpio_out to gpio_in
 		.timer_index = 1,
 		.timer_channel = 2,
 		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
@@ -124,7 +129,7 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	},
 	{
 		.gpio_out = GPIO_TIM3_CH3OUT,
-		.gpio_out = GPIO_TIM3_CH3IN,
+		.gpio_in = GPIO_TIM3_CH3IN,  //changed gpio_out to gpio_in
 		.timer_index = 1,
 		.timer_channel = 3,
 		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
@@ -132,7 +137,7 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	},
 	{
 		.gpio_out = GPIO_TIM3_CH4OUT,
-		.gpio_out = GPIO_TIM3_CH4IN,
+		.gpio_in = GPIO_TIM3_CH4IN,  //changed gpio_out to gpio_in
 		.timer_index = 1,
 		.timer_channel = 4,
 		.ccr_offset = STM32_GTIM_CCR4_OFFSET,

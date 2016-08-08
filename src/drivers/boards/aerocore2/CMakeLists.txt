@@ -1,8 +1,6 @@
 ############################################################################
-# configs/aerocore/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name NuttX nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -32,11 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-# Path to example in apps/examples containing the user_start entry point
-
-CONFIGURED_APPS	+= examples/nsh
-
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+px4_add_module(
+	MODULE drivers__boards__aerocore
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		../common/board_name.c
+		aerocore_init.c
+		#aerocore_pwm_servo.c
+		aerocore_timer_config.c  ##I need this, but the file does not work
+		aerocore_spi.c
+		aerocore_led.c
+		aerocore_usb.c
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
