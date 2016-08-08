@@ -108,14 +108,16 @@ __BEGIN_DECLS
 
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 
+#define PX4_I2C_BUS_ONBOARD_HZ      400000
+#define PX4_I2C_BUS_SONAR_HZ        400000
+#define PX4_I2C_BUS_EXPANSION_HZ    100000
 /*
  * Devices on the onboard bus.
  *
  * Note that these are unshifted addresses (not includinf R/W).
  */
 
-/* todo:
- * Cannot tell from the schematic if there is one or 2 MPU6050
+/*
  * The slave address of the MPU-60X0 is b110100X which is 7 bits long.
  * The LSB bit of the 7 bit address is determined by the logic level
  * on pin AD0. This allows two MPU-60X0s to be connected to the same I2C bus.
@@ -123,8 +125,7 @@ __BEGIN_DECLS
  * should be b1101000 (pin AD0 is logic low) and the address of the other
  * should be b1101001 (pin AD0 is logic high).
  */
-#define PX4_I2C_ON_BOARD_MPU6050_ADDRS {0x68,0x69}
-
+#define PX4_I2C_MPU6050_ADDR 0x68
 
 /*
  * ADC channels
@@ -340,6 +341,16 @@ bool board_pwr_button_down(void);
  ****************************************************************************/
 
 void board_pwr(bool on_not_off);
+
+/****************************************************************************
+ * Name: board_i2c_initialize
+ *
+ * Description:
+ *   Called to set I2C bus frequncies.
+ *
+ ****************************************************************************/
+
+int board_i2c_initialize(void);
 
 #endif /* __ASSEMBLY__ */
 __END_DECLS

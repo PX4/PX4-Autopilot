@@ -1084,6 +1084,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
+	case vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 		/* ignore commands that handled in low prio loop */
 		break;

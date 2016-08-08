@@ -51,7 +51,6 @@ const char *get_commands()
 //		"tone_alarm start\n"
 		"commander start -hil\n"
 		"sensors start\n"
-		//"ekf_att_pos_estimator start\n"
 		"attitude_estimator_q start\n"
 		"position_estimator_inav start\n"
 		"mc_pos_control start\n"

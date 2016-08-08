@@ -42,7 +42,7 @@ endif
 CMAKE_VER := $(shell Tools/check_cmake.sh; echo $$?)
 ifneq ($(CMAKE_VER),0)
     $(warning Not a valid CMake version or CMake not installed.)
-    $(warning On Ubuntu, install or upgrade via:)
+    $(warning On Ubuntu 16.04, install or upgrade via:)
     $(warning )
     $(warning 3rd party PPA:)
     $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
@@ -147,6 +147,9 @@ endef
 tap-v1_default:
 	$(call cmake-build,nuttx_tap-v1_default)
 
+asc-v1_default:
+	$(call cmake-build,nuttx_asc-v1_default)
+
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
 
@@ -161,9 +164,6 @@ px4fmu-v4_default:
 
 px4-stm32f4discovery_default:
 	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
-
-px4fmu-v2_ekf2:
-	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
@@ -233,8 +233,8 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 
 gazebo_build:
 	@mkdir -p build_gazebo
@@ -251,9 +251,9 @@ endif
 checks_defaults: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v4_default \
 	check_mindpx-v2_default \
-	check_px4-stm32f4discovery_default \
-	check_tap-v1_default \
+	check_tap-v1_default
 
 checks_bootloaders: \
 
@@ -262,7 +262,8 @@ checks_tests: \
 	check_px4fmu-v2_test
 
 checks_alts: \
-	check_px4fmu-v2_ekf2 \
+	check_asc-v1_default \
+	check_px4-stm32f4discovery_default
 
 checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
@@ -275,12 +276,17 @@ checks_last: \
 	check_format \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
-quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_posix_sitl_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
 	@./Tools/check_code_style_all.sh
+
+format:
+	$(call colorecho,"Formatting with astyle")
+	@./Tools/fix_code_style.sh
+	@./Tools/check_code_style_all.sh --fix
 
 check_%:
 	@echo
@@ -320,8 +326,7 @@ qgc_firmware: \
 
 extra_firmware: \
 	check_px4-stm32f4discovery_default \
-	check_px4fmu-v2_test \
-	check_px4fmu-v2_ekf2
+	check_px4fmu-v2_test
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`

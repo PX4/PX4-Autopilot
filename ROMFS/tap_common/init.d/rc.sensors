@@ -7,6 +7,10 @@ if adc start
 then
 fi
 
+if ms5611 -T 5607 -I start
+then
+fi
+
 # External I2C bus
 if hmc5883 -C -T -X start
 then
@@ -21,8 +25,8 @@ if hmc5883 -C -T -S -R 2 start
 then
 fi
 
-# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-if mpu6000 -R 2 -T 20608 start
+# Internal I2C bus Rotation TBD
+if mpu6000 -I -T 6000 start
 then
 fi
 

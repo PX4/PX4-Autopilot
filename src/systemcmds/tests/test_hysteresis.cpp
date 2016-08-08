@@ -15,6 +15,13 @@ private:
 	bool _hysteresis_changed();
 	bool _change_after_multiple_sets();
 	bool _take_change_back();
+
+	// The CI system for Mac OS is not very fast
+#ifdef __PX4_DARWIN
+	static const int f = 10;
+#else
+	static const int f = 1;
+#endif
 };
 
 bool HysteresisTest::run_tests()
@@ -61,7 +68,7 @@ bool HysteresisTest::_zero_case()
 	ut_assert_true(hysteresis.get_state());
 
 	// A wait won't change anything.
-	usleep(1000);
+	usleep(1000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
 
@@ -70,27 +77,28 @@ bool HysteresisTest::_zero_case()
 
 bool HysteresisTest::_change_after_time()
 {
+
 	systemlib::Hysteresis hysteresis(false);
-	hysteresis.set_hysteresis_time_from(false, 5000);
-	hysteresis.set_hysteresis_time_from(true, 3000);
+	hysteresis.set_hysteresis_time_from(false, 5000 * f);
+	hysteresis.set_hysteresis_time_from(true, 3000 * f);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(4000);
+	usleep(4000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
-	usleep(2000);
+	usleep(2000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
 
 	// Change back to false.
 	hysteresis.set_state_and_update(false);
 	ut_assert_true(hysteresis.get_state());
-	usleep(1000);
+	usleep(1000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
 
@@ -100,29 +108,29 @@ bool HysteresisTest::_change_after_time()
 bool HysteresisTest::_hysteresis_changed()
 {
 	systemlib::Hysteresis hysteresis(false);
-	hysteresis.set_hysteresis_time_from(true, 2000);
-	hysteresis.set_hysteresis_time_from(false, 5000);
+	hysteresis.set_hysteresis_time_from(true, 2000 * f);
+	hysteresis.set_hysteresis_time_from(false, 5000 * f);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
 
 	// Change hysteresis time.
-	hysteresis.set_hysteresis_time_from(true, 10000);
+	hysteresis.set_hysteresis_time_from(true, 10000 * f);
 
 	// Change back to false.
 	hysteresis.set_state_and_update(false);
 	ut_assert_true(hysteresis.get_state());
-	usleep(7000);
+	usleep(7000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
-	usleep(5000);
+	usleep(5000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
 
@@ -132,26 +140,26 @@ bool HysteresisTest::_hysteresis_changed()
 bool HysteresisTest::_change_after_multiple_sets()
 {
 	systemlib::Hysteresis hysteresis(false);
-	hysteresis.set_hysteresis_time_from(true, 5000);
-	hysteresis.set_hysteresis_time_from(false, 5000);
+	hysteresis.set_hysteresis_time_from(true, 5000 * f);
+	hysteresis.set_hysteresis_time_from(false, 5000 * f);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.set_state_and_update(true);
 	ut_assert_true(hysteresis.get_state());
 
 	// Change to false.
 	hysteresis.set_state_and_update(false);
 	ut_assert_true(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.set_state_and_update(false);
 	ut_assert_true(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.set_state_and_update(false);
 	ut_assert_false(hysteresis.get_state());
 
@@ -161,28 +169,28 @@ bool HysteresisTest::_change_after_multiple_sets()
 bool HysteresisTest::_take_change_back()
 {
 	systemlib::Hysteresis hysteresis(false);
-	hysteresis.set_hysteresis_time_from(false, 5000);
+	hysteresis.set_hysteresis_time_from(false, 5000 * f);
 
 	// Change to true.
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
 	// Change your mind to false.
 	hysteresis.set_state_and_update(false);
 	ut_assert_false(hysteresis.get_state());
-	usleep(6000);
+	usleep(6000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
 
 	// And true again
 	hysteresis.set_state_and_update(true);
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_false(hysteresis.get_state());
-	usleep(3000);
+	usleep(3000 * f);
 	hysteresis.update();
 	ut_assert_true(hysteresis.get_state());
 

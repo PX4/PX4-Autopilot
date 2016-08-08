@@ -9,7 +9,7 @@
 #  Example Syntax:
 #  python geotag.py --logfile=log001.bin --input=images/ --output=imagesWithTag/ --offset=-0.4 -v
 #
-#   Author: Hector Azpurua
+#   Author: Hector Azpurua hector@azpurua.com
 #   Based on the script of Andreas Bircher
 
 import os
@@ -22,6 +22,7 @@ import argparse
 from lxml import etree
 import datetime, calendar
 from shutil import copyfile
+from subprocess import check_output
 from pykml.factory import KML_ElementMaker as KML
 from pykml.factory import GX_ElementMaker as GX
 
@@ -50,7 +51,7 @@ class Main:
         self.logfile = args['logfile']
         self.input = args['input']
         self.output = args['output']
-        self.klm = args['klm']
+        self.kml = args['kml']
         self.verbose = args['verbose']
         self.offset = args['offset']
         self.time_tresh = args['treshold']
@@ -58,6 +59,9 @@ class Main:
         self.tdiff_list = []
         self.non_processed_files = []
         self.tagged_gps = []
+
+        print '[INFO] Loading logs and images locations...'
+
         self.gps_list = self.load_gps_from_log(self.logfile, self.offset)
         self.img_list = self.load_image_list(self.input)
 
@@ -73,11 +77,11 @@ class Main:
 
         self.tag_images()
 
-        if self.klm and len(self.tdiff_list) > 0:
-            self.gen_klm()
+        if self.kml and len(self.tdiff_list) > 0:
+            self.gen_kml()
 
         if len(self.non_processed_files) > 0:
-            print '[WARNING] Some images werent processed:'
+            print '[WARNING] Some images werent processed (', len(self.non_processed_files), 'of', len(self.img_list), '):'
             for elem in self.non_processed_files:
                 print '\t', elem
 
@@ -132,7 +136,7 @@ class Main:
 
         return local_dt.replace(microsecond=utc_dt.microsecond)
 
-    def gen_klm(self):
+    def gen_kml(self):
         """
         Generate a KML file with keypoints on the locations of the pictures, including height
         :return:
@@ -171,7 +175,7 @@ class Main:
                         KML.styleUrl('#{0}'.format(style_dot)),
                         KML.Point(
                             KML.extrude(True),
-                            KML.altitudeMode('relativeToGround'),
+                            KML.altitudeMode('absolute'),
                             KML.coordinates("{},{},{}".format(gps.lon, gps.lat, gps.alt))
                         ),
                         KML.name(str(ii)) if ii % 5 == 0 or ii == 1 else KML.name()
@@ -183,7 +187,7 @@ class Main:
             KML.Placemark(
                 KML.styleUrl('#{0}'.format(style_path)),
                 KML.LineString(
-                    KML.altitudeMode('relativeToGround'),
+                    KML.altitudeMode('absolute'),
                     KML.coordinates(
                         ' '.join(["{},{},{}".format(gps.lon, gps.lat, gps.alt) for gps in self.tagged_gps])
                     )
@@ -207,9 +211,18 @@ class Main:
         :param elem:
         :return:
         """
+        dlist_len = len(datetime_list)
+
         i = bisect.bisect_left(datetime_list, elem)
+
+        # Cleanup of the indices 
+        if i < 0: 
+            i = 0 
+        elif i >= dlist_len:
+            i = dlist_len - 1 
+
         date = datetime_list[i]
-        diff = (date - elem).total_seconds()
+        diff = abs((date - elem).total_seconds())
 
         if diff > self.time_tresh:
             return -1, diff
@@ -258,31 +271,45 @@ class Main:
         :param offset:
         :return:
         """
-        os.system('python sdlog2_dump.py ' + log_file + ' -f log.csv')
-        f = open('log.csv', 'rb')
-        reader = csv.reader(f)
-        headers = reader.next()
-        line = {}
-        for h in headers:
-            line[h] = []
-
-        for row in reader:
-            for h, v in zip(headers, row):
-                line[h].append(v)
-
         gps_list = []
-        for seq in range(0, len(line['GPS_Lat']) - 1):
-            gps_time = int(line['GPS_TimeMS'][seq + 1])
-            gps_week = int(line['GPS_Week'][seq + 1])
-            gps_lat = float(line['GPS_Lat'][seq + 1])
-            gps_lon = float(line['GPS_Lng'][seq + 1])
-            gps_alt = float(line['GPS_RelAlt'][seq + 1])
+        out = check_output(["python", "sdlog2_dump.py", log_file, "-m GPS", "-v"])
+
+        for line in out.splitlines():
+            if not line.startswith("MSG GPS:"):
+                continue
+
+            vdict = {}
+            pairs = re.split(r'[;,:]\s*', line)
+            for pair in pairs:
+                e = pair.split('=')
+                if len(e) == 2:
+                    vdict[e[0]] = float(e[1])
+
+            gps_time = vdict['TimeMS']
+            gps_week = vdict['Week']
+            gps_lat = vdict['Lat']
+            gps_lon = vdict['Lng']
+            gps_alt = vdict['Alt']
 
             date = self.gps_week_seconds_to_datetime(gps_week, gps_time, leapmillis=offset)
-            print date
             gps_list.append(GpsPosition(date, gps_lat, gps_lon, gps_alt))
 
         return gps_list
+
+    def get_image_creation_date(self, filename):
+        exiv_image = pyexiv2.ImageMetadata(filename)
+        exiv_image.read()
+
+        # Prefer DateTime/Original over the other values
+        if 'Exif.Photo.DateTimeOriginal' in exiv_image:
+            cdate = exiv_image['Exif.Photo.DateTimeOriginal'].value
+            return cdate
+        elif 'Exif.Image.DateTime' in exiv_image:
+            cdate = exiv_image['Exif.Image.DateTime'].value
+            return cdate
+        else:
+            epoch = os.path.getmtime(filename)
+            return datetime.datetime.fromtimestamp(epoch)
 
     def load_image_list(self, input_folder, file_type='jpg'):
         """
@@ -304,15 +331,16 @@ class Main:
         tagged_gps = []
         img_size = len(self.img_list)
         print '[INFO] Number of images:', img_size
+        print '[INFO] Number of gps logs:', len(self.gps_list)
 
         dt_list = [x.timestamp for x in self.gps_list]
 
         img_seq = 1
 
         for i in xrange(img_size):
-            base_path, filename = os.path.split(self.img_list[i])
-            cdate = datetime.datetime.fromtimestamp(os.path.getmtime(self.img_list[i]))
+            cdate = self.get_image_creation_date(self.img_list[i])
             gps_i, img_tdiff = self.get_closest_datetime_index(dt_list, cdate)
+            base_path, filename = os.path.split(self.img_list[i])
 
             if gps_i == -1:
                 self.non_processed_files.append(filename)
@@ -326,8 +354,9 @@ class Main:
                         (i+1, img_size, filename, cdate, closest_gps.timestamp, img_tdiff, closest_gps.lat, closest_gps.lon, closest_gps.alt)
                 print msg
 
-            copyfile(self.img_list[i], self.output + str(img_seq) + filename)
-            self.set_gps_location(self.output + str(img_seq) + filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
+            output_filename = self.output + str(img_seq) + '_' + filename
+            copyfile(self.img_list[i], output_filename)
+            self.set_gps_location(output_filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
             self.tagged_gps.append(closest_gps)
             img_seq += 1
 
@@ -359,7 +388,7 @@ class Main:
             default=-17000, required=False, type=float
         )
         parser.add_argument(
-            '-klm', '--klm', help='Save the in KML format the information of all tagged images.',
+            '-kml', '--kml', help='Save the in KML format the information of all tagged images.',
             required=False, action='store_true'
         )
         parser.add_argument(

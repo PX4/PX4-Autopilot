@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,65 @@
  *
  ****************************************************************************/
 
-/**
- * @file mc_att_control_m_start_nuttx.cpp
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
+#include "navio_gpio.h"
 
-extern bool mc_att_control_thread_running;
-int mc_att_control_daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+#include <stdio.h>
+#include <unistd.h>
+
+#define LED_CNF     (GPIO_CNF_OUTPUT)
+#define LED_pinR    GPIO_PIN4
+#define LED_pinG    GPIO_PIN27
+#define LED_pinB    GPIO_PIN6
+
+#define LED_OFF 1
+#define LED_ON  0
+
+using namespace navio_gpio;
+
+int do_test();
+
+int do_test()
 {
-bool mc_att_control_task_should_exit = false;
-}
-using namespace px4;
+	Gpio gpio;
 
-extern int mc_att_control_start_main(int argc, char **argv);
-
-extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
-int mc_att_control_m_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		warnx("usage: mc_att_control_m {start|stop|status}");
-		return 1;
+	if (gpio.start() < 0) {
+		return -1;
 	}
 
-	if (!strcmp(argv[1], "start")) {
+	gpio.configgpio(LED_CNF | LED_pinR);
+	gpio.configgpio(LED_CNF | LED_pinG);
+	gpio.configgpio(LED_CNF | LED_pinB);
 
-		if (mc_att_control_thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			return 0;
-		}
 
-		mc_att_control_task_should_exit = false;
-		warnx("ok now btak running");
-		mc_att_control_daemon_task = px4_task_spawn_cmd("mc_att_control_m",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       1900,
-				       mc_att_control_start_main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+	gpio.gpiowrite(LED_pinR, LED_OFF);
+	gpio.gpiowrite(LED_pinG, LED_OFF);
+	gpio.gpiowrite(LED_pinB, LED_OFF);
+	printf("off\n");
+	sleep(2);
 
-		return 0;
-	}
+	gpio.gpiowrite(LED_pinR, LED_ON);
+	gpio.gpiowrite(LED_pinG, LED_OFF);
+	gpio.gpiowrite(LED_pinB, LED_OFF);
+	printf("red\n");
+	sleep(2);
 
-	if (!strcmp(argv[1], "stop")) {
-		mc_att_control_task_should_exit = true;
-		return 0;
-	}
+	gpio.gpiowrite(LED_pinR, LED_OFF);
+	gpio.gpiowrite(LED_pinG, LED_ON);
+	gpio.gpiowrite(LED_pinB, LED_OFF);
+	printf("green\n");
+	sleep(2);
 
-	if (!strcmp(argv[1], "status")) {
-		if (mc_att_control_thread_running) {
-			warnx("is running");
+	gpio.gpiowrite(LED_pinR, LED_OFF);
+	gpio.gpiowrite(LED_pinG, LED_OFF);
+	gpio.gpiowrite(LED_pinB, LED_ON);
+	printf("blue\n");
+	sleep(2);
 
-		} else {
-			warnx("not started");
-		}
+	gpio.gpiowrite(LED_pinR, LED_OFF);
+	gpio.gpiowrite(LED_pinG, LED_OFF);
+	gpio.gpiowrite(LED_pinB, LED_OFF);
+	printf("off\n");
+	gpio.stop();
 
-		return 0;
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	return 0;
 }

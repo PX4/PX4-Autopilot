@@ -30,17 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
 px4_add_module(
-	MODULE modules__ekf_att_pos_estimator
-	MAIN ekf_att_pos_estimator
-	COMPILE_FLAGS -Os
-	STACK_MAIN 3000
-	STACK_MAX 3400
+	MODULE examples__mc_pos_control_multiplatform
+	MAIN mc_pos_control_m
 	SRCS
-		ekf_att_pos_estimator_main.cpp
-		estimator_22states.cpp
-		estimator_utilities.cpp
+		mc_pos_control_main.cpp
+		mc_pos_control_start_nuttx.cpp
+		mc_pos_control.cpp
 	DEPENDS
 		platforms__common
 	)

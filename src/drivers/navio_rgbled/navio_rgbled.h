@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 - 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,70 +30,58 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * @file mc_pos_control_m_start_nuttx.cpp
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
+#include "DevObj.hpp"
 
-extern bool mc_pos_control_thread_running;
-int mc_pos_control_daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+#include "navio_gpio.h"
+
+#define RGBLED_BASE_DEVICE_PATH "/dev/rgbled"
+#define RGBLED_DEVICE_PATH  "/dev/rgbled0"
+
+// inverted
+#define LED_ON  0
+#define LED_OFF 1
+
+
+using namespace navio_gpio;
+
+class RGBLED : public DevObj
 {
-bool mc_pos_control_task_should_exit = false;
-}
-using namespace px4;
+public:
+	RGBLED(const char *name) :
+		DevObj(name,
+		       RGBLED_DEVICE_PATH,
+		       RGBLED_BASE_DEVICE_PATH,
+		       DeviceBusType_UNKNOWN,
+		       0),
+		_rgbsets{
+		{LED_OFF, LED_OFF, LED_OFF}, /* OFF */
+		{LED_ON,  LED_OFF, LED_OFF}, /* red */
+		{LED_ON,  LED_ON,  LED_OFF}, /* yellow */
+		{LED_ON,  LED_OFF, LED_ON},  /* purple */
+		{LED_OFF, LED_ON,  LED_OFF}, /* green */
+		{LED_OFF, LED_OFF, LED_ON},  /* blue */
+		{LED_ON,  LED_ON,  LED_ON},  /* white */
+	},
+	_max_color(7),
+		   _rgb{LED_OFF, LED_OFF, LED_OFF},
+		   _turn(true)
+	{ };
+	virtual ~RGBLED()
+	{ };
 
-extern int mc_pos_control_start_main(int argc, char **argv);
+	int start();
+	int stop();
+	int devIOCTL(unsigned long request, unsigned long arg);
 
-extern "C" __EXPORT int mc_pos_control_m_main(int argc, char *argv[]);
-int mc_pos_control_m_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		PX4_WARN("usage: mc_pos_control_m {start|stop|status}");
-	}
+protected:
+	void _measure();
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (mc_pos_control_thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			return 0;
-		}
-
-		mc_pos_control_task_should_exit = false;
-
-		mc_pos_control_daemon_task = px4_task_spawn_cmd("mc_pos_control_m",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2500,
-				       mc_pos_control_start_main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		mc_pos_control_task_should_exit = true;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (mc_pos_control_thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		return 0;
-	}
-
-	warnx("unrecognized command");
-	return 1;
-}
+private:
+	Gpio _gpio;
+	const rgbled_rgbset_t _rgbsets[7];
+	const int _max_color;
+	rgbled_rgbset_t _rgb;
+	bool _turn;
+};

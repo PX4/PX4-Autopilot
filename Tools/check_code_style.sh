@@ -16,8 +16,14 @@ then
 		echo
 
 		rm -f $file.pretty
-		echo $file 'bad formatting, please run "./Tools/fix_code_style.sh' $file'"'
-		exit 1
+
+		if [[ $PX4_ASTYLE_FIX -eq 1 ]]
+		then
+			${DIR}/fix_code_style.sh $file
+		else
+			echo $file 'bad formatting, please run "./Tools/fix_code_style.sh' $file'"'
+			exit 1
+		fi
 	fi
 fi
 

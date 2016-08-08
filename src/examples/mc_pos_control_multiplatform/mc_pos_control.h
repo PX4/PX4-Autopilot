@@ -88,7 +88,8 @@ protected:
 
 	Publisher<px4_vehicle_attitude_setpoint>	*_att_sp_pub;			/**< attitude setpoint publication */
 	Publisher<px4_vehicle_local_position_setpoint>	*_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
-	Publisher<px4_vehicle_global_velocity_setpoint>	*_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
+	Publisher<px4_vehicle_global_velocity_setpoint>
+	*_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
 
 	Subscriber<px4_vehicle_attitude> *_att;				    /**< vehicle attitude */
@@ -213,8 +214,8 @@ protected:
 	 */
 	void		control_offboard(float dt);
 
-	bool		cross_sphere_line(const math::Vector<3>& sphere_c, float sphere_r,
-					const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3>& res);
+	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
+					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
 
 	/**
 	 * Set position setpoint for AUTO

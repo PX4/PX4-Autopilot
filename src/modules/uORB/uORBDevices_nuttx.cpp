@@ -43,8 +43,6 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
-uORB::ORBMap uORB::DeviceMaster::_node_map;
-
 uORB::DeviceNode::DeviceNode
 (
 	const struct orb_metadata *meta,
@@ -192,6 +190,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 
 	if (_generation > sd->generation + _queue_size) {
 		/* Reader is too far behind: some messages are lost */
+		_lost_messages += _generation - (sd->generation + _queue_size);
 		sd->generation = _generation - _queue_size;
 	}
 
@@ -551,15 +550,42 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
 	node->update_deferred();
 }
 
+bool
+uORB::DeviceNode::print_statistics(bool reset)
+{
+	if (!_lost_messages) {
+		return false;
+	}
+
+	lock();
+	//This can be wrong: if a reader never reads, _lost_messages will not be increased either
+	uint32_t lost_messages = _lost_messages;
+
+	if (reset) {
+		_lost_messages = 0;
+	}
+
+	unlock();
+
+	PX4_INFO("%s: %i", _meta->o_name, lost_messages);
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::add_internal_subscriber()
 {
-	_subscriber_count++;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count++;
+
 	if (ch != nullptr && _subscriber_count > 0) {
+		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(_meta->o_name, 1);
+
+	} else {
+		unlock();
 	}
 }
 
@@ -567,11 +593,17 @@ void uORB::DeviceNode::add_internal_subscriber()
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::remove_internal_subscriber()
 {
-	_subscriber_count--;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count--;
+
 	if (ch != nullptr && _subscriber_count == 0) {
+		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
 		ch->remove_subscription(_meta->o_name);
+
+	} else {
+		unlock();
 	}
 }
 
@@ -654,7 +686,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-
+	_last_statistics_output = hrt_absolute_time();
 }
 
 uORB::DeviceMaster::~DeviceMaster()
@@ -737,7 +769,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (ret == -EEXIST) {
 						/* if the node exists already, get the existing one and check if
 						 * something has been published yet. */
-						uORB::DeviceNode *existing_node = GetDeviceNode(devpath);
+						uORB::DeviceNode *existing_node = getDeviceNodeLocked(devpath);
 
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
@@ -773,7 +805,46 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
+void uORB::DeviceMaster::printStatistics(bool reset)
+{
+	hrt_abstime current_time = hrt_absolute_time();
+	PX4_INFO("Statistics, since last output (%i ms):",
+		 (int)((current_time - _last_statistics_output) / 1000));
+	_last_statistics_output = current_time;
+
+	PX4_INFO("TOPIC, NR LOST MSGS");
+	bool had_print = false;
+
+	lock();
+	ORBMap::Node *node = _node_map.top();
+
+	while (node) {
+		if (node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		node = node->next;
+	}
+
+	unlock();
+
+	if (!had_print) {
+		PX4_INFO("No lost messages");
+	}
+}
+
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
+{
+	lock();
+	uORB::DeviceNode *node = getDeviceNodeLocked(nodepath);
+	unlock();
+	//We can safely return the node that can be used by any thread, because
+	//a DeviceNode never gets deleted.
+	return node;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
 {
 	uORB::DeviceNode *rc = nullptr;
 

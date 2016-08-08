@@ -16,9 +16,6 @@ static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
-// minimum flow altitude
-static const float flow_min_agl = 0.3;
-
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
