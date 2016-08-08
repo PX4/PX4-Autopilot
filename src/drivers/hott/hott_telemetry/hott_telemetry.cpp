@@ -337,7 +337,7 @@ hott_telemetry_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd(daemon_name,
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT,
-						 2048,
+						 1500,
 						 hott_telemetry_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
