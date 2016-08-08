@@ -70,7 +70,7 @@ static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 static const char daemon_name[] = "hott_telemetry";
-static const char commandline_usage[] = 
+static const char commandline_usage[] =
 	"usage: hott_telemetry start|status|stop [-d <device>] [-t <timeout ms>] [-r <read delay us>] [-w <write delay us>]";
 
 static uint8_t read_log[16];
@@ -119,6 +119,7 @@ recv_req_id(int uart, uint8_t *id)
 		for (int x = 15; x > 0; x--) {
 			read_log[x] = read_log[x - 1];
 		}
+
 		read_log[0] = mode;
 
 		/* if we have a binary mode request */
@@ -239,8 +240,8 @@ hott_telemetry_thread_main(int argc, char *argv[])
 				break;
 
 			case BINARY_MODE_REQUEST_ID:
- 				perf_count(dead_reply);
-  				break;
+				perf_count(dead_reply);
+				break;
 
 			default:
 				perf_count(bad_reply);
@@ -252,6 +253,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 		} else {
 			if (connected) {
 				connected = false;
+
 			} else {
 				recon++;
 			}
@@ -337,7 +339,7 @@ hott_telemetry_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd(daemon_name,
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT,
-						 2048,
+						 1500,
 						 hott_telemetry_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
