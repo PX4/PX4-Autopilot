@@ -12,8 +12,8 @@ then
 	exit 1
 fi
 
-SRC_DIR=$1
-JOB_DIR=$SRC_DIR/..
+SRC_DIR=`realpath $1`
+JOB_DIR=`realpath $SRC_DIR/..`
 BUILD=posix_sitl_default
 # TODO
 ROS_TEST_RESULT_DIR=/root/.ros/test_results/px4
