@@ -645,6 +645,7 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	// Angular rate of correction
 	Vector<3> corr;
+	float spinRate = _gyro.length();
 
 	if (_ext_hdg_mode > 0 && _ext_hdg_good) {
 		if (_ext_hdg_mode == 1) {
@@ -671,8 +672,15 @@ bool AttitudeEstimatorQ::update(float dt)
 		// Project mag field vector to global frame and extract XY component
 		Vector<3> mag_earth = _q.conjugate(_mag);
 		float mag_err = _wrap_pi(atan2f(mag_earth(1), mag_earth(0)) - _mag_decl);
+		float gainMult = 1.0f;
+		const float fifty_dps = 0.873f;
+
+		if (spinRate > fifty_dps) {
+			gainMult = fmin(spinRate / fifty_dps, 10.0f);
+		}
+
 		// Project magnetometer correction to body frame
-		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag;
+		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag * gainMult;
 	}
 
 	_q.normalize();
@@ -691,12 +699,13 @@ bool AttitudeEstimatorQ::update(float dt)
 	corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
 
 	// Gyro bias estimation
-	if (_gyro.length() < 1.0f) {
+	if (spinRate < 0.175f) {
 		_gyro_bias += corr * (_w_gyro_bias * dt);
-	}
 
-	for (int i = 0; i < 3; i++) {
-		_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
+		for (int i = 0; i < 3; i++) {
+			_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
+		}
+
 	}
 
 	_rates = _gyro + _gyro_bias;
