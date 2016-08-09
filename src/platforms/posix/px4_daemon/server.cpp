@@ -210,7 +210,7 @@ Server::_kill_cmd_packet(const client_send_packet_s &packet)
 {
 	// TODO: we currently ignore the signal type.
 
-	pthread_t pthread_to_kill = _client_uuid_to_pthread[packet.header.client_uuid];
+	pthread_t pthread_to_kill = _client_uuid_to_pthread.get(packet.header.client_uuid);
 
 	int ret = pthread_cancel(pthread_to_kill);
 
@@ -287,8 +287,8 @@ Server::_send_retval(const int pipe_fd, const int retval, const uint64_t client_
 void
 Server::_cleanup_thread(const uint64_t client_uuid)
 {
-	pthread_t pthread_killed = _client_uuid_to_pthread[client_uuid];
-	int pipe_fd = _pthread_to_pipe_fd[pthread_killed];
+	pthread_t pthread_killed = _client_uuid_to_pthread.get(client_uuid);
+	int pipe_fd = _pthread_to_pipe_fd.get(pthread_killed);
 
 	close(pipe_fd);
 

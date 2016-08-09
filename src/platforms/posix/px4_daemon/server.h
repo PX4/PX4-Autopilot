@@ -55,6 +55,7 @@
 #include <map>
 
 #include "pipe_protocol.h"
+#include "threadsafe_map.h"
 
 
 namespace px4_daemon
@@ -112,8 +113,8 @@ private:
 
 	pthread_t _server_main_pthread;
 
-	std::map <pthread_t, int> _pthread_to_pipe_fd;
-	std::map <uint64_t, pthread_t> _client_uuid_to_pthread;
+	ThreadsafeMap <pthread_t, int> _pthread_to_pipe_fd;
+	ThreadsafeMap <uint64_t, pthread_t> _client_uuid_to_pthread;
 
 	pthread_key_t _key;
 
@@ -121,6 +122,7 @@ private:
 
 	static Server *_instance;
 };
+
 
 } // namespace px4_daemon
 
