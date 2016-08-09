@@ -1,6 +1,7 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+set(ROOTFS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rootfs)
 
 set(PX4_BASH_PREFIX "px4-")
 
@@ -19,6 +20,10 @@ px4_posix_generate_alias(
 set(APP_NAME px4)
 set(MAIN_SRC ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
 set(UPLOAD_NAME upload)
+
+add_subdirectory(posix-configs/SITL/init)
+add_subdirectory(ROMFS/px4fmu_common/mixers)
+
 
 if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
@@ -145,36 +150,6 @@ endif()
 #=============================================================================
 # install
 #
-
-install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
-	)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
-	)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/posix-configs/SITL/init ${CMAKE_BINARY_DIR}/rootfs/etc/
-)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/sitl/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
-)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/px4fmu_common/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
-)
-
-
 
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
