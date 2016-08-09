@@ -80,6 +80,7 @@ Client::generate_uuid()
 		PX4_ERR("open urandom");
 		return rand_fd;
 	}
+
 	int ret = 0;
 
 	int rand_read = read(rand_fd, &_uuid, sizeof(_uuid));
@@ -133,6 +134,7 @@ Client::_prepare_recv_pipe()
 	}
 
 	ret = mkfifo(_recv_pipe_path, 0666);
+
 	if (ret < 0) {
 		PX4_ERR("pipe %s already exists, errno: %d, %s", _recv_pipe_path, errno, strerror(errno));
 		return ret;
