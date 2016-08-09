@@ -3032,6 +3032,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
+		 (_last_sp_man.transition_switch == sp_man.transition_switch) &&
 		 (_last_sp_man.mode_slot == sp_man.mode_slot))) {
 
 		// update these fields for the geofence system
@@ -3232,29 +3233,23 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	case manual_control_setpoint_s::SWITCH_POS_OFF:		// MANUAL
 		if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 
-			/* manual mode is stabilized already for multirotors, so switch to acro
-			 * for any non-manual mode
+			/* manual mode must be stabilized for multirotors, so switch to acro
+			 * allow manual for fixed-wing
 			 */
 			// XXX: put ACRO and STAB on separate switches
-			if (status.is_rotary_wing && !status.is_vtol) {
+			if (status.is_rotary_wing) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
-			} else if (!status.is_rotary_wing) {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 			} else {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
 			}
-
-		}
-		else if(sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
+		} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			/* Similar to acro transitions for multirotors.  FW aircraft don't need a
 			 * rattitude mode.*/
 			if (status.is_rotary_wing) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags, &internal_state);
-			} else {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 			}
-		}else {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+		} else {
+			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 		}
 
 		// TRANSITION_DENIED is not possible here
