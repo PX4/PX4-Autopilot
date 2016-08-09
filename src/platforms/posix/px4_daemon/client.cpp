@@ -132,8 +132,11 @@ Client::_prepare_recv_pipe()
 		return ret;
 	}
 
-	unlink(_recv_pipe_path);
-	mkfifo(_recv_pipe_path, 0666);
+	ret = mkfifo(_recv_pipe_path, 0666);
+	if (ret < 0) {
+		PX4_ERR("pipe %s already exists, errno: %d, %s", _recv_pipe_path, errno, strerror(errno));
+		return ret;
+	}
 
 	return 0;
 }
