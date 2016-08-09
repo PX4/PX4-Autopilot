@@ -171,7 +171,7 @@ set(config_module_list
 	#examples/hwtest
 )
 
-set(config_extra_builtin_commands
+set(config_extra_builtin_cmds
 	serdis
 	sercon
 	)
