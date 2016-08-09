@@ -168,9 +168,9 @@ mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 #
 # Logging
 #
-if logger start -b 12 -t
-then
-fi
+#if logger start -b 2 -t
+#then
+#fi
 
 #
 # Fixed wing setup
