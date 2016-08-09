@@ -39,6 +39,7 @@ px4_add_module(
 		drv_io_timer.c
 		drv_pwm_servo.c
 		drv_input_capture.c
+		drv_led_pwm.cpp
 	DEPENDS
 		platforms__common
 	)

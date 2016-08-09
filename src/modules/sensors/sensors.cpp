@@ -48,9 +48,10 @@
 
 #include <board_config.h>
 
+#include <px4_adc.h>
 #include <px4_config.h>
-#include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
 #include <px4_time.h>
 
 #include <fcntl.h>
@@ -64,8 +65,6 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 
-#include <px4_adc.h>
-
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -76,16 +75,18 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_px4flow.h>
 
+#include <systemlib/airspeed.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
+
 #include <conversion/rotation.h>
 
-#include <systemlib/airspeed.h>
-
 #include <lib/ecl/validation/data_validator.h>
+#include <lib/ecl/validation/data_validator_group.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -136,12 +137,6 @@ using namespace DriverFramework;
 
 #define SENSOR_COUNT_MAX		3
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
@@ -170,6 +165,9 @@ public:
 	 * @return		OK on success.
 	 */
 	int		start();
+
+
+	void	print_status();
 
 private:
 	static const unsigned _rc_max_chan_count =
@@ -207,19 +205,35 @@ private:
 	int 		_sensors_task;			/**< task handle for sensor task */
 
 	bool		_hil_enabled;			/**< if true, HIL is active */
-	bool		_publishing;			/**< if true, we are publishing sensor data */
+	bool		_publishing;			/**< if true, we are publishing sensor data (in HIL mode, we don't) */
 	bool		_armed;				/**< arming status of the vehicle */
 
-	int		_gyro_sub[SENSOR_COUNT_MAX];	/**< raw gyro data subscription */
-	int		_accel_sub[SENSOR_COUNT_MAX];	/**< raw accel data subscription */
-	int		_mag_sub[SENSOR_COUNT_MAX];	/**< raw mag data subscription */
-	int		_baro_sub[SENSOR_COUNT_MAX];	/**< raw baro data subscription */
-	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
-	unsigned	_gyro_count;			/**< raw gyro data count */
-	unsigned	_accel_count;			/**< raw accel data count */
-	unsigned	_mag_count;			/**< raw mag data count */
-	unsigned	_baro_count;			/**< raw baro data count */
+	struct SensorData {
+		SensorData()
+			: last_best_vote(0),
+			  subscription_count(0),
+			  voter(SENSOR_COUNT_MAX),
+			  last_failover_count(0)
+		{
+			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+				subscription[i] = -1;
+			}
+		}
 
+		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
+		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
+		uint8_t last_best_vote; /**< index of the latest best vote */
+		int subscription_count;
+		DataValidatorGroup voter;
+		unsigned int last_failover_count;
+	};
+
+	SensorData _gyro;
+	SensorData _accel;
+	SensorData _mag;
+	SensorData _baro;
+
+	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
@@ -234,6 +248,7 @@ private:
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
+	orb_advert_t	_mavlink_log_pub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -241,7 +256,6 @@ private:
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct battery_status_s _battery_status;	/**< battery status */
-	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
@@ -251,6 +265,16 @@ private:
 	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
+
+	float _last_baro_pressure[SENSOR_COUNT_MAX]; /**< pressure from last baro sensors */
+	float _last_best_baro_pressure; /**< pressure from last best baro */
+	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	uint64_t _last_accel_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
+	uint64_t _last_mag_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
+	uint64_t _last_baro_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
+
+	hrt_abstime _vibration_warning_timestamp;
+	bool _vibration_warning;
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -281,6 +305,7 @@ private:
 		int rc_map_acro_sw;
 		int rc_map_offboard_sw;
 		int rc_map_kill_sw;
+		int rc_map_trans_sw;
 
 		int rc_map_flaps;
 
@@ -304,6 +329,7 @@ private:
 		float rc_acro_th;
 		float rc_offboard_th;
 		float rc_killswitch_th;
+		float rc_trans_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -313,14 +339,18 @@ private:
 		bool rc_acro_inv;
 		bool rc_offboard_inv;
 		bool rc_killswitch_inv;
+		bool rc_trans_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
 		float battery_current_offset;
 		float battery_v_div;
 		float battery_a_per_v;
+		int32_t battery_source;
 
 		float baro_qnh;
+
+		float vibration_warning_threshold;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -348,6 +378,7 @@ private:
 		param_t rc_map_acro_sw;
 		param_t rc_map_offboard_sw;
 		param_t rc_map_kill_sw;
+		param_t rc_map_trans_sw;
 
 		param_t rc_map_flaps;
 
@@ -375,12 +406,14 @@ private:
 		param_t rc_acro_th;
 		param_t rc_offboard_th;
 		param_t rc_killswitch_th;
+		param_t rc_trans_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
 		param_t battery_current_offset;
 		param_t battery_v_div;
 		param_t battery_a_per_v;
+		param_t battery_source;
 
 		param_t board_rotation;
 
@@ -388,11 +421,12 @@ private:
 
 		param_t baro_qnh;
 
+		param_t vibe_thresh; /**< vibration threshold */
+
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
-	int		init_sensor_class(const struct orb_metadata *meta, int *subs,
-					  uint32_t *priorities, uint32_t *errcount);
+	void	init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data);
 
 	/**
 	 * Update our local parameter cache.
@@ -498,6 +532,18 @@ private:
 	void		adc_poll(struct sensor_combined_s &raw);
 
 	/**
+	 * Check & handle failover of a sensor
+	 * @return true if a switch occured (could be for a non-critical reason)
+	 */
+	bool check_failover(SensorData &sensor, const char *sensor_name);
+
+	/**
+	 * check vibration levels and output a warning if they're high
+	 * @return true on high vibration
+	 */
+	bool check_vibration();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -523,16 +569,6 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 	_armed(false),
-
-	/* subscriptions */
-	_gyro_sub{ -1, -1, -1},
-	_accel_sub{ -1, -1, -1},
-	_mag_sub{ -1, -1, -1},
-	_baro_sub{ -1, -1, -1},
-	_gyro_count(0),
-	_accel_count(0),
-	_mag_count(0),
-	_baro_count(0),
 	_rc_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
@@ -547,6 +583,7 @@ Sensors::Sensors() :
 	_battery_pub(nullptr),
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
+	_mavlink_log_pub(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
@@ -554,20 +591,23 @@ Sensors::Sensors() :
 
 	_param_rc_values{},
 	_board_rotation{},
-	_mag_rotation{}
+	_mag_rotation{},
+
+	_last_best_baro_pressure(0.f),
+
+	_vibration_warning_timestamp(0),
+	_vibration_warning(false)
 {
-	/* initialize subscriptions */
-	for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
-		_gyro_sub[i] = -1;
-		_accel_sub[i] = -1;
-		_mag_sub[i] = -1;
-		_baro_sub[i] = -1;
-	}
+	_mag.voter.set_timeout(300000);
 
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
+	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
+	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
+	memset(&_last_mag_timestamp, 0, sizeof(_last_mag_timestamp));
+	memset(&_last_baro_timestamp, 0, sizeof(_last_baro_timestamp));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -615,6 +655,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
 	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
 	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
+	_parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -643,6 +684,8 @@ Sensors::Sensors() :
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
+	_parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
+
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
@@ -653,6 +696,7 @@ Sensors::Sensors() :
 	_parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
 	_parameter_handles.battery_v_div = param_find("BAT_V_DIV");
 	_parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
+	_parameter_handles.battery_source = param_find("BAT_SOURCE");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -664,6 +708,8 @@ Sensors::Sensors() :
 
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+
+	_parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -724,6 +770,7 @@ Sensors::parameters_update()
 	bool rc_valid = true;
 	float tmpScaleFactor = 0.0f;
 	float tmpRevFactor = 0.0f;
+	int ret = PX4_OK;
 
 	/* rc values */
 	for (unsigned int i = 0; i < _rc_max_chan_count; i++) {
@@ -741,7 +788,7 @@ Sensors::parameters_update()
 		if (!PX4_ISFINITE(tmpScaleFactor) ||
 		    (tmpRevFactor < 0.000001f) ||
 		    (tmpRevFactor > 0.2f)) {
-			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
+			PX4_WARN("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
 			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
@@ -753,66 +800,70 @@ Sensors::parameters_update()
 
 	/* handle wrong values */
 	if (!rc_valid) {
-		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
+		PX4_ERR("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 	}
 
 	const char *paramerr = "FAIL PARM LOAD";
 
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_rattitude_sw, &(_parameters.rc_map_rattitude_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_posctl_sw, &(_parameters.rc_map_posctl_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_acro_sw, &(_parameters.rc_map_acro_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_offboard_sw, &(_parameters.rc_map_offboard_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_kill_sw, &(_parameters.rc_map_kill_sw)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
+	if (param_get(_parameter_handles.rc_map_trans_sw, &(_parameters.rc_map_trans_sw)) != OK) {
 		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1));
@@ -855,6 +906,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_killswitch_th, &(_parameters.rc_killswitch_th));
 	_parameters.rc_killswitch_inv = (_parameters.rc_killswitch_th < 0);
 	_parameters.rc_killswitch_th = fabs(_parameters.rc_killswitch_th);
+	param_get(_parameter_handles.rc_trans_th, &(_parameters.rc_trans_th));
+	_parameters.rc_trans_inv = (_parameters.rc_trans_th < 0);
+	_parameters.rc_trans_th = fabs(_parameters.rc_trans_th);
 
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -870,6 +924,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION] = _parameters.rc_map_trans_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -889,32 +944,34 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_voltage_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_voltage_scaling, &_parameters.battery_voltage_scaling);
 	}
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_parameters.battery_current_scaling = (3.3f / 4096);
+		param_set(_parameter_handles.battery_current_scaling, &_parameters.battery_current_scaling);
 	}
 
 	if (param_get(_parameter_handles.battery_current_offset, &(_parameters.battery_current_offset)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 
 	}
 
 	if (param_get(_parameter_handles.battery_v_div, &(_parameters.battery_v_div)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 		_parameters.battery_v_div = 0.0f;
 
-	} else if (_parameters.battery_v_div < 0.0f) {
+	} else if (_parameters.battery_v_div <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		_parameters.battery_v_div = 13.653333333f;
@@ -924,17 +981,20 @@ Sensors::parameters_update()
 		_parameters.battery_v_div = 7.8196363636f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		_parameters.battery_v_div = 5.7013919372f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
+		_parameters.battery_v_div = 10.177939394f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
 		_parameters.battery_v_div = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_v_div, &_parameters.battery_v_div);
 	}
 
 	if (param_get(_parameter_handles.battery_a_per_v, &(_parameters.battery_a_per_v)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 		_parameters.battery_a_per_v = 0.0f;
 
-	} else if (_parameters.battery_a_per_v < 0.0f) {
+	} else if (_parameters.battery_a_per_v <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		/* current scaling for ACSP4 */
@@ -942,11 +1002,16 @@ Sensors::parameters_update()
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		/* current scaling for 3DR power brick */
 		_parameters.battery_a_per_v = 15.391030303f;
+#elif defined (CONFIG_ARCH_BOARD_SITL)
+		_parameters.battery_a_per_v = 15.391030303f;
 #else
 		/* ensure a missing default leads to an unrealistic current value */
 		_parameters.battery_a_per_v = 0.0f;
 #endif
+		param_set(_parameter_handles.battery_a_per_v, &_parameters.battery_a_per_v);
 	}
+
+	param_get(_parameter_handles.battery_source, &(_parameters.battery_source));
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
@@ -968,25 +1033,27 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
-		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-		return ERROR;
+		PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+		ret = PX4_ERROR;
 
 	} else {
 		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 
 		if (baroret) {
-			warnx("qnh could not be set");
-			return ERROR;
+			PX4_ERR("qnh for baro could not be set");
+			ret = PX4_ERROR;
 		}
 	}
 
 #endif
 
-	return OK;
+	param_get(_parameter_handles.vibe_thresh, &_parameters.vibration_warning_threshold);
+
+	return ret;
 }
 
 
@@ -997,8 +1064,8 @@ Sensors::adc_init()
 	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
 	if (!_h_adc.isValid()) {
-		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
-		return ERROR;
+		PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+		return PX4_ERROR;
 	}
 
 	return OK;
@@ -1007,38 +1074,66 @@ Sensors::adc_init()
 void
 Sensors::accel_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _accel_count; i++) {
+	bool got_update = false;
+
+	for (unsigned i = 0; i < _accel.subscription_count; i++) {
 		bool accel_updated;
-		orb_check(_accel_sub[i], &accel_updated);
+		orb_check(_accel.subscription[i], &accel_updated);
 
 		if (accel_updated) {
-			struct accel_report	accel_report;
+			struct accel_report accel_report;
 
-			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
+			orb_copy(ORB_ID(sensor_accel), _accel.subscription[i], &accel_report);
 
-			math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
-			vect = _board_rotation * vect;
+			if (accel_report.timestamp == 0) {
+				continue; //ignore invalid data
+			}
 
-			raw.accelerometer_m_s2[i * 3 + 0] = vect(0);
-			raw.accelerometer_m_s2[i * 3 + 1] = vect(1);
-			raw.accelerometer_m_s2[i * 3 + 2] = vect(2);
+			got_update = true;
 
-			math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
-			vect_int = _board_rotation * vect_int;
+			if (accel_report.integral_dt != 0) {
+				math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
+				vect_int = _board_rotation * vect_int;
 
-			raw.accelerometer_integral_m_s[i * 3 + 0] = vect_int(0);
-			raw.accelerometer_integral_m_s[i * 3 + 1] = vect_int(1);
-			raw.accelerometer_integral_m_s[i * 3 + 2] = vect_int(2);
+				float dt = accel_report.integral_dt / 1.e6f;
+				_last_sensor_data[i].accelerometer_integral_dt = dt;
 
-			raw.accelerometer_integral_dt[i] = accel_report.integral_dt;
+				_last_sensor_data[i].accelerometer_m_s2[0] = vect_int(0) / dt;
+				_last_sensor_data[i].accelerometer_m_s2[1] = vect_int(1) / dt;
+				_last_sensor_data[i].accelerometer_m_s2[2] = vect_int(2) / dt;
 
-			raw.accelerometer_raw[i * 3 + 0] = accel_report.x_raw;
-			raw.accelerometer_raw[i * 3 + 1] = accel_report.y_raw;
-			raw.accelerometer_raw[i * 3 + 2] = accel_report.z_raw;
+			} else {
+				//using the value instead of the integral (the integral is the prefered choice)
+				math::Vector<3> vect_val(accel_report.x, accel_report.y, accel_report.z);
+				vect_val = _board_rotation * vect_val;
 
-			raw.accelerometer_timestamp[i] = accel_report.timestamp;
-			raw.accelerometer_errcount[i] = accel_report.error_count;
-			raw.accelerometer_temp[i] = accel_report.temperature;
+				if (_last_accel_timestamp[i] == 0) {
+					_last_accel_timestamp[i] = accel_report.timestamp - 1000;
+				}
+
+				_last_sensor_data[i].accelerometer_integral_dt =
+					(accel_report.timestamp - _last_accel_timestamp[i]) / 1.e6f;
+				_last_sensor_data[i].accelerometer_m_s2[0] = vect_val(0);
+				_last_sensor_data[i].accelerometer_m_s2[1] = vect_val(1);
+				_last_sensor_data[i].accelerometer_m_s2[2] = vect_val(2);
+			}
+
+			_last_accel_timestamp[i] = accel_report.timestamp;
+			_accel.voter.put(i, accel_report.timestamp, _last_sensor_data[i].accelerometer_m_s2,
+					 accel_report.error_count, _accel.priority[i]);
+		}
+	}
+
+	if (got_update) {
+		int best_index;
+		_accel.voter.get_best(hrt_absolute_time(), &best_index);
+
+		if (best_index >= 0) {
+			raw.accelerometer_m_s2[0] = _last_sensor_data[best_index].accelerometer_m_s2[0];
+			raw.accelerometer_m_s2[1] = _last_sensor_data[best_index].accelerometer_m_s2[1];
+			raw.accelerometer_m_s2[2] = _last_sensor_data[best_index].accelerometer_m_s2[2];
+			raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
+			_accel.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1046,43 +1141,67 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 void
 Sensors::gyro_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _gyro_count; i++) {
+	bool got_update = false;
+
+	for (unsigned i = 0; i < _gyro.subscription_count; i++) {
 		bool gyro_updated;
-		orb_check(_gyro_sub[i], &gyro_updated);
+		orb_check(_gyro.subscription[i], &gyro_updated);
 
 		if (gyro_updated) {
-			struct gyro_report	gyro_report;
+			struct gyro_report gyro_report;
 
-			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
+			orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[i], &gyro_report);
 
-			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
-			vect = _board_rotation * vect;
-
-			raw.gyro_rad_s[i * 3 + 0] = vect(0);
-			raw.gyro_rad_s[i * 3 + 1] = vect(1);
-			raw.gyro_rad_s[i * 3 + 2] = vect(2);
-
-			math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
-			vect_int = _board_rotation * vect_int;
-
-			raw.gyro_integral_rad[i * 3 + 0] = vect_int(0);
-			raw.gyro_integral_rad[i * 3 + 1] = vect_int(1);
-			raw.gyro_integral_rad[i * 3 + 2] = vect_int(2);
-
-			raw.gyro_integral_dt[i] = gyro_report.integral_dt;
-
-			raw.gyro_raw[i * 3 + 0] = gyro_report.x_raw;
-			raw.gyro_raw[i * 3 + 1] = gyro_report.y_raw;
-			raw.gyro_raw[i * 3 + 2] = gyro_report.z_raw;
-
-			raw.gyro_timestamp[i] = gyro_report.timestamp;
-
-			if (i == 0) {
-				raw.timestamp = gyro_report.timestamp;
+			if (gyro_report.timestamp == 0) {
+				continue; //ignore invalid data
 			}
 
-			raw.gyro_errcount[i] = gyro_report.error_count;
-			raw.gyro_temp[i] = gyro_report.temperature;
+			got_update = true;
+
+			if (gyro_report.integral_dt != 0) {
+				math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
+				vect_int = _board_rotation * vect_int;
+
+				float dt = gyro_report.integral_dt / 1.e6f;
+				_last_sensor_data[i].gyro_integral_dt = dt;
+
+				_last_sensor_data[i].gyro_rad[0] = vect_int(0) / dt;
+				_last_sensor_data[i].gyro_rad[1] = vect_int(1) / dt;
+				_last_sensor_data[i].gyro_rad[2] = vect_int(2) / dt;
+
+			} else {
+				//using the value instead of the integral (the integral is the prefered choice)
+				math::Vector<3> vect_val(gyro_report.x, gyro_report.y, gyro_report.z);
+				vect_val = _board_rotation * vect_val;
+
+				if (_last_sensor_data[i].timestamp == 0) {
+					_last_sensor_data[i].timestamp = gyro_report.timestamp - 1000;
+				}
+
+				_last_sensor_data[i].gyro_integral_dt =
+					(gyro_report.timestamp - _last_sensor_data[i].timestamp) / 1.e6f;
+				_last_sensor_data[i].gyro_rad[0] = vect_val(0);
+				_last_sensor_data[i].gyro_rad[1] = vect_val(1);
+				_last_sensor_data[i].gyro_rad[2] = vect_val(2);
+			}
+
+			_last_sensor_data[i].timestamp = gyro_report.timestamp;
+			_gyro.voter.put(i, gyro_report.timestamp, _last_sensor_data[i].gyro_rad,
+					gyro_report.error_count, _gyro.priority[i]);
+		}
+	}
+
+	if (got_update) {
+		int best_index;
+		_gyro.voter.get_best(hrt_absolute_time(), &best_index);
+
+		if (best_index >= 0) {
+			raw.gyro_rad[0] = _last_sensor_data[best_index].gyro_rad[0];
+			raw.gyro_rad[1] = _last_sensor_data[best_index].gyro_rad[1];
+			raw.gyro_rad[2] = _last_sensor_data[best_index].gyro_rad[2];
+			raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
+			raw.timestamp = _last_sensor_data[best_index].timestamp;
+			_gyro.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1090,30 +1209,44 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 void
 Sensors::mag_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _mag_count; i++) {
+	bool got_update = false;
+
+	for (unsigned i = 0; i < _mag.subscription_count; i++) {
 		bool mag_updated;
-		orb_check(_mag_sub[i], &mag_updated);
+		orb_check(_mag.subscription[i], &mag_updated);
 
 		if (mag_updated) {
-			struct mag_report	mag_report;
+			struct mag_report mag_report;
 
-			orb_copy(ORB_ID(sensor_mag), _mag_sub[i], &mag_report);
+			orb_copy(ORB_ID(sensor_mag), _mag.subscription[i], &mag_report);
 
+			if (mag_report.timestamp == 0) {
+				continue; //ignore invalid data
+			}
+
+			got_update = true;
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
-
 			vect = _mag_rotation[i] * vect;
 
-			raw.magnetometer_ga[i * 3 + 0] = vect(0);
-			raw.magnetometer_ga[i * 3 + 1] = vect(1);
-			raw.magnetometer_ga[i * 3 + 2] = vect(2);
+			_last_sensor_data[i].magnetometer_ga[0] = vect(0);
+			_last_sensor_data[i].magnetometer_ga[1] = vect(1);
+			_last_sensor_data[i].magnetometer_ga[2] = vect(2);
 
-			raw.magnetometer_raw[i * 3 + 0] = mag_report.x_raw;
-			raw.magnetometer_raw[i * 3 + 1] = mag_report.y_raw;
-			raw.magnetometer_raw[i * 3 + 2] = mag_report.z_raw;
+			_last_mag_timestamp[i] = mag_report.timestamp;
+			_mag.voter.put(i, mag_report.timestamp, vect.data,
+				       mag_report.error_count, _mag.priority[i]);
+		}
+	}
 
-			raw.magnetometer_timestamp[i] = mag_report.timestamp;
-			raw.magnetometer_errcount[i] = mag_report.error_count;
-			raw.magnetometer_temp[i] = mag_report.temperature;
+	if (got_update) {
+		int best_index;
+		_mag.voter.get_best(hrt_absolute_time(), &best_index);
+
+		if (best_index >= 0) {
+			raw.magnetometer_ga[0] = _last_sensor_data[best_index].magnetometer_ga[0];
+			raw.magnetometer_ga[1] = _last_sensor_data[best_index].magnetometer_ga[1];
+			raw.magnetometer_ga[2] = _last_sensor_data[best_index].magnetometer_ga[2];
+			_mag.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1121,19 +1254,43 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 void
 Sensors::baro_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _baro_count; i++) {
+	bool got_update = false;
+
+	for (unsigned i = 0; i < _baro.subscription_count; i++) {
 		bool baro_updated;
-		orb_check(_baro_sub[i], &baro_updated);
+		orb_check(_baro.subscription[i], &baro_updated);
 
 		if (baro_updated) {
+			struct baro_report baro_report;
 
-			orb_copy(ORB_ID(sensor_baro), _baro_sub[i], &_barometer);
+			orb_copy(ORB_ID(sensor_baro), _baro.subscription[i], &baro_report);
 
-			raw.baro_pres_mbar[i] = _barometer.pressure; // Pressure in mbar
-			raw.baro_alt_meter[i] = _barometer.altitude; // Altitude in meters
-			raw.baro_temp_celcius[i] = _barometer.temperature; // Temperature in degrees celcius
+			if (baro_report.timestamp == 0) {
+				continue; //ignore invalid data
+			}
 
-			raw.baro_timestamp[i] = _barometer.timestamp;
+			got_update = true;
+			math::Vector<3> vect(baro_report.altitude, 0.f, 0.f);
+
+			_last_sensor_data[i].baro_alt_meter = baro_report.altitude;
+			_last_sensor_data[i].baro_temp_celcius = baro_report.temperature;
+			_last_baro_pressure[i] = baro_report.pressure;
+
+			_last_baro_timestamp[i] = baro_report.timestamp;
+			_baro.voter.put(i, baro_report.timestamp, vect.data,
+					baro_report.error_count, _baro.priority[i]);
+		}
+	}
+
+	if (got_update) {
+		int best_index;
+		_baro.voter.get_best(hrt_absolute_time(), &best_index);
+
+		if (best_index >= 0) {
+			raw.baro_alt_meter = _last_sensor_data[best_index].baro_alt_meter;
+			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
+			_last_best_baro_pressure = _last_baro_pressure[best_index];
+			_baro.last_best_vote = (uint8_t)best_index;
 		}
 	}
 }
@@ -1147,12 +1304,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	if (updated) {
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
-		raw.differential_pressure_pa[0] = _diff_pres.differential_pressure_raw_pa;
-		raw.differential_pressure_timestamp[0] = _diff_pres.timestamp;
-		raw.differential_pressure_filtered_pa[0] = _diff_pres.differential_pressure_filtered_pa;
-
 		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
-						(raw.baro_temp_celcius[0] - PCB_TEMP_ESTIMATE_DEG);
+						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 
@@ -1170,11 +1323,11 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
 
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
-							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar[0] * 1e2f,
-									raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
+							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + _last_best_baro_pressure * 1e2f,
+									_last_best_baro_pressure * 1e2f, air_temperature_celsius));
 		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + raw.baro_pres_mbar[0] * 1e2f,
-						   raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
+				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _last_best_baro_pressure * 1e2f,
+						   _last_best_baro_pressure * 1e2f, air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -1288,14 +1441,14 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
+						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 
 					} else {
 						/* apply new scaling and offsets */
 						config_ok = apply_gyro_calibration(h, &gscale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
+							PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
 						}
 					}
 
@@ -1356,14 +1509,14 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &ascale.z_scale));
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
+						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 
 					} else {
 						/* apply new scaling and offsets */
 						config_ok = apply_accel_calibration(h, &ascale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
+							PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
 						}
 					}
 
@@ -1489,7 +1642,7 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
+						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 
 					} else {
 
@@ -1497,7 +1650,7 @@ Sensors::parameter_update_poll(bool forced)
 						config_ok = apply_mag_calibration(h, &mscale, device_id);
 
 						if (!config_ok) {
-							warnx(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
+							PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
 						}
 					}
 
@@ -1527,8 +1680,6 @@ Sensors::parameter_update_poll(bool forced)
 			px4_close(fd);
 		}
 
-		/* do not output this for now, as its covered in preflight checks */
-		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 		_battery.updateParams();
 	}
 }
@@ -1536,17 +1687,10 @@ Sensors::parameter_update_poll(bool forced)
 bool
 Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
-
-	if (res) {
-		return false;
-
-	} else {
-		return true;
-	}
+	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
 
 #else
 	/* On QURT, the params are read directly in the respective wrappers. */
@@ -1557,17 +1701,10 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *g
 bool
 Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
-
-	if (res) {
-		return false;
-
-	} else {
-		return true;
-	}
+	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
 
 #else
 	/* On QURT, the params are read directly in the respective wrappers. */
@@ -1578,17 +1715,10 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s 
 bool
 Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
-
-	if (res) {
-		return false;
-
-	} else {
-		return true;
-	}
+	return !h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
 
 #else
 	/* On QURT, the params are read directly in the respective wrappers. */
@@ -1624,17 +1754,17 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 		}
 
-		warnx("rc to parameter map updated");
+		PX4_DEBUG("rc to parameter map updated");
 
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
-			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
-			      i,
-			      &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
-			      (double)_rc_parameter_map.scale[i],
-			      (double)_rc_parameter_map.value0[i],
-			      (double)_rc_parameter_map.value_min[i],
-			      (double)_rc_parameter_map.value_max[i]
-			     );
+			PX4_DEBUG("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
+				  i,
+				  &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
+				  (double)_rc_parameter_map.scale[i],
+				  (double)_rc_parameter_map.value0[i],
+				  (double)_rc_parameter_map.value_min[i],
+				  (double)_rc_parameter_map.value_max[i]
+				 );
 		}
 	}
 }
@@ -1664,11 +1794,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-				/* Save raw voltage values */
-				if (i < (sizeof(raw.adc_voltage_v) / sizeof(raw.adc_voltage_v[0]))) {
-					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
-					raw.adc_mapping[i] = buf_adc[i].am_channel;
-				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -1718,7 +1843,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-			if (updated_battery) {
+			if (_parameters.battery_source == 0 && updated_battery) {
 				actuator_controls_s ctrl;
 				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
@@ -2003,6 +2128,8 @@ Sensors::rc_poll()
 						 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
 					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
+			manual.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
+						   _parameters.rc_trans_th, _parameters.rc_trans_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
@@ -2045,15 +2172,72 @@ Sensors::rc_poll()
 	}
 }
 
+bool
+Sensors::check_failover(SensorData &sensor, const char *sensor_name)
+{
+	if (sensor.last_failover_count != sensor.voter.failover_count()) {
+
+		uint32_t flags = sensor.voter.failover_state();
+
+		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
+			//we switched due to a non-critical reason. No need to panic.
+			PX4_INFO("%s sensor switch from #%i", sensor_name, sensor.voter.failover_index());
+
+		} else {
+			mavlink_and_console_log_emergency(&_mavlink_log_pub, "%s #%i failover :%s%s%s%s%s!",
+							  sensor_name,
+							  sensor.voter.failover_index(),
+							  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+							  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+							  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
+		}
+
+		sensor.last_failover_count = sensor.voter.failover_count();
+		return true;
+	}
+
+	return false;
+}
+
+bool
+Sensors::check_vibration()
+{
+	bool ret = false;
+	hrt_abstime cur_time = hrt_absolute_time();
+
+	if (!_vibration_warning && (_gyro.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold ||
+				    _accel.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold ||
+				    _mag.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold)) {
+
+		if (_vibration_warning_timestamp == 0) {
+			_vibration_warning_timestamp = cur_time;
+
+		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000 * 1000) {
+			_vibration_warning = true;
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+							 (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
+							 (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
+							 (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
+			ret = true;
+		}
+
+	} else {
+		_vibration_warning_timestamp = 0;
+	}
+
+	return ret;
+}
+
 void
 Sensors::task_main_trampoline(int argc, char *argv[])
 {
 	sensors::g_sensors->task_main();
 }
 
-int
-Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
-			   uint32_t *priorities, uint32_t *errcount)
+void
+Sensors::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data)
 {
 	unsigned group_count = orb_group_count(meta);
 
@@ -2062,13 +2246,16 @@ Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
 	}
 
 	for (unsigned i = 0; i < group_count; i++) {
-		if (subs[i] < 0) {
-			subs[i] = orb_subscribe_multi(meta, i);
-			orb_priority(subs[i], (int32_t *)&priorities[i]);
+		if (sensor_data.subscription[i] < 0) {
+			sensor_data.subscription[i] = orb_subscribe_multi(meta, i);
 		}
+
+		int32_t priority;
+		orb_priority(sensor_data.subscription[i], &priority);
+		sensor_data.priority[i] = (uint8_t)priority;
 	}
 
-	return group_count;
+	sensor_data.subscription_count = group_count;
 }
 
 void
@@ -2081,108 +2268,90 @@ Sensors::task_main()
 	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
 	ret = sensors_init();
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI2)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 	// TODO: move adc_init into the sensors_init call.
 	ret = ret || adc_init();
 #endif
 
 	if (ret) {
-		warnx("sensor initialization failed");
-		_sensors_task = -1;
-
-		DevMgr::releaseHandle(_h_adc);
-
-		return;
+		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
 
-	/* ensure no overflows can occur */
-	static_assert((sizeof(raw.gyro_timestamp) / sizeof(raw.gyro_timestamp[0])) >= SENSOR_COUNT_MAX,
-		      "SENSOR_COUNT_MAX larger than sensor_combined datastructure fields. Overflow would occur");
+	raw.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	raw.magnetometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	raw.baro_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
 
 	/*
 	 * do subscriptions
 	 */
+	init_sensor_class(ORB_ID(sensor_gyro), _gyro);
 
-	unsigned gcount_prev = _gyro_count;
+	init_sensor_class(ORB_ID(sensor_mag), _mag);
 
-	unsigned mcount_prev = _mag_count;
+	init_sensor_class(ORB_ID(sensor_accel), _accel);
 
-	unsigned acount_prev = _accel_count;
+	init_sensor_class(ORB_ID(sensor_baro), _baro);
 
-	unsigned bcount_prev = _baro_count;
-
-	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-					&raw.gyro_priority[0], &raw.gyro_errcount[0]);
-
-	_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
-				       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
-
-	_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
-					 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
-
-	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
-					&raw.baro_priority[0], &raw.baro_errcount[0]);
-
-	if (gcount_prev != _gyro_count ||
-	    mcount_prev != _mag_count ||
-	    acount_prev != _accel_count ||
-	    bcount_prev != _baro_count) {
-
-		/* reload calibration params */
-		parameter_update_poll(true);
-	}
+	/* reload calibration params */
+	parameter_update_poll(true);
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
+
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
+
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
-	/*
-	 * do advertisements
-	 */
-	raw.timestamp = hrt_absolute_time();
-	raw.adc_voltage_v[0] = 0.0f;
-	raw.adc_voltage_v[1] = 0.0f;
-	raw.adc_voltage_v[2] = 0.0f;
-	raw.adc_voltage_v[3] = 0.0f;
+	raw.timestamp = 0;
 
 	_battery.reset(&_battery_status);
 
 	/* get a set of initial values */
 	accel_poll(raw);
+
 	gyro_poll(raw);
+
 	mag_poll(raw);
+
 	baro_poll(raw);
+
 	diff_pres_poll(raw);
 
 	parameter_update_poll(true /* forced */);
+
 	rc_parameter_map_poll(true /* forced */);
 
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
-	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	/* wakeup source */
+	px4_pollfd_struct_t poll_fds = {};
 
-	/* use the gyro to pace output */
-	fds[0].fd = _gyro_sub[0];
-	fds[0].events = POLLIN;
+	poll_fds.events = POLLIN;
 
 	_task_should_exit = false;
-
-	raw.timestamp = 0;
 
 	uint64_t _last_config_update = hrt_absolute_time();
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 50ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
+		/* use the best-voted gyro to pace output */
+		poll_fds.fd = _gyro.subscription[_gyro.last_best_vote];
+
+		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
+		 * if a gyro fails) */
+		int pret = px4_poll(&poll_fds, 1, 50);
 
 		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
@@ -2191,11 +2360,11 @@ Sensors::task_main()
 			/* if the polling operation failed because no gyro sensor is available yet,
 			 * then attempt to subscribe once again
 			 */
-			if (_gyro_count == 0) {
-				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-								&raw.gyro_priority[0], &raw.gyro_errcount[0]);
-				fds[0].fd = _gyro_sub[0];
+			if (_gyro.subscription_count == 0) {
+				init_sensor_class(ORB_ID(sensor_gyro), _gyro);
 			}
+
+			usleep(1000);
 
 			continue;
 		}
@@ -2205,62 +2374,52 @@ Sensors::task_main()
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
 
-		/* the timestamp of the raw struct is updated by the gyro_poll() method */
-		/* copy most recent sensor data */
+		/* the timestamp of the raw struct is updated by the gyro_poll() method (this makes the gyro
+		 * a mandatory sensor) */
 		gyro_poll(raw);
 		accel_poll(raw);
 		mag_poll(raw);
 		baro_poll(raw);
 
-		// FIXME TODO: this needs more thinking, otherwise we spam the console and keep switching.
-		/* Work out if main gyro timed out and fail over to alternate gyro.
-		 * However, don't do this if the secondary is not available. */
-		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
-			warnx("gyro has timed out");
-
-			/* If the secondary failed as well, go to the tertiary, also only if available. */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
-				fds[0].fd = _gyro_sub[2];
-
-				if (!_hil_enabled) {
-					warnx("failing over to third gyro");
-				}
-
-			} else if (_gyro_sub[1] >= 0) {
-				fds[0].fd = _gyro_sub[1];
-
-				if (!_hil_enabled) {
-					warnx("failing over to second gyro");
-				}
-			}
-		}
 
 		/* check battery voltage */
 		adc_poll(raw);
 
 		diff_pres_poll(raw);
 
-		/* Inform other processes that new data is available to copy */
 		if (_publishing && raw.timestamp > 0) {
+
+			/* construct relative timestamps */
+			if (_last_accel_timestamp[_accel.last_best_vote]) {
+				raw.accelerometer_timestamp_relative = (int32_t)(_last_accel_timestamp[_accel.last_best_vote] - raw.timestamp);
+			}
+
+			if (_last_mag_timestamp[_mag.last_best_vote]) {
+				raw.magnetometer_timestamp_relative = (int32_t)(_last_mag_timestamp[_mag.last_best_vote] - raw.timestamp);
+			}
+
+			if (_last_baro_timestamp[_baro.last_best_vote]) {
+				raw.baro_timestamp_relative = (int32_t)(_last_baro_timestamp[_baro.last_best_vote] - raw.timestamp);
+			}
+
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+
+			check_failover(_accel, "Accel");
+			check_failover(_gyro, "Gyro");
+			check_failover(_mag, "Mag");
+			check_failover(_baro, "Baro");
+
+			//check_vibration(); //disabled for now, as it does not seem to be reliable
 		}
 
 		/* keep adding sensors as long as we are not armed,
 		 * when not adding sensors poll for param updates
 		 */
 		if (!_armed && hrt_elapsed_time(&_last_config_update) > 500 * 1000) {
-			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-							&raw.gyro_priority[0], &raw.gyro_errcount[0]);
-
-			_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
-						       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
-
-			_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
-							 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
-
-			_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
-							&raw.baro_priority[0], &raw.baro_errcount[0]);
-
+			init_sensor_class(ORB_ID(sensor_gyro), _gyro);
+			init_sensor_class(ORB_ID(sensor_mag), _mag);
+			init_sensor_class(ORB_ID(sensor_accel), _accel);
+			init_sensor_class(ORB_ID(sensor_baro), _baro);
 			_last_config_update = hrt_absolute_time();
 
 		} else {
@@ -2278,7 +2437,31 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exiting.");
+	for (unsigned i = 0; i < _gyro.subscription_count; i++) {
+		orb_unsubscribe(_gyro.subscription[i]);
+	}
+
+	for (unsigned i = 0; i < _accel.subscription_count; i++) {
+		orb_unsubscribe(_accel.subscription[i]);
+	}
+
+	for (unsigned i = 0; i < _mag.subscription_count; i++) {
+		orb_unsubscribe(_mag.subscription[i]);
+	}
+
+	for (unsigned i = 0; i < _baro.subscription_count; i++) {
+		orb_unsubscribe(_baro.subscription[i]);
+	}
+
+	orb_unsubscribe(_rc_sub);
+	orb_unsubscribe(_diff_pres_sub);
+	orb_unsubscribe(_vcontrol_mode_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_rc_parameter_map_sub);
+	orb_unsubscribe(_manual_control_sub);
+	orb_unsubscribe(_actuator_ctrl_0_sub);
+	orb_unadvertise(_sensor_pub);
+
 	_sensors_task = -1;
 	px4_task_exit(ret);
 }
@@ -2292,7 +2475,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2200,
+					   1500,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 
@@ -2302,37 +2485,50 @@ Sensors::start()
 	}
 
 	if (_sensors_task < 0) {
-		return -ERROR;
+		return -PX4_ERROR;
 	}
 
 	return OK;
 }
 
+void Sensors::print_status()
+{
+	PX4_INFO("gyro status:");
+	_gyro.voter.print();
+	PX4_INFO("accel status:");
+	_accel.voter.print();
+	PX4_INFO("mag status:");
+	_mag.voter.print();
+	PX4_INFO("baro status:");
+	_baro.voter.print();
+}
+
+
 int sensors_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: sensors {start|stop|status}");
+		PX4_INFO("usage: sensors {start|stop|status}");
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr) {
-			warnx("already running");
+			PX4_INFO("already running");
 			return 0;
 		}
 
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr) {
-			warnx("alloc failed");
+			PX4_ERR("alloc failed");
 			return 1;
 		}
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
 			sensors::g_sensors = nullptr;
-			warnx("start failed");
+			PX4_ERR("start failed");
 			return 1;
 		}
 
@@ -2341,7 +2537,7 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (sensors::g_sensors == nullptr) {
-			warnx("not running");
+			PX4_INFO("not running");
 			return 1;
 		}
 
@@ -2352,15 +2548,15 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (sensors::g_sensors) {
-			warnx("is running");
+			sensors::g_sensors->print_status();
 			return 0;
 
 		} else {
-			warnx("not running");
+			PX4_INFO("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	PX4_ERR("unrecognized command");
 	return 1;
 }

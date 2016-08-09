@@ -74,7 +74,7 @@ MavlinkOrbSubscription::get_instance() const
 }
 
 bool
-MavlinkOrbSubscription::update(uint64_t *time, void* data)
+MavlinkOrbSubscription::update(uint64_t *time, void *data)
 {
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
@@ -106,9 +106,32 @@ MavlinkOrbSubscription::update(uint64_t *time, void* data)
 }
 
 bool
-MavlinkOrbSubscription::update(void* data)
+MavlinkOrbSubscription::update(void *data)
 {
 	return !orb_copy(_topic, _fd, data);
+}
+
+bool
+MavlinkOrbSubscription::update_if_changed(void *data)
+{
+	bool updated;
+	if (orb_check(_fd, &updated)) {
+		return false;
+	}
+
+	if (!updated) {
+		return false;
+	}
+
+	if (orb_copy(_topic, _fd, data)) {
+		if (data != nullptr) {
+			/* error copying topic data */
+			memset(data, 0, _topic->o_size);
+		}
+		return false;
+	}
+
+	return true;
 }
 
 bool

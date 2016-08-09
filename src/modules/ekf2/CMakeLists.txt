@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
-	COMPILE_FLAGS
+	COMPILE_FLAGS -Os
 	STACK_MAIN 2500
 	STACK_MAX 4000
 	SRCS

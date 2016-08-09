@@ -64,7 +64,6 @@ CMakeLists.txt.user
 GPATH
 GRTAGS
 GTAGS
-*.config
 *.creator
 *.creator.user
 *.files

@@ -78,6 +78,10 @@ private:
 public:
 
 	MissionFeasibilityChecker();
+
+	MissionFeasibilityChecker(const MissionFeasibilityChecker &) = delete;
+	MissionFeasibilityChecker &operator=(const MissionFeasibilityChecker &) = delete;
+
 	~MissionFeasibilityChecker() {}
 
 	/*

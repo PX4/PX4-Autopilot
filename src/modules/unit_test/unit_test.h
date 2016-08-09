@@ -37,6 +37,17 @@
 
 #include <systemlib/err.h>
 
+#define ut_declare_test_c(test_function, test_class)	\
+	extern "C" {										\
+		int test_function(int argc, char *argv[])		\
+		{												\
+			test_class* test = new test_class();		\
+			bool success = test->run_tests();			\
+			test->print_results();						\
+			return success ? 0 : -1;					\
+		}												\
+	}
+
 /// @brief Base class to be used for unit tests.
 class __EXPORT UnitTest
 {
@@ -86,6 +97,31 @@ protected:
 	do {									\
 		if (!(test)) {							\
 			_print_assert(message, #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
+/// @brief Used to assert a value within a unit test.
+#define ut_test(test) ut_assert("test", test)
+
+/// @brief To assert specifically to true.
+#define ut_assert_true(test)						\
+	do {									\
+		if (test != true) {							\
+			_print_assert("result not true", #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
+/// @brief To assert specifically to true.
+#define ut_assert_false(test)						\
+	do {									\
+		if (test != false) {							\
+			_print_assert("result not false", #test, __FILE__, __LINE__);	\
 			return false;						\
 		} else {							\
 			_assertions++;						\

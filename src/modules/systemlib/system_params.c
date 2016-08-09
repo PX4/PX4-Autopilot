@@ -104,7 +104,7 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 0);
+PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 1);
 
 /**
  * TELEM2 as companion computer link
@@ -144,7 +144,7 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  * SD logger
  *
  * @value 0 sdlog2 (default)
- * @value 1 new logger (experimental)
+ * @value 1 new logger
  * @min 0
  * @max 1
  * @reboot_required true

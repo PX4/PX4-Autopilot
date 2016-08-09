@@ -69,6 +69,7 @@
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
+#include "mavlink_shell.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -280,7 +281,7 @@ public:
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
 	 */
-	void			resend_message(mavlink_message_t *msg);
+	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
 
 	void			handle_message(const mavlink_message_t *msg);
 
@@ -411,11 +412,20 @@ public:
 	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
 	/**
-	 * Wether or not the system should be logging
+	 * Whether or not the system should be logging
 	 */
 	bool			get_logging_enabled() { return _logging_enabled; }
 
 	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
+
+	int			get_data_rate() { return _datarate; }
+	void			set_data_rate(int rate) { if (rate > 0) _datarate = rate; }
+
+	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
+	 *  Returns nullptr if shell cannot be created */
+	MavlinkShell		*get_shell();
+	/** close the Mavlink shell if it is open */
+	void			close_shell();
 
 protected:
 	Mavlink			*next;
@@ -448,6 +458,7 @@ private:
 	MavlinkParametersManager	*_parameters_manager;
 	MavlinkFTP			*_mavlink_ftp;
 	MavlinkLogHandler		*_mavlink_log_handler;
+	MavlinkShell			*_mavlink_shell;
 
 	MAVLINK_MODE 		_mode;
 
@@ -505,6 +516,7 @@ private:
 	bool _src_addr_initialized;
 	bool _broadcast_address_found;
 	bool _broadcast_address_not_found_warned;
+	bool _broadcast_failed_warned;
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif

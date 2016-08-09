@@ -1,0 +1,17 @@
+#!nsh
+#
+# Standard apps for multirotors:
+# att & pos estimator, att & pos control.
+#
+
+
+ekf2 start
+
+mc_att_control start
+
+mc_pos_control start
+
+#
+# Start Land Detector
+#
+land_detector start multicopter

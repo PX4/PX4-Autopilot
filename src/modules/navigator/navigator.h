@@ -115,13 +115,13 @@ public:
 	/**
 	 * Publish the geofence result
 	 */
-	void publish_geofence_result();
+	void		publish_geofence_result();
 
 	/**
 	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
 	 * Example: mode that is triggered on gps failure
 	 */
-	void publish_att_sp();
+	void		publish_att_sp();
 
 	/**
 	 * Setters
@@ -157,7 +157,7 @@ public:
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float get_default_acceptance_radius();
+	float		get_default_acceptance_radius();
 
 	/**
 	 * Get the acceptance radius
@@ -165,6 +165,13 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius();
+
+	/**
+	 * Get the altitude acceptance radius
+	 *
+	 * @return the distance from the target altitude before considering the waypoint reached
+	 */
+	float		get_altitude_acceptance_radius();
 
 	/**
 	 * Get the cruising speed
@@ -177,6 +184,18 @@ public:
 	 * Set the cruising speed
 	 */
 	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
+
+	/**
+	 * Get the target throttle
+	 *
+	 * @return the desired throttle for this mission
+	 */
+	float		get_cruising_throttle();
+
+	/**
+	 * Set the target throttle
+	 */
+	void		set_cruising_throttle(float throttle=-1.0f) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
@@ -193,6 +212,8 @@ public:
 	void 		set_mission_failure(const char *reason);
 
 	bool		is_planned_mission() { return _navigation_mode == &_mission; }
+
+	bool		abort_landing();
 
 private:
 
@@ -272,13 +293,17 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
+	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
 	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
+	control::BlockParamFloat _param_cruising_throttle_plane;
 
 	float _mission_cruising_speed;
+	float _mission_throttle;
 
 	/**
 	 * Retrieve global position

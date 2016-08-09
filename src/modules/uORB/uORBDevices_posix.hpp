@@ -43,6 +43,7 @@ namespace uORB
 {
 class DeviceNode;
 class DeviceMaster;
+class Manager;
 }
 
 class uORB::DeviceNode : public device::VDev
@@ -115,18 +116,35 @@ public:
 	 */
 	int update_queue_size(unsigned int queue_size);
 
+	/**
+	 * Print statistics (nr of lost messages)
+	 * @param reset if true, reset statistics afterwards
+	 * @return true if printed something, false otherwise (if no lost messages)
+	 */
+	bool print_statistics(bool reset);
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void    poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 private:
-	struct SubscriberData {
-		unsigned  generation; /**< last generation the subscriber has seen */
-		unsigned  update_interval; /**< if nonzero minimum interval between updates */
+	struct UpdateIntervalData {
+		unsigned  interval; /**< if nonzero minimum interval between updates */
 		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
 		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-		bool    update_reported; /**< true if we have reported the update via poll/check */
-		int   priority; /**< priority of publisher */
+	};
+	struct SubscriberData {
+		~SubscriberData() { if (update_interval) { delete(update_interval); } }
+
+		unsigned  generation; /**< last generation the subscriber has seen */
+		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
+		UpdateIntervalData *update_interval; /**< if null, no update interval */
+
+		int priority() const { return flags & 0xff; }
+		void set_priority(uint8_t prio) { flags = (flags & ~0xff) | prio; }
+
+		bool update_reported() const { return flags & (1 << 8); }
+		void set_update_reported(bool update_reported_flag) { flags = (flags & ~(1 << 8)) | (((int)update_reported_flag) << 8); }
 	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */
@@ -142,6 +160,10 @@ private:
 	static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	int32_t _subscriber_count;
+
+	//statistics
+	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
+	///message, it is counted as two.
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
@@ -180,15 +202,37 @@ private:
 class uORB::DeviceMaster : public device::VDev
 {
 public:
+	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+
+	/**
+	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNode(const char *node_name);
+
+	/**
+	 * Print statistics for each existing topic.
+	 * @param reset if true, reset statistics afterwards
+	 */
+	void printStatistics(bool reset);
+
+private:
+	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
 	virtual ~DeviceMaster();
 
-	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
+	friend class uORB::Manager;
 
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
-private:
+	/**
+	 * Find a node give its name.
+	 * _lock must already be held when calling this.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
+
 	const Flavor      _flavor;
-	static std::map<std::string, uORB::DeviceNode *> _node_map;
+	std::map<std::string, uORB::DeviceNode *> _node_map;
+	hrt_abstime       _last_statistics_output;
 };
 
 #endif /* _uORBDeviceNode_posix.hpp */

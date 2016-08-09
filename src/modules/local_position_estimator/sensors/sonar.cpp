@@ -7,36 +7,55 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 static const int 		REQ_SONAR_INIT_COUNT = 10;
-static const uint32_t 	SONAR_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t 	SONAR_TIMEOUT =   5000000; // 2.0 s
+static const float  	SONAR_MAX_INIT_STD =   0.3f; // meters
 
 void BlockLocalPositionEstimator::sonarInit()
 {
 	// measure
 	Vector<float, n_y_sonar> y;
 
+	if (_sonarStats.getCount() == 0) {
+		_time_init_sonar = _timeStamp;
+	}
+
 	if (sonarMeasure(y) != OK) {
-		_sonarStats.reset();
 		return;
 	}
 
 	// if finished
 	if (_sonarStats.getCount() > REQ_SONAR_INIT_COUNT) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
-					     "mean %d cm std %d cm",
-					     int(100 * _sonarStats.getMean()(0)),
-					     int(100 * _sonarStats.getStdDev()(0)));
-		_sonarInitialized = true;
-		_sonarFault = FAULT_NONE;
+		if (_sonarStats.getStdDev()(0) > SONAR_MAX_INIT_STD) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init std > min");
+			_sonarStats.reset();
+
+		} else if ((_timeStamp - _time_init_sonar) > SONAR_TIMEOUT) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init timeout ");
+			_sonarStats.reset();
+
+		} else {
+			PX4_INFO("[lpe] sonar init "
+				 "mean %d cm std %d cm",
+				 int(100 * _sonarStats.getMean()(0)),
+				 int(100 * _sonarStats.getStdDev()(0)));
+			_sonarInitialized = true;
+			_sonarFault = FAULT_NONE;
+		}
 	}
 }
 
 int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	// measure
-	float d = _sub_sonar->get().current_distance + _sonar_z_offset.get();
-	float eps = 0.01f;
+	float d = _sub_sonar->get().current_distance;
+	float eps = 0.01f; // 1 cm
 	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
+
+	// prevent driver from setting min dist below eps
+	if (min_dist < eps) {
+		min_dist = eps;
+	}
 
 	// check for bad data
 	if (d > max_dist || d < min_dist) {
@@ -47,7 +66,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_sonarStats.update(Scalarf(d));
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = d *
+	y(0) = (d + _sonar_z_offset.get()) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 	return OK;
@@ -80,12 +99,14 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
 
 	// covariance matrix
-	Matrix<float, n_y_sonar, n_y_sonar> R;
+	SquareMatrix<float, n_y_sonar> R;
 	R.setZero();
 	R(0, 0) = cov;
 
 	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
+	_pub_innov.get().hagl_innov = r(0);
+	_pub_innov.get().hagl_innov_var = R(0, 0);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_sonar, n_y_sonar> S_I =
@@ -113,14 +134,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-
-		if (!_canEstimateXY) {
-			dx(X_x) = 0;
-			dx(X_y) = 0;
-			dx(X_vx) = 0;
-			dx(X_vy) = 0;
-		}
-
+		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}

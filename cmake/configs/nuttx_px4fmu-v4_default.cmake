@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
+	drivers/sf1xx
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -48,6 +49,7 @@ set(config_module_list
 	drivers/bmp280
 	drivers/bma180
 	drivers/bmi160
+	drivers/tap_esc
 
 	#
 	# System commands
@@ -67,6 +69,18 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/sd_bench
+	systemcmds/motor_ramp
+
+	#
+	# Testing
+	#
+	drivers/sf0x/sf0x_tests
+	drivers/test_ppm
+	modules/commander/commander_tests
+	modules/controllib_test
+	modules/mavlink/mavlink_tests
+	modules/unit_test
+	modules/uORB/uORB_tests
 	systemcmds/tests
 
 	#
@@ -84,7 +98,6 @@ set(config_module_list
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/ekf2
 	modules/local_position_estimator
@@ -169,6 +182,9 @@ set(config_module_list
 
 	# Hardware test
 	#examples/hwtest
+
+	# EKF
+	examples/ekf_att_pos_estimator
 )
 
 set(config_extra_builtin_cmds

@@ -105,6 +105,7 @@ Navigator::Navigator() :
 	_mavlink_log_pub(nullptr),
 	_global_pos_sub(-1),
 	_gps_pos_sub(-1),
+	_sensor_combined_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_land_detected_sub(-1),
@@ -155,11 +156,15 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 	_param_datalinkloss_act(this, "DLL_ACT"),
 	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
-	_mission_cruising_speed(-1.0f)
+	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
+	_mission_cruising_speed(-1.0f),
+	_mission_throttle(-1.0f)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -338,18 +343,19 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("no GPS - navigator timed out");
 				global_pos_available_once = false;
+				PX4_WARN("navigator: global position timeout");
 			}
-			continue;
+			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
+		} else {
+			/* success, global pos was available */
+			global_pos_available_once = true;
 		}
-
-		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 
@@ -434,8 +440,9 @@ Navigator::task_main()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = cmd.param5 / (double)1e7;
-					rep->current.lon = cmd.param6 / (double)1e7;
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
@@ -463,8 +470,16 @@ Navigator::task_main()
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.yaw = cmd.param4;
-				rep->current.lat = cmd.param5 / (double)1e7;
-				rep->current.lon = cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+				} else {
+					// If one of them is non-finite, reset both
+					rep->current.lat = NAN;
+					rep->current.lon = NAN;
+				}
+
 				rep->current.alt = cmd.param7;
 
 				rep->previous.valid = true;
@@ -489,7 +504,7 @@ Navigator::task_main()
 		if (have_geofence_position_data &&
 			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, home_position_valid());
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -525,15 +540,8 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				if (_fw_pos_ctrl_status.abort_landing) {
-					// pos controller aborted landing, requests loiter
-					// above landing waypoint
-					_navigation_mode = &_loiter;
-					_pos_sp_triplet_published_invalid_once = false;
-				} else {
-					_pos_sp_triplet_published_invalid_once = false;
-					_navigation_mode = &_mission;
-				}
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_mission;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
@@ -712,6 +720,18 @@ Navigator::get_acceptance_radius()
 }
 
 float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!this->get_vstatus()->is_rotary_wing) {
+		return _param_fw_alt_acceptance_radius.get();
+	} else {
+		return _param_mc_alt_acceptance_radius.get();
+	}
+}
+
+
+
+float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
@@ -721,6 +741,17 @@ Navigator::get_cruising_speed()
 		return _param_cruising_speed_hover.get();
 	} else {
 		return _param_cruising_speed_plane.get();
+	}
+}
+
+float
+Navigator::get_cruising_throttle()
+{
+	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
+	if (_mission_throttle > 0.0f) {
+		return _mission_throttle;
+	} else {
+		return _param_cruising_throttle_plane.get();
 	}
 }
 
@@ -742,16 +773,36 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	return radius;
 }
 
-void Navigator::add_fence_point(int argc, char *argv[])
+void
+Navigator::add_fence_point(int argc, char *argv[])
 {
 	_geofence.addPoint(argc, argv);
 }
 
-void Navigator::load_fence_from_file(const char *filename)
+void
+Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
 }
 
+bool
+Navigator::abort_landing()
+{
+	bool should_abort = false;
+
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
+		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+
+			if (get_position_setpoint_triplet()->current.valid
+			&& get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+				should_abort = _fw_pos_ctrl_status.abort_landing;
+			}
+		}
+	}
+
+	return should_abort;
+}
 
 static void usage()
 {

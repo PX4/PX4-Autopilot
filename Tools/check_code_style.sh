@@ -9,8 +9,21 @@ then
 	${DIR}/fix_code_style.sh --dry-run $file | grep --quiet Formatted
 	if [[ $? -eq 0 ]]
 	then
-		echo $file 'bad formatting, please run "./Tools/fix_code_style.sh' $file'"'
-		exit 1
+		${DIR}/fix_code_style.sh --quiet < $file > $file.pretty
+
+		echo
+		git --no-pager diff --no-index --minimal --histogram --color=always  $file $file.pretty
+		echo
+
+		rm -f $file.pretty
+
+		if [[ $PX4_ASTYLE_FIX -eq 1 ]]
+		then
+			${DIR}/fix_code_style.sh $file
+		else
+			echo $file 'bad formatting, please run "./Tools/fix_code_style.sh' $file'"'
+			exit 1
+		fi
 	fi
 fi
 

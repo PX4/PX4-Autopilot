@@ -73,6 +73,12 @@ MavlinkParametersManager::get_size()
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
 
+unsigned
+MavlinkParametersManager::get_size_avg()
+{
+	return 0;
+}
+
 void
 MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 {

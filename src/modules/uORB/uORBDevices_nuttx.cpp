@@ -43,8 +43,6 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
-uORB::ORBMap uORB::DeviceMaster::_node_map;
-
 uORB::DeviceNode::DeviceNode
 (
 	const struct orb_metadata *meta,
@@ -127,7 +125,7 @@ uORB::DeviceNode::open(struct file *filp)
 		sd->generation = _generation;
 
 		/* set priority */
-		sd->priority = _priority;
+		sd->set_priority(_priority);
 
 		filp->f_priv = (void *)sd;
 
@@ -157,7 +155,10 @@ uORB::DeviceNode::close(struct file *filp)
 		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
-			hrt_cancel(&sd->update_call);
+			if (sd->update_interval) {
+				hrt_cancel(&sd->update_interval->update_call);
+			}
+
 			remove_internal_subscriber();
 			delete sd;
 			sd = nullptr;
@@ -189,6 +190,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 
 	if (_generation > sd->generation + _queue_size) {
 		/* Reader is too far behind: some messages are lost */
+		_lost_messages += _generation - (sd->generation + _queue_size);
 		sd->generation = _generation - _queue_size;
 	}
 
@@ -209,13 +211,13 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* set priority */
-	sd->priority = _priority;
+	sd->set_priority(_priority);
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
 	 * we have just collected it.
 	 */
-	sd->update_reported = false;
+	sd->set_update_reported(false);
 
 	px4_leave_critical_section(flags);
 
@@ -294,16 +296,43 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 		*(bool *)arg = appears_updated(sd);
 		return OK;
 
-	case ORBIOCSETINTERVAL:
-		sd->update_interval = arg;
-		return OK;
+	case ORBIOCSETINTERVAL: {
+			int ret = PX4_OK;
+			lock();
+
+			if (arg == 0) {
+				if (sd->update_interval) {
+					delete(sd->update_interval);
+					sd->update_interval = nullptr;
+				}
+
+			} else {
+				if (sd->update_interval) {
+					sd->update_interval->interval = arg;
+
+				} else {
+					sd->update_interval = new UpdateIntervalData();
+
+					if (sd->update_interval) {
+						memset(&sd->update_interval->update_call, 0, sizeof(hrt_call));
+						sd->update_interval->interval = arg;
+
+					} else {
+						ret = -ENOMEM;
+					}
+				}
+			}
+
+			unlock();
+			return ret;
+		}
 
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
 		return OK;
 
 	case ORBIOCGPRIORITY:
-		*(int *)arg = sd->priority;
+		*(int *)arg = sd->priority();
 		return OK;
 
 	case ORBIOCSETQUEUESIZE:
@@ -312,7 +341,13 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return update_queue_size(arg);
 
 	case ORBIOCGETINTERVAL:
-		*(unsigned *)arg = sd->update_interval;
+		if (sd->update_interval) {
+			*(unsigned *)arg = sd->update_interval->interval;
+
+		} else {
+			*(unsigned *)arg = 0;
+		}
+
 		return OK;
 
 	default:
@@ -443,7 +478,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		/*
 		 * Handle non-rate-limited subscribers.
 		 */
-		if (sd->update_interval == 0) {
+		if (sd->update_interval == nullptr) {
 			ret = true;
 			break;
 		}
@@ -455,7 +490,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * behaviour where checking / polling continues to report an update
 		 * until the topic is read.
 		 */
-		if (sd->update_reported) {
+		if (sd->update_reported()) {
 			ret = true;
 			break;
 		}
@@ -467,7 +502,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * must have collected the update we reported, otherwise
 		 * update_reported would still be true.
 		 */
-		if (!hrt_called(&sd->update_call)) {
+		if (!hrt_called(&sd->update_interval->update_call)) {
 			break;
 		}
 
@@ -476,15 +511,15 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * until the interval has passed once more by restarting the interval
 		 * timer and thereby re-scheduling a poll notification at that time.
 		 */
-		hrt_call_after(&sd->update_call,
-			       sd->update_interval,
+		hrt_call_after(&sd->update_interval->update_call,
+			       sd->update_interval->interval,
 			       &uORB::DeviceNode::update_deferred_trampoline,
 			       (void *)this);
 
 		/*
 		 * Remember that we have told the subscriber that there is data.
 		 */
-		sd->update_reported = true;
+		sd->set_update_reported(true);
 		ret = true;
 
 		break;
@@ -515,15 +550,42 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
 	node->update_deferred();
 }
 
+bool
+uORB::DeviceNode::print_statistics(bool reset)
+{
+	if (!_lost_messages) {
+		return false;
+	}
+
+	lock();
+	//This can be wrong: if a reader never reads, _lost_messages will not be increased either
+	uint32_t lost_messages = _lost_messages;
+
+	if (reset) {
+		_lost_messages = 0;
+	}
+
+	unlock();
+
+	PX4_INFO("%s: %i", _meta->o_name, lost_messages);
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::add_internal_subscriber()
 {
-	_subscriber_count++;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count++;
+
 	if (ch != nullptr && _subscriber_count > 0) {
+		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(_meta->o_name, 1);
+
+	} else {
+		unlock();
 	}
 }
 
@@ -531,11 +593,17 @@ void uORB::DeviceNode::add_internal_subscriber()
 //-----------------------------------------------------------------------------
 void uORB::DeviceNode::remove_internal_subscriber()
 {
-	_subscriber_count--;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
+	lock();
+	_subscriber_count--;
+
 	if (ch != nullptr && _subscriber_count == 0) {
+		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
 		ch->remove_subscription(_meta->o_name);
+
+	} else {
+		unlock();
 	}
 }
 
@@ -618,7 +686,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-
+	_last_statistics_output = hrt_absolute_time();
 }
 
 uORB::DeviceMaster::~DeviceMaster()
@@ -701,7 +769,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (ret == -EEXIST) {
 						/* if the node exists already, get the existing one and check if
 						 * something has been published yet. */
-						uORB::DeviceNode *existing_node = GetDeviceNode(devpath);
+						uORB::DeviceNode *existing_node = getDeviceNodeLocked(devpath);
 
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
@@ -737,7 +805,46 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
+void uORB::DeviceMaster::printStatistics(bool reset)
+{
+	hrt_abstime current_time = hrt_absolute_time();
+	PX4_INFO("Statistics, since last output (%i ms):",
+		 (int)((current_time - _last_statistics_output) / 1000));
+	_last_statistics_output = current_time;
+
+	PX4_INFO("TOPIC, NR LOST MSGS");
+	bool had_print = false;
+
+	lock();
+	ORBMap::Node *node = _node_map.top();
+
+	while (node) {
+		if (node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		node = node->next;
+	}
+
+	unlock();
+
+	if (!had_print) {
+		PX4_INFO("No lost messages");
+	}
+}
+
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
+{
+	lock();
+	uORB::DeviceNode *node = getDeviceNodeLocked(nodepath);
+	unlock();
+	//We can safely return the node that can be used by any thread, because
+	//a DeviceNode never gets deleted.
+	return node;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
 {
 	uORB::DeviceNode *rc = nullptr;
 

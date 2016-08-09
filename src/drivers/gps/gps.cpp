@@ -76,9 +76,9 @@
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/gps_dump.h>
 
 #include <board_config.h>
 
@@ -138,20 +138,11 @@ private:
 	bool				_fake_gps;					///< fake gps output
 	int 				_gps_num;					///< number of GPS connected
 
-	static const int _orb_inject_data_fd_count = 4;
-	int _orb_inject_data_fd[_orb_inject_data_fd_count];
-	int _orb_inject_data_next = 0;
+	int _orb_inject_data_fd;
 
-	// dump communication to file
-#ifdef __PX4_POSIX_EAGLE
-	static constexpr const char	*DUMP_ROOT = PX4_ROOTFSDIR;
-#else
-	static constexpr const char 	*DUMP_ROOT = PX4_ROOTFSDIR"/fs/microsd";
-#endif
-	int _dump_to_gps_device_fd = -1;              ///< file descriptors, to safe all device communication to a file
-	int _dump_from_gps_device_fd = -1;
-	int _vehicle_status_sub = -1;
-	bool _is_armed = false;                       ///< current arming state (only updated if communication dump is enabled)
+	orb_advert_t _dump_communication_pub;			///< if non-null, dump communication
+	gps_dump_s *_dump_to_device;
+	gps_dump_s *_dump_from_device;
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -225,13 +216,14 @@ private:
 	static int callback(GPSCallbackType type, void *data1, int data2, void *user);
 
 	/**
-	 * Setup dumping of the GPS device input and output stream to a file.
+	 * Dump gps communication.
+	 * @param data message
+	 * @param len length of the message
+	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
+	void dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device);
+
 	void initializeCommunicationDump();
-
-	int getDumpFileName(char *file_name, size_t file_name_size, const char *suffix);
-
-	static bool fileExist(const char *filename);
 };
 
 
@@ -264,7 +256,11 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_rate_rtcm_injection(0.0f),
 	_last_rate_rtcm_injection_count(0),
 	_fake_gps(fake_gps),
-	_gps_num(gps_num)
+	_gps_num(gps_num),
+	_orb_inject_data_fd(-1),
+	_dump_communication_pub(nullptr),
+	_dump_to_device(nullptr),
+	_dump_from_device(nullptr)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -278,10 +274,6 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 		_sat_info = new GPS_Sat_Info();
 		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
-	}
-
-	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
-		_orb_inject_data_fd[i] = -1;
 	}
 }
 
@@ -305,6 +297,13 @@ GPS::~GPS()
 		delete(_sat_info);
 	}
 
+	if (_dump_to_device) {
+		delete(_dump_to_device);
+	}
+
+	if (_dump_from_device) {
+		delete(_dump_from_device);
+	}
 
 }
 
@@ -340,21 +339,15 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	case GPSCallbackType::readDeviceData: {
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
 
-			if (num_read > 0 && gps->_dump_from_gps_device_fd >= 0) {
-				if (write(gps->_dump_from_gps_device_fd, data1, (size_t)num_read) != (size_t)num_read) {
-					PX4_WARN("gps dump failed");
-				}
+			if (num_read > 0) {
+				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, false);
 			}
 
 			return num_read;
 		}
 
 	case GPSCallbackType::writeDeviceData:
-		if (gps->_dump_to_gps_device_fd >= 0) {
-			if (write(gps->_dump_to_gps_device_fd, data1, (size_t)data2) != (size_t)data2) {
-				PX4_WARN("gps dump failed");
-			}
-		}
+		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, true);
 
 		return write(gps->_serial_fd, data1, (size_t)data2);
 
@@ -428,27 +421,24 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 void GPS::handleInjectDataTopic()
 {
-	if (_orb_inject_data_fd[0] == -1) {
+	if (_orb_inject_data_fd == -1) {
 		return;
 	}
 
 	bool updated = false;
 
 	do {
-		int orb_inject_data_cur_fd = _orb_inject_data_fd[_orb_inject_data_next];
-		orb_check(orb_inject_data_cur_fd, &updated);
+		orb_check(_orb_inject_data_fd, &updated);
 
 		if (updated) {
 			struct gps_inject_data_s msg;
-			orb_copy(ORB_ID(gps_inject_data), orb_inject_data_cur_fd, &msg);
+			orb_copy(ORB_ID(gps_inject_data), _orb_inject_data_fd, &msg);
 
 			/* Write the message to the gps device. Note that the message could be fragmented.
 			 * But as we don't write anywhere else to the device during operation, we don't
 			 * need to assemble the message first.
 			 */
 			injectData(msg.data, msg.len);
-
-			_orb_inject_data_next = (_orb_inject_data_next + 1) % _orb_inject_data_fd_count;
 
 			++_last_rate_rtcm_injection_count;
 		}
@@ -457,11 +447,7 @@ void GPS::handleInjectDataTopic()
 
 bool GPS::injectData(uint8_t *data, size_t len)
 {
-	if (_dump_to_gps_device_fd >= 0) {
-		if (write(_dump_to_gps_device_fd, data, len) != len) {
-			PX4_WARN("gps dump failed");
-		}
-	}
+	dumpGpsData(data, len, true);
 
 	size_t written = ::write(_serial_fd, data, len);
 	::fsync(_serial_fd);
@@ -580,17 +566,6 @@ int GPS::setBaudrate(unsigned baud)
 	return 0;
 }
 
-bool GPS::fileExist(const char *filename)
-{
-#ifdef __PX4_QURT
-	//FIXME: QuRT neither has stat() nor access(). Just pretend file does not exist.
-	return false;
-#else
-	struct stat buffer;
-	return stat(filename, &buffer) == 0;
-#endif
-}
-
 void GPS::initializeCommunicationDump()
 {
 	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
@@ -604,53 +579,54 @@ void GPS::initializeCommunicationDump()
 		return; //dumping disabled
 	}
 
-	char to_device_file_name[128] = "";
-	char from_device_file_name[128] = "";
+	_dump_from_device = new gps_dump_s();
+	_dump_to_device = new gps_dump_s();
 
-	if (getDumpFileName(to_device_file_name, sizeof(to_device_file_name), "to")
-	    || getDumpFileName(from_device_file_name, sizeof(from_device_file_name), "from")) {
-		PX4_ERR("Failed to get GPS dump file name");
+	if (!_dump_from_device || !_dump_to_device) {
+		PX4_ERR("failed to allocated dump data");
 		return;
 	}
 
-	//open files
-	if ((_dump_to_gps_device_fd = open(to_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
-		return;
-	}
+	memset(_dump_to_device, 0, sizeof(gps_dump_s));
+	memset(_dump_from_device, 0, sizeof(gps_dump_s));
 
-	if ((_dump_from_gps_device_fd = open(from_device_file_name, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666)) < 0) {
-		close(_dump_to_gps_device_fd);
-		_dump_to_gps_device_fd = -1;
-		return;
-	}
-
-	PX4_INFO("Dumping GPS comm to files %s, %s", to_device_file_name, from_device_file_name);
-
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int instance;
+	//make sure to use a large enough queue size, so that we don't lose messages. You may also want
+	//to increase the logger rate for that.
+	_dump_communication_pub = orb_advertise_multi_queue(ORB_ID(gps_dump), _dump_from_device, &instance,
+				  ORB_PRIO_DEFAULT, 8);
 }
 
-int GPS::getDumpFileName(char *file_name, size_t file_name_size, const char *suffix)
+void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
 {
-	uint16_t file_number = 1; // start with file gps_dump_<num>_<suffix>_dev_001.dat
+	if (!_dump_communication_pub) {
+		return;
+	}
 
-	const uint16_t max_num_files = 999;
+	gps_dump_s *dump_data = msg_to_gps_device ? _dump_to_device : _dump_from_device;
 
-	while (file_number <= max_num_files) {
-		snprintf(file_name, file_name_size, "%s/gps_dump_%u_%s_dev_%03u.dat",
-			 DUMP_ROOT, _gps_num, suffix, file_number);
+	while (len > 0) {
+		size_t write_len = len;
 
-		if (!fileExist(file_name)) {
-			break;
+		if (write_len > sizeof(dump_data->data) - dump_data->len) {
+			write_len = sizeof(dump_data->data) - dump_data->len;
 		}
 
-		file_number++;
-	}
+		memcpy(dump_data->data + dump_data->len, data, write_len);
+		data += write_len;
+		dump_data->len += write_len;
+		len -= write_len;
 
-	if (file_number > max_num_files) {
-		return -1;
-	}
+		if (dump_data->len >= sizeof(dump_data->data)) {
+			if (msg_to_gps_device) {
+				dump_data->len |= 1 << 7;
+			}
 
-	return 0;
+			dump_data->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(gps_dump), _dump_communication_pub, dump_data);
+			dump_data->len = 0;
+		}
+	}
 }
 
 void
@@ -674,9 +650,7 @@ GPS::task_main()
 	fcntl(_serial_fd, F_SETFL, flags | O_NONBLOCK);
 #endif
 
-	for (int i = 0; i < _orb_inject_data_fd_count; ++i) {
-		_orb_inject_data_fd[i] = orb_subscribe_multi(ORB_ID(gps_inject_data), i);
-	}
+	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
 
@@ -687,17 +661,15 @@ GPS::task_main()
 	while (!_task_should_exit) {
 
 		if (_fake_gps) {
-			_report_gps_pos.timestamp_position = hrt_absolute_time();
+			_report_gps_pos.timestamp = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.timestamp_variance = hrt_absolute_time();
 			_report_gps_pos.s_variance_m_s = 10.0f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;
 			_report_gps_pos.eph = 0.9f;
 			_report_gps_pos.epv = 1.8f;
-			_report_gps_pos.timestamp_velocity = hrt_absolute_time();
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
@@ -754,12 +726,9 @@ GPS::task_main()
 					 * no valid position lock
 					 */
 
-					_report_gps_pos.timestamp_time = hrt_absolute_time();
-
-					/* reset the timestamps for data, because we have no data yet */
-					_report_gps_pos.timestamp_position = 0;
-					_report_gps_pos.timestamp_variance = 0;
-					_report_gps_pos.timestamp_velocity = 0;
+					/* reset the timestamp for data, because we have no data yet */
+					_report_gps_pos.timestamp = 0;
+					_report_gps_pos.timestamp_time_relative = 0;
 
 					/* set a massive variance */
 					_report_gps_pos.eph = 10000.0f;
@@ -822,32 +791,6 @@ GPS::task_main()
 //						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
 					}
-
-					//check for disarming
-					if (_vehicle_status_sub != -1 && _dump_from_gps_device_fd != -1) {
-						bool updated;
-						orb_check(_vehicle_status_sub, &updated);
-
-						if (updated) {
-							vehicle_status_s vehicle_status;
-							orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status);
-							bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-								     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
-
-							if (armed) {
-								_is_armed = true;
-
-							} else if (_is_armed) {
-								//disable communication dump when disarming
-								close(_dump_from_gps_device_fd);
-								_dump_from_gps_device_fd = -1;
-								close(_dump_to_gps_device_fd);
-								_dump_to_gps_device_fd = -1;
-								_is_armed = false;
-							}
-
-						}
-					}
 				}
 
 				if (_healthy) {
@@ -879,26 +822,12 @@ GPS::task_main()
 
 	}
 
-	PX4_WARN("exiting");
+	PX4_INFO("exiting");
 
-	for (size_t i = 0; i < _orb_inject_data_fd_count; ++i) {
-		orb_unsubscribe(_orb_inject_data_fd[i]);
-		_orb_inject_data_fd[i] = -1;
-	}
+	orb_unsubscribe(_orb_inject_data_fd);
 
-	if (_dump_to_gps_device_fd != -1) {
-		close(_dump_to_gps_device_fd);
-		_dump_to_gps_device_fd = -1;
-	}
-
-	if (_dump_from_gps_device_fd != -1) {
-		close(_dump_from_gps_device_fd);
-		_dump_from_gps_device_fd = -1;
-	}
-
-	if (_vehicle_status_sub != -1) {
-		orb_unsubscribe(_vehicle_status_sub);
-		_vehicle_status_sub = -1;
+	if (_dump_communication_pub) {
+		orb_unadvertise(_dump_communication_pub);
 	}
 
 	::close(_serial_fd);
@@ -960,9 +889,9 @@ GPS::print_info()
 		 _report_gps_pos.noise_per_ms,
 		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
-	if (_report_gps_pos.timestamp_position != 0) {
+	if (_report_gps_pos.timestamp != 0) {
 		PX4_WARN("position lock: %d, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
+			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp) / 1000.0);
 		PX4_WARN("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		PX4_WARN("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
 			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
@@ -1193,6 +1122,7 @@ gps_main(int argc, char *argv[])
 	return 0;
 
 out:
-	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
+	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'");
+	PX4_ERR("[-d " GPS_DEFAULT_UART_PORT "][-f (for enabling fake)][-s (to enable sat info)]");
 	return 1;
 }

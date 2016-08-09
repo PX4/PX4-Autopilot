@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,25 @@
  * Camera trigger parameters
  *
  * @author Mohammed Kabir <mhkabir98@gmail.com>
+ * @author Andreas Bircher <andreas@wingtra.com>
  */
 
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
+
+/**
+* Camera trigger Interface
+*
+* Selects the trigger interface
+*
+* @value 1 GPIO
+* @value 2 Seagull MAP2 (PWM)
+*
+* @reboot_required true
+*
+* @group Camera trigger
+*/
+PARAM_DEFINE_INT32(TRIG_INTERFACE, 2);
 
 /**
  * Camera trigger interval
@@ -74,7 +89,7 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  *
  * @unit ms
  * @min 0.1
- * @max 3
+ * @max 3000
  * @decimal 1
  * @group Camera trigger
  */
@@ -98,7 +113,9 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
 /**
  * Camera trigger pin
  *
- * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
+ * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6 on px4fmu-v2 and the rail
+ * pins on px4fmu-v4). The PWM interface takes two pins per camera, while relay
+ * triggers on every pin individually. Example: Value 34 would trigger on pins 3 and 4.
  *
  * @min 1
  * @max 123456
@@ -106,7 +123,7 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * @reboot_required true
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_PINS, 12);
+PARAM_DEFINE_INT32(TRIG_PINS, 6);
 
 /**
  * Camera trigger distance

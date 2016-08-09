@@ -59,6 +59,10 @@ class Geofence : public control::SuperBlock
 {
 public:
 	Geofence(Navigator *navigator);
+
+	Geofence(const Geofence &) = delete;
+	Geofence &operator=(const Geofence &) = delete;
+
 	~Geofence();
 
 	/* Altitude mode, corresponding to the param GF_ALTMODE */
