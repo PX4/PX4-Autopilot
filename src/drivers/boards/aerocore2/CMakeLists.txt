@@ -31,14 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__aerocore
+	MODULE drivers__boards__aerocore2
 	COMPILE_FLAGS
 		-Os
 	SRCS
 		../common/board_name.c
 		aerocore_init.c
-		#aerocore_pwm_servo.c
-		aerocore_timer_config.c  ##I need this, but the file does not work
+		aerocore_timer_config.c
 		aerocore_spi.c
 		aerocore_led.c
 		aerocore_usb.c

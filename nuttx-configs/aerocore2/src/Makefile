@@ -1,5 +1,5 @@
 ############################################################################
-# configs/aerocore/src/Makefile
+# configs/aerocore2/src/Makefile
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

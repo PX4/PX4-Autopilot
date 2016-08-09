@@ -34,7 +34,7 @@
 /**
  * @file aerocore_led.c
  *
- * AeroCore LED backend.
+ * AeroCore2 LED backend.
  */
 
 #include <px4_config.h>

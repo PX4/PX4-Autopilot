@@ -1,5 +1,5 @@
 ############################################################################
-# configs/aerocore/nsh/Make.defs
+# configs/aerocore2/nsh/Make.defs
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

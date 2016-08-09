@@ -208,7 +208,7 @@ int
 dsm_init(const char *device)
 {
 
-#if defined CONFIG_ARCH_BOARD_PX4IO_V2 || defined CONFIG_ARCH_BOARD_AEROCORE
+#if defined CONFIG_ARCH_BOARD_PX4IO_V2 || defined CONFIG_ARCH_BOARD_AEROCORE2
 	// enable power on DSM connector
 	POWER_SPEKTRUM(true);
 #endif
@@ -250,11 +250,11 @@ dsm_init(const char *device)
 void
 dsm_bind(uint16_t cmd, int pulses)
 {
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_AEROCORE)
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_AEROCORE2)
 #warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
 #else
 
-#if defined (CONFIG_ARCH_BOARD_AEROCORE)
+#if defined (CONFIG_ARCH_BOARD_AEROCORE2)
 	const uint32_t usart1RxAsOutp =
 		(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN0);
 #else
