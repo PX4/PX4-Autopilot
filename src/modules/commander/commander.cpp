@@ -3372,6 +3372,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags,
 							    &internal_state);
+
 			} else {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags,
 							    &internal_state);
