@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/aerocore/include/board.h
+ * configs/aerocore2/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
@@ -53,7 +53,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The AeroCore uses a 24MHz crystal connected to the HSE.
+/* The AeroCore2 uses a 24MHz crystal connected to the HSE.
  *
  * This is the "standard" configuration as set up by arch/arm/src/stm32f40xx_rcc.c:
  *   System Clock source           : PLL (HSE)
@@ -152,33 +152,38 @@
 #define STM32_TIM18_FREQUENCY   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_TIM27_FREQUENCY   (2*STM32_PCLK1_FREQUENCY)
 
-/* Alternate function pin selections ************************************************/
+/* Alternate function pin selections ************************************************
+ *
+ * Unfortunately the schematic dated 9/8/15 does not assign reference designators for
+ * all headers therefore the following documentation is based on the user manuals
+ * header setions.
+ */
 
 /*
  * UARTs.
  */
-/* USART1 on PB[6,7]: GPS */
+/* USART1 on PB[6,7]: 2.9 GPS */
 #define GPIO_USART1_RX	GPIO_USART1_RX_2
 #define GPIO_USART1_TX	GPIO_USART1_TX_2
 
-/* USART2 on PD[5,6]: J5 Breakout */
+/* USART2 on PD[5,6]: 2.5 Cortex-M4 UART 2 */
 #define GPIO_USART2_RX	GPIO_USART2_RX_2
 #define GPIO_USART2_TX	GPIO_USART2_TX_2
 #define GPIO_USART2_CTS	0 // unused
 #define GPIO_USART2_RTS	0 // unused
 
-/* USART3 on PD[8,9]: to DuoVero UART2 */
+/* USART3 on PD[8,9]: to Overo J4 UART1 */
 #define GPIO_USART3_RX	GPIO_USART3_RX_3
 #define GPIO_USART3_TX	GPIO_USART3_TX_3
 #define GPIO_USART3_CTS	0 // unused
 #define GPIO_USART3_RTS	0 // unused
 
-/* UART7 on PE[78]: J7 Breakout */
+/* UART7 on PE[78]: 2.4 Cortex-M4 UART 7 */
 #define GPIO_UART7_RX	GPIO_UART7_RX_1
 #define GPIO_UART7_TX	GPIO_UART7_TX_1
 
 /*
- * UART8 on PE[0-1]: System Console on Port C of USB (J7)
+ * UART8 on PE[0]:  2.10 Spektrum
  * No alternate pin config
 */
 
@@ -189,7 +194,8 @@
 /*
  * CAN
  *
- * CAN1 is routed to the 2.8 Cortex-M4 CAN1 connector.
+ * CAN1 is routed to the onboard transceiver and out on
+ * 2.8 Cortex-M4 CAN1 connector.
  */
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_3
@@ -203,7 +209,7 @@
  * but are normally-high GPIOs.
  */
 
-/* PB[10-11]: I2C2 is broken out on J9 header */
+/* PB[10-11]: I2C2 is broken out on 2.2 Cortex-M4 I2C2 */
 #define GPIO_I2C2_SCL		GPIO_I2C2_SCL_1
 #define GPIO_I2C2_SDA		GPIO_I2C2_SDA_1
 #define GPIO_I2C2_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN10)
@@ -212,7 +218,7 @@
 /*
  * SPI
  */
-/* PA[4-7] SPI1 broken out on J12 */
+/* PA[4-7], PC5 SPI1 broken out on 2.7 Cortex-M4 SPI1 */
 #define GPIO_SPI1_NSS	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4) /* should be GPIO_SPI1_NSS_2 but use as a GPIO */
 #define GPIO_SPI1_SCK	(GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
