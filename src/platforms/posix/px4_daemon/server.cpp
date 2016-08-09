@@ -292,6 +292,10 @@ Server::_cleanup_thread(const uint64_t client_uuid)
 
 	close(pipe_fd);
 
+	char path[RECV_PIPE_PATH_LEN] = {};
+	get_client_recv_pipe_path(client_uuid, path, RECV_PIPE_PATH_LEN);
+	unlink(path);
+
 	_client_uuid_to_pthread.erase(client_uuid);
 	_pthread_to_pipe_fd.erase(pthread_killed);
 }
