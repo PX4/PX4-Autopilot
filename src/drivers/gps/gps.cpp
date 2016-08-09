@@ -670,6 +670,7 @@ GPS::task_main()
 							_report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
 			_report_gps_pos.cog_rad = 0.0f;
 			_report_gps_pos.vel_ned_valid = true;
+			_report_gps_pos.satellites_used = 10;
 
 			/* no time and satellite information simulated */
 
