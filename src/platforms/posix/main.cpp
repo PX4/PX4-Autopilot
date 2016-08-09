@@ -228,8 +228,8 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		/* Remove the prefix by moving argv[0] and 1 more for the 0 termination. */
-		memmove(argv[0], argv[0] + strlen(prefix), strlen(argv[0]) + 1);
+		/* Remove the prefix. */
+		argv[0] += strlen(prefix);
 
 		px4_daemon::Client client;
 		client.generate_uuid();
