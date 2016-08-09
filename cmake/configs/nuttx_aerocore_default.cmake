@@ -2,7 +2,8 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
-set(config_uavcan_num_ifaces 2)
+## Not sure what this does, tried commenting out to help compile but had no effect.  Will leave it here
+#set(config_uavcan_num_ifaces 2)  ##not currently using uavcan
 
 set(config_module_list
 	#
@@ -14,92 +15,83 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	drivers/led
 	drivers/px4fmu
-	drivers/px4io
-	drivers/boards/px4fmu-v2
-	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
+	#drivers/px4io
+	#drivers/boards/px4fmu-v2
+	drivers/boards/aerocore
+	#drivers/rgbled
+	#drivers/mpu6000
+	#drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
-	drivers/hmc5883
+	#drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/ll40ls
-	drivers/trone
+	#drivers/srf02
+	#drivers/sf0x
+	#drivers/ll40ls
+	#drivers/trone
 	drivers/gps
-	drivers/pwm_out_sim
+	#drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/meas_airspeed
-	drivers/frsky_telemetry
+	#drivers/blinkm
+	#drivers/airspeed
+	#drivers/ets_airspeed
+	#drivers/meas_airspeed
+	#drivers/frsky_telemetry
+##	drivers/hil
 	modules/sensors
 	#drivers/mkblctrl
-	drivers/px4flow
+	#drivers/px4flow
 	#drivers/oreoled
-	drivers/gimbal
+	#drivers/gimbal
 	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
-	drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
+##	drivers/input_pwm
+	#drivers/camera_trigger
+	#drivers/bst
+	#drivers/snapdragon_rc_pwm
+	#drivers/lis3mdl
+##	drivers/aerocore_rc
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
-	systemcmds/config
-	systemcmds/dumpfile
-	#systemcmds/esc_calib
+	#systemcmds/bl_update
 	systemcmds/mixer
-	#systemcmds/motor_ramp
-	systemcmds/mtd
-	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
+	systemcmds/esc_calib
 	systemcmds/reboot
-	#systemcmds/sd_bench
+	systemcmds/topic_listener ##Try adding
 	systemcmds/top
-	#systemcmds/topic_listener
+	systemcmds/config
+	systemcmds/nshterm
+	systemcmds/mtd
+	systemcmds/dumpfile
 	systemcmds/ver
-
-	#
-	# Testing
-	#
-	#drivers/sf0x/sf0x_tests
-	#drivers/test_ppm
-	#lib/rc/rc_tests
-	#modules/commander/commander_tests
-	#modules/controllib_test
-	#modules/mavlink/mavlink_tests
-	#modules/unit_test
-	#modules/uORB/uORB_tests
-	#systemcmds/tests
+	systemcmds/sd_bench ##Try adding
+	systemcmds/tests ##Try adding
 
 	#
 	# General system control
 	#
 	modules/commander
-	modules/load_mon
+	modules/load_mon ##Try adding
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	modules/uavcan
+	#modules/uavcan ##was commented out but tried adding, did not seem to help
 	modules/land_detector
 
 	#
-	# Estimation modules
+	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	modules/attitude_estimator_q
+	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/local_position_estimator
-	modules/ekf2
+	#modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -114,12 +106,12 @@ set(config_module_list
 	# Logging
 	#
 	#modules/logger
-	modules/sdlog2
+	#modules/sdlog2
 
 	#
 	# Library modules
 	#
-	modules/param
+	modules/param  ##new, but needs to be here
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -129,6 +121,7 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
+##	lib/mathlib/CMSIS
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
@@ -143,6 +136,7 @@ set(config_module_list
 	lib/DriverFramework/framework
 	platforms/nuttx
 
+	## I guess I will just leave this for now...
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common 
 	platforms/nuttx/px4_layer
@@ -150,12 +144,12 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	#modules/bottle_drop
+	modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	#examples/rover_steering_control
+	examples/rover_steering_control
 
 	#
 	# Demo apps
@@ -163,7 +157,7 @@ set(config_module_list
 	#examples/math_demo
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	#examples/px4_simple_app
+	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
@@ -181,19 +175,23 @@ set(config_module_list
 	#examples/hwtest
 )
 
+
+##The stuff below this comment is not working.  
 set(config_extra_builtin_commands
 	serdis
 	sercon
 	)
 
+# Might not want to keep this
 set(config_io_board
 	px4io-v2
 	)
 
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
+##THIS MUST BE THE PROBLEM WITH THE COMPILING ERROR
+#set(config_extra_libs
+#	uavcan
+#	uavcan_stm32_driver
+#	)
 
 set(config_io_extra_libs
 	)
@@ -201,9 +199,11 @@ set(config_io_extra_libs
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon" STACK_MAIN "2048")
+	MAIN "sercon"
+	STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis" STACK_MAIN "2048")
+	MAIN "serdis"
+	STACK_MAIN "2048")

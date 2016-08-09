@@ -143,6 +143,8 @@ endef
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
+aerocore_default:
+	$(call cmake-build,nuttx_aerocore_default)
 
 tap-v1_default:
 	$(call cmake-build,nuttx_tap-v1_default)
@@ -318,6 +320,7 @@ tests: check_unittest run_tests_posix
 
 # QGroundControl flashable firmware
 qgc_firmware: \
+	check_aerocore_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \

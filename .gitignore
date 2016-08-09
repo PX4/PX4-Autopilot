@@ -68,6 +68,7 @@ GTAGS
 *.creator.user
 *.files
 *.includes
+*.log
 
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
