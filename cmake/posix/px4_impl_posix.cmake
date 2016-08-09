@@ -159,7 +159,6 @@ function(px4_posix_generate_symlinks)
 				POST_BUILD
 				COMMAND ln -s -f ${TARGET} ${ln_name}
 				WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-				USES_TERMINAL
 			)
 		endif()
 	endforeach()
