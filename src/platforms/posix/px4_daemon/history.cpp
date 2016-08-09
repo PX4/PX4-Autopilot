@@ -56,6 +56,10 @@ void History::try_to_add(const std::string &line)
 		return;
 	}
 
+	if (_history.size() == MAX_HISTORY_SIZE) {
+		_history.erase(_history.begin());
+	}
+
 	_history.push_back(line);
 }
 

@@ -56,6 +56,9 @@ public:
 	 * Ignore the line if it is empty or duplicate of the
 	 * last added one.
 	 *
+	 * Drop the first entry of the history if we reach the
+	 * MAX_HISTORY_SIZE.
+	 *
 	 * @param line: command line to be added.
 	 */
 	void try_to_add(const std::string &line);
@@ -89,6 +92,8 @@ public:
 	 * @param line: swap to next line if available, otherwise saved current.
 	 */
 	void get_next(std::string &line);
+
+	static const unsigned MAX_HISTORY_SIZE = 100;
 private:
 	std::vector<std::string> _history;
 	std::vector<std::string>::iterator _current_history_entry;
