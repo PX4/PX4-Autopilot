@@ -205,25 +205,44 @@ Client::_listen()
 
 	while (!exit_loop) {
 
+		// We only read as much as we need, otherwise we might get out of
+		// sync with packets.
 		client_recv_packet_s packet_recv;
-		int bytes_read = read(client_recv_pipe_fd, &packet_recv, sizeof(packet_recv));
+		int bytes_read = read(client_recv_pipe_fd, &packet_recv, sizeof(client_recv_packet_s::header));
 
 		if (bytes_read > 0) {
 
-			int retval = 0;
-			bool should_exit = false;
+			// Using the header we can determine how big the payload is.
+			int payload_to_read = sizeof(packet_recv)
+					      - sizeof(packet_recv.header)
+					      - sizeof(packet_recv.payload)
+					      + packet_recv.header.payload_length;
 
-			int parse_ret = _parse_client_recv_packet(packet_recv, retval, should_exit);
+			// Again, we only read as much as we need because otherwise we need
+			// hold a buffer and parse it.
+			bytes_read = read(client_recv_pipe_fd, (char *)&packet_recv + bytes_read, payload_to_read);
 
-			if (parse_ret != 0) {
-				PX4_ERR("retval could not be parsed");
-				exit_arg = -1;
+			if (bytes_read > 0) {
 
-			} else {
-				exit_arg = retval;
+				int retval = 0;
+				bool should_exit = false;
+
+				int parse_ret = _parse_client_recv_packet(packet_recv, retval, should_exit);
+
+				if (parse_ret != 0) {
+					PX4_ERR("retval could not be parsed");
+					exit_arg = -1;
+
+				} else {
+					exit_arg = retval;
+				}
+
+				exit_loop = should_exit;
+
+			} else if (bytes_read == 0) {
+				exit_arg = 0;
+				exit_loop = true;
 			}
-
-			exit_loop = should_exit;
 
 		} else if (bytes_read == 0) {
 			// 0 means the pipe has been closed by all clients.

@@ -279,7 +279,7 @@ Server::_send_retval(const int pipe_fd, const int retval, const uint64_t client_
 	int bytes_sent = write(pipe_fd, &packet, bytes_to_send);
 
 	if (bytes_sent != bytes_to_send) {
-		PX4_ERR("write fail");
+		printf("write fail\n");
 		return;
 	}
 }
