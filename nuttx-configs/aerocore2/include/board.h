@@ -187,6 +187,15 @@
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
 /*
+ * CAN
+ *
+ * CAN1 is routed to the 2.8 Cortex-M4 CAN1 connector.
+ */
+#define GPIO_CAN1_RX	GPIO_CAN1_RX_3
+#define GPIO_CAN1_TX	GPIO_CAN1_TX_3
+
+
+/*
  * I2C
  *
  * The optional _GPIO configurations allow the I2C driver to manually
