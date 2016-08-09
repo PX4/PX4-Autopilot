@@ -744,7 +744,9 @@ void Ekf::controlAirDataFusion()
 		// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
 		_control_status.flags.wind = false;
 
-	} else if (_tas_data_ready) {
+	}
+
+	if (_tas_data_ready) {
 		// if we have airspeed data to fuse and winds states are inactive, then
 		// they need to be activated and the corresponding states and covariances reset
 		if (!_control_status.flags.wind) {
@@ -753,14 +755,9 @@ void Ekf::controlAirDataFusion()
 			resetWindCovariance();
 		}
 
-	}
-
-	// always fuse airspeed if available and the wind states are active
-	if (_tas_data_ready && _control_status.flags.wind) {
 		fuseAirspeed();
 
 	}
-
 }
 
 void Ekf::controlMagFusion()
