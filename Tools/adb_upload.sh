@@ -12,7 +12,6 @@ echo "Wait for device..."
 adb wait-for-device
 
 echo "Creating folder structure..."
-#echo "creating folder: $last"
 adb shell mkdir -p $last
 
 echo "Uploading..."
