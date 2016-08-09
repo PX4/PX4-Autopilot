@@ -563,50 +563,6 @@ void Ekf::predictCovariance()
 
 	// Don't do covariance prediction on wind states unless we are using them
 	if (_control_status.flags.wind) {
-		// Check if we have just transitioned to using wind states and set the variances accordingly
-		if (!_control_status_prev.flags.wind) {
-			// simple initialisation of wind states: calculate wind component along the forward axis
-			// of the plane.
-			
-			matrix::Euler<float> euler(_output_new.quat_nominal);
-			float heading = euler(2);
-
-			// ground speed component in the xy plane projected onto the directon the plane is heading to
-			float ground_speed_xy_nose = _output_new.vel(0) * cosf(heading) + _output_new.vel(1) * sinf(heading);
-			airspeedSample tmp = _airspeed_buffer.get_newest();
-			float airspeed = tmp.true_airspeed;
-
-			// check if the calculation is well conditioned:
-			// our airspeed measurement is at least as hight as our down velocity and the plane is moving forward
-			if (airspeed > fabsf(_output_new.vel(2)) && ground_speed_xy_nose > 0) {
-	
-				float ground_speed = sqrtf(_output_new.vel(0) * _output_new.vel(0) + _output_new.vel(1) * _output_new.vel(1) + _output_new.vel(2) * _output_new.vel(2));
-				
-				// wind magnitude in the direction the plane is
-				float wind_magnitude = ground_speed_xy_nose -  sqrtf(airspeed *  airspeed - _output_new.vel(2) * _output_new.vel(2));
-
-				// determine direction of wind
-				float wind_sign = 1;
-				if (airspeed < ground_speed) {
-					// wind is in nose direction
-					wind_sign = 1;
-				} else {
-					wind_sign = -1;
-				}
-
-				_state.wind_vel(0) = cosf(heading) * wind_magnitude * wind_sign;
-				_state.wind_vel(1) = sinf(heading) * wind_magnitude * wind_sign;
-
-			} else {
-				// calculation is badly conditioned, just set wind states to zero
-				_state.wind_vel.setZero();
-			}
-
-			// initialise diagonal of covariance matrix for the wind velocity states
-			for (uint8_t index = 22; index <= 23; index++) {
-				P[index][index] = sq(5.0f);
-			}
-		}
 
 		// calculate variances and upper diagonal covariances for wind states
 		nextP[0][22] = P[0][22] + P[1][22]*SF[9] + P[2][22]*SF[11] + P[3][22]*SF[10] + P[10][22]*SF[14] + P[11][22]*SF[15] + P[12][22]*SPP[10];
