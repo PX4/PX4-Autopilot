@@ -96,7 +96,6 @@ extern "C" {
 static void register_sig_handler();
 static void set_cpu_scaling();
 static void run_startup_bash_script(const char *commands_file);
-static void use_chroot();
 static void wait_to_exit();
 static bool is_already_running();
 static void print_usage();
@@ -200,7 +199,6 @@ int main(int argc, char **argv)
 #endif
 {
 	bool is_client = false;
-	bool chroot_on = false;
 	bool pxh_off = false;
 
 	/* Symlinks point to all commands that can be used as a client
@@ -256,9 +254,6 @@ int main(int argc, char **argv)
 
 				} else if (strcmp(argv[i], "-d") == 0) {
 					pxh_off = true;
-
-				} else if (strcmp(argv[i], "-c") == 0) {
-					chroot_on = true;
 
 				} else {
 					PX4_ERR("Unknown/unhandled parameter: %s", argv[i]);
@@ -367,13 +362,6 @@ int main(int argc, char **argv)
 		if (is_already_running()) {
 			PX4_ERR("PX4 daemon already running");
 			return -1;
-		}
-
-		if (chroot_on) {
-			// Lock this application in the current working dir
-			// this is not an attempt to secure the environment,
-			// rather, to replicate a deployed file system.
-			use_chroot();
 		}
 
 		px4_daemon::Server server;
@@ -496,32 +484,6 @@ static void run_startup_bash_script(const char *commands_file)
 	PX4_INFO("Startup script empty");
 }
 
-static void use_chroot()
-{
-	char pwd_path[PATH_MAX];
-	const char *folderpath = "/../rootfs/";
-
-	if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
-		PX4_ERR("Failed acquiring working dir, abort.");
-		exit(1);
-	}
-
-	if (nullptr == strcat(pwd_path, folderpath)) {
-		PX4_ERR("Failed completing path, abort.");
-		exit(1);
-	}
-
-	if (chroot(pwd_path)) {
-		PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
-		exit(1);
-	}
-
-	if (chdir("/")) {
-		PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
-		exit(1);
-	}
-}
-
 static void wait_to_exit()
 {
 	while (!_exit_requested) {
@@ -538,7 +500,6 @@ static void print_usage()
 	printf("    <startup_file> bash start script to be used as startup\n");
 	printf("    <data_directory> directory where ROMFS and posix-configs are located (if not given, CWD is used)");
 	printf("        -h           help/usage information\n");
-	printf("        -c           use chroot\n");
 	printf("        -d           daemon mode, don't start pxh shell\n");
 	printf("\n");
 	printf("Usage for client: \n");
