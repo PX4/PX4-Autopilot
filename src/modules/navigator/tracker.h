@@ -285,13 +285,19 @@ private:
     // The index must point to the end of a delta element and is post-decremented.
     ipos_t walk_backward(size_t &index, bool &is_jump);
     
-    // Pushes a node to the node buffer if there is enough space
+    // Pushes a node to the node buffer if there is enough space.
     // Returns true if the operation succeeds.
-    bool push_node(node_t &node);
+    // Returns false if there is not enough space of if there is already a nearby node. 
+    bool push_node(node_t &node, int accuracy_squared);
     
     // Removes all nodes (except the home node) that reference lines within the specified range.
     // The lower bound is exclusive, the upper bound is inclusive.
     void remove_nodes(size_t lower_bound, size_t upper_bound);
+
+    // Checks if two positions are similar.
+    // This means there's at most one vertex between them, there's no jump between them and their distance along the line is not too large.
+    // Returns true if these conditions are satisfied.
+    bool check_similarity(size_t index1, int coef1, size_t index2, int coef2, float accuracy);
 
     // Returns true if the specified position is close to any line in the graph.
     //  lower_bound: exclusive lower search bound
@@ -322,6 +328,9 @@ private:
     // Optimizes memory usage of the most recent positions in the graph.
     void consolidate_graph();
 
+    // Makes sure that the meaning of the specified index does not change unless the graph version is incremented.
+    inline size_t pin_index(size_t index) { pinned_index = index > pinned_index ? index : pinned_index; return index; }
+
     // Walks the graph from the specified position up to the next node, while tracking the covered distance.
     // If the search bound or a jump is encountered before a node, the function returns false.
     // Note that jumps can have nodes as well, but only at the end. Therefore, walking backwards may end at a jump node and walking forward may start at one.
@@ -330,7 +339,7 @@ private:
     //      out: The index/coefficient at which a node was encountered (invalid if the function returns false).
     //  distance: The distance that was covered from the start up to the node (invalid if the function returns false).
     //  forward: true if the function should walk forward, false if it should walk backward.
-    //  search_bound: bounds the search (inclusive when walking forward, exclusive otherwise)
+    //  search_bound: bounds the search (inclusive in both directions)
     bool walk_to_node(size_t &index, int &coef, float &distance, bool forward, size_t search_bound);
     
     // Uses the best node at the specified position to switch to the line which represents the shortest path home.
@@ -339,11 +348,14 @@ private:
     //      in: the position at which the nodes should be examined
     //      out: the position that leads home
     //  delta: if not NULL, set to the position difference between the input and output positions
-    float apply_node_delta(size_t &index, unsigned int &coef, ipos_t *delta);
+    //  go_forward: if not NULL, set to the best direction to home from the new line (valid iif the position was at a node, i.e. if the result is finite)
+    float apply_node_delta(size_t &index, unsigned int &coef, ipos_t *delta, bool &go_forward);
     
-    // Returns the distance to home of any position on the graph which coincides with a node.
-    //  index, coef: the position from which the distance-to-home should be calculated
-    inline float get_node_distance(size_t index, unsigned int coef) { return apply_node_delta(index, coef, NULL); }
+    // Returns the distance to home of any position on the graph which coincides with a node,
+    // including an indication on how this distance can be achieved.
+    //  index, coef: the position for which the distance-to-home should be retrieved
+    //  direction: 0: switch line, 1: go forward from here, -1: go backward from here
+    float get_node_distance(size_t index, unsigned int coef, int &direction);
     
     // Sets the distance to home of any position on the graph which corresponds to one or multiple nodes.
     // The function takes only improving action (i.e. only reduces distances) and returns true if did so.
@@ -360,13 +372,14 @@ private:
     //size_t get_closest_index(ipos_t position, float *bias);
 
     // Calculates the next best move to get back home, using the provided path finding context.
-    bool calc_return_path(path_finding_context_t context);
+    bool calc_return_path(path_finding_context_t &context, bool &progress);
 
     
     /*** internal variables ***/
 
     ipos_t home_position;
     ipos_t home_on_graph;
+    bool did_set_home = false;
 
 
     bool recent_path_tracking_enabled = true;
@@ -406,8 +419,11 @@ private:
     ipos_t consolidated_head_pos = { .x = 0, .y = 0, .z = 0 };
     size_t consolidated_head_index = 0;
 
-    // If the graph is altered in a way that previously exported indices may have become invalid, the graph version is incremented.
+    // If the graph is altered in a way that previously exported indices become invalid, the graph version is incremented.
     int graph_version = 0;
+
+    // If this index or anything before changes, the graph version must be incremented.
+    size_t pinned_index = 0;
 
 
     // Nodes keep track of lines in the flight path that pass close to each other.
