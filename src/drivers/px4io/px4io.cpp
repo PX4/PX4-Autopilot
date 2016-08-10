@@ -1086,18 +1086,6 @@ PX4IO::task_main()
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
-				int32_t dsm_bind_val;
-				param_t dsm_bind_param;
-
-				/* see if bind parameter has been set, and reset it to -1 */
-				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-				if (dsm_bind_val > -1) {
-					dsm_bind_ioctl(dsm_bind_val);
-					dsm_bind_val = -1;
-					param_set(dsm_bind_param, &dsm_bind_val);
-				}
-
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */
 					io_set_rc_config();
@@ -3320,27 +3308,8 @@ bind(int argc, char *argv[])
 
 #endif
 
-	if (argc < 3) {
-		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
-	}
-
-	if (!strcmp(argv[2], "dsm2")) {
-		pulses = DSM2_BIND_PULSES;
-
-	} else if (!strcmp(argv[2], "dsmx")) {
-		pulses = DSMX_BIND_PULSES;
-
-	} else if (!strcmp(argv[2], "dsmx8")) {
-		pulses = DSMX8_BIND_PULSES;
-
-	} else {
-		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
-	}
-
-	// Test for custom pulse parameter
-	if (argc > 3) {
-		pulses = atoi(argv[3]);
-	}
+	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+	pulses = DSMX8_BIND_PULSES;
 
 	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		errx(1, "system must not be armed");

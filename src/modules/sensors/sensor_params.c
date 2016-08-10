@@ -1943,18 +1943,6 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 
 /**
- * DSM binding trigger.
- *
- * @value -1 Inactive
- * @value 0 Start DSM2 bind
- * @value 1 Start DSMX bind
- * @min -1
- * @max 1
- * @group Radio Calibration
- */
-PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
-
-/**
  * Scaling factor for battery voltage sensor on PX4IO.
  *
  * @min 1
