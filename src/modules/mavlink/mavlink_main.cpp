@@ -1634,7 +1634,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* the NuttX optarg handler does not
 	 * ignore argv[0] like the POSIX handler
 	 * does, nor does it deal with non-flag
-	 * verbs well. Remove the application
+	 * verbs well. So we remove the application
 	 * name and the verb.
 	 */
 	argc -= 2;
