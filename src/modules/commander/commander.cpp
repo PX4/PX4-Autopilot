@@ -172,7 +172,7 @@ static uint64_t last_print_mode_reject_time = 0;
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
 //static float eph_threshold = 5.0f;
-//5.0过大，当eph超过3.0时定位就已经很差了
+//5.0过大，当eph超过3.0时定位就已经很差了aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 static float eph_threshold = 3.0f;
 static float epv_threshold = 10.0f;
