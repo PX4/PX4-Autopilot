@@ -12,7 +12,9 @@
 #
 
 sh /etc/init.d/rc.mc_defaults
-tap_esc start -d /dev/ttyS4 -n 4
+if tap_esc start -d /dev/ttyS4 -n 4
+then
+fi
 set OUTPUT_MODE tap_esc
 
 set MIXER quad_x
