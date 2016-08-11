@@ -977,7 +977,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	flag_system_armed = false;
 
 #ifdef __PX4_NUTTX
-	/* work around some stupidity in NuttX's task_create's argv handling */
+	/* the NuttX optarg handler does not
+	 * ignore argv[0] like the POSIX handler
+	 * does, nor does it deal with non-flag
+	 * verbs well. So we Remove the application
+	 * name and the verb.
+	 */
 	argc -= 2;
 	argv += 2;
 #endif

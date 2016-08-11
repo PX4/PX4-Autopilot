@@ -643,13 +643,6 @@ GPS::task_main()
 		px4_task_exit(1);
 	}
 
-#ifndef __PX4_QURT
-	// TODO: this call is not supported on Snapdragon just yet.
-	// However it seems to be nonblocking anyway and working.
-	int flags = fcntl(_serial_fd, F_GETFL, 0);
-	fcntl(_serial_fd, F_SETFL, flags | O_NONBLOCK);
-#endif
-
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
@@ -677,6 +670,7 @@ GPS::task_main()
 							_report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
 			_report_gps_pos.cog_rad = 0.0f;
 			_report_gps_pos.vel_ned_valid = true;
+			_report_gps_pos.satellites_used = 10;
 
 			/* no time and satellite information simulated */
 
