@@ -51,6 +51,7 @@
 #include <math.h>
 
 #include <px4iofirmware/protocol.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "mixer.h"
 
@@ -366,6 +367,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			     thrust + boost;
 
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
+
 	}
 
 	return _rotor_count;
