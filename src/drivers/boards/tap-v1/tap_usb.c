@@ -83,7 +83,8 @@ __EXPORT void stm32_usbinitialize(void)
 	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
 #ifdef CONFIG_STM32_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
+	px4_arch_configgpio(GPIO_OTGFS_VBUS);
+	px4_arch_configgpio(GPIO_OTGFS_OVER);
 #endif
 }
 
