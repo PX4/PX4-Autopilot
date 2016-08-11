@@ -85,6 +85,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
+#include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
@@ -326,7 +327,7 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	int					write_reg(unsigned reg, uint8_t value);
+	int				write_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Modify a register in the MPU6000
@@ -353,7 +354,7 @@ private:
 	 * @param max_g		The maximum G value the range must support.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */
-	int			set_accel_range(unsigned max_g);
+	int				set_accel_range(unsigned max_g);
 
 	/**
 	 * Swap a 16-bit value read from the MPU6000 to native byte order.
@@ -383,29 +384,29 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	int 			accel_self_test();
+	int				accel_self_test();
 
 	/**
 	 * Gyro self test
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	int 			gyro_self_test();
+	int				gyro_self_test();
 
 	/*
 	  set low pass filter frequency
 	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
+	void			_set_dlpf_filter(uint16_t frequency_hz);
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
 	*/
-	void _set_sample_rate(unsigned desired_sample_rate_hz);
+	void			_set_sample_rate(unsigned desired_sample_rate_hz);
 
 	/*
 	  check that key registers still have the right value
 	 */
-	void check_registers(void);
+	void			check_registers(void);
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU6000(const MPU6000 &);
@@ -2203,7 +2204,6 @@ start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int
 	}
 
 	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, external);
-
 
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
