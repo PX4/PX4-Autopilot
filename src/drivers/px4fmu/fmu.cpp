@@ -907,6 +907,12 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 #ifdef RC_SERIAL_PORT
+
+#ifdef GPIO_PCON_RADIO
+		// power radio on
+		RF_RADIO_CONTOL(true);
+#endif
+
 		// dsm_init sets some file static variables and returns a file descriptor
 		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
