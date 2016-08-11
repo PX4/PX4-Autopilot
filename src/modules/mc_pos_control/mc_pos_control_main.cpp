@@ -1127,6 +1127,11 @@ void MulticopterPositionControl::control_auto(float dt)
 
 					if (near) {
 						/* unit sphere crosses trajectory */
+						/* if copter is in front of curr waypoint, go directly to curr waypoint */
+						if ((pos_sp_s - curr_sp_s) * prev_curr_s > 0.0f) {
+							pos_sp_s = curr_sp_s;
+							pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
+						}
 
 					} else {
 						/* copter is too far from trajectory */
