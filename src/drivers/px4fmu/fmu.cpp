@@ -862,10 +862,12 @@ void PX4FMU::rc_io_invert(bool invert)
 	INVERT_RC_INPUT(invert);
 
 #ifdef GPIO_RC_OUT
+
 	if (!invert) {
 		// set FMU_RC_OUTPUT high to pull RC_INPUT up
 		px4_arch_gpiowrite(GPIO_RC_OUT, 1);
 	}
+
 #endif
 }
 #endif
@@ -908,9 +910,9 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 
-#ifdef GPIO_PCON_RADIO
+#ifdef RF_RADIO_POWER_CONTROL
 		// power radio on
-		RF_RADIO_CONTOL(true);
+		RF_RADIO_POWER_CONTROL(true);
 #endif
 
 		// dsm_init sets some file static variables and returns a file descriptor
