@@ -295,7 +295,8 @@ public:
 	int  orb_stat(int handle, uint64_t *time) ;
 
 	/**
-	 * Check if a topic has already been created.
+	 * Check if a topic has already been created (a publisher or a subscriber exists with
+	 * the given instance).
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance

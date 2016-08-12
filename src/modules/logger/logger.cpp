@@ -441,7 +441,7 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 		if (OK == orb_exists(sub.metadata, multi_instance)) {
 			handle = orb_subscribe_multi(sub.metadata, multi_instance);
 
-			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
+			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
 
 			/* copy first data */
 			if (handle >= 0) {
@@ -454,8 +454,11 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 					orb_set_interval(handle, interval);
 				}
 
-				orb_copy(sub.metadata, handle, buffer);
-				updated = true;
+				/* It can happen that orb_exists returns true, even if there is no publisher (but another subscriber).
+				 * We catch this here, because orb_copy will fail in this case. */
+				if (orb_copy(sub.metadata, handle, buffer) == PX4_OK) {
+					updated = true;
+				}
 			}
 		}
 
