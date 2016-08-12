@@ -127,7 +127,6 @@ static inline void do_nothing(int level, ...)
 #include <px4_defines.h>
 
 __BEGIN_DECLS
-__EXPORT extern uint64_t hrt_absolute_time(void);
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
