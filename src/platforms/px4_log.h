@@ -130,7 +130,6 @@ __BEGIN_DECLS
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
-__EXPORT extern int __px4_log_level_current;
 __EXPORT extern void px4_backtrace(void);
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
 
@@ -138,21 +137,18 @@ __END_DECLS
 
 #define PX4_BACKTRACE() px4_backtrace()
 
-// __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
-#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR
-
 /****************************************************************************
  * Implementation of log section formatting based on printf
  *
  * To write to a specific stream for each message type, open the streams and
  * set __px4__log_startline to something like:
- * 	if (level <= __px4_log_level_current) printf(_px4_fd[level],
+ * 	printf(_px4_fd[level],
  *
  * Additional behavior can be added using "{\" for __px4__log_startline and
  * "}" for __px4__log_endline and any other required setup or teardown steps
  ****************************************************************************/
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
-#define __px4__log_printline(level, ...)    if (level <= __px4_log_level_current) printf(__VA_ARGS__)
+#define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
 
 
 #ifndef MODULE_NAME
