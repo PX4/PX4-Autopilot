@@ -39,15 +39,17 @@ set(config_module_list
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	#drivers/mkblctrl
+	drivers/mkblctrl #comment this again
 	drivers/px4flow
 	#drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
-	drivers/camera_trigger
+	#drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
+	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
+
+	drivers/irlock
 
 	#
 	# System commands
@@ -97,9 +99,13 @@ set(config_module_list
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
+
+	#modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/local_position_estimator
 	modules/ekf2
+
+	#modules/av_estimator
 
 	#
 	# Vehicle Control
@@ -108,7 +114,11 @@ set(config_module_list
 	modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control
+	#modules/vtol_att_control
+
+	#modules/mc_quat_control
+	#modules/mc_quat_pos_control
+	#modules/mc_quat_vel_control
 
 	#
 	# Logging

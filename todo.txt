@@ -1,0 +1,4 @@
+1) Test battery values and filter and controller
+2) Fix FIXMEs in position controller and attitude observer
+3) Get velocity controller working
+4) Check position observer performance in GPS

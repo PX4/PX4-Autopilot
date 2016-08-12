@@ -63,7 +63,13 @@
 #include "topics/att_pos_mocap.h"
 #include "topics/vision_position_estimate.h"
 #include "topics/control_state.h"
+
 #include "topics/vehicle_land_detected.h"
+
+#include "topics/vehicle_vicon_position.h"
+#include "topics/vehicle_velocity_meas_inertial.h"
+#include "topics/vehicle_velocity_est_inertial.h"
+#include "topics/vehicle_omega_ff_setpoint.h"
 
 #include <px4_defines.h>
 

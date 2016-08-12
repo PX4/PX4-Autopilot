@@ -1,0 +1,23 @@
+position_estimator_inav stop
+
+attitude_estimator_q stop
+
+av_estimator start
+
+mavlink stop-all
+mavlink start -b 115200
+
+gps stop
+
+mc_att_control stop
+mc_quat_control start
+
+mc_pos_control stop
+mc_quat_pos_control start
+
+# Logging
+sdlog2 stop
+usleep 10000
+sdlog2 start r 20 -a
+
+#irlock start

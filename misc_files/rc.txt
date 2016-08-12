@@ -1,0 +1,160 @@
+#!nsh
+ 
+# Disable autostarting other apps
+usleep 35000
+set MODE custom
+# version 1.0 for generic quad with ESC32 (i2c)
+
+#parameters for mkblctrl
+set MKBLCTRL_FRAME  x
+set MKBLCTRL_MODE no
+
+#AJOUT GUI MARDI
+set OUTPUT_MODE mkblctrl    # start the mkblctrl driver on startup
+set MKBLCTRL_MODE x         # x / + Frame configuration
+
+#
+# Start terminal
+#
+#sercon
+
+# Try to get an USB console
+nshterm /dev/ttyACM0 &
+ 
+#
+# Start the ORB (first app to start)
+#
+uorb start
+ 
+#
+# Init the EEPROM
+#
+echo "[init] eeprom"
+#eeprom start
+if [ -f /eeprom/parameters ]
+then
+	param load
+fi
+
+#
+# Load microSD params
+#
+param select /fs/microsd/params
+if [ -f /fs/microsd/params ]
+then
+	if param load /fs/microsd/params
+	then
+		echo "Parameters loaded"
+	else
+		echo "Parameter file corrupt - ignoring"
+	fi
+fi
+
+
+
+echo "rc file for generic quad with ESC32 (i2c)"
+#
+# Do not exit the shell per default
+#
+ set EXIT_ON_END no
+
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+param set MAV_TYPE 2
+ 
+
+###########################################################################################
+# start the mkblctrl according to the set paramaters (check the top of this file)
+if [ $MKBLCTRL_MODE == yes ]
+then
+    if [ $MKBLCTRL_FRAME == x ]
+    then
+        echo "[init] PX4FMU v1, v2 with or without IO and I2C ESCs X Frame Mikrokopter-Addressing"
+        mkblctrl -b 3 -mkmode x
+    else
+        echo "[init] PX4FMU v1, v2 with or without IO and I2C ESCs + Frame Mikrokopter-Addressing"
+       mkblctrl -b 3 -mkmode +
+    fi
+else
+    if [ $MKBLCTRL_FRAME == x ]
+    then
+        echo "[init] PX4FMU v1, v2 with or without IO and I2C ESCs X Frame"
+    else
+        echo "[init] PX4FMU v1, v2 with or without IO and I2C ESCs + Frame"
+    fi 
+    mkblctrl -b 3
+fi
+ 
+usleep 10000
+
+#
+# Start and configure PX4IO or FMU interface
+#
+
+fmu mode_pwm -u 400
+
+
+# Load mixer according to configuration. parameter value set at the begining of this file
+#
+if [ $MKBLCTRL_FRAME == x ]
+then
+	echo "using x frame configuration"
+	mixer load /dev/mkblctrl0 /etc/mixers/quad_x.main.mix
+else
+	echo "using + frame configuration"
+	mixer load /dev/mkblctrl0 /etc/mixers/quad_+.main.mix
+fi
+
+#
+# Start the sensors.
+#
+sh /etc/init.d/rc.sensors
+ 
+#
+
+
+px4io start
+
+# Start MAVLink
+#
+mavlink start -d /dev/ttyS1 -b 115200
+
+usleep 5000
+
+#
+# Start the commander.
+#
+commander start
+
+#gps start
+ 
+#
+# Start the attitude estimator
+#
+echo "Starting estimator"
+av_estimator start
+
+# Start attitude and position controllers
+mc_quat_vel_control start
+
+mc_quat_pos_control start
+
+
+#
+# Fire up the multi rotor attitude controller
+#
+# Run Position controller
+
+#start logging 
+# e = enable a = when the quad is armed
+echo "Starting sdlog2"
+sdlog2 start -r 150 -a
+echo "Data logging started"
+
+#
+# Release shell for MAVLink if no io board because mavlink is run on ttyS0 (assuming nsh is also on ttyS0)
+#
+if [ $EXIT_ON_END == yes ]
+then
+	exit
+fi
+

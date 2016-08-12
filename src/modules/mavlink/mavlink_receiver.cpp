@@ -116,6 +116,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rates_sp_pub(nullptr),
 	_force_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
+	_vicon_position_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_telemetry_status_pub(nullptr),
@@ -139,6 +140,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
+	_local_pos_sp_pub(nullptr),
 	_time_offset(0),
 	_orb_class_instance(-1),
 	_mom_switch_pos{},
@@ -188,6 +190,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			handle_message_set_mode(msg);
 		}
 
+		break;
+
+	case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE:
+		handle_message_vicon_position_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
@@ -644,6 +650,57 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
+{
+	mavlink_vicon_position_estimate_t pos;
+	mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+
+	struct vehicle_vicon_position_s vicon_position;
+	memset(&vicon_position, 0, sizeof(vicon_position));
+	
+	vicon_position.timestamp = pos.usec; //hrt_absolute_time(); //
+	vicon_position.x = pos.x;
+	vicon_position.y = pos.y;
+	vicon_position.z = pos.z;
+	vicon_position.roll = pos.roll;
+	vicon_position.pitch = pos.pitch;
+	vicon_position.yaw = pos.yaw;
+	vicon_position.valid = true;
+	
+	if (_vicon_position_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
+	} else {
+		orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+	}
+
+
+	/* Vicon position we take as the local position */
+	struct vehicle_local_position_s local_position;
+	memset(&local_position, 0, sizeof(local_position));
+	local_position.timestamp = hrt_absolute_time();
+	local_position.x = pos.x;
+	local_position.y = pos.y;
+	local_position.z = pos.z;
+	local_position.yaw = pos.yaw;
+	local_position.xy_valid = true;
+	local_position.z_valid = true;
+	local_position.xy_global = true;
+	local_position.z_global = true;
+	local_position.v_xy_valid = true;
+	local_position.v_z_valid = true;
+	local_position.dist_bottom_valid = true;
+	local_position.ref_timestamp = hrt_absolute_time();
+	/*
+	if (_local_pos_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &local_position);		
+
+	} else {
+		orb_advertise(ORB_ID(vehicle_local_position), &local_position);
+	} */
+}
+
+
+void
 MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 {
 	/* distance sensor */
@@ -709,6 +766,28 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 {
 	mavlink_set_position_target_local_ned_t set_position_target_local_ned;
 	mavlink_msg_set_position_target_local_ned_decode(msg, &set_position_target_local_ned);
+
+	/* Irrespective of what PX4 wants, we will ignore and follow my structure and use local position setpoint*/
+	struct vehicle_local_position_setpoint_s pos_sp;
+	pos_sp.x = set_position_target_local_ned.x;
+	pos_sp.y = set_position_target_local_ned.y;
+	pos_sp.z = set_position_target_local_ned.z;
+	pos_sp.vx = set_position_target_local_ned.vx;
+	pos_sp.vy = set_position_target_local_ned.vy;
+	pos_sp.vz = set_position_target_local_ned.vz;
+	pos_sp.acc_x = set_position_target_local_ned.afx;
+	pos_sp.acc_y = set_position_target_local_ned.afy;
+	pos_sp.acc_z = set_position_target_local_ned.afz;
+	pos_sp.yaw = set_position_target_local_ned.yaw;
+	pos_sp.timestamp = (uint64_t)set_position_target_local_ned.time_boot_ms;
+
+	if (_local_pos_sp_pub != nullptr) {
+		orb_advertise(ORB_ID(vehicle_local_position_setpoint), &pos_sp); 
+	} else {
+		orb_advertise(ORB_ID(vehicle_local_position_setpoint),
+				&pos_sp);
+	}
+	/* End what Moses thinks is right */
 
 	struct offboard_control_mode_s offboard_control_mode = {};
 
