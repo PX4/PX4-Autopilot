@@ -43,7 +43,7 @@
 #include <uORB/uORB.h>
 #include <uORB/uORBTopics.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -584,7 +584,7 @@ void Logger::run()
 
 	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
-	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
+	uORB::Subscription<log_message_s> log_message_sub(ORB_ID(log_message), 20);
 
 	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
 
@@ -735,10 +735,10 @@ void Logger::run()
 				}
 			}
 
-			//check for new mavlink log message
-			if (mavlink_log_sub.check_updated()) {
-				mavlink_log_sub.update();
-				const char *message = (const char *)mavlink_log_sub.get().text;
+			//check for new logging message(s)
+			if (log_message_sub.check_updated()) {
+				log_message_sub.update();
+				const char *message = (const char *)log_message_sub.get().text;
 				int message_len = strlen(message);
 
 				if (message_len > 0) {
@@ -747,8 +747,8 @@ void Logger::run()
 					_msg_buffer[0] = (uint8_t)write_msg_size;
 					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
 					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
-					_msg_buffer[3] = mavlink_log_sub.get().severity + '0';
-					memcpy(_msg_buffer + 4, &mavlink_log_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
+					_msg_buffer[3] = log_message_sub.get().severity + '0';
+					memcpy(_msg_buffer + 4, &log_message_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
 					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
 					write(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);

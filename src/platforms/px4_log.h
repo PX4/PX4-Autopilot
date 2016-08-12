@@ -128,6 +128,11 @@ static inline void do_nothing(int level, ...)
 
 __BEGIN_DECLS
 
+/**
+ * initialize the orb logging. Logging to console still works without or before calling this.
+ */
+__EXPORT extern void px4_log_initialize(void);
+
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern void px4_backtrace(void);
