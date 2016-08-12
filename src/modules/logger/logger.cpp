@@ -234,6 +234,7 @@ void Logger::print_statistics()
 	float mebibytes = kibibytes / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
 
+	PX4_INFO("Log file: %s/%s", _log_dir, _log_file_name);
 	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
 	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
 		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
@@ -942,9 +943,10 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 			return -1;
 		}
 
-		char log_file_name[64] = "";
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S", &tt);
-		snprintf(file_name, file_name_size, "%s/%s%s.ulg", _log_dir, log_file_name, replay_suffix);
+		char log_file_name_time[16] = "";
+		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
+		snprintf(_log_file_name, sizeof(_log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
+		snprintf(file_name, file_name_size, "%s/%s", _log_dir, _log_file_name);
 
 	} else {
 		if (create_log_dir(nullptr)) {
@@ -956,7 +958,8 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
-			snprintf(file_name, file_name_size, "%s/log%03u%s.ulg", _log_dir, file_number, replay_suffix);
+			snprintf(_log_file_name, sizeof(_log_file_name), "log%03u%s.ulg", file_number, replay_suffix);
+			snprintf(file_name, file_name_size, "%s/%s", _log_dir, _log_file_name);
 
 			if (!file_exist(file_name)) {
 				break;

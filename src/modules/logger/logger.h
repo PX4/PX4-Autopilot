@@ -217,6 +217,7 @@ private:
 	int						_msg_buffer_len = 0;
 	bool						_task_should_exit = true;
 	char 						_log_dir[LOG_DIR_LEN];
+	char 						_log_file_name[32];
 	bool						_has_log_dir = false;
 	bool						_enabled = false;
 	bool						_was_armed = false;
