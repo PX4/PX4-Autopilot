@@ -16,7 +16,7 @@
 #if !defined(CONFIG_ARCH_BOARD_SITL)
 #define TEST_DATA_PATH "/fs/microsd"
 #else
-#define TEST_DATA_PATH "../../../../test_data/"
+#define TEST_DATA_PATH "./test_data/"
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);

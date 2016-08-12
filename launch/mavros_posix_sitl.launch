@@ -1,19 +1,45 @@
 <launch>
+
     <!-- MAVROS posix SITL environment launch script -->
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="0"/>
+    <arg name="R" default="0"/>
+    <arg name="P" default="0"/>
+    <arg name="Y" default="0"/>
+
+
+    <arg name="vehicle" default="iris"/>
+    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/rcS_lpe_gazebo_$(arg vehicle)"/>
 
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="ns" default="/"/>
-    <arg name="world" default="iris"/>
-    <arg name="build" default="posix_sitl_default"/>
     <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
 
+    <arg name="debug" default="false"/>
+    <arg name="verbose" default="false"/>
+    <arg name="paused" default="false"/>
+
     <include file="$(find px4)/launch/posix_sitl.launch">
+        <arg name="x" value="$(arg x)"/>
+        <arg name="y" value="$(arg y)"/>
+        <arg name="z" value="$(arg z)"/>
+        <arg name="R" value="$(arg R)"/>
+        <arg name="P" value="$(arg P)"/>
+        <arg name="Y" value="$(arg Y)"/>
+        <arg name="world" value="$(arg world)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="sdf" value="$(arg sdf)"/>
+        <arg name="rcS" value="$(arg rcS)"/>
         <arg name="headless" value="$(arg headless)"/>
         <arg name="gui" value="$(arg gui)"/>
         <arg name="ns" value="$(arg ns)"/>
-        <arg name="world" value="$(arg world)"/>
-        <arg name="build" value="$(arg build)"/>
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="verbose" value="$(arg verbose)"/>
+        <arg name="paused" value="$(arg paused)"/>
     </include>
 
     <include file="$(find px4)/launch/mavros.launch">
@@ -22,3 +48,5 @@
         <arg name="fcu_url" value="$(arg fcu_url)"/>
     </include>
 </launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

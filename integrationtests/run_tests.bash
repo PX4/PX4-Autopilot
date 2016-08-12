@@ -5,26 +5,27 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
-if [ "$#" -lt 1 ]
+# handle cleaning command
+do_clean=true
+if [ "$1" = "-o" ]
 then
-	echo usage: run_tests.bash firmware_src_dir
-	echo ""
-	exit 1
+	echo not cleaning
+	do_clean=false
 fi
 
-SRC_DIR=$1
-JOB_DIR=$SRC_DIR/..
-BUILD=posix_sitl_default
-# TODO
-ROS_TEST_RESULT_DIR=/root/.ros/test_results/px4
-ROS_LOG_DIR=/root/.ros/log
-PX4_LOG_DIR=${SRC_DIR}/build_${BUILD}/src/firmware/posix/rootfs/fs/microsd/log
-TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
-# BAGS=/root/.ros
-# CHARTS=/root/.ros/charts
-# EXPORT_CHARTS=/sitl/testing/export_charts.py
+# determine the directory of the source given the directory of this script
+pushd `dirname $0` > /dev/null
+SCRIPTPATH=`pwd`
+popd > /dev/null
+ORIG_SRC=$(dirname $SCRIPTPATH)
 
-# source ROS env
+# set paths
+JOB_DIR=$(dirname $ORIG_SRC)
+CATKIN_DIR=$JOB_DIR/catkin
+BUILD_DIR=$CATKIN_DIR/build/px4
+SRC_DIR=${CATKIN_DIR}/src/px4
+
+echo setting up ROS paths
 if [ -f /opt/ros/indigo/setup.bash ]
 then
 	source /opt/ros/indigo/setup.bash
@@ -35,25 +36,56 @@ else
 	echo "could not find /opt/ros/{ros-distro}/setup.bash"
 	exit 1
 fi
-source $SRC_DIR/integrationtests/setup_gazebo_ros.bash $SRC_DIR
+export ROS_HOME=$JOB_DIR/.ros
+export ROS_LOG_DIR=$ROS_HOME/log
+export ROS_TEST_RESULT_DIR=$ROS_HOME/test_results/px4
 
-echo "deleting previous test results ($TEST_RESULT_TARGET_DIR)"
-if [ -d ${TEST_RESULT_TARGET_DIR} ]; then
-	rm -r ${TEST_RESULT_TARGET_DIR}
-fi
+PX4_LOG_DIR=$ROS_HOME/rootfs/fs/microsd/log
+TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 
-# FIXME: Firmware compilation seems to CD into this directory (/root/Firmware)
-# when run from "run_container.bash". Why?
-if [ -d /root/Firmware ]; then
-	rm /root/Firmware
+# TODO
+# BAGS=$ROS_HOME
+# CHARTS=$ROS_HOME/charts
+# EXPORT_CHARTS=/sitl/testing/export_charts.py
+
+echo setting up gazebo paths
+source /usr/share/gazebo/setup.sh
+source $SCRIPTPATH/setup_gazebo.bash ${SRC_DIR} ${BUILD_DIR}
+
+if $do_clean
+then
+	echo cleaning
+	rm -rf $CATKIN_DIR
+	rm -rf $ROS_HOME
+	rm -rf $TEST_RESULT_TARGET_DIR
+else
+	echo skipping clean step
 fi
-ln -s ${SRC_DIR} /root/Firmware
 
 echo "=====> compile ($SRC_DIR)"
-cd $SRC_DIR
-make ${BUILD}
-make --no-print-directory gazebo_build
+mkdir -p $ROS_HOME
+mkdir -p $CATKIN_DIR/src
+mkdir -p $TEST_RESULT_TARGET_DIR
+if ! [ -d $SRC_DIR ]
+then
+	ln -s $ORIG_SRC $SRC_DIR
+	ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+fi
+cd $CATKIN_DIR
+catkin_make
+. ./devel/setup.bash
 echo "<====="
+
+# print paths to user
+echo -e "JOB_DIR\t\t: $JOB_DIR"
+echo -e "ROS_HOME\t: $ROS_HOME"
+echo -e "CATKIN_DIR\t: $CATKIN_DIR"
+echo -e "BUILD_DIR\t: $BUILD_DIR"
+echo -e "SRC_DIR\t\t: $SRC_DIR"
+echo -e "ROS_TEST_RESULT_DIR\t: $ROS_TEST_RESULT_DIR"
+echo -e "ROS_LOG_DIR\t\t: $ROS_LOG_DIR"
+echo -e "PX4_LOG_DIR\t\t: $PX4_LOG_DIR"
+echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 
 # don't exit on error anymore from here on (because single tests or exports might fail)
 set +e
@@ -73,7 +105,6 @@ echo "=====> process test results"
 # done
 
 echo "copy build test results to job directory"
-mkdir -p ${TEST_RESULT_TARGET_DIR}
 cp -r $ROS_TEST_RESULT_DIR/* ${TEST_RESULT_TARGET_DIR}
 cp -r $ROS_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}
 cp -r $PX4_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}

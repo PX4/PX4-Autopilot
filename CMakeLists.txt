@@ -124,6 +124,11 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
+execute_process(
+	COMMAND Tools/check_submodules.sh
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+
 # Use clang
 #SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
 #SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
@@ -157,6 +162,9 @@ message(STATUS "${target_name}")
 
 # Define GNU standard installation directories
 include(GNUInstallDirs)
+
+# Add support for external project building
+include(ExternalProject)
 
 # Setup install paths
 if(NOT CMAKE_INSTALL_PREFIX)
@@ -198,6 +206,9 @@ if(DEFINED config_df_driver_list)
 	message("DF Drivers: ${config_df_driver_list}")
 endif()
 
+# force static lib build
+set(BUILD_SHARED_LIBS OFF)
+
 #=============================================================================
 # project definition
 #
@@ -218,8 +229,22 @@ set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
 #=============================================================================
-# programs
+# find programs and packages
 #
+
+# see if catkin was invoked to build this
+if (CATKIN_DEVEL_PREFIX)
+	message(STATUS "catkin ENABLED")
+	find_package(catkin REQUIRED)
+	if (catkin_FOUND)
+		catkin_package()
+	else()
+		message(FATAL_ERROR "catkin not found")
+	endif()
+else()
+	message(STATUS "catkin DISABLED")
+endif()
+
 find_package(PythonInterp REQUIRED)
 
 #=============================================================================
@@ -398,14 +423,13 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${version}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_SET_DESTDIR "OFF")
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
-  find_program(DPKG_PROGRAM dpkg)
-  if (EXISTS ${DPKG_PROGRAM})
-    list (APPEND CPACK_GENERATOR "DEB")
-  endif()
-endif()
-if (${OS} STREQUAL "posix")
-	set(CPACK_SET_DESTDIR "ON")
+	find_program(DPKG_PROGRAM dpkg)
+	if (EXISTS ${DPKG_PROGRAM})
+		list (APPEND CPACK_GENERATOR "DEB")
+	endif()
 endif()
 include(CPack)
 
