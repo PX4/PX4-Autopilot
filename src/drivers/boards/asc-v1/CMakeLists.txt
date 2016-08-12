@@ -38,7 +38,6 @@ px4_add_module(
 	SRCS
 		../common/board_name.c
 		asc_init.c
-		asc_pwr.c
 		asc_timer_config.c
 		asc_spi.c
 		asc_usb.c
