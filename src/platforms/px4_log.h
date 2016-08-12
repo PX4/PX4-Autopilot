@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include <systemlib/visibility.h>
+
 #define _PX4_LOG_LEVEL_ALWAYS		0
 #define _PX4_LOG_LEVEL_DEBUG		1
 #define _PX4_LOG_LEVEL_WARN		2
@@ -50,6 +52,14 @@ static inline void do_nothing(int level, ...)
 	(void)level;
 }
 
+__BEGIN_DECLS
+
+/**
+ * initialize the orb logging. Logging to console still works without or before calling this.
+ */
+__EXPORT extern void px4_log_initialize(void);
+
+__END_DECLS
 
 /****************************************************************************
  * __px4_log_omit:
@@ -127,11 +137,6 @@ static inline void do_nothing(int level, ...)
 #include <px4_defines.h>
 
 __BEGIN_DECLS
-
-/**
- * initialize the orb logging. Logging to console still works without or before calling this.
- */
-__EXPORT extern void px4_log_initialize(void);
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
