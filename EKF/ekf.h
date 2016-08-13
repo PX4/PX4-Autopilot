@@ -117,6 +117,10 @@ public:
 
 	void get_pos_var(Vector3f &pos_var);
 
+	// return an array containing the output predictor angular, velocity and position tracking
+	// error magnitudes (rad), (m/s), (m)
+	void get_output_tracking_error(float error[3]);
+
 	// return true if the global position estimate is valid
 	bool global_position_is_valid();
 
@@ -246,6 +250,7 @@ private:
 	Quaternion _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
 	Vector3f _vel_err_integ;	// integral of velocity tracking error
 	Vector3f _pos_err_integ;	// integral of position tracking error
+	float _output_tracking_error[3];// contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	// variables used for the GPS quality checks
 	float _gpsDriftVelN;		// GPS north position derivative (m/s)

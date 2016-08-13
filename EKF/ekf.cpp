@@ -631,17 +631,24 @@ void Ekf::calculateOutputStates()
 		// that will cause the INS to track the EKF quaternions
 		_delta_angle_corr = delta_ang_error * att_gain;
 
-		// calculate a position correction that will be applied to the output state history
-		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
+		// calculate velocity and position tracking errors
+		Vector3f vel_err = (_state.vel - _output_sample_delayed.vel);
 		Vector3f pos_err = (_state.pos - _output_sample_delayed.pos);
-		_pos_err_integ += pos_err;
-		Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
+
+		// collect magnitude tracking error for diagnostics
+		_output_tracking_error[0] = delta_ang_error.norm();
+		_output_tracking_error[1] = vel_err.norm();
+		_output_tracking_error[2] = pos_err.norm();
 
 		// calculate a velocity correction that will be applied to the output state history
 		float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
-		Vector3f vel_err = (_state.vel - _output_sample_delayed.vel);
 		_vel_err_integ += vel_err;
-		Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(pos_gain) * 0.1f;
+		Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
+
+		// calculate a position correction that will be applied to the output state history
+		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
+		_pos_err_integ += pos_err;
+		Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
 
 		// loop through the output filter state history and apply the corrections to the velocity and position states
 		// this method is too expensive to use for the attitude states due to the quaternion operations required
