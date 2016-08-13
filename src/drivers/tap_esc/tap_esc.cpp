@@ -97,6 +97,7 @@ private:
 
 	static const uint8_t crcTable[256];
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
+	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 
 	bool _is_armed;
 
@@ -149,6 +150,7 @@ private:
 
 const uint8_t TAP_ESC::crcTable[256] = TAP_ESC_CRC;
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 actuator_armed_s TAP_ESC::_armed = {};
 
@@ -245,7 +247,9 @@ TAP_ESC::init()
 
 	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
 		config.channelMapTable[phy_chan_index] = device_mux_map[phy_chan_index] &
-				ESC_CHANNEL_MAP_CHANNEL; // Use ESC_CHANNEL_MAP_RUNNING_DIRECTION;
+				ESC_CHANNEL_MAP_CHANNEL;
+		config.channelMapTable[phy_chan_index] |= (device_dir_map[phy_chan_index] << 4) &
+				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
 	}
 
 	config.maxChannelValue = RPMMAX;
