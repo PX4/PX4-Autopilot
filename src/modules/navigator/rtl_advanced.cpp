@@ -136,11 +136,27 @@ void RTLAdvanced::setpoint_from_xyz(position_setpoint_s &sp, float x, float y, f
 }
 
 
+float RTLAdvanced::distance_to_setpoint(position_setpoint_s &sp) {
+	float x1, y1, z1;
+	globallocalconverter_tolocal(sp.lat, sp.lon, sp.alt, &x1, &y1, &z1);
+	float x2, y2, z2;
+	globallocalconverter_tolocal(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, _navigator->get_global_position()->alt, &x2, &y2, &z2);
+	x1 -= x2;
+	y1 -= y2;
+	z1 -= z2;
+	return sqrt(x1 * x1 + y1 * y1 + z1 * z1);
+}
+
+
 void RTLAdvanced::dump_setpoint(const char *name, position_setpoint_s &sp, bool local) {
-	if (local)
-		TRACKER_DBG("%s setpoint is (%f, %f, %f), %s", name, sp.x, sp.y, sp.z, sp.valid ? "valid" : "invalid");
-	else
-		TRACKER_DBG("%s setpoint is (%lf, %lf, %f), %s", name, sp.lat, sp.lon, sp.alt, sp.valid ? "valid" : "invalid");
+	float x = sp.x;
+	float y = sp.y;
+	float z = sp.z;
+
+	if (!local)
+		globallocalconverter_tolocal(sp.lat, sp.lon, sp.alt, &x, &y, &z);
+
+	TRACKER_DBG("%s setpoint is (%f, %f, %f), distance %f, %s", name, x, y, z, distance_to_setpoint(sp), sp.valid ? "valid" : "invalid");
 }
 
 
@@ -157,7 +173,7 @@ bool RTLAdvanced::advance_setpoint_triplet(position_setpoint_triplet_s *pos_sp_t
 
 	// Load next setpoint
 	float x, y, z;
-	if ((pos_sp_triplet->next.valid = _tracker->init_return_path(next_return_context, x, y, z)))
+	if ((pos_sp_triplet->next.valid = _tracker->advance_return_path(next_return_context, x, y, z)))
 		setpoint_from_xyz(pos_sp_triplet->next, x, y, z);
 	
 	// Apply updated setpoint triplet

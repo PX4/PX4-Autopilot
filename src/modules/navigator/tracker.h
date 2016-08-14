@@ -326,7 +326,7 @@ private:
     void get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end_pos, size_t &end_index, bool &is_jump, size_t bound);
 
     // Optimizes memory usage of the most recent positions in the graph.
-    void consolidate_graph();
+    void consolidate_graph(const char *reason);
 
     // Makes sure that the meaning of the specified index does not change unless the graph version is incremented.
     inline size_t pin_index(size_t index) { pinned_index = index > pinned_index ? index : pinned_index; return index; }
@@ -385,6 +385,7 @@ private:
     bool recent_path_tracking_enabled = true;
     bool graph_tracking_enabled = true;
 
+    fpos_t last_known_position = { .x = 0, .y = 0, .z = 0 }; 
     
     // The most recent position in the recent path. The absolute positions in the path can be calculated based on this. 
     // If tracking has not yet started (that is, if the path is empty), this is invalid.

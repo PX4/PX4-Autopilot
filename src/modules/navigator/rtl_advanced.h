@@ -33,6 +33,9 @@ private:
 	// Updates the deadline from the current time and parameters.
 	void update_deadline();
 
+	// Returns the current distance to a setpoint
+	float distance_to_setpoint(position_setpoint_s &sp);
+
 	// Prints information about the specified setpoint
 	void dump_setpoint(const char *name, position_setpoint_s &sp, bool local);
 
