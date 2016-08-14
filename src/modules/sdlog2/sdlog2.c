@@ -2172,6 +2172,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_INO1.s[i] = buf.innovations.vel_pos_innov[i];
 					log_msg.body.log_INO1.s[i + 6] = buf.innovations.vel_pos_innov_var[i];
 				}
+				for (unsigned i = 0; i < 3; i++) {
+					log_msg.body.log_INO1.s[i + 12] = buf.innovations.output_tracking_error[i];
+				}
 				LOGBUFFER_WRITE_AND_COUNT(EST4);
 
 				log_msg.msg_type = LOG_EST5_MSG;
