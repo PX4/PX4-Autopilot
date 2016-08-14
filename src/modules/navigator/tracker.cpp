@@ -222,7 +222,7 @@ void Tracker::set_home(float x, float y, float z) {
         nodes[i].distance = MAX_DISTANCE;
     }
 
-    consolidate_graph();
+    consolidate_graph("new home position");
 
     did_set_home = true;
 
@@ -230,17 +230,17 @@ void Tracker::set_home(float x, float y, float z) {
 }
 
 void Tracker::update(float x, float y, float z) {
-    fpos_t local_position = {
+    last_known_position = {
         .x = x,
         .y = y,
         .z = z
     };
     
     if (recent_path_tracking_enabled)
-        push_recent_path(local_position);
+        push_recent_path(last_known_position);
 
     if (graph_tracking_enabled)
-        push_graph(local_position);
+        push_graph(last_known_position);
 
     if (!did_set_home)
         set_home(x, y, z);
@@ -364,6 +364,8 @@ void Tracker::push_graph(fpos_t &position) {
             return;
     }
 
+    TRACKER_DBG("tracker got pos %d %d %d", new_pos.x, new_pos.y, new_pos.z);
+
     // Don't update if the graph is full
     if (graph_next_write + FAR_DELTA_SIZE <= GRAPH_LENGTH) {
         if (!graph_next_write) {
@@ -375,10 +377,10 @@ void Tracker::push_graph(fpos_t &position) {
         graph_head_pos = new_pos;
         
         if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEPT)
-            consolidate_graph();
+            consolidate_graph("too many unconsolidated positions");
     } else {
         // todo: cleanup-pass
-        consolidate_graph();
+        consolidate_graph("reached memory limit");
     }
 }
 
@@ -401,8 +403,9 @@ bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_spac
         if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
             PX4_ERR("delta overflow in tracker");
 
+        TRACKER_DBG("    write %04x for y", (int)((delta.y & 0x7FFF) | (jump ? 0x8000 : 0)));
         graph[index++] = (delta.x & 0x7FFF) | 0x8000;
-        graph[index++] = (delta.y & 0x7FFF) | jump ? 0x8000 : 0;
+        graph[index++] = (delta.y & 0x7FFF) | (jump ? 0x8000 : 0);
         graph[index++] = (delta.z & 0x7FFF) | 0x8000;
 
     } else {
@@ -616,12 +619,14 @@ bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size
 void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end_pos, size_t &end_index, bool &is_jump, size_t bound) {
     ipos_t next_end_pos = start_pos;
     size_t next_end_index = start_index;
+    bool next_is_jump = is_jump;
 
     do {
         end_index = next_end_index;
         end_pos = next_end_pos;
-        next_end_pos += walk_forward(next_end_index, is_jump);
-    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, is_jump) && next_end_index <= bound);
+        is_jump = next_is_jump;
+        next_end_pos += walk_forward(next_end_index, next_is_jump);
+    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, next_is_jump) && next_end_index <= bound);
 }
 
 
@@ -630,12 +635,13 @@ void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end
 //  2. If multiple consecutive positions lie close to the graph, they are removed and replaced by a jump.
 //  3. For lines that pass close to each other, a node is created.
 // The entire tracker is guaranteed to remain consistent, however exposed indices may become invalid.
-void Tracker::consolidate_graph() {
-    TRACKER_DBG("consolidating graph from %zu to %zu", consolidated_head_index, graph_next_write - 1);
-
+void Tracker::consolidate_graph(const char *reason) {
     // Abort if the graph is empty
     if (!graph_next_write)
         return;
+
+    TRACKER_DBG("consolidating graph from %zu to %zu: %s", consolidated_head_index, graph_next_write - 1, reason);
+    dump_graph();
 
     // Remove any nodes that refer to the area that will be modified.
     // Any nodes for that area will be newly created anyway.
@@ -659,6 +665,7 @@ void Tracker::consolidate_graph() {
         // Push the line delta ONLY if it uses less space than the original deltas
         if (push_delta(write_index, line_end_pos - pos, is_jump, line_end_index - read_index)) {
             TRACKER_DBG("  aggeregated %zu to %zu into line %zu", read_index, line_end_index, write_index - 1);
+            TRACKER_DBG("    from %d %d %d to %d %d %d, %s", pos.x, pos.y, pos.z, line_end_pos.x, line_end_pos.y, line_end_pos.z, is_jump ? "is jump" : "no jump");
             read_index = line_end_index;
         }
 
@@ -673,7 +680,7 @@ void Tracker::consolidate_graph() {
 
 
     /*** Pass 2: remove positions that are already in the graph ***/
-
+/*
     pos = consolidated_head_pos;
     read_index = consolidated_head_index;
     write_index = read_index + 1;
@@ -721,7 +728,7 @@ void Tracker::consolidate_graph() {
     }
 
     graph_next_write = write_index;
-
+*/
 
     /*** Pass 3: detect nodes ***/
 
@@ -1163,7 +1170,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
 
 bool Tracker::init_return_path(path_finding_context_t &context, float &x, float &y, float &z) {
     // We prefer that the index we're about to expose remains valid, so we consolidate the graph first
-    consolidate_graph();
+    consolidate_graph("init return path");
 
     if (!graph_next_write)
         return false;
@@ -1191,7 +1198,7 @@ bool Tracker::init_return_path(path_finding_context_t &context, float &x, float 
 bool Tracker::advance_return_path(path_finding_context_t &context, float &x, float &y, float &z) {
     // If the graph version changed, we need to sanitize the path finding context
     if (context.graph_version != graph_version) {
-        consolidate_graph(); // We need to make sure that consolidation is complete before continuing
+        consolidate_graph("advance return path with invalid index"); // We need to make sure that consolidation is complete before continuing
         context.current_pos = get_closest_position(context.current_pos, context.current_index, context.current_coef);
         context.checkpoint_index = context.current_index;
         context.checkpoint_coef = context.current_coef;
@@ -1216,7 +1223,11 @@ bool Tracker::advance_return_path(path_finding_context_t &context, float &x, flo
 }
 
 bool Tracker::is_context_close_to_head(path_finding_context_t &context) {
-    ipos_t delta = context.current_pos - graph_head_pos;
+    ipos_t delta = context.current_pos - to_ipos(last_known_position);
+    /*TRACKER_DBG("context (%d %d %d) to head (%d %d %d) is sqrt(%d)",
+        context.current_pos.x, context.current_pos.y, context.current_pos.z,
+        graph_head_pos.x, graph_head_pos.y, graph_head_pos.z,
+        dot(delta));*/
     return dot(delta) <= get_accuracy_at(context.current_pos);
 }
 
