@@ -55,6 +55,10 @@
 #include "up_arch.h"
 #include "stm32.h"
 #include "board_config.h"
+#include "stm32_otgfs.h"
+
+#define GPIO_DP (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN12)
+
 
 /************************************************************************************
  * Definitions
@@ -78,13 +82,31 @@
 
 __EXPORT void stm32_usbinitialize(void)
 {
-	/* The OTG FS has an internal soft pull-up */
+	/* The OTG FS has an internal soft pull-up.
+	 * The HW also has one too. So we need to overcome it.
+	 * to force a soft disconnect.
+	 */
 
-	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
+	/* Issue the Reset to the OTGFS Block */
 
-#ifdef CONFIG_STM32_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
-#endif
+	uint32_t regval = getreg32(STM32_RCC_AHB2RSTR);
+	regval |= RCC_AHB2RSTR_OTGFSRST;
+	putreg32(regval, STM32_RCC_AHB2RSTR);
+
+	/* Drive the DP Pin Low */
+
+	stm32_configgpio(GPIO_DP);
+
+	/* Release the Reset to the OTGFS Block */
+
+	regval &= ~RCC_AHB2RSTR_OTGFSRST;
+
+	putreg32(regval, STM32_RCC_AHB2RSTR);
+
+
+	/* Configure the OTG FS VBUS sensing GPIO */
+
+	px4_arch_configgpio(GPIO_OTGFS_VBUS);
 }
 
 /************************************************************************************

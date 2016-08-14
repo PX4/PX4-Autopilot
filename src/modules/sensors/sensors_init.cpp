@@ -91,24 +91,25 @@ int
 sensors_init(void)
 {
 	int ret;
+	int ret_combined = 0;
 
 	ret = accel_init();
 
-	if (ret) { return ret; }
+	if (ret) { ret_combined = ret; }
 
 	ret = gyro_init();
 
-	if (ret) { return ret; }
+	if (ret) { ret_combined = ret; }
 
 	ret = mag_init();
 
-	if (ret) { return ret; }
+	if (ret) { ret_combined = ret; }
 
 	ret = baro_init();
 
-	if (ret) { return ret; }
+	if (ret) { ret_combined = ret; }
 
-	return 0;
+	return ret_combined;
 }
 
 

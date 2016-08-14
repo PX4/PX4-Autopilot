@@ -16,11 +16,6 @@ if hmc5883 -C -T -X start
 then
 fi
 
-# Internal SPI bus is rotated 90 deg yaw
-if hmc5883 -C -T -S -R 2 start
-then
-fi
-
 # Internal I2C bus Rotation TBD
 if mpu6000 -I -T 6000 start
 then

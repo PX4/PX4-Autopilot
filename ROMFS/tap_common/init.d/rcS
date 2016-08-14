@@ -6,12 +6,12 @@
 #
 
 # Serial map:
-# /dev/ttyS0: payload bay, e.g. gimbal
-# /dev/ttyS1: ?
-# /dev/ttyS2: nsh shell
-# /dev/ttyS3: ?
+# /dev/ttyS0: GPS
+# /dev/ttyS1: GB
+# /dev/ttyS2: nsh shell / console
+# /dev/ttyS3: payload
 # /dev/ttyS4: esc bus
-# /dev/ttyS5: ?
+# /dev/ttyS5: RC input
 
 #
 # Start CDC/ACM serial driver
@@ -76,6 +76,15 @@ then
 fi
 
 #
+# Set parameters and env variables for selected AUTOSTART
+#
+if param compare SYS_AUTOSTART 0
+then
+	param set SYS_AUTOSTART 6001
+	param set SYS_AUTOCONFIG 1
+fi
+
+#
 # Set AUTOCNF flag to use it in AUTOSTART scripts
 #
 if param compare SYS_AUTOCONFIG 1
@@ -99,19 +108,8 @@ set PWM_DISARMED none
 set PWM_MIN none
 set PWM_MAX none
 set FMU_MODE pwm
-set MAVLINK_F default
-set EXIT_ON_END no
 set MAV_TYPE none
 set FAILSAFE none
-set USE_IO no
-
-#
-# Set parameters and env variables for selected AUTOSTART
-#
-if param compare SYS_AUTOSTART 0
-then
-	param set SYS_AUTOSTART 6001
-fi
 
 # Start canned airframe config
 sh /etc/init.d/rc.autostart
@@ -161,9 +159,6 @@ load_mon start
 
 # Start MAVLink on the gimbal port
 mavlink start -r 1200 -d /dev/ttyS1
-
-# Start MAVLink on USB, developers can use the MAVLink shell
-mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 
 #
 # Logging
@@ -328,9 +323,18 @@ unset MAV_TYPE
 unset OUTPUT_MODE
 
 #
+# Start the RC input driver
+#
+if fmu mode_rcin
+then
+fi
+
+#
 # Start the navigator
 #
-navigator start
+if navigator start
+then
+fi
 
 #
 # Generic setup (autostart ID not found)
@@ -353,5 +357,9 @@ unset FEXTRAS
 # XXX potentially unset all script variables.
 unset TUNE_ERR
 
+# Start MAVLink on USB, developers can use the MAVLink shell
+mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+echo "[boot complete]"
