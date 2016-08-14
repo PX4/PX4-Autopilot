@@ -914,6 +914,8 @@ void Ekf2::task_main()
 		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
 		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
+		_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+
 		if (_estimator_innovations_pub == nullptr) {
 			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 
