@@ -263,10 +263,14 @@ void Standard::update_transition_state()
 			// time based blending when no airspeed sensor is set
 
 		} else if (_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED &&
-			   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f)
+				(float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f) &&
+				(float)hrt_elapsed_time(&_vtol_schedule.transition_start) > ((_params_standard.front_trans_time_min / 2.0f) * 1000000.0f)
 			  ) {
-			float weight = 1.0f - (float)(hrt_elapsed_time(&_vtol_schedule.transition_start) /
-						      (_params_standard.front_trans_time_min * 1000000.0f));
+			float weight = 1.0f - ((float)(hrt_elapsed_time(&_vtol_schedule.transition_start) - ((_params_standard.front_trans_time_min / 2.0f) * 1000000.0f)) /
+							  ((_params_standard.front_trans_time_min / 2.0f) * 1000000.0f));
+
+			weight = math::constrain(weight, 0.0f, 1.0f);
+
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
