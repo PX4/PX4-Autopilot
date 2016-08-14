@@ -106,4 +106,8 @@ struct gyro_calibration_s {
 /** get the hardware low-pass filter cut-off in Hz*/
 #define GYROIOCGHWLOWPASS	_GYROIOC(10)
 
+/** determine if hardware is external or onboard */
+#define GYROIOCGEXTERNAL	_GYROIOC(12)
+
+
 #endif /* _DRV_GYRO_H */

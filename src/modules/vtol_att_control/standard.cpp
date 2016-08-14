@@ -146,9 +146,17 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// transition to mc mode
-			_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-			_flag_enable_mc_motors = true;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
+				// Failsafe event, engage mc motors immediately
+				_vtol_schedule.flight_mode = MC_MODE;
+				_flag_enable_mc_motors = true;
+
+			} else {
+				// Regular backtransition
+				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
+				_flag_enable_mc_motors = true;
+				_vtol_schedule.transition_start = hrt_absolute_time();
+			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
@@ -224,6 +232,8 @@ void Standard::update_vtol_state()
 
 void Standard::update_transition_state()
 {
+	VtolType::update_transition_state();
+
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
@@ -275,7 +285,7 @@ void Standard::update_transition_state()
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
 			if ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
 				// transition timeout occured, abort transition
-				_attc->abort_front_transition();
+				_attc->abort_front_transition("Transition timeout");
 			}
 		}
 
@@ -314,6 +324,13 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
+	// enable MC motors here in case we transitioned directly to MC mode
+	if (_flag_enable_mc_motors) {
+		set_max_mc(2000);
+		set_idle_mc();
+		_flag_enable_mc_motors = false;
+	}
+
 	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
 	if (_params_standard.forward_thrust_scale < FLT_EPSILON) {
 		return;
@@ -344,7 +361,8 @@ void Standard::update_mc_state()
 		// desired roll angle in heading frame stays the same
 		float roll_new = -atan2f(body_z_sp(1), body_z_sp(2));
 
-		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max)) * _v_att_sp->thrust;
+		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
+				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
 
 		// limit desired pitch
 		float pitch_new = -_params_standard.down_pitch_max;

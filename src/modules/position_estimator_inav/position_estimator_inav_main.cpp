@@ -151,7 +151,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
-					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5300,
+					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
 					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
 		return 0;
@@ -417,22 +417,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(&mavlink_log_pub, "[inav] poll error on init");
+
 		} else if (hrt_absolute_time() - baro_wait_for_sample_time > MAX_WAIT_FOR_BARO_SAMPLE) {
 			wait_baro = false;
 			mavlink_log_info(&mavlink_log_pub, "[inav] timed out waiting for a baro sample");
-		}
-		else if (ret > 0) {
+
+		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter[0])) {
-							baro_offset += sensor.baro_alt_meter[0];
+						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
+							baro_offset += sensor.baro_alt_meter;
 							baro_init_cnt++;
 						}
 
@@ -502,7 +503,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_timestamp[0] != accel_timestamp) {
+				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
@@ -524,13 +525,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(acc, 0, sizeof(acc));
 					}
 
-					accel_timestamp = sensor.accelerometer_timestamp[0];
+					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 					accel_updates++;
 				}
 
-				if (sensor.baro_timestamp[0] != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter[0] - z_est[0];
-					baro_timestamp = sensor.baro_timestamp[0];
+				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_updates++;
 				}
 			}
@@ -547,8 +548,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
 
-				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance && lidar.current_distance < lidar.max_distance
-			    		&& (PX4_R(att.R, 2, 2) > 0.7f)) {
+				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance
+				    && lidar.current_distance < lidar.max_distance
+				    && (PX4_R(att.R, 2, 2) > 0.7f)) {
 
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
@@ -584,6 +586,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						lidar_offset_count = 0;
 						lidar_valid_time = t;
 					}
+
 				} else {
 					lidar_valid = false;
 				}
@@ -654,16 +657,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
 					orb_check(vehicle_rate_sp_sub, &updated);
-					if (updated)
+
+					if (updated) {
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
+					}
 
 					float rate_threshold = 0.15f;
 
 					if (fabsf(rates_setpoint.pitch) < rate_threshold) {
 						//warnx("[inav] test ohne comp");
-						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
-					}
-					else {
+						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) *
+							      params.flow_k;//for now the flow has to be scaled (to small)
+
+					} else {
 						//warnx("[inav] test mit comp");
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
 						flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
@@ -671,9 +677,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					if (fabsf(rates_setpoint.roll) < rate_threshold) {
-						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
-					}
-					else {
+						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) *
+							      params.flow_k;//for now the flow has to be scaled (to small)
+
+					} else {
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
 						flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
@@ -681,13 +688,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* flow measurements vector */
 					float flow_m[3];
+
 					if (fabsf(rates_setpoint.yaw) < rate_threshold) {
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
+
 					} else {
 						flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
 						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					}
+
 					flow_m[2] = z_est[1];
 
 					/* velocity in NED */
@@ -769,8 +779,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					static hrt_abstime last_vision_time = 0;
 
-					float vision_dt = (vision.timestamp_boot - last_vision_time) / 1e6f;
-					last_vision_time = vision.timestamp_boot;
+					float vision_dt = (vision.timestamp - last_vision_time) / 1e6f;
+					last_vision_time = vision.timestamp;
 
 					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
 						vision.vx = (vision.x - last_vision_x) / vision_dt;
@@ -951,14 +961,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (vision.timestamp_boot + vision_topic_timeout))) {
+		if (vision_valid && (t > (vision.timestamp + vision_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] VISION timeout");
 		}
 
 		/* check for timeout on mocap topic */
-		if (mocap_valid && (t > (mocap.timestamp_boot + mocap_topic_timeout))) {
+		if (mocap_valid && (t > (mocap.timestamp + mocap_topic_timeout))) {
 			mocap_valid = false;
 			warnx("MOCAP timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP timeout");
@@ -999,7 +1009,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
 		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
+		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W
+				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used
 			use_mocap = false;
@@ -1119,6 +1130,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_lidar) {
 			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
+
 		} else {
 			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 		}
@@ -1362,7 +1374,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.terrain_alt_valid = false;
 				}
 
-				global_pos.pressure_alt = sensor.baro_alt_meter[0];
+				global_pos.pressure_alt = sensor.baro_alt_meter;
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

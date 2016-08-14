@@ -52,6 +52,10 @@ class FollowTarget : public MissionBlock
 
 public:
 	FollowTarget(Navigator *navigator, const char *name);
+
+	FollowTarget(const FollowTarget &) = delete;
+	FollowTarget &operator=(const FollowTarget &) = delete;
+
 	~FollowTarget();
 
 	void on_inactive() override;

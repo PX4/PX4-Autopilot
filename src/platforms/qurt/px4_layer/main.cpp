@@ -216,7 +216,7 @@ int dspal_entry(int argc, char *argv[])
 	init_app_map(apps);
 	DriverFramework::Framework::initialize();
 	px4::init_once();
-	px4::init(argc, (char **)argv, "mainapp");
+	px4::init(argc, (char **)argv, "px4");
 	process_commands(apps, get_commands());
 	sleep(1); // give time for all commands to execute before starting external function
 

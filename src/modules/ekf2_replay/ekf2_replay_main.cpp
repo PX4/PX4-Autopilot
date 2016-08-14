@@ -377,20 +377,20 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		uint8_t *dest_ptr = (uint8_t *)&replay_part1.time_ref;
 		parseMessage(data, dest_ptr, type);
 		_sensors.timestamp = replay_part1.time_ref;
-		_sensors.gyro_integral_dt[0] = replay_part1.gyro_integral_dt;
-		_sensors.accelerometer_integral_dt[0] = replay_part1.accelerometer_integral_dt;
-		_sensors.magnetometer_timestamp[0] = replay_part1.magnetometer_timestamp;
-		_sensors.baro_timestamp[0] = replay_part1.baro_timestamp;
-		_sensors.gyro_integral_rad[0] = replay_part1.gyro_integral_x_rad;
-		_sensors.gyro_integral_rad[1] = replay_part1.gyro_integral_y_rad;
-		_sensors.gyro_integral_rad[2] = replay_part1.gyro_integral_z_rad;
-		_sensors.accelerometer_integral_m_s[0] = replay_part1.accelerometer_integral_x_m_s;
-		_sensors.accelerometer_integral_m_s[1] = replay_part1.accelerometer_integral_y_m_s;
-		_sensors.accelerometer_integral_m_s[2] = replay_part1.accelerometer_integral_z_m_s;
+		_sensors.gyro_integral_dt = replay_part1.gyro_integral_dt;
+		_sensors.accelerometer_integral_dt = replay_part1.accelerometer_integral_dt;
+		_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
+		_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+		_sensors.gyro_rad[0] = replay_part1.gyro_x_rad;
+		_sensors.gyro_rad[1] = replay_part1.gyro_y_rad;
+		_sensors.gyro_rad[2] = replay_part1.gyro_z_rad;
+		_sensors.accelerometer_m_s2[0] = replay_part1.accelerometer_x_m_s2;
+		_sensors.accelerometer_m_s2[1] = replay_part1.accelerometer_y_m_s2;
+		_sensors.accelerometer_m_s2[2] = replay_part1.accelerometer_z_m_s2;
 		_sensors.magnetometer_ga[0] = replay_part1.magnetometer_x_ga;
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;
-		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
+		_sensors.baro_alt_meter = replay_part1.baro_alt_meter;
 		_part1_counter_ref = _message_counter;
 
 	} else if (type == LOG_RPL2_MSG) {
@@ -429,6 +429,10 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		parseMessage(data, dest_ptr, type);
 		_range.timestamp = replay_part4.time_rng_usec;
 		_range.current_distance = replay_part4.range_to_ground;
+		_range.covariance = 0.0f;
+		// magic values
+		_range.min_distance = 0.05f;
+		_range.max_distance = 30.0f;
 		_read_part4 = true;
 
 	} else if (type == LOG_RPL6_MSG) {
@@ -443,7 +447,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
 		parseMessage(data, dest_ptr, type);
 		_ev.timestamp = replay_part5.time_ev_usec;
-		_ev.timestamp_computer = replay_part5.time_ev_usec; // fake this timestamp
+		_ev.timestamp_received = replay_part5.time_ev_usec; // fake this timestamp
 		_ev.x = replay_part5.x;
 		_ev.y = replay_part5.y;
 		_ev.z = replay_part5.z;

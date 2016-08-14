@@ -19,7 +19,6 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
@@ -29,12 +28,14 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 using namespace matrix;
 using namespace control;
 
-static const float GPS_DELAY_MAX = 0.5; // seconds
-static const float HIST_STEP = 0.05; // 20 hz
+static const float GPS_DELAY_MAX = 0.5f; // seconds
+static const float HIST_STEP = 0.05f; // 20 hz
+static const float BIAS_MAX = 1e-1f;
 static const size_t HIST_LEN = 10; // GPS_DELAY_MAX / HIST_STEP;
 static const size_t N_DIST_SUBS = 4;
 
@@ -134,6 +135,10 @@ public:
 
 	BlockLocalPositionEstimator();
 	void update();
+	Vector<float, n_x> dynamics(
+		float t,
+		const Vector<float, n_x> &x,
+		const Vector<float, n_u> &u);
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -144,6 +149,9 @@ private:
 	// methods
 	// ----------------------------
 	void initP();
+	void initSS();
+	void updateSSStates();
+	void updateSSParams();
 
 	// predict the next state
 	void predict();
@@ -195,8 +203,8 @@ private:
 
 	// misc
 	float agl();
+	void correctionLogic(Vector<float, n_x> &dx);
 	void detectDistanceSensors();
-	void updateHome();
 
 	// publications
 	void publishLocalPos();
@@ -207,16 +215,12 @@ private:
 	// ----------------------------
 
 	// subscriptions
-	uORB::Subscription<vehicle_status_s> _sub_status;
 	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
-	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
@@ -232,12 +236,14 @@ private:
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
+	uORB::Publication<ekf2_innovations_s> _pub_innov;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
 
 	// general parameters
-	BlockParamInt  _integrate;
+	BlockParamFloat  _xy_pub_thresh;
+	BlockParamFloat  _z_pub_thresh;
 
 	// sonar parameters
 	BlockParamFloat  _sonar_z_stddev;
@@ -283,11 +289,11 @@ private:
 	BlockParamFloat  _pn_p_noise_density;
 	BlockParamFloat  _pn_v_noise_density;
 	BlockParamFloat  _pn_b_noise_density;
-	BlockParamFloat  _pn_t_noise_density;
+	BlockParamFloat  _t_max_grade;
 
-	// init home
-	BlockParamFloat  _init_home_lat;
-	BlockParamFloat  _init_home_lon;
+	// init origin
+	BlockParamFloat  _init_origin_lat;
+	BlockParamFloat  _init_origin_lon;
 
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
@@ -301,6 +307,10 @@ private:
 	BlockStats<float, n_y_vision> _visionStats;
 	BlockStats<float, n_y_mocap> _mocapStats;
 	BlockStats<double, n_y_gps> _gpsStats;
+
+	// low pass
+	BlockLowPassVector<float, n_x> _xLowPass;
+	BlockLowPass _aglLowPass;
 
 	// delay blocks
 	BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
@@ -333,12 +343,12 @@ private:
 	bool _mocapInitialized;
 
 	// reference altitudes
-	float _altHome;
-	bool _altHomeInitialized;
-	float _baroAltHome;
-	float _gpsAltHome;
-	Vector3f _visionHome;
-	Vector3f _mocapHome;
+	float _altOrigin;
+	bool _altOriginInitialized;
+	float _baroAltOrigin;
+	float _gpsAltOrigin;
+	Vector3f _visionOrigin;
+	Vector3f _mocapOrigin;
 
 	// flow integration
 	float _flowX;
@@ -346,9 +356,9 @@ private:
 	float _flowMeanQual;
 
 	// status
-	bool _canEstimateXY;
-	bool _canEstimateZ;
-	bool _canEstimateT;
+	bool _validXY;
+	bool _validZ;
+	bool _validTZ;
 	bool _xyTimeout;
 	bool _zTimeout;
 	bool _tzTimeout;
@@ -372,4 +382,8 @@ private:
 	Vector<float, n_x>  _x; // state vector
 	Vector<float, n_u>  _u; // input vector
 	Matrix<float, n_x, n_x>  _P; // state covariance matrix
+	Matrix<float, n_x, n_x>  _A; // dynamics matrix
+	Matrix<float, n_x, n_u>  _B; // input matrix
+	Matrix<float, n_u, n_u>  _R; // input covariance
+	Matrix<float, n_x, n_x>  _Q; // process noise covariance
 };

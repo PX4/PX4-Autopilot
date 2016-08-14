@@ -125,6 +125,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
+	_gps_inject_data_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -143,9 +144,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_pos{},
 	_mom_switch_state(0)
 {
-	for (int i = 0; i < _gps_inject_data_pub_size; ++i) {
-		_gps_inject_data_pub[i] = nullptr;
-	}
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -261,6 +259,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_BATTERY_STATUS:
 		handle_message_battery_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_SERIAL_CONTROL:
+		handle_message_serial_control(msg);
 		break;
 
 	default:
@@ -677,14 +679,13 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct att_pos_mocap_s att_pos_mocap;
-	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
+	struct att_pos_mocap_s att_pos_mocap = {};
 
 	// Use the component ID to identify the mocap system
 	att_pos_mocap.id = msg->compid;
 
-	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
-	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+	att_pos_mocap.timestamp = sync_stamp(mocap.time_usec);
+	att_pos_mocap.timestamp_received = hrt_absolute_time();
 
 	att_pos_mocap.q[0] = mocap.q[0];
 	att_pos_mocap.q[1] = mocap.q[1];
@@ -957,14 +958,13 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate_s vision_position;
-	memset(&vision_position, 0, sizeof(vision_position));
+	struct vision_position_estimate_s vision_position = {};
 
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time(); // Monotonic time
-	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
+	vision_position.timestamp = sync_stamp(pos.usec);
+	vision_position.timestamp_received = hrt_absolute_time();
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -1190,6 +1190,32 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
+{
+	mavlink_serial_control_t serial_control_mavlink;
+	mavlink_msg_serial_control_decode(msg, &serial_control_mavlink);
+
+	// we only support shell commands
+	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL
+			|| (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
+		return;
+	}
+
+	MavlinkShell* shell = _mavlink->get_shell();
+	if (shell) {
+		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
+		if (serial_control_mavlink.count > 0) {
+			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
+		}
+
+		// if no response requested, assume the shell is no longer used
+		if ((serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_RESPOND) == 0) {
+			_mavlink->close_shell();
+		}
 	}
 }
 
@@ -1673,62 +1699,32 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		struct sensor_combined_s hil_sensors = {};
 
+		hil_sensors.gyro_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]);
+		hil_sensors.gyro_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]);
+		hil_sensors.gyro_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]);
+		_hil_prev_gyro[0] = imu.xgyro;
+		_hil_prev_gyro[1] = imu.ygyro;
+		_hil_prev_gyro[2] = imu.zgyro;
+		hil_sensors.gyro_integral_dt = dt;
 		hil_sensors.timestamp = timestamp;
 
-		hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
-		hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
-		hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
-		hil_sensors.gyro_rad_s[0] = imu.xgyro;
-		hil_sensors.gyro_rad_s[1] = imu.ygyro;
-		hil_sensors.gyro_rad_s[2] = imu.zgyro;
-		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
-		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
-		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
-		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_rad_s[0], sizeof(_hil_prev_gyro));
-		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
-		hil_sensors.gyro_timestamp[0] = timestamp;
-		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
+		hil_sensors.accelerometer_m_s2[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]);
+		hil_sensors.accelerometer_m_s2[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]);
+		hil_sensors.accelerometer_m_s2[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]);
+		_hil_prev_accel[0] = imu.xacc;
+		_hil_prev_accel[1] = imu.yacc;
+		_hil_prev_accel[2] = imu.zacc;
+		hil_sensors.accelerometer_integral_dt = dt;
+		hil_sensors.accelerometer_timestamp_relative = 0;
 
-		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
-		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
-		hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
-		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
-		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
-		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
-		hil_sensors.accelerometer_integral_m_s[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]) * dt;
-		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_m_s2[0], sizeof(_hil_prev_accel));
-		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
-		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
-		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
-		hil_sensors.accelerometer_timestamp[0] = timestamp;
-		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
-
-		hil_sensors.adc_voltage_v[0] = 0.0f;
-		hil_sensors.adc_voltage_v[1] = 0.0f;
-		hil_sensors.adc_voltage_v[2] = 0.0f;
-
-		hil_sensors.magnetometer_raw[0] = imu.xmag * 1000.0f;
-		hil_sensors.magnetometer_raw[1] = imu.ymag * 1000.0f;
-		hil_sensors.magnetometer_raw[2] = imu.zmag * 1000.0f;
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_range_ga[0] = 32.7f; // int16
-		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
-		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
-		hil_sensors.magnetometer_timestamp[0] = timestamp;
-		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
+		hil_sensors.magnetometer_timestamp_relative = 0;
 
-		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
-		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius[0] = imu.temperature;
-		hil_sensors.baro_timestamp[0] = timestamp;
-
-		hil_sensors.differential_pressure_pa[0] = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_filtered_pa[0] = hil_sensors.differential_pressure_pa[0];
-		hil_sensors.differential_pressure_timestamp[0] = timestamp;
+		hil_sensors.baro_alt_meter = imu.pressure_alt;
+		hil_sensors.baro_temp_celcius = imu.temperature;
+		hil_sensors.baro_timestamp_relative = 0;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
@@ -1789,7 +1785,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
 	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
 
-	hil_gps.s_variance_m_s = 5.0f;
+	hil_gps.s_variance_m_s = 1.0f;
 
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
 	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
@@ -1875,18 +1871,15 @@ void MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
 	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_rtcm_data_msg.len));
 
-	orb_advert_t &pub = _gps_inject_data_pub[_gps_inject_data_next_idx];
+	orb_advert_t &pub = _gps_inject_data_pub;
 
 	if (pub == nullptr) {
-		int idx = _gps_inject_data_next_idx;
-		pub = orb_advertise_multi(ORB_ID(gps_inject_data), &gps_inject_data_topic,
-					  &idx, ORB_PRIO_DEFAULT);
+		pub = orb_advertise_queue(ORB_ID(gps_inject_data), &gps_inject_data_topic,
+					  _gps_inject_data_queue_size);
 
 	} else {
 		orb_publish(ORB_ID(gps_inject_data), pub, &gps_inject_data_topic);
 	}
-
-	_gps_inject_data_next_idx = (_gps_inject_data_next_idx + 1) % _gps_inject_data_pub_size;
 
 }
 
@@ -2207,8 +2200,9 @@ void MavlinkReceiver::print_status()
 
 uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 {
-	if (_time_offset > 0) {
-		return usec - (_time_offset / 1000) ;
+
+	if (_time_offset != 0) {
+		return usec + (_time_offset / 1000) ;
 
 	} else {
 		return hrt_absolute_time();

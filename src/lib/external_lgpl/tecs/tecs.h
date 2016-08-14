@@ -66,6 +66,8 @@ public:
 		_TASmin(3.0f),
 		_TAS_dem(0.0f),
 		_TAS_dem_last(0.0f),
+		_EAS_dem(0.0f),
+		_hgt_dem(0.0f),
 		_hgt_dem_in_old(0.0f),
 		_hgt_dem_adj(0.0f),
 		_hgt_dem_adj_last(0.0f),

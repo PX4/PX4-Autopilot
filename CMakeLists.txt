@@ -132,7 +132,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(CMAKE_BUILD_TYPE "" CACHE STRING "build type")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 	STRINGS ";Debug;Release;RelWithDebInfo;MinSizeRel")
-set(CONFIG "nuttx_px4fmu-v2_default" CACHE STRING "desired configuration")
+set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 set(THREADS "4" CACHE STRING
@@ -151,6 +151,17 @@ list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
 message(STATUS "${target_name}")
+
+# Define GNU standard installation directories
+include(GNUInstallDirs)
+
+# Setup install paths
+if(NOT CMAKE_INSTALL_PREFIX)
+	if (${OS} STREQUAL "posix")
+		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
+	endif()
+endif()
+message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 
 # switch to ros CMake file if building ros
 if (${OS} STREQUAL "ros")
@@ -202,7 +213,7 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 endif()
 
 set(version_major 1)
-set(version_minor 0)
+set(version_minor 4)
 set(version_patch 1)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
@@ -235,7 +246,7 @@ endforeach()
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
-px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
+px4_add_git_submodule(TARGET git_gtest PATH "unittests/gtest")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
@@ -371,10 +382,27 @@ px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
 #
 # Important to having packaging at end of cmake file.
 #
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
 set(CPACK_PACKAGE_VERSION ${version})
-set(CPACK_PACKAGE_CONTACT ${package_contact})
+set(CPACK_PACKAGE_CONTACT ${package-contact})
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(short-description "The px4 autopilot.")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${short-description})
 set(CPACK_GENERATOR "ZIP")
-set(CPACK_SOURCE_GENERATOR "ZIP")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${version}")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
+set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
+if ("${CMAKE_SYSTEM}" MATCHES "Linux")
+  find_program(DPKG_PROGRAM dpkg)
+  if (EXISTS ${DPKG_PROGRAM})
+    list (APPEND CPACK_GENERATOR "DEB")
+  endif()
+endif()
+if (${OS} STREQUAL "posix")
+	set(CPACK_SET_DESTDIR "ON")
+endif()
 include(CPack)
 
 endif() # ros alternative endif

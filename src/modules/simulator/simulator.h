@@ -55,6 +55,7 @@
 #include <systemlib/battery.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/distance_sensor.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 namespace simulator
@@ -238,6 +239,7 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
+		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_initialized(false)
 #ifndef __PX4_QURT
@@ -288,6 +290,7 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 
 	bool _initialized;
@@ -298,6 +301,7 @@ private:
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
+	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers

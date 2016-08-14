@@ -488,6 +488,7 @@ function(px4_add_upload)
 	if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 		list(APPEND serial_ports
 			/dev/serial/by-id/usb-3D_Robotics*
+			/dev/serial/by-id/usb-The_Autopilot*
 			/dev/serial/by-id/pci-3D_Robotics*
 			)
 	elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
@@ -787,6 +788,7 @@ function(px4_add_common_flags)
 	string(REPLACE "-" "_" board_config ${board_upper})
 	set(added_definitions
 		-DCONFIG_ARCH_BOARD_${board_config}
+		-D__STDC_FORMAT_MACROS
 		)
 
 	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))

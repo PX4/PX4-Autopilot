@@ -209,6 +209,9 @@ private:
 		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
 		float man_roll_max;				/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
+		float man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
+		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
+		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
 
 		float flaps_scale;				/**< Scale factor for flaps */
 		float flaperon_scale;			/**< Scale factor for flaperons */
@@ -257,6 +260,9 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+		param_t man_roll_scale;
+		param_t man_pitch_scale;
+		param_t man_yaw_scale;
 
 		param_t flaps_scale;
 		param_t flaperon_scale;
@@ -444,6 +450,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
+	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
+	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
 
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
 	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
@@ -532,6 +541,9 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+	param_get(_parameter_handles.man_roll_scale, &(_parameters.man_roll_scale));
+	param_get(_parameter_handles.man_pitch_scale, &(_parameters.man_pitch_scale));
+	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
@@ -963,129 +975,41 @@ FixedwingAttitudeControl::task_main()
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
 
-				/* Read attitude setpoint from uorb if
-				 * - velocity control or position control is enabled (pos controller is running)
-				 * - manual control is disabled (another app may send the setpoint, but it should
-				 *   for sure not be set from the remote control values)
-				 */
-				if (_vcontrol_mode.flag_control_auto_enabled ||
-				    !_vcontrol_mode.flag_control_manual_enabled) {
-					/* read in attitude setpoint from attitude setpoint uorb topic */
-					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
-					yaw_sp = _att_sp.yaw_body;
-					throttle_sp = _att_sp.thrust;
+				// in STABILIZED mode we need to generate the attitude setpoint
+				// from manual user inputs
+				if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
+					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
+					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
+					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
+					_att_sp.yaw_body = 0.0f;
+					_att_sp.thrust = _manual.z;
+					int instance;
+					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
+				}
 
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
+				roll_sp = _att_sp.roll_body;
+				pitch_sp = _att_sp.pitch_body;
+				yaw_sp = _att_sp.yaw_body;
+				throttle_sp = _att_sp.thrust;
 
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
-
-				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
-
-					/* the pilot does not want to change direction,
-					 * take straight attitude setpoint from position controller
-					 */
-					if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
-						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
-
-					} else {
-						roll_sp = (_manual.y * _parameters.man_roll_max)
-							  + _parameters.rollsp_offset_rad;
-					}
-
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
-					throttle_sp = _att_sp.thrust;
-
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
-
-				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
-					/*
-					 * Velocity should be controlled and manual is enabled.
-					*/
-					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
-					throttle_sp = _att_sp.thrust;
-
-					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral) {
-						_roll_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.pitch_reset_integral) {
-						_pitch_ctrl.reset_integrator();
-					}
-
-					if (_att_sp.yaw_reset_integral) {
-						_yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
-					}
-
-				} else {
-					/*
-					 * Scale down roll and pitch as the setpoints are radians
-					 * and a typical remote can only do around 45 degrees, the mapping is
-					 * -1..+1 to -man_roll_max rad..+man_roll_max rad (equivalent for pitch)
-					 *
-					 * With this mapping the stick angle is a 1:1 representation of
-					 * the commanded attitude.
-					 *
-					 * The trim gets subtracted here from the manual setpoint to get
-					 * the intended attitude setpoint. Later, after the rate control step the
-					 * trim is added again to the control signal.
-					 */
-					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
-					pitch_sp = -(_manual.x * _parameters.man_pitch_max) + _parameters.pitchsp_offset_rad;
-					/* allow manual control of rudder deflection */
+				/* allow manual yaw in manual modes */
+				if (_vcontrol_mode.flag_control_manual_enabled) {
 					yaw_manual = _manual.r;
-					throttle_sp = _manual.z;
+				}
 
-					/*
-					 * in manual mode no external source should / does emit attitude setpoints.
-					 * emit the manual setpoint here to allow attitude controller tuning
-					 * in attitude control mode.
-					 */
-					struct vehicle_attitude_setpoint_s att_sp = {};
-					att_sp.timestamp = hrt_absolute_time();
-					att_sp.roll_body = roll_sp;
-					att_sp.pitch_body = pitch_sp;
-					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
-					att_sp.thrust = throttle_sp;
+				/* reset integrals where needed */
+				if (_att_sp.roll_reset_integral) {
+					_roll_ctrl.reset_integrator();
+				}
 
-					att_sp.roll_reset_integral = false;
-					att_sp.pitch_reset_integral = false;
-					att_sp.yaw_reset_integral = false;
+				if (_att_sp.pitch_reset_integral) {
+					_pitch_ctrl.reset_integrator();
+				}
 
-					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub != nullptr) {
-						/* publish the attitude setpoint */
-						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &att_sp);
-
-					} else if (_attitude_setpoint_id) {
-						/* advertise and publish */
-						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
-					}
+				if (_att_sp.yaw_reset_integral) {
+					_yaw_ctrl.reset_integrator();
+					_wheel_ctrl.reset_integrator();
 				}
 
 				/* If the aircraft is on ground reset the integrators */
@@ -1243,9 +1167,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
-				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
-				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
+				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _parameters.man_roll_scale + _parameters.trim_roll;
+				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _parameters.man_pitch_scale +
+						_parameters.trim_pitch;
+				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 

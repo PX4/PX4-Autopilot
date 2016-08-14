@@ -5,6 +5,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linu
 add_definitions(
   -D__PX4_POSIX_BEBOP
   -D__LINUX
+  -D__BEBOP
 	)
 
 set(CMAKE_PROGRAM_PATH
@@ -22,6 +23,8 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
+	platforms/posix/drivers/df_mpu6050_wrapper
+	platforms/posix/drivers/df_ak8963_wrapper
 
 	#
 	# System commands
@@ -34,10 +37,8 @@ set(config_module_list
 	systemcmds/perf
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
-	#modules/attitude_estimator_ekf
-	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
@@ -49,7 +50,7 @@ set(config_module_list
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/fw_att_control
-	modules/fw_pos_control_l1	
+	modules/fw_pos_control_l1
 	modules/vtol_att_control
 
 	#
@@ -58,7 +59,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/load_mon
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
@@ -98,5 +98,7 @@ set(config_module_list
 )
 
 set(config_df_driver_list
-  ms5607
+	ms5607
+	mpu6050
+	ak8963
 )

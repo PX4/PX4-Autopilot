@@ -59,20 +59,27 @@
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
 
-static bool _thread_should_exit = false;		/**< motor_ramp exit flag */
-static bool _thread_running = false;		/**< motor_ramp status flag */
-static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
-static float _ramp_time;
-static int _min_pwm;
-static bool _sine_output = false;
-
-
 enum RampState {
 	RAMP_INIT,
 	RAMP_MIN,
 	RAMP_RAMP,
 	RAMP_WAIT
 };
+
+enum Mode {
+	RAMP,
+	SINE,
+	SQUARE
+};
+
+static bool _thread_should_exit = false;		/**< motor_ramp exit flag */
+static bool _thread_running = false;		/**< motor_ramp status flag */
+static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
+static float _ramp_time;
+static int _min_pwm;
+static int _max_pwm;
+static Mode _mode;
+static char *_mode_c;
 
 /**
  * motor_ramp management function.
@@ -85,6 +92,8 @@ extern "C" __EXPORT int motor_ramp_main(int argc, char *argv[]);
 int motor_ramp_thread_main(int argc, char *argv[]);
 
 bool min_pwm_valid(unsigned pwm_value);
+
+bool max_pwm_valid(unsigned pwm_value);
 
 int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value);
 
@@ -105,12 +114,12 @@ usage(const char *reason)
 	}
 
 	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n\n"
-		 "Usage: motor_ramp <min_pwm> <ramp_time> <-s>\n"
-		 "Setting option <-s> will enable sinus output with period <ramp_time>\n\n"
+		 "Usage: motor_ramp <mode> <min_pwm> <time> [<max_pwm>]\n"
+		 "<mode> can be one of (ramp|sine|square)\n\n"
 		 "Example:\n"
-		 "nsh> sdlog2 on\n"
-		 "nsh> mc_att_control stop\n"
-		 "nsh> motor_ramp 1100 0.5\n");
+		 "sdlog2 on\n"
+		 "mc_att_control stop\n"
+		 "motor_ramp sine 1100 0.5\n");
 }
 
 /**
@@ -123,7 +132,7 @@ usage(const char *reason)
  */
 int motor_ramp_main(int argc, char *argv[])
 {
-	if (argc < 3) {
+	if (argc < 4) {
 		usage("missing parameters");
 		return 1;
 	}
@@ -134,23 +143,41 @@ int motor_ramp_main(int argc, char *argv[])
 		return 0;
 	}
 
-	_min_pwm = atoi(argv[1]);
+	if (!strcmp(argv[1], "ramp")) {
+		_mode = RAMP;
 
-	if (!min_pwm_valid(_min_pwm)) {
-		usage("min pwm not in range");
+	} else if (!strcmp(argv[1], "sine")) {
+		_mode = SINE;
+
+	} else if (!strcmp(argv[1], "square")) {
+		_mode = SQUARE;
+
+	} else {
+		usage("selected mode not valid");
 		return 1;
 	}
 
-	_ramp_time = atof(argv[2]);
+	_mode_c = argv[1];
 
-	// check if we should apply sine ouput instead of ramp
-	if (argc > 3) {
-		if (strcmp(argv[3], "-s") == 0) {
-			_sine_output = true;
+	_min_pwm = atoi(argv[2]);
+
+	if (!min_pwm_valid(_min_pwm)) {
+		usage("min PWM not in range");
+		return 1;
+	}
+
+	_ramp_time = atof(argv[3]);
+
+	if (argc > 4) {
+		_max_pwm = atoi(argv[4]);
+
+		if (!max_pwm_valid(_max_pwm)) {
+			usage("max PWM not in range");
+			return 1;
 		}
 
 	} else {
-		_sine_output = false;
+		_max_pwm = 2000;
 	}
 
 	if (!(_ramp_time > 0)) {
@@ -173,7 +200,12 @@ int motor_ramp_main(int argc, char *argv[])
 
 bool min_pwm_valid(unsigned pwm_value)
 {
-	return pwm_value > 900 && pwm_value < 1300;
+	return pwm_value >= 900 && pwm_value <= 1500;
+}
+
+bool max_pwm_valid(unsigned pwm_value)
+{
+	return pwm_value <= 2100 && pwm_value > _min_pwm;
 }
 
 int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
@@ -202,7 +234,7 @@ int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
 int set_out(int fd, unsigned long max_channels, float output)
 {
 	int ret;
-	int pwm = (2000 - _min_pwm) * output + _min_pwm;
+	int pwm = (_max_pwm - _min_pwm) * output + _min_pwm;
 
 	for (unsigned i = 0; i < max_channels; i++) {
 
@@ -286,7 +318,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 	set_out(fd, max_channels, 0.0f);
 
-	float dt = 0.01f; // prevent division with 0
+	float dt = 0.001f; // prevent division with 0
 	float timer = 0.0f;
 	hrt_abstime start = 0;
 	hrt_abstime last_run = 0;
@@ -316,7 +348,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("starting %s: %.2f sec", _sine_output ? "sine" : "ramp", (double)_ramp_time);
+					PX4_WARN("starting %s: %.2f sec", _mode_c, (double)_ramp_time);
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
@@ -326,21 +358,24 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_RAMP: {
-				if (!_sine_output) {
+				if (_mode == RAMP) {
 					output += dt / _ramp_time;
 
-				} else {
+				} else if (_mode == SINE) {
 					// sine outpout with period T = _ramp_time and magnitude between [0,1]
 					// phase shift makes sure that it starts at zero when timer is zero
 					output = 0.5f * (1.0f + sinf(M_TWOPI_F * timer / _ramp_time - M_PI_2_F));
+
+				} else if (_mode == SQUARE) {
+					output = fmodf(timer, _ramp_time) > (_ramp_time * 0.5f) ? 1.0f : 0.0f;
 				}
 
-				if ((output > 1.0f && !_sine_output) || (timer > 3.0f * _ramp_time && _sine_output)) {
-					// for ramp mode we set output to 1, for sine mode we just leave it as is
-					output = _sine_output ? output : 1.0f;
+				if ((output > 1.0f && _mode == RAMP) || (timer > 3.0f * _ramp_time)) {
+					// for ramp mode we set output to 1, for others we just leave it as is
+					output = _mode != RAMP ? output : 1.0f;
 					start = hrt_absolute_time();
 					ramp_state = RAMP_WAIT;
-					PX4_WARN("%s finished, waiting", _sine_output ? "sine" : "ramp");
+					PX4_WARN("%s finished, waiting", _mode_c);
 				}
 
 				set_out(fd, max_channels, output);

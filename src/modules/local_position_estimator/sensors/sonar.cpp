@@ -34,10 +34,10 @@ void BlockLocalPositionEstimator::sonarInit()
 			_sonarStats.reset();
 
 		} else {
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
-						     "mean %d cm std %d cm",
-						     int(100 * _sonarStats.getMean()(0)),
-						     int(100 * _sonarStats.getStdDev()(0)));
+			PX4_INFO("[lpe] sonar init "
+				 "mean %d cm std %d cm",
+				 int(100 * _sonarStats.getMean()(0)),
+				 int(100 * _sonarStats.getStdDev()(0)));
 			_sonarInitialized = true;
 			_sonarFault = FAULT_NONE;
 		}
@@ -48,9 +48,14 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	// measure
 	float d = _sub_sonar->get().current_distance;
-	float eps = 0.01f;
+	float eps = 0.01f; // 1 cm
 	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
+
+	// prevent driver from setting min dist below eps
+	if (min_dist < eps) {
+		min_dist = eps;
+	}
 
 	// check for bad data
 	if (d > max_dist || d < min_dist) {
@@ -94,12 +99,14 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
 
 	// covariance matrix
-	Matrix<float, n_y_sonar, n_y_sonar> R;
+	SquareMatrix<float, n_y_sonar> R;
 	R.setZero();
 	R(0, 0) = cov;
 
 	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
+	_pub_innov.get().hagl_innov = r(0);
+	_pub_innov.get().hagl_innov_var = R(0, 0);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_sonar, n_y_sonar> S_I =
@@ -127,14 +134,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-
-		if (!_canEstimateXY) {
-			dx(X_x) = 0;
-			dx(X_y) = 0;
-			dx(X_vx) = 0;
-			dx(X_vy) = 0;
-		}
-
+		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}

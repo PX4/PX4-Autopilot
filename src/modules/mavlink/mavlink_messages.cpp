@@ -63,6 +63,7 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
@@ -226,9 +227,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-			*mavlink_base_mode	|= MAV_MODE_FLAG_AUTO_ENABLED
-								| MAV_MODE_FLAG_STABILIZE_ENABLED
-								| MAV_MODE_FLAG_GUIDED_ENABLED;
+			*mavlink_base_mode |= auto_mode_flags;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
 			break;
 
@@ -370,23 +369,20 @@ private:
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
 
-	unsigned write_err_count = 0;
+	unsigned _write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
 #ifndef __PX4_POSIX_EAGLE
-	FILE *fp;
+	FILE *_fp = nullptr;
 #endif
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
-#ifndef __PX4_POSIX_EAGLE
-	, fp(nullptr)
-#endif
 	{}
 
 	~MavlinkStreamStatustext() {
 #ifndef __PX4_POSIX_EAGLE
-		if (fp != nullptr) {
-			fclose(fp);
+		if (_fp != nullptr) {
+			fclose(_fp);
 		}
 #endif
 	}
@@ -420,27 +416,27 @@ protected:
 				strftime(tstamp, sizeof(tstamp) - 1, "%Y_%m_%d_%H_%M_%S", &tt);
 
 				if (_mavlink->get_instance_id() == 0/* && _mavlink->get_logging_enabled()*/) {
-					if (fp != nullptr) {
-						fputs(tstamp, fp);
-						fputs(": ", fp);
-						if (EOF == fputs(msg.text, fp)) {
-							write_err_count++;
+					if (_fp != nullptr) {
+						fputs(tstamp, _fp);
+						fputs(": ", _fp);
+						if (EOF == fputs(msg.text, _fp)) {
+							_write_err_count++;
 						} else {
-							write_err_count = 0;
+							_write_err_count = 0;
 						}
 
-						if (write_err_count >= write_err_threshold) {
-							(void)fclose(fp);
-							fp = nullptr;
+						if (_write_err_count >= write_err_threshold) {
+							(void)fclose(_fp);
+							_fp = nullptr;
 							PX4_WARN("mavlink logging disabled");
 						} else {
-							(void)fputs("\n", fp);
+							(void)fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(_fp->fs_filedes);
 #endif
 						}
 
-					} else if (write_err_count < write_err_threshold) {
+					} else if (_write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_path[128];
 
@@ -448,19 +444,20 @@ protected:
 
 						/* store the log file in the root directory */
 						snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/msgs_%s.txt", tstamp);
-						fp = fopen(log_file_path, "ab");
+						_fp = fopen(log_file_path, "ab");
 
-						if (fp != nullptr) {
+						if (_fp != nullptr) {
 							/* write first message */
-							fputs(tstamp, fp);
-							fputs(": ", fp);
-							fputs(msg.text, fp);
-							fputs("\n", fp);
+							fputs(tstamp, _fp);
+							fputs(": ", _fp);
+							fputs(msg.text, _fp);
+							fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(fp->fs_filedes);
+							fsync(_fp->fs_filedes);
 #endif
 						} else {
 							PX4_WARN("Failed to open MAVLink log: %s", log_file_path);
+							_write_err_count = write_err_threshold; //only try to open the file once
 						}
 					}
 				}
@@ -691,6 +688,9 @@ private:
 	MavlinkOrbSubscription *_sensor_sub;
 	uint64_t _sensor_time;
 
+	MavlinkOrbSubscription *_differential_pressure_sub;
+	uint64_t _differential_pressure_time;
+
 	uint64_t _accel_timestamp;
 	uint64_t _gyro_timestamp;
 	uint64_t _mag_timestamp;
@@ -704,6 +704,8 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
+		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
+		_differential_pressure_time(0),
 		_accel_timestamp(0),
 		_gyro_timestamp(0),
 		_mag_timestamp(0),
@@ -713,33 +715,35 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct sensor_combined_s sensor;
+		struct differential_pressure_s differential_pressure;
 
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp[0]) {
+			if (_accel_timestamp != sensor.timestamp + sensor.accelerometer_timestamp_relative) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp[0];
+				_accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 			}
 
-			if (_gyro_timestamp != sensor.gyro_timestamp[0]) {
+			if (_gyro_timestamp != sensor.timestamp) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				_gyro_timestamp = sensor.gyro_timestamp[0];
+				_gyro_timestamp = sensor.timestamp;
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp[0]) {
+			if (_mag_timestamp != sensor.timestamp + sensor.magnetometer_timestamp_relative) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp[0];
+				_mag_timestamp = sensor.timestamp + sensor.magnetometer_timestamp_relative;
 			}
 
-			if (_baro_timestamp != sensor.baro_timestamp[0]) {
+			if (_baro_timestamp != sensor.timestamp + sensor.baro_timestamp_relative) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-				_baro_timestamp = sensor.baro_timestamp[0];
+				_baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 			}
+			_differential_pressure_sub->update(&_differential_pressure_time, &differential_pressure);
 
 			mavlink_highres_imu_t msg;
 
@@ -747,16 +751,16 @@ protected:
 			msg.xacc = sensor.accelerometer_m_s2[0];
 			msg.yacc = sensor.accelerometer_m_s2[1];
 			msg.zacc = sensor.accelerometer_m_s2[2];
-			msg.xgyro = sensor.gyro_rad_s[0];
-			msg.ygyro = sensor.gyro_rad_s[1];
-			msg.zgyro = sensor.gyro_rad_s[2];
+			msg.xgyro = sensor.gyro_rad[0];
+			msg.ygyro = sensor.gyro_rad[1];
+			msg.zgyro = sensor.gyro_rad[2];
 			msg.xmag = sensor.magnetometer_ga[0];
 			msg.ymag = sensor.magnetometer_ga[1];
 			msg.zmag = sensor.magnetometer_ga[2];
-			msg.abs_pressure = sensor.baro_pres_mbar[0];
-			msg.diff_pressure = sensor.differential_pressure_pa[0];
-			msg.pressure_alt = sensor.baro_alt_meter[0];
-			msg.temperature = sensor.baro_temp_celcius[0];
+			msg.abs_pressure = 0;
+			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
+			msg.pressure_alt = sensor.baro_alt_meter;
+			msg.temperature = sensor.baro_temp_celcius;
 			msg.fields_updated = fields_updated;
 
 			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
@@ -1004,7 +1008,7 @@ protected:
 				/* fall back to baro altitude */
 				sensor_combined_s sensor;
 				(void)_sensor_sub->update(&_sensor_time, &sensor);
-				msg.alt = sensor.baro_alt_meter[0];
+				msg.alt = sensor.baro_alt_meter;
 			}
 			msg.climb = -pos.vel_d;
 
@@ -1211,7 +1215,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_pos_time > 0) ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1284,7 +1288,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_trigger_time > 0) ? MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1427,7 +1431,7 @@ public:
 
     unsigned get_size()
     {
-        return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+        return (_pos_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
     }
 private:
 
@@ -1451,7 +1455,7 @@ protected:
 
         if (_pos_sub->update(&_pos_time, &vpos)) {
             mavlink_vision_position_estimate_t vmsg;
-            vmsg.usec = vpos.timestamp_boot / 1000;
+            vmsg.usec = vpos.timestamp;
             vmsg.x = vpos.x;
             vmsg.y = vpos.y;
             vmsg.z = vpos.z;
@@ -1733,7 +1737,7 @@ protected:
 		if (_mocap_sub->update(&_mocap_time, &mocap)) {
 			mavlink_att_pos_mocap_t msg;
 
-			msg.time_usec = mocap.timestamp_boot;
+			msg.time_usec = mocap.timestamp;
 			msg.q[0] = mocap.q[0];
 			msg.q[1] = mocap.q[1];
 			msg.q[2] = mocap.q[2];
@@ -2666,7 +2670,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_debug_time > 0) ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2731,7 +2735,8 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_fw_pos_ctrl_status_sub->is_published()) ?
+				MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3048,10 +3053,10 @@ public:
 		return MAVLINK_MSG_ID_ALTITUDE;
 	}
 
-    uint8_t get_id()
-    {
-        return get_id_static();
-    }
+	uint8_t get_id()
+	{
+		return get_id_static();
+	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
@@ -3060,7 +3065,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_local_pos_time > 0) ? MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3111,7 +3116,7 @@ protected:
 
 			msg.time_usec = hrt_absolute_time();
 
-			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : NAN;
+			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter : NAN;
 			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
 			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
 			msg.altitude_relative = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
@@ -3139,7 +3144,7 @@ public:
 
 	static const char *get_name_static()
 	{
-		return "WIND";
+		return "WIND_COV";
 	}
 
 	static uint8_t get_id_static()
@@ -3159,7 +3164,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_wind_estimate_time > 0) ? MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:

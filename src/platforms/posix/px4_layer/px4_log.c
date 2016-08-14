@@ -30,3 +30,21 @@ void px4_backtrace()
 	free(callstack);
 #endif
 }
+
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+{
+	if (level <= __px4_log_level_current) {
+		PX4_LOG_COLOR_START
+		printf(__px4__log_level_fmt __px4__log_level_arg(level));
+		PX4_LOG_COLOR_MODULE
+		printf(__px4__log_modulename_pfmt, moduleName);
+		PX4_LOG_COLOR_MESSAGE
+		va_list argptr;
+		va_start(argptr, fmt);
+		vprintf(fmt, argptr);
+		va_end(argptr);
+		PX4_LOG_COLOR_END
+		printf("\n");
+	}
+}
+

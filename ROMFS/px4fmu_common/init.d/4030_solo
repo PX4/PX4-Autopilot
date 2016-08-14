@@ -79,7 +79,7 @@ then
     param set RC5_TRIM          1500
 fi
 
-set MIXER solo
+set MIXER quad_x
 
 set PWM_OUT 1234
 set MIXER_AUX none

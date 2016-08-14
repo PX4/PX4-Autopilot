@@ -410,9 +410,10 @@ struct log_EST1_s {
 /* --- EST2 - ESTIMATOR STATUS --- */
 #define LOG_EST2_MSG 34
 struct log_EST2_s {
-    float cov[12];
-    uint16_t gps_check_fail_flags;
-    uint16_t control_mode_flags;
+	float cov[12];
+	uint16_t gps_check_fail_flags;
+	uint16_t control_mode_flags;
+	uint8_t health_flags;
 };
 
 /* --- EST3 - ESTIMATOR STATUS --- */
@@ -519,16 +520,16 @@ struct log_EST5_s {
 #define LOG_RPL1_MSG 51
 struct log_RPL1_s {
 	uint64_t time_ref;
-	uint64_t gyro_integral_dt;
-	uint64_t accelerometer_integral_dt;
+	float gyro_integral_dt;
+	float accelerometer_integral_dt;
 	uint64_t magnetometer_timestamp;
 	uint64_t baro_timestamp;
-	float gyro_integral_x_rad;
-	float gyro_integral_y_rad;
-	float gyro_integral_z_rad;
-	float accelerometer_integral_x_m_s;
-	float accelerometer_integral_y_m_s;
-	float accelerometer_integral_z_m_s;
+	float gyro_x_rad;
+	float gyro_y_rad;
+	float gyro_z_rad;
+	float accelerometer_x_m_s2;
+	float accelerometer_y_m_s2;
+	float accelerometer_z_m_s2;
 	float magnetometer_x_ga;
 	float magnetometer_y_ga;
 	float magnetometer_z_ga;
@@ -687,7 +688,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT(EST0, "ffffffffffffBBHB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fFault,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
-	LOG_FORMAT(EST2, "ffffffffffffHH",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,GCHK,CTRL"),
+	LOG_FORMAT(EST2, "ffffffffffffHHB",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,GCHK,CTRL,fHealth"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
 	LOG_FORMAT(EST4, "ffffffffffff", "VxI,VyI,VzI,PxI,PyI,PzI,VxIV,VyIV,VzIV,PxIV,PyIV,PzIV"),
 	LOG_FORMAT(EST5, "ffffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV,AirI,AirIV"),
@@ -705,7 +706,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
-	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
+	LOG_FORMAT(RPL1, "QffQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gx,gy,gz,ax,ay,az,magX,magY,magZ,b_alt"),
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),

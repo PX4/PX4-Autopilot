@@ -1,0 +1,28 @@
+#!nsh
+
+set VEHICLE_TYPE fw
+
+if [ $AUTOCNF == yes ]
+then
+#
+# Default parameters for FW
+#
+	param set RTL_RETURN_ALT 100
+	param set RTL_DESCEND_ALT 100
+	param set RTL_LAND_DELAY -1
+
+	param set NAV_ACC_RAD 50
+
+	param set PE_VELNE_NOISE 0.3
+	param set PE_VELD_NOISE 0.35
+	param set PE_POSNE_NOISE 0.5
+	param set PE_POSD_NOISE 1.0
+fi
+
+# This is the gimbal pass mixer
+set MIXER_AUX pass
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234
+set PWM_AUX_DISARMED 1500
+set PWM_AUX_MIN 1000
+set PWM_AUX_MAX 2000

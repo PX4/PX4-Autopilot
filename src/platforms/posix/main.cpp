@@ -142,10 +142,10 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 static void usage()
 {
 
-	cout << "./mainapp [-d] [startup_config] -h" << std::endl;
+	cout << "./px4 [-d] [startup_config] -h" << std::endl;
 	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
 	     std::endl;
-	cout << "                   This is needed if mainapp is intended to be run as a upstart job on linux" << std::endl;
+	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << std::endl;
 	cout << "<startup_config> - config file for starting/stopping px4 modules" << std::endl;
 	cout << "   -h            - help/usage information" << std::endl;
 }
@@ -168,6 +168,21 @@ static void restore_term(void)
 bool px4_exit_requested(void)
 {
 	return _ExitFlag;
+}
+
+static void set_cpu_scaling()
+{
+#ifdef __PX4_POSIX_EAGLE
+	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
+	// at the maximum frequency all the time.
+	// Interestingely, cpu0 and cpu3 set the scaling for all 4 CPUs on Snapdragon.
+	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
+	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
+
+	// Alternatively we could also raise the minimum frequency to save some power,
+	// unfortunately this still lead to some drops.
+	//system("echo 1190400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq");
+#endif
 }
 
 int main(int argc, char **argv)
@@ -197,6 +212,8 @@ int main(int argc, char **argv)
 	//sigaction(SIGTERM, &sig_int, NULL);
 	sigaction(SIGFPE, &sig_fpe, NULL);
 	sigaction(SIGSEGV, &sig_segv, NULL);
+
+	set_cpu_scaling();
 
 	int index = 1;
 	char *commands_file = nullptr;
@@ -240,7 +257,7 @@ int main(int argc, char **argv)
 	DriverFramework::Framework::initialize();
 	px4::init_once();
 
-	px4::init(argc, argv, "mainapp");
+	px4::init(argc, argv, "px4");
 
 	// if commandfile is present, process the commands from the file
 	if (commands_file != nullptr) {
