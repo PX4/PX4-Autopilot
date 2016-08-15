@@ -178,7 +178,7 @@ void LoadMon::_compute()
 
 float LoadMon::_ram_used()
 {
-#ifdef _PX4_NUTTX
+#ifdef __PX4_NUTTX
 	struct mallinfo mem;
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
@@ -196,8 +196,10 @@ float LoadMon::_ram_used()
 
 	// Check for corruption of the allocation counters
 	if ((mem.arena > CONFIG_DRAM_SIZE) || (mem.fordblks > CONFIG_DRAM_SIZE)) {
-		return 1.0f;
+		load = 1.0f;
 	}
+
+	return load;
 #else
 	return 0.0f;
 #endif
