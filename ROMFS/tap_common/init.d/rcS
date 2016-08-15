@@ -21,8 +21,6 @@ sercon
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 
-tone_alarm start
-
 #
 # Try to mount the microSD card.
 #
@@ -67,6 +65,8 @@ else
 	then
 	fi
 fi
+
+tone_alarm start
 
 #
 # Start system state indicator
@@ -158,7 +158,10 @@ commander start
 load_mon start
 
 # Start MAVLink on the gimbal port
-mavlink start -r 1200 -d /dev/ttyS1
+#mavlink start -r 1200 -d /dev/ttyS1
+
+# Start MAVLink on USB, developers can use the MAVLink shell
+mavlink start -r 60000 -d /dev/ttyACM0 -m config
 
 #
 # Logging
@@ -336,30 +339,9 @@ if navigator start
 then
 fi
 
-#
-# Generic setup (autostart ID not found)
-#
-if [ $VEHICLE_TYPE == none ]
-then
-	echo "WARN  [init] No autostart ID found"
-fi
-
-# Start any custom addons
-set FEXTRAS /fs/microsd/etc/extras.txt
-if [ -f $FEXTRAS ]
-then
-	echo "INFO  [init] Addons script: $FEXTRAS"
-	sh $FEXTRAS
-fi
-unset FEXTRAS
-
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
 unset TUNE_ERR
 
-# Start MAVLink on USB, developers can use the MAVLink shell
-mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
-echo "[boot complete]"
