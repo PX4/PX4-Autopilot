@@ -1033,7 +1033,7 @@ int Ekf2::start()
 	// On the DSP we seem to get random crashes with a stack size below 13000.
 	const unsigned stack_size = 15000;
 #else
-	const unsigned stack_size = 8500;
+	const unsigned stack_size = 6000;
 #endif
 
 
