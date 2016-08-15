@@ -76,8 +76,6 @@ int16_t uORB::KraitFastRpcChannel::topic_advertised(const char *messageName)
 	return rc;
 }
 
-/*
-//TODO: verify if needed
 int16_t uORB::KraitFastRpcChannel::topic_unadvertised(const char *messageName)
 {
 	int16_t rc = 0;
@@ -86,7 +84,6 @@ int16_t uORB::KraitFastRpcChannel::topic_unadvertised(const char *messageName)
 	PX4_DEBUG("Response for TopicUnadvertised for [%s], rc[%d]\n", messageName, rc);
 	return rc;
 }
-*/
 
 int16_t uORB::KraitFastRpcChannel::add_subscription(const char *messageName, int32_t msgRateInHz)
 {
@@ -280,8 +277,11 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 						_RxHandler->process_received_message(messageName,
 										 header->_DataLen, topic_data);
 					} else if (header->_MsgType == _CONTROL_MSG_TYPE_ADVERTISE) {
-						PX4_DEBUG( "Received topic for control message for: [%s] len[%d]\n", messageName, data_length );
+						PX4_DEBUG( "Received topic advertise message for: [%s] len[%d]\n", messageName, data_length );
 						_RxHandler->process_remote_topic(messageName, true);
+					} else if (header->_MsgType == _CONTROL_MSG_TYPE_UNADVERTISE) {
+						PX4_DEBUG( "Received topic unadvertise message for: [%s] len[%d]\n", messageName, data_length );
+						_RxHandler->process_remote_topic(messageName, false);
 					}
 				}
 

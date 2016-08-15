@@ -95,7 +95,7 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	//virtual int16_t topic_unadvertised(const char *messageName);
+	virtual int16_t topic_unadvertised(const char *messageName);
 
 	/**
 	 * @brief Interface to notify the remote entity of interest of a
@@ -168,6 +168,7 @@ private: // data members
 	static const int32_t _CONTROL_MSG_TYPE_REMOVE_SUBSCRIBER = 2;
 	static const int32_t _DATA_MSG_TYPE = 3;
 	static const int32_t _CONTROL_MSG_TYPE_ADVERTISE = 4;
+	static const int32_t _CONTROL_MSG_TYPE_UNADVERTISE = 5;
 
 	struct BulkTransferHeader {
 		uint16_t _MsgType;
