@@ -736,6 +736,13 @@ void VtolAttitudeControl::task_main()
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			}
+
+			/* We want to make sure that a mode change (manual>auto) during the back transition
+			 * doesn't result in an unsafe state. This prevents the instant fall back to
+			 * fixed-wing on the switch from manual to auto */
+			} else if (_vtol_type->get_mode() == TRANSITION_TO_MC) {
+				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			}
 		}
 
 		// check in which mode we are in and call mode specific functions
