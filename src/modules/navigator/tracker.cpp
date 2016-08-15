@@ -215,12 +215,20 @@ int Tracker::get_accuracy_at(ipos_t pos) {
 void Tracker::set_home(float x, float y, float z) {
     home_position = to_ipos({ .x = x, .y = y, .z = z });
 
-    nodes->dirty = 1;
-
     // Reset the distance-to-home of all nodes to infinity (except the home node)
     for (size_t i = 1; i < node_count; i++) {
-        nodes[i].distance = MAX_DISTANCE;
+        node_at(0).distance = MAX_DISTANCE;
     }
+
+    node_at(0) = {
+        .index1 = 0,
+        .index2 = 0,
+        .coef1 = 0,
+        .coef2 = 0,
+        .use_line2 = 0,
+        .dirty = 1,
+        .distance = 0 
+    };
 
     consolidate_graph("new home position");
 
@@ -367,7 +375,7 @@ void Tracker::push_graph(fpos_t &position) {
     TRACKER_DBG("tracker got pos %d %d %d", new_pos.x, new_pos.y, new_pos.z);
 
     // Don't update if the graph is full
-    if (graph_next_write + FAR_DELTA_SIZE <= GRAPH_LENGTH) {
+    if (get_free_graph_space() >= FAR_DELTA_SIZE * sizeof(delta_item_t)) {
         if (!graph_next_write) {
             graph_head_pos = new_pos; // make sure that the very first delta is a compact delta
             consolidated_head_pos = new_pos;
@@ -380,7 +388,11 @@ void Tracker::push_graph(fpos_t &position) {
             consolidate_graph("too many unconsolidated positions");
     } else {
         // todo: cleanup-pass
+        PX4_WARN("flight tracker reached memory limit - flight graph will be optimized");
+
+        size_t payoff = get_free_graph_space();
         consolidate_graph("reached memory limit");
+        payoff = get_free_graph_space() > payoff ? get_free_graph_space() - payoff : 0;
     }
 }
 
@@ -459,24 +471,23 @@ Tracker::ipos_t Tracker::walk_backward(size_t &index, bool &is_jump) {
 
 
 bool Tracker::push_node(node_t &node, int accuracy_squared) {
-    if (node_count >= NODE_BUFFER_SIZE)
+    if (get_free_graph_space() < sizeof(node_t))
         return false;
-
 
     float accuracy = fast_sqrt(accuracy_squared, false);
 
     // Check if there is already a nearby node that connects roughly the same lines
     for (size_t i = node_count - 1; i > 0; i--) {
-        if (check_similarity(node.index1, node.coef1, nodes[i].index1, nodes[i].coef1, accuracy))
-            if (check_similarity(node.index2, node.coef2, nodes[i].index2, nodes[i].coef2, accuracy))
+        if (check_similarity(node.index1, node.coef1, node_at(i).index1, node_at(i).coef1, accuracy))
+            if (check_similarity(node.index2, node.coef2, node_at(i).index2, node_at(i).coef2, accuracy))
                 return false;
 
-        if (check_similarity(node.index1, node.coef1, nodes[i].index2, nodes[i].coef2, accuracy))
-            if (check_similarity(node.index2, node.coef2, nodes[i].index1, nodes[i].coef1, accuracy))
+        if (check_similarity(node.index1, node.coef1, node_at(i).index2, node_at(i).coef2, accuracy))
+            if (check_similarity(node.index2, node.coef2, node_at(i).index1, node_at(i).coef1, accuracy))
                 return false;
     }
 
-    nodes[node_count++] = node;
+    node_at(node_count++) = node;
     have_dirty_nodes = true;
     return true; // todo: take some action if the buffer becomes full
 }
@@ -484,9 +495,11 @@ bool Tracker::push_node(node_t &node, int accuracy_squared) {
 
 void Tracker::remove_nodes(size_t lower_bound, size_t upper_bound) {
     for (size_t i = 1; i < node_count; i++) {
-        if ((lower_bound < nodes[i].index1 && nodes[i].index1 <= upper_bound) ||
-            (lower_bound < nodes[i].index2 && nodes[i].index2 <= upper_bound)) {
-            memcpy(nodes + i, nodes + i + 1, --node_count - i);
+        if ((lower_bound < node_at(i).index1 && node_at(i).index1 <= upper_bound) ||
+            (lower_bound < node_at(i).index2 && node_at(i).index2 <= upper_bound)) {
+            // move preceding part of the stack
+            node_count--;
+            memcpy(nodes - node_count + 1, nodes - node_count, (node_count - i) * sizeof(node_t));
             i--;
         }
     }
@@ -842,8 +855,8 @@ bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forwa
         int best_coef = forward ? -1 : (MAX_COEFFICIENT + 1);
         size_t best_node;
         for (size_t i = 0; i < node_count; i++) {
-            if (nodes[i].index1 == index || (i && nodes[i].index2 == index)) {
-                int node_coef = nodes[i].index1 == index ? nodes[i].coef1 : nodes[i].coef2;
+            if (node_at(i).index1 == index || (i && node_at(i).index2 == index)) {
+                int node_coef = node_at(i).index1 == index ? node_at(i).coef1 : node_at(i).coef2;
                 if (forward ? (node_coef < coef && node_coef > best_coef) : (node_coef >= coef && node_coef < best_coef)) {
                     best_coef = node_coef;
                     best_node = i;
@@ -897,29 +910,29 @@ float Tracker::apply_node_delta(size_t &index, unsigned int &coef, ipos_t *delta
 
     // Consider all intersections at the specified position and use the one with the smallest distance home.
     for (size_t i = 0; i < node_count; i++) {
-        if ((nodes[i].index1 == index && nodes[i].coef1 == coef) || (nodes[i].index2 == index && nodes[i].coef2 == coef)) {
-            float distance = nodes[i].distance == MAX_DISTANCE ? FLT_MAX : (float)nodes[i].distance;
+        if ((node_at(i).index1 == index && node_at(i).coef1 == coef) || (node_at(i).index2 == index && node_at(i).coef2 == coef)) {
+            float distance = node_at(i).distance == MAX_DISTANCE ? FLT_MAX : (float)node_at(i).distance;
             
             // If the node is far from home, we arbitrarily prefer the line with the lowest index.
             // This is in line with the decision that we prefer to walk backward. Thus, in case of
             // unknown distances, at least we strictly minimize the index and don't get stuck in an infinite loop.
             if (distance >= FLT_MAX)
-                nodes[i].use_line2 = nodes[i].index2 < nodes[i].index1;
+                node_at(i).use_line2 = node_at(i).index2 < node_at(i).index1;
 
             if (best_distance > distance) {
                 best_distance = distance;
-                best_index = nodes[i].use_line2 ? nodes[i].index2 : nodes[i].index1;
-                best_coef = nodes[i].use_line2 ? nodes[i].coef2 : nodes[i].coef1;
-                go_forward = nodes[i].go_forward;
+                best_index = node_at(i).use_line2 ? node_at(i).index2 : node_at(i).index1;
+                best_coef = node_at(i).use_line2 ? node_at(i).coef2 : node_at(i).coef1;
+                go_forward = node_at(i).go_forward;
                 
                 if (delta) {
                     // If we don't change lines, the delta is 0
-                    if (index == (nodes[i].use_line2 ? nodes[i].index2 : nodes[i].index1))
+                    if (index == (node_at(i).use_line2 ? node_at(i).index2 : node_at(i).index1))
                         *delta = { .x = 0, .y = 0, .z = 0 };
-                    else if (nodes[i].use_line2)
-                        *delta = unpack_compact_delta_item(nodes[i].delta);
+                    else if (node_at(i).use_line2)
+                        *delta = unpack_compact_delta_item(node_at(i).delta);
                     else
-                        *delta = -unpack_compact_delta_item(nodes[i].delta);
+                        *delta = -unpack_compact_delta_item(node_at(i).delta);
                 }
             }
         }
@@ -946,17 +959,17 @@ bool Tracker::set_node_distance(size_t index, int coef, float distance, bool go_
 
     // Update all intersections at the specified position (if the new distance is an improvement)
     for (size_t i = 0; i < node_count; i++) {
-        if ((nodes[i].index1 == index && nodes[i].coef1 == coef) || (nodes[i].index2 == index && nodes[i].coef2 == coef)) {
-            float new_distance = distance + fast_sqrt(dot(unpack_compact_delta_item(nodes[i].delta)), false);
+        if ((node_at(i).index1 == index && node_at(i).coef1 == coef) || (node_at(i).index2 == index && node_at(i).coef2 == coef)) {
+            float new_distance = distance + fast_sqrt(dot(unpack_compact_delta_item(node_at(i).delta)), false);
             int int_distance = new_distance > MAX_DISTANCE ? MAX_DISTANCE : ceil(new_distance);
 
-            if (nodes[i].distance > int_distance) {
-                TRACKER_DBG("  distance at %zu, improved from %.1f to %d (%.2f) (go %s from %zu-%.2f)", i, nodes[i].distance >= MAX_DISTANCE ? INFINITY : (float)nodes[i].distance, int_distance, distance, go_forward ? "forward" : "backward", index, coef_to_float(coef));
+            if (node_at(i).distance > int_distance) {
+                TRACKER_DBG("  distance at %zu, improved from %.1f to %d (%.2f) (go %s from %zu-%.2f)", i, node_at(i).distance >= MAX_DISTANCE ? INFINITY : (float)node_at(i).distance, int_distance, distance, go_forward ? "forward" : "backward", index, coef_to_float(coef));
 
-                nodes[i].distance = int_distance;
-                nodes[i].use_line2 = index == nodes[i].index2 && coef == nodes[i].coef2;
-                nodes[i].go_forward = go_forward;
-                nodes[i].dirty = true;
+                node_at(i).distance = int_distance;
+                node_at(i).use_line2 = index == node_at(i).index2 && coef == node_at(i).coef2;
+                node_at(i).go_forward = go_forward;
+                node_at(i).dirty = true;
                 improvement = true;
                 have_dirty_nodes = true;
             }
@@ -988,10 +1001,10 @@ void Tracker::refresh_distances() {
 
         for (size_t i = 0; i < node_count; i++) {
             // At every dirty node, we look in all four directions of the intersection.
-            if (nodes[i].dirty) {
-                nodes[i].dirty = 0;
+            if (node_at(i).dirty) {
+                node_at(i).dirty = 0;
 
-                node_t node = nodes[i];
+                node_t node = node_at(i);
 
                 size_t index;
                 int coef;
@@ -1274,7 +1287,7 @@ void Tracker::dump_graph() {
         return;
     }
 
-    PX4_INFO("full path (%zu elements of size %zu bytes):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8);
+    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, 100.0f * (1.0f - (float)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
     PX4_INFO("  home: %zu-%.2f (%d %d %d)", nodes->index1, coef_to_float(nodes->coef1), home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
     ipos_t pos = graph_head_pos;
@@ -1301,11 +1314,11 @@ void Tracker::dump_nodes() {
     PX4_INFO("nodes (%zu elements of size %zu bytes)%s:", node_count, (sizeof(node_t) * CHAR_BIT) / 8, have_dirty_nodes ? " *" : "");
     for (size_t i = 0; i < node_count; i++) {
         PX4_INFO("  node %zu: %s%zu-%.2f%s to %s%zu-%.2f%s, expansion %.3f, dist to home %d %s%s%s", i,
-            nodes[i].use_line2 ? " " : ">", (size_t)nodes[i].index1, coef_to_float(nodes[i].coef1), nodes[i].use_line2 ? " " : "<",
-            nodes[i].use_line2 ? ">" : " ", (size_t)nodes[i].index2, coef_to_float(nodes[i].coef2), nodes[i].use_line2 ? "<" : " ",
-            fast_sqrt(dot(unpack_compact_delta_item(nodes[i].delta)), false), nodes[i].distance,
-            nodes[i].go_forward ? "forward" : "backward",
-            nodes[i].dirty ? " *" : "",
+            node_at(i).use_line2 ? " " : ">", (size_t)node_at(i).index1, coef_to_float(node_at(i).coef1), node_at(i).use_line2 ? " " : "<",
+            node_at(i).use_line2 ? ">" : " ", (size_t)node_at(i).index2, coef_to_float(node_at(i).coef2), node_at(i).use_line2 ? "<" : " ",
+            fast_sqrt(dot(unpack_compact_delta_item(node_at(i).delta)), false), node_at(i).distance,
+            node_at(i).go_forward ? "forward" : "backward",
+            node_at(i).dirty ? " *" : "",
             i ? "" : " <= home");
     }
 }
