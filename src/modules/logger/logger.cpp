@@ -499,6 +499,7 @@ void Logger::add_default_topics()
 	add_topic("vision_position_estimate", 50);
 	add_topic("optical_flow", 50);
 	add_topic("rc_channels");
+	add_topic("input_rc");
 	add_topic("airspeed", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
