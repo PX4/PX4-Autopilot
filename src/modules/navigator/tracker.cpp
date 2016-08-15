@@ -394,8 +394,8 @@ bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_spac
         split_count = (int)ceil(std::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
 
     int far_delta_size = FAR_DELTA_SIZE;
-    split_count = std::min(split_count, far_delta_size);
-    
+    split_count = jump ? far_delta_size : std::min(split_count, far_delta_size);
+
     if (max_space < split_count)
         return false;
 
@@ -403,7 +403,6 @@ bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_spac
         if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
             PX4_ERR("delta overflow in tracker");
 
-        TRACKER_DBG("    write %04x for y", (int)((delta.y & 0x7FFF) | (jump ? 0x8000 : 0)));
         graph[index++] = (delta.x & 0x7FFF) | 0x8000;
         graph[index++] = (delta.y & 0x7FFF) | (jump ? 0x8000 : 0);
         graph[index++] = (delta.z & 0x7FFF) | 0x8000;
@@ -539,9 +538,9 @@ bool Tracker::is_close_to_graph(ipos_t position, size_t lower_bound, size_t uppe
         ipos_t delta = walk_backward(upper_bound, is_jump);
         
         int coef;
-        delta = is_jump ? (position - pos_at_upper_bound) : get_point_to_line_delta(position, delta, pos_at_upper_bound, coef);
-        
-        if (dot(delta) <= accuracy_squared)
+        ipos_t pos_to_line = is_jump ? (position - pos_at_upper_bound) : get_point_to_line_delta(position, delta, pos_at_upper_bound, coef);
+
+        if (dot(pos_to_line) <= accuracy_squared)
             return true;
 
         pos_at_upper_bound -= delta;
@@ -680,7 +679,7 @@ void Tracker::consolidate_graph(const char *reason) {
 
 
     /*** Pass 2: remove positions that are already in the graph ***/
-/*
+
     pos = consolidated_head_pos;
     read_index = consolidated_head_index;
     write_index = read_index + 1;
@@ -688,7 +687,7 @@ void Tracker::consolidate_graph(const char *reason) {
     // Keep track of the index/position from where we may overwrite previously copied deltas.
     size_t overwrite_index = write_index;
     ipos_t pos_at_overwrite_index = pos;
-    bool is_close = false;
+    bool was_close = false;
 
     while (read_index < graph_next_write - 1) {
         bool is_jump;
@@ -700,14 +699,14 @@ void Tracker::consolidate_graph(const char *reason) {
         size_t prev_write_index = write_index;
         push_delta(write_index, delta, is_jump);
 
+        // Scan the graph to see if any line is close to the current position
+        bool is_close = is_close_to_graph(pos, overwrite_index > GRAPH_SEARCH_RANGE ? overwrite_index - GRAPH_SEARCH_RANGE : 0, overwrite_index - 1, pos_at_overwrite_index);
+
         // If the last position wasn't close to the graph, we must definitely keep this one.
-        if (!is_close) {
+        if (!was_close) {
             overwrite_index = write_index;
             pos_at_overwrite_index = pos;
         }
-
-        // Scan the graph to see if any line is close to the current position
-        is_close = is_close_to_graph(pos, overwrite_index > GRAPH_SEARCH_RANGE ? overwrite_index - GRAPH_SEARCH_RANGE : 0, overwrite_index - 1, pos_at_overwrite_index);
 
         // As soon as we encounter a position which is not close to the graph, we see if we can remove some preceeding positions
         if (!is_close) {
@@ -719,16 +718,18 @@ void Tracker::consolidate_graph(const char *reason) {
                     // We append the last position once again and go on from there
                     push_delta(write_index = overwrite_index, delta, is_jump);
 
-                    TRACKER_DBG("  replaced redundant path of size %zu by a jump at %zu", max_space, write_index - 1);
+                    TRACKER_DBG("  replaced redundant path of size %zu by a jump at %zu", max_space, overwrite_index - 1);
                 }
             }
 
             // If this branch was taken, the last important position will be re-initialized once it becomes relevant
         }
+
+        was_close = is_close;
     }
 
     graph_next_write = write_index;
-*/
+
 
     /*** Pass 3: detect nodes ***/
 

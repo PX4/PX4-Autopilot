@@ -45,6 +45,10 @@ DEFINE_TEST(fromSim, 48, 47, 46, 45, 44, 43, 42, 41, 13, 12, 11, 10, 9, 8, 7, 6,
     #include "from_sim.path"
 };
 
+// aka:            
+DEFINE_TEST(simpleJumps, 25, 24, 4, 3, 2, 1, 0) {
+    #include "simple_jumps.path"
+};
 
 
 
@@ -132,7 +136,8 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(simpleLoop),
     USE_TEST(complexLoop),
     USE_TEST(largeNodes),
-    USE_TEST(fromSim)
+    USE_TEST(fromSim),
+    USE_TEST(simpleJumps)
 };
 
 TrackerTest::line_test_t TrackerTest::line_test_cases[] = {
@@ -256,7 +261,7 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
             break;
 
         size_t target = test->ret[state.target_index];
-        inner_assert(advance_state(state, x, y, z), "vehicle diverted from expected return path");
+        inner_assert(advance_state(state, x, y, z), "vehicle diverted from expected return path: (%f, %f, %f) is not towards target %d %d %d", x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
         inner_assert(state.no_progress < TRACKER_MAX_NO_PROGRESS, "no progress detected from (%f, %f, %f) to (%f, %f, %f), target is %d %d %d", state.x, state.y, state.z, x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
 
 #ifdef TRACKER_TEST_LOOKAHEAD
