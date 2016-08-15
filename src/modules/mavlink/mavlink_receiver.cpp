@@ -1277,9 +1277,9 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 
 	struct rc_input_values rc = {};
 
-	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp = hrt_absolute_time();
 
-	rc.timestamp_last_signal = rc.timestamp_publication;
+	rc.timestamp_last_signal = rc.timestamp;
 
 	rc.channel_count = 8;
 
@@ -1336,8 +1336,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	if (_mavlink->get_manual_input_mode_generation()) {
 
 		struct rc_input_values rc = {};
-		rc.timestamp_publication = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp_publication;
+		rc.timestamp = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp;
 
 		rc.channel_count = 8;
 		rc.rc_failsafe = false;

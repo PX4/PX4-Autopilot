@@ -114,8 +114,8 @@ void Simulator::send_controls()
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
 {
-	rc->timestamp_publication = hrt_absolute_time();
-	rc->timestamp_last_signal = hrt_absolute_time();
+	rc->timestamp = hrt_absolute_time();
+	rc->timestamp_last_signal = rc->timestamp;
 	rc->channel_count = rc_channels->chancount;
 	rc->rssi = rc_channels->rssi;
 
