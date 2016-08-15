@@ -657,6 +657,7 @@ void Logger::run()
 
 	/* init the update timer */
 	struct hrt_call timer_call;
+	memset(&timer_call, 0, sizeof(hrt_call));
 	px4_sem_t timer_semaphore;
 	px4_sem_init(&timer_semaphore, 0, 0);
 	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
