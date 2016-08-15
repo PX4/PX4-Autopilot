@@ -84,7 +84,8 @@ private:
     static constexpr int RECENT_PATH_LENGTH = 64;
     
     // Number of small lines that can be stored in the full flight graph.
-    // The actual number of position depends on how how well the path can be optimized.
+    // The graph size in bytes is usually twice this number.
+    // The actual number of position depends on how how well the path can be optimized and how many nodes are stored.
     static constexpr int GRAPH_LENGTH = 256;
 
     // Number of indices to scan at each update to find intersections.
@@ -96,9 +97,6 @@ private:
     // For this reason, a larger number is preferred here.
     // The only drawback of a larger number should be a high workload once consolidation kicks in.
     static constexpr int MAX_CONSOLIDATION_DEPT = 64;
-    
-    // Number of intersections that can be stored.
-    static constexpr int NODE_BUFFER_SIZE = 20;
 
 
     // Limitations and properties inherent to the graph representation (should not be changed)
@@ -260,6 +258,9 @@ private:
     // Pops the last position from the recent path. Returns false if the path is empty.
     bool pop_recent_path(fpos_t &position);
 
+    // Returns the size of the free area in the graph.
+    size_t get_free_graph_space() { return (GRAPH_LENGTH - graph_next_write) * sizeof(delta_item_t) - node_count * sizeof(node_t); };
+
     // Pushes a new current position to the flight graph.
     void push_graph(fpos_t &position);
 
@@ -284,8 +285,11 @@ private:
     // Reads one delta element from the graph in the backward direction.
     // The index must point to the end of a delta element and is post-decremented.
     ipos_t walk_backward(size_t &index, bool &is_jump);
+
+    // Returns the node at the specified index.
+    node_t &node_at(size_t index) { return *(nodes - index); };
     
-    // Pushes a node to the node buffer if there is enough space.
+    // Pushes a node to the node stack if there is enough space.
     // Returns true if the operation succeeds.
     // Returns false if there is not enough space of if there is already a nearby node. 
     bool push_node(node_t &node, int accuracy_squared);
@@ -428,18 +432,10 @@ private:
 
 
     // Nodes keep track of lines in the flight path that pass close to each other.
-    // The first node (index1, coef1) represents the home position and must not be removed.
-    node_t nodes[NODE_BUFFER_SIZE] = {
-        {
-            .index1 = 0,
-            .index2 = 0,
-            .coef1 = 0,
-            .coef2 = 0,
-            .use_line2 = 0,
-            .dirty = 1,
-            .distance = 0 
-        }
-    };
+    // The nodes are stored at the end of the graph buffer, the node with the index 0 denotes the last node.
+    // When deltas and nodes collide, the graph is full.
+    // Node 0 (index1, coef1) represents the home position and must not be removed.
+    node_t *nodes = (node_t *)(graph + GRAPH_LENGTH) - 1;
     size_t node_count = 1;
 
     // True as long as any nodes in the buffer have dirty set to 1
