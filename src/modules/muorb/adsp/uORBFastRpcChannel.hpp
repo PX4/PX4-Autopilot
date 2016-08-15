@@ -82,7 +82,7 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	//virtual int16_t topic_unadvertised(const char *messageName);
+	virtual int16_t topic_unadvertised(const char *messageName);
 
 	/**
 	 * @brief Interface to notify the remote entity of interest of a
@@ -183,6 +183,7 @@ private: // data members
 	static const int32_t _CONTROL_MSG_TYPE_REMOVE_SUBSCRIBER = 2;
 	static const int32_t _DATA_MSG_TYPE = 3;
 	static const int32_t _CONTROL_MSG_TYPE_ADVERTISE = 4;
+	static const int32_t _CONTROL_MSG_TYPE_UNADVERTISE = 5;
 
 	static const int32_t _PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES = 2;
 	static const int32_t _PACKET_FIELD_DATA_LEN_IN_BYTES = 2;
@@ -292,6 +293,7 @@ private://class members.
 
 	int32_t get_msg_size_at(bool isData, int32_t index);
 	int32_t copy_msg_to_buffer(bool isData, int32_t src_index, uint8_t *dst_buffer, int32_t offset, int32_t dst_buffer_len);
+	int16_t control_msg_queue_add(int32_t msgtype, const char *messageName);
 
 	std::set<std::string> _RemoteSubscribers;
 };

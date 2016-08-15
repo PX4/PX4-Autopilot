@@ -72,11 +72,23 @@ uORB::FastRpcChannel::FastRpcChannel()
 //==============================================================================
 int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
 {
+	return control_msg_queue_add(_CONTROL_MSG_TYPE_ADVERTISE, messageName);
+}
+
+//==============================================================================
+//==============================================================================
+int16_t uORB::FastRpcChannel::topic_unadvertised(const char *messageName)
+{
+	return control_msg_queue_add(_CONTROL_MSG_TYPE_UNADVERTISE, messageName);
+}
+
+//==============================================================================
+//==============================================================================
+int16_t uORB::FastRpcChannel::control_msg_queue_add(int32_t msgtype, const char *messageName)
+{
 	int16_t rc = 0;
 	hrt_abstime t1, t2;
 	static hrt_abstime check_time = 0;
-
-	PX4_DEBUG("=========publish topic[%s] to remote...", messageName);
 
 	t1 = hrt_absolute_time();
 	_QueueMutex.lock();
@@ -84,8 +96,6 @@ int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
 
 	if (IsControlQFull()) {
 		// queue is full.  Overwrite the oldest data.
-		//PX4_WARN("[topic_advertised] Queue Full Overwrite the oldest data. in[%ld] out[%ld] max[%ld]",
-		//	 _ControlQInIndex, _ControlQOutIndex, _MAX_MSG_QUEUE_SIZE);
 		_ControlQOutIndex++;
 
 		if (_ControlQOutIndex == _MAX_MSG_QUEUE_SIZE) {
@@ -96,7 +106,7 @@ int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
 		_dropped_pkts++;
 	}
 
-	_ControlMsgQueue[ _ControlQInIndex ]._Type = _CONTROL_MSG_TYPE_ADVERTISE;
+	_ControlMsgQueue[ _ControlQInIndex ]._Type = msgtype;
 	_ControlMsgQueue[ _ControlQInIndex ]._MsgName = messageName;
 
 	_ControlQInIndex++;
@@ -106,7 +116,6 @@ int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
 	}
 
 	// the assumption here is that each caller reads only one data from either control or data queue.
-	//if (!overwriteData) {
 	if (ControlQSize() == 1 && DataQSize() == 0) {  // post it only of the queue moves from empty to available.
 		_DataAvailableSemaphore.post();
 	}
@@ -133,19 +142,6 @@ int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
 
 	return rc;
 }
-
-//==============================================================================
-//==============================================================================
-/*
-//TODO: verify if needed
-int16_t uORB::FastRpcChannel::topic_unadvertised(const char *messageName)
-{
-	int16_t rc = 0;
-
-	PX4_DEBUG("=========unpublish topic[%s] to remote...", messageName);
-	return rc;
-}
-*/
 
 //==============================================================================
 //==============================================================================
