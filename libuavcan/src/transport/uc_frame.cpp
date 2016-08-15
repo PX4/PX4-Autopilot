@@ -157,7 +157,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
         tail |= (1U << 5);
     }
 
-    UAVCAN_ASSERT(payload_len_ < sizeof(static_cast<CanFrame*>(NULL)->data));
+    UAVCAN_ASSERT(payload_len_ < sizeof(static_cast<CanFrame*>(UAVCAN_NULLPTR)->data));
 
     out_can_frame.dlc = static_cast<uint8_t>(payload_len_);
     (void)copy(payload_, payload_ + payload_len_, out_can_frame.data);

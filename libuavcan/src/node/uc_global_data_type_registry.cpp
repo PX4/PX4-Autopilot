@@ -23,7 +23,7 @@ GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind ki
     else
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 }
 
@@ -144,7 +144,7 @@ void GlobalDataTypeRegistry::freeze()
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(const char* name) const
 {
     const DataTypeDescriptor* desc = find(DataTypeKindMessage, name);
-    if (desc == NULL)
+    if (desc == UAVCAN_NULLPTR)
     {
         desc = find(DataTypeKindService, name);
     }
@@ -156,13 +156,13 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
     if (!name)
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     const List* list = selectList(kind);
     if (!list)
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     Entry* p = list->get();
     while (p)
@@ -173,7 +173,7 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
         }
         p = p->getNextListNode();
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, DataTypeID dtid) const
@@ -182,7 +182,7 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, DataTy
     if (!list)
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     Entry* p = list->get();
     while (p)
@@ -193,7 +193,7 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, DataTy
         }
         p = p->getNextListNode();
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 }

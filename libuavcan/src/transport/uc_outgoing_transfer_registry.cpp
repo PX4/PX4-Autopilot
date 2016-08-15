@@ -29,12 +29,12 @@ TransferID* OutgoingTransferRegistry::accessOrCreate(const OutgoingTransferRegis
 {
     UAVCAN_ASSERT(!new_deadline.isZero());
     Value* p = map_.access(key);
-    if (p == NULL)
+    if (p == UAVCAN_NULLPTR)
     {
         p = map_.insert(key, Value());
-        if (p == NULL)
+        if (p == UAVCAN_NULLPTR)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
         UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
     }
@@ -44,7 +44,7 @@ TransferID* OutgoingTransferRegistry::accessOrCreate(const OutgoingTransferRegis
 
 bool OutgoingTransferRegistry::exists(DataTypeID dtid, TransferType tt) const
 {
-    return NULL != map_.find(ExistenceCheckingPredicate(dtid, tt));
+    return UAVCAN_NULLPTR != map_.find(ExistenceCheckingPredicate(dtid, tt));
 }
 
 void OutgoingTransferRegistry::cleanup(MonotonicTime ts)

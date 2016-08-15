@@ -22,18 +22,18 @@ TEST(ScalarCodec, Basic)
     /*
      * Encoding some variables
      */
-    ASSERT_EQ(1, sc_wr.encode<12>((uint16_t)0xbeda));    // --> 0xeda
-    ASSERT_EQ(1, sc_wr.encode<1>((uint8_t)1));
-    ASSERT_EQ(1, sc_wr.encode<1>((uint16_t)0));
-    ASSERT_EQ(1, sc_wr.encode<4>((uint8_t)8));
-    ASSERT_EQ(1, sc_wr.encode<32>((uint32_t)0xdeadbeef));
-    ASSERT_EQ(1, sc_wr.encode<3>((int8_t)-1));
-    ASSERT_EQ(1, sc_wr.encode<4>((int8_t)-6));
-    ASSERT_EQ(1, sc_wr.encode<20>((int32_t)-123456));
+    ASSERT_EQ(1, sc_wr.encode<12>(uint16_t(0xbeda)));    // --> 0xeda
+    ASSERT_EQ(1, sc_wr.encode<1>(uint8_t(1)));
+    ASSERT_EQ(1, sc_wr.encode<1>(uint16_t(0)));
+    ASSERT_EQ(1, sc_wr.encode<4>(uint8_t(8)));
+    ASSERT_EQ(1, sc_wr.encode<32>(uint32_t(0xdeadbeef)));
+    ASSERT_EQ(1, sc_wr.encode<3>(int8_t(-1)));
+    ASSERT_EQ(1, sc_wr.encode<4>(int8_t(-6)));
+    ASSERT_EQ(1, sc_wr.encode<20>(int32_t(-123456)));
     ASSERT_EQ(1, sc_wr.encode<64>(std::numeric_limits<int64_t>::min()));
     ASSERT_EQ(1, sc_wr.encode<64>(std::numeric_limits<int64_t>::max()));
-    ASSERT_EQ(1, sc_wr.encode<15>((int16_t)-1));
-    ASSERT_EQ(1, sc_wr.encode<2>((int16_t)-1));
+    ASSERT_EQ(1, sc_wr.encode<15>(int16_t(-1)));
+    ASSERT_EQ(1, sc_wr.encode<2>(int16_t(-1)));
     ASSERT_EQ(1, sc_wr.encode<16>(std::numeric_limits<int16_t>::min()));
     ASSERT_EQ(1, sc_wr.encode<64>(std::numeric_limits<uint64_t>::max())); // Total 302 bit (38 bytes)
 
@@ -86,11 +86,11 @@ TEST(ScalarCodec, RepresentationCorrectness)
     uavcan::BitStream bs_wr(buf);
     uavcan::ScalarCodec sc_wr(bs_wr);
 
-    ASSERT_EQ(1, sc_wr.encode<12>((uint16_t)0xbeda));    // --> 0xeda
-    ASSERT_EQ(1, sc_wr.encode<3>((int8_t)-1));
-    ASSERT_EQ(1, sc_wr.encode<4>((int8_t)-5));
-    ASSERT_EQ(1, sc_wr.encode<2>((int16_t)-1));
-    ASSERT_EQ(1, sc_wr.encode<4>((uint8_t)0x88));        // --> 8
+    ASSERT_EQ(1, sc_wr.encode<12>(uint16_t(0xbeda)));    // --> 0xeda
+    ASSERT_EQ(1, sc_wr.encode<3>(int8_t(-1)));
+    ASSERT_EQ(1, sc_wr.encode<4>(int8_t(-5)));
+    ASSERT_EQ(1, sc_wr.encode<2>(int16_t(-1)));
+    ASSERT_EQ(1, sc_wr.encode<4>(uint8_t(0x88)));        // --> 8
 
     // This representation was carefully crafted and triple checked:
     static const std::string REFERENCE = "11011010 11101111 01111100 00000000";

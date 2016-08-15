@@ -75,7 +75,7 @@ public:
                                                        static_cast<uint32_t>(NumericTraits<uint16_t>::max())))),
         num_reserved_blocks_(0),
         num_allocated_blocks_(0),
-        reserve_(NULL)
+        reserve_(UAVCAN_NULLPTR)
     { }
 
     /**
@@ -101,7 +101,7 @@ public:
     {
         if (size > BlockSize)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
 
         {
@@ -110,7 +110,7 @@ public:
 
             Node* const p = reserve_;
 
-            if (UAVCAN_LIKELY(p != NULL))
+            if (UAVCAN_LIKELY(p != UAVCAN_NULLPTR))
             {
                 reserve_ = reserve_->next;
                 num_allocated_blocks_++;
@@ -119,13 +119,13 @@ public:
 
             if (num_reserved_blocks_ >= capacity_hard_limit_)   // Hard limit reached, no further allocations
             {
-                return NULL;
+                return UAVCAN_NULLPTR;
             }
         }
 
         // Unlikely branch
         void* const m = std::malloc(sizeof(Node));
-        if (m != NULL)
+        if (m != UAVCAN_NULLPTR)
         {
             RaiiSynchronizer lock;
             (void)lock;
@@ -142,7 +142,7 @@ public:
      */
     virtual void deallocate(const void* ptr)
     {
-        if (ptr != NULL)
+        if (ptr != UAVCAN_NULLPTR)
         {
             RaiiSynchronizer lock;
             (void)lock;
@@ -171,7 +171,7 @@ public:
      */
     void shrink()
     {
-        Node* p = NULL;
+        Node* p = UAVCAN_NULLPTR;
         for (;;)
         {
             {
@@ -179,7 +179,7 @@ public:
                 (void)lock;
                 // Removing from reserve and updating the counter.
                 p = reserve_;
-                if (p != NULL)
+                if (p != UAVCAN_NULLPTR)
                 {
                     reserve_ = reserve_->next;
                     num_reserved_blocks_--;

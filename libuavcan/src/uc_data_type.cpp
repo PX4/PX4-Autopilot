@@ -100,7 +100,7 @@ const unsigned DataTypeDescriptor::MaxFullNameLen;
 bool DataTypeDescriptor::isValid() const
 {
     return id_.isValidForDataTypeKind(kind_) &&
-           (full_name_ != NULL) &&
+           (full_name_ != UAVCAN_NULLPTR) &&
            (*full_name_ != '\0');
 }
 

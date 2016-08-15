@@ -102,7 +102,11 @@ TEST(LinkedList, Basic)
 TEST(LinkedList, Sorting)
 {
     uavcan::LinkedListRoot<ListItem> root;
-    ListItem items[] = {0, 1, 2, 3, 4, 5};
+    ListItem items[6];
+    for (int i = 0; i < 6; i++)
+    {
+        items[i].value = i;
+    }
 
     EXPECT_EQ(0, root.getLength());
 

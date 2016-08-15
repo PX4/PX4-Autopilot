@@ -79,20 +79,20 @@ TransferBufferManagerEntry::Block*
 TransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
 {
     void* const praw = allocator.allocate(sizeof(Block));
-    if (praw == NULL)
+    if (praw == UAVCAN_NULLPTR)
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     return new (praw) Block;
 }
 
 void TransferBufferManagerEntry::Block::destroy(Block*& obj, IPoolAllocator& allocator)
 {
-    if (obj != NULL)
+    if (obj != UAVCAN_NULLPTR)
     {
         obj->~Block();
         allocator.deallocate(obj);
-        obj = NULL;
+        obj = UAVCAN_NULLPTR;
     }
 }
 
@@ -131,20 +131,20 @@ TransferBufferManagerEntry* TransferBufferManagerEntry::instantiate(IPoolAllocat
                                                                                   uint16_t max_size)
 {
     void* const praw = allocator.allocate(sizeof(TransferBufferManagerEntry));
-    if (praw == NULL)
+    if (praw == UAVCAN_NULLPTR)
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     return new (praw) TransferBufferManagerEntry(allocator, max_size);
 }
 
 void TransferBufferManagerEntry::destroy(TransferBufferManagerEntry*& obj, IPoolAllocator& allocator)
 {
-    if (obj != NULL)
+    if (obj != UAVCAN_NULLPTR)
     {
         obj->~TransferBufferManagerEntry();
         allocator.deallocate(obj);
-        obj = NULL;
+        obj = UAVCAN_NULLPTR;
     }
 }
 
@@ -206,7 +206,7 @@ int TransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsi
     unsigned left_to_write = len;
     const uint8_t* inptr = data;
     Block* p = blocks_.get();
-    Block* last_written_block = NULL;
+    Block* last_written_block = UAVCAN_NULLPTR;
 
     // First we need to write the part that is already allocated
     while (p)
@@ -224,20 +224,20 @@ int TransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsi
     while (left_to_write > 0)
     {
         // cppcheck-suppress nullPointer
-        UAVCAN_ASSERT(p == NULL);
+        UAVCAN_ASSERT(p == UAVCAN_NULLPTR);
 
         // Allocating the chunk
         Block* new_block = Block::instantiate(allocator_);
-        if (new_block == NULL)
+        if (new_block == UAVCAN_NULLPTR)
         {
             break;                        // We're in deep shit.
         }
         // Appending the chain with the new block
-        if (last_written_block != NULL)
+        if (last_written_block != UAVCAN_NULLPTR)
         {
-            UAVCAN_ASSERT(last_written_block->getNextListNode() == NULL);  // Because it is last in the chain
+            UAVCAN_ASSERT(last_written_block->getNextListNode() == UAVCAN_NULLPTR);  // Because it is last in the chain
             last_written_block->setNextListNode(new_block);
-            new_block->setNextListNode(NULL);
+            new_block->setNextListNode(UAVCAN_NULLPTR);
         }
         else
         {
@@ -284,7 +284,7 @@ TransferBufferManagerEntry* TransferBufferManager::findFirst(const TransferBuffe
         }
         dyn = dyn->getNextListNode();
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 TransferBufferManager::~TransferBufferManager()
@@ -304,7 +304,7 @@ ITransferBuffer* TransferBufferManager::access(const TransferBufferManagerKey& k
     if (key.isEmpty())
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     return findFirst(key);
 }
@@ -314,21 +314,21 @@ ITransferBuffer* TransferBufferManager::create(const TransferBufferManagerKey& k
     if (key.isEmpty())
     {
         UAVCAN_ASSERT(0);
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     remove(key);
 
     TransferBufferManagerEntry* tbme = TransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
-    if (tbme == NULL)
+    if (tbme == UAVCAN_NULLPTR)
     {
-        return NULL;     // Epic fail.
+        return UAVCAN_NULLPTR;     // Epic fail.
     }
 
     buffers_.insert(tbme);
 
     UAVCAN_TRACE("TransferBufferManager", "Buffer created [num=%u], %s", getNumBuffers(), key.toString().c_str());
 
-    if (tbme != NULL)
+    if (tbme != UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(tbme->isEmpty());
         tbme->reset(key);
@@ -341,7 +341,7 @@ void TransferBufferManager::remove(const TransferBufferManagerKey& key)
     UAVCAN_ASSERT(!key.isEmpty());
 
     TransferBufferManagerEntry* dyn = findFirst(key);
-    if (dyn != NULL)
+    if (dyn != UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("TransferBufferManager", "Buffer deleted, %s", key.toString().c_str());
         buffers_.remove(dyn);

@@ -10,7 +10,7 @@ namespace uavcan
 int GenericSubscriberBase::genericStart(TransferListener* listener,
                                         bool (Dispatcher::*registration_method)(TransferListener*))
 {
-    if (listener == NULL)
+    if (listener == UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(0);
         return -ErrLogic;
@@ -26,7 +26,7 @@ int GenericSubscriberBase::genericStart(TransferListener* listener,
 
 void GenericSubscriberBase::stop(TransferListener* listener)
 {
-    if (listener != NULL)
+    if (listener != UAVCAN_NULLPTR)
     {
         node_.getDispatcher().unregisterMessageListener(listener);
         node_.getDispatcher().unregisterServiceRequestListener(listener);

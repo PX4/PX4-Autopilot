@@ -169,7 +169,7 @@ protected:
 
     ServiceClientBase(INode& node)
         : DeadlineHandler(node.getScheduler())
-        , data_type_descriptor_(NULL)
+        , data_type_descriptor_(UAVCAN_NULLPTR)
         , request_timeout_(getDefaultRequestTimeout())
     { }
 
@@ -420,8 +420,8 @@ bool ServiceClient<DataType_, Callback_>::shouldAcceptFrame(const RxFrame& frame
 {
     UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse); // Other types filtered out by dispatcher
 
-    return NULL != call_registry_.find(CallStateMatchingPredicate(ServiceCallID(frame.getSrcNodeID(),
-                                                                                frame.getTransferID())));
+    return UAVCAN_NULLPTR != call_registry_.find(CallStateMatchingPredicate(ServiceCallID(frame.getSrcNodeID(),
+                                                                                          frame.getTransferID())));
 
 }
 
@@ -474,8 +474,8 @@ int ServiceClient<DataType_, Callback_>::addCallState(ServiceCallID call_id)
         }
     }
 
-    if (NULL == call_registry_.template emplace<INode&, ServiceClientBase&, ServiceCallID>(SubscriberType::getNode(),
-                                                                                           *this, call_id))
+    if (UAVCAN_NULLPTR == call_registry_.template emplace<INode&, ServiceClientBase&,
+                                                          ServiceCallID>(SubscriberType::getNode(), *this, call_id))
     {
         SubscriberType::stop();
         return -ErrMemory;
@@ -527,7 +527,7 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
      * TODO move to init(), but this requires to somewhat refactor GenericSubscriber<> (remove TransferForwarder)
      */
     TransferListenerWithFilter* const tl = SubscriberType::getTransferListener();
-    if (tl == NULL)
+    if (tl == UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(0);  // Must have been created
         cancelCall(out_call_id);
@@ -570,14 +570,14 @@ void ServiceClient<DataType_, Callback_>::cancelAllCalls()
 template <typename DataType_, typename Callback_>
 bool ServiceClient<DataType_, Callback_>::hasPendingCallToServer(NodeID server_node_id) const
 {
-    return NULL != call_registry_.find(ServerSearchPredicate(server_node_id));
+    return UAVCAN_NULLPTR != call_registry_.find(ServerSearchPredicate(server_node_id));
 }
 
 template <typename DataType_, typename Callback_>
 ServiceCallID ServiceClient<DataType_, Callback_>::getCallIDByIndex(unsigned index) const
 {
     const CallState* const id = call_registry_.getByIndex(index);
-    return (id == NULL) ? ServiceCallID() : id->getCallID();
+    return (id == UAVCAN_NULLPTR) ? ServiceCallID() : id->getCallID();
 }
 
 }

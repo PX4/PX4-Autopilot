@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <uavcan/build_config.hpp>
+#include <uavcan/util/templates.hpp>
 
 namespace uavcan
 {
@@ -16,13 +17,13 @@ namespace uavcan
  * Classes that are supposed to be linked-listed should derive this.
  */
 template <typename T>
-class UAVCAN_EXPORT LinkedListNode
+class UAVCAN_EXPORT LinkedListNode : Noncopyable
 {
     T* next_;
 
 protected:
     LinkedListNode()
-        : next_(NULL)
+        : next_(UAVCAN_NULLPTR)
     { }
 
     ~LinkedListNode() { }
@@ -40,17 +41,17 @@ public:
  * Linked list root.
  */
 template <typename T>
-class UAVCAN_EXPORT LinkedListRoot
+class UAVCAN_EXPORT LinkedListRoot : Noncopyable
 {
     T* root_;
 
 public:
     LinkedListRoot()
-        : root_(NULL)
+        : root_(UAVCAN_NULLPTR)
     { }
 
     T* get() const { return root_; }
-    bool isEmpty() const { return get() == NULL; }
+    bool isEmpty() const { return get() == UAVCAN_NULLPTR; }
 
     /**
      * Complexity: O(N)
@@ -100,7 +101,7 @@ unsigned LinkedListRoot<T>::getLength() const
 template <typename T>
 void LinkedListRoot<T>::insert(T* node)
 {
-    if (node == NULL)
+    if (node == UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(0);
         return;
@@ -114,7 +115,7 @@ template <typename T>
 template <typename Predicate>
 void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 {
-    if (node == NULL)
+    if (node == UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(0);
         return;
@@ -122,7 +123,7 @@ void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 
     remove(node);
 
-    if (root_ == NULL || predicate(root_))
+    if (root_ == UAVCAN_NULLPTR || predicate(root_))
     {
         node->setNextListNode(root_);
         root_ = node;
@@ -146,7 +147,7 @@ void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 template <typename T>
 void LinkedListRoot<T>::remove(const T* node)
 {
-    if (root_ == NULL || node == NULL)
+    if (root_ == UAVCAN_NULLPTR || node == UAVCAN_NULLPTR)
     {
         return;
     }

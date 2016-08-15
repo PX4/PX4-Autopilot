@@ -365,7 +365,7 @@ template <>
 inline const typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType*
 ${scope_prefix}<0>::as< ${scope_prefix}<0>::Tag::${a.name} >() const
 {
-    return is(${scope_prefix}<0>::Tag::${a.name}) ? &${a.name} : NULL;
+    return is(${scope_prefix}<0>::Tag::${a.name}) ? &${a.name} : UAVCAN_NULLPTR;
 }
 
 template <>

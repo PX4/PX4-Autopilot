@@ -2,6 +2,12 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+// We need auto_ptr for compatibility reasons
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
+
 #include <string>
 #include <cstdio>
 #include <memory>
@@ -136,7 +142,7 @@ TEST(Multiset, Basic)
     {
         const std::string value = toString(i);
         std::string* res = mset->emplace(value);  // Will NOT override above
-        if (res == NULL)
+        if (res == UAVCAN_NULLPTR)
         {
             ASSERT_LT(2, i);
             break;

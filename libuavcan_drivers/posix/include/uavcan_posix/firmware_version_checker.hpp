@@ -184,9 +184,9 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
         if (fd >= 0)
         {
-            AppDescriptor* pdescriptor = NULL;
+            AppDescriptor* pdescriptor = UAVCAN_NULLPTR;
 
-            while (pdescriptor == NULL)
+            while (pdescriptor == UAVCAN_NULLPTR)
             {
                 int len = read(fd, chunk, sizeof(chunk));
 
@@ -274,15 +274,15 @@ protected:
             fname_root[n++] = getPathSeparator();
             fname_root[n++] = '\0';
 
-            if (fwdir != NULL)
+            if (fwdir != UAVCAN_NULLPTR)
             {
-                struct dirent* pfile = NULL;
-                while ((pfile = readdir(fwdir)) != NULL)
+                struct dirent* pfile = UAVCAN_NULLPTR;
+                while ((pfile = readdir(fwdir)) != UAVCAN_NULLPTR)
                 {
                     if (DIRENT_ISFILE(pfile->d_type))
                     {
                         // Open any bin file in there.
-                        if (strstr(pfile->d_name, ".bin") != NULL)
+                        if (strstr(pfile->d_name, ".bin") != UAVCAN_NULLPTR)
                         {
                             PathString full_src_path = fname_root;
                             full_src_path += pfile->d_name;

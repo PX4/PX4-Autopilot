@@ -129,7 +129,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
         const MonotonicTime otr_deadline = node_.getMonotonicTime() + max_transfer_interval;
         TransferID* const tid_ptr =
             node_.getDispatcher().getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
-        if (tid_ptr == NULL)
+        if (tid_ptr == UAVCAN_NULLPTR)
         {
             return -ErrMemory;
         }
@@ -161,7 +161,7 @@ public:
         // Data type ID
         const DataTypeDescriptor* const desc =
             GlobalDataTypeRegistry::instance().find(DataTypeKindMessage, protocol::GlobalTimeSync::getDataTypeFullName());
-        if (desc == NULL)
+        if (desc == UAVCAN_NULLPTR)
         {
             return -ErrUnknownDataType;
         }

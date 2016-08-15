@@ -217,7 +217,7 @@ public:
 
         for (unsigned i = 0; i < ifaces.size(); i++)
         {
-            ifaces.at(i).pending_tx = (pending_tx[i] == NULL) ? uavcan::CanFrame() : *pending_tx[i];
+            ifaces.at(i).pending_tx = (pending_tx[i] == UAVCAN_NULLPTR) ? uavcan::CanFrame() : *pending_tx[i];
         }
 
         if (select_failure)
@@ -270,6 +270,7 @@ public:
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const { return &ifaces.at(iface_index); }
     virtual uavcan::uint8_t getNumIfaces() const { return uavcan::uint8_t(ifaces.size()); }
 };
 

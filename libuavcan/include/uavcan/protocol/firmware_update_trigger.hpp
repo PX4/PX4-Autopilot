@@ -226,7 +226,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
     void trySetPendingNode(const NodeID node_id, const FirmwareFilePath& path)
     {
-        if (NULL != pending_nodes_.insert(node_id, path))
+        if (UAVCAN_NULLPTR != pending_nodes_.insert(node_id, path))
         {
             if (!TimerBase::isRunning())
             {
@@ -285,7 +285,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         }
 
         FirmwareFilePath* const old_path = pending_nodes_.access(result.getCallID().server_node_id);
-        if (old_path == NULL)
+        if (old_path == UAVCAN_NULLPTR)
         {
             // The entry has been removed, assuming that it's not needed anymore
             return;
@@ -304,7 +304,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         }
         else
         {
-            UAVCAN_ASSERT(old_path != NULL);
+            UAVCAN_ASSERT(old_path != UAVCAN_NULLPTR);
             UAVCAN_ASSERT(TimerBase::isRunning());
             // We won't have to call trySetPendingNode(), because we'll directly update the old path via the pointer
 
@@ -336,7 +336,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         }
 
         FirmwareFilePath* const path = pending_nodes_.access(node_id);
-        if (path == NULL)
+        if (path == UAVCAN_NULLPTR)
         {
             UAVCAN_ASSERT(0);   // pickNextNodeID() returned a node ID that is not present in the map
             return;
@@ -367,7 +367,7 @@ public:
         : TimerBase(node)
         , begin_fw_update_client_(node)
         , checker_(checker)
-        , node_info_retriever_(NULL)
+        , node_info_retriever_(UAVCAN_NULLPTR)
         , pending_nodes_(node.getAllocator())
         , request_interval_(MonotonicDuration::fromMSec(DefaultRequestIntervalMs))
         , last_queried_node_id_(0)
@@ -375,7 +375,7 @@ public:
 
     ~FirmwareUpdateTrigger()
     {
-        if (node_info_retriever_ != NULL)
+        if (node_info_retriever_ != UAVCAN_NULLPTR)
         {
             node_info_retriever_->removeListener(this);
         }

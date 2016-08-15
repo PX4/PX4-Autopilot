@@ -123,11 +123,11 @@ public:
 #endif
 
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-        const unsigned long long x = std::strtoull(val.c_str(), NULL, 10);
+        const unsigned long long x = std::strtoull(val.c_str(), UAVCAN_NULLPTR, 10);
 #else
         // There was no strtoull() before C++11, so we need to resort to strtoul()
         StaticAssert<(sizeof(unsigned long) >= sizeof(uint32_t))>::check();
-        const unsigned long x = std::strtoul(val.c_str(), NULL, 10);
+        const unsigned long x = std::strtoul(val.c_str(), UAVCAN_NULLPTR, 10);
 #endif
 
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11

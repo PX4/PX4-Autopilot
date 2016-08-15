@@ -76,13 +76,13 @@ private:
 
     LogLevel getExternalSinkLevel() const
     {
-        return (external_sink_ == NULL) ? getLogLevelAboveAll() : external_sink_->getLogLevel();
+        return (external_sink_ == UAVCAN_NULLPTR) ? getLogLevelAboveAll() : external_sink_->getLogLevel();
     }
 
 public:
     explicit Logger(INode& node)
         : logmsg_pub_(node)
-        , external_sink_(NULL)
+        , external_sink_(UAVCAN_NULLPTR)
     {
         level_ = protocol::debug::LogLevel::ERROR;
         setTxTimeout(MonotonicDuration::fromMSec(DefaultTxTimeoutMs));

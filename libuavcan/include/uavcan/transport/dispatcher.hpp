@@ -24,7 +24,7 @@ class UAVCAN_EXPORT Dispatcher;
 /**
  * Inherit this class to receive notifications about all TX CAN frames that were transmitted with the loopback flag.
  */
-class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
+class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>
 {
     Dispatcher& dispatcher_;
 
@@ -138,7 +138,7 @@ public:
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(allocator)
 #if !UAVCAN_TINY
-        , rx_listener_(NULL)
+        , rx_listener_(UAVCAN_NULLPTR)
 #endif
         , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
@@ -207,10 +207,10 @@ public:
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
 
     IRxFrameListener* getRxFrameListener() const { return rx_listener_; }
-    void removeRxFrameListener() { rx_listener_ = NULL; }
+    void removeRxFrameListener() { rx_listener_ = UAVCAN_NULLPTR; }
     void installRxFrameListener(IRxFrameListener* listener)
     {
-        UAVCAN_ASSERT(listener != NULL);
+        UAVCAN_ASSERT(listener != UAVCAN_NULLPTR);
         rx_listener_ = listener;
     }
 #endif

@@ -28,8 +28,8 @@ public:
         : owner_(owner)
         , is_node_id_taken_(is_node_id_taken)
     {
-        UAVCAN_ASSERT(owner_ != NULL);
-        UAVCAN_ASSERT(is_node_id_taken_ != NULL);
+        UAVCAN_ASSERT(owner_ != UAVCAN_NULLPTR);
+        UAVCAN_ASSERT(is_node_id_taken_ != UAVCAN_NULLPTR);
     }
 
     /**

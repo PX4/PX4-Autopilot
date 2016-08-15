@@ -32,7 +32,7 @@ SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
 
 int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
 {
-    if (data == NULL)
+    if (data == UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(0);
         return -ErrInvalidParam;
@@ -71,7 +71,7 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, Ut
 int MultiFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     const ITransferBuffer* const tbb = const_cast<TransferBufferAccessor&>(buf_acc_).access();
-    if (tbb == NULL)
+    if (tbb == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer");
         return -ErrLogic;
@@ -153,7 +153,7 @@ void TransferListener::handleReception(TransferReceiver& receiver, const RxFrame
     {
         perf_.addRxTransfer();
         const ITransferBuffer* tbb = tba.access();
-        if (tbb == NULL)
+        if (tbb == UAVCAN_NULLPTR)
         {
             UAVCAN_TRACE("TransferListener", "Buffer access failure, last frame: %s", frame.toString().c_str());
             break;
@@ -206,7 +206,7 @@ void TransferListener::handleFrame(const RxFrame& frame)
         const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
 
         TransferReceiver* recv = receivers_.access(key);
-        if (recv == NULL)
+        if (recv == UAVCAN_NULLPTR)
         {
             if (!frame.isStartOfTransfer())
             {
@@ -215,7 +215,7 @@ void TransferListener::handleFrame(const RxFrame& frame)
 
             TransferReceiver new_recv;
             recv = receivers_.insert(key, new_recv);
-            if (recv == NULL)
+            if (recv == UAVCAN_NULLPTR)
             {
                 UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
                 return;
@@ -242,7 +242,7 @@ void TransferListener::handleFrame(const RxFrame& frame)
  */
 void TransferListenerWithFilter::handleFrame(const RxFrame& frame)
 {
-    if (filter_ != NULL)
+    if (filter_ != UAVCAN_NULLPTR)
     {
         if (filter_->shouldAcceptFrame(frame))
         {

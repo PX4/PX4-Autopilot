@@ -18,7 +18,7 @@ void* LimitedPoolAllocator::allocate(std::size_t size)
     }
     else
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 }
 

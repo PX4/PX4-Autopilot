@@ -14,7 +14,7 @@ namespace uavcan
 
 class UAVCAN_EXPORT Scheduler;
 
-class UAVCAN_EXPORT DeadlineHandler : public LinkedListNode<DeadlineHandler>, Noncopyable
+class UAVCAN_EXPORT DeadlineHandler : public LinkedListNode<DeadlineHandler>
 {
     MonotonicTime deadline_;
 

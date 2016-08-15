@@ -54,7 +54,7 @@ public:
      * This method will be called when a new node responds to GetNodeInfo request.
      * If this method fails to register the node, the node will be queried again later and this method will be
      * invoked again.
-     * Unique ID will be NULL if the node is assumed to not implement the GetNodeInfo service.
+     * Unique ID will be UAVCAN_NULLPTR if the node is assumed to not implement the GetNodeInfo service.
      */
     virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id) = 0;
 
@@ -123,7 +123,7 @@ class NodeDiscoverer : TimerBase
     {
         // This essentially means that we pick first available node. Remember that the map is unordered.
         const NodeMap::KVPair* const pair = node_map_.getByIndex(0);
-        return (pair == NULL) ? NodeID() : pair->key;
+        return (pair == UAVCAN_NULLPTR) ? NodeID() : pair->key;
     }
 
     bool needToQuery(NodeID node_id)
@@ -190,7 +190,7 @@ class NodeDiscoverer : TimerBase
 
     void finalizeNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
     {
-        trace(TraceDiscoveryNodeFinalized, node_id.get() | ((unique_id_or_null == NULL) ? 0U : 0x100U));
+        trace(TraceDiscoveryNodeFinalized, node_id.get() | ((unique_id_or_null == UAVCAN_NULLPTR) ? 0U : 0x100U));
         removeNode(node_id);
         /*
          * It is paramount to check if the server is still interested to receive this data.
@@ -216,7 +216,7 @@ class NodeDiscoverer : TimerBase
             trace(TraceDiscoveryGetNodeInfoFailure, result.getCallID().server_node_id.get());
 
             NodeData* const data = node_map_.access(result.getCallID().server_node_id);
-            if (data == NULL)
+            if (data == UAVCAN_NULLPTR)
             {
                 return;         // Probably it is a known node now
             }
@@ -227,7 +227,7 @@ class NodeDiscoverer : TimerBase
             data->num_get_node_info_attempts++;
             if (data->num_get_node_info_attempts >= MaxAttemptsToGetNodeInfo)
             {
-                finalizeNodeDiscovery(NULL, result.getCallID().server_node_id);
+                finalizeNodeDiscovery(UAVCAN_NULLPTR, result.getCallID().server_node_id);
                 // Warning: data pointer is invalidated now
             }
         }
@@ -272,18 +272,18 @@ class NodeDiscoverer : TimerBase
         }
 
         NodeData* data = node_map_.access(msg.getSrcNodeID());
-        if (data == NULL)
+        if (data == UAVCAN_NULLPTR)
         {
             trace(TraceDiscoveryNewNodeFound, msg.getSrcNodeID().get());
 
             data = node_map_.insert(msg.getSrcNodeID(), NodeData());
-            if (data == NULL)
+            if (data == UAVCAN_NULLPTR)
             {
                 getNode().registerInternalFailure("NodeDiscoverer OOM");
                 return;
             }
         }
-        UAVCAN_ASSERT(data != NULL);
+        UAVCAN_ASSERT(data != UAVCAN_NULLPTR);
 
         if (msg.uptime_sec < data->last_seen_uptime)
         {

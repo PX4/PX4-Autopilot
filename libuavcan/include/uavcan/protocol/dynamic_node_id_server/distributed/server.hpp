@@ -154,7 +154,7 @@ class UAVCAN_EXPORT Server : public AbstractServer
             return;
         }
 
-        const UniqueID uid = (unique_id_or_null == NULL) ? UniqueID() : *unique_id_or_null;
+        const UniqueID uid = (unique_id_or_null == UAVCAN_NULLPTR) ? UniqueID() : *unique_id_or_null;
 
         if (raft_core_.isLeader())
         {
@@ -327,8 +327,8 @@ struct StateReport
         , num_unknown_nodes      (s.getNodeDiscoverer().getNumUnknownNodes())
     {
         const Entry* const e = s.getRaftCore().getPersistentState().getLog().getEntryAtIndex(last_log_index);
-        UAVCAN_ASSERT(e != NULL);
-        if (e != NULL)
+        UAVCAN_ASSERT(e != UAVCAN_NULLPTR);
+        if (e != UAVCAN_NULLPTR)
         {
             last_log_term = e->term;
         }

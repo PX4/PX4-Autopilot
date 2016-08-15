@@ -82,7 +82,7 @@ TEST(Subscriber, Basic)
         sizeof(uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::ExtendedBinder>) << std::endl;
 
     // Null binder - will fail
-    ASSERT_EQ(-uavcan::ErrInvalidParam, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
+    ASSERT_EQ(-uavcan::ErrInvalidParam, sub_extended.start(Listener::ExtendedBinder(UAVCAN_NULLPTR, UAVCAN_NULLPTR)));
 
     Listener listener;
 

@@ -5,6 +5,7 @@
 #if __GNUC__
 // We need auto_ptr for compatibility reasons
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
 #include <gtest/gtest.h>
@@ -43,7 +44,7 @@ public:
     virtual NodeAwareness checkNodeAwareness(uavcan::NodeID node_id) const
     {
         const NodeInfo* const ni = const_cast<NodeDiscoveryHandler*>(this)->findNode(node_id);
-        if (ni == NULL)
+        if (ni == UAVCAN_NULLPTR)
         {
             return NodeAwarenessUnknown;
         }
@@ -53,7 +54,7 @@ public:
     virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, uavcan::NodeID node_id)
     {
         NodeInfo info;
-        if (unique_id_or_null != NULL)
+        if (unique_id_or_null != UAVCAN_NULLPTR)
         {
             info.unique_id = *unique_id_or_null;
         }
@@ -70,7 +71,7 @@ public:
                 return &nodes.at(i);
             }
         }
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 
     NodeInfo* findNode(const uavcan::NodeID& node_id)
@@ -82,7 +83,7 @@ public:
                 return &nodes.at(i);
             }
         }
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
 };
 

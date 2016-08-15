@@ -107,7 +107,7 @@ public:
 
     int init()
     {
-        return pthread_mutex_init(&mutex_, NULL);
+        return pthread_mutex_init(&mutex_, UAVCAN_NULLPTR);
     }
 
     int deinit()

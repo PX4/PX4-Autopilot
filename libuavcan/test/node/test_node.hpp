@@ -7,6 +7,7 @@
 #if __GNUC__
 // We need auto_ptr for compatibility reasons
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
 #include <uavcan/node/abstract_node.hpp>
@@ -72,11 +73,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
     {
-        if (iface_index == 0)
-        {
-            return this;
-        }
-        return NULL;
+        return (iface_index == 0) ? this : UAVCAN_NULLPTR;
+    }
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const
+    {
+        return (iface_index == 0) ? this : UAVCAN_NULLPTR;
     }
 
     virtual uavcan::uint8_t getNumIfaces() const { return 1; }

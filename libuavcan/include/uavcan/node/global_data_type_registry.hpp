@@ -49,13 +49,13 @@ class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
     {
         const DataTypeID id;
         explicit EntryInsertionComparator(const Entry* dtd)
-            : id((dtd == NULL) ? DataTypeID() : dtd->descriptor.getID())
+            : id((dtd == UAVCAN_NULLPTR) ? DataTypeID() : dtd->descriptor.getID())
         {
-            UAVCAN_ASSERT(dtd != NULL);
+            UAVCAN_ASSERT(dtd != UAVCAN_NULLPTR);
         }
         bool operator()(const Entry* entry) const
         {
-            UAVCAN_ASSERT(entry != NULL);
+            UAVCAN_ASSERT(entry != UAVCAN_NULLPTR);
             return entry->descriptor.getID() > id;
         }
     };
@@ -211,7 +211,9 @@ GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerDataT
     {
         return RegistrationResultFrozen;
     }
+
     static Entry entry;
+
     {
         const RegistrationResult remove_res = remove(&entry);
         if (remove_res != RegistrationResultOk)
@@ -219,7 +221,11 @@ GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerDataT
             return remove_res;
         }
     }
-    entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
+
+    // We can't just overwrite the entry itself because it's noncopyable
+    entry.descriptor = DataTypeDescriptor(DataTypeKind(Type::DataTypeKind), id,
+                                          Type::getDataTypeSignature(), Type::getDataTypeFullName());
+
     {
         const RegistrationResult remove_res = remove(&entry);
         if (remove_res != RegistrationResultOk)

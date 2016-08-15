@@ -49,28 +49,28 @@ class UAVCAN_EXPORT Multiset : Noncopyable
 #endif
 
         Item()
-            : ptr(NULL)
+            : ptr(UAVCAN_NULLPTR)
         {
             fill_n(pool, sizeof(pool), static_cast<unsigned char>(0));
         }
 
         ~Item() { destroy(); }
 
-        bool isConstructed() const { return ptr != NULL; }
+        bool isConstructed() const { return ptr != UAVCAN_NULLPTR; }
 
         void destroy()
         {
-            if (ptr != NULL)
+            if (ptr != UAVCAN_NULLPTR)
             {
                 ptr->~T();
-                ptr = NULL;
+                ptr = UAVCAN_NULLPTR;
                 fill_n(pool, sizeof(pool), static_cast<unsigned char>(0));
             }
         }
     };
 
 private:
-    struct Chunk : LinkedListNode<Chunk>, ::uavcan::Noncopyable
+    struct Chunk : LinkedListNode<Chunk>
     {
         enum { NumItems = (MemPoolBlockSize - sizeof(LinkedListNode<Chunk>)) / sizeof(Item) };
         Item items[NumItems];
@@ -85,20 +85,20 @@ private:
         static Chunk* instantiate(IPoolAllocator& allocator)
         {
             void* const praw = allocator.allocate(sizeof(Chunk));
-            if (praw == NULL)
+            if (praw == UAVCAN_NULLPTR)
             {
-                return NULL;
+                return UAVCAN_NULLPTR;
             }
             return new (praw) Chunk();
         }
 
         static void destroy(Chunk*& obj, IPoolAllocator& allocator)
         {
-            if (obj != NULL)
+            if (obj != UAVCAN_NULLPTR)
             {
                 obj->~Chunk();
                 allocator.deallocate(obj);
-                obj = NULL;
+                obj = UAVCAN_NULLPTR;
             }
         }
 
@@ -111,7 +111,7 @@ private:
                     return items + i;
                 }
             }
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
     };
 
@@ -199,17 +199,17 @@ public:
 
     /**
      * Creates one item in-place and returns a pointer to it.
-     * If creation fails due to lack of memory, NULL will be returned.
+     * If creation fails due to lack of memory, UAVCAN_NULLPTR will be returned.
      * Complexity is O(N).
      */
     T* emplace()
     {
         Item* const item = findOrCreateFreeSlot();
-        if (item == NULL)
+        if (item == UAVCAN_NULLPTR)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
-        UAVCAN_ASSERT(item->ptr == NULL);
+        UAVCAN_ASSERT(item->ptr == UAVCAN_NULLPTR);
         item->ptr = new (item->pool) T();
         return item->ptr;
     }
@@ -218,11 +218,11 @@ public:
     T* emplace(P1 p1)
     {
         Item* const item = findOrCreateFreeSlot();
-        if (item == NULL)
+        if (item == UAVCAN_NULLPTR)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
-        UAVCAN_ASSERT(item->ptr == NULL);
+        UAVCAN_ASSERT(item->ptr == UAVCAN_NULLPTR);
         item->ptr = new (item->pool) T(p1);
         return item->ptr;
     }
@@ -231,11 +231,11 @@ public:
     T* emplace(P1 p1, P2 p2)
     {
         Item* const item = findOrCreateFreeSlot();
-        if (item == NULL)
+        if (item == UAVCAN_NULLPTR)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
-        UAVCAN_ASSERT(item->ptr == NULL);
+        UAVCAN_ASSERT(item->ptr == UAVCAN_NULLPTR);
         item->ptr = new (item->pool) T(p1, p2);
         return item->ptr;
     }
@@ -244,11 +244,11 @@ public:
     T* emplace(P1 p1, P2 p2, P3 p3)
     {
         Item* const item = findOrCreateFreeSlot();
-        if (item == NULL)
+        if (item == UAVCAN_NULLPTR)
         {
-            return NULL;
+            return UAVCAN_NULLPTR;
         }
-        UAVCAN_ASSERT(item->ptr == NULL);
+        UAVCAN_ASSERT(item->ptr == UAVCAN_NULLPTR);
         item->ptr = new (item->pool) T(p1, p2, p3);
         return item->ptr;
     }
@@ -324,7 +324,7 @@ public:
     /**
      * Complexity is O(1).
      */
-    bool isEmpty() const { return find(YesPredicate()) == NULL; }
+    bool isEmpty() const { return find(YesPredicate()) == UAVCAN_NULLPTR; }
 
     /**
      * Counts number of items stored.
@@ -347,7 +347,7 @@ typename Multiset<T>::Item* Multiset<T>::findOrCreateFreeSlot()
         while (p)
         {
             Item* const dyn = p->findFreeSlot();
-            if (dyn != NULL)
+            if (dyn != UAVCAN_NULLPTR)
             {
                 return dyn;
             }
@@ -357,9 +357,9 @@ typename Multiset<T>::Item* Multiset<T>::findOrCreateFreeSlot()
 
     // Create new chunk
     Chunk* const chunk = Chunk::instantiate(allocator_);
-    if (chunk == NULL)
+    if (chunk == UAVCAN_NULLPTR)
     {
-        return NULL;
+        return UAVCAN_NULLPTR;
     }
     list_.insert(chunk);
     return &chunk->items[0];
@@ -397,7 +397,7 @@ void Multiset<T>::removeWhere(Predicate predicate, const RemoveStrategy strategy
     unsigned num_removed = 0;
 
     Chunk* p = list_.get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         Chunk* const next_chunk = p->getNextListNode(); // For the case if the current entry gets modified
 
@@ -437,7 +437,7 @@ template <typename Predicate>
 T* Multiset<T>::find(Predicate predicate)
 {
     Chunk* p = list_.get();
-    while (p != NULL)
+    while (p != UAVCAN_NULLPTR)
     {
         Chunk* const next_chunk = p->getNextListNode(); // For the case if the current entry gets modified
 
@@ -454,7 +454,7 @@ T* Multiset<T>::find(Predicate predicate)
 
         p = next_chunk;
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 template <typename T>

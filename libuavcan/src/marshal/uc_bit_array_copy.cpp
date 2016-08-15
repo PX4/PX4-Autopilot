@@ -28,7 +28,7 @@ void bitarrayCopy(const unsigned char* src, std::size_t src_offset, std::size_t 
 
         // The number of bits to copy
         const uint8_t max_offset = uavcan::max(src_bit_offset, dst_bit_offset);
-        const std::size_t copy_bits = uavcan::min(last_bit - src_offset, (std::size_t)(8U - max_offset));
+        const std::size_t copy_bits = uavcan::min(last_bit - src_offset, std::size_t(8U - max_offset));
 
         /*
          * The mask indicating which bits of dest to update:

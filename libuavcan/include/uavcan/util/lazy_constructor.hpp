@@ -60,13 +60,13 @@ class UAVCAN_EXPORT LazyConstructor
 
 public:
     LazyConstructor()
-        : ptr_(NULL)
+        : ptr_(UAVCAN_NULLPTR)
     {
         fill(data_.pool, data_.pool + sizeof(T), uint8_t(0));
     }
 
     LazyConstructor(const LazyConstructor<T>& rhs)   // Implicit
-        : ptr_(NULL)
+        : ptr_(UAVCAN_NULLPTR)
     {
         fill(data_.pool, data_.pool + sizeof(T), uint8_t(0));
         if (rhs)
@@ -87,7 +87,7 @@ public:
         return *this;
     }
 
-    bool isConstructed() const { return ptr_ != NULL; }
+    bool isConstructed() const { return ptr_ != UAVCAN_NULLPTR; }
 
     operator T*() const { return ptr_; }
 
@@ -103,7 +103,7 @@ public:
         {
             ptr_->~T();
         }
-        ptr_ = NULL;
+        ptr_ = UAVCAN_NULLPTR;
         fill(data_.pool, data_.pool + sizeof(T), uint8_t(0));
     }
 

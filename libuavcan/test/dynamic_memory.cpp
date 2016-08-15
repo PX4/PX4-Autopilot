@@ -38,7 +38,7 @@ TEST(DynamicMemory, OutOfMemory)
     EXPECT_EQ(2, pool32.getNumUsedBlocks());
     EXPECT_EQ(2, pool32.getPeakNumUsedBlocks());
 
-    ASSERT_FALSE(pool32.allocate(32));        // No free blocks left --> NULL
+    ASSERT_FALSE(pool32.allocate(32));        // No free blocks left --> UAVCAN_NULLPTR
     EXPECT_EQ(2, pool32.getNumUsedBlocks());
     EXPECT_EQ(0, pool32.getNumFreeBlocks());
     EXPECT_EQ(2, pool32.getPeakNumUsedBlocks());

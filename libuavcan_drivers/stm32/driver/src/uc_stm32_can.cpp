@@ -77,9 +77,9 @@ namespace
 
 CanIface* ifaces[UAVCAN_STM32_NUM_IFACES] =
 {
-    NULL
+    UAVCAN_NULLPTR
 #if UAVCAN_STM32_NUM_IFACES > 1
-    , NULL
+    , UAVCAN_NULLPTR
 #endif
 };
 
@@ -91,7 +91,7 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
     {
         utc_usec--;
     }
-    if (ifaces[iface_index] != NULL)
+    if (ifaces[iface_index] != UAVCAN_NULLPTR)
     {
         ifaces[iface_index]->handleTxInterrupt(utc_usec);
     }
@@ -109,7 +109,7 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_
     {
         utc_usec--;
     }
-    if (ifaces[iface_index] != NULL)
+    if (ifaces[iface_index] != UAVCAN_NULLPTR)
     {
         ifaces[iface_index]->handleRxInterrupt(fifo_index, utc_usec);
     }
@@ -809,7 +809,7 @@ uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame* (& pen
     // Iface 0
     msk.read  = if0_.isRxBufferEmpty() ? 0 : 1;
 
-    if (pending_tx[0] != NULL)
+    if (pending_tx[0] != UAVCAN_NULLPTR)
     {
         msk.write = if0_.canAcceptNewTxFrame(*pending_tx[0]) ? 1 : 0;
     }
@@ -821,7 +821,7 @@ uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame* (& pen
         msk.read |= 1 << 1;
     }
 
-    if (pending_tx[1] != NULL)
+    if (pending_tx[1] != UAVCAN_NULLPTR)
     {
         if (if1_.canAcceptNewTxFrame(*pending_tx[1]))
         {
@@ -982,7 +982,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
     if (res < 0)                                // a typical race condition.
     {
         UAVCAN_STM32_LOG("Iface 0 init failed %i", res);
-        ifaces[0] = NULL;
+        ifaces[0] = UAVCAN_NULLPTR;
         goto fail;
     }
 
@@ -996,7 +996,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
     if (res < 0)
     {
         UAVCAN_STM32_LOG("Iface 1 init failed %i", res);
-        ifaces[1] = NULL;
+        ifaces[1] = UAVCAN_NULLPTR;
         goto fail;
     }
 #endif
@@ -1017,7 +1017,7 @@ CanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
     {
         return ifaces[iface_index];
     }
-    return NULL;
+    return UAVCAN_NULLPTR;
 }
 
 bool CanDriver::hadActivity()

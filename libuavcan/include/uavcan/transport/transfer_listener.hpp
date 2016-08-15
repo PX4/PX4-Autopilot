@@ -96,7 +96,7 @@ public:
 /**
  * Internal, refer to the transport dispatcher class.
  */
-class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>, Noncopyable
+class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>
 {
     const DataTypeDescriptor& data_type_;
     TransferBufferManager bufmgr_;
@@ -180,7 +180,7 @@ public:
     TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
                                uint16_t max_buffer_size, IPoolAllocator& allocator)
         : TransferListener(perf, data_type, max_buffer_size, allocator)
-        , filter_(NULL)
+        , filter_(UAVCAN_NULLPTR)
     { }
 
     void installAcceptanceFilter(const ITransferAcceptanceFilter* acceptance_filter)

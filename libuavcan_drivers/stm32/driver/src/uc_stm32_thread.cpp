@@ -200,7 +200,7 @@ int BusEvent::addPollWaiter(::pollfd* fds)
 {
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
-        if (pollset_[i] == NULL)
+        if (pollset_[i] == UAVCAN_NULLPTR)
         {
             pollset_[i] = fds;
             return 0;
@@ -215,7 +215,7 @@ int BusEvent::removePollWaiter(::pollfd* fds)
     {
         if (fds == pollset_[i])
         {
-            pollset_[i] = NULL;
+            pollset_[i] = UAVCAN_NULLPTR;
             return 0;
         }
     }
@@ -268,7 +268,7 @@ void BusEvent::signalFromInterrupt()
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
         ::pollfd* const fd = pollset_[i];
-        if (fd != NULL)
+        if (fd != UAVCAN_NULLPTR)
         {
             fd->revents |= fd->events & POLLIN;
             if ((fd->revents != 0) && (fd->sem->semcount <= 0))

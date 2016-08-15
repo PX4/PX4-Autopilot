@@ -125,7 +125,7 @@ TEST(GlobalDataTypeRegistry, Basic)
     /*
      * Searching
      */
-    const uavcan::DataTypeDescriptor* pdtd = NULL;
+    const uavcan::DataTypeDescriptor* pdtd = UAVCAN_NULLPTR;
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, "Nonexistent"));
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find("Nonexistent"));
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, 987));

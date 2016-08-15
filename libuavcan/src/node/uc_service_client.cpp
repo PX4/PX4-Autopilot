@@ -13,7 +13,7 @@ void ServiceClientBase::CallState::handleDeadline(MonotonicTime)
 {
     UAVCAN_TRACE("ServiceClient::CallState", "Timeout from nid=%d, tid=%d, dtname=%s",
                  int(id_.server_node_id.get()), int(id_.transfer_id.get()),
-                 (owner_.data_type_descriptor_ == NULL) ? "???" : owner_.data_type_descriptor_->getFullName());
+                 (owner_.data_type_descriptor_ == UAVCAN_NULLPTR) ? "???" : owner_.data_type_descriptor_->getFullName());
     /*
      * What we're doing here is relaying execution from this call stack to a different one.
      * We need it because call registry cannot release memory from this callback, because this will destroy the
@@ -46,18 +46,18 @@ int ServiceClientBase::prepareToCall(INode& node,
     /*
      * Determining the Data Type ID
      */
-    if (data_type_descriptor_ == NULL)
+    if (data_type_descriptor_ == UAVCAN_NULLPTR)
     {
         GlobalDataTypeRegistry::instance().freeze();
         data_type_descriptor_ = GlobalDataTypeRegistry::instance().find(DataTypeKindService, dtname);
-        if (data_type_descriptor_ == NULL)
+        if (data_type_descriptor_ == UAVCAN_NULLPTR)
         {
             UAVCAN_TRACE("ServiceClient", "Type [%s] is not registered", dtname);
             return -ErrUnknownDataType;
         }
         UAVCAN_TRACE("ServiceClient", "Data type descriptor inited: %s", data_type_descriptor_->toString().c_str());
     }
-    UAVCAN_ASSERT(data_type_descriptor_ != NULL);
+    UAVCAN_ASSERT(data_type_descriptor_ != UAVCAN_NULLPTR);
 
     /*
      * Determining the Transfer ID

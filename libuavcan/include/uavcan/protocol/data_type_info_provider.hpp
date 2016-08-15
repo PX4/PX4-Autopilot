@@ -39,7 +39,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
         /*
          * Asking the Global Data Type Registry for the matching type descriptor, either by name or by ID
          */
-        const DataTypeDescriptor* desc = NULL;
+        const DataTypeDescriptor* desc = UAVCAN_NULLPTR;
 
         if (request.name.empty())
         {
@@ -62,7 +62,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
             desc = GlobalDataTypeRegistry::instance().find(request.name.c_str());
         }
 
-        if (desc == NULL)
+        if (desc == UAVCAN_NULLPTR)
         {
             UAVCAN_TRACE("DataTypeInfoProvider",
                          "Cannot process GetDataTypeInfo for nonexistent type: dtid=%i dtk=%i name='%s'",

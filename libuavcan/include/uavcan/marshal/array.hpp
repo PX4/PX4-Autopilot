@@ -761,7 +761,8 @@ public:
      * Members must be comparable via operator ==.
      */
     template <typename R>
-    typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
+    typename EnableIf<sizeof((reinterpret_cast<const R*>(0))->size()) &&
+                      sizeof((*(reinterpret_cast<const R*>(0)))[0]), bool>::Type
     operator==(const R& rhs) const
     {
         if (size() != rhs.size())
@@ -786,7 +787,8 @@ public:
      * Any container with size() and [] is acceptable.
      */
     template <typename R>
-    typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
+    typename EnableIf<sizeof((reinterpret_cast<const R*>(0))->size()) &&
+                      sizeof((*(reinterpret_cast<const R*>(0)))[0]), bool>::Type
     isClose(const R& rhs) const
     {
         if (size() != rhs.size())
@@ -809,7 +811,7 @@ public:
      */
     bool operator==(const char* ch) const
     {
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             return false;
         }
@@ -830,7 +832,7 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
         Base::clear();
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator=(const char*)");
         }
@@ -849,7 +851,7 @@ public:
     {
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
-        if (ch == NULL)
+        if (ch == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator+=(const char*)");
         }
@@ -1001,7 +1003,8 @@ public:
      * Note that matrix packing code uses @ref areClose() for comparison.
      */
     template <typename R>
-    typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
+    typename EnableIf<sizeof((reinterpret_cast<const R*>(0))->begin()) &&
+                      sizeof((reinterpret_cast<const R*>(0))->size())>::Type
     packSquareMatrix(const R& src_row_major)
     {
         if (src_row_major.size() == MaxSize)
@@ -1057,7 +1060,8 @@ public:
      * Please refer to the specification to learn more about matrix packing.
      */
     template <typename R>
-    typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
+    typename EnableIf<sizeof((reinterpret_cast<const R*>(0))->begin()) &&
+                      sizeof((reinterpret_cast<const R*>(0))->size())>::Type
     unpackSquareMatrix(R& dst_row_major) const
     {
         if (dst_row_major.size() == MaxSize)

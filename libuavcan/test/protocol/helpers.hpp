@@ -14,18 +14,16 @@
 template <typename DataType>
 class SubscriptionCollector : uavcan::Noncopyable
 {
-    typedef uavcan::ReceivedDataStructure<DataType> ReceivedDataStructType;
-
-    void handler(const ReceivedDataStructType& msg)
+    void handler(const DataType& msg)
     {
-        this->msg.reset(new ReceivedDataStructType(msg));
+        this->msg.reset(new DataType(msg));
     }
 
 public:
-    std::auto_ptr<ReceivedDataStructType> msg;
+    std::auto_ptr<DataType> msg;
 
     typedef uavcan::MethodBinder<SubscriptionCollector*,
-                                 void (SubscriptionCollector::*)(const ReceivedDataStructType&)> Binder;
+                                 void (SubscriptionCollector::*)(const DataType&)> Binder;
 
     Binder bind() { return Binder(this, &SubscriptionCollector::handler); }
 };
