@@ -39,8 +39,6 @@
  *
  */
 
-#include <systemlib/param/param.h>
-
 /**
  * Magnetometer measurement delay relative to IMU measurements
  *
