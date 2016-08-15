@@ -2325,7 +2325,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2800,
+			   2400,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 
