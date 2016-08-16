@@ -481,7 +481,7 @@ bool isEqual(const Matrix<Type, M, N> &x,
 
 template<typename Type>
 bool isEqualF(Type x,
-             Type y, Type eps=1e-4f) {
+              Type y, Type eps=1e-4f) {
 
     bool equal = true;
 
