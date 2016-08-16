@@ -134,22 +134,6 @@ public:
         return res;
     }
 
-    bool operator==(const Matrix<Type, M, N> &other) const
-    {
-        const Matrix<Type, M, N> &self = *this;
-        static const Type eps = Type(1e-4);
-
-        for (size_t i = 0; i < M; i++) {
-            for (size_t j = 0; j < N; j++) {
-                if (fabs(self(i , j) - other(i, j)) > eps) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     Matrix<Type, M, N> operator-(const Matrix<Type, M, N> &other) const
     {
         Matrix<Type, M, N> res;
@@ -469,15 +453,47 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
-             const Matrix<Type, M, N> & y) {
-    if (!(x == y)) {
+             const Matrix<Type, M, N> &y, const Type eps=1e-4f) {
+
+    bool equal = true;
+
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            if (fabs(x(i , j) - y(i, j)) > eps) {
+                equal = false;
+                break;
+            }
+        }
+        if (equal == false) break;
+    }
+
+
+    if (!equal) {
         char buf_x[100];
         char buf_y[100];
         x.write_string(buf_x, 100);
         y.write_string(buf_y, 100);
         printf("not equal\nx:\n%s\ny:\n%s\n", buf_x, buf_y);
     }
-    return x == y;
+    return equal;
+}
+
+bool isEqual(float x,
+             float y, float eps);
+
+bool isEqual(float x,
+             float y, float eps=1e-4f) {
+
+    bool equal = true;
+
+    if (fabs(x - y) > eps) {
+        equal = false;
+    }
+
+    if (!equal) {
+        printf("not equal\nx:\n%g\ny:\n%g\n", x, y);
+    }
+    return equal;
 }
 
 #if defined(SUPPORT_STDIOSTREAM)

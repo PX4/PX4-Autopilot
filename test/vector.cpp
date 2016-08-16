@@ -17,10 +17,10 @@ int main()
     TEST(fabs(v1.dot(v2) - 130.0f) < 1e-5);
     v2.normalize();
     Vector<float, 5> v3(v2);
-    TEST(v2 == v3);
+    TEST(isEqual(v2, v3));
     float data1_sq[] = {1,4,9,16,25};
     Vector<float, 5> v4(data1_sq);
-    TEST(v1 == v4.pow(0.5));
+    TEST(isEqual(v1, v4.pow(0.5)));
     return 0;
 }
 

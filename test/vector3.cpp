@@ -12,15 +12,15 @@ int main()
     Vector3f a(1, 0, 0);
     Vector3f b(0, 1, 0);
     Vector3f c = a.cross(b);
-    TEST (c == Vector3f(0,0,1));
+    TEST(isEqual(c, Vector3f(0,0,1)));
     c = a % b;
-    TEST (c == Vector3f(0,0,1));
+    TEST (isEqual(c, Vector3f(0,0,1)));
     Matrix<float, 3, 1> d(c);
     Vector3f e(d);
-    TEST (e == d);
+    TEST (isEqual(e, d));
     float data[] = {4, 5, 6};
     Vector3f f(data);
-    TEST (f == Vector3f(4, 5, 6));
+    TEST(isEqual(f, Vector3f(4, 5, 6)));
     return 0;
 }
 

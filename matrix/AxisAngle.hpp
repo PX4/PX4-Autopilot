@@ -153,6 +153,15 @@ public:
         v(1) = a(1)*angle;
         v(2) = a(2)*angle;
     }
+
+
+    Vector<Type, 3> axis() {
+        return Vector<Type, 3>::unit();
+    }
+
+    Type angle() {
+        return Vector<Type, 3>::norm();
+    }
 };
 
 typedef AxisAngle<float> AxisAnglef;

@@ -30,7 +30,7 @@ int main()
     Matrix3f m3(data_times_2);
 
     TEST(isEqual(m, m2));
-    TEST(!(m == m3));
+    TEST(!(isEqual(m, m3)));
 
     m2 *= 2;
     TEST(isEqual(m2, m3));
