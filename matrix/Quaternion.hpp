@@ -13,6 +13,16 @@
  * represents the real part, thus, a quaternion representing a zero-rotation
  * is defined as (1,0,0,0).
  *
+ * Using Hamilton Quaternion
+ *  - https://en.wikipedia.org/wiki/Quaternion
+ *  - http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
+ *  - Components (q_w, q_v) where q_w is the scalar and q_v is a vector
+ *  - algebrea: i*j = k
+ *  - handedness: right
+ *  - function: passive (rotation operator rotates frames)
+ *  - right-to-left product means local-to-global, q_GL
+ *    default operator v_G = q x v_L x q*
+ *
  * @author James Goppert <james.goppert@gmail.com>
  */
 
@@ -190,9 +200,9 @@ public:
         const Quaternion &p = *this;
         Quaternion r;
         r(0) = p(0) * q(0) - p(1) * q(1) - p(2) * q(2) - p(3) * q(3);
-        r(1) = p(0) * q(1) + p(1) * q(0) - p(2) * q(3) + p(3) * q(2);
-        r(2) = p(0) * q(2) + p(1) * q(3) + p(2) * q(0) - p(3) * q(1);
-        r(3) = p(0) * q(3) - p(1) * q(2) + p(2) * q(1) + p(3) * q(0);
+        r(1) = p(0) * q(1) + p(1) * q(0) + p(2) * q(3) - p(3) * q(2);
+        r(2) = p(0) * q(2) - p(1) * q(3) + p(2) * q(0) + p(3) * q(1);
+        r(3) = p(0) * q(3) + p(1) * q(2) - p(2) * q(1) + p(3) * q(0);
         return r;
     }
 
@@ -239,7 +249,7 @@ public:
     {
         const Quaternion &q = *this;
         Quaternion<Type> v(0, w(0, 0), w(1, 0), w(2, 0));
-        return v * q  * Type(0.5);
+        return q * v  * Type(0.5);
     }
 
     /**

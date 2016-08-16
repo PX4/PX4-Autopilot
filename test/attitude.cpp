@@ -156,19 +156,25 @@ int main()
     Quatf q_from_m(m4);
     TEST(isEqual(q_from_m, m4));
 
+    // quaternion product
+    Quatf q3(0, 0, 0, 1);
+    Quatf q4(AxisAnglef(0, 0, float(2*M_PI)));
+    q4 *= q4;
+    q4 *= q3;
+    TEST(isEqual(q3, q4));
+
+    q3 = Quatf(0, 0, 0, 1);
+    q4 = AxisAnglef(0, 0, float(M_PI/2));
+    q4 *= q4;
+    q4 *= q3;
+    TEST(isEqual(Quatf(-1, 0, 0, 0), q4));
+
     // quaternion derivate
     Quatf q1(0, 1, 0, 0);
     Vector<float, 4> q1_dot = q1.derivative(Vector3f(1, 2, 3));
     float data_q_dot_check[] = {-0.5f, 0.0f, -1.5f, 1.0f};
     Vector<float, 4> q1_dot_check(data_q_dot_check);
     TEST(isEqual(q1_dot, q1_dot_check));
-
-    // quaternion product
-    Quatf q_prod_check(
-        0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
-    TEST(isEqual(q_prod_check, q_check*q_check));
-    q_check *= q_check;
-    TEST(isEqual(q_prod_check, q_check));
 
     // Quaternion scalar multiplication
     float scalar = 0.5;
