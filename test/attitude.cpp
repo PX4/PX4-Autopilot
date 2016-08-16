@@ -277,7 +277,7 @@ int main()
     AxisAnglef aa_axis_angle_init(Vector3f(1.0f, 2.0f, 3.0f), 3.0f);
     TEST(isEqual(aa_axis_angle_init, Vector3f(0.80178373f, 1.60356745f, 2.40535118f)));
     TEST(isEqual(aa_axis_angle_init.axis(), Vector3f(0.26726124f,  0.53452248f,  0.80178373f)));
-    TEST(isEqual(aa_axis_angle_init.angle(), 3.0f));
+    TEST(isEqualF(aa_axis_angle_init.angle(), 3.0f));
     TEST(isEqual(Quatf((AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), 0.0f))),
                  Quatf(1.0f, 0.0f, 0.0f, 0.0f)));
 

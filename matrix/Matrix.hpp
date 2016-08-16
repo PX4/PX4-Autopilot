@@ -478,20 +478,19 @@ bool isEqual(const Matrix<Type, M, N> &x,
     return equal;
 }
 
-bool isEqual(float x,
-             float y, float eps);
 
-bool isEqual(float x,
-             float y, float eps=1e-4f) {
+template<typename Type>
+bool isEqualF(Type x,
+             Type y, Type eps=1e-4f) {
 
     bool equal = true;
 
-    if (fabs(x - y) > eps) {
+    if (fabsf(x - y) > eps) {
         equal = false;
     }
 
     if (!equal) {
-        printf("not equal\nx:\n%g\ny:\n%g\n", x, y);
+        printf("not equal\nx:\n%g\ny:\n%g\n", double(x), double(y));
     }
     return equal;
 }

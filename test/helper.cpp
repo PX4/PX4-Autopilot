@@ -19,8 +19,8 @@ int main()
     TEST(!isEqual(a, b));
     TEST(isEqual(a, a));
 
-    TEST(isEqual(1.0f, 1.0f));
-    TEST(!isEqual(1.0f, 2.0f));
+    TEST(isEqualF(1.0f, 1.0f));
+    TEST(!isEqualF(1.0f, 2.0f));
     return 0;
 }
 
