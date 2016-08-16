@@ -76,16 +76,16 @@ public:
         Vector<Type, 3>()
     {
         AxisAngle &v = *this;
-        Type angle = (Type)2.0f*acosf(q(0));
-        Type mag = sinf(angle/2.0f);
-        if (fabs(angle) < 1e-10f) {
+        Type ang = (Type)2.0f*acosf(q(0));
+        Type mag = sinf(ang/2.0f);
+        if (fabs(ang) < 1e-10f) {
             v(0) = 0;
             v(1) = 0;
             v(2) = 0;
         } else {
-            v(0) = angle*q(1)/mag;
-            v(1) = angle*q(2)/mag;
-            v(2) = angle*q(3)/mag;
+            v(0) = ang*q(1)/mag;
+            v(1) = ang*q(2)/mag;
+            v(2) = ang*q(3)/mag;
         }
     }
 
@@ -142,16 +142,16 @@ public:
      * @param axis An axis of rotation, normalized if not unit length
      * @param angle The amount to rotate
      */
-    AxisAngle(const Matrix31 & axis, Type angle) :
+    AxisAngle(const Matrix31 & axis_, Type angle_) :
         Vector<Type, 3>()
     {
         AxisAngle &v = *this;
         // make sure axis is a unit vector
-        Vector<Type, 3> a = axis;
+        Vector<Type, 3> a = axis_;
         a = a.unit();
-        v(0) = a(0)*angle;
-        v(1) = a(1)*angle;
-        v(2) = a(2)*angle;
+        v(0) = a(0)*angle_;
+        v(1) = a(1)*angle_;
+        v(2) = a(2)*angle_;
     }
 
 
