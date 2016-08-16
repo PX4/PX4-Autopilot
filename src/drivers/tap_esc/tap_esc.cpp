@@ -709,6 +709,7 @@ TAP_ESC::cycle()
 			motor_out[5] = _outputs.output[5];
 			motor_out[6] = RPMSTOPPED;
 			motor_out[7] = RPMSTOPPED;
+
 		} else {
 
 			// Use the system defaults
