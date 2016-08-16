@@ -622,6 +622,7 @@ Navigator::task_main()
 		}
 
 		if (_pos_sp_triplet_updated) {
+			_pos_sp_triplet.timestamp = hrt_absolute_time();
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
 		}
