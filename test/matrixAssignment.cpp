@@ -30,7 +30,8 @@ int main()
     float data2d[3][3] = {
         {1, 2, 3},
         {4, 5, 6},
-        {7, 8, 9}};
+        {7, 8, 9}
+    };
     m2 = Matrix3f(data2d);
     for(int i=0; i<9; i++) {
         TEST(fabs(data[i] - m2.data()[i]) < 1e-6f);
