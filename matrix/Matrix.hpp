@@ -278,7 +278,7 @@ public:
         const Matrix<Type, M, N> &self = *this;
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                snprintf(buf + strlen(buf), n - strlen(buf), "\t%.2g", double(self(i, j))); // directly append to the string buffer
+                snprintf(buf + strlen(buf), n - strlen(buf), "\t%g", double(self(i, j))); // directly append to the string buffer
             }
             snprintf(buf + strlen(buf), n - strlen(buf), "\n");
         }

@@ -238,19 +238,8 @@ public:
     Matrix41 derivative(const Matrix31 &w) const
     {
         const Quaternion &q = *this;
-        Type dataQ[] = {
-            q(0), -q(1), -q(2), -q(3),
-            q(1),  q(0), -q(3),  q(2),
-            q(2),  q(3),  q(0), -q(1),
-            q(3), -q(2),  q(1),  q(0)
-        };
-        Matrix<Type, 4, 4> Q(dataQ);
-        Vector<Type, 4> v;
-        v(0) = 0;
-        v(1) = w(0, 0);
-        v(2) = w(1, 0);
-        v(3) = w(2, 0);
-        return Q * v * Type(0.5);
+        Quaternion<Type> v(0, w(0, 0), w(1, 0), w(2, 0));
+        return v * q  * Type(0.5);
     }
 
     /**
