@@ -169,6 +169,12 @@ int main()
     q4 *= q3;
     TEST(isEqual(Quatf(-1, 0, 0, 0), q4));
 
+    // check consistentcy of quaternion and dcm product
+    Dcmf dcm3(Eulerf(1, 2, 3));
+    Dcmf dcm4(Eulerf(4, 5, 6));
+    Dcmf dcm34 = dcm3*dcm4;
+    TEST(isEqual(Quatf(dcm3)*Quatf(dcm4), Quatf(dcm34)));
+
     // quaternion derivate
     Quatf q1(0, 1, 0, 0);
     Vector<float, 4> q1_dot = q1.derivative(Vector3f(1, 2, 3));
