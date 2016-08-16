@@ -21,6 +21,19 @@ int main()
         }
     }
 
+    Matrix3f B;
+    B.identity();
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (i == j) {
+                TEST( fabs(B(i, j) -  1) < 1e-7);
+
+            } else {
+                TEST( fabs(B(i, j) -  0) < 1e-7);
+            }
+        }
+    }
     return 0;
 }
 

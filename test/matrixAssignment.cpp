@@ -9,6 +9,7 @@ int main()
 {
     Matrix3f m;
     m.setZero();
+    m.zero();
     m(0, 0) = 1;
     m(0, 1) = 2;
     m(0, 2) = 3;
@@ -22,6 +23,15 @@ int main()
     float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     Matrix3f m2(data);
 
+    for(int i=0; i<9; i++) {
+        TEST(fabs(data[i] - m2.data()[i]) < 1e-6f);
+    }
+
+    float data2d[3][3] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}};
+    m2 = Matrix3f(data2d);
     for(int i=0; i<9; i++) {
         TEST(fabs(data[i] - m2.data()[i]) < 1e-6f);
     }

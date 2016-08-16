@@ -61,9 +61,22 @@ public:
         return r;
     }
 
+    inline Type operator*(const MatrixM1 & b) const {
+        const Vector &a(*this);
+        return a.dot(b);
+    }
+
+    inline Vector operator*(float b) const {
+        return Vector(MatrixM1::operator*(b));
+    }
+
     Type norm() const {
         const Vector &a(*this);
         return Type(sqrt(a.dot(a)));
+    }
+
+    inline Type length() const {
+        return norm();
     }
 
     inline void normalize() {
@@ -72,6 +85,10 @@ public:
 
     Vector unit() const {
         return (*this) / norm();
+    }
+
+    inline Vector normalized() const {
+        return unit();
     }
 
     Vector pow(Type v) const {

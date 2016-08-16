@@ -61,6 +61,7 @@ int main()
     TEST(isEqual(q, Quatf(0.18257419f,  0.36514837f,
                           0.54772256f,  0.73029674f)));
     TEST(isEqual(q0.unit(), q));
+    TEST(isEqual(q0.unit(), q0.normalized()));
 
     // quat default ctor
     q = Quatf();
@@ -265,6 +266,19 @@ int main()
     TEST(isEqual(aa_data_init, AxisAnglef(4.0f, 5.0f, 6.0f)));
 
     q = Quatf(-0.29555112749297824f, 0.25532186f,  0.51064372f,  0.76596558f);
+    TEST(isEqual(q.imag(), Vector3f(0.25532186f,  0.51064372f,  0.76596558f)));
+
+    // from dcm
+    TEST(isEqual(Eulerf(q.from_dcm(Dcmf(q))), Eulerf(q)));
+
+    // to dcm
+    TEST(isEqual(Dcmf(q), q.to_dcm()));
+
+    // conjugate
+    Vector3f v1(1.5f, 2.2f, 3.2f);
+    TEST(isEqual(q.conjugate(v1), Dcmf(q)*v1));
+    TEST(isEqual(q.conjugate_inversed(v1), Dcmf(q).T()*v1));
+
     AxisAnglef aa_q_init(q);
     TEST(isEqual(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f)));
 
@@ -285,7 +299,7 @@ int main()
     Dcmf dcm3(Eulerf(1, 2, 3));
     Dcmf dcm4(Eulerf(4, 5, 6));
     Dcmf dcm34 = dcm3*dcm4;
-    TEST(isEqual(Eulerf(Quatf(dcm3)*Quatf(dcm4)), Eulerf(Quatf(dcm34))));
+    TEST(isEqual(Eulerf(Quatf(dcm3)*Quatf(dcm4)), Eulerf(dcm34)));
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

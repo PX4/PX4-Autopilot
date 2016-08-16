@@ -41,6 +41,12 @@ public:
     {
     }
 
+    Matrix(const Type data_[][N]) :
+        _data()
+    {
+        memcpy(_data, data_, sizeof(_data));
+    }
+
     Matrix(const Type *data_) :
         _data()
     {
@@ -114,6 +120,20 @@ public:
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
                 res(i , j) = self(i, j)*other(i, j);
+            }
+        }
+
+        return res;
+    }
+
+    Matrix<Type, M, N> edivide(const Matrix<Type, M, N> &other) const
+    {
+        Matrix<Type, M, N> res;
+        const Matrix<Type, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                res(i , j) = self(i, j)/other(i, j);
             }
         }
 
@@ -334,6 +354,11 @@ public:
         memset(_data, 0, sizeof(_data));
     }
 
+    inline void zero()
+    {
+        setZero();
+    }
+
     void setAll(Type val)
     {
         Matrix<Type, M, N> &self = *this;
@@ -358,6 +383,11 @@ public:
         for (size_t i = 0; i < M && i < N; i++) {
             self(i, i) = 1;
         }
+    }
+
+    inline void identity()
+    {
+        setIdentity();
     }
 
     inline void swapRows(size_t a, size_t b)

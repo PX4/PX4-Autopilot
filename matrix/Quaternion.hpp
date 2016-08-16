@@ -292,6 +292,20 @@ public:
         (*this) = (*this) * res;
     }
 
+    Vector3f conjugate(const Vector3f &vec) {
+        Quaternion q = *this;
+        Quaternion v(0, vec(0), vec(1), vec(2));
+        Quaternion res = q*v*q.inversed();
+        return Vector3f(res(1), res(2), res(3));
+    }
+
+    Vector3f conjugate_inversed(const Vector3f &vec) {
+        Quaternion q = *this;
+        Quaternion v(0, vec(0), vec(1), vec(2));
+        Quaternion res = q.inversed()*v*q;
+        return Vector3f(res(1), res(2), res(3));
+    }
+
     /**
      * Rotation quaternion from vector
      *
@@ -367,6 +381,30 @@ public:
 
         return vec;
     }
+
+    /**
+     * Imaginary components of quaternion
+     */
+    Vector3<Type> imag()
+    {
+        Quaternion &q = *this;
+        return Vector3<Type>(q(1), q(2), q(3));
+    }
+
+    /**
+     * XXX DEPRECATED, can use assignment or ctor
+     */
+    Quaternion from_dcm(Matrix<Type, 3, 3> dcm) {
+        return Quaternion(Dcmf(dcm));
+    }
+
+    /**
+     * XXX DEPRECATED, can use assignment or ctor
+     */
+    Dcm<Type> to_dcm() {
+        return Dcm<Type>(*this);
+    }
+
 };
 
 typedef Quaternion<float> Quatf;

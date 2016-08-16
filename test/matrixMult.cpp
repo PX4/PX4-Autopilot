@@ -24,7 +24,10 @@ int main()
     Matrix3f A2 = eye<float, 3>()*2;
     Matrix3f B = A2.emult(A2);
     Matrix3f B_check = eye<float, 3>()*4;
+    Matrix3f C_check = eye<float, 3>()*2;
     TEST(isEqual(B, B_check));
+    Matrix3f C = B_check.edivide(C_check);
+    TEST(isEqual(C, C_check));
     return 0;
 }
 
