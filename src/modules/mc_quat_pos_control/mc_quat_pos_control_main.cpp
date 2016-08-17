@@ -886,7 +886,7 @@ void
 MulticopterQuatPositionControl::handle_gps_signal()
 {
 	/* GPS is only valid when the fix is >=3D which requires a minim of 3 satellites. Do position control and  */ 
-		if (_veh_gps_pos.timestamp_time != gps_old_time && _veh_gps_pos.fix_type >= 3 && _veh_gps_pos.satellites_used > 4)
+		if (_veh_gps_pos.timestamp_time_relative != gps_old_time && _veh_gps_pos.fix_type >= 3 && _veh_gps_pos.satellites_used > 4)
 		{
 			/* Handle home position and publish */
 			if(!initialise_home)
@@ -926,9 +926,9 @@ MulticopterQuatPositionControl::handle_gps_signal()
 			vel_pub = _veh_gps_pos.vel_ned_valid;			
 			
 			
-			float dtttss = (_veh_gps_pos.timestamp_time -gps_old_time )*0.000001f;
+			float dtttss = (_veh_gps_pos.timestamp_time_relative -gps_old_time )*0.000001f;
 			printf("dt gps freq %3.3f %3.3f\n",double(dtttss),double(1/dtttss));
-			gps_old_time 	= _veh_gps_pos.timestamp_time;
+			gps_old_time 	= _veh_gps_pos.timestamp_time_relative;
 
 			old_meas_time 	= get_time_micros();
 
@@ -941,7 +941,7 @@ MulticopterQuatPositionControl::handle_gps_signal()
 				_veh_vel.inertial_vy 		= ivy;
 				_veh_vel.inertial_vz 		= ivz;
 				_veh_vel.inertial_valid 		= _veh_gps_pos.vel_ned_valid;
-				_veh_vel.timestamp 			= _veh_gps_pos.timestamp_time; 
+				_veh_vel.timestamp 			= _veh_gps_pos.timestamp_time_relative; 
 				vel_updated = true;
 			}	else {
 				_veh_vel.inertial_valid 	= false;

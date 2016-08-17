@@ -408,9 +408,9 @@ int av_estimator_thread_main(int argc, char *argv[])
 				 				
 				
 				if (!initialized) {
-					gyro_offsets[0] += raw.gyro_rad_s[0];
-					gyro_offsets[1] += raw.gyro_rad_s[1];
-					gyro_offsets[2] += raw.gyro_rad_s[2];
+					gyro_offsets[0] += raw.gyro_rad[0];
+					gyro_offsets[1] += raw.gyro_rad[1];
+					gyro_offsets[2] += raw.gyro_rad[2];
 
 					acc_offsets[0] += raw.accelerometer_m_s2[0];
 					acc_offsets[1] += raw.accelerometer_m_s2[1];
@@ -420,7 +420,7 @@ int av_estimator_thread_main(int argc, char *argv[])
 					mu_init[1] += raw.magnetometer_ga[1];
 					mu_init[2] += raw.magnetometer_ga[2];	
 
-					baro_offset += raw.baro_alt_meter[0];				
+					baro_offset += raw.baro_alt_meter;				
 
 					offset_count++;
 
@@ -467,10 +467,10 @@ int av_estimator_thread_main(int argc, char *argv[])
 					vbar(1) = (raw.accelerometer_m_s2[1] + attitude_params.cbar_y_offset)/raw.accelerometer_m_s2[2] /Cbar(1); //0.4886
 
 					
-					baro_alt = raw.baro_alt_meter[0] - baro_offset;
-					if (baro_prev_time != raw.baro_timestamp[0])
+					baro_alt = raw.baro_alt_meter - baro_offset;
+					if (baro_prev_time != raw.baro_timestamp_relative)
 					{
-						use_barometer(attitude_params, raw.baro_timestamp[0], baro_alt, filter_b.att.R, a, baro_data); //FIXME: do we need to consider bias?
+						use_barometer(attitude_params, raw.baro_timestamp_relative, baro_alt, filter_b.att.R, a, baro_data); //FIXME: do we need to consider bias?
 					}
 					
 					if (vbar(0) > 2.0f) //FIXME this is a hack changed later
@@ -523,9 +523,9 @@ int av_estimator_thread_main(int argc, char *argv[])
 					}					
 
 					/* Remove bias from gyro measurement */
-					omega(0) = raw.gyro_rad_s[0] - gyro_offsets[0];
-					omega(1) = raw.gyro_rad_s[1] - gyro_offsets[1];
-					omega(2) = raw.gyro_rad_s[2] - gyro_offsets[2];
+					omega(0) = raw.gyro_rad[0] - gyro_offsets[0];
+					omega(1) = raw.gyro_rad[1] - gyro_offsets[1];
+					omega(2) = raw.gyro_rad[2] - gyro_offsets[2];
 
 					/* Accelerometer measurement */
 					a(0) = raw.accelerometer_m_s2[0]-acc_offsets[0];

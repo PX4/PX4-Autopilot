@@ -49,7 +49,7 @@ set(config_module_list
 	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 
-	drivers/irlock
+	#drivers/irlock
 
 	#
 	# System commands
@@ -103,9 +103,9 @@ set(config_module_list
 	#modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/local_position_estimator
-	modules/ekf2
+	#modules/ekf2
 
-	#modules/av_estimator
+	modules/av_estimator
 
 	#
 	# Vehicle Control
@@ -116,9 +116,9 @@ set(config_module_list
 	modules/mc_pos_control
 	#modules/vtol_att_control
 
-	#modules/mc_quat_control
-	#modules/mc_quat_pos_control
-	#modules/mc_quat_vel_control
+	modules/mc_quat_control
+	modules/mc_quat_pos_control
+	modules/mc_quat_vel_control
 
 	#
 	# Logging
