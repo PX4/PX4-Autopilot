@@ -179,16 +179,6 @@ then
 		set USE_IO no
 	fi
 
-
-	# should set to 0.8 for mindpx-v2 borad.
-	if param compare INAV_LIDAR_ERR 0.5
-	then
-		if ver hwcmp MINDPX_V2
-		then
-			param set INAV_LIDAR_ERR 0.8
-		fi
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
