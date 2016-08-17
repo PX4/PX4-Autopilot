@@ -170,13 +170,14 @@
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
-#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15)
+#define ADC_CHANNELS (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15)
 
 // ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL     3
-#define ADC_BATTERY_CURRENT_CHANNEL     2
-#define ADC_5V_RAIL_SENSE               4
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL    15
+#define ADC_5V_RAIL_SENSE		4
+#define ADC_BATTERY_CURRENT_CHANNEL	10
+#define ADC_BATTERY_VOLTAGE_CHANNEL	12
+#define ADC_RC_RSSI_CHANNEL		11
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 
 /* User GPIOs
  *
@@ -284,6 +285,7 @@
 
 #define RC_SERIAL_PORT		"/dev/ttyS0"
 
+// #define GPIO_RSSI_IN		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 #define GPIO_SBUS_INV		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10)
 #define INVERT_RC_INPUT(_s)	px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
 
