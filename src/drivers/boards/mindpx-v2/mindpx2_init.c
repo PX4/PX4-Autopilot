@@ -281,9 +281,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, PX4_SPIDEV_EXT0, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT1, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT2, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT3, false);
+
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
