@@ -93,7 +93,7 @@
  *
  * PLL source is HSE
  * PLL_VCO = (STM32_HSE_FREQUENCY / PLLM) * PLLN
- *         = (25,000,000 / 25) * 336
+ *         = (8,000,000 / 8) * 336
  *         = 336,000,000
  * SYSCLK  = PLL_VCO / PLLP
  *         = 336,000,000 / 2 = 168,000,000
@@ -231,12 +231,9 @@
  * CAN
  *
  * CAN1 is routed to the onboard transceiver.
- * CAN2 is routed to the expansion connector.
  */
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_3
-#define GPIO_CAN2_RX	GPIO_CAN2_RX_1
-#define GPIO_CAN2_TX	GPIO_CAN2_TX_2
 
 /*
  * I2C
