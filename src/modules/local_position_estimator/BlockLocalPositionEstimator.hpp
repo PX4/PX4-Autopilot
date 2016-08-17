@@ -58,12 +58,15 @@ enum sensor_t {
 // change this to set when
 // the system will abort correcting a measurement
 // given a fault has been detected
+// 假定已经检测到了一个故障,若将此项变为置位，系统放弃校正该测量值
 static const fault_t fault_lvl_disable = FAULT_SEVERE;
 
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
 // see fault_table.py
 // note skip 0 index so we can use degree of freedom as index
+// 对于一个故障检测，采用卡方分布，假报警概率为0.0001
+// 查看错误表fault_table.py   注意跳过索引0便于我们使用自由度作为索引
 static const float BETA_TABLE[7] = {0,
 				    8.82050518214,
 				    12.094592431,
@@ -100,8 +103,8 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 // states:
 // 	px, py, pz , ( position NED)
 // 	vx, vy, vz ( vel NED),
-// 	bx, by, bz ( accel bias)
-// 	tz (terrain altitude, ASL)
+// 	bx, by, bz ( accel bias加速度偏移) 
+// 	tz (terrain altitude 地面海拔高度, ASL)
 //
 // measurements:
 //
@@ -238,7 +241,7 @@ private:
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
 
-	// map projection
+	// map projection地图投影
 	struct map_projection_reference_s _map_ref;
 
 	// general parameters
@@ -378,12 +381,12 @@ private:
 	perf_counter_t _interval_perf;
 	perf_counter_t _err_perf;
 
-	// state space
-	Vector<float, n_x>  _x; // state vector
-	Vector<float, n_u>  _u; // input vector
-	Matrix<float, n_x, n_x>  _P; // state covariance matrix
-	Matrix<float, n_x, n_x>  _A; // dynamics matrix
-	Matrix<float, n_x, n_u>  _B; // input matrix
-	Matrix<float, n_u, n_u>  _R; // input covariance
-	Matrix<float, n_x, n_x>  _Q; // process noise covariance
+	// state space  卡尔曼滤波  状态空间
+	Vector<float, n_x>  _x; // state vector 状态向量
+	Vector<float, n_u>  _u; // input vector 输入向量
+	Matrix<float, n_x, n_x>  _P; // state covariance matrix 状态协方差矩阵
+	Matrix<float, n_x, n_x>  _A; // dynamics matrix 动态矩阵
+	Matrix<float, n_x, n_u>  _B; // input matrix 输入矩阵
+	Matrix<float, n_u, n_u>  _R; // input covariance 输入协方差矩阵
+	Matrix<float, n_x, n_x>  _Q; // process noise covariance  过程噪声矩阵
 };

@@ -34,9 +34,10 @@
 /**
  * @file position_estimator_inav_main.c
  * Model-identification based position estimator for multirotors
- * 基于多旋翼位置估计的模式识别
+ * 基于多旋翼位置估计的模型识别
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
+ * @author Christoph Tobler <toblech@student.ethz.ch>
  */
 #include <px4_posix.h>
 #include <unistd.h>
@@ -76,16 +77,17 @@
 #define MIN_VALID_W 0.00001f
 #define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
 #define EST_BUF_SIZE 250000 / PUB_INTERVAL		// buffer size is 0.5s
+#define MAX_WAIT_FOR_BARO_SAMPLE 3000000 // wait 3 secs for the baro to respond
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool inav_verbose_mode = false;
 
-static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s 视觉话题暂停时间
-static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s  动作捕捉话题暂停时间
-static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s    GPS话题暂停时间
-static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s 光流话题暂停时间
+static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
+static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s
+static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
+static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime lidar_timeout = 150000;	// lidar timeout = 150ms
 static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distance during this time after lidar loss
 static const unsigned updates_counter_len = 1000000;
@@ -119,7 +121,7 @@ static void usage(const char *reason)
 	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n");
 	return;
 }
-
+ 
 /**
  * The position_estimator_inav_thread only briefly exists to start
  * the background job. The stack size assigned in the
@@ -148,10 +150,11 @@ int position_estimator_inav_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
+		// 创建任务
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
-					       (argv && argc > 2) ? (char * const *) &argv[2] : (char * const *) NULL);
+					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
 		return 0;
 	}
 
@@ -183,27 +186,35 @@ int position_estimator_inav_main(int argc, char *argv[])
 }
 
 #ifdef INAV_DEBUG
-static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2],
-	float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v, float corr_mocap[3][1], float w_mocap_p,
-	float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
+static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2],
+			    float x_est_prev[2], float y_est_prev[2], float z_est_prev[2],
+			    float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v, float corr_mocap[3][1], float w_mocap_p,
+			    float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
 	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
 		char *s = malloc(256);
-		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f] y_est=[%.5f %.5f] z_est=[%.5f %.5f] x_est_prev=[%.5f %.5f] y_est_prev=[%.5f %.5f] z_est_prev=[%.5f %.5f]\n",
-                              (unsigned long long)hrt_absolute_time(), msg, (double)dt,
-                              (double)x_est[0], (double)x_est[1], (double)y_est[0], (double)y_est[1], (double)z_est[0], (double)z_est[1],
-                              (double)x_est_prev[0], (double)x_est_prev[1], (double)y_est_prev[0], (double)y_est_prev[1], (double)z_est_prev[0], (double)z_est_prev[1]);
+		unsigned n = snprintf(s, 256,
+				      "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f] y_est=[%.5f %.5f] z_est=[%.5f %.5f] x_est_prev=[%.5f %.5f] y_est_prev=[%.5f %.5f] z_est_prev=[%.5f %.5f]\n",
+				      (unsigned long long)hrt_absolute_time(), msg, (double)dt,
+				      (double)x_est[0], (double)x_est[1], (double)y_est[0], (double)y_est[1], (double)z_est[0], (double)z_est[1],
+				      (double)x_est_prev[0], (double)x_est_prev[1], (double)y_est_prev[0], (double)y_est_prev[1], (double)z_est_prev[0],
+				      (double)z_est_prev[1]);
 		fwrite(s, 1, n, f);
-		n = snprintf(s, 256, "\tacc=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f mocap_pos_corr=[%.5f %.5f %.5f] w_mocap_p=%.5f\n",
-                     (double)acc[0], (double)acc[1], (double)acc[2],
-                     (double)corr_gps[0][0], (double)corr_gps[1][0], (double)corr_gps[2][0], (double)corr_gps[0][1], (double)corr_gps[1][1], (double)corr_gps[2][1],
-                     (double)w_xy_gps_p, (double)w_xy_gps_v, (double)corr_mocap[0][0], (double)corr_mocap[1][0], (double)corr_mocap[2][0], (double)w_mocap_p);
+		n = snprintf(s, 256,
+			     "\tacc=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f mocap_pos_corr=[%.5f %.5f %.5f] w_mocap_p=%.5f\n",
+			     (double)acc[0], (double)acc[1], (double)acc[2],
+			     (double)corr_gps[0][0], (double)corr_gps[1][0], (double)corr_gps[2][0], (double)corr_gps[0][1], (double)corr_gps[1][1],
+			     (double)corr_gps[2][1],
+			     (double)w_xy_gps_p, (double)w_xy_gps_v, (double)corr_mocap[0][0], (double)corr_mocap[1][0], (double)corr_mocap[2][0],
+			     (double)w_mocap_p);
 		fwrite(s, 1, n, f);
-		n = snprintf(s, 256, "\tvision_pos_corr=[%.5f %.5f %.5f] vision_vel_corr=[%.5f %.5f %.5f] w_xy_vision_p=%.5f w_z_vision_p=%.5f w_xy_vision_v=%.5f\n",
-                     (double)corr_vision[0][0], (double)corr_vision[1][0], (double)corr_vision[2][0], (double)corr_vision[0][1], (double)corr_vision[1][1], (double)corr_vision[2][1],
-                     (double)w_xy_vision_p, (double)w_z_vision_p, (double)w_xy_vision_v);
+		n = snprintf(s, 256,
+			     "\tvision_pos_corr=[%.5f %.5f %.5f] vision_vel_corr=[%.5f %.5f %.5f] w_xy_vision_p=%.5f w_z_vision_p=%.5f w_xy_vision_v=%.5f\n",
+			     (double)corr_vision[0][0], (double)corr_vision[1][0], (double)corr_vision[2][0], (double)corr_vision[0][1],
+			     (double)corr_vision[1][1], (double)corr_vision[2][1],
+			     (double)w_xy_vision_p, (double)w_z_vision_p, (double)w_xy_vision_v);
 		fwrite(s, 1, n, f);
 		free(s);
 	}
@@ -256,8 +267,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized on start, then adjusted
-	float surface_offset = 0.0f;	// ground level offset from reference altitude
-	float surface_offset_rate = 0.0f;	// surface offset change rate
 
 	hrt_abstime accel_timestamp = 0;
 	hrt_abstime baro_timestamp = 0;
@@ -282,6 +291,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime t_prev = 0;
 
 	/* store error when sensor updates, but correct on each time step to avoid jumps in estimated value */
+       // 当传感器更新时储存错误，在每一时刻进行校正以避免在位置估计中发生跳变
 	float acc[] = { 0.0f, 0.0f, 0.0f };	// N E D
 	float acc_bias[] = { 0.0f, 0.0f, 0.0f };	// body frame
 	float corr_baro = 0.0f;		// D
@@ -304,17 +314,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		{ 0.0f },		// E (pos)
 		{ 0.0f },		// D (pos)
 	};
+	const int mocap_heading = 2;
 
+	float dist_ground = 0.0f;		//variables for lidar altitude estimation
 	float corr_lidar = 0.0f;
-	float corr_lidar_filtered = 0.0f;
+	float lidar_offset = 0.0f;
+	int lidar_offset_count = 0;
+	bool lidar_first = true;
+	bool use_lidar = false;
+	bool use_lidar_prev = false;
 
 	float corr_flow[] = { 0.0f, 0.0f };	// N E
 	float w_flow = 0.0f;
 
-	float lidar_prev = 0.0f;
-	//hrt_abstime flow_prev = 0;			// time of last flow measurement
 	hrt_abstime lidar_time = 0;			// time of last lidar measurement (not filtered)
+	                                                                //上一次lidar测量的时间(未滤波)
 	hrt_abstime lidar_valid_time = 0;	// time of last lidar measurement used for correction (filtered)
+	                                                                //用于校正的上一次lidar测量的时间(已滤波)
 
 	int n_flow = 0;
 	float gyro_offset_filtered[] = { 0.0f, 0.0f, 0.0f };
@@ -322,6 +338,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float flow_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float att_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float yaw_comp[] = { 0.0f, 0.0f };
+	hrt_abstime flow_time = 0;
+	float flow_min_dist = 0.2f;
 
 	bool gps_valid = false;			// GPS is valid
 	bool lidar_valid = false;		// lidar is valid
@@ -353,6 +371,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&global_pos, 0, sizeof(global_pos));
 	struct distance_sensor_s lidar;
 	memset(&lidar, 0, sizeof(lidar));
+	struct vehicle_rates_setpoint_s rates_setpoint;
+	memset(&rates_setpoint, 0, sizeof(rates_setpoint));
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -365,6 +385,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
+	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
@@ -374,24 +395,29 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&params, 0, sizeof(params));
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
 	/* initialize parameter handles */
+	// 初始化参数句柄
 	inav_parameters_init(&pos_inav_param_handles);
 
 	/* first parameters read at start up */
+	// 开始时第一次读取数据
 	struct parameter_update_s param_update;
-	orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update); /* read from param topic to clear updated flag */
+	orb_copy(ORB_ID(parameter_update), parameter_update_sub,
+		 &param_update); /* read from param topic to clear updated flag */
 	/* first parameters update */
-	inav_parameters_update(&pos_inav_param_handles, &params);
+	// 第一次参数更新
+	inav_parameters_update(&pos_inav_param_handles, &params); // (参数句柄，参数)
 
 	px4_pollfd_struct_t fds_init[1] = {};
 	fds_init[0].fd = sensor_combined_sub;
 	fds_init[0].events = POLLIN;
 
 	/* wait for initial baro value */
+	// 主循环开始之前需要对气压计进行初始化
 	bool wait_baro = true;
-
-	TerrainEstimator *terrain_estimator = new TerrainEstimator();
+	TerrainEstimator terrain_estimator;
 
 	thread_running = true;
+	hrt_abstime baro_wait_for_sample_time = hrt_absolute_time();
 
 	while (wait_baro && !thread_should_exit) {
 		int ret = px4_poll(&fds_init[0], 1, 1000);
@@ -399,12 +425,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(&mavlink_log_pub, "[inav] poll error on init");
-
 		} else if (hrt_absolute_time() - baro_wait_for_sample_time > MAX_WAIT_FOR_BARO_SAMPLE) {
 			wait_baro = false;
 			mavlink_log_info(&mavlink_log_pub, "[inav] timed out waiting for a baro sample");
-
-		} else if (ret > 0) {
+		}
+		else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
@@ -412,8 +437,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
 
-
 					/* mean calculation over several measurements */
+					// 多次测量取平均值
 					if (baro_init_cnt < baro_init_num) {
 						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
 							baro_offset += sensor.baro_alt_meter;
@@ -428,18 +453,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 			}
+
 		} else {
 			PX4_WARN("INAV poll timeout");
 		}
 	}
 
 	/* main loop */
+	// 主循环开始
 	px4_pollfd_struct_t fds[1];
-	fds[0].fd = vehicle_attitude_sub;
+	fds[0].fd = vehicle_attitude_sub; // 主题
 	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
-		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
+		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate 更新频率
 		hrt_abstime t = hrt_absolute_time();
 
 		if (ret < 0) {
@@ -449,16 +476,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		} else if (ret > 0) {
 			/* act on attitude updates */
+			// poll返回值大于0，进行姿态更新
 
 			/* vehicle attitude */
+			// 飞行器的姿态
 			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-			attitude_updates++;
+			attitude_updates++; // 将更新的数据放入vehicle_attitude_sub结构体中然后更新次数加一
 
 			bool updated;
-			bool updated2;
 
 			/* parameter update */
-			orb_check(parameter_update_sub, &updated);
+			// 参数更新    
+			orb_check(parameter_update_sub, &updated);  // 先check  再copy
 
 			if (updated) {
 				struct parameter_update_s update;
@@ -467,6 +496,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* actuator */
+			// 执行器更新
 			orb_check(actuator_sub, &updated);
 
 			if (updated) {
@@ -486,14 +516,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
+				/*
+				 * 接着在加速度时间帧更新的情况下，
+				 * 如果满足姿态旋转矩阵有效，即R_valid为true，
+				 * 那么为机体坐标系下加速度值accelerometer_m_s2修正偏移，即减去acc_bias。
+				 * 接着转换到地理坐标系下，并给z轴加上重力加速度G
+				 * 旋转矩阵无效的情况则重新为acc向量分配内存		
+				 */
 				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
+						// 校正加速度偏差
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
 						sensor.accelerometer_m_s2[1] -= acc_bias[1];
 						sensor.accelerometer_m_s2[2] -= acc_bias[2];
 
 						/* transform acceleration vector from body frame to NED frame */
+						// 将加速度向量从机体坐标系转换到地球坐标系
 						for (int i = 0; i < 3; i++) {
 							acc[i] = 0.0f;
 
@@ -505,7 +544,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						acc[2] += CONSTANTS_ONE_G;
 
 					} else {
-						memset(acc, 0, sizeof(acc));
+						memset(acc, 0, sizeof(acc));  // 加速度值赋0
 					}
 
 					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
@@ -519,84 +558,86 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
-			/* optical flow */
-			orb_check(optical_flow_sub, &updated);
-			orb_check(distance_sensor_sub, &updated2);
+
+			/* lidar alt estimation */
+			// 激光雷达高度估计更新
+			orb_check(distance_sensor_sub, &updated);
 
 			/* update lidar separately, needed by terrain estimator */
-			if (updated2) {
+			// 单独更新激光雷达，估计地势环境所需
+			if (updated) {
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
+				lidar.current_distance += params.lidar_calibration_offset;
 			}
 
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
+			                     // 检查lidar的高度估计是否使能以及新的传感器数据
 
-				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance
-				    && lidar.current_distance < lidar.max_distance
-				    && (PX4_R(att.R, 2, 2) > 0.7f)) {
-
+				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance && lidar.current_distance < lidar.max_distance
+			    		&& (PX4_R(att.R, 2, 2) > 0.7f)) {
+ 
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
 					}
 
-			if (updated && updated2) {
-				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
+					use_lidar_prev = use_lidar;
 
-				/* calculate time from previous update */
-//				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
-//				flow_prev = flow.flow_timestamp;
+					lidar_time = t;
+					dist_ground = lidar.current_distance * PX4_R(att.R, 2, 2); //vertical distance 垂直距离
 
 					if (lidar_first) {
 						lidar_first = false;
-						lidar_offset = dist_ground + z_est[0];
+						lidar_offset = dist_ground + z_est[0]; // 更新偏移
 						mavlink_log_info(&mavlink_log_pub, "[inav] LIDAR: new ground offset");
 						warnx("[inav] LIDAR: new ground offset");
 					}
 
-					lidar_time = t;
-					lidar_prev = lidar.current_distance;
-					corr_lidar = lidar.current_distance + surface_offset + z_est[0];
-					corr_lidar_filtered += (corr_lidar - corr_lidar_filtered) * params.lidar_filt;
+					corr_lidar = lidar_offset - dist_ground - z_est[0];  //更新校正值,即上一次的偏移lidar_offset
 
-					if (fabsf(corr_lidar) > params.lidar_err) {
-						/* correction is too large: spike or new ground level? */
-						if (fabsf(corr_lidar - corr_lidar_filtered) > params.lidar_err) {
-							/* spike detected, ignore */
-							corr_lidar = 0.0f;
-							lidar_valid = false;
+					if (fabsf(corr_lidar) > params.lidar_err) { //check for spike
+						corr_lidar = 0;
+						lidar_valid = false;
+						lidar_offset_count++;
 
-						} else {
-							/* new ground level */
-							surface_offset -= corr_lidar;
-							surface_offset_rate = 0.0f;
-							corr_lidar = 0.0f;
-							corr_lidar_filtered = 0.0f;
-							lidar_valid_time = t;
-							lidar_valid = true;
-							local_pos.surface_bottom_timestamp = t;
-							mavlink_log_info(mavlink_fd, "[inav] new surface level: %d", (int)surface_offset);
+						if (lidar_offset_count > 3) { //if consecutive bigger/smaller measurements -> new ground offset -> reinit
+											   //如果连续几次测量值都过大或者过小 -> 获得新的对地补偿量 -> 重新初始化
+							lidar_first = true;
+							lidar_offset_count = 0;
 						}
 
 					} else {
-						/* correction is ok, use it */
-						lidar_valid_time = t;
+					// 校正值小于误差，校正值有效，再次更新，并使用激光雷达，更新有效使用时间
+						corr_lidar = lidar_offset - dist_ground - z_est[0];
 						lidar_valid = true;
+						lidar_offset_count = 0;
+						lidar_valid_time = t;
 					}
-
 				} else {
 					lidar_valid = false;
-
 				}
+			}
 
+			/* optical flow */
+			// 光流更新
+			orb_check(optical_flow_sub, &updated);
+			
+			// 想用光流 第一个条件就是lidar是否有效，在位置估计里雷达就是距离传感器，
+			//对应的实际就是超声波传感器，（实测lidar的数据都是超声波提供的） 
+			if (updated && lidar_valid) {
+				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
+
+				flow_time = t;
 				float flow_q = flow.quality / 255.0f;
-				float dist_bottom = - z_est[0] - surface_offset; //lidar.current_distance;
+				float dist_bottom = lidar.current_distance;
 
-				if (dist_bottom > 0.21f && flow_q > params.flow_q_min) {
-					/* distance to surface */
+				if (dist_bottom > flow_min_dist && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
+					/* distance to surface 距离地面的高度 */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
-					float flow_dist = dist_bottom; //use this if using lidar
+					float flow_dist = dist_bottom; //use this if using lidar 如果使用了lidar则将离地距离赋值给flow_dist
 
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
+					// 计算机体坐标系中的估计速度
 					float body_v_est[2] = { 0.0f, 0.0f };
 
 					for (int i = 0; i < 2; i++) {
@@ -607,13 +648,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
 							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
 
-
 					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
-					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					flow_gyrospeed[1] = flow.gyro_y_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					flow_gyrospeed[2] = flow.gyro_z_rate_integral/(float)flow.integration_timespan*1000000.0f;
+					// 使用已经校准的自驾仪上的陀螺仪计算光流模块上的陀螺仪的偏移
+					flow_gyrospeed[0] = flow.gyro_x_rate_integral / (float)flow.integration_timespan * 1000000.0f;
+					flow_gyrospeed[1] = flow.gyro_y_rate_integral / (float)flow.integration_timespan * 1000000.0f;
+					flow_gyrospeed[2] = flow.gyro_z_rate_integral / (float)flow.integration_timespan * 1000000.0f;
 
 					//moving average
+					//每百次获取一次偏差，求均值
 					if (n_flow >= 100) {
 						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
 						gyro_offset_filtered[1] = flow_gyrospeed_filtered[1] - att_gyrospeed_filtered[1];
@@ -625,6 +667,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						att_gyrospeed_filtered[0] = 0.0f;
 						att_gyrospeed_filtered[1] = 0.0f;
 						att_gyrospeed_filtered[2] = 0.0f;
+
 					} else {
 						flow_gyrospeed_filtered[0] = (flow_gyrospeed[0] + n_flow * flow_gyrospeed_filtered[0]) / (n_flow + 1);
 						flow_gyrospeed_filtered[1] = (flow_gyrospeed[1] + n_flow * flow_gyrospeed_filtered[1]) / (n_flow + 1);
@@ -637,60 +680,67 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 
 					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
-					yaw_comp[0] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
-					yaw_comp[1] =  - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
-
+					// 偏航补偿(由于光流传感器不一定在机体的中心) -> 使用QGC中的参数
+					yaw_comp[0] = - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
+					yaw_comp[1] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 
 					/* convert raw flow to angular flow (rad/s) */
+					/* 
+					 * 对于光流获得的弧度值我们需要通过相应的公式转换为角度值 ,
+					 * 根据地理坐标系下机体角速度参考点的大小与角速度阈值关系来决定光流角度
+					 *（XY平面，参考点数据通过uORB获取）
+					 *
+					 */
 					float flow_ang[2];
+
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
 					orb_check(vehicle_rate_sp_sub, &updated);
-
-					if (updated) {
+					if (updated)
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
-					}
 
 					float rate_threshold = 0.15f;
 
 					if (fabsf(rates_setpoint.pitch) < rate_threshold) {
 						//warnx("[inav] test ohne comp");
-						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) *
-							      params.flow_k;//for now the flow has to be scaled (to small)
-
-					} else {
+						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
+					}
+					else {
 						//warnx("[inav] test mit comp");
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
+						// 高于阈值，将光流和陀螺仪获得的偏差补偿到陀螺仪
 						flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
 					if (fabsf(rates_setpoint.roll) < rate_threshold) {
-						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) *
-							      params.flow_k;//for now the flow has to be scaled (to small)
-
-					} else {
+						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
+																										     // flow_k光流比例因子
+					}
+					else {
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
 						flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
 					/* flow measurements vector */
+					// 光流测量的向量值
 					float flow_m[3];
-
 					if (fabsf(rates_setpoint.yaw) < rate_threshold) {
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
-
 					} else {
+					/* 偏航超过阈值用之前的补偿数据来补偿XY平面 */
 						flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
 						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					}
-
 					flow_m[2] = z_est[1];
+
 					/* velocity in NED */
+					// 地球坐标系中的速度
 					float flow_v[2] = { 0.0f, 0.0f };
 
 					/* project measurements vector to NED basis, skip Z component */
+					/* 投射到地理坐标系，不使用z轴所以不用计算 */
 					for (int i = 0; i < 2; i++) {
 						for (int j = 0; j < 3; j++) {
 							flow_v[i] += PX4_R(att.R, i, j) * flow_m[j];
@@ -698,10 +748,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* velocity correction */
+					// 速度校正
 					corr_flow[0] = flow_v[0] - x_est[1];
 					corr_flow[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
+					// 调节校正权重
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
+					/*
+					 * 根据品质因子，高度和旋转矩阵最后一个数据对光流的权重进行调整
+					 * （这里用到了这个数据，之前判断需要大于0.7的）
+					 */
 					w_flow = PX4_R(att.R, 2, 2) * flow_q_weight / fmaxf(1.0f, flow_dist);
 
 
@@ -712,6 +768,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* under ideal conditions, on 1m distance assume EPH = 10cm */
+					// 在理想情况下，距离为1米时假定光流的水平位置精度为0.1m
 					eph_flow = 0.1f / w_flow;
 
 					flow_valid = true;
@@ -725,6 +782,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* check no vision circuit breaker is set */
+			/*
+			 * 
+			 * 视觉断路器判断：
+			 * 这是判断是否使用了视觉传感器，根据参数相关代码中的视觉参数来判断
+			 *（无视觉工具时该参数为328754），没有视觉工具直接跳过该部分。
+			 * 有视觉工具但未获得uORB数据更新也跳过该步骤。
+			 *
+			 */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
 				/* vehicle vision position */
 				orb_check(vision_position_estimate_sub, &updated);
@@ -742,9 +807,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						x_est[1] = vision.vx;
 						y_est[0] = vision.y;
 						y_est[1] = vision.vy;
+
 						/* only reset the z estimate if the z weight parameter is not zero */
-						if (params.w_z_vision_p > MIN_VALID_W)
-						{
+						if (params.w_z_vision_p > MIN_VALID_W) {
 							z_est[0] = vision.z;
 							z_est[1] = vision.vz;
 						}
@@ -782,6 +847,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						corr_vision[0][1] = vision.vx - x_est[1];
 						corr_vision[1][1] = vision.vy - y_est[1];
 						corr_vision[2][1] = vision.vz - z_est[1];
+
 					} else {
 						/* assume zero motion */
 						corr_vision[0][1] = 0.0f - x_est[1];
@@ -794,31 +860,36 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* vehicle mocap position */
+			// 动作捕捉更新
 			orb_check(att_pos_mocap_sub, &updated);
 
 			if (updated) {
 				orb_copy(ORB_ID(att_pos_mocap), att_pos_mocap_sub, &mocap);
 
-				/* reset position estimate on first mocap update */
-				if (!mocap_valid) {
-					x_est[0] = mocap.x;
-					y_est[0] = mocap.y;
-					z_est[0] = mocap.z;
+				if (!params.disable_mocap) {
+					/* reset position estimate on first mocap update */
+					if (!mocap_valid) {
+						x_est[0] = mocap.x;
+						y_est[0] = mocap.y;
+						z_est[0] = mocap.z;
 
-					mocap_valid = true;
+						mocap_valid = true;
+
 						warnx("MOCAP data valid");
 						mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP data valid");
 					}
 
-				/* calculate correction for position */
-				corr_mocap[0][0] = mocap.x - x_est[0];
-				corr_mocap[1][0] = mocap.y - y_est[0];
-				corr_mocap[2][0] = mocap.z - z_est[0];
+					/* calculate correction for position */
+					corr_mocap[0][0] = mocap.x - x_est[0];
+					corr_mocap[1][0] = mocap.y - y_est[0];
+					corr_mocap[2][0] = mocap.z - z_est[0];
 
-				mocap_updates++;
+					mocap_updates++;
+				}
 			}
 
 			/* vehicle GPS position */
+			// 飞行器的GPS位置
 			orb_check(vehicle_gps_position_sub, &updated);
 
 			if (updated) {
@@ -827,6 +898,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				bool reset_est = false;
 
 				/* hysteresis for GPS quality */
+				// GPS质量的滞后
 				if (gps_valid) {
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
@@ -843,12 +915,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 
-				if (gps_valid) {
+				if (gps_valid) { //GPS有效，获取经纬度与高度信息
 					double lat = gps.lat * 1e-7;
 					double lon = gps.lon * 1e-7;
 					float alt = gps.alt * 1e-3;
 
 					/* initialize reference position if needed */
+					// 初始化参考位置
 					if (!ref_inited) {
 						if (ref_init_start == 0) {
 							ref_init_start = t;
@@ -857,8 +930,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							ref_inited = true;
 
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
-							x_est[0] = 0.0f;
-							x_est[1] = gps.vel_n_m_s;
+							// 设置初始位置估计点为(0,0,0)，使用GPS速度用于XY轴的测量
+							x_est[0] = 0.0f; //x轴位置
+							x_est[1] = gps.vel_n_m_s; // x轴速度
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
 
@@ -877,6 +951,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
+						// 将GPS的经纬度投射到飞机上
 						float gps_proj[2];
 						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
 
@@ -890,6 +965,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						/* calculate index of estimated values in buffer */
 						int est_i = buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
+
 						if (est_i < 0) {
 							est_i += EST_BUF_SIZE;
 						}
@@ -929,9 +1005,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on FLOW topic */
-		if ((flow_valid || lidar_valid) && t > flow.timestamp + flow_topic_timeout) {
+		if ((flow_valid || lidar_valid) && t > (flow_time + flow_topic_timeout)) {
 			flow_valid = false;
-			lidar_valid = false;
 			warnx("FLOW timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] FLOW timeout");
 		}
@@ -959,11 +1034,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* check for lidar measurement timeout */
 		if (lidar_valid && (t > (lidar_time + lidar_timeout))) {
-			corr_lidar = 0.0f;
 			lidar_valid = false;
 			warnx("LIDAR timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] LIDAR timeout");
-
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
@@ -974,12 +1047,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (eph < 0.000001f) { //get case where eph is 0 -> would stay 0
 			eph = 0.001;
 		}
+
 		if (eph < max_eph_epv) {
 			eph *= 1.0f + dt;
 		}
+
 		if (epv < 0.000001f) { //get case where epv is 0 -> would stay 0
 			epv = 0.001;
 		}
+
 		if (epv < max_eph_epv) {
 			epv += 0.005f * dt;	// add 1m to EPV each 200s (baro drift)
 		}
@@ -991,30 +1067,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
 		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W
-				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
+		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used
 			use_mocap = false;
 		}
+
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
+		/* use LIDAR if it's valid and lidar altitude estimation is enabled */
+		use_lidar = lidar_valid && params.enable_lidar_alt_est;
 
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
 
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
-
-		if (dist_bottom_valid) {
-			/* surface distance prediction */
-			surface_offset += surface_offset_rate * dt;
-
-			/* surface distance correction */
-			if (lidar_valid) {
-				surface_offset_rate -= corr_lidar * 0.5f * params.w_z_lidar * params.w_z_lidar * dt;
-				surface_offset -= corr_lidar * params.w_z_lidar * dt;
-			}
-		}
 
 		float w_xy_gps_p = params.w_xy_gps_p * w_gps_xy;
 		float w_xy_gps_v = params.w_xy_gps_v * w_gps_xy;
@@ -1056,6 +1123,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* transform error vector from NED frame to body frame */
+		// 将误差向量从NED坐标系(地球坐标系)转换到机体坐标系
 		for (int i = 0; i < 3; i++) {
 			float c = 0.0f;
 
@@ -1120,7 +1188,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_lidar) {
 			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
-
 		} else {
 			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 		}
@@ -1139,17 +1206,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* inertial filter prediction for altitude */
+		// 高度预测的惯性滤波器
 		inertial_filter_predict(dt, z_est, acc[2]);
 
 		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
-										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
+					acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 		}
 
 		/* inertial filter correction for altitude */
-		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
+		// 高度校正的惯性滤波器
+		if (use_lidar) {
+			inertial_filter_correct(corr_lidar, dt, z_est, 0, params.w_z_lidar);
+
+		} else {
+			inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
+		}
 
 		if (use_gps_z) {
 			epv = fminf(epv, gps.epv);
@@ -1170,8 +1244,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
-										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
+					acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 			memset(corr_gps, 0, sizeof(corr_gps));
 			memset(corr_vision, 0, sizeof(corr_vision));
@@ -1184,18 +1258,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (can_estimate_xy) {
 			/* inertial filter prediction for position */
+			// 位置预测的惯性滤波器
 			inertial_filter_predict(dt, x_est, acc[0]);
 			inertial_filter_predict(dt, y_est, acc[1]);
 
 			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
-										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
+						acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+						corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 			}
 
 			/* inertial filter correction for position */
+			// 位置校正的惯性滤波器
 			if (use_flow) {
 				eph = fminf(eph, eph_flow);
 
@@ -1236,8 +1312,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
-										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
+						acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+						corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 				memset(corr_gps, 0, sizeof(corr_gps));
@@ -1249,6 +1325,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				memcpy(x_est_prev, x_est, sizeof(x_est));
 				memcpy(y_est_prev, y_est, sizeof(y_est));
 			}
+
 		} else {
 			/* gradually reset xy velocity estimates */
 			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
@@ -1298,6 +1375,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			memcpy(R_buf[buf_ptr], att.R, sizeof(att.R));
 
 			buf_ptr++;
+
 			if (buf_ptr >= EST_BUF_SIZE) {
 				buf_ptr = 0;
 			}
@@ -1320,8 +1398,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.epv = epv;
 
 			if (local_pos.dist_bottom_valid) {
-				local_pos.dist_bottom = -z_est[0] - surface_offset;
-				local_pos.dist_bottom_rate = - z_est[1] - surface_offset_rate;
+				local_pos.dist_bottom = dist_ground;
+				local_pos.dist_bottom_rate = - z_est[1];
 			}
 
 			local_pos.timestamp = t;
@@ -1330,7 +1408,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (local_pos.xy_global && local_pos.z_global) {
 				/* publish global position */
-				// 公布飞行器的位置
 				global_pos.timestamp = t;
 				global_pos.time_utc_usec = gps.time_utc_usec;
 
@@ -1353,6 +1430,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (terrain_estimator.is_valid()) {
 					global_pos.terrain_alt = global_pos.alt - terrain_estimator.get_distance_to_ground();
 					global_pos.terrain_alt_valid = true;
+
 				} else {
 					global_pos.terrain_alt_valid = false;
 				}

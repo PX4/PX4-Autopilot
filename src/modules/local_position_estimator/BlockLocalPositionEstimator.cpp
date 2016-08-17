@@ -1,5 +1,4 @@
 #include "BlockLocalPositionEstimator.hpp"
-#include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
@@ -9,13 +8,19 @@
 orb_advert_t mavlink_log_pub = nullptr;
 
 // timeouts for sensors in microseconds
+// 传感器的超时设定    以毫秒为单位
 static const uint32_t 		EST_SRC_TIMEOUT = 10000; // 0.01 s
 
 // required standard deviation of estimate for estimator to publish data
+// 估计器用于公告数据的估计所需标准差
 static const uint32_t 		EST_STDDEV_XY_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
-static const bool integrate = true; // use accel for integrating
+static const bool integrate = true; // use accel for integrating使用加速度计作积分
+
+// minimum flow altitude
+// AGL 离地高度
+static const float flow_min_agl = 0.3;
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
@@ -24,6 +29,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
+	// 设置光流的最大更新速率， 比我们期望在不丢包情况下的更新速率更高
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
 	// main prediction loop, 100 hz
 	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
@@ -51,6 +57,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
 
 	// map projection
+	// 地图投影
 	_map_ref(),
 
 	// block parameters
@@ -86,6 +93,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_t_max_grade(this, "T_MAX_GRADE"),
 
 	// init origin
+	// 初始化原点
 	_init_origin_lat(this, "LAT"),
 	_init_origin_lon(this, "LON"),
 
@@ -128,6 +136,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_mocap(0),
 
 	// initialization flags
+	// 初始化标志位
 	_receivedGps(false),
 	_baroInitialized(false),
 	_gpsInitialized(false),
@@ -169,20 +178,23 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocapFault(FAULT_NONE),
 
 	// loop performance
-	_loop_perf(),
-	_interval_perf(),
-	_err_perf(),
+	_loop_perf(),  
+	_interval_perf(),  
+	_err_perf(),   
 
 	// kf matrices
+	// 卡尔曼滤波矩阵  状态  输入  误差协方差
 	_x(), _u(), _P()
 {
 	// assign distance subs to array
+	// 分配订阅的距离数据到数组中
 	_dist_subs[0] = &_sub_dist0;
 	_dist_subs[1] = &_sub_dist1;
 	_dist_subs[2] = &_sub_dist2;
 	_dist_subs[3] = &_sub_dist3;
 
 	// setup event triggering based on new flow messages to integrate
+	// 基于需要积分的新的光流信息设置事件触发器
 	_polls[POLL_FLOW].fd = _sub_flow.getHandle();
 	_polls[POLL_FLOW].events = POLLIN;
 
@@ -210,6 +222,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref.init_done = false;
 
 	// intialize parameter dependent matrices
+	// 初始化参数依赖矩阵
 	updateParams();
 }
 
@@ -245,45 +258,46 @@ void BlockLocalPositionEstimator::update()
 	setDt(dt);
 
 	// auto-detect connected rangefinders while not armed
+	// 在未解锁情况下自动检测连接到飞控上来的sonar或lidar
 	bool armedState = _sub_armed.get().armed;
 
 	if (!armedState && (_sub_lidar == NULL || _sub_sonar == NULL)) {
-		detectDistanceSensors();
+		detectDistanceSensors();  //检测是否有lidar或sonar
 	}
 
 	// reset pos, vel, and terrain on arming
+	// 解锁后重置 位置  速度  
+	if (!_lastArmedState && armedState) {
 
-	// XXX this will be re-enabled for indoor use cases using a
-	// selection param, but is really not helping outdoors
-	// right now.
+		// we just armed, we are at origin on the ground
+		// 刚刚解锁，在地面原点位置
+		_x(X_x) = 0;
+		_x(X_y) = 0;
+		_x(X_z) = 0;
 
-	// if (!_lastArmedState && armedState) {
+		// reset flow integral
+		_flowX = 0;
+		_flowY = 0;
 
-	// 	// we just armed, we are at origin on the ground
-	// 	_x(X_x) = 0;
-	// 	_x(X_y) = 0;
-	// 	// reset Z or not? _x(X_z) = 0;
+		// we aren't moving, all velocities are zero
+		// 还未移动，所有速度归零
+		_x(X_vx) = 0;
+		_x(X_vy) = 0;
+		_x(X_vz) = 0;
 
-	// 	// reset flow integral
-	// 	_flowX = 0;
-	// 	_flowY = 0;
+		// assume we are on the ground, so terrain alt is local alt
+		// 假定在地面起飞，令地势高度为本地高度
+		_x(X_tz) = _x(X_z);
 
-	// 	// we aren't moving, all velocities are zero
-	// 	_x(X_vx) = 0;
-	// 	_x(X_vy) = 0;
-	// 	_x(X_vz) = 0;
-
-	// 	// assume we are on the ground, so terrain alt is local alt
-	// 	_x(X_tz) = _x(X_z);
-
-	// 	// reset lowpass filter as well
-	// 	_xLowPass.setState(_x);
-	// 	_aglLowPass.setState(0);
-	// }
+		// reset lowpass filter as well
+		_xLowPass.setState(_x);
+		_aglLowPass.setState(0);
+	}
 
 	_lastArmedState = armedState;
 
 	// see which updates are available
+	// 检查更新
 	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
@@ -294,12 +308,14 @@ void BlockLocalPositionEstimator::update()
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
 
 	// get new data
+	// 获取更新后的数据
 	updateSubscriptions();
 
 	// update parameters
+	// 更新参数
 	if (paramsUpdated) {
-		updateParams();
-		updateSSParams();
+		updateParams();      //更新状态方程
+		updateSSParams();  //更新噪声矩阵
 	}
 
 	// is xy valid?
@@ -307,6 +323,7 @@ void BlockLocalPositionEstimator::update()
 
 	if (_validXY) {
 		// if valid and gps has timed out, set to not valid
+		// 如果有效，同时GPS未初始化，设置为无效
 		if (!xy_stddev_ok && !_gpsInitialized) {
 			_validXY = false;
 		}
@@ -346,7 +363,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	// timeouts
+	// timeouts 超时设定
 	if (_validXY) {
 		_time_last_xy = _timeStamp;
 	}
@@ -363,6 +380,7 @@ void BlockLocalPositionEstimator::update()
 	checkTimeouts();
 
 	// if we have no lat, lon initialize projection at 0,0
+	// 无经纬度，即没有GPS，初始化将其投影到0,0原点
 	if (_validXY && !_map_ref.init_done) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
@@ -370,12 +388,14 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// reinitialize x if necessary
+	// 必要时重新初始化x
 	bool reinit_x = false;
 
 	for (int i = 0; i < n_x; i++) {
 		// should we do a reinit
 		// of sensors here?
 		// don't want it to take too long
+		// 判断是否应该重新初始化传感器，不要等太久
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
 			break;
@@ -410,9 +430,11 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// do prediction
+	// 做预测
 	predict();
 
 	// sensor corrections/ initializations
+	// 传感器的校正与初始化
 	if (gpsUpdated) {
 		if (!_gpsInitialized) {
 			gpsInit();
@@ -481,6 +503,7 @@ void BlockLocalPositionEstimator::update()
 
 	if (_altOriginInitialized) {
 		// update all publications if possible
+		// 如果可能的话更新所有的发布信息
 		publishLocalPos();
 		publishEstimatorStatus();
 		_pub_innov.update();
@@ -493,6 +516,8 @@ void BlockLocalPositionEstimator::update()
 	// propagate delayed state, no matter what
 	// if state is frozen, delayed state still
 	// needs to be propagated with frozen state
+	// 无论如何，都要传播那些状态延迟。
+	// 如果状态frozen了，状态延迟依然需要以frozen状态被传播
 	float dt_hist = 1.0e-6f * (_timeStamp - _time_last_hist);
 
 	if (_time_last_hist == 0 ||
@@ -555,6 +580,7 @@ float BlockLocalPositionEstimator::agl()
 void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 {
 	// don't correct bias when rotating rapidly
+	// 在快速旋转时不要校正那些偏移
 	float ang_speed = sqrtf(
 				  _sub_att.get().rollspeed * _sub_att.get().rollspeed +
 				  _sub_att.get().pitchspeed * _sub_att.get().pitchspeed +
@@ -634,6 +660,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
 	// publish local position
+	// 发布本地位置
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
@@ -745,20 +772,24 @@ void BlockLocalPositionEstimator::initSS()
 {
 	initP();
 
-	// dynamics matrix
-	_A.setZero();
+	// dynamics matrix 
+	// 动态矩阵A
+	_A.setZero();  //将矩阵各元素置零
 	// derivative of position is velocity
+	// 位置求导得到速度
 	_A(X_x, X_vx) = 1;
 	_A(X_y, X_vy) = 1;
 	_A(X_z, X_vz) = 1;
 
 	// input matrix
+	// 输入矩阵 B
 	_B.setZero();
 	_B(X_vx, U_ax) = 1;
 	_B(X_vy, U_ay) = 1;
 	_B(X_vz, U_az) = 1;
 
 	// update components that depend on current state
+	// 根据当前的状态更新矩阵
 	updateSSStates();
 	updateSSParams();
 }
@@ -767,6 +798,7 @@ void BlockLocalPositionEstimator::updateSSStates()
 {
 	// derivative of velocity is accelerometer acceleration
 	// (in input matrix) - bias (in body frame)
+	// 输入矩阵 - 机体坐标系中的偏移
 	Matrix3f R_att(_sub_att.get().R);
 	_A(X_vx, X_bx) = -R_att(0, 0);
 	_A(X_vx, X_by) = -R_att(0, 1);
@@ -784,12 +816,14 @@ void BlockLocalPositionEstimator::updateSSStates()
 void BlockLocalPositionEstimator::updateSSParams()
 {
 	// input noise covariance matrix
+	// 输入噪声协方差矩阵  R 测量误差矩阵
 	_R.setZero();
 	_R(U_ax, U_ax) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
 	_R(U_ay, U_ay) = _accel_xy_stddev.get() * _accel_xy_stddev.get();
 	_R(U_az, U_az) = _accel_z_stddev.get() * _accel_z_stddev.get();
 
 	// process noise power matrix
+	// 过程噪声激励矩阵    Q 激励误差矩阵
 	_Q.setZero();
 	float pn_p_sq = _pn_p_noise_density.get() * _pn_p_noise_density.get();
 	float pn_v_sq = _pn_v_noise_density.get() * _pn_v_noise_density.get();
@@ -803,6 +837,7 @@ void BlockLocalPositionEstimator::updateSSParams()
 	// technically, the noise is in the body frame,
 	// but the components are all the same, so
 	// ignoring for now
+	// 从技术上来说，噪声是机体自身所固有的，但是成分都是相同的，因此我们暂时将其忽略
 	float pn_b_sq = _pn_b_noise_density.get() * _pn_b_noise_density.get();
 	_Q(X_bx, X_bx) = pn_b_sq;
 	_Q(X_by, X_by) = pn_b_sq;
@@ -819,23 +854,27 @@ void BlockLocalPositionEstimator::predict()
 	// state or covariance
 	if (!_validXY && !_validZ) { return; }
 
+	// 准备所需要的矩阵和向量
 	if (integrate && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 		_u = R_att * a;
-		_u(U_az) += 9.81f; // add g
+		_u(U_az) += 9.81f; // add g 获取输入向量
 
 	} else {
 		_u = Vector3f(0, 0, 0);
 	}
 
 	// update state space based on new states
+	// 基于新的状态更新状态空间
 	updateSSStates();
 
 	// continuous time kalman filter prediction
 	// integrate runge kutta 4th order
 	// TODO move rk4 algorithm to matrixlib
 	// https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+	// 连续时间卡尔曼滤波器估计
+	// 四阶龙格库塔方法，将RK4算法变换到矩阵中
 	float h = getDt();
 	Vector<float, n_x> k1, k2, k3, k4;
 	k1 = dynamics(0, _x, _u);
@@ -844,7 +883,8 @@ void BlockLocalPositionEstimator::predict()
 	k4 = dynamics(h, _x + k3 * h, _u);
 	Vector<float, n_x> dx = (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
 
-	// propagate
+	// propagate 
+	// 进行卡尔曼滤波器的迭代更新
 	correctionLogic(dx);
 	_x += dx;
 	_P += (_A * _P + _P * _A.transpose() +

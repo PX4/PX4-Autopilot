@@ -88,9 +88,13 @@ usage(const char *reason)
  * The deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
+ * 后台程序只短暂的存在用于开始一个幕后工作
+ * 在Makefile中分配的堆栈大小只适用于这个管理任务
  *
  * The actual stack size should be set in the call
  * to task_create().
+ * 实际的堆栈大小应该在task_create()这个调用中设置
+ *
  */
 int local_position_estimator_main(int argc, char *argv[])
 {
