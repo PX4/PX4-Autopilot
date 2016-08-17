@@ -164,14 +164,11 @@ __EXPORT int matherr(struct exception *e)
 
 __EXPORT int nsh_archinitialize(void)
 {
-
 	/* configure ADC pins */
-	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
 	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
 	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
