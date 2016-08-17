@@ -231,7 +231,7 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_AMBER);
 
 	/* Configure SPI-based devices */
-	message("[boot] Initialized SPI port 4 (SENSORS)\n");
+
 	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
@@ -251,7 +251,6 @@ __EXPORT int nsh_archinitialize(void)
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
-	message("[boot] Initialized SPI port 1 (RAMTRON FRAM)\n");
 
 	spi1 = px4_spibus_initialize(1);
 
@@ -270,9 +269,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, SPIDEV_FLASH, false);
 
-
-
-	message("[boot] Initialized SPI port 2 (nRF24 and ext)\n");
 
 	spi2 = px4_spibus_initialize(2);
 
