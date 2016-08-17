@@ -185,6 +185,16 @@ __EXPORT int nsh_archinitialize(void)
 	px4_arch_gpiowrite(GPIO_RC_OUT, 1);	/* set it high to pull RC input up */
 	px4_arch_configgpio(GPIO_FRSKY_INV);
 
+	/* configure the GPIO pins to outputs and keep them low */
+	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO6_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO7_OUTPUT);
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
