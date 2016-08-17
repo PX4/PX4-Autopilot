@@ -1569,17 +1569,7 @@ LSM303D::measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
 	accel_report.timestamp = hrt_absolute_time();
-
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-	int16_t tx = raw_accel_report.y;
-	int16_t ty = raw_accel_report.x;
-	int16_t tz = -raw_accel_report.z;
-	raw_accel_report.x = tx;
-	raw_accel_report.y = ty;
-	raw_accel_report.z = tz;
-#endif
 
 	// use the temperature from the last mag reading
 	accel_report.temperature = _last_temperature;
@@ -1711,19 +1701,7 @@ LSM303D::mag_measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
 	mag_report.timestamp = hrt_absolute_time();
-
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-	int16_t tx = raw_mag_report.y;
-	int16_t ty = raw_mag_report.x;
-	int16_t tz = -raw_mag_report.z;
-	raw_mag_report.x = tx;
-	raw_mag_report.y = ty;
-	raw_mag_report.z = tz;
-#endif
-
-
 
 	mag_report.x_raw = raw_mag_report.x;
 	mag_report.y_raw = raw_mag_report.y;
