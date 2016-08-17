@@ -146,22 +146,6 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
-#include <math.h>
-
-#if 0
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-#endif
-
 __EXPORT int nsh_archinitialize(void)
 {
 	/* configure ADC pins */
@@ -302,17 +286,6 @@ __EXPORT int nsh_archinitialize(void)
 	sdio_mediachange(sdio, true);
 
 #endif
-
-
-	px4_arch_configgpio(GPIO_I2C2_SCL);
-	px4_arch_configgpio(GPIO_I2C2_SDA);
-	message("[boot] Initialized ext I2C Port\n");
-
-	px4_arch_configgpio(GPIO_I2C1_SCL);
-	px4_arch_configgpio(GPIO_I2C1_SDA);
-	message("[boot] Initialized onboard I2C Port\n");
-
-
 
 	return OK;
 }
