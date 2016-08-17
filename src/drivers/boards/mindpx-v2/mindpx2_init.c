@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Airmind nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -177,12 +177,15 @@ __EXPORT int nsh_archinitialize(void)
 	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
-//	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-//	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
-//	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
-//	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	// px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	// px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	// px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+	// px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+	// px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	// px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	px4_arch_configgpio(GPIO_SBUS_INV);
+	px4_arch_configgpio(GPIO_RC_OUT);	/* Serial RC output pin */
+	px4_arch_gpiowrite(GPIO_RC_OUT, 1);	/* set it high to pull RC input up */
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();

@@ -57,17 +57,6 @@
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* PX4IO connection configuration */
-#define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
-#define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
-#define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
-#define PX4IO_SERIAL_BASE	STM32_USART6_BASE	/* hardwired on the board */
-#define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
-#define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX_2
-#define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX_2
-#define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
-#define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
-
 
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
@@ -287,10 +276,26 @@
 
 #define HRT_PPM_CHANNEL		1
 #define GPIO_PPM_IN		GPIO_TIM8_CH1IN_1
+
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER		3
 #define PWMIN_TIMER_CHANNEL	1
 #define GPIO_PWM_IN		GPIO_TIM3_CH1IN_3
+
+#define RC_SERIAL_PORT		"/dev/ttyS0"
+
+#define GPIO_SBUS_INV		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10)
+#define INVERT_RC_INPUT(_s)	px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
+
+/* Power switch controls */
+#define GPIO_SPEKTRUM_PWR_EN
+#define POWER_SPEKTRUM(_s)		do { } while (0)
+#define SPEKTRUM_RX_AS_UART()	px4_arch_configgpio(GPIO_USART1_RX)
+
+/* MindPXv2 has a separate GPIO for serial RC output */
+#define GPIO_RC_OUT		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
+#define SPEKTRUM_RX_AS_GPIO()	px4_arch_configgpio(GPIO_RC_OUT)
+#define SPEKTRUM_RX_HIGH(_s)	px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
 
 #define BOARD_NAME "MINDPX_V2"
 
