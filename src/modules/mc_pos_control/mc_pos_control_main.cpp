@@ -198,6 +198,7 @@ private:
 		param_t hold_max_z;
 		param_t acc_hor_max;
 		param_t alt_mode;
+		param_t opt_recover;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -223,6 +224,8 @@ private:
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
+
+		int opt_recover;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -253,7 +256,6 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
-	math::Vector<3> _thrust_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
@@ -475,6 +477,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
+	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -592,6 +595,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
+
+		int i;
+		param_get(_params_handles.opt_recover, &i);
+		_params.opt_recover = i;
 
 		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
@@ -2001,12 +2008,6 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if we no aiding velocity controller is active */
-			if (!_control_mode.flag_control_velocity_enabled) {
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-			}
-
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
 				float thr_val = throttle_curve(_manual.z, _params.thr_hover);
@@ -2018,9 +2019,14 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			math::Matrix<3, 3> R_sp;
+			/* control roll and pitch directly if no aiding velocity controller is active
+			 * and only if optimal recovery is not used */
+			if (!_control_mode.flag_control_velocity_enabled
+			    && _params.opt_recover <= 0) {
+				math::Matrix<3, 3> R_sp;
+				_att_sp.roll_body = _manual.y * _params.man_roll_max;
+				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-			if (!_control_mode.flag_control_velocity_enabled) {
 				// construct attitude setpoint rotation matrix. modify the setpoints for roll
 				// and pitch such that they reflect the user's intention even if a yaw error
 				// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -2054,22 +2060,14 @@ MulticopterPositionControl::task_main()
 				float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
 				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
-
 				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
-				/* reset the acceleration set point for all non-attitude flight modes */
-				if (!(_control_mode.flag_control_offboard_enabled &&
-				      !(_control_mode.flag_control_position_enabled ||
-					_control_mode.flag_control_velocity_enabled))) {
-
-					_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
-				}
+				/* copy quaternion setpoint to attitude setpoint topic */
+				math::Quaternion q_sp;
+				q_sp.from_dcm(R_sp);
+				memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			}
 
-			/* copy quaternion setpoint to attitude setpoint topic */
-			math::Quaternion q_sp;
-			q_sp.from_dcm(R_sp);
-			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 
 		} else {

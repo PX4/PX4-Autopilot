@@ -321,6 +321,7 @@ qgc_firmware: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
+	check_tap-v1_default \
 	check_px4fmu-v4_default_and_uavcan \
 	check_format
 
