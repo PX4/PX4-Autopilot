@@ -90,7 +90,7 @@ private:
 
     // Registers the progress represented by the new position.
     // Returns false if the new position is no longer on the expected return path.
-    bool advance_state(return_state_t &state, float new_x, float new_y, float new_z);
+    bool advance_state(return_state_t &state, float new_x, float new_y, float new_z, float accuracy);
 
     // Returns true if the return state has reached the home position
     bool detect_completion(return_state_t &state);
@@ -188,7 +188,7 @@ float TrackerTest::distance_to_line(float x, float y, float z, const test_t *tes
 }
 
 
-bool TrackerTest::advance_state(return_state_t &state, float new_x, float new_y, float new_z) {
+bool TrackerTest::advance_state(return_state_t &state, float new_x, float new_y, float new_z, float accuracy) {
     size_t target_index = state.target_index;
     state.no_progress++;
 
@@ -203,7 +203,7 @@ bool TrackerTest::advance_state(return_state_t &state, float new_x, float new_y,
         if (new_dist_to_target <= old_dist_to_target) {
             if (new_dist_to_target < old_dist_to_target)
                 state.no_progress = 0;
-            if (distance_to_line(new_x, new_y, new_z, state.test, target_index) <= Tracker::ACCURACY) {
+            if (distance_to_line(new_x, new_y, new_z, state.test, target_index) <= accuracy) {
                 state.target_index = target_index;
                 state.x = new_x;
                 state.y = new_y;
@@ -223,7 +223,7 @@ bool TrackerTest::detect_completion(return_state_t &state) {
     float home_z = state.test->path[2];
 
     float dist_to_home = get_distance(state.x, state.y, state.z, home_x, home_y, home_z);
-    return dist_to_home < Tracker::ACCURACY;
+    return dist_to_home < 2 * Tracker::GRID_SIZE; // tracking accuracy at home is twice the grid size
 }
 
 
@@ -265,7 +265,9 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
 
         size_t target = test->ret[state.target_index];
         inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
-        inner_assert(advance_state(state, x, y, z), "vehicle diverted from expected return path: (%f, %f, %f) is not towards target %d %d %d", x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
+        float accuracy = tracker.get_accuracy_at(x, y, z);
+        inner_assert(accuracy <= 5, "tracker gave an unsatisfying accuracy guarantee (%f)", accuracy); // arbitrarily chosen
+        inner_assert(advance_state(state, x, y, z, accuracy), "vehicle diverted from expected return path: (%f, %f, %f) is not towards target %d %d %d", x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
         inner_assert(state.no_progress < TRACKER_MAX_NO_PROGRESS, "no progress detected from (%f, %f, %f) to (%f, %f, %f), target is %d %d %d", state.x, state.y, state.z, x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
 
 #ifdef TRACKER_TEST_LOOKAHEAD
@@ -277,7 +279,9 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
 
         while (tracker.advance_return_path(inner_context, inner_x, inner_y, inner_z)) {
             inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
-            inner_assert(advance_state(inner_state, inner_x, inner_y, inner_z), "look-ahead return path diverted from expected return path");
+            accuracy = tracker.get_accuracy_at(inner_x, inner_y, inner_z);
+            inner_assert(accuracy <= 5, "tracker gave an unsatisfying accuracy guarantee (%f)", accuracy); // arbitrarily chosen
+            inner_assert(advance_state(inner_state, inner_x, inner_y, inner_z, accuracy), "look-ahead return path diverted from expected return path");
             inner_assert(inner_state.no_progress < TRACKER_MAX_NO_PROGRESS, "no progress detected in look-ahead return path from (%f, %f, %f) to (%f, %f, %f), target index is %zu", inner_state.x, inner_state.y, inner_state.z, inner_x, inner_y, inner_z, inner_state.target_index);
         }
         
@@ -313,7 +317,7 @@ bool TrackerTest::try_return_unsupervised(Tracker &tracker, const test_t *test, 
     inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
 
     // Check if we're actually home
-    inner_assert(get_distance(x, y, z, home_x, home_y, home_z) <= Tracker::ACCURACY + home_to_path_dist,
+    inner_assert(get_distance(x, y, z, home_x, home_y, home_z) <= 2 * Tracker::GRID_SIZE + home_to_path_dist, // accuracy at home is twice the grid size
         "the vehicle didn't return home: it went to (%.2f %.2f %.2f) while home is at (%.2f %.2f %.2f)",
         x, y, z, home_x, home_y, home_z);
 
@@ -421,8 +425,8 @@ bool TrackerTest::fly_and_change_home_test(void) {
         // Select a home using a deterministic pseudorandom index
         size_t dest_index = (test->path[0] + test->path[1] + test->path[2] + test->ret[test->ret_size / 2]) % (test->path_size / 3);
         int home_x = test->path[dest_index * 3];
-        int home_y = test->path[dest_index * 3 + 1] + Tracker::ACCURACY / 2; // add a little bit of offset
-        int home_z = test->path[dest_index * 3 + 2] + Tracker::ACCURACY / 2; // add a little bit of offset
+        int home_y = test->path[dest_index * 3 + 1] + Tracker::GRID_SIZE; // add a little bit of offset
+        int home_z = test->path[dest_index * 3 + 2] + Tracker::GRID_SIZE; // add a little bit of offset
 
         tracker.set_home(home_x, home_y, home_z);
 
@@ -432,7 +436,7 @@ bool TrackerTest::fly_and_change_home_test(void) {
 
         // Return home
         char msg[1024];
-        if (!try_return_unsupervised(tracker, test, home_x, home_y, home_z, sqrt(Tracker::ACCURACY), msg)) {
+        if (!try_return_unsupervised(tracker, test, home_x, home_y, home_z, sqrt(2) * Tracker::GRID_SIZE, msg)) {
             ut_assert(msg, false);
         }
     }
@@ -495,7 +499,7 @@ bool TrackerTest::run_tests(void) {
 	ut_run_test(fly_and_leave_return_path_test);
 	ut_run_test(fly_and_change_home_test);
 
-	return (_tests_failed == 0);
+    return (_tests_failed == 0);
 }
 
 ut_declare_test(trackerTest, TrackerTest)
