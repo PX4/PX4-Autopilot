@@ -227,6 +227,10 @@ public:
 
 	static float		get_time_inside(struct mission_item_s& item) { return (item.nav_cmd == NAV_CMD_TAKEOFF) ? 0.0f : item.time_inside; }
 
+	void tracker_reset() { _tracker.reset_graph(); }
+	void tracker_consolidate() { _tracker.consolidate_graph(); }
+	void tracker_rewrite() { _tracker.rewrite_graph(); }
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
