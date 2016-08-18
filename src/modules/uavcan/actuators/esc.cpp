@@ -39,7 +39,6 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
-#include <algorithm>
 
 
 #define MOTOR_BIT(x) (1<<(x))
@@ -118,7 +117,10 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
 
 			// trim negative values back to minimum
-			scaled = std::max(cmd_min, scaled);
+			if (scaled < cmd_min) {
+				scaled = cmd_min;
+				perf_count(_perfcnt_scaling_error);
+			}
 
 			if (scaled > cmd_max) {
 				scaled = cmd_max;
