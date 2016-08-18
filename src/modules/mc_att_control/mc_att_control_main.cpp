@@ -789,15 +789,8 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
 
-	if (_vehicle_status.system_type == 4) {
-		/* If it is a helicopter */
-		_att_control = _params.rate_p.emult(rates_err * tpa) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
-			       _params.rate_ff.emult(_rates_sp);
-
-	} else {
-		_att_control = _params.rate_p.emult(rates_err * tpa) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
-			       _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
-	}
+	_att_control = _params.rate_p.emult(rates_err * tpa) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
+		       _params.rate_ff.emult(_rates_sp);
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
