@@ -517,10 +517,6 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_last_accel{},
 	_got_duplicate(false)
 {
-#if defined(USE_I2C)
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-#endif
 	// disable debug() calls
 	_debug_enabled = false;
 
@@ -711,10 +707,10 @@ int MPU6000::reset()
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
 
-#if defined(USE_I2C)
-
-		if (!is_i2c())
-#endif
+		if (is_i2c()) {
+			// Enable I2C bus (recommended on datasheet)
+			write_checked_reg(MPUREG_USER_CTRL, 0);
+		} else
 		{
 			// Disable I2C bus (recommended on datasheet)
 			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
@@ -1359,10 +1355,8 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					  them. This prevents aliasing due to a beat between the
 					  stm32 clock and the mpu6000 clock
 					 */
-#if defined(USE_I2C)
 
 					if (!is_i2c())
-#endif
 					{
 						_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
 					}
@@ -1669,40 +1663,31 @@ MPU6000::start()
 	_accel_reports->flush();
 	_gyro_reports->flush();
 
-#if defined(USE_I2C)
-
 	if (_use_hrt) {
-#endif
 		/* start polling at the specified rate */
 		hrt_call_every(&_call,
 			       1000,
 			       _call_interval - MPU6000_TIMER_REDUCTION,
 			       (hrt_callout)&MPU6000::measure_trampoline, this);
-#if defined(USE_I2C)
 
 	} else {
 		/* schedule a cycle to start things */
 		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
 	}
-
-#endif
 }
 
 void
 MPU6000::stop()
 {
-#if defined(USE_I2C)
 
 	if (_use_hrt) {
-#endif
 		hrt_cancel(&_call);
-#if defined(USE_I2C)
 
 	} else {
+		_call_interval = 0;
 		work_cancel(HPWORK, &_work);
 	}
 
-#endif
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 
@@ -2638,7 +2623,7 @@ mpu6000_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info")) {
+	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
 		mpu6000::info(busid);
 	}
 
