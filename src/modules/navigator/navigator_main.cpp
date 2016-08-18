@@ -843,7 +843,7 @@ Navigator::abort_landing()
 
 static void usage()
 {
-	warnx("usage: navigator {start|stop|status|fence|fencefile}");
+	warnx("usage: navigator {start|stop|status|fence|fencefile|tracker {reset|consolidate|rewrite}}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -887,6 +887,23 @@ int navigator_main(int argc, char *argv[])
 		navigator::g_navigator = nullptr;
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
+	} else if (!strcmp(argv[1], "tracker") && argc >= 3) {
+		if (!strcmp(argv[2], "reset")) {
+			// Deletes the entire flight graph (but not the most recent path!).
+			// This may be neccessary if the environment changed heavily since system start.
+			navigator::g_navigator->tracker_reset();
+		} else if (!strcmp(argv[2], "consolidate")) {
+			// Consolidates the flight graph.
+			// This is not required for normal operation, as it happens automatically.
+			navigator::g_navigator->tracker_consolidate();
+		} else if (!strcmp(argv[2], "rewrite")) {
+			// Deletes everything from the flight graph, which does not lead home.
+			// This is not required for normal operation, as it happens automatically.
+			navigator::g_navigator->tracker_rewrite();
+		} else {
+			usage();
+			return 1;
+		}
 	} else if (!strcmp(argv[1], "fence")) {
 		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
 	} else if (!strcmp(argv[1], "fencefile")) {

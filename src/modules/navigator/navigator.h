@@ -225,6 +225,10 @@ public:
 
 	bool		abort_landing();
 
+	void tracker_reset() { _tracker.reset_graph(); }
+	void tracker_consolidate() { _tracker.consolidate_graph(); }
+	void tracker_rewrite() { _tracker.rewrite_graph(); }
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
