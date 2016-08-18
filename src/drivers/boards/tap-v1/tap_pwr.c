@@ -93,11 +93,11 @@ static int board_button_irq(int irq, FAR void *context)
 
 			led_on(BOARD_LED_BLUE);
 
-			up_mdelay(750);
 			stm32_pwr_enablebkp();
+			up_mdelay(200);
 			/* XXX wow, this is evil - write a magic number into backup register zero */
 			*(uint32_t *)0x40002850 = 0xdeaddead;
-			up_mdelay(750);
+			up_mdelay(50);
 			up_systemreset();
 
 			while (1);

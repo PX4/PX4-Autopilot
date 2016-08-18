@@ -229,6 +229,11 @@ find_package(PythonInterp REQUIRED)
 enable_testing()
 
 #=============================================================================
+# generate compile command database
+#
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+#=============================================================================
 # check required toolchain variables
 #
 set(required_variables

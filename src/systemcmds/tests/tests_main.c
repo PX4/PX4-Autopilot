@@ -96,9 +96,9 @@ const struct {
 	{"sf0x",		sf0x_tests_main,	0},
 #ifndef __PX4_DARWIN
 	{"uorb",		uorb_tests_main,	0},
+	{"hysteresis",		test_hysteresis,	0},
 #endif /* __PX4_DARWIN */
 	{"autodeclination",	test_autodeclination,	0},
-	{"hysteresis",		test_hysteresis,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
 	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},

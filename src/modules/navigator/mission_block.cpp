@@ -165,8 +165,9 @@ MissionBlock::is_mission_item_reached()
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
-			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
-			if (_navigator->get_global_position()->alt >= altitude_amsl) {
+			/* require only altitude for takeoff for multicopter */
+			if (_navigator->get_global_position()->alt >
+					altitude_amsl - _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
