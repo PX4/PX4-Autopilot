@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,97 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file aerocore_led.c
+ * @file aerocore_rc_params.c
  *
- * AeroCore LED backend.
+ * Parameters for aerocore_rc module
+ *
+ * @author Andrew C. Smith <acsmith@gumstix.com>
  */
 
-#include <px4_config.h>
-
-#include <stdbool.h>
-
-#include "stm32.h"
-#include "board_config.h"
-
-#include <arch/board/board.h>
-#include <systemlib/err.h>
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
 /*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
+ * AeroCore parameters, accessible via MAVLink
  */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
 
-__EXPORT void led_init()
-{
-	px4_arch_configgpio(GPIO_LED0);
-	px4_arch_configgpio(GPIO_LED1);
-}
+/**
+ * Dummy parameter
+ *
+ * For some reason (TBD) the AEROCORE_RC parameter description
+ * isn't parsed unless there is a parameter above it.
+ *
+ * @group AeroCore
+ */
+PARAM_DEFINE_INT32(AEROCORE_DUMMY, -1);
 
-__EXPORT void led_on(int led)
-{
-	switch (led) {
-	case 0:
-		px4_arch_gpiowrite(GPIO_LED0, true);
-		break;
-
-	case 1:
-		px4_arch_gpiowrite(GPIO_LED1, true);
-		break;
-
-	default:
-		warnx("LED ID not recognized\n");
-	}
-}
-
-__EXPORT void led_off(int led)
-{
-	switch (led) {
-	case 0:
-		px4_arch_gpiowrite(GPIO_LED0, false);
-		break;
-
-	case 1:
-		px4_arch_gpiowrite(GPIO_LED1, false);
-		break;
-
-	default:
-		warnx("LED ID not recognized\n");
-	}
-}
-
-__EXPORT void led_toggle(int led)
-{
-	switch (led) {
-	case 0:
-		if (px4_arch_gpioread(GPIO_LED0)) {
-			px4_arch_gpiowrite(GPIO_LED0, false);
-
-		} else {
-			px4_arch_gpiowrite(GPIO_LED0, true);
-		}
-
-		break;
-
-	case 1:
-		if (px4_arch_gpioread(GPIO_LED1)) {
-			px4_arch_gpiowrite(GPIO_LED1, false);
-
-		} else {
-			px4_arch_gpiowrite(GPIO_LED1, true);
-		}
-
-		break;
-
-	default:
-		warnx("LED ID not recognized\n");
-	}
-}
+/**
+ * AeroCore RC input setup
+ *
+ * Set value to 1 for PWM RC input using the 40-pin header or
+ * set to 2 for Spektrum input using the 3-pin Spektrum header.
+ * A value of 0 disables RC input.
+ *
+ * @min 0
+ * @max 2
+ * @group AeroCore
+ */
+PARAM_DEFINE_INT32(AEROCORE_RC, 0);

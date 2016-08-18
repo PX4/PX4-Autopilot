@@ -34,7 +34,7 @@
 /**
  * @file aerocore_init.c
  *
- * AeroCore-specific early startup code.  This file implements the
+ * AeroCore2-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -55,9 +55,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/spi.h>
 #include <nuttx/i2c.h>
-#include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -109,72 +107,9 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
-#if defined(CONFIG_FAT_DMAMEMORY)
-# if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-#  error microSD DMA support requires CONFIG_GRAN
-# endif
-
-static GRAN_HANDLE dma_allocator;
-
-/*
- * The DMA heap size constrains the total number of things that can be
- * ready to do DMA at a time.
- *
- * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file.
- *
- * We use a fundamental alignment / granule size of 64B; this is sufficient
- * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
- */
-static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
-static perf_counter_t g_dma_perf;
-
-static void
-dma_alloc_init(void)
-{
-	dma_allocator = gran_initialize(g_dma_heap,
-					sizeof(g_dma_heap),
-					7,  /* 128B granule - must be > alignment (XXX bug?) */
-					6); /* 64B alignment */
-
-	if (dma_allocator == NULL) {
-		message("DMA alloc FAILED");
-
-	} else {
-		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
-	}
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/*
- * DMA-aware allocator stubs for the FAT filesystem.
- */
-
-__EXPORT void *fat_dma_alloc(size_t size);
-__EXPORT void fat_dma_free(FAR void *memory, size_t size);
-
-void *
-fat_dma_alloc(size_t size)
-{
-	perf_count(g_dma_perf);
-	return gran_alloc(dma_allocator, size);
-}
-
-void
-fat_dma_free(FAR void *memory, size_t size)
-{
-	gran_free(dma_allocator, memory, size);
-}
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -189,6 +124,24 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* configure the GPIO pins to outputs and keep them low */
+
+	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO6_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO7_OUTPUT);
+
+	/* configure ADC pins */
+
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* 40.VCC_BATT */
+	px4_arch_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
+	px4_arch_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
@@ -204,37 +157,22 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
+static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi3;
 static struct spi_dev_s *spi4;
 
-#include <math.h>
-
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
 __EXPORT int nsh_archinitialize(void)
 {
-
-	/* configure ADC pins */
-	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	px4_arch_configgpio(GPIO_ADC1_IN11);	/* J1 breakout */
-	px4_arch_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
-	px4_arch_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
-
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
 	/* configure the DMA allocator */
-	dma_alloc_init();
+	/* configure the DMA allocator */
+
+	if (board_dma_alloc_init() < 0) {
+		message("DMA alloc FAILED");
+	}
+
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -262,8 +200,25 @@ __EXPORT int nsh_archinitialize(void)
 	drv_led_start();
 	led_off(LED_AMBER);
 
+	/* Configure SPI-based devices */
+
+	spi1 = px4_spibus_initialize(PX4_SPI_BUS_EXT);
+
+	if (!spi1) {
+		message("[boot] FAILED to initialize SPI port 1\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
+	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi1, 10000000);
+	SPI_SETBITS(spi1, 8);
+	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SELECT(spi1, PX4_SPIDEV_EXT0, false);
+
+
 	/* Configure Sensors on SPI bus #3 */
-	spi3 = px4_spibus_initialize(3);
+	spi3 = px4_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
@@ -271,18 +226,16 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	/* Default: 1MHz, 8 bits, Mode 3 */
+	/* Default: 1 MHz, 8 bits, Mode 3 */
 	SPI_SETFREQUENCY(spi3, 10000000);
 	SPI_SETBITS(spi3, 8);
 	SPI_SETMODE(spi3, SPIDEV_MODE3);
 	SPI_SELECT(spi3, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi3, PX4_SPIDEV_ACCEL_MAG, false);
 	SPI_SELECT(spi3, PX4_SPIDEV_BARO, false);
-	up_udelay(20);
-	message("[boot] Initialized SPI port 3 (SENSORS)\n");
 
 	/* Configure FRAM on SPI bus #4 */
-	spi4 = px4_spibus_initialize(4);
+	spi4 = px4_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
@@ -291,11 +244,10 @@ __EXPORT int nsh_archinitialize(void)
 	}
 
 	/* Default: ~10MHz, 8 bits, Mode 3 */
-	SPI_SETFREQUENCY(spi4, 10 * 1000 * 1000);
+	SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
 	SPI_SETBITS(spi4, 8);
-	SPI_SETMODE(spi4, SPIDEV_MODE0);
+	SPI_SETMODE(spi4, SPIDEV_MODE3);
 	SPI_SELECT(spi4, SPIDEV_FLASH, false);
-	message("[boot] Initialized SPI port 4 (FRAM)\n");
 
 	return OK;
 }

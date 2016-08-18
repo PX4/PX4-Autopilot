@@ -276,7 +276,7 @@ int led_init()
 		return ERROR;
 	}
 
-	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
+	/* the blue LED is only available on FMUv1 & AeroCore2 but not FMUv2 */
 	(void)h_leds.ioctl(LED_ON, LED_BLUE);
 
 	/* switch blue off */

@@ -532,7 +532,7 @@ L3GD20::probe()
 		success = true;
 
 	} else if ((v = read_reg(ADDR_WHO_AM_I)) == WHO_I_AM_L3G4200D) {
-		/* Detect the L3G4200D used on AeroCore */
+		/* Detect the L3G4200D used on AeroCore2 */
 		_is_l3g4200d = true;
 		_orientation = SENSOR_BOARD_ROTATION_DEFAULT;
 		success = true;

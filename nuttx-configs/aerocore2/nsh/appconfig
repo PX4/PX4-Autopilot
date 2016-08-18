@@ -40,3 +40,4 @@ CONFIGURED_APPS	+= examples/nsh
 # The NSH application library
 CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += system/readline
+

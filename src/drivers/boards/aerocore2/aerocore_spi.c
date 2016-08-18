@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,67 +69,36 @@
 
 __EXPORT void stm32_spiinitialize(void)
 {
-#ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI1_NSS);
-	px4_arch_gpiowrite(GPIO_SPI1_NSS, 1);
-#endif
 
-#ifdef CONFIG_STM32_SPI2
-	px4_arch_configgpio(GPIO_SPI2_NSS);
-	px4_arch_gpiowrite(GPIO_SPI2_NSS, 1);
-#endif
+	px4_arch_configgpio(GPIO_SPI_CS_EXT0);
 
-#ifdef CONFIG_STM32_SPI3
 	px4_arch_configgpio(GPIO_SPI_CS_GYRO);
 	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_GYRO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
-
-	px4_arch_configgpio(GPIO_EXTI_GYRO_DRDY);
-	px4_arch_configgpio(GPIO_EXTI_MAG_DRDY);
-	px4_arch_configgpio(GPIO_EXTI_ACCEL_DRDY);
-#endif
-
-#ifdef CONFIG_STM32_SPI4
-	px4_arch_configgpio(GPIO_SPI4_NSS);
-	px4_arch_gpiowrite(GPIO_SPI4_NSS, 1);
-#endif
+	px4_arch_configgpio(GPIO_SPI_CS_FRAM);
 }
 
-#ifdef CONFIG_STM32_SPI1
 __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* there is only one device broken-out so select it */
-	px4_arch_gpiowrite(GPIO_SPI1_NSS, !selected);
+	px4_arch_gpiowrite(GPIO_SPI_CS_EXT0, !selected);
 }
 
 __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
 	return SPI_STATUS_PRESENT;
 }
-#endif
 
-#ifdef CONFIG_STM32_SPI2
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* there is only one device broken-out so select it */
-	px4_arch_gpiowrite(GPIO_SPI2_NSS, !selected);
 }
 
 __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-	return SPI_STATUS_PRESENT;
+	return 0;
 }
-#endif
 
-#ifdef CONFIG_STM32_SPI3
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
@@ -165,14 +134,19 @@ __EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 {
 	return SPI_STATUS_PRESENT;
 }
-#endif
 
 
-#ifdef CONFIG_STM32_SPI4
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* there can only be one device on this bus, so always select it */
-	px4_arch_gpiowrite(GPIO_SPI4_NSS, !selected);
+	switch (devid) {
+	case SPIDEV_FLASH:
+		px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
+		break;
+
+	default:
+		break;
+	}
+
 }
 
 __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
@@ -180,4 +154,3 @@ __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
 }
-#endif
