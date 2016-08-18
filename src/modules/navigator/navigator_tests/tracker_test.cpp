@@ -264,6 +264,7 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
             break;
 
         size_t target = test->ret[state.target_index];
+        inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
         inner_assert(advance_state(state, x, y, z), "vehicle diverted from expected return path: (%f, %f, %f) is not towards target %d %d %d", x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
         inner_assert(state.no_progress < TRACKER_MAX_NO_PROGRESS, "no progress detected from (%f, %f, %f) to (%f, %f, %f), target is %d %d %d", state.x, state.y, state.z, x, y, z, test->path[target * 3], test->path[target * 3 + 1], test->path[target * 3 + 2]);
 
@@ -275,6 +276,7 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
         return_state_t inner_state = init_return_state(inner_x, inner_y, inner_z, test);
 
         while (tracker.advance_return_path(inner_context, inner_x, inner_y, inner_z)) {
+            inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
             inner_assert(advance_state(inner_state, inner_x, inner_y, inner_z), "look-ahead return path diverted from expected return path");
             inner_assert(inner_state.no_progress < TRACKER_MAX_NO_PROGRESS, "no progress detected in look-ahead return path from (%f, %f, %f) to (%f, %f, %f), target index is %zu", inner_state.x, inner_state.y, inner_state.z, inner_x, inner_y, inner_z, inner_state.target_index);
         }
@@ -287,6 +289,7 @@ bool TrackerTest::try_return_supervised(Tracker &tracker, const test_t *test, ch
         tracker.update(x, y, z);
     }
 
+    inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
     inner_assert(detect_completion(state), "vehicle did not reach home, currently at (%f, %f, %f), home is (%d, %d, %d)", state.x, state.y, state.z, test->path[0], test->path[1], test->path[2]);
 
     return true;
@@ -302,9 +305,12 @@ bool TrackerTest::try_return_unsupervised(Tracker &tracker, const test_t *test, 
     inner_assert(tracker.init_return_path(context, x, y, z), "tracker could not init return path");
     while (tracker.advance_return_path(context, x, y, z)) {
         tracker.update(x, y, z);
+        inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
         inner_assert(steps++ < 256, "return-to-home did take too many steps"); // make sure the loop terminates
         TRACKER_DBG("return from %d, %d, %d, home is %.3f, %.3f, %.3f", (int)x, (int)y, (int)z, home_x, home_y, home_z);
     }
+
+    inner_assert(!tracker.get_graph_fault(), "graph inconsistent");
 
     // Check if we're actually home
     inner_assert(get_distance(x, y, z, home_x, home_y, home_z) <= Tracker::ACCURACY + home_to_path_dist,
@@ -323,10 +329,8 @@ bool TrackerTest::fly_and_return_test(void) {
         TRACKER_DBG("running fly-and-return on %s %s", test->name, rewrite_graph ? "with graph rewriting" : "without graph rewriting");
         
         // Simulate flight along the specified path
-        for (size_t p = 0; p < test->path_size; p += 3) {
-            TRACKER_DBG("push (%d, %d, %d)", test->path[p], test->path[p + 1], test->path[p + 2]);
+        for (size_t p = 0; p < test->path_size; p += 3)
             tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
-        }
 
 
 #ifdef DEBUG_TRACKER

@@ -66,6 +66,12 @@ void RTLAdvanced::on_activation() {
 }
 
 void RTLAdvanced::on_active() {
+	// If the tracker fails, do the same as if the deadline was reached
+	if (_tracker && _tracker->get_graph_fault()) {
+		PX4_ERR("the flight graph became inconsistent and return path was lost");
+		deadline = 0;
+	}
+
 	if (deadline <= hrt_absolute_time()) {
 		
 		_tracker = NULL;

@@ -17,6 +17,12 @@
 #define TRACKER_DBG(...)
 #endif
 
+#define GRAPH_ERR(...) do { \
+    /*PX4_ERR("Unexpected exception in flight path tracker: the flight graph may now be inconsistent must be reset.");*/ \
+    PX4_ERR(__VA_ARGS__); \
+    graph_fault = true; \
+} while (0)
+
 
 class Tracker
 {
@@ -37,6 +43,9 @@ public:
     
     // Enables or disables tracking of the recent path.
     void set_recent_path_tracking_enabled(bool enabled) { recent_path_tracking_enabled = enabled; }
+
+    // Returns true if a graph fault occurred. 
+    bool get_graph_fault() { return graph_fault; }
 
     // Forces graph consolidation
     void consolidate_graph() { consolidate_graph("external request"); }
@@ -437,6 +446,9 @@ private:
     size_t recent_path_next_write = 1; // always valid, 0 if empty, equal to next_read if full
     size_t recent_path_next_read = 0; // RECENT_PATH_LENGTH if empty, valid if non-empty
 
+    // Indicates that the graph may have become inconsistent.
+    // If this occurs, it must be reset at the next opportunity.
+    bool graph_fault = false;
 
     // The last position in the graph, corresponding to the end of the buffer.
     // This roughly corresponds to the current vehicle position.

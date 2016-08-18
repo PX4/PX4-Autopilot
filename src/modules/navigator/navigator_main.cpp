@@ -225,10 +225,13 @@ void
 Navigator::local_position_update()
 {
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-	if (!_land_detected.landed)
+	if (!_land_detected.landed) {
+		if (_tracker.get_graph_fault())
+			_tracker.reset_graph();
 		_tracker.update(&_local_pos);
-	else
+	} else {
 		_use_advanced_rtl = true; // Try advanced RTL again for the next flight
+	}
 }
 
 void
@@ -274,8 +277,11 @@ void
 Navigator::vehicle_land_detected_update()
 {
 	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
-	if (!_land_detected.landed)
+	if (!_land_detected.landed) {
+		if (_tracker.get_graph_fault())
+			_tracker.reset_graph();
 		_tracker.update(&_local_pos);
+	}
 }
 
 void
