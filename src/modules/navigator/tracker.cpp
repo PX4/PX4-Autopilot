@@ -24,8 +24,6 @@ inline float fast_sqrt(int val, bool fallback_to_infinity) {
         return INFINITY;
 
     float result = sqrt(val);
-    if (isnan(result))
-        PX4_WARN("fast_sqrt returns NaN for %d", val);
     return result;
 }
 
@@ -224,8 +222,10 @@ bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_spac
         return false;
 
     if (split_count >= FAR_DELTA_SIZE || jump) {
-        if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
-            PX4_ERR("delta overflow in tracker");
+        if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN) {
+            PX4_ERR("far delta overflow");
+            return false;
+        }
 
         buffer[index++] = (delta.x & 0x7FFF) | 0x8000;
         buffer[index++] = (delta.y & 0x7FFF) | (jump ? 0x8000 : 0);
@@ -257,7 +257,7 @@ Tracker::ipos_t Tracker::fetch_delta(size_t index, bool &is_jump, delta_item_t *
     }
 
     //if (buffer[index] == OBSOLETE_DELTA || buffer[index - 1] == OBSOLETE_DELTA || buffer[index - 2] == OBSOLETE_DELTA)
-        //PX4_ERR("fetching invalid delta element");
+        //GRAPH_ERR("fetching invalid delta element");
 
     is_jump = (buffer[index - 1] >> 15) & 1;
     return {
@@ -557,7 +557,7 @@ bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef
 bool Tracker::is_close_to_graph(ipos_t position, size_t lower_bound, size_t upper_bound, ipos_t pos_at_upper_bound) {
     int accuracy_squared = get_accuracy_at(position);
 
-    while (upper_bound > lower_bound) {
+    while (upper_bound > lower_bound && !graph_fault) {
         bool is_jump;
         ipos_t delta = walk_backward(upper_bound, is_jump);
         
@@ -605,7 +605,7 @@ Tracker::ipos_t Tracker::get_closest_position(ipos_t position, size_t &best_inde
         }
 
         pos -= delta;
-    } while (prev_index);
+    } while (prev_index && !graph_fault);
 
     return best_pos;
 }
@@ -623,6 +623,9 @@ bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size
     for (;;) {
         bool is_jump;
         pos -= walk_backward(end_index, is_jump);
+
+        if (graph_fault)
+            return false;
 
         // The line must have a uniform jump property.
         if (is_jump != should_be_jump)
@@ -649,7 +652,7 @@ void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end
         end_pos = next_end_pos;
         is_jump = next_is_jump;
         next_end_pos += walk_forward(next_end_index, next_is_jump);
-    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, next_is_jump) && next_end_index <= bound);
+    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, next_is_jump) && next_end_index <= bound && !graph_fault);
 }
 
 
@@ -679,7 +682,7 @@ void Tracker::consolidate_graph(const char *reason) {
     // read_index and (write_index - 1) always correspond to the same position.
     // They start out to be equal, and the gap between them increases as consolidation moves on.
 
-    while (read_index < graph_next_write - 1) {
+    while (read_index < graph_next_write - 1 && !graph_fault) {
         bool is_jump;
         ipos_t line_end_pos;
         size_t line_end_index;
@@ -713,7 +716,7 @@ void Tracker::consolidate_graph(const char *reason) {
     ipos_t pos_at_overwrite_index = pos;
     bool was_close = false;
 
-    while (read_index < graph_next_write - 1) {
+    while (read_index < graph_next_write - 1 && !graph_fault) {
         bool is_jump;
         ipos_t prev_pos = pos;
         ipos_t delta = walk_forward(read_index, is_jump);
@@ -760,7 +763,7 @@ void Tracker::consolidate_graph(const char *reason) {
     pos = consolidated_head_pos;
     read_index = consolidated_head_index;
 
-    while (read_index < graph_next_write - 1) {
+    while (read_index < graph_next_write - 1 && !graph_fault) {
 
         ipos_t inner_pos = pos;
         size_t search_index = read_index;
@@ -773,7 +776,7 @@ void Tracker::consolidate_graph(const char *reason) {
         int accuracy_squared = get_accuracy_at(pos);
         size_t search_bound = read_index > GRAPH_SEARCH_RANGE ? read_index - GRAPH_SEARCH_RANGE : 0;
 
-        while (search_index > search_bound) {
+        while (search_index > search_bound && !graph_fault) {
 
             // Prepare a node in case we need it
             node_t node = {
@@ -801,8 +804,10 @@ void Tracker::consolidate_graph(const char *reason) {
                     // If the node would be at the beginning of the line, we defer the node creation to the next line (unless we're about to terminate the search)
                     if (coef1 < MAX_COEFFICIENT || search_index <= search_bound) {
 
-                        if (coef1 < 0 || coef1 > MAX_COEFFICIENT || coef2 < 0 || coef2 > MAX_COEFFICIENT)
-                            PX4_WARN("delta coefficient out of range: have %d and %d", coef1, coef2);
+                        if (coef1 < 0 || coef1 > MAX_COEFFICIENT || coef2 < 0 || coef2 > MAX_COEFFICIENT) {
+                            GRAPH_ERR("delta coefficient out of range: have %d and %d", coef1, coef2);
+                            return;
+                        }
 
                         node.coef1 = coef1;
                         node.coef2 = coef2;
@@ -863,7 +868,7 @@ bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forwa
     if (!forward)
         coef++;
 
-    for (;;) {
+    for (; !graph_fault;) {
         // Look through all nodes to find the closest one that lies on the current line in the direction of travel
         int best_coef = forward ? -1 : (MAX_COEFFICIENT + 1);
         size_t best_node;
@@ -1009,7 +1014,7 @@ void Tracker::refresh_distances() {
     //  length, so every node distance will eventually reach a lower bound. When this state is reached,
     //  the set of dirty nodes remains empty during an entire iteration, thus the loop terminates.
 
-    while (have_dirty_nodes) {
+    while (have_dirty_nodes && !graph_fault) {
         have_dirty_nodes = false;
 
         for (size_t i = 0; i < node_count; i++) {
@@ -1202,7 +1207,7 @@ void Tracker::mark_obsolete(size_t index, int coef, bool forward, bool backward,
 
     size_t prev_index = index - (((graph[index] >> 15) & 1) ? FAR_DELTA_SIZE : 1);
 
-    while (index < upper_bound && forward) {
+    while (index < upper_bound && forward && !graph_fault) {
         forward = graph[index] != OBSOLETE_DELTA && index != retain;
         bool keep = index == start_index || !forward;
 
@@ -1229,7 +1234,7 @@ void Tracker::mark_obsolete(size_t index, int coef, bool forward, bool backward,
     index = start_index;
     coef = start_coef;
 
-    while (index > lower_bound && backward) {
+    while (index > lower_bound && backward && !graph_fault) {
         backward = graph[index] != OBSOLETE_DELTA && index != retain;
         bool keep = index == start_index || !backward;
 
@@ -1282,7 +1287,8 @@ void Tracker::rewrite_graph() {
     bool not_home = true;
 
     // Walk the shortest path home and reconstruct it at the end of the graph buffer.
-    while (not_home) {
+    while (not_home && !graph_fault) {
+
         size_t prev_checkpoint_index = context.checkpoint_index;
         int prev_checkpoint_coef = context.checkpoint_coef;
         bool at_checkpoint = context.current_index == context.checkpoint_index && context.current_coef == context.checkpoint_coef;
@@ -1333,7 +1339,7 @@ void Tracker::rewrite_graph() {
 
         
         // Once in a while, flush the cache to the rewrite area
-        while ((!not_home || cache_full) && cache_size) {
+        while ((!not_home || cache_full) && cache_size && !graph_fault) {
             TRACKER_DBG("  flush rewrite cache of size %zu", cache_size);
 
             // If the cache cannot be flushed, reclaim space used by obsolete stuff
@@ -1380,8 +1386,10 @@ void Tracker::rewrite_graph() {
             // Flush rewrite cache to rewrite area (as much as possible)
             size_t copy_count = std::min(cache_size, next_rewrite_index - graph_next_write + 1);
             for (size_t i = 0; i < copy_count; i++) {
-                if (!next_rewrite_index)
-                    PX4_WARN("unexpected exception in graph rewrite");
+                if (!next_rewrite_index) {
+                    GRAPH_ERR("rewrite area exceeded graph buffer size");
+                    return;
+                }
                 
                 if ((rewrite_cache[i] >> 15) & 1) {
                     graph[next_rewrite_index--] = rewrite_cache[i + 2];
@@ -1396,13 +1404,13 @@ void Tracker::rewrite_graph() {
 
         // If the delta push failed previously, it should work now that we have flushed the cache
         if (cache_full) {
-            if (!push_delta(cache_size, prev_pos - context.current_pos, false, REWRITE_CACHE_SIZE - cache_size, rewrite_cache))
-                PX4_ERR("graph rewrite failed");
+            if (!push_delta(cache_size, prev_pos - context.current_pos, false, REWRITE_CACHE_SIZE - cache_size, rewrite_cache)) {
+                GRAPH_ERR("no space in graph rewrite cache after flushing");
+                return;
+            }
             not_home = true; // just in case, pretend we're not yet home, so we get get another chance to flush the cache
         }
     }
-
-    TRACKER_DBG("ended on x %d, cache size %zu", context.current_pos.x, cache_size);
 
 
     // Move rebuilt path to the beginning of the buffer.
@@ -1431,6 +1439,7 @@ void Tracker::reset_graph() {
     consolidated_head_index = 0;
     graph_version++;
     pinned_index = 0;
+    graph_fault = false;
 }
 
 
