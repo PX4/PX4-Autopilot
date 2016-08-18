@@ -33,4 +33,6 @@ then
 	param set MPC_MANTHR_MIN 0.06
 	param set CBRK_IO_SAFETY 22027
 	param set ATT_BIAS_MAX 0.0
+	param set MC_TPA_BREAK 0.5
+ 	param set MC_TPA_SLOPE 1.0
 fi
