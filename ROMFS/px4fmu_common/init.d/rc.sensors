@@ -56,6 +56,11 @@ then
 	then
 	fi
 
+	# Internal SPI bus ICM-20608-G
+	if mpu6000 -T 20608 start
+	then
+	fi
+
 	# external MPU6K is rotated 180 degrees yaw
 	if mpu6000 -X -R 4 start
 	then
