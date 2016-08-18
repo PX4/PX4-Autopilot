@@ -223,8 +223,19 @@ if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
 		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/arm-linux-gnueabihf
 		--sysroot=${HEXAGON_ARM_SYSROOT}
 		)
-else()
+elseif ("${BOARD}" STREQUAL "rpi" AND "$ENV{RPI_USE_CLANG}" STREQUAL "1")
 
+	# Add the toolchain specific flags
+	set(clang_added_flags
+		-m32
+		--target=arm-linux-gnueabihf
+		-ccc-gcc-name arm-linux-gnueabihf
+		--sysroot=${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/arm-linux-gnueabihf/libc/)
+
+	set(added_c_flags ${POSIX_CMAKE_C_FLAGS} ${clang_added_flags})
+	set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${clang_added_flags})
+	set(added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${clang_added_flags})
+else()
 	# Add the toolchain specific flags
         set(added_cflags ${POSIX_CMAKE_C_FLAGS})
         set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS})
