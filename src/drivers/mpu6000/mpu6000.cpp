@@ -168,10 +168,9 @@ private:
 	 * SPI bus based device use hrt
 	 * I2C bus needs to use work queue
 	 */
-	bool 			_use_hrt;
 	work_s			_work;
 #endif
-
+	bool 			_use_hrt;
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
@@ -265,7 +264,7 @@ private:
 
 #if defined(USE_I2C)
 	/**
-	 * When the I2C interfase is cho
+	 * When the I2C interfase is on
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 *
@@ -288,11 +287,11 @@ private:
 	 */
 	static void		cycle_trampoline(void *arg);
 
-	bool is_i2c(void) { return !_use_hrt; }
-
 	void use_i2c(bool on_true) { _use_hrt = !on_true; }
 
 #endif
+
+	bool is_i2c(void) { return !_use_hrt; }
 
 
 	/**
@@ -474,9 +473,9 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
 #if defined(USE_I2C)
-	_use_hrt(false),
-	_work{},
+	_work {},
 #endif
+	_use_hrt(false),
 	_call {},
 	_call_interval(0),
 	_accel_reports(nullptr),
@@ -710,8 +709,8 @@ int MPU6000::reset()
 		if (is_i2c()) {
 			// Enable I2C bus (recommended on datasheet)
 			write_checked_reg(MPUREG_USER_CTRL, 0);
-		} else
-		{
+
+		} else {
 			// Disable I2C bus (recommended on datasheet)
 			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
 		}
@@ -1356,8 +1355,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					  stm32 clock and the mpu6000 clock
 					 */
 
-					if (!is_i2c())
-					{
+					if (!is_i2c()) {
 						_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
 					}
 
@@ -1671,8 +1669,10 @@ MPU6000::start()
 			       (hrt_callout)&MPU6000::measure_trampoline, this);
 
 	} else {
+#ifdef USE_I2C
 		/* schedule a cycle to start things */
 		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
+#endif
 	}
 }
 
@@ -1684,8 +1684,10 @@ MPU6000::stop()
 		hrt_cancel(&_call);
 
 	} else {
+#ifdef USE_I2C
 		_call_interval = 0;
 		work_cancel(HPWORK, &_work);
+#endif
 	}
 
 	/* reset internal states */
