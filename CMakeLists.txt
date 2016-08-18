@@ -121,6 +121,9 @@
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+
 # Use clang
 #SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
 #SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
@@ -163,12 +166,8 @@ if(NOT CMAKE_INSTALL_PREFIX)
 endif()
 message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 
-# switch to ros CMake file if building ros
-if (${OS} STREQUAL "ros")
-	include("cmake/ros-CMakeLists.txt")
-else()  # otherwise use the rest of this file
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+message(STATUS "cmake module path: ${CMAKE_MODULE_PATH}")
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
@@ -262,7 +261,7 @@ px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 
 add_custom_target(submodule_clean
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	COMMAND git submodule deinit -f .
 	COMMAND rm -rf .git/modules/*
 	)
@@ -272,12 +271,12 @@ add_custom_target(submodule_clean
 #
 add_custom_target(check_format
 	COMMAND Tools/check_code_style.sh
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
 add_custom_target(config
 	COMMAND cmake-gui .
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 
 #=============================================================================
@@ -326,7 +325,7 @@ add_custom_target(xml_gen
 # external projects
 #
 
-set(ep_base ${CMAKE_BINARY_DIR}/external)
+set(ep_base ${PX4_BINARY_DIR}/external)
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 
 # add external project install folders to build
@@ -355,7 +354,7 @@ foreach(module ${config_module_list})
 	if(external_module)
 		STRING(REGEX REPLACE "//" "/" EXT_MODULE ${module})
 		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
-		add_subdirectory(${module} ${CMAKE_BINARY_DIR}/${EXT_MODULE_PREFIX})
+		add_subdirectory(${module} ${PX4_BINARY_DIR}/${EXT_MODULE_PREFIX})
 	else()
 		add_subdirectory(src/${module})
 	endif()
@@ -380,7 +379,7 @@ endif()
 #=============================================================================
 # generate git version
 #
-px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
+px4_create_git_hash_header(HEADER ${PX4_BINARY_DIR}/build_git_version.h)
 
 #=============================================================================
 # packaging
@@ -409,7 +408,5 @@ if (${OS} STREQUAL "posix")
 	set(CPACK_SET_DESTDIR "ON")
 endif()
 include(CPack)
-
-endif() # ros alternative endif
 
 # vim: set noet fenc=utf-8 ff=unix ft=cmake :
