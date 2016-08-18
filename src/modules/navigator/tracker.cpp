@@ -207,6 +207,67 @@ inline bool Tracker::fits_into_far_delta(ipos_t vec) {
             (((vec.z >> 14) == 0) || ((vec.z >> 14) == -1));
 }
 
+
+bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_space, delta_item_t *buffer) {
+    int max_val = std::max(std::max(delta.x, delta.y), delta.z);
+    int min_val = std::min(std::min(delta.x, delta.y), delta.z);
+
+    // If the delta is too large for a single compact delta item, we split it into multiple items
+    int split_count = 1;
+    if (max_val > COMPACT_DELTA_MAX || min_val < COMPACT_DELTA_MIN)
+        split_count = (int)ceil(std::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
+
+    int far_delta_size = FAR_DELTA_SIZE;
+    split_count = jump ? far_delta_size : std::min(split_count, far_delta_size);
+
+    if (max_space < split_count)
+        return false;
+
+    if (split_count >= FAR_DELTA_SIZE || jump) {
+        if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
+            PX4_ERR("delta overflow in tracker");
+
+        buffer[index++] = (delta.x & 0x7FFF) | 0x8000;
+        buffer[index++] = (delta.y & 0x7FFF) | (jump ? 0x8000 : 0);
+        buffer[index++] = (delta.z & 0x7FFF) | 0x8000;
+
+    } else {
+
+        ipos_t compact_delta_sum = { .x = 0, .y = 0, .z = 0 };
+        for (int i = 1; i < split_count; i++) {
+            ipos_t compact_delta = to_ipos(to_fpos(delta) * ((float)i / (float)split_count)) - compact_delta_sum;
+            buffer[index++] = pack_compact_delta_item(compact_delta);
+            compact_delta_sum += compact_delta;
+        }
+        delta -= compact_delta_sum;
+
+        buffer[index++] = pack_compact_delta_item(delta);
+    }
+
+    return true;
+}
+
+
+Tracker::ipos_t Tracker::fetch_delta(size_t index, bool &is_jump, delta_item_t *buffer) {
+    const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 15;
+
+    if (!((buffer[index] >> 15) & 1)) {
+        is_jump = false;
+        return unpack_compact_delta_item(buffer[index]);
+    }
+
+    //if (buffer[index] == OBSOLETE_DELTA || buffer[index - 1] == OBSOLETE_DELTA || buffer[index - 2] == OBSOLETE_DELTA)
+        //PX4_ERR("fetching invalid delta element");
+
+    is_jump = (buffer[index - 1] >> 15) & 1;
+    return {
+        .x = ((int)((buffer[index - 2] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
+        .y = ((int)((buffer[index - 1] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
+        .z = ((int)((buffer[index - 0] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT
+    };
+}
+
+
 int Tracker::get_accuracy_at(ipos_t pos) {
     // todo: adapt accuracy to memory pressure
     return GRID_SIZE * GRID_SIZE;
@@ -225,8 +286,10 @@ void Tracker::set_home(float x, float y, float z) {
         .index2 = 0,
         .coef1 = 0,
         .coef2 = 0,
-        .use_line2 = 0,
         .dirty = 1,
+        .obsolete = 0,
+        .use_line2 = 0,
+        .go_forward = 0,
         .distance = 0 
     };
 
@@ -379,6 +442,7 @@ void Tracker::push_graph(fpos_t &position) {
         if (!graph_next_write) {
             graph_head_pos = new_pos; // make sure that the very first delta is a compact delta
             consolidated_head_pos = new_pos;
+            consolidated_head_index = 0;
         }
 
         push_delta(graph_next_write, new_pos - graph_head_pos, false);
@@ -396,60 +460,6 @@ void Tracker::push_graph(fpos_t &position) {
     }
 }
 
-bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_space) {
-    int max_val = std::max(std::max(delta.x, delta.y), delta.z);
-    int min_val = std::min(std::min(delta.x, delta.y), delta.z);
-
-    // If the delta is too large for a single compact delta item, we split it into multiple items
-    int split_count = 1;
-    if (max_val > COMPACT_DELTA_MAX || min_val < COMPACT_DELTA_MIN)
-        split_count = (int)ceil(std::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
-
-    int far_delta_size = FAR_DELTA_SIZE;
-    split_count = jump ? far_delta_size : std::min(split_count, far_delta_size);
-
-    if (max_space < split_count)
-        return false;
-
-    if (split_count >= FAR_DELTA_SIZE || jump) {
-        if (max_val > FAR_DELTA_MAX || min_val < FAR_DELTA_MIN)
-            PX4_ERR("delta overflow in tracker");
-
-        graph[index++] = (delta.x & 0x7FFF) | 0x8000;
-        graph[index++] = (delta.y & 0x7FFF) | (jump ? 0x8000 : 0);
-        graph[index++] = (delta.z & 0x7FFF) | 0x8000;
-
-    } else {
-
-        ipos_t compact_delta_sum = { .x = 0, .y = 0, .z = 0 };
-        for (int i = 1; i < split_count; i++) {
-            ipos_t compact_delta = to_ipos(to_fpos(delta) * ((float)i / (float)split_count)) - compact_delta_sum;
-            graph[index++] = pack_compact_delta_item(compact_delta);
-            compact_delta_sum += compact_delta;
-        }
-        delta -= compact_delta_sum;
-
-        graph[index++] = pack_compact_delta_item(delta);
-    }
-
-    return true;
-}
-
-Tracker::ipos_t Tracker::fetch_delta(size_t index, bool &is_jump) {
-    const int SHIFT_COUNT = CHAR_BIT * sizeof(int) - 15;
-
-    if (!((graph[index] >> 15) & 1)) {
-        is_jump = false;
-        return unpack_compact_delta_item(graph[index]);
-    }
-
-    is_jump = (graph[index - 1] >> 15) & 1;
-    return {
-        .x = ((int)((graph[index - 2] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
-        .y = ((int)((graph[index - 1] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT,
-        .z = ((int)((graph[index - 0] & 0x7FFF) << SHIFT_COUNT)) >> SHIFT_COUNT
-    };
-}
 
 Tracker::ipos_t Tracker::walk_forward(size_t &index, bool &is_jump) {
     if ((graph[index + 1] >> 15) & 1)
@@ -496,10 +506,11 @@ bool Tracker::push_node(node_t &node, int accuracy_squared) {
 void Tracker::remove_nodes(size_t lower_bound, size_t upper_bound) {
     for (size_t i = 1; i < node_count; i++) {
         if ((lower_bound < node_at(i).index1 && node_at(i).index1 <= upper_bound) ||
-            (lower_bound < node_at(i).index2 && node_at(i).index2 <= upper_bound)) {
+            (lower_bound < node_at(i).index2 && node_at(i).index2 <= upper_bound) ||
+            node_at(i).obsolete) {
             // move preceding part of the stack
             node_count--;
-            memcpy(nodes - node_count + 1, nodes - node_count, (node_count - i) * sizeof(node_t));
+            memmove(nodes - node_count + 1, nodes - node_count, (node_count - i) * sizeof(node_t));
             i--;
         }
     }
@@ -677,7 +688,7 @@ void Tracker::consolidate_graph(const char *reason) {
         // Push the line delta ONLY if it uses less space than the original deltas
         if (push_delta(write_index, line_end_pos - pos, is_jump, line_end_index - read_index)) {
             TRACKER_DBG("  aggeregated %zu to %zu into line %zu", read_index, line_end_index, write_index - 1);
-            TRACKER_DBG("    from %d %d %d to %d %d %d, %s", pos.x, pos.y, pos.z, line_end_pos.x, line_end_pos.y, line_end_pos.z, is_jump ? "is jump" : "no jump");
+            //TRACKER_DBG("    from %d %d %d to %d %d %d, %s", pos.x, pos.y, pos.z, line_end_pos.x, line_end_pos.y, line_end_pos.z, is_jump ? "is jump" : "no jump");
             read_index = line_end_index;
         }
 
@@ -770,8 +781,10 @@ void Tracker::consolidate_graph(const char *reason) {
                 .index2 = (uint16_t)search_index,
                 .coef1 = 0,
                 .coef2 = 0,
-                .use_line2 = 0,
                 .dirty = 1,
+                .obsolete = 0,
+                .use_line2 = 0,
+                .go_forward = 0,
                 .distance = MAX_DISTANCE
             };
 
@@ -795,11 +808,11 @@ void Tracker::consolidate_graph(const char *reason) {
                         node.coef2 = coef2;
                         node.delta = pack_compact_delta_item(line_to_line);
 
-                        TRACKER_DBG("  line to line delta (%d %d %d)...(%d %d %d) to (%d %d %d)...(%d %d %d) is (%d %d %d), coef is %d, %d",
-                            delta.x, delta.y, delta.z, pos.x, pos.y, pos.z,
-                            inner_delta.x, inner_delta.y, inner_delta.z, inner_pos.x, inner_pos.y, inner_pos.z,
-                            line_to_line.x, line_to_line.y, line_to_line.z,
-                            coef1, coef2);
+                        //TRACKER_DBG("  line to line delta (%d %d %d)...(%d %d %d) to (%d %d %d)...(%d %d %d) is (%d %d %d), coef is %d, %d",
+                        //    delta.x, delta.y, delta.z, pos.x, pos.y, pos.z,
+                        //    inner_delta.x, inner_delta.y, inner_delta.z, inner_pos.x, inner_pos.y, inner_pos.z,
+                        //    line_to_line.x, line_to_line.y, line_to_line.z,
+                        //    coef1, coef2);
                         
                         TRACKER_DBG("  create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, coef_to_float(node.coef1), (size_t)node.index2, coef_to_float(node.coef2));
 
@@ -1078,8 +1091,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
         context.current_pos.x, context.current_pos.y, context.current_pos.z,
         home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
-    //if (context.current_pos.x == home_on_graph.x && context.current_pos.y == home_on_graph.y && context.current_pos.z == home_on_graph.z)
-    //    return false;
+    progress = false;
 
     ipos_t delta = { .x = 0, .y = 0, .z = 0 };
     
@@ -1170,15 +1182,255 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
 
         pin_index(context.current_index);
 
-        TRACKER_DBG("changing position by (%d %d %d)",
-            delta.x, delta.y, delta.z
-            );
+        //TRACKER_DBG("changing position by (%d %d %d)", delta.x, delta.y, delta.z);
     }
 
     context.current_pos += delta;
     progress = delta.x || delta.y || delta.z;
 
     return true;
+}
+
+
+void Tracker::mark_obsolete(size_t index, int coef, bool forward, bool backward, size_t retain, size_t lower_bound, size_t upper_bound) {
+    size_t start_index = index;
+    int start_coef = coef;
+
+    TRACKER_DBG("  mark as obsolete from %zu-%.2f %s", index, coef_to_float(coef), forward ? backward ? "both dirs" : "forward" : backward ? "backward" : "nothing");
+
+    bool is_jump;
+
+    size_t prev_index = index - (((graph[index] >> 15) & 1) ? FAR_DELTA_SIZE : 1);
+
+    while (index < upper_bound && forward) {
+        forward = graph[index] != OBSOLETE_DELTA && index != retain;
+        bool keep = index == start_index || !forward;
+
+        // Keep delta if any nodes lie on it.
+        // If one is even in the right direction, finish walk.
+        for (size_t i = 0; i < node_count && forward; i++) {
+            if (!node_at(i).obsolete) {
+                keep |= node_at(i).index1 == index || (i && node_at(i).index2 == index); 
+                if ((node_at(i).index1 == index && node_at(i).coef1 <= coef)
+                || (i && node_at(i).index2 == index && node_at(i).coef2 <= coef))
+                    forward = false;
+            }
+        }
+
+        while (!keep && prev_index++ < index)
+            graph[prev_index] = OBSOLETE_DELTA;
+
+        prev_index = index;
+        walk_forward(index, is_jump);
+        coef = MAX_COEFFICIENT + 1;
+    }
+
+
+    index = start_index;
+    coef = start_coef;
+
+    while (index > lower_bound && backward) {
+        backward = graph[index] != OBSOLETE_DELTA && index != retain;
+        bool keep = index == start_index || !backward;
+
+        // See if any node lies on this delta.
+        // If there are nodes, but they don't lie in the considered direction, we just keep this delta but continue the walk.
+        for (size_t i = 0; i < node_count && backward; i++) {
+            if (!node_at(i).obsolete) {
+                keep |= node_at(i).index1 == index || (i && node_at(i).index2 == index); 
+                if ((node_at(i).index1 == index && node_at(i).coef1 >= coef)
+                || (i && node_at(i).index2 == index && node_at(i).coef2 >= coef))
+                    backward = false;
+            }
+        }
+
+        prev_index = index;
+        walk_backward(index, is_jump);
+        coef = 0;
+
+        while (!keep && prev_index-- > index)
+            graph[prev_index + 1] = OBSOLETE_DELTA;
+    }
+}
+
+
+void Tracker::rewrite_graph() {
+    if (!graph_next_write)
+        return;
+
+    consolidate_graph("graph rewrite requested");
+
+    TRACKER_DBG("rewriting graph...");
+
+    // The cache helps us in case there is no space at all for the rewrite area 
+    delta_item_t rewrite_cache[REWRITE_CACHE_SIZE];
+    size_t cache_size = 0;
+
+    // Init rewrite area at the end of the node buffer
+    size_t next_rewrite_index = GRAPH_LENGTH - node_count * sizeof(node_t) / sizeof(delta_item_t) - 1;
+
+    // Init path finding context, using the graph head as starting point
+    path_finding_context_t context = {
+        .current_pos = graph_head_pos,
+        .current_index = graph_next_write - 1,
+        .current_coef = 0,
+        .graph_version = graph_version
+    };
+    context.checkpoint_index = context.current_index;
+    context.checkpoint_coef = context.current_coef;
+    
+    bool not_home = true;
+
+    // Walk the shortest path home and reconstruct it at the end of the graph buffer.
+    while (not_home) {
+        size_t prev_checkpoint_index = context.checkpoint_index;
+        int prev_checkpoint_coef = context.checkpoint_coef;
+        bool at_checkpoint = context.current_index == context.checkpoint_index && context.current_coef == context.checkpoint_coef;
+
+        // Proceed on the return path
+        bool progress = false;
+        ipos_t prev_pos = context.current_pos;
+        not_home = calc_return_path(context, progress);
+
+        // Mark as obsolete the direction in which we're not going
+        bool going_forward = context.current_index < context.checkpoint_index || (context.current_index == context.checkpoint_index && context.current_coef > context.checkpoint_coef);
+        bool going_backward = context.current_index > context.checkpoint_index || (context.current_index == context.checkpoint_index && context.current_coef < context.checkpoint_coef);
+        mark_obsolete(context.current_index, context.current_coef, going_backward, going_forward, 0, 0, graph_next_write);
+
+        // At every checkpoint (usually a node), mark all irrelevant intervals as obsolete
+        if (at_checkpoint) {
+            for (size_t i = 1; i < node_count; i++) {
+                bool come_from_line1 = node_at(i).index1 == prev_checkpoint_index && node_at(i).coef1 == prev_checkpoint_coef;
+                bool come_from_line2 = node_at(i).index2 == prev_checkpoint_index && node_at(i).coef2 == prev_checkpoint_coef; 
+
+                if (come_from_line1 || come_from_line2) {
+                    bool use_line2 = node_at(i).use_line2;
+                    node_at(i).obsolete = 1;
+
+                    TRACKER_DBG("  node %zu is obsolete and I'm going %s on line %d", i, going_forward ? "forward" : going_backward ? "backward" : "nowhere", use_line2 ? 2 : 1);
+
+                    // Remove intervals from line1
+                    mark_obsolete(node_at(i).index1, node_at(i).coef1,
+                        use_line2 || going_backward,
+                        use_line2 || going_forward,
+                        node_at(i).index2, 0, graph_next_write);
+
+                    // Remove intervals from line2
+                    mark_obsolete(node_at(i).index2, node_at(i).coef2,
+                        !use_line2 || going_backward,
+                        !use_line2 || going_forward,
+                        node_at(i).index1, 0, graph_next_write);
+                }
+            }
+        }
+
+        bool cache_full = false;
+
+        // Push the negative delta to the cache (when flushing, the deltas will be reversed)
+        TRACKER_DBG("  advance from %d %d %d to %d %d %d", prev_pos.x, prev_pos.y, prev_pos.z, context.current_pos.x, context.current_pos.y, context.current_pos.z);
+        if (progress)
+            cache_full = !push_delta(cache_size, prev_pos - context.current_pos, false, REWRITE_CACHE_SIZE - cache_size, rewrite_cache);
+
+        
+        // Once in a while, flush the cache to the rewrite area
+        while ((!not_home || cache_full) && cache_size) {
+            TRACKER_DBG("  flush rewrite cache of size %zu", cache_size);
+
+            // If the cache cannot be flushed, reclaim space used by obsolete stuff
+            if (next_rewrite_index < graph_next_write - 1 + cache_size) {
+                TRACKER_DBG("  reclaim space");
+
+                // Remove obsolete nodes
+                size_t old_node_count = node_count;
+                remove_nodes(0, 0);
+
+                // Move rewrite area to the end of the available space
+                size_t yield = (old_node_count - node_count) * sizeof(node_t) / sizeof(delta_item_t);
+                size_t rewrite_length = GRAPH_LENGTH - old_node_count * sizeof(node_t) / sizeof(delta_item_t) - next_rewrite_index - 1;
+                memmove(graph + next_rewrite_index + 1 + yield, graph + next_rewrite_index + 1, rewrite_length * sizeof(delta_item_t));
+                next_rewrite_index += yield;
+
+                // Remove obsolete delta elements
+                size_t copy_destination = 0;
+                size_t copy_origin = 0;
+                size_t copy_length = 0;
+                for (size_t i = 0; i <= graph_next_write; i++) {
+                    if (i == graph_next_write ? true : (graph[i] == OBSOLETE_DELTA)) {
+                        if (copy_length) {
+                            for (size_t j = 0; j < node_count; j++) {
+                                node_at(j).index1 -= node_at(j).index1 < copy_origin ? 0 : copy_origin - copy_destination;
+                                node_at(j).index2 -= node_at(j).index2 < copy_origin ? 0 : copy_origin - copy_destination;
+                            }
+                            memmove(graph + copy_destination, graph + copy_origin, copy_length * sizeof(delta_item_t));
+                            copy_destination += copy_length;
+                            copy_length = 0;
+                        }
+
+                        copy_origin = i + 1;
+                    } else {
+                        copy_length++;
+                    }
+                }
+
+                TRACKER_DBG("  reclaimed memory of %zu elements", yield + graph_next_write - copy_destination);
+                graph_next_write = copy_destination;
+            }
+
+
+            // Flush rewrite cache to rewrite area (as much as possible)
+            size_t copy_count = std::min(cache_size, next_rewrite_index - graph_next_write + 1);
+            for (size_t i = 0; i < copy_count; i++) {
+                if (!next_rewrite_index)
+                    PX4_WARN("unexpected exception in graph rewrite");
+                
+                if ((rewrite_cache[i] >> 15) & 1) {
+                    graph[next_rewrite_index--] = rewrite_cache[i + 2];
+                    graph[next_rewrite_index--] = rewrite_cache[i + 1];
+                    graph[next_rewrite_index--] = rewrite_cache[i];
+                } else {
+                    graph[next_rewrite_index--] = rewrite_cache[i];
+                }
+            }
+            memmove(rewrite_cache, rewrite_cache + copy_count, (cache_size -= copy_count) * sizeof(delta_item_t));
+        }
+
+        // If the delta push failed previously, it should work now that we have flushed the cache
+        if (cache_full) {
+            if (!push_delta(cache_size, prev_pos - context.current_pos, false, REWRITE_CACHE_SIZE - cache_size, rewrite_cache))
+                PX4_ERR("graph rewrite failed");
+            not_home = true; // just in case, pretend we're not yet home, so we get get another chance to flush the cache
+        }
+    }
+
+    TRACKER_DBG("ended on x %d, cache size %zu", context.current_pos.x, cache_size);
+
+
+    // Move rebuilt path to the beginning of the buffer.
+    size_t rewrite_length = GRAPH_LENGTH - node_count * sizeof(node_t) / sizeof(delta_item_t) - next_rewrite_index - 1;
+    memmove(graph + 1, graph + next_rewrite_index + 1, rewrite_length * sizeof(delta_item_t));
+
+    // Finalize rewrite
+    node_count = 1;
+    graph_next_write = rewrite_length + 1;
+    consolidated_head_index = 0;
+    graph_version++;
+    pinned_index = 0;
+
+#ifdef DEBUG_TRACKER
+    dump_graph();
+#endif
+
+    TRACKER_DBG("graph rewrite complete!");
+}
+
+
+void Tracker::reset_graph() {
+    TRACKER_DBG("deleting graph of length %zu", graph_next_write);
+    node_count = 1;
+    graph_next_write = 0;
+    consolidated_head_index = 0;
+    graph_version++;
+    pinned_index = 0;
 }
 
 

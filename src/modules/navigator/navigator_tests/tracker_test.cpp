@@ -123,6 +123,9 @@ private:
     // Tests if the minimum line-to-line delta is calculated correctly
     bool line_to_line_test();
 
+    // Enables graph rewriting in some tests
+    bool rewrite_graph = false;
+
     // An array of flight paths and their correct return paths
     // We can do various tests on each of these.
     static const test_t test_cases[];
@@ -317,7 +320,7 @@ bool TrackerTest::fly_and_return_test(void) {
         Tracker tracker;
 
         const test_t *test = test_cases + t;
-        TRACKER_DBG("running fly-and-return on %s", test->name);
+        TRACKER_DBG("running fly-and-return on %s %s", test->name, rewrite_graph ? "with graph rewriting" : "without graph rewriting");
         
         // Simulate flight along the specified path
         for (size_t p = 0; p < test->path_size; p += 3) {
@@ -329,6 +332,15 @@ bool TrackerTest::fly_and_return_test(void) {
 #ifdef DEBUG_TRACKER
         tracker.dump_graph();
 #endif
+
+        // Rewrite graph to contain nothing but the return path
+        if (rewrite_graph) {
+            tracker.rewrite_graph();
+
+#ifdef DEBUG_TRACKER
+            tracker.dump_graph();
+#endif
+        }
  
         // Return home
         char msg[1024];
@@ -468,6 +480,13 @@ bool TrackerTest::line_to_line_test() {
 
 bool TrackerTest::run_tests(void) {
 	ut_run_test(line_to_line_test);
+
+    rewrite_graph = false;
+	ut_run_test(fly_and_return_test);
+	ut_run_test(fly_and_leave_return_path_test);
+	ut_run_test(fly_and_change_home_test);
+
+    rewrite_graph = true;
 	ut_run_test(fly_and_return_test);
 	ut_run_test(fly_and_leave_return_path_test);
 	ut_run_test(fly_and_change_home_test);
