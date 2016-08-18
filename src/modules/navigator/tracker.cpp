@@ -5,7 +5,7 @@
 #include "tracker.h"
 
 
-inline float fast_sqrt(int val, bool fallback_to_infinity) {
+float Tracker::fast_sqrt(int val, bool fallback_to_infinity) {
     const float values[] = {
         0.000000000000000f, 1.000000000000000f, 1.414213562373095f, 1.732050807568877f,
         2.000000000000000f, 2.236067977499790f, 2.449489742783178f, 2.645751311064591f,
@@ -25,17 +25,6 @@ inline float fast_sqrt(int val, bool fallback_to_infinity) {
 
     float result = sqrt(val);
     return result;
-}
-
-inline bool Tracker::is_close(fpos_t pos1, fpos_t pos2) {
-    float delta_x = pos1.x - pos2.x;
-    float delta_y = pos1.y - pos2.y;
-    float delta_z = pos1.z - pos2.z;
-    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z < GRID_SIZE * GRID_SIZE + 0.001;
-}
-
-inline bool Tracker::is_close(ipos_t pos1, fpos_t pos2) {
-    return is_close(to_fpos(pos1), pos2);
 }
 
 
@@ -268,9 +257,27 @@ Tracker::ipos_t Tracker::fetch_delta(size_t index, bool &is_jump, delta_item_t *
 }
 
 
-int Tracker::get_accuracy_at(ipos_t pos) {
-    // todo: adapt accuracy to memory pressure
-    return GRID_SIZE * GRID_SIZE;
+int Tracker::get_granularity_at(ipos_t pos) {
+    int dist_squared = dot(home_position - pos);
+    
+    // Calculate max(0, floor(log2(dist_squared))): 0->0, 1->0, 2->1, 3->1, 4->2, 7->2, 8->3, ...
+    int log_dist = 0;
+    while (dist_squared >>= 1)
+        log_dist++;
+
+    log_dist = (log_dist - HIGH_PRECISION_RANGE) >> 1;
+
+    // The graph precision is lowered every second time the memory pressure increases
+    int p = (memory_pressure + 1) >> 1;
+
+    int margin = std::max(((p - 1) >> 1) + 1, log_dist * p);
+    //                    \___ regime 1 ___/  \ regime 2 /
+
+    // Regime 1: the margin close to home shall increase every second time we reduce precision
+    // Regime 2: the margin further from home shall increase proportionally to log(distance), where the slope is proportional to pressure
+    // Everything at distance 2^(HIGH_PRECISION_RANGE/2+1) or closer falls into regime 1
+
+    return margin * margin;
 }
 
 void Tracker::set_home(float x, float y, float z) {
@@ -319,15 +326,16 @@ void Tracker::update(float x, float y, float z) {
 
 
 void Tracker::push_recent_path(fpos_t &position) {
+    ipos_t new_pos = to_ipos(position);
     
     bool rollback = false;
     size_t index = recent_path_next_write;
-    ipos_t head = to_ipos(recent_path_head);
+    ipos_t head = recent_path_head;
     
     if (recent_path_next_read != RECENT_PATH_LENGTH) {
         
         // If we're still close to the most recent position, don't update
-        if (is_close(head, position))
+        if (dot(head, new_pos) <= 1)
             return;
         
         // Scan the buffer for a close position, starting at the latest one
@@ -335,10 +343,10 @@ void Tracker::push_recent_path(fpos_t &position) {
             index = (index ? index : RECENT_PATH_LENGTH) - 1;
             
             if ((recent_path[index] >> 15) & 1) // If this item is a bumper, we shouldn't roll over this invalid position (todo: use far jump element as bumper)
-                break; 
+                break;
 
             head -= unpack_compact_delta_item(recent_path[index]);
-            rollback = is_close(head, position);
+            rollback = dot(head, new_pos) <= 1;
         } while ((index != recent_path_next_read) && !rollback);
 
         // If the preceding item would be a bumper, we shouldn't roll back to this invalid position
@@ -351,7 +359,7 @@ void Tracker::push_recent_path(fpos_t &position) {
     if (rollback) {
         
         // If there was a close position in the path, roll the path back to that position
-        recent_path_head = to_fpos(head);
+        recent_path_head = head;
 
         if (index == recent_path_next_write) {
             TRACKER_DBG("recent path complete rollback");
@@ -367,12 +375,11 @@ void Tracker::push_recent_path(fpos_t &position) {
         // If there was no close position in the path, add the current position to the buffer
         // todo: handle large distances
         
-        ipos_t old_head = to_ipos(recent_path_head);
-        ipos_t new_head = to_ipos(position);
+        ipos_t old_head = recent_path_head;
         
-        delta_item_t item = pack_compact_delta_item(new_head - old_head);
+        delta_item_t item = pack_compact_delta_item(new_pos - old_head);
         
-        recent_path_head = position;
+        recent_path_head = new_pos;
         recent_path[recent_path_next_write] = item;
         
         if (recent_path_next_write++ == recent_path_next_read)
@@ -388,7 +395,7 @@ void Tracker::push_recent_path(fpos_t &position) {
 
 
 bool Tracker::pop_recent_path(fpos_t &position) {
-    position = recent_path_head;
+    position = to_fpos(recent_path_head);
     
     // Check if path is empty
     if (recent_path_next_read == RECENT_PATH_LENGTH)
@@ -401,9 +408,7 @@ bool Tracker::pop_recent_path(fpos_t &position) {
         return false;
     
     // Roll back most recent position
-    ipos_t head = to_ipos(recent_path_head);
-    head -= unpack_compact_delta_item(recent_path[last_index]);
-    recent_path_head = to_fpos(head);
+    recent_path_head -= unpack_compact_delta_item(recent_path[last_index]);
     
     if ((recent_path_next_write = last_index) == recent_path_next_read) {
         recent_path_next_write = 0;
@@ -431,33 +436,50 @@ void Tracker::push_graph(fpos_t &position) {
         int coef;
         bool is_jump;
         ipos_t delta = get_point_to_line_delta(new_pos, fetch_delta(graph_next_write - 1, is_jump), graph_head_pos, coef);
-        if (!is_jump && dot(delta) <= get_accuracy_at(new_pos))
+        if (!is_jump && dot(delta) <= get_granularity_at(new_pos))
             return;
     }
 
     TRACKER_DBG("tracker got pos %d %d %d", new_pos.x, new_pos.y, new_pos.z);
 
-    // Don't update if the graph is full
-    if (get_free_graph_space() >= FAR_DELTA_SIZE * sizeof(delta_item_t)) {
-        if (!graph_next_write) {
-            graph_head_pos = new_pos; // make sure that the very first delta is a compact delta
-            consolidated_head_pos = new_pos;
-            consolidated_head_index = 0;
+    // While there is not enough space left, increase memory pressure (at most 5 attempts)
+    for (int i = 0; get_free_graph_space() < FAR_DELTA_SIZE * sizeof(delta_item_t); i++) {
+        if (i >= 5 || memory_pressure == INT_MAX) {
+            GRAPH_ERR("increasing memory pressure %d times (to %d) did not help", i, memory_pressure);
+            return;
         }
 
-        push_delta(graph_next_write, new_pos - graph_head_pos, false);
-        graph_head_pos = new_pos;
-        
-        if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEPT)
-            consolidate_graph("too many unconsolidated positions");
-    } else {
-        // todo: cleanup-pass
-        PX4_WARN("flight tracker reached memory limit - flight graph will be optimized");
+        PX4_WARN("flight graph reached limit at memory pressure %d - flight graph will be optimized", memory_pressure);
 
-        size_t payoff = get_free_graph_space();
-        consolidate_graph("reached memory limit");
-        payoff = get_free_graph_space() > payoff ? get_free_graph_space() - payoff : 0;
+        memory_pressure++;
+
+        size_t free_space_before = get_free_graph_space();
+
+        // Rewrite graph every other time the memory limit is reached
+        if (memory_pressure & 1) {
+            rewrite_graph(); // the rewrite pass includes consolidation
+        } else {
+            consolidate_graph("reached memory limit");
+        }
+
+        (void)free_space_before;
+        TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%%",
+            100.f * (1.f - (float)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
+            100.f * (1.f - (float)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
     }
+
+
+    if (!graph_next_write) {
+        graph_head_pos = new_pos; // make sure that the very first delta is a compact delta
+        consolidated_head_pos = new_pos;
+        consolidated_head_index = 0;
+    }
+
+    push_delta(graph_next_write, new_pos - graph_head_pos, false);
+    graph_head_pos = new_pos;
+        
+    if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEPT)
+        consolidate_graph("consolidation dept limit reached");
 }
 
 
@@ -480,20 +502,20 @@ Tracker::ipos_t Tracker::walk_backward(size_t &index, bool &is_jump) {
 }
 
 
-bool Tracker::push_node(node_t &node, int accuracy_squared) {
+bool Tracker::push_node(node_t &node, int granularity) {
     if (get_free_graph_space() < sizeof(node_t))
         return false;
 
-    float accuracy = fast_sqrt(accuracy_squared, false);
+    float half_accuracy = fast_sqrt(granularity, false);
 
     // Check if there is already a nearby node that connects roughly the same lines
     for (size_t i = node_count - 1; i > 0; i--) {
-        if (check_similarity(node.index1, node.coef1, node_at(i).index1, node_at(i).coef1, accuracy))
-            if (check_similarity(node.index2, node.coef2, node_at(i).index2, node_at(i).coef2, accuracy))
+        if (check_similarity(node.index1, node.coef1, node_at(i).index1, node_at(i).coef1, half_accuracy))
+            if (check_similarity(node.index2, node.coef2, node_at(i).index2, node_at(i).coef2, half_accuracy))
                 return false;
 
-        if (check_similarity(node.index1, node.coef1, node_at(i).index2, node_at(i).coef2, accuracy))
-            if (check_similarity(node.index2, node.coef2, node_at(i).index1, node_at(i).coef1, accuracy))
+        if (check_similarity(node.index1, node.coef1, node_at(i).index2, node_at(i).coef2, half_accuracy))
+            if (check_similarity(node.index2, node.coef2, node_at(i).index1, node_at(i).coef1, half_accuracy))
                 return false;
     }
 
@@ -517,7 +539,7 @@ void Tracker::remove_nodes(size_t lower_bound, size_t upper_bound) {
 }
 
 
-bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef2, float accuracy) {
+bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef2, float max_distance) {
     if (index1 > index2) {
         std::swap(index1, index2);
         std::swap(coef1, coef2);
@@ -537,7 +559,7 @@ bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef
         return false;
 
     if (index1 == index2) {
-        if (delta_length * std::abs(fcoef1 - fcoef2) <= accuracy)
+        if (delta_length * std::abs(fcoef1 - fcoef2) <= max_distance)
             return true;
     }
 
@@ -547,7 +569,7 @@ bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef
         return false;
 
     if (index1 == index2_predecessor)
-        if (delta_length * (1 - fcoef2) + predecessor_delta_length * fcoef1 <= accuracy)
+        if (delta_length * (1 - fcoef2) + predecessor_delta_length * fcoef1 <= max_distance)
             return true;
 
     return false;
@@ -555,7 +577,7 @@ bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef
 
 
 bool Tracker::is_close_to_graph(ipos_t position, size_t lower_bound, size_t upper_bound, ipos_t pos_at_upper_bound) {
-    int accuracy_squared = get_accuracy_at(position);
+    int granularity = get_granularity_at(position);
 
     while (upper_bound > lower_bound && !graph_fault) {
         bool is_jump;
@@ -564,7 +586,7 @@ bool Tracker::is_close_to_graph(ipos_t position, size_t lower_bound, size_t uppe
         int coef;
         ipos_t pos_to_line = is_jump ? (position - pos_at_upper_bound) : get_point_to_line_delta(position, delta, pos_at_upper_bound, coef);
 
-        if (dot(pos_to_line) <= accuracy_squared)
+        if (dot(pos_to_line) <= granularity)
             return true;
 
         pos_at_upper_bound -= delta;
@@ -615,8 +637,8 @@ bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size
     ipos_t line_delta = end_pos - start_pos;
     ipos_t pos = end_pos;
 
-    // The efficiency gain of prefetching the accuracy seems to outweigh the corner-cases there the accuracy along the line should be higher than on both ends.
-    int accuracy_squared = std::min(get_accuracy_at(start_pos), get_accuracy_at(end_pos));
+    // The efficiency gain of prefetching the granularity seems to outweigh the corner-cases there the granularity along the line should be finer than on both ends.
+    int granularity = std::min(get_granularity_at(start_pos), get_granularity_at(end_pos));
 
     // Intuitively, it seems that walking backward allows us to break earlier than walking forward.
 
@@ -636,7 +658,7 @@ bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size
 
         int coef;
         ipos_t delta = get_point_to_line_delta(pos, line_delta, end_pos, coef);
-        if (dot(delta) > accuracy_squared)
+        if (dot(delta) > granularity)
             return false;
     }
 }
@@ -652,7 +674,7 @@ void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end
         end_pos = next_end_pos;
         is_jump = next_is_jump;
         next_end_pos += walk_forward(next_end_index, next_is_jump);
-    } while (is_line(start_pos, start_index, next_end_pos, next_end_index, next_is_jump) && next_end_index <= bound && !graph_fault);
+    } while (!graph_fault && next_end_index <= bound && is_line(start_pos, start_index, next_end_pos, next_end_index, next_is_jump));
 }
 
 
@@ -667,7 +689,7 @@ void Tracker::consolidate_graph(const char *reason) {
         return;
 
     TRACKER_DBG("consolidating graph from %zu to %zu: %s", consolidated_head_index, graph_next_write - 1, reason);
-    dump_graph();
+    DUMP_GRAPH();
 
     // Remove any nodes that refer to the area that will be modified.
     // Any nodes for that area will be newly created anyway.
@@ -773,7 +795,7 @@ void Tracker::consolidate_graph(const char *reason) {
         ipos_t delta = walk_forward(read_index, is_jump);
         pos += delta;
 
-        int accuracy_squared = get_accuracy_at(pos);
+        int granularity = get_granularity_at(pos);
         size_t search_bound = read_index > GRAPH_SEARCH_RANGE ? read_index - GRAPH_SEARCH_RANGE : 0;
 
         while (search_index > search_bound && !graph_fault) {
@@ -800,7 +822,7 @@ void Tracker::consolidate_graph(const char *reason) {
             if (!inhibit_node) {
                 ipos_t line_to_line = get_line_to_line_delta(delta, pos, inner_delta, inner_pos, coef1, coef2, is_jump, is_inner_jump);
 
-                if (dot(line_to_line) <= accuracy_squared) {
+                if (dot(line_to_line) <= granularity) {
                     // If the node would be at the beginning of the line, we defer the node creation to the next line (unless we're about to terminate the search)
                     if (coef1 < MAX_COEFFICIENT || search_index <= search_bound) {
 
@@ -821,7 +843,7 @@ void Tracker::consolidate_graph(const char *reason) {
                         
                         TRACKER_DBG("  create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, coef_to_float(node.coef1), (size_t)node.index2, coef_to_float(node.coef2));
 
-                        push_node(node, accuracy_squared);
+                        push_node(node, granularity);
                     }
                 }
             }
@@ -852,9 +874,7 @@ void Tracker::consolidate_graph(const char *reason) {
     }
 
     TRACKER_DBG("consolidation complete, graph reduced to %zu", graph_next_write - 1);
-#ifdef DEBUG_TRACKER
-    dump_graph();
-#endif
+    DUMP_GRAPH();
 }
 
 
@@ -1424,10 +1444,7 @@ void Tracker::rewrite_graph() {
     graph_version++;
     pinned_index = 0;
 
-#ifdef DEBUG_TRACKER
-    dump_graph();
-#endif
-
+    DUMP_GRAPH();
     TRACKER_DBG("graph rewrite complete!");
 }
 
@@ -1439,6 +1456,7 @@ void Tracker::reset_graph() {
     consolidated_head_index = 0;
     graph_version++;
     pinned_index = 0;
+    memory_pressure = 1;
     graph_fault = false;
 }
 
@@ -1503,12 +1521,12 @@ bool Tracker::is_context_close_to_head(path_finding_context_t &context) {
         context.current_pos.x, context.current_pos.y, context.current_pos.z,
         graph_head_pos.x, graph_head_pos.y, graph_head_pos.z,
         dot(delta));*/
-    return dot(delta) <= get_accuracy_at(context.current_pos);
+    return dot(delta) <= get_granularity_at(context.current_pos);
 }
 
 bool Tracker::is_context_close_to_home(path_finding_context_t &context) {
     ipos_t delta = context.current_pos - home_on_graph;
-    return dot(delta) <= get_accuracy_at(context.current_pos);
+    return dot(delta) <= get_granularity_at(context.current_pos);
 }
 
 bool Tracker::is_same_pos(path_finding_context_t &context1, path_finding_context_t &context2) {
@@ -1527,7 +1545,7 @@ void Tracker::dump_recent_path() {
     PX4_INFO("  length: %zu (read-ptr: %zu, write-ptr: %zu)", recent_path_length, recent_path_next_read, recent_path_next_write);
     
     size_t index = recent_path_next_write;
-    ipos_t head = to_ipos(recent_path_head);
+    ipos_t head = recent_path_head;
     
     do {
         PX4_INFO("  (%d, %d, %d)", head.x, head.y, head.z);

@@ -13,8 +13,10 @@
 
 #ifdef DEBUG_TRACKER
 #define TRACKER_DBG(...) PX4_INFO(__VA_ARGS__)
+#define DUMP_GRAPH()    dump_graph()
 #else
 #define TRACKER_DBG(...)
+#define DUMP_GRAPH()
 #endif
 
 #define GRAPH_ERR(...) do { \
@@ -46,6 +48,9 @@ public:
 
     // Returns true if a graph fault occurred. 
     bool get_graph_fault() { return graph_fault; }
+
+    // Returns the guaranteed tracking precision at the specified position.
+    float get_accuracy_at(float x, float y, float z) { return 2 * GRID_SIZE * fast_sqrt(get_granularity_at(to_ipos({ .x = x, .y = y, .z = z })), false); }
 
     // Forces graph consolidation
     void consolidate_graph() { consolidate_graph("external request"); }
@@ -93,9 +98,8 @@ private:
     /*** configuration ***/
 
     // Tracking accuracy in meters
-	static constexpr float ACCURACY = 2;
-	static constexpr float GRID_SIZE = ACCURACY / 2;
-    // todo: grid size should equal GRID_SIZE
+    // todo: test GRID_SIZE values other than 1
+	static constexpr float GRID_SIZE = 1;
     
     // Number of positions that are retained in the recent path buffer.
     // This must be a multiple of 16 (?)
@@ -116,6 +120,11 @@ private:
     // For this reason, a larger number is preferred here.
     // The only drawback of a larger number should be a high workload once consolidation kicks in.
     static constexpr int MAX_CONSOLIDATION_DEPT = 64;
+
+    // Controls the maximum distance from home where the graph is retained at maximum precision.
+    // Everything at distance 2^(HIGH_PRECISION_RANGE/2+1) or closer falls into this regime.
+    // Note that even within this range, precision will be reduced if neccessary.
+    static constexpr int HIGH_PRECISION_RANGE = 10; // corresponds to 64m
 
     // The size of the cache used by the graph rewrite algorithm.
     // This must be at least FAR_DELTA_SIZE.
@@ -237,11 +246,13 @@ private:
     /*** utility functions ***/
 
     static inline int round(float f) { return (int)(f + (f < 0 ? -0.5f : 0.5f)); };
-    static inline fpos_t to_fpos(ipos_t pos) { return { .x = (float)pos.x, .y = (float)pos.y, .z = (float)pos.z }; }
-    static inline ipos_t to_ipos(fpos_t pos) { return { .x = round(pos.x), .y = round(pos.y), .z = round(pos.z) }; }
-
-    static inline bool is_close(fpos_t pos1, fpos_t pos2);
-    static inline bool is_close(ipos_t pos1, fpos_t pos2);
+    static inline fpos_t to_fpos(ipos_t pos) { return { .x = (float)pos.x * GRID_SIZE, .y = (float)pos.y * GRID_SIZE, .z = (float)pos.z * GRID_SIZE }; }
+    static inline ipos_t to_ipos(fpos_t pos) { return { .x = round(pos.x / GRID_SIZE), .y = round(pos.y / GRID_SIZE), .z = round(pos.z / GRID_SIZE) }; }
+    
+    // Calculates the square root of an integer, based on a look-up table.
+    // If the range of the look-up table is exceeded, the following action is taken:
+    //  fallback_to_infinity: true: INFINITY is returned, false: the usual sqrt function is called
+    static float fast_sqrt(int val, bool fallback_to_infinity);
 
     // Calculates the scalar product of two vectors. If any of the input vectors is very long (> ~16'000), this returns INT_MAX to prevent overflow.
     static int dot(ipos_t vec1, ipos_t vec2);
@@ -291,9 +302,10 @@ private:
 
     /*** private functions ***/
 
-    // Returns the desired SQUARED recording accuracy at the specified position.
-    // It is conceivable that the accuracy is lower at a position further from home or at higher memory pressure.
-    int get_accuracy_at(ipos_t pos);
+    // Returns a granularity measure of the graph at the specified position.
+    // This is a function of the distance to home and memory pressure.
+    // The granularity is the square of half of the accuracy guarantee.
+    int get_granularity_at(ipos_t pos);
 
     // Informs the tracker about a new home position.
     void set_home(float x, float y, float z);
@@ -327,7 +339,7 @@ private:
     // Pushes a node to the node stack if there is enough space.
     // Returns true if the operation succeeds.
     // Returns false if there is not enough space of if there is already a nearby node. 
-    bool push_node(node_t &node, int accuracy_squared);
+    bool push_node(node_t &node, int granularity);
     
     // Removes all nodes (except the home node) that reference lines within the specified range.
     // The lower bound is exclusive, the upper bound is inclusive.
@@ -336,7 +348,7 @@ private:
     // Checks if two positions are similar.
     // This means there's at most one vertex between them, there's no jump between them and their distance along the line is not too large.
     // Returns true if these conditions are satisfied.
-    bool check_similarity(size_t index1, int coef1, size_t index2, int coef2, float accuracy);
+    bool check_similarity(size_t index1, int coef1, size_t index2, int coef2, float max_distance);
 
     // Returns true if the specified position is close to any line in the graph.
     //  lower_bound: exclusive lower search bound
@@ -435,10 +447,10 @@ private:
     
     // The most recent position in the recent path. The absolute positions in the path can be calculated based on this. 
     // If tracking has not yet started (that is, if the path is empty), this is invalid.
-    fpos_t recent_path_head = { .x = 0, .y = 0, .z = 0 };
+    ipos_t recent_path_head = { .x = 0, .y = 0, .z = 0 };
     
     // Stores the (potentially shortened) recent flight path as a ring buffer.
-    // The recent path respects the following invariant: No two points are closer than ACCURACY.
+    // The recent path respects the following invariant: No two points are closer than the grid size.
     // This buffer contains only delta items. Each item stores a position relative to the previous position in the path.
     // The very first item is a bumper that indicates that the initial position (0,0,0) is not valid. This bumper will disappear once the ring buffer overflows.
     delta_item_t recent_path[RECENT_PATH_LENGTH] = { 0xFFFF };
@@ -446,9 +458,15 @@ private:
     size_t recent_path_next_write = 1; // always valid, 0 if empty, equal to next_read if full
     size_t recent_path_next_read = 0; // RECENT_PATH_LENGTH if empty, valid if non-empty
 
+
     // Indicates that the graph may have become inconsistent.
     // If this occurs, it must be reset at the next opportunity.
     bool graph_fault = false;
+
+    // Keeps track of the memory pressure to allow for adaptive graph precision.
+    // Each time the graph becomes full, the memory pressure is incremented by one.
+    // Each even time, the graph precision is reduced, each odd time, the graph is rewritten.
+    int memory_pressure = 1;
 
     // The last position in the graph, corresponding to the end of the buffer.
     // This roughly corresponds to the current vehicle position.
