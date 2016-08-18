@@ -38,6 +38,15 @@ public:
     // Enables or disables tracking of the recent path.
     void set_recent_path_tracking_enabled(bool enabled) { recent_path_tracking_enabled = enabled; }
 
+    // Forces graph consolidation
+    void consolidate_graph() { consolidate_graph("external request"); }
+
+    // Rewrites the graph such that it contains nothing but the shortest path to home.
+    void rewrite_graph();
+
+    // Deletes the flight graph.
+    void reset_graph();
+
     // Initializes a path finding context starting at the current position.
     // The context must be viewed as an opaque value that can for instance be passed to the advance_return_path function.
     // Returns true on success.
@@ -88,8 +97,9 @@ private:
     // The actual number of position depends on how how well the path can be optimized and how many nodes are stored.
     static constexpr int GRAPH_LENGTH = 256;
 
-    // Number of indices to scan at each update to find intersections.
+    // Scan range used in the consolidation algorithm.
     // If the entire buffer is scanned, CPU usage may be too high.
+    // If two close lines are stored further appart than this range, their closeness will not be detected.
     static constexpr int GRAPH_SEARCH_RANGE = GRAPH_LENGTH;
 
     // The maximum number of positions that should be recorded until the new positions are consolidated.
@@ -98,16 +108,23 @@ private:
     // The only drawback of a larger number should be a high workload once consolidation kicks in.
     static constexpr int MAX_CONSOLIDATION_DEPT = 64;
 
+    // The size of the cache used by the graph rewrite algorithm.
+    // This must be at least FAR_DELTA_SIZE.
+    // A smaller number results in higher CPU load when a rewrite is invoked.
+    // A larger number leads to a higher stack, so be careful.
+    static constexpr int REWRITE_CACHE_SIZE = 9; // 3 * FAR_DELTA_SIZE
+
 
     // Limitations and properties inherent to the graph representation (should not be changed)
     static constexpr int COMPACT_DELTA_MIN = -16;
     static constexpr int COMPACT_DELTA_MAX = 15;
-    static constexpr int FAR_DELTA_MIN = -16384; // 0xC000
+    static constexpr int FAR_DELTA_MIN = -16383; // 0xC001
     static constexpr int FAR_DELTA_MAX = 16383; // 0x3FFF
     static constexpr int FAR_DELTA_SIZE = 3;
     static constexpr int MAX_INDEX = 0xFFFF;
     static constexpr int MAX_COEFFICIENT = 0x7FFF;
-    static constexpr int MAX_DISTANCE = 0x7FFF;
+    static constexpr int MAX_DISTANCE = 0x3FFF;
+    static constexpr int OBSOLETE_DELTA = 0xC000;
 
 #if GRAPH_LENGTH > MAX_INDEX
 #error "GRAPH_LENGTH too large"
@@ -122,17 +139,23 @@ private:
     struct node_t {
         uint16_t index1;            // identifies the first line of the intersection
         uint16_t index2;            // identifies the second line of the intersection
-        unsigned int coef1 : 15;    // (coef1 / (MAX_COEFFICIENT + 1)) specifies where on line 1 the intersection lies. 0 if it is at the end, 1 if it is at the beginning.
-        unsigned int coef2 : 15;    // (coef2 / (MAX_COEFFICIENT + 1)) specifies where on line 2 the intersection lies. 0 if it is at the end, 1 if it is at the beginning.
-        unsigned int use_line2 : 1; // true if the specified distance can be achieved by walking on line 2
-        unsigned int go_forward : 1; // true if the specified distance can be achieved by walking forward (NOT USED CURRENTLY)
         unsigned int dirty : 1;     // 1 if the node received a new distance value or needs a new value.
-        unsigned int distance : 15; // Specifies the distance of this intersection to home. A value of MAX_DISTANCE means infinity.
+        unsigned int coef1 : 15;    // (coef1 / (MAX_COEFFICIENT + 1)) specifies where on line 1 the intersection lies. 0 if it is at the end, 1 if it is at the beginning.
+        unsigned int obsolete : 1;  // set to 1 to mark this node for deletion
+        unsigned int coef2 : 15;    // (coef2 / (MAX_COEFFICIENT + 1)) specifies where on line 2 the intersection lies. 0 if it is at the end, 1 if it is at the beginning.
+
         delta_item_t delta;         // The intersection points on line1 and line2 are usually not precisely equal. This field specifies the difference between them.
 
         // Note that an intersection is often not exact but consists of two distinct points.
         // In this case, the distance of either point to home is upper bounded by the node distance.
         // In some cases, both points are a bit closer than this upper bound.
+
+        // Currently, a node only stores routing information for one destination (home).
+        // Conceptually, we could support multiple destinations, by replicating the following fields for each destination.
+        // When the set of destinations changes, the node size would change, so we need to delete all nodes and regenerate them. 
+        unsigned int use_line2 : 1; // true if the specified distance can be achieved by walking on line 2
+        unsigned int go_forward : 1; // true if the specified distance can be achieved by walking forward (NOT USED CURRENTLY)
+        unsigned int distance : 14; // Specifies the distance of this intersection to home. A value of MAX_DISTANCE means infinity.
     };
 
     struct fpos_t {
@@ -239,6 +262,23 @@ private:
     // Returns true if the vector would be too large for a far delta element
     static inline bool fits_into_far_delta(ipos_t vec);
 
+    // Pushes the specified delta item to a delta list (usually the graph buffer). 
+    // If possible, the delta is stored as a compact delta item.
+    // Else, it is split into multiple items or stored as a far delta element, whichever is smaller.
+    // The caller must ensure that there are at least max_space free slots at the specified index.
+    // index:
+    //  in: the delta will be stored starting at this index
+    //  out: set to one index after the delta that was stored
+    // max_space: The maximum number of slots that may be used.
+    // Returns: true if the delta was pushed, false if the space was insufficient. If max_space >= FAR_DELTA_SIZE, the function always succeeds.
+    static bool push_delta(size_t &index, ipos_t delta, bool is_jump, size_t max_space, delta_item_t *buffer);
+    inline bool push_delta(size_t &index, ipos_t delta, bool is_jump, size_t max_space = FAR_DELTA_SIZE) { return push_delta(index, delta, is_jump, max_space, graph); };
+
+    // Fetches a delta item from the specified index.
+    // If the delta spans multiple indices, it is identified by its last index.
+    static ipos_t fetch_delta(size_t index, bool &is_jump, delta_item_t *buffer);
+    inline ipos_t fetch_delta(size_t index, bool &is_jump) { return fetch_delta(index, is_jump, graph); };
+
 
     /*** private functions ***/
 
@@ -263,20 +303,6 @@ private:
 
     // Pushes a new current position to the flight graph.
     void push_graph(fpos_t &position);
-
-    // Pushes the specified delta item to the graph. If possible, the delta is stored as a compact delta item.
-    // Else, it is split into multiple items or stored as a far delta element, whichever is smaller.
-    // The caller must ensure that there are at least max_space free slots at the specified index.
-    // index:
-    //  in: the delta will be stored starting at this index
-    //  out: set to one index after the delta that was stored
-    // max_space: The maximum number of slots that may be used.
-    // Returns: true if the delta was pushed, false if the space was insufficient. If max_space >= FAR_DELTA_SIZE, the function always succeeds.
-    bool push_delta(size_t &index, ipos_t delta, bool is_jump, size_t max_space = FAR_DELTA_SIZE);
-
-    // Fetches a delta item from the specified index.
-    // If the delta spans multiple indices, it is identified by its last index.
-    ipos_t fetch_delta(size_t index, bool &is_jump);
 
     // Reads one delta element from the graph in the forward direction.
     // The index must point to the end of a delta element and is pre-incremented.
@@ -378,6 +404,13 @@ private:
     // Calculates the next best move to get back home, using the provided path finding context.
     bool calc_return_path(path_finding_context_t &context, bool &progress);
 
+    // Marks all delta elements in the forward or backward direction obsolete, until a node is encountered.
+    //  index, coef: where to start marking deltas as obsolete. The starting index is always kept.
+    //  forward, backward: which direction to go to mark deltas as obsolete
+    //  retain: if this item is reached, the walk is aborted
+    //  lower_bound, upper_bound: the exclusive bounds of the walk
+    void mark_obsolete(size_t index, int coef, bool forward, bool backward, size_t retain, size_t lower_bound, size_t upper_bound);
+
     
     /*** internal variables ***/
 
@@ -440,14 +473,6 @@ private:
 
     // True as long as any nodes in the buffer have dirty set to 1
     bool have_dirty_nodes = true;
-
-    // The end of the controlled area. All nodes beyond this area shall be considered dirty.
-    // This is always larger than the greatest dirty node.
-    size_t consolidated_area_end = 0;
-    
-    // The distance-to-home at the end of the controlled area
-    float controlled_area_end_distance = 0;
-    
 };
 
 struct Tracker::path_finding_context_t {
