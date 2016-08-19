@@ -1587,10 +1587,10 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct estimator_status_s est;
+		struct estimator_status_s est = {};
 
 		if (_est_sub->update(&_est_time, &est)) {
-			mavlink_local_position_ned_cov_t msg;
+			mavlink_local_position_ned_cov_t msg = {};
 
 			msg.time_boot_ms = est.timestamp / 1000;
 			msg.x = est.states[0];
@@ -1602,13 +1602,12 @@ protected:
 			msg.ax = est.states[6];
 			msg.ay = est.states[7];
 			msg.az = est.states[8];
-			for (int i=0;i<9;i++) {
+			for (int i = 0; i < 9; i++) {
 				msg.covariance[i] = est.covariances[i];
 			}
 			msg.covariance[9] = est.nan_flags;
 			msg.covariance[10] = est.health_flags;
 			msg.covariance[11] = est.timeout_flags;
-			memcpy(msg.covariance, est.covariances, sizeof(est.covariances));
 
 			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3099,27 +3098,15 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_global_position_s global_pos;
-		struct vehicle_local_position_s local_pos;
-		struct home_position_s home;
+		mavlink_altitude_t msg;
+		bool updated = false;
+		float global_alt = 0.0f;
 
-		bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
-		updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
-		updated |= _home_sub->update(&_home_time, &home);
-
-		if (updated) {
-
-			struct sensor_combined_s sensor;
-			(void)_sensor_sub->update(&_sensor_time, &sensor);
-
-			mavlink_altitude_t msg;
-
-			msg.time_usec = hrt_absolute_time();
-
-			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter : NAN;
+		{
+			struct vehicle_global_position_s global_pos;
+			updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
 			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
-			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
-			msg.altitude_relative = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
+			global_alt = global_pos.alt;
 
 			if (global_pos.terrain_alt_valid) {
 				msg.altitude_terrain = global_pos.terrain_alt;
@@ -3127,6 +3114,29 @@ protected:
 			} else {
 				msg.altitude_terrain = NAN;
 				msg.bottom_clearance = NAN;
+			}
+		}
+
+		{
+			struct vehicle_local_position_s local_pos;
+			updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
+			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
+		}
+
+		{
+			struct home_position_s home;
+			updated |= _home_sub->update(&_home_time, &home);
+			msg.altitude_relative = (_home_time > 0) ? (global_alt - home.alt) : NAN;
+		}
+
+		if (updated) {
+
+			msg.time_usec = hrt_absolute_time();
+
+			{
+				struct sensor_combined_s sensor;
+				(void)_sensor_sub->update(&_sensor_time, &sensor);
+				msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter : NAN;
 			}
 
 			mavlink_msg_altitude_send_struct(_mavlink->get_channel(), &msg);
@@ -3188,13 +3198,13 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct wind_estimate_s wind_estimate;
+		struct wind_estimate_s wind_estimate = {};
 
 		bool updated = _wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate);
 
 		if (updated) {
 
-			mavlink_wind_cov_t msg;
+			mavlink_wind_cov_t msg = {};
 
 			msg.time_usec = wind_estimate.timestamp;
 

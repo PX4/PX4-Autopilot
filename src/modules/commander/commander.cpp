@@ -2929,13 +2929,20 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 void
 control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
 {
+	bool overload = (cpuload_local->load > 0.75f) || (cpuload_local->ram_usage > 0.98f);
+
 	/* driving rgbled */
 	if (changed) {
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
 		/* set mode */
-		if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		if (overload) {
+			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+			rgbled_set_color(RGBLED_COLOR_PURPLE);
+			set_normal_color = false;
+
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			rgbled_set_mode(RGBLED_MODE_ON);
 			set_normal_color = true;
 
@@ -2997,8 +3004,8 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 #endif
 
-	/* give system warnings on error LED, XXX maybe add memory usage warning too */
-	if (cpuload_local->load > 0.95f) {
+	/* give system warnings on error LED */
+	if (overload) {
 		if (leds_counter % 2 == 0) {
 			led_toggle(LED_AMBER);
 		}

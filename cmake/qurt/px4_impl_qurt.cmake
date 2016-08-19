@@ -50,7 +50,7 @@
 #
 
 include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/qurt)
 
 #=============================================================================
 #
@@ -95,7 +95,7 @@ function(px4_qurt_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
 endfunction()
 
 #=============================================================================
