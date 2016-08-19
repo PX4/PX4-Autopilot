@@ -5,7 +5,7 @@ set -e
 echo args: $@
 
 sitl_bin=$1
-rc_script=$2
+label=$2
 debugger=$3
 program=$4
 model=$5
@@ -15,7 +15,7 @@ build_path=$7
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo rc_script: $rc_script
+echo label: $label
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -119,21 +119,25 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
+sitl_command="$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${label}/${model}"
+
+echo SITL COMMAND: $sitl_command
+
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- $sitl_bin $src_path $src_path/${rc_script}_${program}_${model}
+	lldb -- $sitl_command
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args $sitl_bin $src_path $src_path/${rc_script}_${program}_${model}
+	gdb --args $sitl_command
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args px4 $src_path $src_path/${rc_script}_${program}_${model}
+	ddd --debugger gdb --args $sitl_command
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind $sitl_bin $src_path $src_path/${rc_script}_${program}_${model}
+	valgrind $sitl_command
 else
-	$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${rc_script}_${program}_${model}
+	$sitl_command
 fi
 
 if [ "$program" == "jmavsim" ]

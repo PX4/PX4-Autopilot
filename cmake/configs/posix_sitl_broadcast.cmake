@@ -72,8 +72,8 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-set(config_sitl_rcS
-	posix-configs/SITL/init/rcS
+set(config_sitl_rcS_dir
+	posix-configs/SITL/init/
 	CACHE FILEPATH "init script for sitl"
 	)
 

@@ -127,13 +127,13 @@ file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
 add_custom_target(run_config
 	COMMAND Tools/sitl_run.sh
-	"$<TARGET_FILE:px4>"
-	"${config_sitl_rcS}"
-	"${config_sitl_debugger}"
-	"${config_sitl_viewer}"
-	"${config_sitl_model}" 
-	"${PX4_SOURCE_DIR}"
-	"${PX4_BINARY_DIR}"
+	$<TARGET_FILE:px4>
+	${config_sitl_rcS_dir}
+	${config_sitl_debugger}
+	${config_sitl_viewer}
+	${config_sitl_model} 
+	${PX4_SOURCE_DIR}
+	${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR}
 	USES_TERMINAL
 	)
@@ -171,7 +171,7 @@ foreach(viewer ${viewers})
 			add_custom_target(${_targ_name}
 				COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 				$<TARGET_FILE:px4>
-				${config_sitl_rcS}
+				${config_sitl_rcS_dir}
 				${debugger}
 				${viewer}
 				${model}
@@ -202,7 +202,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTAL
 add_test(NAME rcS_tests
 	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 		$<TARGET_FILE:px4>
-		posix-configs/SITL/init/rcS_tests
+		posix-configs/SITL/init/test
 		none
 		none
 		none
