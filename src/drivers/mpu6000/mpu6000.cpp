@@ -1412,9 +1412,11 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
 		_set_dlpf_filter(arg);
+
 		if (is_icm_device()) {
 			_set_icm_acc_dlpf_filter(arg);
 		}
+
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
