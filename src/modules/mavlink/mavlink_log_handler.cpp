@@ -456,7 +456,7 @@ LogListHelper::_init()
 		}
 		if (entry.d_type == PX4LOG_DIRECTORY)
 		{
-			time_t tt;
+			time_t tt = 0;
 			char log_path[128];
 			snprintf(log_path, sizeof(log_path), "%s/%s", kLogRoot, entry.d_name);
 			if (_get_session_date(log_path, entry.d_name, tt)) {
@@ -533,28 +533,30 @@ LogListHelper::_scan_logs(FILE* f, const char* dir, time_t& date)
 bool
 LogListHelper::_get_log_time_size(const char* path, const char* file, time_t& date, uint32_t& size)
 {
-	if(file && file[0] && strstr(file, ".px4log")) {
-		// Convert "log000" to 00:00 (minute per flight in session)
-		if (strncmp(file, "log", 3) == 0) {
-			unsigned u;
-			if(sscanf(&file[3], "%u", &u) == 1) {
-				date += (u * 60);
-				if (stat_file(path, 0, &size)) {
+	if(file && file[0]) {
+		if(strstr(file, ".px4log") || strstr(file, ".ulg")) {
+			// Convert "log000" to 00:00 (minute per flight in session)
+			if (strncmp(file, "log", 3) == 0) {
+				unsigned u;
+				if(sscanf(&file[3], "%u", &u) == 1) {
+					date += (u * 60);
+					if (stat_file(path, 0, &size)) {
+						return true;
+					}
+				}
+			} else {
+				if (stat_file(path, &date, &size)) {
 					return true;
 				}
+				/* strptime not available for some reason
+				// Get time from file name
+				struct tm tt;
+				if(strptime(file, "%H_%M_%S", &tt)) {
+					date += mktime(&tt);
+					return true;
+				}
+				*/
 			}
-		} else {
-			if (stat_file(path, &date, &size)) {
-				return true;
-			}
-			/* strptime not available for some reason
-			// Get time from file name
-			struct tm tt;
-			if(strptime(file, "%H_%M_%S", &tt)) {
-				date += mktime(&tt);
-				return true;
-			}
-			*/
 		}
 	}
 	return false;
