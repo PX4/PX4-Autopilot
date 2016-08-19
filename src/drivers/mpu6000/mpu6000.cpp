@@ -474,8 +474,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_product(0),
 #if defined(USE_I2C)
 	_work {},
-#endif
 	_use_hrt(false),
+#else
+	_use_hrt(true),
+#endif
 	_call {},
 	_call_interval(0),
 	_accel_reports(nullptr),
