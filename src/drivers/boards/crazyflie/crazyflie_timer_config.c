@@ -42,11 +42,11 @@
 #include <stdint.h>
 
 #include <stm32.h>
-#include <stm32_gpio_out.h>
+#include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-#include <drivers/stm32/drv_io_timer.h>
 #include <drivers/drv_pwm_output.h>
+#include <drivers/stm32/drv_io_timer.h>
 
 #include "board_config.h"
 
@@ -55,7 +55,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.base = STM32_TIM2_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM2EN,
-		.clock_freq = STM32_APB1_TIM2_CLKIN
+		.clock_freq = STM32_APB1_TIM2_CLKIN,
 		.first_channel_index = 0,
 		.last_channel_index = 2,
 		.handler = io_timer_handler0,
@@ -65,7 +65,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.base = STM32_TIM4_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = STM32_APB1_TIM4_CLKIN
+		.clock_freq = STM32_APB1_TIM4_CLKIN,
 		.first_channel_index = 3,
 		.last_channel_index = 3,
 		.handler = io_timer_handler1,

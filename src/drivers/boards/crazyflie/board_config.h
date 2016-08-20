@@ -83,6 +83,8 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_EXPANSION_HZ      400000
 
+#define PX4_I2C_BUS_MTD	PX4_I2C_BUS_EXPANSION
+
 
 
 /* Devices on the onboard bus.
@@ -126,6 +128,13 @@ __BEGIN_DECLS
 #define GPIO_TIM2_CH4OUT	GPIO_TIM2_CH4OUT_2
 #define GPIO_TIM2_CH1OUT	GPIO_TIM2_CH1OUT_2
 #define GPIO_TIM4_CH4OUT	GPIO_TIM4_CH4OUT_1
+
+#define GPIO_TIM2_CH2IN		GPIO_TIM2_CH2IN_1
+#define GPIO_TIM2_CH4IN		GPIO_TIM2_CH4IN_2
+#define GPIO_TIM2_CH1IN		GPIO_TIM2_CH1IN_2
+#define GPIO_TIM4_CH4IN		GPIO_TIM4_CH4IN_1
+
+
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
@@ -175,6 +184,20 @@ extern void stm32_usbinitialize(void);
 #ifdef CONFIG_NSH_LIBRARY
 int nsh_archinitialize(void);
 #endif
+
+
+
+
+/****************************************************************************
+ * Name: board_i2c_initialize
+ *
+ * Description:
+ *   Called to set I2C bus frequncies.
+ *
+ ****************************************************************************/
+
+int board_i2c_initialize(void);
+
 
 #endif /* __ASSEMBLY__ */
 
