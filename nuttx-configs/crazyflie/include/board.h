@@ -162,12 +162,16 @@
  * UARTs.
  *
  */
+ /* E_TX2 / E_RX2 */
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 
+/* E_TX1 / E_RX1 */
 #define GPIO_USART3_RX	GPIO_USART3_RX_2
 #define GPIO_USART3_TX	GPIO_USART3_TX_2
 
+/* NRF51 via syslink */
+// TODO: Flow control?
 #define GPIO_USART6_RX	GPIO_USART6_RX_1
 #define GPIO_USART6_TX	GPIO_USART6_TX_1
 

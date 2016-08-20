@@ -72,10 +72,6 @@
 #include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
@@ -1078,9 +1074,17 @@ crazyflie_main(int argc, char *argv[])
 		errx(0, "Crazyflie driver stopped");
 	}
 
-	if (crazyflie_start() != OK) {
-		errx(1, "failed to start the Crazyflie driver");
+	if (!strcmp(verb, "start")) {
+		if (crazyflie_start() == OK) {
+			errx(0, "Crazyflie driver started");
+		}
+		else {
+			errx(1, "failed to start the Crazyflie driver");
+		}
+
 	}
+
+	// TODO: Ensure driver is running
 
 	if (!strcmp(verb, "test")) {
 		test();

@@ -145,6 +145,7 @@ __EXPORT int matherr(struct exception *e)
 
 __EXPORT int nsh_archinitialize(void)
 {
+	int result;
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -175,10 +176,10 @@ __EXPORT int nsh_archinitialize(void)
 
 	result = board_i2c_initialize();
 
-//	if (result != OK) {
+	if (result != OK) {
 //		up_ledon(LED_AMBER);
-//		return -ENODEV;
-//	}
+		return -ENODEV;
+	}
 
 
 
