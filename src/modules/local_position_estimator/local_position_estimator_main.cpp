@@ -156,7 +156,7 @@ int local_position_estimator_thread_main(int argc, char *argv[])
 
 	using namespace control;
 
-	BlockLocalPositionEstimator est;
+	BlockLocalPositionEstimator est;  //สตภýปฏ
 
 	thread_running = true;
 

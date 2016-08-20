@@ -58,15 +58,14 @@ enum sensor_t {
 // change this to set when
 // the system will abort correcting a measurement
 // given a fault has been detected
-// 当系统将要放弃校正一个测量值时将此项变为置位
-// 假定已经检测到了一个故障
+// 假定已经检测到了一个故障,若将此项变为置位，系统放弃校正该测量值
 static const fault_t fault_lvl_disable = FAULT_SEVERE;
 
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
 // see fault_table.py
 // note skip 0 index so we can use degree of freedom as index
-// 对于一个故障检测，卡方分布，假报警概率为0.0001
+// 对于一个故障检测，采用卡方分布，假报警概率为0.0001
 // 查看错误表fault_table.py   注意跳过索引0便于我们使用自由度作为索引
 static const float BETA_TABLE[7] = {0,
 				    8.82050518214,
