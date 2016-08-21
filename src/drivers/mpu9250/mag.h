@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 class MPU9250;
 
 #pragma pack(push, 1)
@@ -43,13 +45,18 @@ struct ak8963_regs {
 };
 #pragma pack(pop)
 
+extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+
+typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
+
+
 /**
  * Helper class implementing the magnetometer driver node.
  */
 class MPU9250_mag : public device::CDev
 {
 public:
-	MPU9250_mag(MPU9250 *parent, const char *path);
+	MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path);
 	~MPU9250_mag();
 
 	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
@@ -67,9 +74,24 @@ public:
 	bool ak8963_read_adjustments(void);
 
 protected:
+	Device			*_interface;
+
 	friend class MPU9250;
 
-	void measure(struct ak8963_regs data);
+	/* Directly measure from the _interface if possible */
+	void measure();
+
+	/* Update the state with prefetched data (internally called by the regular measure() )*/
+	void _measure(struct ak8963_regs data);
+
+
+	uint8_t read_reg(unsigned reg);
+	void write_reg(unsigned reg, uint8_t value);
+
+
+	bool is_passthrough() { return _interface == nullptr; }
+
+
 	int self_test(void);
 
 private:

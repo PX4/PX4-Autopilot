@@ -44,6 +44,7 @@ px4_add_module(
 		main.cpp
 		gyro.cpp
 		mag.cpp
+		mag_i2c.cpp
 	DEPENDS
 		platforms__common
 	)

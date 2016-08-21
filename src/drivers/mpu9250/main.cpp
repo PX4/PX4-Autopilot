@@ -34,7 +34,7 @@
 /**
  * @file main.cpp
  *
- * Driver for the Invensense mpu9250 connected via SPI.
+ * Driver for the Invensense mpu9250 connected via I2C or SPI.
  *
  * @authors Andrew Tridgell
  *          Robert Dickenson
@@ -83,11 +83,6 @@
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
-/**
- * Local functions in support of the shell command.
- */
-namespace mpu9250
-{
 
 enum MPU9250_BUS {
 	MPU9250_BUS_ALL = 0,
@@ -96,6 +91,13 @@ enum MPU9250_BUS {
 	MPU9250_BUS_SPI_INTERNAL,
 	MPU9250_BUS_SPI_EXTERNAL
 };
+
+
+/**
+ * Local functions in support of the shell command.
+ */
+namespace mpu9250
+{
 
 /*
   list of supported bus configurations
@@ -107,30 +109,31 @@ struct mpu9250_bus_option {
 	const char *gyropath;
 	const char *magpath;
 	MPU9250_constructor interface_constructor;
+	bool magpassthrough;
 	uint8_t busnum;
-	MPU6000	*dev;
+	MPU9250	*dev;
 } bus_options[] = {
 #if defined (USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT &MPU9250_SPI_interface, PX4_SPI_BUS_EXT, NULL },
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, NULL },
 #endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 
-void	start(enum MPU9250_BUS busid, enum Rotation rotation);
-bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation);
+void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus);
+bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus);
 struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid);
 void	stop(enum MPU9250_BUS busid);
 void	test(enum MPU9250_BUS busid);
@@ -159,7 +162,7 @@ struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid)
  * start driver for a specific bus option
  */
 bool
-start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, int range, int device_type, bool external)
+start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 {
 	int fd = -1;
 
@@ -168,7 +171,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, int range, int
 		return false;
 	}
 
-	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, external);
+	device::Device *interface = bus.interface_constructor(bus.busnum, external);
 
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -181,7 +184,17 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, int range, int
 		return false;
 	}
 
-	bus.dev = new MPU9250(interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, device_type);
+	device::Device *mag_interface = nullptr;
+
+#ifdef USE_I2C
+	/* For i2c interfaces, connect to the magnetomer directly */
+	bool is_i2c = bus.busid == MPU9250_BUS_I2C_INTERNAL || bus.busid == MPU9250_BUS_I2C_EXTERNAL;
+	if (is_i2c) {
+		mag_interface = AK8963_I2C_interface(bus.busnum, external);
+	}
+#endif
+
+	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -203,9 +216,6 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, int range, int
 		goto fail;
 	}
 
-	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
-		goto fail;
-	}
 
 	close(fd);
 
@@ -232,7 +242,7 @@ fail:
  * or failed to detect the sensor.
  */
 void
-start(enum MPU9250_BUS busid, enum Rotation rotation, int range, int device_type, bool external)
+start(enum MPU9250_BUS busid, enum Rotation rotation, bool external)
 {
 
 	bool started = false;
@@ -248,7 +258,7 @@ start(enum MPU9250_BUS busid, enum Rotation rotation, int range, int device_type
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], rotation, range, device_type, external);
+		started |= start_bus(bus_options[i], rotation, external);
 	}
 
 	exit(started ? 0 : 1);
@@ -473,7 +483,6 @@ usage()
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
-	warnx("    -a accel range (in g)");
 }
 
 } // namespace
@@ -485,13 +494,13 @@ mpu9250_main(int argc, char *argv[])
 	int ch;
 	bool external = false;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 8;
+	//int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISsR:a:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISsR:")) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = MPU9260_BUS_I2C_EXTERNAL;
+			busid = MPU9250_BUS_I2C_EXTERNAL;
 			break;
 
 		case 'I':
@@ -503,15 +512,11 @@ mpu9250_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			busid = MPU9260_BUS_SPI_INTERNAL;
+			busid = MPU9250_BUS_SPI_INTERNAL;
 			break;
 
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
-			break;
-
-		case 'a':
-			accel_range = atoi(optarg);
 			break;
 
 		default:
@@ -529,7 +534,7 @@ mpu9250_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu9250::start(busid, rotation, accel_range, device_type, external);
+		mpu9250::start(busid, rotation, external);
 	}
 
 	if (!strcmp(verb, "stop")) {

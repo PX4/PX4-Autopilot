@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file mpu9250_i2c.cpp
+ * @file mag_i2c.cpp
  *
- * I2C interface for MPU9250
+ * I2C interface for AK8963
  */
 
 /* XXX trim includes */
@@ -55,19 +55,29 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
-#include "mpu9250.h"
+#include "MPU9250.h"
+#include "mag.h"
 
 #include "board_config.h"
 
+
+// TODO: This is redundant with mag.cpp
+#define AK8963_I2C_ADDR         0x0C
+#define ADDR_ID			0x00
+
+#define ID_WHO_AM_I		0x48
+
+
+
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, bool external_bus);
+device::Device *AK8963_I2C_interface(int bus, bool external_bus);
 
-class MPU9250_I2C : public device::I2C
+class AK8963_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus);
-	virtual ~MPU9250_I2C();
+	AK8963_I2C(int bus);
+	virtual ~AK8963_I2C();
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
@@ -82,30 +92,30 @@ protected:
 
 
 device::Device *
-MPU9250_I2C_interface(int bus, bool external_bus)
+AK8963_I2C_interface(int bus, bool external_bus)
 {
-	return new MPU9250_I2C(bus);
+	return new AK8963_I2C(bus);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus) :
-	I2C("MPU9250_I2C", nullptr, bus, PX4_I2C_OBDEV_MPU9250, 400000)
+AK8963_I2C::AK8963_I2C(int bus) :
+	I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
+	_device_id.devid_s.devtype =  DRV_MAG_DEVTYPE_MPU9250;
 }
 
-MPU9250_I2C::~MPU9250_I2C()
+AK8963_I2C::~AK8963_I2C()
 {
 }
 
 int
-MPU9250_I2C::init()
+AK8963_I2C::init()
 {
 	/* this will call probe() */
 	return I2C::init();
 }
 
 int
-MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
+AK8963_I2C::ioctl(unsigned operation, unsigned &arg)
 {
 	int ret;
 
@@ -128,7 +138,7 @@ MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
 }
 
 int
-MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
+AK8963_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
 	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
 
@@ -142,26 +152,28 @@ MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 }
 
 int
-MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
+AK8963_I2C::read(unsigned reg_speed, void *data, unsigned count)
 {
-	/* We want to avoid copying the data of MPUReport: So if the caller
-	 * supplies a buffer not MPUReport in size, it is assume to be a reg or
-	 * reg 16 read
-	 * Since MPUReport has a cmd at front, we must return the data
-	 * after that. Foe anthing else we must return it
-	 */
-	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
 	uint8_t cmd = MPU9250_REG(reg_speed);
-	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
+	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
 
 int
-MPU9250_I2C::probe()
+AK8963_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+	uint8_t expected = ID_WHO_AM_I;
+
+	if (read(ADDR_ID, &whoami, 1)) {
+		return -EIO;
+	}
+
+	if (whoami != expected) {
+		return -EIO;
+	}
+
+	return OK;
 }
 
-#endif /* USE_I2C */
+#endif
