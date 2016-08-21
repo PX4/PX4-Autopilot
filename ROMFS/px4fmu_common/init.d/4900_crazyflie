@@ -10,5 +10,12 @@
 sh /etc/init.d/4001_quad_x
 
 
+if [ $AUTOCNF == yes ]
+then
+	param set COM_RC_IN_MODE 2
+	param set BAT_N_CELLS 1
+	param set BAT_CAPACITY 240
+	param set BAT_SOURCE 1
+fi
+
 set OUTPUT_MODE crazyflie
-set USE_IO no

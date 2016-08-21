@@ -164,9 +164,15 @@ then
 		then
 			set USE_IO no
 		fi
+
+		if ver hwcmp CRAZYFLIE
+		then
+			set USE_IO no
+		fi
 	else
 		set USE_IO no
 	fi
+
 
 	# should set to 0.8 for mindpx-v2 borad.
 	if param compare INAV_LIDAR_ERR 0.5
@@ -673,6 +679,15 @@ then
 	if [ $OUTPUT_MODE == ardrone ]
 	then
 		ardrone_interface start -d /dev/ttyS1
+	fi
+
+
+	#
+	# Start Crazyflie driver
+	#
+	if ver hwcmp CRAZYFLIE
+	then
+		crazyflie start
 	fi
 
 	#

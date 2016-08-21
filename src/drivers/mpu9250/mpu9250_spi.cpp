@@ -64,6 +64,7 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
+
 #if PX4_SPIDEV_MPU
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
@@ -78,16 +79,16 @@
   SPI speed
  */
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
+#define MPU9250_HIGH_SPI_BUS_SPEED	11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU9250 */
 
 
-device::Device *MPU9250_SPI_interface(int bus, int device_type, bool external_bus);
+device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
 
 
 class MPU9250_SPI : public device::SPI
 {
 public:
-	MPU9250_SPI(int bus, spi_dev_e device, int device_type);
+	MPU9250_SPI(int bus, spi_dev_e device);
 	virtual ~MPU9250_SPI();
 
 	virtual int	init();
@@ -100,47 +101,37 @@ protected:
 
 private:
 
-	int _device_type;
 	/* Helper to set the desired speed and isolate the register on return */
 
 	void set_bus_frequency(unsigned &reg_speed_reg_out);
 };
 
 device::Device *
-MPU9250_SPI_interface(int bus, int device_type, bool external_bus)
+MPU9250_SPI_interface(int bus, bool external_bus)
 {
 	spi_dev_e cs = SPIDEV_NONE;
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-#  if defined(PX4_SPIDEV_EXT_ICM)
-		cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_EXT_MPU : PX4_SPIDEV_EXT_ICM);
-#   else
 		cs = (spi_dev_e) PX4_SPIDEV_EXT_MPU;
-#  endif
-#endif
-
-	} else {
-
-#if defined(PX4_SPIDEV_ICM)
-		cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_MPU : PX4_SPIDEV_ICM);
 #else
-		cs = (spi_dev_e) PX4_SPIDEV_MPU;
+		errx(0, "External SPI not available");
 #endif
+	} else {
+		cs = (spi_dev_e) PX4_SPIDEV_MPU;
 	}
 
 	if (cs != SPIDEV_NONE) {
 
-		interface = new MPU9250_SPI(bus, cs, device_type);
+		interface = new MPU9250_SPI(bus, cs);
 	}
 
 	return interface;
 }
 
-MPU9250_SPI::MPU9250_SPI(int bus, spi_dev_e device, int device_type) :
-	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED),
-	_device_type(device_type)
+MPU9250_SPI::MPU9250_SPI(int bus, spi_dev_e device) :
+	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
 }
@@ -266,16 +257,15 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 
 	}
 
-	return ret == OK ? count : ret;
+	return ret;
 }
 
 int
 MPU9250_SPI::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = _device_type == 6000 ? MPU_WHOAMI_6000 : ICM_WHOAMI_20608;
-	return (read(MPUREG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
-
+	uint8_t expected = MPU_WHOAMI_9250;
+	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
 }
 
 #endif // PX4_SPIDEV_MPU

@@ -149,8 +149,11 @@
 #define AK8963_RESET            0x01
 
 
-MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
+// If interface is non-null, then it will used for interacting with the device.
+// Otherwise, it will passthrough the parent MPU9250
+MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path) :
 	CDev("MPU9250_mag", path),
+	_interface(interface),
 	_parent(parent),
 	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
@@ -249,7 +252,16 @@ bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
 }
 
 void
-MPU9250_mag::measure(struct ak8963_regs data)
+MPU9250_mag::measure()
+{
+	struct ak8963_regs data;
+	if(OK == _interface->read(AK8963REG_ST1, &data, sizeof(struct ak8963_regs))){
+		_measure(data);
+	}
+}
+
+void
+MPU9250_mag::_measure(struct ak8963_regs data)
 {
 	bool mag_notify = true;
 
@@ -508,12 +520,7 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 void
 MPU9250_mag::read_block(uint8_t reg, uint8_t *val, uint8_t count)
 {
-	uint8_t addr = reg | 0x80;
-	uint8_t tx[32] = { addr, };
-	uint8_t rx[32];
-
-	_parent->transfer(tx, rx, count + 1);
-	memcpy(val, rx + 1, count);
+	_parent->_interface->read(reg, val, count);
 }
 
 void
@@ -525,12 +532,26 @@ MPU9250_mag::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new reads
 }
 
+uint8_t
+MPU9250_mag::read_reg(unsigned int reg)
+{
+	uint8_t buf;
+	if (_interface == nullptr) {
+		passthrough_read(reg, &buf, 0x01);
+	}
+	else {
+		_interface->read(reg, &buf, 1);
+	}
+	return buf;
+}
+
+
 bool
 MPU9250_mag::ak8963_check_id(void)
 {
 	for (int i = 0; i < 5; i++) {
-		uint8_t deviceid = 0;
-		passthrough_read(AK8963REG_WIA, &deviceid, 0x01);
+
+		uint8_t deviceid = read_reg(AK8963REG_WIA);
 
 		if (AK8963_DEVICE_ID == deviceid) {
 			return true;
@@ -551,10 +572,27 @@ MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new writes
 }
 
+
+
+void
+MPU9250_mag::write_reg(unsigned reg, uint8_t value)
+{
+	// general register transfer at low clock speed
+	if (_interface == nullptr) {
+		passthrough_write(reg, value);
+	}
+	else {
+		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
+	}
+}
+
+
+
+
 void
 MPU9250_mag::ak8963_reset(void)
 {
-	passthrough_write(AK8963REG_CNTL2, AK8963_RESET);
+	write_reg(AK8963REG_CNTL2, AK8963_RESET);
 }
 
 bool
@@ -563,10 +601,15 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	uint8_t response[3];
 	float ak8963_ASA[3];
 
-	passthrough_write(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
+	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
 	usleep(50);
-	passthrough_read(AK8963REG_ASAX, response, 3);
-	passthrough_write(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+	if (_interface != nullptr) {
+		_interface->read(AK8963REG_ASAX, response, 3);
+	}
+	else {
+		passthrough_read(AK8963REG_ASAX, response, 3);
+	}
+	write_reg(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
@@ -589,10 +632,18 @@ MPU9250_mag::ak8963_setup(void)
 {
 	int retries = 10;
 
-	// enable the I2C master to slaves on the aux bus
-	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
-	_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
-	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+	/* Configures the parent to act in master mode */
+	if(_interface == nullptr) {
+		uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
+		_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
+		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+	}
+	else {
+		//	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
+
+		//	// Passthrough mode
+		//	_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl & (~BIT_I2C_MST_EN));
+	}
 
 	if (!ak8963_check_id()) {
 		::printf("AK8963: bad id\n");
@@ -605,9 +656,13 @@ MPU9250_mag::ak8963_setup(void)
 		}
 	}
 
-	passthrough_write(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
+	write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
-	set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+
+	if(_interface == NULL) {
+		/* Configure mpu to internally read ak8963 data  */
+		set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+	}
 
 	return true;
 }

@@ -11,7 +11,7 @@ set(config_module_list
 	drivers/led
 	drivers/boards/crazyflie
 	drivers/crazyflie
-	#drivers/mpu9250
+	drivers/mpu9250
 	#drivers/ak8963
 	drivers/lps25h
 	drivers/gps
