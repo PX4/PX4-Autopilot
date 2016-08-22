@@ -680,28 +680,38 @@ then
 		then
 		fi
 	else
-		# check if we should increase logging rate for ekf2 replay message logging
-		if param greater EKF2_REC_RPL 0
+		# sdlog2: 0, logger: 1, disable: -1
+		if param compare SYS_LOGGER -1
 		then
-			if param compare SYS_LOGGER 0
-			then
-				if sdlog2 start -r 500 -e -b 18 -t
-				then
-				fi
-			else
-				if logger start -r 500
-				then
-				fi
-			fi
+			echo "INFO  [init] Logging disabled"
 		else
-			if param compare SYS_LOGGER 0
+			# check if we should increase logging rate for ekf2 replay message logging
+			if param greater EKF2_REC_RPL 0
 			then
-				if sdlog2 start -r 100 -a -b 9 -t
+				if param compare SYS_LOGGER 0
 				then
+					if sdlog2 start -r 500 -e -b 18 -t
+					then
+					fi
+				fi
+				if param compare SYS_LOGGER 1
+				then
+					if logger start -r 500
+					then
+					fi
 				fi
 			else
-				if logger start -b 12 -t
+				if param compare SYS_LOGGER 0
 				then
+					if sdlog2 start -r 100 -a -b 9 -t
+					then
+					fi
+				fi
+				if param compare SYS_LOGGER 1
+				then
+					if logger start -b 12 -t
+					then
+					fi
 				fi
 			fi
 		fi

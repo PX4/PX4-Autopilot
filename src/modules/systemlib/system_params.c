@@ -143,9 +143,10 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 /**
  * SD logger
  *
+ * @value -1 disable logging
  * @value 0 sdlog2 (default)
  * @value 1 new logger
- * @min 0
+ * @min -1
  * @max 1
  * @reboot_required true
  * @group System
