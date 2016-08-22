@@ -75,14 +75,14 @@
 #include "inertial_filter.h"
 
 #define MIN_VALID_W 0.00001f
-#define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
+#define PUB_INTERVAL 10000	// limit publish rate to 100 Hz  0.01s
 #define EST_BUF_SIZE 250000 / PUB_INTERVAL		// buffer size is 0.5s
 #define MAX_WAIT_FOR_BARO_SAMPLE 3000000 // wait 3 secs for the baro to respond
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
-static bool inav_verbose_mode = false;
+static bool inav_verbose_mode = false; // 惯性导航冗余模式
 
 static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
 static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s
@@ -155,6 +155,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
 					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
+		//这会启动一个拥有4600字节的栈，并将非deamon指令行 position_estimator_inav_thread_main传给递后台主函数
 		return 0;
 	}
 
@@ -237,9 +238,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float z_est[2] = { 0.0f, 0.0f };	// pos, vel
 
-	float est_buf[EST_BUF_SIZE][3][2];	// estimated position buffer
-	float R_buf[EST_BUF_SIZE][3][3];	// rotation matrix buffer
-	float R_gps[3][3];					// rotation matrix for GPS correction moment
+	float est_buf[EST_BUF_SIZE][3][2];	// 缓存估计得到的位置
+	float R_buf[EST_BUF_SIZE][3][3];	// 缓存估计得到的旋转矩阵
+	float R_gps[3][3];					// 用于GPS moment校正的旋转矩阵
 	memset(est_buf, 0, sizeof(est_buf));
 	memset(R_buf, 0, sizeof(R_buf));
 	memset(R_gps, 0, sizeof(R_gps));
@@ -942,6 +943,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
+							// 初始化    将度数转换为弧度
 							map_projection_init(&ref, lat, lon);
 							// XXX replace this print
 							warnx("init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
@@ -951,11 +953,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
-						// 将GPS的经纬度投射到飞机上
-						float gps_proj[2];
-						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
+						// 将GPS的经纬度投射到地面上
+						float gps_proj[2]; //gps_proj变量来保存数据
+						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));// 将当前经纬度信息通过一系列计算后保存到proj中
 
 						/* reset position estimate when GPS becomes good */
+						// GPS恢复时重置位置估计 使用gps_proj为位置，之前的GPS速度量为速度。
 						if (reset_est) {
 							x_est[0] = gps_proj[0];
 							x_est[1] = gps.vel_n_m_s;
@@ -964,6 +967,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate index of estimated values in buffer */
+						//计算估计值在缓冲区的位置（0-25，<0则加25）
 						int est_i = buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
 
 						if (est_i < 0) {
@@ -971,11 +975,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate correction for position */
+						// 计算位置校正
 						corr_gps[0][0] = gps_proj[0] - est_buf[est_i][0][0];
 						corr_gps[1][0] = gps_proj[1] - est_buf[est_i][1][0];
 						corr_gps[2][0] = local_pos.ref_alt - alt - est_buf[est_i][2][0];
 
 						/* calculate correction for velocity */
+						// 计算速度校正
 						if (gps.vel_ned_valid) {
 							corr_gps[0][1] = gps.vel_n_m_s - est_buf[est_i][0][1];
 							corr_gps[1][1] = gps.vel_e_m_s - est_buf[est_i][1][1];
@@ -988,6 +994,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* save rotation matrix at this moment */
+						// 保存此刻的旋转矩阵
+						//将缓冲中的旋转矩阵R_buf赋值给用于GPS校正的旋转矩阵R_gps
 						memcpy(R_gps, R_buf[est_i], sizeof(R_gps));
 
 						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph);
@@ -996,7 +1004,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				} else {
 					/* no GPS lock */
-					memset(corr_gps, 0, sizeof(corr_gps));
+					// GPS无效
+					memset(corr_gps, 0, sizeof(corr_gps)); 
 					ref_init_start = 0;
 				}
 
@@ -1005,8 +1014,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on FLOW topic */
+		// 检查光流话题是否超时
 		if ((flow_valid || lidar_valid) && t > (flow_time + flow_topic_timeout)) {
-			flow_valid = false;
+		// 循环开始时间大于光流时间加上话题超时时间的和
+			flow_valid = false; //禁用光流
 			warnx("FLOW timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] FLOW timeout");
 		}
@@ -1040,10 +1051,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
-		dt = fmaxf(fminf(0.02, dt), 0.0002);		// constrain dt from 0.2 to 20 ms
+		dt = fmaxf(fminf(0.02, dt), 0.0002);		// constrain dt from 0.2ms to 20 ms 限制dt在0.2s-0.02s之间 频率50-5000Hz
 		t_prev = t;
 
 		/* increase EPH/EPV on each step */
+		// 在每一步增加EPH/EPV
 		if (eph < 0.000001f) { //get case where eph is 0 -> would stay 0
 			eph = 0.001;
 		}
@@ -1057,7 +1069,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		if (epv < max_eph_epv) {
-			epv += 0.005f * dt;	// add 1m to EPV each 200s (baro drift)
+			epv += 0.005f * dt;	// add 1m to EPV each 200s (baro drift) 每200秒EPV加1米(由于气压计漂移)
 		}
 
 		/* use GPS if it's valid and reference position initialized */
@@ -1069,14 +1081,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* use MOCAP if it's valid and has a valid weight parameter */
 		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
-		if (params.disable_mocap) { //disable mocap if fake gps is used
+		if (params.disable_mocap) { //disable mocap if fake gps is used 如果使用了假GPS定位则禁用视觉捕捉装置
 			use_mocap = false;
 		}
 
 		/* use flow if it's valid and (accurate or no GPS available) */
+		//  如果光流装置有效则使用光流(光流精确或者没有可用的GPS)
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
 		/* use LIDAR if it's valid and lidar altitude estimation is enabled */
+		// 如果LIDAR装置有效同时lidar高度估计使能则使用LIDAR
 		use_lidar = lidar_valid && params.enable_lidar_alt_est;
 
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
@@ -1095,12 +1109,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_mocap_p = params.w_mocap_p;
 
 		/* reduce GPS weight if optical flow is good */
+		// 如果光流状态良好则降低GPS权重
 		if (use_flow && flow_accurate) {
 			w_xy_gps_p *= params.w_gps_flow;
 			w_xy_gps_v *= params.w_gps_flow;
 		}
 
+	//根据使用工具的情况，更新加速度计和气压计的偏移补偿
 		/* baro offset correction */
+		// 气压计偏移校正
 		if (use_gps_z) {
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
 			baro_offset += offs_corr;
@@ -1108,6 +1125,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
+		// 使用缓冲区的旋转矩阵来校正加速度计偏差用于GPS
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
 
 		if (use_gps_xy) {
@@ -1124,6 +1142,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* transform error vector from NED frame to body frame */
 		// 将误差向量从NED坐标系(地球坐标系)转换到机体坐标系
+		/*
+		 * 由于该补偿处于地理坐标系，需要旋转矩阵转入机体坐标系用于飞行器，
+		 * 分别对每个轴的加速度偏移值进行补偿
+		 */
 		for (int i = 0; i < 3; i++) {
 			float c = 0.0f;
 
@@ -1137,6 +1159,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for VISION (use buffered rotation matrix) */
+		//使用缓冲区的旋转矩阵来校正加速度计偏差用于VISION
 		accel_bias_corr[0] = 0.0f;
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
@@ -1153,6 +1176,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for MOCAP (use buffered rotation matrix) */
+		//使用缓冲区的旋转矩阵来校正加速度计偏差用于MOCAP
 		accel_bias_corr[0] = 0.0f;
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
@@ -1164,6 +1188,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* transform error vector from NED frame to body frame */
+		// 将误差向量从地球坐标系转移到机体坐标系
 		for (int i = 0; i < 3; i++) {
 			float c = 0.0f;
 
@@ -1177,6 +1202,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for flow and baro (assume that there is no delay) */
+		// 假定没有延迟，校正加速度偏差用于光流和气压计
 		accel_bias_corr[0] = 0.0f;
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
@@ -1193,6 +1219,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* transform error vector from NED frame to body frame */
+		// 将误差向量从地球坐标系转移到机体坐标系
 		for (int i = 0; i < 3; i++) {
 			float c = 0.0f;
 
@@ -1206,7 +1233,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* inertial filter prediction for altitude */
-		// 高度预测的惯性滤波器
+		// 高度的惯性滤波器预测
 		inertial_filter_predict(dt, z_est, acc[2]);
 
 		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
@@ -1217,7 +1244,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* inertial filter correction for altitude */
-		// 高度校正的惯性滤波器
+		// 高度的惯性滤波器校正
 		if (use_lidar) {
 			inertial_filter_correct(corr_lidar, dt, z_est, 0, params.w_z_lidar);
 
@@ -1328,16 +1355,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		} else {
 			/* gradually reset xy velocity estimates */
+			// 将平面内XY轴向的速度量清零，逐次减去自身单位时间量
 			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
 		/* run terrain estimator */
+		// 进行地势估计
 		terrain_estimator.predict(dt, &att, &sensor, &lidar);
 		terrain_estimator.measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
 
 		if (inav_verbose_mode) {
 			/* print updates rate */
+			// 满足更新时间条件就输出更新率
+			//加速度计，气压计，GPS，高度，光流，视觉和动作捕捉装置
 			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
@@ -1360,10 +1391,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
+		//接下来以100Hz频率更新数据（保存位置状态数据和旋转矩阵数据到缓冲区）
 		if (t > pub_last + PUB_INTERVAL) {
 			pub_last = t;
 
 			/* push current estimate to buffer */
+			// 将当前XYZ的位置速度估计推送到缓冲区
 			est_buf[buf_ptr][0][0] = x_est[0];
 			est_buf[buf_ptr][0][1] = x_est[1];
 			est_buf[buf_ptr][1][0] = y_est[0];
@@ -1372,6 +1405,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			est_buf[buf_ptr][2][1] = z_est[1];
 
 			/* push current rotation matrix to buffer */
+			//  将当前旋转矩阵推送到缓冲区
 			memcpy(R_buf[buf_ptr], att.R, sizeof(att.R));
 
 			buf_ptr++;
@@ -1380,7 +1414,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				buf_ptr = 0;
 			}
 
-
+			//更新并发布位置数据
+			//（两个主题vehicle_local_position和vehicle_global_position）
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
