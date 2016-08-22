@@ -69,8 +69,6 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
-#include "mag.h"
-#include "gyro.h"
 #include "mpu9250.h"
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
@@ -125,7 +123,7 @@ struct mpu9250_bus_option {
 	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, NULL },
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, NULL },
 #endif
 };
 
@@ -189,9 +187,11 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 #ifdef USE_I2C
 	/* For i2c interfaces, connect to the magnetomer directly */
 	bool is_i2c = bus.busid == MPU9250_BUS_I2C_INTERNAL || bus.busid == MPU9250_BUS_I2C_EXTERNAL;
+
 	if (is_i2c) {
 		mag_interface = AK8963_I2C_interface(bus.busnum, external);
 	}
+
 #endif
 
 	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation);
@@ -494,7 +494,6 @@ mpu9250_main(int argc, char *argv[])
 	int ch;
 	bool external = false;
 	enum Rotation rotation = ROTATION_NONE;
-	//int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = getopt(argc, argv, "XISsR:")) != EOF) {

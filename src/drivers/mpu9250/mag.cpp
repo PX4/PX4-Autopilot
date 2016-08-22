@@ -68,87 +68,6 @@
 #include "mpu9250.h"
 
 
-/* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
-
-#define MPU9250_MAG_RANGE_GA        1.5e-3f;
-
-/* we are using the continuous fixed sampling rate of 100Hz */
-
-#define MPU9250_AK8963_SAMPLE_RATE 100
-
-
-/* mpu9250 master i2c bus specific register address and bit definitions */
-
-#define MPUREG_I2C_MST_STATUS       0x36
-
-#define BIT_I2C_READ_FLAG           0x80
-
-#define MPUREG_I2C_MST_CTRL         0x24
-#define MPUREG_I2C_SLV0_ADDR        0x25
-#define MPUREG_I2C_SLV0_REG         0x26
-#define MPUREG_I2C_SLV0_CTRL        0x27
-
-#define MPUREG_I2C_SLV4_ADDR        0x31
-#define MPUREG_I2C_SLV4_REG         0x32
-#define MPUREG_I2C_SLV4_DO          0x33
-#define MPUREG_I2C_SLV4_CTRL        0x34
-#define MPUREG_I2C_SLV4_DI          0x35
-
-#define MPUREG_EXT_SENS_DATA_00     0x49
-
-#define MPUREG_I2C_SLV0_D0          0x63
-#define MPUREG_I2C_MST_DELAY_CTRL   0x67
-#define MPUREG_USER_CTRL            0x6A
-
-#define BIT_I2C_SLV0_NACK           0x01
-#define BIT_I2C_FIFO_EN             0x40
-#define BIT_I2C_MST_EN              0x20
-#define BIT_I2C_IF_DIS              0x10
-#define BIT_FIFO_RST                0x04
-#define BIT_I2C_MST_RST             0x02
-#define BIT_SIG_COND_RST            0x01
-
-#define BIT_I2C_SLV0_EN             0x80
-#define BIT_I2C_SLV0_BYTE_SW        0x40
-#define BIT_I2C_SLV0_REG_DIS        0x20
-#define BIT_I2C_SLV0_REG_GRP        0x10
-
-#define BIT_I2C_MST_MULT_MST_EN     0x80
-#define BIT_I2C_MST_WAIT_FOR_ES     0x40
-#define BIT_I2C_MST_SLV_3_FIFO_EN   0x20
-#define BIT_I2C_MST_P_NSR           0x10
-#define BITS_I2C_MST_CLOCK_258HZ    0x08
-#define BITS_I2C_MST_CLOCK_400HZ    0x0D
-
-#define BIT_I2C_SLV0_DLY_EN         0x01
-#define BIT_I2C_SLV1_DLY_EN         0x02
-#define BIT_I2C_SLV2_DLY_EN         0x04
-#define BIT_I2C_SLV3_DLY_EN         0x08
-
-
-/* ak8963 register address and bit definitions */
-
-#define AK8963_I2C_ADDR         0x0C
-#define AK8963_DEVICE_ID        0x48
-
-#define AK8963REG_WIA           0x00
-#define AK8963REG_ST1           0x02
-#define AK8963REG_HXL           0x03
-#define AK8963REG_ASAX          0x10
-#define AK8963REG_CNTL1         0x0A
-#define AK8963REG_CNTL2         0x0B
-
-#define AK8963_SINGLE_MEAS_MODE 0x01
-#define AK8963_CONTINUOUS_MODE1 0x02
-#define AK8963_CONTINUOUS_MODE2 0x06
-#define AK8963_POWERDOWN_MODE   0x00
-#define AK8963_SELFTEST_MODE    0x08
-#define AK8963_FUZE_MODE        0x0F
-#define AK8963_16BIT_ADC        0x10
-#define AK8963_14BIT_ADC        0x00
-#define AK8963_RESET            0x01
-
-
 // If interface is non-null, then it will used for interacting with the device.
 // Otherwise, it will passthrough the parent MPU9250
 MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path) :
@@ -255,7 +174,8 @@ void
 MPU9250_mag::measure()
 {
 	struct ak8963_regs data;
-	if(OK == _interface->read(AK8963REG_ST1, &data, sizeof(struct ak8963_regs))){
+
+	if (OK == _interface->read(AK8963REG_ST1, &data, sizeof(struct ak8963_regs))) {
 		_measure(data);
 	}
 }
@@ -536,12 +456,14 @@ uint8_t
 MPU9250_mag::read_reg(unsigned int reg)
 {
 	uint8_t buf;
+
 	if (_interface == nullptr) {
 		passthrough_read(reg, &buf, 0x01);
-	}
-	else {
+
+	} else {
 		_interface->read(reg, &buf, 1);
 	}
+
 	return buf;
 }
 
@@ -580,8 +502,8 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 	// general register transfer at low clock speed
 	if (_interface == nullptr) {
 		passthrough_write(reg, value);
-	}
-	else {
+
+	} else {
 		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
 	}
 }
@@ -603,12 +525,14 @@ MPU9250_mag::ak8963_read_adjustments(void)
 
 	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
 	usleep(50);
+
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);
-	}
-	else {
+
+	} else {
 		passthrough_read(AK8963REG_ASAX, response, 3);
 	}
+
 	write_reg(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
 
 	for (int i = 0; i < 3; i++) {
@@ -633,12 +557,12 @@ MPU9250_mag::ak8963_setup(void)
 	int retries = 10;
 
 	/* Configures the parent to act in master mode */
-	if(_interface == nullptr) {
+	if (_interface == nullptr) {
 		uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
 		_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
 		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
-	}
-	else {
+
+	} else {
 		//	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
 
 		//	// Passthrough mode
@@ -659,7 +583,7 @@ MPU9250_mag::ak8963_setup(void)
 	write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
 
-	if(_interface == NULL) {
+	if (_interface == NULL) {
 		/* Configure mpu to internally read ak8963 data  */
 		set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
 	}

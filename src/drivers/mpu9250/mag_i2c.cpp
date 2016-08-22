@@ -55,18 +55,10 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
-#include "MPU9250.h"
+#include "mpu9250.h"
 #include "mag.h"
 
 #include "board_config.h"
-
-
-// TODO: This is redundant with mag.cpp
-#define AK8963_I2C_ADDR         0x0C
-#define ADDR_ID			0x00
-
-#define ID_WHO_AM_I		0x48
-
 
 
 #ifdef USE_I2C
@@ -163,9 +155,9 @@ int
 AK8963_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = ID_WHO_AM_I;
+	uint8_t expected = AK8963_DEVICE_ID;
 
-	if (read(ADDR_ID, &whoami, 1)) {
+	if (read(AK8963REG_WIA, &whoami, 1)) {
 		return -EIO;
 	}
 

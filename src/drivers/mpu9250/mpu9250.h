@@ -31,37 +31,16 @@
  *
  ****************************************************************************/
 
-
-#pragma once
-
-
-
-// TODO: All these includes are from main.cpp
-#include <px4_config.h>
-
-#include <sys/types.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
-#include <systemlib/err.h>
 #include <systemlib/conversions.h>
 
-// TODO: These three are new
-#include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-#include <drivers/device/spi.h>
-#include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
@@ -79,8 +58,6 @@
 #  define USE_I2C
 #endif
 
-#define DIR_READ			0x80
-#define DIR_WRITE			0x00
 
 // MPU 9250 registers
 #define MPUREG_WHOAMI			0x75
@@ -143,7 +120,7 @@
 #define MPUREG_FIFO_COUNTL		0x73
 #define MPUREG_FIFO_R_W			0x74
 
- // Configuration bits MPU 9250
+// Configuration bits MPU 9250
 #define BIT_SLEEP			0x40
 #define BIT_H_RESET			0x80
 #define MPU_CLK_SEL_AUTO		0x01
@@ -172,6 +149,33 @@
 #define BIT_RAW_RDY_EN			0x01
 #define BIT_INT_ANYRD_2CLEAR		0x10
 #define BIT_INT_BYPASS_EN		0x02
+
+#define BIT_I2C_READ_FLAG           0x80
+
+#define BIT_I2C_SLV0_NACK           0x01
+#define BIT_I2C_FIFO_EN             0x40
+#define BIT_I2C_MST_EN              0x20
+#define BIT_I2C_IF_DIS              0x10
+#define BIT_FIFO_RST                0x04
+#define BIT_I2C_MST_RST             0x02
+#define BIT_SIG_COND_RST            0x01
+
+#define BIT_I2C_SLV0_EN             0x80
+#define BIT_I2C_SLV0_BYTE_SW        0x40
+#define BIT_I2C_SLV0_REG_DIS        0x20
+#define BIT_I2C_SLV0_REG_GRP        0x10
+
+#define BIT_I2C_MST_MULT_MST_EN     0x80
+#define BIT_I2C_MST_WAIT_FOR_ES     0x40
+#define BIT_I2C_MST_SLV_3_FIFO_EN   0x20
+#define BIT_I2C_MST_P_NSR           0x10
+#define BITS_I2C_MST_CLOCK_258HZ    0x08
+#define BITS_I2C_MST_CLOCK_400HZ    0x0D
+
+#define BIT_I2C_SLV0_DLY_EN         0x01
+#define BIT_I2C_SLV1_DLY_EN         0x02
+#define BIT_I2C_SLV2_DLY_EN         0x04
+#define BIT_I2C_SLV3_DLY_EN         0x08
 
 #define MPU_WHOAMI_9250			0x71
 
@@ -209,7 +213,6 @@ struct MPUReport {
 };
 #pragma pack(pop)
 
-// TODO: Big enough?
 #define MPU_MAX_WRITE_BUFFER_SIZE (2)
 
 
@@ -244,7 +247,8 @@ class MPU9250_gyro;
 class MPU9250 : public device::CDev
 {
 public:
-	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro, const char *path_mag,
+	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
+		const char *path_mag,
 		enum Rotation rotation);
 	virtual ~MPU9250();
 
@@ -375,7 +379,7 @@ private:
 	/**
 	 * When the I2C interfase is on
 	 * Perform a poll cycle; collect from the previous measurement
- 	 * and start a new one.
+	 * and start a new one.
 	 *
 	 * This is the heart of the measurement state machine.  This function
 	 * alternately starts a measurement, or collects the data from the

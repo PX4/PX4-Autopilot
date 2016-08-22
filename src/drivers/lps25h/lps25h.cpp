@@ -830,7 +830,7 @@ LPS25H::collect()
 
 		} else {
 			_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &new_report,
-							 &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+							  &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_baro_topic == nullptr) {
 				DEVICE_DEBUG("ADVERT FAIL");
@@ -1306,6 +1306,7 @@ lps25h_main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "XIS:CT")) != EOF) {
 		switch (ch) {
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
+
 		case 'I':
 			busid = LPS25H_BUS_I2C_INTERNAL;
 			break;

@@ -109,7 +109,8 @@ const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPU
 									   };
 
 
-MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro, const char *path_mag,
+MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel,
+		 const char *path_gyro, const char *path_mag,
 		 enum Rotation rotation) :
 	CDev("MPU9250", path_accel),
 	_interface(interface),
@@ -122,7 +123,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 #else
 	_use_hrt(true),
 #endif
-	_call{},
+	_call {},
 	_call_interval(0),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -195,7 +196,9 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_scale.z_scale  = 1.0f;
 
 	memset(&_call, 0, sizeof(_call));
+#if defined(USE_I2C)
 	memset(&_work, 0, sizeof(_work));
+#endif
 }
 
 MPU9250::~MPU9250()
@@ -305,10 +308,13 @@ MPU9250::init()
 		return ret;
 	}
 
+#ifdef USE_I2C
 
 	if (!_mag->is_passthrough() && _mag->_interface->init() != OK) {
 		warnx("failed to setup ak8963 interface");
 	}
+
+#endif
 
 	/* do CDev init for the mag device node, keep it optional */
 	ret = _mag->init();
@@ -390,7 +396,15 @@ int MPU9250::reset()
 	// INT CFG => Interrupt on Data Ready
 	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 	usleep(1000);
-	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (_mag->is_passthrough()? 0 : BIT_INT_BYPASS_EN)); // INT: Clear on any read, also use i2c bypass is master mode isn't needed
+
+#ifdef USE_I2C
+	bool bypass = !_mag->is_passthrough();
+#else
+	bool bypass = false;
+#endif
+	write_checked_reg(MPUREG_INT_PIN_CFG,
+			  BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN :
+					  0)); // INT: Clear on any read, also use i2c bypass is master mode isn't needed
 	usleep(1000);
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
@@ -1018,7 +1032,7 @@ MPU9250::write_checked_reg(unsigned reg, uint8_t value)
 		if (reg == _checked_registers[i]) {
 			_checked_values[i] = value;
 			_checked_bad[i] = value;
-			break; // TODO: Assumes no duplicates
+			break;
 		}
 	}
 }
@@ -1075,6 +1089,7 @@ MPU9250::start()
 			       1000,
 			       _call_interval - MPU9250_TIMER_REDUCTION,
 			       (hrt_callout)&MPU9250::measure_trampoline, this);;
+
 	} else {
 #ifdef USE_I2C
 		/* schedule a cycle to start things */
@@ -1267,15 +1282,12 @@ MPU9250::measure()
 	/* start measuring */
 	perf_begin(_sample_perf);
 
-	// TODO: Don't fetch magnetometer data if it isn't being managed
-	// In that case, trigger a magnetometer read
-
 	/*
 	 * Fetch the full set of measurements from the MPU9250 in one pass.
 	 */
 	if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
-			(uint8_t *)&mpu_report,
-			sizeof(mpu_report))) {
+				   (uint8_t *)&mpu_report,
+				   sizeof(mpu_report))) {
 		return;
 	}
 
@@ -1285,12 +1297,18 @@ MPU9250::measure()
 		return;
 	}
 
+#ifdef USE_I2C
+
 	if (_mag->is_passthrough()) {
+#endif
 		_mag->_measure(mpu_report.mag);
-	}
-	else {
+#ifdef USE_I2C
+
+	} else {
 		_mag->measure();
 	}
+
+#endif
 
 	/*
 	 * Convert from big to little endian

@@ -428,7 +428,7 @@ Crazyflie::cycle()
 
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
 			pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
-					   outputs, pwm_limited, &_pwm_limit);
+				       outputs, pwm_limited, &_pwm_limit);
 
 			/* output to the servos */
 			for (size_t i = 0; i < num_outputs; i++) {
@@ -499,9 +499,9 @@ void Crazyflie::work_stop()
 
 int
 Crazyflie::control_callback(uintptr_t handle,
-			 uint8_t control_group,
-			 uint8_t control_index,
-			 float &input)
+			    uint8_t control_group,
+			    uint8_t control_index,
+			    float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -518,7 +518,7 @@ Crazyflie::control_callback(uintptr_t handle,
 	/* motor spinup phase - lock throttle to zero */
 	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
-			control_index == actuator_controls_s::INDEX_THROTTLE) {
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
 			 */
@@ -529,7 +529,7 @@ Crazyflie::control_callback(uintptr_t handle,
 	/* throttle not arming - mark throttle input as invalid */
 	if (arm_nothrottle()) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
-			control_index == actuator_controls_s::INDEX_THROTTLE) {
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
 			input = NAN_VALUE;
 		}
@@ -770,7 +770,7 @@ Crazyflie::ioctl(file *filp, int cmd, unsigned long arg)
 			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
 			SimpleMixer *mixer = new SimpleMixer(control_callback,
-								 (uintptr_t)_controls, mixinfo);
+							     (uintptr_t)_controls, mixinfo);
 
 			if (mixer->check()) {
 				delete mixer;
@@ -1077,8 +1077,8 @@ crazyflie_main(int argc, char *argv[])
 	if (!strcmp(verb, "start")) {
 		if (crazyflie_start() == OK) {
 			errx(0, "Crazyflie driver started");
-		}
-		else {
+
+		} else {
 			errx(1, "failed to start the Crazyflie driver");
 		}
 

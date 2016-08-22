@@ -9,13 +9,11 @@ set(config_module_list
 	drivers/device
 	drivers/stm32
 	drivers/led
+	drivers/px4fmu
 	drivers/boards/crazyflie
-	drivers/crazyflie
 	drivers/mpu9250
-	#drivers/ak8963
 	drivers/lps25h
 	drivers/gps
-	# drivers/pwm_out_sim
 	modules/sensors
 
 	#
@@ -70,7 +68,6 @@ set(config_module_list
 	# Logging
 	#
 	modules/sdlog2
-	modules/screen
 
 	#
 	# Library modules
@@ -84,7 +81,6 @@ set(config_module_list
 	#
 	# Libraries
 	#
-	#lib/mathlib/CMSIS
 	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
