@@ -492,6 +492,14 @@ Navigator::task_main()
 				rep->current.valid = true;
 				rep->next.valid = false;
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
+
+				if (get_mission_result()->valid &&
+					PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0) && (cmd.param1 < _mission_result.seq_total)) {
+
+					_mission.set_current_offboard_mission_index(cmd.param1);
+				}
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
 				PX4_INFO("got pause/continue command");
 			}
@@ -502,6 +510,7 @@ Navigator::task_main()
 		if (have_geofence_position_data &&
 			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
+
 			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
@@ -727,8 +736,6 @@ Navigator::get_altitude_acceptance_radius()
 	}
 }
 
-
-
 float
 Navigator::get_cruising_speed()
 {
@@ -863,6 +870,7 @@ int navigator_main(int argc, char *argv[])
 void
 Navigator::publish_mission_result()
 {
+	_mission_result.timestamp = hrt_absolute_time();
 	_mission_result.instance_count = _mission_instance_count;
 
 	/* lazily publish the mission result only once available */

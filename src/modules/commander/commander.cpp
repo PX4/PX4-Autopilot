@@ -191,6 +191,8 @@ static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
 
+struct mission_result_s _mission_result;
+
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
 static unsigned _last_mission_instance = 0;
 struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
@@ -1118,7 +1120,31 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 		break;
 	}
+	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
 
+		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+
+		// check if current mission and first item are valid
+		if (_mission_result.valid) {
+
+			// requested first mission item valid
+			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= 0) && (cmd->param1 < _mission_result.seq_total)) {
+
+				// switch to AUTO_MISSION and ARM
+				if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state))
+					&& (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "mission start command"))) {
+
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				} else {
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					mavlink_log_critical(&mavlink_log_pub, "Mission start denied");
+				}
+			}
+		} else {
+			mavlink_log_critical(&mavlink_log_pub, "Mission start denied, no valid mission");
+		}
+	}
+	break;
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1458,8 +1484,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to mission result topic */
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-	struct mission_result_s mission_result;
-	memset(&mission_result, 0, sizeof(mission_result));
 
 	/* Subscribe to geofence result topic */
 	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
@@ -2335,10 +2359,10 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(mission_result_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+			orb_copy(ORB_ID(mission_result), mission_result_sub, &_mission_result);
 
-			if (status.mission_failure != mission_result.mission_failure) {
-				status.mission_failure = mission_result.mission_failure;
+			if (status.mission_failure != _mission_result.mission_failure) {
+				status.mission_failure = _mission_result.mission_failure;
 				status_changed = true;
 
 				if (status.mission_failure) {
@@ -2438,8 +2462,9 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* Check for mission flight termination */
-		if (armed.armed && mission_result.flight_termination &&
+		if (armed.armed && _mission_result.flight_termination &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
+
 			armed.force_failsafe = true;
 			status_changed = true;
 			static bool flight_termination_printed = false;
@@ -2461,12 +2486,12 @@ int commander_thread_main(int argc, char *argv[])
 		 */
 		if (status_flags.condition_home_position_valid &&
 			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
-			_last_mission_instance != mission_result.instance_count) {
-			if (!mission_result.valid) {
+			_last_mission_instance != _mission_result.instance_count) {
+			if (!_mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);
 				warnx("mission fail");
-			} else if (mission_result.warning) {
+			} else if (_mission_result.warning) {
 				/* the mission has a warning */
 				tune_mission_fail(true);
 				warnx("mission warning");
@@ -2476,7 +2501,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* prevent further feedback until the mission changes */
-			_last_mission_instance = mission_result.instance_count;
+			_last_mission_instance = _mission_result.instance_count;
 		}
 
 		/* RC input check */
@@ -2751,7 +2776,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL) {
 
 			if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-					&& mission_result.finished) {
+					&& _mission_result.finished) {
 
 				main_state_transition(&status, main_state_prev, main_state_prev, &status_flags, &internal_state);
 			}
@@ -2850,10 +2875,10 @@ int commander_thread_main(int argc, char *argv[])
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
 						       &internal_state,
-							   &mavlink_log_pub,
+						       &mavlink_log_pub,
 						       (datalink_loss_enabled > 0),
-						       mission_result.finished,
-						       mission_result.stay_in_failsafe,
+						       _mission_result.finished,
+						       _mission_result.stay_in_failsafe,
 						       &status_flags,
 						       land_detector.landed,
 						       (rc_loss_enabled > 0),
@@ -3812,6 +3837,7 @@ void *commander_low_prio_loop(void *arg)
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF ||
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_SERVO ||
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
+
 				continue;
 			}
 
@@ -3988,7 +4014,7 @@ void *commander_low_prio_loop(void *arg)
 					} else if (((int)(cmd.param1)) == 1) {
 
 #ifdef __PX4_QURT
-						// TODO FIXME: on snapdragon the save happens to early when the params
+						// TODO FIXME: on snapdragon the save happens too early when the params
 						// are not set yet. We therefore need to wait some time first.
 						usleep(1000000);
 #endif
