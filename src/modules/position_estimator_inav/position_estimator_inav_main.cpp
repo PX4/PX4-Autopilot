@@ -238,9 +238,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float z_est[2] = { 0.0f, 0.0f };	// pos, vel
 
-	float est_buf[EST_BUF_SIZE][3][2];	// estimated position buffer
-	float R_buf[EST_BUF_SIZE][3][3];	// rotation matrix buffer
-	float R_gps[3][3];					// rotation matrix for GPS correction moment
+	float est_buf[EST_BUF_SIZE][3][2];	// 缓存估计得到的位置
+	float R_buf[EST_BUF_SIZE][3][3];	// 缓存估计得到的旋转矩阵
+	float R_gps[3][3];					// 用于GPS moment校正的旋转矩阵
 	memset(est_buf, 0, sizeof(est_buf));
 	memset(R_buf, 0, sizeof(R_buf));
 	memset(R_gps, 0, sizeof(R_gps));
