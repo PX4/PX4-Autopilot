@@ -15,7 +15,7 @@ dependencies:
 
 test:
   override:
-    - docker run --rm -v `pwd`:`pwd`:rw -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc4.9 /bin/bash -c "make quick_check"
+    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc4.9 /bin/bash -c "make quick_check"
 
 general:
   artifacts:
