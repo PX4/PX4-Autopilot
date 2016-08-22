@@ -58,7 +58,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
-#include "MPU9250.h"
+#include "mpu9250.h"
 #include <board_config.h>
 
 #define DIR_READ			0x80
@@ -118,6 +118,7 @@ MPU9250_SPI_interface(int bus, bool external_bus)
 #else
 		errx(0, "External SPI not available");
 #endif
+
 	} else {
 		cs = (spi_dev_e) PX4_SPIDEV_MPU;
 	}

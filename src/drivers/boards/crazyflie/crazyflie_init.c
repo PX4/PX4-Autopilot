@@ -103,6 +103,17 @@
  ****************************************************************************/
 
 /************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
+{
+
+}
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -128,20 +139,6 @@ stm32_boardinitialize(void)
  ****************************************************************************/
 
 #include <math.h>
-
-#if 0
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-#endif
 
 __EXPORT int nsh_archinitialize(void)
 {
@@ -177,13 +174,9 @@ __EXPORT int nsh_archinitialize(void)
 	result = board_i2c_initialize();
 
 	if (result != OK) {
-//		up_ledon(LED_AMBER);
+		led_on(1);
 		return -ENODEV;
 	}
-
-
-
-	// TODO: Initialize i2c buses right here
 
 	return OK;
 }

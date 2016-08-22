@@ -628,8 +628,23 @@ then
 		px4flow start &
 	fi
 
-	# Start USB shell if no microSD present, MAVLink else
+
+	set DEBUG_MODE no
+
 	if [ $LOG_FILE == /dev/null ]
+	then
+		set DEBUG_MODE yes
+	fi
+
+
+	if ver hwcmp CRAZYFLIE
+	then
+		set DEBUG_MODE no
+	fi
+
+
+	# Start USB shell if no microSD present, MAVLink else
+	if [ $DEBUG_MODE == yes ]
 	then
 		# Try to get an USB console
 		nshterm /dev/ttyACM0 &
@@ -679,15 +694,6 @@ then
 	if [ $OUTPUT_MODE == ardrone ]
 	then
 		ardrone_interface start -d /dev/ttyS1
-	fi
-
-
-	#
-	# Start Crazyflie driver
-	#
-	if ver hwcmp CRAZYFLIE
-	then
-		crazyflie start
 	fi
 
 	#

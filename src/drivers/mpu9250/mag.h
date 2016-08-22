@@ -33,6 +33,39 @@
 
 #pragma once
 
+
+/* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
+
+#define MPU9250_MAG_RANGE_GA        1.5e-3f;
+
+/* we are using the continuous fixed sampling rate of 100Hz */
+
+#define MPU9250_AK8963_SAMPLE_RATE 100
+
+/* ak8963 register address and bit definitions */
+
+#define AK8963_I2C_ADDR         0x0C
+#define AK8963_DEVICE_ID        0x48
+
+#define AK8963REG_WIA           0x00
+#define AK8963REG_ST1           0x02
+#define AK8963REG_HXL           0x03
+#define AK8963REG_ASAX          0x10
+#define AK8963REG_CNTL1         0x0A
+#define AK8963REG_CNTL2         0x0B
+
+#define AK8963_SINGLE_MEAS_MODE 0x01
+#define AK8963_CONTINUOUS_MODE1 0x02
+#define AK8963_CONTINUOUS_MODE2 0x06
+#define AK8963_POWERDOWN_MODE   0x00
+#define AK8963_SELFTEST_MODE    0x08
+#define AK8963_FUZE_MODE        0x0F
+#define AK8963_16BIT_ADC        0x10
+#define AK8963_14BIT_ADC        0x00
+#define AK8963_RESET            0x01
+
+
+
 class MPU9250;
 
 #pragma pack(push, 1)

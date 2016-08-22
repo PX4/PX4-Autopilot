@@ -635,6 +635,10 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 #define B921600 921600
 #endif
 
+#ifndef B1000000
+	#define B1000000 1000000
+#endif
+
 	/* process baud rate */
 	int speed;
 
@@ -2622,6 +2626,3 @@ int mavlink_main(int argc, char *argv[])
 
 	return 0;
 }
-
-
-
