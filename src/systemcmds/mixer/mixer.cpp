@@ -60,6 +60,13 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname);
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+static int	save(const char *devname, const char *fname);
+static int  mixer_list(const char *devname);
+static int  mixer_param_list(const char *devname, int mix_index);
+static int  mixer_param_set(const char *devname, int mix_index, int param_index, float value);
+static int  mixer_show_config(const char *devname);
+#endif
 
 int
 mixer_main(int argc, char *argv[])
@@ -82,6 +89,78 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
+	} else if (!strcmp(argv[1], "save")) {
+		if (argc < 4) {
+			usage("missing device or filename");
+			return 1;
+		}
+
+		int ret = save(argv[2], argv[3]);
+
+		if (ret != 0) {
+			warnx("failed to save mixer");
+			return 1;
+		}
+
+	} else if (!strcmp(argv[1], "list")) {
+		if (argc < 3) {
+			usage("missing device");
+			return 1;
+		}
+
+		int ret = mixer_list(argv[2]);
+
+		if (ret != 0) {
+			warnx("failed to list mixers");
+			return 1;
+		}
+
+	}  else if (!strcmp(argv[1], "params")) {
+		if (argc < 4) {
+			usage("missing device or mixer index");
+			return 1;
+		}
+
+		int ret = mixer_param_list(argv[2], strtoul(argv[3], NULL, 0));
+
+		if (ret != 0) {
+			warnx("failed to list parameters");
+			return 1;
+		}
+
+	} else if (!strcmp(argv[1], "set")) {
+		if (argc < 6) {
+			usage("missing device, mixer index, parameter index or value");
+			return 1;
+		}
+
+		int ret = mixer_param_set(argv[2],
+					  strtoul(argv[3], NULL, 0),
+					  strtoul(argv[4], NULL, 0),
+					  ((float) strtod(argv[5], 0)));
+
+		if (ret != 0) {
+			warnx("failed to list parameters");
+			return 1;
+		}
+
+	} else if (!strcmp(argv[1], "config")) {
+		if (argc < 2) {
+			warnx("missing device: usage 'mixer config <device>'");
+			return 1;
+		}
+
+		int ret = mixer_show_config(argv[2]);
+
+		if (ret != 0) {
+			warnx("failed to show config");
+			return 1;
+		}
+
+#endif
+
 	} else {
 		usage("Unknown command");
 		return 1;
@@ -99,6 +178,13 @@ usage(const char *reason)
 
 	PX4_INFO("usage:");
 	PX4_INFO("  mixer load <device> <filename>");
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	PX4_INFO("  mixer save <device> <filename>");
+	PX4_INFO("  mixer list <device>");
+	PX4_INFO("  mixer params <device> <mixer_index>");
+	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
+	PX4_INFO("  mixer config <device>");
+#endif
 }
 
 static int
@@ -138,3 +224,204 @@ load(const char *devname, const char *fname)
 
 	return 0;
 }
+
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+static int
+save(const char *devname, const char *fname)
+{
+	// sleep a while to ensure device has been set up
+	usleep(20000);
+
+	int dev;
+
+	/* open the device */
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
+
+	char buf[2048];
+
+	int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
+
+	if (ret != 0) {
+		warnx("Could not get mixer config for %s\n", devname);
+		return 1;
+	}
+
+	/* Create the mixer definition file */
+#ifdef __PX4_NUTTX
+	int fd = open(fname, O_CREAT | O_WRONLY | O_DSYNC);
+#else
+	int fd = open(fname, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
+#endif
+
+
+	if (fd < 0) {
+		warnx("not able to create file %s", fname);
+		return -1;
+	}
+
+	unsigned buflen = strlen(buf);
+
+	/* Write the buffer to the file*/
+	ssize_t wr_len = write(fd, buf, strlen(buf));
+
+	if (wr_len != buflen) {
+		warnx("not able to fully write to file %s", fname);
+
+	} else {
+		PX4_INFO("Wrote mixer %s to file %s\n", devname, fname);
+	}
+
+	fsync(fd);
+	close(fd);
+
+	return 0;
+}
+
+static int  mixer_show_config(const char *devname)
+{
+	int dev;
+
+	/* open the device */
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
+
+	char buf[2048];
+
+	/* Pass the buffer to the device */
+	int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
+
+	if (ret == 0) {
+		printf("%s", buf);
+
+	} else {
+		warnx("Could not generate mixer config for %s\n", devname);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+static int
+mixer_list(const char *devname)
+{
+	int dev;
+
+	/* open the device */
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
+
+	unsigned mix_count;
+
+	mixer_id_e id;
+
+	/* Get the mixer count */
+	int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+
+	if (ret < 0) {
+		warnx("can't get mixer count for:%s", devname);
+		return 1;
+	}
+
+	PX4_INFO("List of mixers:");
+
+	printf("Mixer count : %u \n", mix_count);
+
+	for (int index = 0; index < mix_count; index++) {
+		printf("mixer index %u : ", index);
+		id.index = index;
+		/* Get the mixer name at index*/
+		ret = px4_ioctl(dev, MIXERIONAME, (unsigned long)&id);
+		printf("%s", id.id);
+		printf("\n");
+	}
+
+	if (ret < 0) {
+		warnx("can't get mixer id for:%s", devname);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+static int
+mixer_param_list(const char *devname, int mix_index)
+{
+	int dev;
+
+	/* open the device */
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
+
+	mixer_param_id_s param_ids;
+	param_ids.mix_index = mix_index;
+	/* Get the mixer paramer identifiers*/
+	int ret = px4_ioctl(dev, MIXERIOGETPARAMIDS, (unsigned long)&param_ids);
+
+	if (ret < 0) {
+		warnx("can't get mixer :%s parameter identifiers for mixer %u", devname, mix_index);
+		return 1;
+	}
+
+	if (param_ids.id_count == 0) {
+		printf("mixer:%u  parameter list empty\n", mix_index);
+		return 1;
+	}
+
+	mixer_param_s param;
+
+	for (int index = 0; index < param_ids.id_count; index++) {
+		param.mix_index = mix_index;
+		param.param_index = index;
+		ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
+		printf("mixer:%u  param:%u id:%s value:%f\n", mix_index, index, param_ids.ids[index], (double) param.value);
+	}
+
+	if (ret < 0) {
+		warnx("can't get mixer id for:%s", devname);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+static int
+mixer_param_set(const char *devname, int mix_index, int param_index, float value)
+{
+	mixer_param_s param;
+
+	int dev;
+
+	/* open the device */
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
+
+	param.mix_index = mix_index;
+	param.param_index = param_index;
+	param.value = value;
+
+	int ret = px4_ioctl(dev, MIXERIOSETPARAM, (unsigned long)&param);
+
+	if (ret == 0) {
+		printf("mixer:%u param:%u value:%f set success\n", mix_index, param_index, (double) param.value);
+		return 0;
+
+	} else {
+		warnx("fail to set mixer parameter");
+		return -1;
+	}
+}
+#endif

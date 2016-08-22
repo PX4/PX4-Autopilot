@@ -52,6 +52,7 @@
 #include <unistd.h>
 
 #include "mixer.h"
+#include "mixer_parameters.h"
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -200,3 +201,137 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	/* nothing more in the buffer for us now */
 	return ret;
 }
+
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+int
+MixerGroup::save_to_buf(char *buf, unsigned &buflen)
+{
+	Mixer       *mixer = _first;
+	char       *bufpos = buf;
+	unsigned    remaining = buflen;
+	unsigned    len;
+
+	while (mixer != NULL) {
+		/* len is remaining buffer length but modified
+		 * to the actual bytes written to the buffer */
+		len = remaining;
+
+		if (mixer->to_text(bufpos, len) == 0) {
+			bufpos += len;
+			remaining -= len;
+
+		} else {
+			return -1;
+		}
+
+		mixer = mixer->_next;
+	}
+
+	return 0;
+}
+
+
+int
+MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen)
+{
+	Mixer   *mixer = _first;
+	signed   mix_count = 0;
+
+	while (mixer != NULL) {
+		if (mix_count == index) {
+			if (mixer->get_mixer_id(buf, buflen) > 0) {
+				return 0;
+
+			} else {
+				strcpy(buf, "NONAME");
+				return 0;
+			}
+		}
+
+		mixer = mixer->_next;
+		mix_count++;
+	}
+
+	return -1;
+}
+
+const char *const *
+MixerGroup::get_mixer_param_ids(unsigned mix_index, unsigned *params)
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+	MIXER_TYPES mix_type;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			mix_type = mixer->get_mixer_type();
+			*params = MIXER_PARAMETER_COUNTS[mix_type];
+			return MIXER_PARAMETER_TABLE[mix_type];
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	*params = 0;
+	return NULL;
+}
+
+MIXER_TYPES
+MixerGroup::get_mixer_type_from_index(unsigned mix_index)
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+	MIXER_TYPES mix_type;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			mix_type = mixer->get_mixer_type();
+			return mix_type;
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return MIXER_TYPE_NONE;
+}
+
+
+float
+MixerGroup::get_mixer_param(unsigned mix_index, unsigned param_index)
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->get_parameter(param_index);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return 0.0;
+}
+
+
+int
+MixerGroup::set_mixer_param(unsigned mix_index, unsigned param_index, float value)
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->set_parameter(param_index, value);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return -1;
+}
+#endif

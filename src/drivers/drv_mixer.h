@@ -96,6 +96,16 @@ struct mixer_simple_s {
 
 #define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
 
+
+/** 3 point mix */
+struct mixer_3pt_s {
+	uint8_t			control_group;	/**< group from which the input reads */
+	uint8_t			control_index;	/**< index within the control group */
+	float   _input[3];
+	float   _output[3];
+};
+
+
 /**
  * add a simple mixer in (struct mixer_simple_s *)arg
  */
@@ -115,5 +125,62 @@ struct mixer_simple_s {
  * - get/set output scale, for tuning center/limit values.
  * - save/serialise for saving tuned mixers.
  */
+
+
+/**
+ * Get the identification name of a mixer in (struct mixer_id_e *)arg
+ * set the mixer index and the string will be returned
+ */
+union mixer_id_e {
+	unsigned index;
+	char     id[32];
+};
+
+#define   MIXERIONAME                   _MIXERIOC(10)
+
+/**
+ * Get the count of mixers in the group as (unsigned *)arg
+ */
+#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
+
+/**
+ * Get the parameter identifiers for a mixer at index (mixer_param_id_s *)arg
+ * set the the mixer index in the struct
+ */
+struct mixer_param_id_s {
+	unsigned        mix_index;
+	unsigned        id_count;
+	char            **ids;
+};
+#define   MIXERIOGETPARAMIDS		_MIXERIOC(12)
+
+/**
+ * Get the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return the value in the struct
+ */
+struct mixer_param_s {
+	unsigned        mix_index;
+	unsigned        param_index;
+	float           value;
+};
+#define   MIXERIOGETPARAM		_MIXERIOC(13)
+
+
+/**
+ * Set the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return 0 if success, -1 if fail.  Fail can indicate out of range.
+ * If failed then real value MAY be set in the mixer_param_s struct.
+ */
+#define MIXERIOSETPARAM                 _MIXERIOC(14)
+
+
+/**
+ * Get mixer configuration text for serialization
+ */
+#define MIXERIOGETCONFIG               _MIXERIOC(15)
+
+
 
 #endif /* _DRV_ACCEL_H */

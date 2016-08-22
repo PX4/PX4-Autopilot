@@ -54,6 +54,7 @@
 
 #include "mixer.h"
 
+
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
@@ -212,6 +213,63 @@ out:
 	return sm;
 }
 
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+int
+SimpleMixer::to_text(char *buf, unsigned &buflen)
+{
+	char *bufpos = buf;
+	unsigned remaining = buflen;
+
+	int written = snprintf(bufpos, remaining, "M: %u\n", _pinfo->control_count);
+	bufpos += written;
+	remaining -= written;
+
+	if (remaining < 1) {
+		return -1;
+	}
+
+	mixer_scaler_s *scaler = &_pinfo->output_scaler;
+	written = snprintf(bufpos, remaining, "O: %d %d %d %d %d\n",
+			   (int)(scaler->negative_scale * 10000.0f),
+			   (int)(scaler->positive_scale * 10000.0f),
+			   (int)(scaler->offset * 10000.0f),
+			   (int)(scaler->min_output * 10000.0f),
+			   (int)(scaler->max_output * 10000.0f)
+			  );
+	bufpos += written;
+	remaining -= written;
+
+	if (remaining < 1) {
+		return -1;
+	}
+
+
+	for (unsigned i = 0; i < _pinfo->control_count; i++) {
+
+		scaler = &_pinfo->controls[i].scaler;
+
+		written = snprintf(bufpos, remaining, "S: %u %u %d %d %d %d %d\n",
+				   _pinfo->controls[i].control_group,
+				   _pinfo->controls[i].control_index,
+				   (int)(scaler->negative_scale * 10000.0f),
+				   (int)(scaler->positive_scale * 10000.0f),
+				   (int)(scaler->offset * 10000.0f),
+				   (int)(scaler->min_output * 10000.0f),
+				   (int)(scaler->max_output * 10000.0f)
+				  );
+		bufpos += written;
+		remaining -= written;
+
+		if (remaining < 1) {
+			return -1;
+		}
+	}
+
+	buflen = bufpos - buf;
+	return 0;
+}
+#endif
+
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
 		       uint16_t mid, uint16_t max)
@@ -350,3 +408,80 @@ SimpleMixer::check()
 
 	return 0;
 }
+
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+signed
+SimpleMixer::get_mixer_id(char *buff, unsigned maxlen)
+{
+	if (maxlen < 16) { return -1; }
+
+	strcpy(buff, "SIMPLE");
+	return 6;
+}
+
+MIXER_TYPES
+SimpleMixer::get_mixer_type(void)
+{
+	return MIXER_TYPE_SIMPLE;
+}
+
+float
+SimpleMixer::get_parameter(uint16_t index)
+{
+	switch (index) {
+	case 0:
+		return _pinfo->output_scaler.negative_scale;
+		break;
+
+	case 1:
+		return _pinfo->output_scaler.positive_scale;
+		break;
+
+	case 2:
+		return _pinfo->output_scaler.offset;
+		break;
+
+	case 3:
+		return _pinfo->output_scaler.min_output;
+		break;
+
+	case 4:
+		return _pinfo->output_scaler.max_output;
+		break;
+	}
+
+	return 0.0;
+}
+
+int16_t
+SimpleMixer::set_parameter(uint16_t index, float value)
+{
+	switch (index) {
+	case 0:
+		_pinfo->output_scaler.negative_scale = value;
+		break;
+
+	case 1:
+		_pinfo->output_scaler.positive_scale = value;
+		break;
+
+	case 2:
+		_pinfo->output_scaler.offset = value;
+		break;
+
+	case 3:
+		_pinfo->output_scaler.min_output = value;
+		break;
+
+	case 4:
+		_pinfo->output_scaler.max_output = value;
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+
+	return 0;
+}
+#endif
