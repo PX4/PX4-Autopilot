@@ -270,6 +270,33 @@ bool Mission::set_current_offboard_mission_index(unsigned index)
 	return false;
 }
 
+unsigned
+Mission::find_offboard_land_start()
+{
+	/* find the first MAV_CMD_DO_LAND_START and return the index
+	 *  return -1 if not found
+	 *
+	 * TODO: implement full spec and find closest landing point geographically
+	 */
+
+	dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+	for (size_t i = 0; i < _offboard_mission.count; i++) {
+		struct mission_item_s missionitem;
+		const ssize_t len = sizeof(missionitem);
+		if (dm_read(dm_current, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			return -1;
+		}
+
+		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 void
 Mission::update_onboard_mission()
 {

@@ -103,6 +103,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
+		case NAV_CMD_DO_LAND_START:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -432,6 +433,11 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		return;
 	}
 
+	// NAV_CMD_DO_LAND_START is only a marker
+	if (item->nav_cmd == NAV_CMD_DO_LAND_START) {
+		return;
+	}
+
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
@@ -470,6 +476,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_LAND_START ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
 		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
