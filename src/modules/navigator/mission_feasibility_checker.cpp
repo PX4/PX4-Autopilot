@@ -182,7 +182,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems,
 	float home_alt, bool home_valid, bool &warning_issued, bool throw_error)
 {
-	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
+	/* Check if all waypoints are above the home altitude, only return false if bool throw_error = true */
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(struct mission_item_s);
