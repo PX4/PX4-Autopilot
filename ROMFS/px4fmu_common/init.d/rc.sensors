@@ -100,6 +100,10 @@ then
 		then
 		fi
 
+		if mpu9250 start
+		then
+		fi
+
 		if l3gd20 start
 		then
 		fi
