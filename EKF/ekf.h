@@ -430,4 +430,10 @@ private:
 	// perform a limited reset of the magnetic field state covariances
 	void resetMagCovariance();
 
+	// perform a limited reset of the wind state covariances
+	void resetWindCovariance();
+
+	// perform a reset of the wind states
+	void resetWindStates();
+
 };

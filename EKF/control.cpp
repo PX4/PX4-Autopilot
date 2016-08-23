@@ -738,20 +738,24 @@ void Ekf::controlRangeFinderFusion()
 
 void Ekf::controlAirDataFusion()
 {
-	// TODO This is just to get the logic inside but we will only start fusion once we tested this again
-	//if (_tas_data_ready) {
-	if (false) {
-		fuseAirspeed();
+	// control activation and initialisation/reset of wind states
+	// wind states are required to do airspeed fusion
+	if (_time_last_imu - _time_last_arsp_fuse > 10e6 || _time_last_arsp_fuse == 0) {
+		// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
+		_control_status.flags.wind = false;
 
 	}
 
-	// control airspeed fusion - TODO move to a function
-	// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
-	if (_time_last_imu - _time_last_arsp_fuse > 10e6 || _time_last_arsp_fuse == 0) {
-		_control_status.flags.wind = false;
+	if (_tas_data_ready) {
+		// if we have airspeed data to fuse and winds states are inactive, then
+		// they need to be activated and the corresponding states and covariances reset
+		if (!_control_status.flags.wind) {
+			_control_status.flags.wind = true;
+			resetWindStates();
+			resetWindCovariance();
+		}
 
-	} else {
-		_control_status.flags.wind = true;
+		fuseAirspeed();
 
 	}
 }
