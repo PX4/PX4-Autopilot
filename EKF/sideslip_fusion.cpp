@@ -79,7 +79,7 @@ void Ekf::fuseSideslip()
     rel_wind = earth_to_body * rel_wind;
 
     // perform fusion of assumed sideslip  = 0
-    if (rel_wind(0) > 5.0f){
+    if (rel_wind(0) > 7.0f){
 
 		// Calculate the observation jacobians
 
@@ -203,12 +203,6 @@ void Ekf::fuseSideslip()
 				for (unsigned i = 0; i < _k_num_states; i++) { 
 					KHP[row][column] += KH[row][i] * P[i][column];
 				}
-			}
-		}
-
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
 			}
 		}
         
