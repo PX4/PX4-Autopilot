@@ -124,7 +124,7 @@ int mixer_control_callback(uintptr_t handle,
 int initialize_mixer(const char *mixer_filename)
 {
 	char buf[2048];
-	size_t buflen = sizeof(buf);
+	unsigned buflen = sizeof(buf);
 
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
