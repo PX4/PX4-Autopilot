@@ -778,13 +778,12 @@ void Ekf::controlAirDataFusion()
 void Ekf::controlBetaFusion()
 {
 	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_us;
-
- 	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air && _time_last_imu - _time_last_arsp_fuse > 5e6){
+ 	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air && _time_last_arsp_fuse > 5e6){
  		fuseSideslip();
  	}
 
  	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
- 	if(sideslip_timed_out && _control_status.flags.fuse_beta){
+ 	if(sideslip_timed_out && _control_status.flags.fuse_beta && _time_last_beta_fuse > 0.0f){
  		_control_status.flags.wind = false;
  	}
  	
