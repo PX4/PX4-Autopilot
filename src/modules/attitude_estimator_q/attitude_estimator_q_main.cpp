@@ -34,7 +34,7 @@
 /*
  * @file attitude_estimator_q_main.cpp
  *
- * Attitude estimator (quaternion based)
+ * 基于四元数的姿态估计
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
