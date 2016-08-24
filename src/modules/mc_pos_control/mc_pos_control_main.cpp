@@ -2046,7 +2046,7 @@ MulticopterPositionControl::task_main()
 					    fabsf(_manual.r) > .001f
 					   ) {
 
-						/* limit setpoint rate */
+						/* limit setpoint rate of change */
 						math::Quaternion q_cur(_ctrl_state.q);
 						math::Matrix<3, 3> R_cur = q_cur.to_dcm();
 						math::Vector<3> zb(R_cur.data[2]);
@@ -2071,10 +2071,19 @@ MulticopterPositionControl::task_main()
 							dYaw = _manual.r * _params.acro_yawRate_max * dt;
 						}
 
-						math::Matrix<3, 3> R_xyz;
-						R_xyz.from_euler(dRoll, dPitch, dYaw);
+//						math::Matrix<3, 3> R_xyz;
+//						R_xyz.from_euler(dRoll, dPitch, dYaw);
+//						R_sp = R_sp * R_xyz;
 
-						R_sp = R_sp * R_xyz;
+						math::Matrix<3, 3> R_xy;
+						R_xy.from_euler(dRoll, dPitch, 0.0f);
+
+						R_sp = R_sp * R_xy;
+
+						math::Matrix<3, 3> R_z;
+						R_z.from_euler(0.0f, 0.0f, dYaw);
+
+						R_sp = R_z * R_sp;
 
 						/* renormalize rows */
 						for (int row = 0; row < 3; row++) {
