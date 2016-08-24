@@ -315,6 +315,20 @@ public:
 	 *
 	 * R: <geometry> <roll scale> <pitch scale> <yaw scale> <deadband>
 	 *
+	 * Helicopter Mixer
+	 * ................
+	 *
+	 * The helicopter mixer includes throttle and pitch curves
+	 *
+	 * H: <swash plate servo count>
+	 * T: <0> <2500> <5000> <7500> <10000>
+	 * P: <-10000> <-5000> <0> <5000> <10000>
+	 *
+	 * The definition continues with <swash plate servo count> entries describing
+	 * the position of the servo, in the following form:
+	 *
+	 *   S: <angle (deg)> <normalized arm length> <scale> <offset> <lower limit> <upper limit>
+	 *
 	 * @param buf			The mixer configuration buffer.
 	 * @param buflen		The length of the buffer, updated to reflect
 	 *				bytes as they are consumed.
@@ -595,6 +609,79 @@ private:
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);
 	MultirotorMixer operator=(const MultirotorMixer &);
+};
+
+/** helicopter swash servo mixer */
+struct mixer_heli_servo_s {
+	float angle;
+	float arm_length;
+	float scale;
+	float offset;
+	float min_output;
+	float max_output;
+};
+
+#define HELI_CURVES_NR_POINTS 5
+
+/** helicopter swash plate mixer */
+struct mixer_heli_s {
+	uint8_t				control_count;	/**< number of inputs */
+	float				throttle_curve[HELI_CURVES_NR_POINTS];
+	float				pitch_curve[HELI_CURVES_NR_POINTS];
+	struct mixer_heli_servo_s	servos[4];	/**< up to four inputs */
+};
+
+/**
+ * Generic helicopter mixer for helicopters with swash plate.
+ *
+ * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
+ * for swash plate tilting and throttle- and pitch curves.
+ */
+class __EXPORT HelicopterMixer : public Mixer
+{
+public:
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle		Passed to control_cb.
+	 * @param mixer_info		Pointer to heli mixer configuration
+	 */
+	HelicopterMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			mixer_heli_s *mixer_info);
+	~HelicopterMixer();
+
+	/**
+	 * Factory method.
+	 *
+	 * Given a pointer to a buffer containing a text description of the mixer,
+	 * returns a pointer to a new instance of the mixer.
+	 *
+	 * @param control_cb		The callback to invoke when fetching a
+	 *				control value.
+	 * @param cb_handle		Handle passed to the control callback.
+	 * @param buf			Buffer containing a text description of
+	 *				the mixer.
+	 * @param buflen		Length of the buffer in bytes, adjusted
+	 *				to reflect the bytes consumed.
+	 * @return			A new HelicopterMixer instance, or nullptr
+	 *				if the text format is bad.
+	 */
+	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb,
+			uintptr_t cb_handle,
+			const char *buf,
+			unsigned &buflen);
+
+	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual void			groups_required(uint32_t &groups);
+
+private:
+	mixer_heli_s			_mixer_info;
+
+	/* do not allow to copy */
+	HelicopterMixer(const HelicopterMixer &);
+	HelicopterMixer operator=(const HelicopterMixer &);
 };
 
 #endif
