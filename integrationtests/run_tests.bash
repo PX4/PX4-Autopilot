@@ -48,10 +48,6 @@ TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 # CHARTS=$ROS_HOME/charts
 # EXPORT_CHARTS=/sitl/testing/export_charts.py
 
-echo setting up gazebo paths
-source /usr/share/gazebo/setup.sh
-source $SCRIPTPATH/setup_gazebo.bash ${SRC_DIR} ${BUILD_DIR}
-
 if $do_clean
 then
 	echo cleaning

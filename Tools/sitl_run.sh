@@ -82,9 +82,9 @@ then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		source /usr/share/gazebo/setup.sh
-		source $src_path/integrationtests/setup_gazebo.bash ${src_path} ${build_path}
-		gzserver --verbose worlds/${model}.world &
+		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+
+		gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
 		SIM_PID=`echo $!`
 
 		if [[ -n "$HEADLESS" ]]; then
