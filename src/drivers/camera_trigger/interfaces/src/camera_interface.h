@@ -25,6 +25,12 @@ public:
 	virtual void trigger(bool enable) {};
 
 	/**
+	 * turn on/off the camera
+	 * @param enable:
+	 */
+	virtual void turn_on_off(bool enable) {};
+
+	/**
 	 * prevent the camera from sleeping
 	 * @param keep alive signal:
 	 */

@@ -1,4 +1,5 @@
 #include "BlockLocalPositionEstimator.hpp"
+#include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <fcntl.h>
 #include <systemlib/err.h>

@@ -36,6 +36,7 @@
 #include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
+#include <px4_log.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
@@ -77,6 +78,8 @@ uorb_main(int argc, char *argv[])
 		if (g_dev == nullptr) {
 			return -errno;
 		}
+
+		px4_log_initialize();
 
 		return OK;
 	}

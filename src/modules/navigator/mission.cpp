@@ -645,6 +645,7 @@ Mission::set_mission_items()
 		/* yaw is aligned now */
 		if (_work_item_type == WORK_ITEM_TYPE_ALIGN) {
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			set_previous_pos_setpoint();
 		}
 
 	}

@@ -82,16 +82,15 @@ LogWriter::~LogWriter()
 
 void LogWriter::start_log(const char *filename)
 {
-	::strncpy(_filename, filename, sizeof(_filename));
-	_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
+	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 	if (_fd < 0) {
-		PX4_ERR("Can't open log file %s", _filename);
+		PX4_ERR("Can't open log file %s", filename);
 		_should_run = false;
 		return;
 
 	} else {
-		PX4_INFO("Opened log file: %s", _filename);
+		PX4_INFO("Opened log file: %s", filename);
 		_should_run = true;
 		_running = true;
 	}
@@ -232,7 +231,7 @@ void LogWriter::run()
 						PX4_WARN("error closing log file");
 
 					} else {
-						PX4_INFO("closed logfile: %s, bytes written: %zu", _filename, _total_written);
+						PX4_INFO("closed logfile, bytes written: %zu", _total_written);
 					}
 				}
 

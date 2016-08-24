@@ -154,6 +154,10 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN10);
 
 
+	/* configure USB interfaces */
+
+	stm32_usbinitialize();
+
 	/* configure SPI interfaces */
 
 	stm32_spiinitialize();

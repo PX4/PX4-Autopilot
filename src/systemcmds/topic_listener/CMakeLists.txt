@@ -32,14 +32,14 @@
 ############################################################################
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/generate_listener.py ${CMAKE_SOURCE_DIR} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_listener.py ${PX4_SOURCE_DIR} > topic_listener.cpp
                 DEPENDS msg_gen
                 )
 
 add_custom_target(generate_topic_listener
 	DEPENDS
 		topic_listener.cpp
-		${CMAKE_SOURCE_DIR}/Tools/generate_listener.py)
+		${PX4_SOURCE_DIR}/Tools/generate_listener.py)
 
 px4_add_module(
 	MODULE systemcmds__topic_listener

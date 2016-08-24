@@ -405,22 +405,22 @@ bool MatrixTest::matrixAssignmentTests(void)
 	Matrix3f m3(data_times_2);
 
 	ut_test(isEqual(m, m2));
-	ut_test(!(m == m3));
+	ut_test(!isEqual(m, m3));
 
 	m2 *= 2;
-	ut_test(m2 == m3);
+	ut_test(isEqual(m2, m3));
 
 	m2 /= 2;
 	m2 -= 1;
 	float data_minus_1[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-	ut_test(Matrix3f(data_minus_1) == m2);
+	ut_test(isEqual(Matrix3f(data_minus_1), m2));
 
 	m2 += 1;
-	ut_test(Matrix3f(data) == m2);
+	ut_test(isEqual(Matrix3f(data), m2));
 
 	m3 -= m2;
 
-	ut_test(m3 == m2);
+	ut_test(isEqual(m3, m2));
 
 	float data_row_02_swap[9] = {
 		7, 8, 9,
@@ -436,13 +436,13 @@ bool MatrixTest::matrixAssignmentTests(void)
 
 	Matrix3f m4(data);
 
-	ut_test(-m4 == m4 * (-1));
+	ut_test(isEqual(-m4, m4 * (-1)));
 
 	m4.swapCols(0, 2);
-	ut_test(m4 == Matrix3f(data_col_02_swap));
+	ut_test(isEqual(m4, Matrix3f(data_col_02_swap)));
 	m4.swapCols(0, 2);
 	m4.swapRows(0, 2);
-	ut_test(m4 == Matrix3f(data_row_02_swap));
+	ut_test(isEqual(m4, Matrix3f(data_row_02_swap)));
 	ut_test(fabs(m4.min() - 1) < 1e-5);
 
 	Scalar<float> s;
@@ -601,10 +601,10 @@ bool MatrixTest::vectorTests(void)
 	ut_test(fabs(v1.dot(v2) - 130.0f) < 1e-5);
 	v2.normalize();
 	Vector<float, 5> v3(v2);
-	ut_test(v2 == v3);
+	ut_test(isEqual(v2, v3));
 	float data1_sq[] = {1, 4, 9, 16, 25};
 	Vector<float, 5> v4(data1_sq);
-	ut_test(v1 == v4.pow(0.5));
+	ut_test(isEqual(v1, v4.pow(0.5)));
 
 	return true;
 }
@@ -639,15 +639,15 @@ bool MatrixTest::vector3Tests(void)
 	Vector3f a(1, 0, 0);
 	Vector3f b(0, 1, 0);
 	Vector3f c = a.cross(b);
-	ut_test(c == Vector3f(0, 0, 1));
+	ut_test(isEqual(c, Vector3f(0, 0, 1)));
 	c = a % b;
-	ut_test(c == Vector3f(0, 0, 1));
+	ut_test(isEqual(c, Vector3f(0, 0, 1)));
 	Matrix<float, 3, 1> d(c);
 	Vector3f e(d);
-	ut_test(e == d);
+	ut_test(isEqual(e, d));
 	float data[] = {4, 5, 6};
 	Vector3f f(data);
-	ut_test(f == Vector3f(4, 5, 6));
+	ut_test(isEqual(f, Vector3f(4, 5, 6)));
 	return true;
 }
 

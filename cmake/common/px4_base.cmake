@@ -136,14 +136,14 @@ function(px4_add_git_submodule)
 		REQUIRED TARGET PATH
 		ARGN ${ARGN})
 	string(REPLACE "/" "_" NAME ${PATH})
-	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
-		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		COMMAND touch ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
+		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		DEPENDS ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
 
@@ -371,7 +371,7 @@ function(px4_generate_messages)
 	endif()
 
 	# headers
-	set(msg_out_path ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
+	set(msg_out_path ${PX4_BINARY_DIR}/src/modules/uORB/topics)
 	set(msg_list)
 	foreach(msg_file ${MSG_FILES})
 		get_filename_component(msg ${msg_file} NAME_WE)
@@ -389,15 +389,15 @@ function(px4_generate_messages)
 			-d msg
 			-o ${msg_out_path}
 			-e msg/templates/uorb
-			-t ${CMAKE_BINARY_DIR}/topics_temporary_header
+			-t ${PX4_BINARY_DIR}/topics_temporary_header
 		DEPENDS ${DEPENDS} ${MSG_FILES}
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating uORB topic headers"
 		VERBATIM
 		)
 
 	# !sources
-	set(msg_source_out_path	${CMAKE_BINARY_DIR}/topics_sources)
+	set(msg_source_out_path	${PX4_BINARY_DIR}/topics_sources)
 	set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
 	foreach(msg ${msg_list})
 		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
@@ -410,9 +410,9 @@ function(px4_generate_messages)
 			-d msg
 			-o ${msg_source_out_path}
 			-e msg/templates/uorb
-			-t ${CMAKE_BINARY_DIR}/topics_temporary_sources
+			-t ${PX4_BINARY_DIR}/topics_temporary_sources
 		DEPENDS ${DEPENDS} ${MSG_FILES}
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating uORB topic sources"
 		VERBATIM
 		)
@@ -427,7 +427,7 @@ function(px4_generate_messages)
 
 	# multi messages for target OS
 	set(msg_multi_out_path
-		${CMAKE_BINARY_DIR}/src/platforms/${OS}/px4_messages)
+		${PX4_BINARY_DIR}/src/platforms/${OS}/px4_messages)
 	set(msg_multi_files_out)
 	foreach(msg ${msg_list})
 		list(APPEND msg_multi_files_out ${msg_multi_out_path}/px4_${msg}.h)
@@ -440,10 +440,10 @@ function(px4_generate_messages)
 			-d msg
 			-o ${msg_multi_out_path}
 			-e msg/templates/px4/uorb
-			-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${OS}
+			-t ${PX4_BINARY_DIR}/multi_topics_temporary/${OS}
 			-p "px4_"
 		DEPENDS ${DEPENDS} ${MSG_FILES}
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
@@ -504,9 +504,9 @@ function(px4_add_upload)
 	px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
 	add_custom_target(${OUT}
 		COMMAND ${PYTHON_EXECUTABLE}
-			${CMAKE_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${BUNDLE}
+			${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${BUNDLE}
 		DEPENDS ${BUNDLE}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
 		USES_TERMINAL
@@ -523,9 +523,9 @@ function(px4_add_adb_push)
 		ARGN ${ARGN})
 
 	add_custom_target(${OUT}
-		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
+		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh ${FILES} ${DEST}
 		DEPENDS ${DEPENDS}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
 		USES_TERMINAL
@@ -541,9 +541,9 @@ function(px4_add_adb_push_to_bebop)
 		ARGN ${ARGN})
 
 	add_custom_target(${OUT}
-		COMMAND ${CMAKE_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${FILES} ${DEST}
+		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${FILES} ${DEST}
 		DEPENDS ${DEPENDS}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
 		USES_TERMINAL
@@ -559,9 +559,9 @@ function(px4_add_scp_push)
 		ARGN ${ARGN})
 
 	add_custom_target(${OUT}
-		COMMAND ${CMAKE_SOURCE_DIR}/Tools/scp_upload.sh ${FILES} ${DEST}
+		COMMAND ${PX4_SOURCE_DIR}/Tools/scp_upload.sh ${FILES} ${DEST}
 		DEPENDS ${DEPENDS}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
 		USES_TERMINAL
@@ -761,21 +761,21 @@ function(px4_add_common_flags)
 		)
 
 	set(added_include_dirs
-		${CMAKE_SOURCE_DIR}/src
-		${CMAKE_BINARY_DIR}
-		${CMAKE_BINARY_DIR}/src
-		${CMAKE_SOURCE_DIR}/src/modules
-		${CMAKE_SOURCE_DIR}/src/include
-		${CMAKE_SOURCE_DIR}/src/lib
-		${CMAKE_SOURCE_DIR}/src/platforms
+		${PX4_SOURCE_DIR}/src
+		${PX4_BINARY_DIR}
+		${PX4_BINARY_DIR}/src
+		${PX4_SOURCE_DIR}/src/modules
+		${PX4_SOURCE_DIR}/src/include
+		${PX4_SOURCE_DIR}/src/lib
+		${PX4_SOURCE_DIR}/src/platforms
 		# TODO Build/versioning was in Makefile,
 		# do we need this, how does it work with cmake
-		${CMAKE_SOURCE_DIR}/src/drivers/boards/${BOARD}
-		${CMAKE_BINARY_DIR}
-		${CMAKE_BINARY_DIR}/src/modules/px4_messages
-		${CMAKE_BINARY_DIR}/src/modules
-		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
-		${CMAKE_SOURCE_DIR}/src/lib/DriverFramework/framework/include
+		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
+		${PX4_BINARY_DIR}
+		${PX4_BINARY_DIR}/src/modules/px4_messages
+		${PX4_BINARY_DIR}/src/modules
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
+		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		)
 
 	list(APPEND added_include_dirs
@@ -858,19 +858,19 @@ function(px4_create_git_hash_header)
 		COMMAND git describe --always --tags
 		OUTPUT_VARIABLE git_tag
 		OUTPUT_STRIP_TRAILING_WHITESPACE
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		)
 	message(STATUS "GIT_TAG = ${git_tag}")
 	execute_process(
 		COMMAND git rev-parse --verify HEAD
 		OUTPUT_VARIABLE git_version
 		OUTPUT_STRIP_TRAILING_WHITESPACE
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		)
 	#message(STATUS "GIT_VERSION = ${git_version}")
 	set(git_version_short)
 	string(SUBSTRING ${git_version} 1 16 git_version_short)
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
+	configure_file(${PX4_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 
 #=============================================================================
@@ -897,12 +897,12 @@ function(px4_generate_parameters_xml)
 		ONE_VALUE OUT BOARD
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
-	set(path ${CMAKE_SOURCE_DIR}/src)
+	set(path ${PX4_SOURCE_DIR}/src)
 	file(GLOB_RECURSE param_src_files
-		${CMAKE_SOURCE_DIR}/src/*params.c
+		${PX4_SOURCE_DIR}/src/*params.c
 		)
 	add_custom_command(OUTPUT ${OUT}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
 		DEPENDS ${param_src_files}
 		)
@@ -944,7 +944,7 @@ function(px4_generate_parameters_source)
 		set(SCOPE "")
 	endif()
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
 		DEPENDS ${XML} ${DEPS} ${SCOPE}
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
@@ -975,10 +975,10 @@ function(px4_generate_airframes_xml)
 		ONE_VALUE OUT BOARD
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
-	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
+	set(process_airframes ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
-			-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
+			-a ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)

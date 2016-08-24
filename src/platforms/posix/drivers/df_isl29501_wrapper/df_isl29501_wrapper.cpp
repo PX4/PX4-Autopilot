@@ -57,6 +57,7 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_range_finder.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>

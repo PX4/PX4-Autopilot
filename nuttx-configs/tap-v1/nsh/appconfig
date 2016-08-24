@@ -1,6 +1,8 @@
 ############################################################################
+# configs/px4fmu/nsh/appconfig
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
+# 3. Neither the name NuttX nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,20 +33,20 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+# Path to example in apps/examples containing the user_start entry point
 
-px4_generate_parameters_source(OUT param_files
-	XML ${PX4_BINARY_DIR}/parameters.xml
-	SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
-	DEPS xml_gen
-	)
+CONFIGURED_APPS	+= examples/nsh
 
-px4_add_module(
-	MODULE modules__param
-	COMPILE_FLAGS
-		-Os
-	SRCS ${param_files}
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# The NSH application library
+CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += system/readline
+
+ifeq ($(CONFIG_CAN),y)
+#CONFIGURED_APPS += examples/can
+endif
+
+#ifeq ($(CONFIG_USBDEV),y)
+#ifeq ($(CONFIG_CDCACM),y)
+CONFIGURED_APPS += examples/cdcacm
+#endif
+#endif

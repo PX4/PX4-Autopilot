@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 
 #include <uORB/topics/vehicle_status.h>
@@ -20,8 +21,7 @@ public:
 	void trigger(bool enable);
 	void keep_alive(bool signal_on);
 
-	int powerOn();
-	int powerOff();
+	void turn_on_off(bool enable);
 
 	void info();
 
