@@ -56,7 +56,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The PX4FMU uses a 24MHz crystal connected to the HSE.
+/* The Crazyflie 2.0 uses a 8MHz crystal connected to the HSE.
  *
  * This is the canonical configuration:
  *   System Clock source           : PLL (HSE)
@@ -65,8 +65,8 @@
  *   AHB Prescaler                 : 1            (STM32_RCC_CFGR_HPRE)
  *   APB1 Prescaler                : 4            (STM32_RCC_CFGR_PPRE1)
  *   APB2 Prescaler                : 2            (STM32_RCC_CFGR_PPRE2)
- *   HSE Frequency(Hz)             : 24000000     (STM32_BOARD_XTAL)
- *   PLLM                          : 24           (STM32_PLLCFG_PLLM)
+ *   HSE Frequency(Hz)             : 8000000      (STM32_BOARD_XTAL)
+ *   PLLM                          : 8            (STM32_PLLCFG_PLLM)
  *   PLLN                          : 336          (STM32_PLLCFG_PLLN)
  *   PLLP                          : 2            (STM32_PLLCFG_PLLP)
  *   PLLQ                          : 7            (STM32_PLLCFG_PLLQ)
@@ -81,7 +81,7 @@
 
 /* HSI - 16 MHz RC factory-trimmed
  * LSI - 32 KHz RC
- * HSE - On-board crystal frequency is 24MHz
+ * HSE - On-board crystal frequency is 8MHz
  * LSE - not installed
  */
 
@@ -171,7 +171,6 @@
 #define GPIO_USART3_TX	GPIO_USART3_TX_2
 
 /* NRF51 via syslink */
-// TODO: Flow control?
 #define GPIO_USART6_RX	GPIO_USART6_RX_1
 #define GPIO_USART6_TX	GPIO_USART6_TX_1
 
@@ -198,7 +197,7 @@
 /*
  * SPI
  *
- * There are sensors on SPI1, and SPI3 is connected to the microSD slot.
+ * E_MISO, E_MOSI, E_SCK exposed on headers
  */
 #define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
