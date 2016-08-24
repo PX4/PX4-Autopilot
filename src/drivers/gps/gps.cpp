@@ -85,6 +85,7 @@
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
+#include "devices/src/oem615.h"
 
 
 #define TIMEOUT_5HZ 500
@@ -700,6 +701,10 @@ GPS::task_main()
 				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
+			case GPS_DRIVER_MODE_OEM615:
+				_helper = new GPSDriverOEM615(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				break;
+
 			default:
 				break;
 			}
@@ -806,6 +811,14 @@ GPS::task_main()
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
+				_mode = GPS_DRIVER_MODE_OEM615;
+				break;
+
+//			case GPS_DRIVER_MODE_MTK:
+//				_mode = GPS_DRIVER_MODE_OEM615;
+//				break;
+
+			case GPS_DRIVER_MODE_OEM615:
 				_mode = GPS_DRIVER_MODE_UBX;
 				break;
 
@@ -872,6 +885,10 @@ GPS::print_info()
 			PX4_WARN("protocol: ASHTECH");
 			break;
 
+		case GPS_DRIVER_MODE_OEM615:
+			PX4_WARN("protocol: OEM615");
+			break;
+
 		default:
 			break;
 		}
@@ -905,6 +922,7 @@ void
 GPS::publish()
 {
 	if (_gps_num == 1) {
+		_report_gps_pos.satellites_used = 10;
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
 		is_gps1_advertised = true;

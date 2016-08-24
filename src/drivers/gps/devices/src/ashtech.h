@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013. All rights reserved.
+ *   Author: Boriskin Aleksey <a.d.boriskin@gmail.com>
+ *           Kistanov Alexander <akistanov@gramant.ru>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,31 +33,54 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_gps.h
- *
- * GPS driver interface.
- */
+/* @file ASHTECH protocol definitions */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "gps_helper.h"
+#include "../../definitions.h"
 
-#include "board_config.h"
+#define ASHTECH_RECV_BUFFER_SIZE 512
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
 
-#ifndef GPS_DEFAULT_UART_PORT
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-#endif
+class GPSDriverAshtech : public GPSHelper
+{
+public:
+	GPSDriverAshtech(GPSCallbackPtr callback, void *callback_user, struct vehicle_gps_position_s *gps_position,
+			 struct satellite_info_s *satellite_info);
+	virtual ~GPSDriverAshtech();
+	int receive(unsigned timeout);
+	int configure(unsigned &baudrate, OutputMode output_mode);
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH,
-	GPS_DRIVER_MODE_OEM615
-} gps_driver_mode_t;
+
+private:
+	void decodeInit(void);
+	int handleMessage(int len);
+	int parseChar(uint8_t b);
+
+	/** Read int ASHTECH parameter */
+	int32_t read_int();
+	/** Read float ASHTECH parameter */
+	double read_float();
+	/** Read char ASHTECH parameter */
+	char read_char();
+
+	enum ashtech_decode_state_t {
+		NME_DECODE_UNINIT,
+		NME_DECODE_GOT_SYNC1,
+		NME_DECODE_GOT_ASTERIKS,
+		NME_DECODE_GOT_FIRST_CS_BYTE
+	};
+
+	struct satellite_info_s *_satellite_info;
+	struct vehicle_gps_position_s *_gps_position;
+	uint64_t _last_timestamp_time;
+	int _ashtechlog_fd;
+
+	ashtech_decode_state_t _decode_state;
+	uint8_t _rx_buffer[ASHTECH_RECV_BUFFER_SIZE];
+	uint16_t _rx_buffer_bytes;
+	bool _parse_error; /** parse error flag */
+	char *_parse_pos; /** parse position */
+};
 
