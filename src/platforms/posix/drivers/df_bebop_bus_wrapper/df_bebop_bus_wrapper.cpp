@@ -50,10 +50,11 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/battery_status.h>
 
 #include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>
 #include <DevMgr.hpp>
@@ -65,18 +66,34 @@ using namespace DriverFramework;
 class DfBebopBusWrapper : public BebopBus
 {
 public:
-  DfBebopBusWrapper();
-  ~DfBebopBusWrapper() = default;
+	DfBebopBusWrapper();
+	~DfBebopBusWrapper() = default;
 
-  int start();
-  int stop();
-  int print_info();
+	int start();
+	int stop();
+	int print_info();
+	int start_motors();
+	int stop_motors();
+	int clear_errors();
+	int set_esc_speeds(const float pwm[4]);
+
+	void set_last_throttle(float throttle) {_last_throttle = throttle;};
 
 private:
+	orb_advert_t _battery_topic;
+
+	Battery _battery;
+	bool _armed;
+	float _last_throttle;
+
+	int _battery_orb_class_instance;
+
+	int _publish(struct bebop_state_data &data);
 };
 
 DfBebopBusWrapper::DfBebopBusWrapper() :
-  BebopBus(BEBOP_BUS_DEVICE_PATH)
+	BebopBus(BEBOP_BUS_DEVICE_PATH), _battery_topic(nullptr), _battery(), _armed(false), _last_throttle(0.0f),
+	_battery_orb_class_instance(-1)
 {}
 
 int DfBebopBusWrapper::start()
@@ -96,10 +113,14 @@ int DfBebopBusWrapper::start()
 		return ret;
 	}
 
+	// Signal bus start on Bebop
+	BebopBus::_play_sound(BebopBus::BOOT);
+
 	return 0;
 }
 
-int DfBebopBusWrapper::stop() {
+int DfBebopBusWrapper::stop()
+{
 
 	int ret = BebopBus::stop();
 
@@ -113,13 +134,12 @@ int DfBebopBusWrapper::stop() {
 
 int DfBebopBusWrapper::print_info()
 {
-  bebop_bus_info info;
+	bebop_bus_info info;
 	int ret = _get_info(&info);
 
-	if (ret < 0)
-  {
-    return -1;
-  }
+	if (ret < 0) {
+		return -1;
+	}
 
 	PX4_INFO("Bebop Controller Info");
 	PX4_INFO("  Software Version: %d.%d", info.version_major, info.version_minor);
@@ -130,19 +150,67 @@ int DfBebopBusWrapper::print_info()
 	PX4_INFO("  Total flight time: %d", info.total_flight_time);
 	PX4_INFO("  Last Error: %d\n", info.last_error);
 
-  return 0;
+	return 0;
+}
+
+int DfBebopBusWrapper::start_motors()
+{
+	_armed = true;
+	return BebopBus::_start_motors();
+}
+
+int DfBebopBusWrapper::stop_motors()
+{
+	_armed = false;
+	return BebopBus::_stop_motors();
+}
+
+int DfBebopBusWrapper::clear_errors()
+{
+	return BebopBus::_clear_errors();
+}
+
+int DfBebopBusWrapper::set_esc_speeds(const float pwm[4])
+{
+	return BebopBus::_set_esc_speed(pwm);
+}
+
+int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
+{
+
+	battery_status_s battery_report;
+	const hrt_abstime timestamp = hrt_absolute_time();
+
+	// TODO Check if this is the right way for the Bebop
+	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, _last_throttle, _armed, &battery_report);
+
+	// TODO: when is this ever blocked?
+	if (!(m_pub_blocked)) {
+
+		if (_battery_topic == nullptr) {
+			_battery_topic = orb_advertise_multi(ORB_ID(battery_status), &battery_report,
+							     &_battery_orb_class_instance, ORB_PRIO_LOW);
+
+		} else {
+			orb_publish(ORB_ID(battery_status), _battery_topic, &battery_report);
+		}
+
+	}
+
+	return 0;
 }
 
 namespace df_bebop_bus_wrapper
 {
-  
-DfBebopBusWrapper *g_dev = nullptr;
-volatile bool _task_should_exit = false; // flag indicating if snapdragon_rc_pwm task should exit
-static bool _is_running = false;         // flag indicating if snapdragon_rc_pwm app is running
+
+DfBebopBusWrapper *g_dev = nullptr;      // interface to the Bebop's I2C device
+volatile bool _task_should_exit = false; // flag indicating if bebop esc control task should exit
+static bool _is_running = false;         // flag indicating if bebop esc  app is running
+static bool _motors_running = false;     // flag indicating if the motors are running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 
 static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "";
+static const char *MIXER_FILENAME = "/home/root/quad_x.main.mix";
 
 // subscriptions
 int     _controls_sub;
@@ -153,34 +221,26 @@ orb_advert_t    _outputs_pub = nullptr;
 orb_advert_t    _rc_pub = nullptr;
 
 // topic structures
-actuator_controls_s _controls;
+actuator_controls_s _controls[1];
 actuator_outputs_s  _outputs;
 actuator_armed_s    _armed;
 
-pwm_limit_t     _pwm_limit;
-
-// esc parameters
-int32_t _pwm_disarmed;
-int32_t _pwm_min;
-int32_t _pwm_max;
-
-MultirotorMixer *_mixer = nullptr;
+MixerGroup *_mixers = nullptr;
 
 int start();
 int stop();
 int info();
 void usage();
-void send_outputs_pwm(const uint16_t *pwm);
 void task_main(int argc, char *argv[]);
 
-/* mixer initialization */
-int initialize_mixer(const char *mixer_filename);
-int mixer_control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
+/* mixers initialization */
+int initialize_mixers(const char *mixers_filename);
+int mixers_control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
-int mixer_control_callback(uintptr_t handle,
-			   uint8_t control_group,
-			   uint8_t control_index,
-			   float &input)
+int mixers_control_callback(uintptr_t handle,
+			    uint8_t control_group,
+			    uint8_t control_index,
+			    float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -189,70 +249,44 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
-int initialize_mixer(const char *mixer_filename)
+int initialize_mixers(const char *mixers_filename)
 {
-	char buf[2048];
+	char buf[2048] = {0};
 	size_t buflen = sizeof(buf);
 
-	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
+	PX4_INFO("Trying to initialize mixers from config file %s", mixers_filename);
 
-	int fd_load = ::open(mixer_filename, O_RDONLY);
+	if (load_mixer_file(mixers_filename, &buf[0], sizeof(buf)) < 0) {
+		warnx("can't load mixer: %s", mixers_filename);
+		return -1;
+	}
 
-	if (fd_load != -1) {
-		int nRead = ::read(fd_load, buf, buflen);
-		close(fd_load);
+	if (_mixers == nullptr) {
+		_mixers = new MixerGroup(mixers_control_callback, (uintptr_t)_controls);
+	}
 
-		if (nRead > 0) {
-			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
-
-			if (_mixer != nullptr) {
-				PX4_INFO("Successfully initialized mixer from config file");
-				return 0;
-
-			} else {
-				PX4_ERR("Unable to parse from mixer config file");
-				return -1;
-			}
-
-		} else {
-			PX4_WARN("Unable to read from mixer config file");
-			return -2;
-		}
+	if (_mixers == nullptr) {
+		PX4_ERR("No mixers available");
+		return -1;
 
 	} else {
-		PX4_WARN("No mixer config file found, using default mixer.");
+		int ret = _mixers->load_from_buf(buf, buflen);
 
-		/* Mixer file loading failed, fall back to default mixer configuration for
-		* QUAD_X airframe. */
-		float roll_scale = 1;
-		float pitch_scale = 1;
-		float yaw_scale = 1;
-		float deadband = 0;
-
-		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					     MultirotorGeometry::QUAD_X,
-					     roll_scale, pitch_scale, yaw_scale, deadband);
-
-		// TODO: temporary hack to make this compile
-		(void)_config_index[0];
-
-		if (_mixer == nullptr) {
-			PX4_ERR("Mixer initialization failed");
-			return -1;
+		if (ret != 0) {
+			PX4_ERR("Unable to parse mixers file");
+			delete _mixers;
+			_mixers = nullptr;
+			ret = -1;
 		}
 
 		return 0;
 	}
 }
 
-void send_outputs_pwm(const uint16_t *pwm)
-{
-  PX4_INFO("%d %d %d %d", pwm[0], pwm[1], pwm[2], pwm[3]);
-}
-
 void task_main(int argc, char *argv[])
 {
 	_is_running = true;
+	_motors_running = false;
 
 	// Subscribe for orb topics
 	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
@@ -269,13 +303,14 @@ void task_main(int argc, char *argv[])
 	/* Don't limit poll intervall for now, 250 Hz should be fine. */
 	//orb_set_interval(_controls_sub, 10);
 
-	// Set up mixer
-	if (initialize_mixer(MIXER_FILENAME) < 0) {
+	// Set up mixers
+	if (initialize_mixers(MIXER_FILENAME) < 0) {
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
 
-	pwm_limit_init(&_pwm_limit);
+	// TODO check if we have to adjust the frequency
+	//orb_set_interval(_controls_sub, 1000);
 
 	// Main loop
 	while (!_task_should_exit) {
@@ -296,49 +331,54 @@ void task_main(int argc, char *argv[])
 		}
 
 		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
+			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls[0]);
 
-			_outputs.timestamp = _controls.timestamp;
+			_outputs.timestamp = _controls[0].timestamp;
 
-			/* do mixing */
-			_outputs.noutputs = _mixer->mix(_outputs.output,
-							0 /* not used */,
-							NULL);
 
+			if (_mixers != nullptr) {
+				/* do mixing */
+				_outputs.noutputs = _mixers->mix(_outputs.output,
+								 4,
+								 NULL);
+			}
+
+			// Set last throttle for battery calculations
+			g_dev->set_last_throttle(_controls[0].control[3]);
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = _outputs.noutputs;
-			     i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
+			for (size_t i = _outputs.noutputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
 			     i++) {
 				_outputs.output[i] = NAN;
 			}
 
-			const uint16_t reverse_mask = 0;
-			uint16_t disarmed_pwm[4];
-			uint16_t min_pwm[4];
-			uint16_t max_pwm[4];
+			float motor_out[4];
 
-			for (unsigned int i = 0; i < 4; i++) {
-				disarmed_pwm[i] = _pwm_disarmed;
-				min_pwm[i] = _pwm_min;
-				max_pwm[i] = _pwm_max;
+			for (size_t i = 0; i < 4; ++i) {
+				if (i < _outputs.noutputs &&
+				    PX4_ISFINITE(_outputs.output[i]) &&
+				    _outputs.output[i] >= -1.0f &&
+				    _outputs.output[i] <= 1.0f) {
+					/* scale for Bebop output 0.0 - 1.0 */
+					_outputs.output[i] = (_outputs.output[i] + 1.0f) / 2.0f;
+
+				} else {
+					/*
+					 * Value is NaN, INF or out of band - set to the minimum value.
+					 * This will be clearly visible on the servo status and will limit the risk of accidentally
+					 * spinning motors. It would be deadly in flight.
+					 */
+					_outputs.output[i] = 0.0;
+				}
 			}
 
-			uint16_t pwm[4];
+			// Adjust order of BLDCs from PX4 to Bebop
+			motor_out[0] = _outputs.output[2];
+			motor_out[1] = _outputs.output[0];
+			motor_out[2] = _outputs.output[3];
+			motor_out[3] = _outputs.output[1];
 
-			// TODO FIXME: pre-armed seems broken
-			pwm_limit_calc(_armed.armed,
-				       false/*_armed.prearmed*/,
-				       _outputs.noutputs,
-				       reverse_mask,
-				       disarmed_pwm,
-				       min_pwm,
-				       max_pwm,
-				       _outputs.output,
-				       pwm,
-				       &_pwm_limit);
-
-			send_outputs_pwm(pwm);
+			g_dev->set_esc_speeds(motor_out);
 
 			if (_outputs_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
@@ -353,6 +393,17 @@ void task_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+		}
+
+		if (_armed.armed && !_motors_running) {
+			g_dev->start_motors();
+			_motors_running = true;
+		}
+
+		if (!_armed.armed && _motors_running) {
+			g_dev->stop_motors();
+			g_dev->clear_errors();
+			_motors_running = false;
 		}
 	}
 
@@ -379,7 +430,7 @@ int start()
 		return ret;
 	}
 
-	// Open the MAG sensor
+	// Open the Bebop dirver
 	DevHandle h;
 	DevMgr::getHandle(BEBOP_BUS_DEVICE_PATH, h);
 
@@ -391,7 +442,7 @@ int start()
 
 	DevMgr::releaseHandle(h);
 
-  // Start the task to forward the motor control commands
+	// Start the task to forward the motor control commands
 	ASSERT(_task_handle == -1);
 
 	/* start the task */
@@ -413,7 +464,7 @@ int start()
 
 int stop()
 {
-  // Stop bebop motor control task
+	// Stop bebop motor control task
 	_task_should_exit = true;
 
 	while (_is_running) {
@@ -428,7 +479,7 @@ int stop()
 		return 1;
 	}
 
-  // Stop DF device
+	// Stop DF device
 	int ret = g_dev->stop();
 
 	if (ret != 0) {
@@ -455,9 +506,10 @@ info()
 	PX4_DEBUG("state @ %p", g_dev);
 
 	int ret = g_dev->print_info();
+
 	if (ret != 0) {
-	  PX4_ERR("Unable to print info");
-	  return ret;
+		PX4_ERR("Unable to print info");
+		return ret;
 	}
 
 	return 0;
@@ -469,7 +521,7 @@ usage()
 	PX4_INFO("Usage: df_bebop_bus_wrapper 'start', 'info', 'stop'");
 }
 
-} /* df_bebop_bus_wrapper */ 
+} /* df_bebop_bus_wrapper */
 
 
 int
