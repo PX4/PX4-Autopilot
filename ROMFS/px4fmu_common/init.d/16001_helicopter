@@ -12,9 +12,9 @@ sh /etc/init.d/rc.mc_defaults
 # Configure as helicopter (number 4 defined in commander_helper.cpp)
 set MAV_TYPE 4
 
-set MIXER heli_120deg
+set MIXER blade130
 
-set PWM_OUT 1234
+#set PWM_OUT 1234
 
 if [ $AUTOCNF == yes ]
 then
@@ -39,7 +39,9 @@ then
 	param set MC_ACRO_R_MAX 360.0
 	param set MC_ACRO_P_MAX 360.0
 
+#	param set PWM_DISARMED 1500
 	param set PWM_MIN 1075
+#	param set PWM_MAX 1950
 
 	param set MPC_THR_MIN 0.06
 	param set MPC_MANTHR_MIN 0.06
@@ -48,3 +50,5 @@ then
 
 	param set CBRK_IO_SAFETY 22027
 fi
+
+set HIL no
