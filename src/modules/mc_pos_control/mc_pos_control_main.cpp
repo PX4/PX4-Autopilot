@@ -2061,10 +2061,12 @@ MulticopterPositionControl::task_main()
 						float dRoll = 0.0f;
 						float dPitch = 0.0f;
 						float dYaw = 0.0f;
+
 						if (tilt_error < M_PI_4_F) {
 							dRoll = _manual.y * _params.acro_rollRate_max * dt;
 							dPitch = -_manual.x * _params.acro_pitchRate_max * dt;
 						}
+
 						if (yaw_error < M_PI_4_F) {
 							dYaw = _manual.r * _params.acro_yawRate_max * dt;
 						}
