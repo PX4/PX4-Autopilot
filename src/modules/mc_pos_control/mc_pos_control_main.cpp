@@ -485,6 +485,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acro_rollRate_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitchRate_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yawRate_max	= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
