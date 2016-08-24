@@ -279,9 +279,9 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 	mag_report.timestamp = hrt_absolute_time();
 
 	// TODO: remove these (or get the values)
-	mag_report.x_raw = NAN;
-	mag_report.y_raw = NAN;
-	mag_report.z_raw = NAN;
+	mag_report.x_raw = 0;
+	mag_report.y_raw = 0;
+	mag_report.z_raw = 0;
 
 	math::Vector<3> mag_val(data.field_x_ga, data.field_y_ga, data.field_z_ga);
 
