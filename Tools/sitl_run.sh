@@ -47,21 +47,14 @@ then
 	exit 1
 fi
 
-command_exists () {
-    type "$1" &> /dev/null ;
-}
-
 # kill process names that might stil
 # be running from last time
 pgrep gazebo && pkill gazebo
 pgrep px4 && pkill px4
-if command_exists jps
+jmavsim_pid=`ps aux | grep java | grep Simulator | cut -d" " -f1`
+if [ -n "$jmavsim_pid" ]
 then
-	jmavsim_pid=`jps | grep Simulator | cut -d" " -f1`
-	if [ -n "$jmavsim_pid" ]
-	then
-		kill $jmavsim_pid
-	fi
+	kill $jmavsim_pid
 fi
 
 cp $src_path/Tools/posix_lldbinit $working_dir/.lldbinit
