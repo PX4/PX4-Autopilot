@@ -84,7 +84,7 @@ def main():
                 for line in f:
                     # handle mixer files differently than startup files
                     if file_path.endswith(".mix"):
-                        if line.startswith(("Z:", "M:", "R: ", "O:", "S:")):
+                        if line.startswith(("Z:", "M:", "R: ", "O:", "S:", "H:", "T:", "P:")):
                                             pruned_content += line
                     else:
                         if not line.isspace() \
