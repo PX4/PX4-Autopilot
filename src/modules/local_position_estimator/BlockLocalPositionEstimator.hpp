@@ -204,6 +204,7 @@ private:
 	// misc
 	float agl();
 	void correctionLogic(Vector<float, n_x> &dx);
+	void covPropagationLogic(Matrix<float, n_x, n_x> &dP);
 	void detectDistanceSensors();
 
 	// publications
