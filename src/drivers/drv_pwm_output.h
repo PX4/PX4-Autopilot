@@ -73,6 +73,19 @@ __BEGIN_DECLS
  */
 //#define PWM_OUTPUT_MAX_CHANNELS	16
 
+#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
+
+/* PWM directly wired to transistor. Duty cycle directly corresponds to power */
+#define PWM_LOWEST_MIN 0
+#define PWM_MOTOR_OFF	0
+#define PWM_DEFAULT_MIN 0
+#define PWM_HIGHEST_MIN 0
+#define PWM_HIGHEST_MAX 255
+#define PWM_DEFAULT_MAX 255
+#define PWM_LOWEST_MAX 255
+
+#else
+
 /**
  * Lowest minimum PWM in us
  */
@@ -107,6 +120,8 @@ __BEGIN_DECLS
  * Lowest PWM allowed as the maximum PWM
  */
 #define PWM_LOWEST_MAX 200
+
+#endif
 
 /**
  * Do not output a channel with this value

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
- *   Author: Tim Dyer <dyer.ti@gmail.com>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,19 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file tone_alarm.c
- *
- * Dummy tone_alarm to prevent nsh errors.
- *
- * @author Tim Dyer <dyer.ti@gmail.com>
- */
+#include "board_config.h"
 
-#include <px4_defines.h>
-
-__EXPORT int tone_alarm_main(int argc, char *argv[]);
-
-int tone_alarm_main(int argc, char *argv[])
+__EXPORT void board_spi_reset(int ms)
 {
-	return OK;
+	/* Do nothing, no SPI devices used */
 }

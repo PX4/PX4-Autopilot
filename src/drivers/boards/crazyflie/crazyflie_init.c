@@ -174,7 +174,7 @@ __EXPORT int nsh_archinitialize(void)
 	result = board_i2c_initialize();
 
 	if (result != OK) {
-		led_on(1);
+		//led_on(1);
 		return -ENODEV;
 	}
 

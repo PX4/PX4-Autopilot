@@ -60,19 +60,29 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* PX4-STM32F4Discovery GPIOs ***********************************************************************************/
+/* Crazyflie GPIOs **********************************************************************************/
 /* LEDs */
-// LED1 green, LED2 orange, LED3 red, LED4 blue
 
 
-#define GPIO_LED1       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			 GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_LED2       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			 GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_LED3       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			 GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_LED4       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			 GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
+/* Radio TX indicator */
+#define GPIO_LED_RED_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN0)
+/* Radio RX indicator */
+#define GPIO_LED_GREEN_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN1)
+#define GPIO_LED_GREEN_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
+#define GPIO_LED_RED_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
+
+/* Blinking while charging */
+#define GPIO_LED_BLUE_L		(GPIO_OUTPUT|GPIO_PORTD|GPIO_PIN2)
+
+
+#define GPIO_FSYNC_MPU9250		(GPIO_OUTPUT|GPIO_PORTC|GPIO_PIN14) // Needs to be set low
+#define GPIO_DRDY_MPU9250		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
+
+
 
 /*
  * I2C busses
@@ -128,6 +138,7 @@ __BEGIN_DECLS
 #define GPIO_TIM2_CH4OUT	GPIO_TIM2_CH4OUT_2
 #define GPIO_TIM2_CH1OUT	GPIO_TIM2_CH1OUT_2
 #define GPIO_TIM4_CH4OUT	GPIO_TIM4_CH4OUT_1
+#define DIRECT_PWM_OUTPUT_CHANNELS	4
 
 #define GPIO_TIM2_CH2IN		GPIO_TIM2_CH2IN_1
 #define GPIO_TIM2_CH4IN		GPIO_TIM2_CH4IN_2
@@ -139,6 +150,15 @@ __BEGIN_DECLS
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
+
+
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB { {0, 0, 0}, }
+
+
+
 
 /****************************************************************************************************
  * Public Types
@@ -163,8 +183,11 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
+
+extern void board_peripheral_reset(int ms);
 
 /****************************************************************************
  * Name: nsh_archinitialize
