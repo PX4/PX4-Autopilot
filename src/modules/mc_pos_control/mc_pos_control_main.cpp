@@ -2027,7 +2027,6 @@ MulticopterPositionControl::task_main()
 
 				/* and in ACRO mode */
 				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) {
-					math::Vector<3> eulerAngles;
 
 					if (!_att_sp.R_valid) {
 						/* initialize to current orientation */
@@ -2041,13 +2040,33 @@ MulticopterPositionControl::task_main()
 						R_sp.set(_att_sp.R_body);
 					}
 
-					if (fabsf(_manual.x) > .001f || fabsf(_manual.y) > .001f || fabsf(_manual.r) > .001f) {
+					if (fabsf(_manual.x) > .001f ||
+					    fabsf(_manual.y) > .001f ||
+					    fabsf(_manual.r) > .001f
+					   ) {
+
+						/* limit setpoint rate */
+						math::Quaternion q_cur(_ctrl_state.q);
+						math::Matrix<3, 3> R_cur = q_cur.to_dcm();
+						math::Vector<3> zb(R_cur.data[2]);
+						math::Vector<3> zsp(R_sp.data[2]);
+						float tilt_error = acosf(zb * zsp);
+						math::Vector<3> xb(R_cur.data[0]);
+						math::Vector<3> xsp(R_sp.data[0]);
+						float yaw_error = acosf(xb * xsp);
 
 						/* update attitude setpoint rotation matrix */
-						/* interpret roll/pitch inputs as rate demands */
-						float dRoll = _manual.y * _params.acro_rollRate_max * dt;
-						float dPitch = -_manual.x * _params.acro_pitchRate_max * dt;
-						float dYaw = _manual.r * _params.acro_yawRate_max * dt;
+						/* interpret roll/pitch/yaw inputs as rate demands */
+						float dRoll = 0.0f;
+						float dPitch = 0.0f;
+						float dYaw = 0.0f;
+						if (tilt_error < M_PI_4_F) {
+							dRoll = _manual.y * _params.acro_rollRate_max * dt;
+							dPitch = -_manual.x * _params.acro_pitchRate_max * dt;
+						}
+						if (yaw_error < M_PI_4_F) {
+							dYaw = _manual.r * _params.acro_yawRate_max * dt;
+						}
 
 						math::Matrix<3, 3> R_xyz;
 						R_xyz.from_euler(dRoll, dPitch, dYaw);
@@ -2063,7 +2082,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-					eulerAngles = R_sp.to_euler();
+					math::Vector<3> eulerAngles = R_sp.to_euler();
 					_att_sp.roll_body = eulerAngles.data[0];
 					_att_sp.pitch_body = eulerAngles.data[1];
 					_att_sp.yaw_body = eulerAngles.data[2];
