@@ -59,6 +59,8 @@ ifneq ($(CMAKE_VER),0)
     $(error Fatal)
 endif
 
+include additional_targets.mk
+
 # Help
 # --------------------------------------------------------------------
 # Don't be afraid of this makefile, it is just passing
@@ -234,7 +236,7 @@ run_sitl_ros: sitl_deprecation
 # --------------------------------------------------------------------
 
 .PHONY: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL:
 
 gazebo_build:
 	@mkdir -p build_gazebo
@@ -248,35 +250,31 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
-checks_defaults: \
-	check_px4fmu-v1_default \
+check_px4fmu-v4_default: uavcan_firmware
+check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
+	@echo
+ifeq ($(VECTORCONTROL),1)
+	@echo "Cleaning up vectorcontrol firmware"
+	@rm -rf vectorcontrol
+	@rm -rf ROMFS/px4fmu_common/uavcan
+endif
+
+# All default targets that don't require a special build environment (currently built on semaphore-ci)
+check: 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
-	check_px4fmu-v4_default \
+	check_px4fmu-v2_test \
+	check_px4fmu-v4_default_and_uavcan \
 	check_mindpx-v2_default \
-	check_tap-v1_default
-
-checks_bootloaders: \
-
-
-checks_tests: \
-	check_px4fmu-v2_test
-
-checks_alts: \
+	check_posix_sitl_default \
+	check_tap-v1_default \
 	check_asc-v1_default \
-	check_px4-stm32f4discovery_default
-
-checks_uavcan: \
-	check_px4fmu-v4_default_and_uavcan
-
-checks_sitls: \
-	check_posix_sitl_default
-
-checks_last: \
+	check_px4-stm32f4discovery_default \
+	check_additional_targets \
 	check_tests \
-	check_format \
+	check_format
 
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
-quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_posix_sitl_default check_tests check_format
+# quick_check builds a single nuttx and posix target, runs testing, and checks the style
+quick_check: check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -294,15 +292,6 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
-check_px4fmu-v4_default: uavcan_firmware
-check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo
-ifeq ($(VECTORCONTROL),1)
-	@echo "Cleaning up vectorcontrol firmware"
-	@rm -rf vectorcontrol
-	@rm -rf ROMFS/px4fmu_common/uavcan
-endif
-
 unittest: posix_sitl_default
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
@@ -316,7 +305,7 @@ run_tests_posix: posix_sitl_default
 
 tests: check_unittest run_tests_posix
 
-# QGroundControl flashable firmware
+# QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
@@ -324,10 +313,6 @@ qgc_firmware: \
 	check_tap-v1_default \
 	check_px4fmu-v4_default_and_uavcan \
 	check_format
-
-extra_firmware: \
-	check_px4-stm32f4discovery_default \
-	check_px4fmu-v2_test
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
