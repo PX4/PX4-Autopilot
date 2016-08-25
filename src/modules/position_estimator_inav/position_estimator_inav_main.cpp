@@ -575,7 +575,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			                     // 检查lidar的高度估计是否使能以及新的传感器数据
 
 				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance && lidar.current_distance < lidar.max_distance
-			    		&& (PX4_R(att.R, 2, 2) > 0.7f)) {
+			    		&& (PX4_R(att.R, 2, 2) > 0.7f)) {//检查enable_lidar_alt_est参数是否置1，以使能lidar估计
  
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
@@ -585,19 +585,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					lidar_time = t;
 					dist_ground = lidar.current_distance * PX4_R(att.R, 2, 2); //vertical distance 垂直距离
+																			   // 当机体x0y平面倾斜时，d为超声波测距lidar.current_distance
+																			   // cos(theta)为两坐标系z轴的夹角PX4_R(att.R, 2, 2)
+																			   // 与地面垂直距离为 d * cos(theta)
 
 					if (lidar_first) {
-						lidar_first = false;
+						lidar_first = false; //初次检验的值仅适用于首次
 						lidar_offset = dist_ground + z_est[0]; // 更新偏移
 						mavlink_log_info(&mavlink_log_pub, "[inav] LIDAR: new ground offset");
 						warnx("[inav] LIDAR: new ground offset");
 					}
 
-					corr_lidar = lidar_offset - dist_ground - z_est[0];  //更新校正值,即上一次的偏移lidar_offset
+					corr_lidar = lidar_offset - dist_ground - z_est[0];  //更新校正值
 
-					if (fabsf(corr_lidar) > params.lidar_err) { //check for spike
+					if (fabsf(corr_lidar) > params.lidar_err) { //check for skiped
 						corr_lidar = 0;
-						lidar_valid = false;
+						lidar_valid = false; //要使用光流首要要求lidar_valid为真
 						lidar_offset_count++;
 
 						if (lidar_offset_count > 3) { //if consecutive bigger/smaller measurements -> new ground offset -> reinit
@@ -613,7 +616,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						lidar_offset_count = 0;
 						lidar_valid_time = t;
 					}
-				} else {
+				} else { // enable_lidar_alt_est=0
 					lidar_valid = false;
 				}
 			}
@@ -638,14 +641,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
-					// 计算机体坐标系中的估计速度
-					float body_v_est[2] = { 0.0f, 0.0f };
+					// 计算机体坐标系中x、y轴向的估计速度
+					float body_v_est[2] = { 0.0f, 0.0f }; 
 
-					for (int i = 0; i < 2; i++) {
+					for (int i = 0; i < 2; i++) { //将估计的机体速度转换到地球坐标系x,y轴上
 						body_v_est[i] = PX4_R(att.R, 0, i) * x_est[1] + PX4_R(att.R, 1, i) * y_est[1] + PX4_R(att.R, 2, i) * z_est[1];
 					}
 
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
+					//根据当前的速度和角速度估计判断光流是否精确，并将此标志位置位
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
 							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
 
@@ -657,11 +661,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					//moving average
 					//每百次获取一次偏差，求均值
-					if (n_flow >= 100) {
+					if (n_flow >= 100) { //开始n_flow=0，进入else()
 						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
 						gyro_offset_filtered[1] = flow_gyrospeed_filtered[1] - att_gyrospeed_filtered[1];
 						gyro_offset_filtered[2] = flow_gyrospeed_filtered[2] - att_gyrospeed_filtered[2];
-						n_flow = 0;
+						n_flow = 0;  // 清零
 						flow_gyrospeed_filtered[0] = 0.0f;
 						flow_gyrospeed_filtered[1] = 0.0f;
 						flow_gyrospeed_filtered[2] = 0.0f;
@@ -669,7 +673,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						att_gyrospeed_filtered[1] = 0.0f;
 						att_gyrospeed_filtered[2] = 0.0f;
 
-					} else {
+					} else { //迭代更新
 						flow_gyrospeed_filtered[0] = (flow_gyrospeed[0] + n_flow * flow_gyrospeed_filtered[0]) / (n_flow + 1);
 						flow_gyrospeed_filtered[1] = (flow_gyrospeed[1] + n_flow * flow_gyrospeed_filtered[1]) / (n_flow + 1);
 						flow_gyrospeed_filtered[2] = (flow_gyrospeed[2] + n_flow * flow_gyrospeed_filtered[2]) / (n_flow + 1);
@@ -681,7 +685,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 
 					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
-					// 偏航补偿(由于光流传感器不一定在机体的中心) -> 使用QGC中的参数
+					// 偏航补偿(由于光流传感器不一定在机体的中心) -> 使用QGC中的参数也可以进行更改
+					// 实际光流的安装 光流模块的y指向飞控的正前方，即X方向；光流模块的x指向左侧
 					yaw_comp[0] = - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 					yaw_comp[1] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 
@@ -695,6 +700,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					float flow_ang[2];
 
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
+					// 检查飞行器的角度设定值是否更新 -> 如果角度小于阈值 -> 不用减 -> 可以实现更好的悬停效果
 					orb_check(vehicle_rate_sp_sub, &updated);
 					if (updated)
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
@@ -754,17 +760,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_flow[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
 					// 调节校正权重
-					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
+					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);//光流比例因子的权重
+
 					/*
-					 * 根据品质因子，高度和旋转矩阵最后一个数据对光流的权重进行调整
+					 * 根据品质因子，高度以及旋转矩阵的最后一个数据PX4_R(att.R, 2, 2)对光流的权重进行调整
 					 * （这里用到了这个数据，之前判断需要大于0.7的）
 					 */
 					w_flow = PX4_R(att.R, 2, 2) * flow_q_weight / fmaxf(1.0f, flow_dist);
 
 
 					/* if flow is not accurate, reduce weight for it */
+					// 如果光流不准确，则减少光流的权重
 					// TODO make this more fuzzy
-					if (!flow_accurate) {
+					if (!flow_accurate) {  //光流的准确度根据估计的速度与角速度判断
 						w_flow *= 0.05f;
 					}
 
@@ -774,7 +782,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					flow_valid = true;
 
-				} else {
+				} else { //光流距离地面距离过高，或者光流质量太差 
 					w_flow = 0.0f;
 					flow_valid = false;
 				}
