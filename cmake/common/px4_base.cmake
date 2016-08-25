@@ -386,7 +386,7 @@ function(px4_generate_messages)
 			Tools/px_generate_uorb_topic_files.py
 			--headers
 			${QUIET}
-			-d msg
+			-f ${MSG_FILES}
 			-o ${msg_out_path}
 			-e msg/templates/uorb
 			-t ${PX4_BINARY_DIR}/topics_temporary_header
@@ -407,7 +407,7 @@ function(px4_generate_messages)
 			Tools/px_generate_uorb_topic_files.py
 			--sources
 			${QUIET}
-			-d msg
+			-f ${MSG_FILES}
 			-o ${msg_source_out_path}
 			-e msg/templates/uorb
 			-t ${PX4_BINARY_DIR}/topics_temporary_sources
@@ -437,7 +437,7 @@ function(px4_generate_messages)
 			Tools/px_generate_uorb_topic_files.py
 			--headers
 			${QUIET}
-			-d msg
+			-f ${MSG_FILES}
 			-o ${msg_multi_out_path}
 			-e msg/templates/px4/uorb
 			-t ${PX4_BINARY_DIR}/multi_topics_temporary/${OS}
