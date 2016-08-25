@@ -31,6 +31,9 @@
 #
 #############################################################################
 set(MODULE_CFLAGS)
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1400)
+endif()
 px4_add_module(
 	MODULE modules__attitude_estimator_q
 	MAIN attitude_estimator_q
