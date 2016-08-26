@@ -1045,6 +1045,10 @@ PX4FMU::cycle()
 			}
 		}
 
+	}
+
+	_cycle_timestamp = hrt_absolute_time();
+
 		/* can we mix? */
 		if (_mixers != nullptr) {
 
@@ -1132,9 +1136,6 @@ PX4FMU::cycle()
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
 		}
-	}
-
-	_cycle_timestamp = hrt_absolute_time();
 
 #ifdef GPIO_BTN_SAFETY
 
