@@ -686,9 +686,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
 					// 偏航补偿(由于光流传感器不一定在机体的中心) -> 使用QGC中的参数也可以进行更改
-					// 实际光流的安装 光流模块的y指向飞控的正前方，即X方向；光流模块的x指向左侧
+					// 实际光流的安装 光流模块的y指向飞控的正前方，即X方向；光流模块的x指向左侧,即飞控的-Y
+					// 这里皆取反表示补偿？
 					yaw_comp[0] = - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 					yaw_comp[1] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
+					/*
+					 * 光流如果安装在旋转中心，仅有自转时，光流x、y轴的输出应该为0。
+					 * 但是当偏心安装中，仅有自转时，光流x、y轴会有一个额外输出，这个公式就是补偿这个额外的输出
+					 */
 
 					/* convert raw flow to angular flow (rad/s) */
 					/* 
@@ -700,7 +705,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					float flow_ang[2];
 
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
-					// 检查飞行器的角度设定值是否更新 -> 如果角度小于阈值 -> 不用减 -> 可以实现更好的悬停效果
+					// 检查飞行器的目标角度是否更新 -> 如果目標角度小于阈值 -> 不用减 -> 可以实现更好的悬停效果
 					orb_check(vehicle_rate_sp_sub, &updated);
 					if (updated)
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
@@ -714,7 +719,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					else {
 						//warnx("[inav] test mit comp");
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-						// 高于阈值，将光流和陀螺仪获得的偏差补偿到陀螺仪
+						// 高于阈值时，将光流测得的角速度和光流模块上的陀螺仪偏移作为旋转的补偿
 						flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
@@ -730,20 +735,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* flow measurements vector */
-					// 光流测量的向量值
+					// 光流的测量值--距离
 					float flow_m[3];
 					if (fabsf(rates_setpoint.yaw) < rate_threshold) {
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
 					} else {
-					/* 偏航超过阈值用之前的补偿数据来补偿XY平面 */
+					/* 偏航超过阈值时，用之前的补偿数据来补偿XY平面 */
 						flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
 						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					}
 					flow_m[2] = z_est[1];
 
 					/* velocity in NED */
-					// 地球坐标系中的速度
+					// 地理坐标系中的速度
 					float flow_v[2] = { 0.0f, 0.0f };
 
 					/* project measurements vector to NED basis, skip Z component */
@@ -951,8 +956,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
-							// 初始化    将度数转换为弧度
-							map_projection_init(&ref, lat, lon);
+							// 初始化    
+							map_projection_init(&ref, lat, lon); //将度数转换为弧度
 							// XXX replace this print
 							warnx("init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
 							mavlink_log_info(&mavlink_log_pub, "[inav] init ref: %.7f, %.7f, %8.4f", (double)lat, (double)lon, (double)alt);
@@ -977,6 +982,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* calculate index of estimated values in buffer */
 						//计算估计值在缓冲区的位置（0-25，<0则加25）
 						int est_i = buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
+						//delay_gps=INAV_DELAY_GPS=0.2  对GPS延迟的补偿
 
 						if (est_i < 0) {
 							est_i += EST_BUF_SIZE;
@@ -995,7 +1001,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[1][1] = gps.vel_e_m_s - est_buf[est_i][1][1];
 							corr_gps[2][1] = gps.vel_d_m_s - est_buf[est_i][2][1];
 
-						} else {
+						} else {//GPS的ned速度无效，则将速度校准归0
 							corr_gps[0][1] = 0.0f;
 							corr_gps[1][1] = 0.0f;
 							corr_gps[2][1] = 0.0f;
@@ -1346,6 +1352,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
+				//xy方向上的速度位置估计超过限定值，报错并恢复
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 						acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 						corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1356,13 +1363,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				memset(corr_mocap, 0, sizeof(corr_mocap));
 				memset(corr_flow, 0, sizeof(corr_flow));
 
-			} else {
+			} else {//未超限，将x,y当前的估计值作为下一刻的参数
 				memcpy(x_est_prev, x_est, sizeof(x_est));
 				memcpy(y_est_prev, y_est, sizeof(y_est));
 			}
 
 		} else {
 			/* gradually reset xy velocity estimates */
+			// 未使能can_estimate_xy
 			// 将平面内XY轴向的速度量清零，逐次减去自身单位时间量
 			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
@@ -1375,7 +1383,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (inav_verbose_mode) {
 			/* print updates rate */
-			// 满足更新时间条件就输出更新率
+			// 满足更新时间条件就输出更新频率
 			//加速度计，气压计，GPS，高度，光流，视觉和动作捕捉装置
 			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
@@ -1455,7 +1463,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.time_utc_usec = gps.time_utc_usec;
 
 				double est_lat, est_lon;
-				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
+				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon); //反映射，返回角度
 
 				global_pos.lat = est_lat;
 				global_pos.lon = est_lon;
