@@ -561,7 +561,7 @@ private:
 	void			mavlink_update_system();
 
 #ifndef __PX4_QURT
-	int			mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original);
+	int			mavlink_open_uart(int baudrate, const char *uart_name);
 #endif
 
 	static unsigned int	interval_from_rate(float rate);

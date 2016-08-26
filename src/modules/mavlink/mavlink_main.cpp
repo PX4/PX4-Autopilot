@@ -618,7 +618,7 @@ int Mavlink::get_component_id()
 	return mavlink_system.compid;
 }
 
-int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original)
+int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 {
 #ifndef B460800
 	#define B460800 460800
@@ -731,15 +731,12 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	int termios_state;
 	_is_usb_uart = false;
 
-	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
+	/* Initialize the uart config */
+	if ((termios_state = tcgetattr(_uart_fd, &uart_config)) < 0) {
 		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		::close(_uart_fd);
 		return -1;
 	}
-
-	/* Fill the struct for the new configuration */
-	tcgetattr(_uart_fd, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
@@ -767,7 +764,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 #endif
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
+		PX4_WARN("ERR SET CONF %s\n", uart_name);
 		::close(_uart_fd);
 		return -1;
 	}
@@ -787,7 +784,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* setup output flow control */
 		if (enable_flow_control(true)) {
-			warnx("hardware flow control not supported");
+			PX4_WARN("hardware flow control not supported");
 		}
 
 	} else {
@@ -1782,8 +1779,6 @@ Mavlink::task_main(int argc, char *argv[])
 		_datarate = MAX_DATA_RATE;
 	}
 
-	struct termios uart_config_original = {};
-
 	if (get_protocol() == SERIAL) {
 		if (Mavlink::instance_exists(_device_name, this)) {
 			warnx("%s already running", _device_name);
@@ -1797,7 +1792,7 @@ Mavlink::task_main(int argc, char *argv[])
 		fflush(stdout);
 
 		/* default values for arguments */
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name);
 
 		if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
 			warn("could not open %s", _device_name);
@@ -2256,9 +2251,6 @@ Mavlink::task_main(int argc, char *argv[])
 	_subscriptions = nullptr;
 
 	if (_uart_fd >= 0 && !_is_usb_uart) {
-		/* reset the UART flags to original state */
-		tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
-
 		/* close UART */
 		::close(_uart_fd);
 	}
