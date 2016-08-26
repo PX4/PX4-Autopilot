@@ -229,6 +229,11 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 
 /****************************************************************************
  * main
+ * 所需的高度信息是地理坐标系下的相对高度，
+ * 整个算法的核心思想是由地理坐标系下的加速度通过积分，
+ * 来获得速度、位置信息，而这个数据的精确程度是由机体测量的加速度通过减去偏差，
+ * 再转换到地理坐标系求得的。
+ * 这里气压计的作用就是计算一个校正系数来对加速度偏移量进行校正。
  ****************************************************************************/
 int position_estimator_inav_thread_main(int argc, char *argv[])
 {
@@ -448,7 +453,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					} else {
 						wait_baro = false;
-						baro_offset /= (float) baro_init_cnt;
+						baro_offset /= (float) baro_init_cnt; //测量200次，取气压计偏移的平均值
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
@@ -527,10 +532,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
-						// 校正加速度偏差
-						sensor.accelerometer_m_s2[0] -= acc_bias[0];
-						sensor.accelerometer_m_s2[1] -= acc_bias[1];
-						sensor.accelerometer_m_s2[2] -= acc_bias[2];
+						// 校正加速度偏差       
+						sensor.accelerometer_m_s2[0] -= acc_bias[0];   //全部都是为了计算acc_bias[]
+						sensor.accelerometer_m_s2[1] -= acc_bias[1];   //选用各种外置传感器，分别计算其对加速度计偏差的矫正
+						sensor.accelerometer_m_s2[2] -= acc_bias[2];   // 最后对传感器获得的加速度进行校正
 
 						/* transform acceleration vector from body frame to NED frame */
 						// 将加速度向量从机体坐标系转换到地球坐标系
@@ -547,14 +552,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						memset(acc, 0, sizeof(acc));  // 加速度值赋0
 					}
-
+					// 加速度时间戳不断增大，不停更新，代表一直在取得新的加速度值
 					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 					accel_updates++;
 				}
 
 				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0]; // 首次获取气压计的矫正系数
+					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative; //气压计的时间戳更新
 					baro_updates++;
 				}
 			}
@@ -614,7 +619,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						corr_lidar = lidar_offset - dist_ground - z_est[0];
 						lidar_valid = true;
 						lidar_offset_count = 0;
-						lidar_valid_time = t;
+						lidar_valid_time = t; //t = hrt_absolute_time() 更新雷达有效时间
 					}
 				} else { // enable_lidar_alt_est=0
 					lidar_valid = false;
@@ -626,7 +631,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(optical_flow_sub, &updated);
 			
 			// 想用光流 第一个条件就是lidar是否有效，在位置估计里雷达就是距离传感器，
-			//对应的实际就是超声波传感器，（实测lidar的数据都是超声波提供的） 
+			// 对应的实际就是超声波传感器，（实测lidar的数据都是超声波提供的） 
 			if (updated && lidar_valid) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
@@ -651,7 +656,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
 					//根据当前的速度和角速度估计判断光流是否精确，并将此标志位置位
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
-							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
+							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;//机体x对应地理-Y，机体y对应地理X. 速度/距离?
 
 					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
 					// 使用已经校准的自驾仪上的陀螺仪计算光流模块上的陀螺仪的偏移
@@ -741,7 +746,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
 					} else {
-					/* 偏航超过阈值时，用之前的补偿数据来补偿XY平面 */
+					/* 偏航设定值超过阈值时，用之前的补偿数据来补偿XY平面 */
 						flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
 						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					}
@@ -764,18 +769,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_flow[0] = flow_v[0] - x_est[1];
 					corr_flow[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
-					// 调节校正权重
+					// 调节校正权重 
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);//光流比例因子的权重
 
 					/*
 					 * 根据品质因子，高度以及旋转矩阵的最后一个数据PX4_R(att.R, 2, 2)对光流的权重进行调整
-					 * （这里用到了这个数据，之前判断需要大于0.7的）
+					 * （这里用到了这个数据，之前判断需要大于0.7的，cos(theta)>0.7,表示两Z轴之间的夹角较小）
 					 */
 					w_flow = PX4_R(att.R, 2, 2) * flow_q_weight / fmaxf(1.0f, flow_dist);
 
 
 					/* if flow is not accurate, reduce weight for it */
-					// 如果光流不准确，则减少光流的权重
+					// 如果光流不准确，则减少光流的权重，光流测得的角速度(rad/s)<1时，accurate
 					// TODO make this more fuzzy
 					if (!flow_accurate) {  //光流的准确度根据估计的速度与角速度判断
 						w_flow *= 0.05f;
@@ -938,7 +943,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					// 初始化参考位置
 					if (!ref_inited) {
 						if (ref_init_start == 0) {
-							ref_init_start = t;
+							ref_init_start = t; //未初始化参考值，将当前时间赋给初始化开始的时间，即现在开始初始化
 
 						} else if (t > ref_init_start + ref_init_delay) {
 							ref_inited = true;
@@ -950,14 +955,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
 
-							local_pos.ref_lat = lat;
+							local_pos.ref_lat = lat; //将GPS获取的经纬度赋给相对位置的经纬度
 							local_pos.ref_lon = lon;
 							local_pos.ref_alt = alt + z_est[0];
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
 							// 初始化    
-							map_projection_init(&ref, lat, lon); //将度数转换为弧度
+							map_projection_init(&ref, lat, lon); //将度数转换为弧度，弧度才能进行三角运算 sin  cos
 							// XXX replace this print
 							warnx("init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
 							mavlink_log_info(&mavlink_log_pub, "[inav] init ref: %.7f, %.7f, %8.4f", (double)lat, (double)lon, (double)alt);
@@ -969,6 +974,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						// 将GPS的经纬度投射到地面上
 						float gps_proj[2]; //gps_proj变量来保存数据
 						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));// 将当前经纬度信息通过一系列计算后保存到proj中
+																							   // 计算相对起点的绝对位置，该函数中使用到了地球半径
 
 						/* reset position estimate when GPS becomes good */
 						// GPS恢复时重置位置估计 使用gps_proj为位置，之前的GPS速度量为速度。
@@ -1069,7 +1075,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		t_prev = t;
 
 		/* increase EPH/EPV on each step */
-		// 在每一步增加EPH/EPV
+		// 在每一步增加EPH/EPV  因为对于GPS，EPH/EPV过大的话，变invalid
 		if (eph < 0.000001f) { //get case where eph is 0 -> would stay 0
 			eph = 0.001;
 		}
@@ -1132,7 +1138,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	//根据使用工具的情况，更新加速度计和气压计的偏移补偿
 		/* baro offset correction */
 		// 气压计偏移校正
-		if (use_gps_z) {
+		if (use_gps_z) { //如果使用了GPS用于Z轴的估计，则使用GPS再次校正气压计的偏移与矫正系数
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
 			baro_offset += offs_corr;
 			corr_baro += offs_corr;
@@ -1141,6 +1147,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
 		// 使用缓冲区的旋转矩阵来校正加速度计偏差用于GPS
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
+		// 分别计算若使用了相应的外置传感器，Flow，Vision，Mocap
+		//对加速度计偏差的校正量accel_bias_corr[]，然后用于acc_bias[]的计算
 
 		if (use_gps_xy) {
 			accel_bias_corr[0] -= corr_gps[0][0] * w_xy_gps_p * w_xy_gps_p;
@@ -1168,13 +1176,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (PX4_ISFINITE(c)) {
-				acc_bias[i] += c * params.w_acc_bias * dt;
+				acc_bias[i] += c * params.w_acc_bias * dt;  //得到acc_bias[] 用于主循环中加速度计的测量数据校正
 			}
 		}
 
 		/* accelerometer bias correction for VISION (use buffered rotation matrix) */
 		//使用缓冲区的旋转矩阵来校正加速度计偏差用于VISION
-		accel_bias_corr[0] = 0.0f;
+		accel_bias_corr[0] = 0.0f;  //重新初始化，计算其他传感器的accel_bias_corr[ ]
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
 
@@ -1221,15 +1229,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
 
-		if (use_flow) {
+		if (use_flow) { //用光流速度校正系数来计算xy方向上的accel_bias_corr[ ]
 			accel_bias_corr[0] -= corr_flow[0] * params.w_xy_flow;
 			accel_bias_corr[1] -= corr_flow[1] * params.w_xy_flow;
 		}
 
-		if (use_lidar) {
+		if (use_lidar) { ////用雷达校正系数来计算z方向上的accel_bias_corr[ ]
 			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
-		} else {
-			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
+		} else { //气压计的作用就是计算气压计校正系数来对加速度偏移量进行校正
+			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro; 
 		}
 
 		/* transform error vector from NED frame to body frame */
