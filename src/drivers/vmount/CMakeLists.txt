@@ -37,11 +37,14 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-        vmount.cpp
-        vmount_params.c
-        vmount_rc.cpp
-        vmount_mavlink.cpp
-        vmount_onboard.cpp
+		input.cpp
+		input_mavlink.cpp
+		input_rc.cpp
+		output.cpp
+		output_mavlink.cpp
+		output_rc.cpp
+		vmount.cpp
+		vmount_params.c
 	DEPENDS
 		platforms__common
 	)

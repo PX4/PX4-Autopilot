@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -32,24 +32,59 @@
 ****************************************************************************/
 
 /**
- * @file vmount_rc
+ * @file output_rc.cpp
  * @author Leon Müller (thedevleon)
+ * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#ifndef _VMOUNT_RC_H
-#define _VMOUNT_RC_H
+#include "output_rc.h"
 
-#include <sys/types.h>
-#include <stdbool.h>
+#include <uORB/topics/actuator_controls.h>
+#include <px4_defines.h>
 
-// Public functions
-bool vmount_rc_init(void);
-void vmount_rc_deinit(void);
-void vmount_rc_configure(int roi_mode, bool man_control, int normal_mode_new, int locked_mode_new);
-void vmount_rc_set_location(double lat_new, double lon_new, float alt_new);
-void vmount_rc_point(double global_lat, double global_lon, float global_alt);
-void vmount_rc_point_manual(float pitch_new, float roll_new, float yaw_new);
-float vmount_rc_calculate_pitch(double global_lat, double global_lon, float global_alt);
 
-#endif /* _VMOUNT_RC_H */
+namespace vmount
+{
+
+OutputRC::OutputRC(const OutputConfig &output_config)
+	: OutputBase(output_config)
+{
+}
+
+int OutputRC::update(const ControlData *control_data)
+{
+	if (control_data) {
+		//got new command
+		_retract_gimbal = control_data->gimbal_shutter_retract;
+		_set_angle_setpoints(control_data);
+	}
+
+	_handle_position_update();
+
+	hrt_abstime t = hrt_absolute_time();
+	_calculate_output_angles(t);
+
+	actuator_controls_s actuator_controls;
+	actuator_controls.timestamp = hrt_absolute_time();
+	actuator_controls.control[0] = _angle_outputs[0] / M_PI_F;
+	actuator_controls.control[1] = _angle_outputs[1] / M_PI_F;
+	actuator_controls.control[2] = _angle_outputs[2] / M_PI_F;
+	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
+
+	int instance;
+	orb_publish_auto(ORB_ID(actuator_controls_2), &_actuator_controls_pub, &actuator_controls,
+			 &instance, ORB_PRIO_DEFAULT);
+
+	_last_update = t;
+
+	return 0;
+}
+
+void OutputRC::print_status()
+{
+	PX4_INFO("Output: AUX");
+}
+
+} /* namespace vmount */
+

@@ -41,46 +41,42 @@
 #include <systemlib/param/param.h>
 
 /**
-* Mount operation mode
-* MAVLINK and RC use the ROI (or RC input if enabled and no ROI set) to control a mount.
-* ONBOARD uses MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
-* to control a mount.
+* Mount input mode
+* RC uses the AUX input channels (see MNT_MAN_* parameters),
+* MAVLINK_ROI uses the MAV_CMD_DO_SET_ROI Mavlink message, and MAVLINK_DO_MOUNT the
+* MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL messages to control a mount.
 * @value 0 DISABLE
-* @value 1 MAVLINK
-* @value 2 RC
-* @value 3 ONBOARD
+* @value 1 RC
+* @value 2 MAVLINK_ROI
+* @value 3 MAVLINK_DO_MOUNT
 * @min 0
 * @max 3
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MODE, 0);
+PARAM_DEFINE_INT32(MNT_MODE_IN, 0);
 
 /**
-* Auxiliary channel to override current mount mode (only in ONBOARD mode)
-* if <0.0f then MODE_RETRACT (retracts not retracted)
-* if =0.0f then don't override
-* if >0.0f then MODE_RC_TARGETING (retracts retracted)
-* @value 0 Disable
-* @value 1 AUX1
-* @value 2 AUX2
-* @value 3 AUX3
-* @value 4 AUX4
-* @value 5 AUX5
+* Mount output mode
+* AUX uses the mixer output Control Group #2.
+* MAVLINK uses the MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
+* to control a mount (set MNT_MAV_SYSID & MNT_MAV_COMPID)
+* @value 0 AUX
+* @value 1 MAVLINK
 * @min 0
-* @max 5
+* @max 1
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MODE_OVR, 0);
+PARAM_DEFINE_INT32(MNT_MODE_OUT, 0);
 
 /**
-* Mavlink System ID
+* Mavlink System ID (if MNT_MODE_OUT is MAVLINK)
 *
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
 
 /**
-* Mavlink Component ID
+* Mavlink Component ID (if MNT_MODE_OUT is MAVLINK)
 *
 * @group Mount
 */
@@ -88,7 +84,7 @@ PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
 
 /**
 * Mixer value for selecting normal mode
-* if required by the gimbal (only in RC mode)
+* if required by the gimbal (only in AUX output mode)
 * @min -1.0
 * @max 1.0
 * @decimal 3
@@ -98,7 +94,7 @@ PARAM_DEFINE_FLOAT(MNT_OB_NORM_MODE, -1.0f);
 
 /**
 * Mixer value for selecting a locking mode
-* if required for the gimbal (only in RC mode)
+* if required for the gimbal (only in AUX output mode)
 * @min -1.0
 * @max 1.0
 * @decimal 3
@@ -108,7 +104,7 @@ PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
 
 
 /**
-* This enables the mount to be controlled when no ROI is set.
+* This enables the mount to be manually controlled when no ROI is set.
 *
 * If set to 1, the mount will be controlled by the AUX channels below
 * when no ROI is set.
@@ -119,7 +115,7 @@ PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
 PARAM_DEFINE_INT32(MNT_MAN_CONTROL, 0);
 
 /**
-* Auxiliary channel to control roll.
+* Auxiliary channel to control roll (in AUX input or manual mode).
 *
 * @value 0 Disable
 * @value 1 AUX1
@@ -134,7 +130,7 @@ PARAM_DEFINE_INT32(MNT_MAN_CONTROL, 0);
 PARAM_DEFINE_INT32(MNT_MAN_ROLL, 0);
 
 /**
-* Auxiliary channel to control pitch.
+* Auxiliary channel to control pitch (in AUX input or manual mode).
 *
 * @value 0 Disable
 * @value 1 AUX1
@@ -149,7 +145,7 @@ PARAM_DEFINE_INT32(MNT_MAN_ROLL, 0);
 PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 
 /**
-* Auxiliary channel to control yaw.
+* Auxiliary channel to control yaw (in AUX input or manual mode).
 *
 * @value 0 Disable
 * @value 1 AUX1
@@ -162,3 +158,4 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
+

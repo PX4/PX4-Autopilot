@@ -34,6 +34,7 @@
 /**
  * @file vmount.cpp
  * @author Leon Müller (thedevleon)
+ * @author Beat Küng <beat-kueng@gmx.net>
  * MAV_MOUNT driver for controlling mavlink gimbals, rc gimbals/servors and
  * future kinds of mounts.
  *
@@ -49,82 +50,26 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-#include "vmount_mavlink.h"
-#include "vmount_rc.h"
-#include "vmount_onboard.h"
+#include "input_rc.h"
+#include "input_mavlink.h"
+#include "output_rc.h"
+#include "output_mavlink.h"
 
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_roi.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/manual_control_setpoint.h>
 
 #include <px4_config.h>
-#include <px4_posix.h>
-#include <poll.h>
+
+using namespace vmount;
 
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
-static volatile bool thread_should_restart = false;
-static int vmount_task;
-typedef enum { IDLE = -1, MAVLINK = 0, RC = 1, ONBOARD = 2 } vmount_state_t;
-static vmount_state_t vmount_state = IDLE;
+static volatile bool thread_do_report_status = false;
 
-/* polling */
-px4_pollfd_struct_t polls[7];
-
-/* functions */
-static void usage(void);
-static void vmount_update_topics(void);
-static void update_params(void);
-static bool get_params(void);
-static float get_aux_value(int);
-static void ack_mount_command(uint16_t command);
-static int vmount_thread_main(int argc, char *argv[]);
-extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
-
-/* uORB subscriptions */
-static int vehicle_roi_sub = -1;
-static int vehicle_global_position_sub = -1;
-static int vehicle_command_sub = -1;
-static int vehicle_attitude_sub = -1;
-static int position_setpoint_triplet_sub = -1;
-static int manual_control_setpoint_sub = -1;
-static int parameter_update_sub = -1;
-
-/* uORB publication */
-static orb_advert_t vehicle_command_ack_pub;
-
-static struct vehicle_roi_s vehicle_roi;
-static bool   vehicle_roi_updated;
-
-static struct vehicle_global_position_s vehicle_global_position;
-static bool   vehicle_global_position_updated;
-
-static struct vehicle_command_s vehicle_command;
-static bool   vehicle_command_updated;
-
-static struct vehicle_attitude_s vehicle_attitude;
-static bool   vehicle_attitude_updated;
-
-static struct position_setpoint_triplet_s position_setpoint_triplet;
-static bool   position_setpoint_triplet_updated;
-
-static struct manual_control_setpoint_s manual_control_setpoint;
-static bool   manual_control_setpoint_updated;
-
-static struct parameter_update_s parameter_update;
-static bool   parameter_update_updated;
-
-static struct vehicle_command_ack_s vehicle_command_ack;
-
-static struct {
-	int mnt_mode;
+struct Parameters {
+	int mnt_mode_in;
+	int mnt_mode_out;
 	int mnt_mav_sysid;
 	int mnt_mav_compid;
 	int mnt_ob_lock_mode;
@@ -133,11 +78,25 @@ static struct {
 	int mnt_man_pitch;
 	int mnt_man_roll;
 	int mnt_man_yaw;
-	int mnt_mode_ovr;
-} params;
 
-static struct {
-	param_t mnt_mode;
+	bool operator!=(const Parameters &p)
+	{
+		return mnt_mode_in != p.mnt_mode_in ||
+		       mnt_mode_out != p.mnt_mode_out ||
+		       mnt_mav_sysid != p.mnt_mav_sysid ||
+		       mnt_mav_compid != p.mnt_mav_compid ||
+		       mnt_ob_lock_mode != p.mnt_ob_lock_mode ||
+		       mnt_ob_norm_mode != p.mnt_ob_norm_mode ||
+		       mnt_man_control != p.mnt_man_control ||
+		       mnt_man_pitch != p.mnt_man_pitch ||
+		       mnt_man_roll != p.mnt_man_roll ||
+		       mnt_man_yaw != p.mnt_man_yaw;
+	}
+};
+
+struct ParameterHandles {
+	param_t mnt_mode_in;
+	param_t mnt_mode_out;
 	param_t mnt_mav_sysid;
 	param_t mnt_mav_compid;
 	param_t mnt_ob_lock_mode;
@@ -146,314 +105,193 @@ static struct {
 	param_t mnt_man_pitch;
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
-	param_t mnt_mode_ovr;
-} params_handels;
+};
 
-static bool manual_control_desired;
 
-/**
- * Print command usage information
- */
+/* functions */
+static void usage(void);
+static void update_params(ParameterHandles &param_handles, Parameters &params, bool &got_changes);
+static bool get_params(ParameterHandles &param_handles, Parameters &params);
+
+static int vmount_thread_main(int argc, char *argv[]);
+extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
+
 static void usage()
 {
-	fprintf(stderr,
-		"usage: vmount start\n"
-		"       vmount stop\n"
-		"       vmount status\n");
-	exit(1);
+	PX4_INFO("usage: vmount {start|stop|status}");
 }
 
-/**
- * The daemon thread.
- */
 static int vmount_thread_main(int argc, char *argv[])
 {
-	if (!get_params()) {
-		warnx("could not get mount parameters!");
+	ParameterHandles param_handles;
+	Parameters params;
+	memset(&params, 0, sizeof(params));
+
+	if (!get_params(param_handles, params)) {
+		PX4_ERR("could not get mount parameters!");
+		return -1;
 	}
 
-	if (params.mnt_mode == 0) { vmount_state = IDLE;}
-
-	else if (params.mnt_mode == 1) { vmount_state = MAVLINK;}
-
-	else if (params.mnt_mode == 2) { vmount_state = RC;}
-
-	else if (params.mnt_mode == 3) { vmount_state = ONBOARD;}
-
-	//TODO is this needed?
-	memset(&vehicle_roi, 0, sizeof(vehicle_roi));
-	memset(&vehicle_global_position, 0, sizeof(vehicle_global_position));
-	memset(&vehicle_command, 0, sizeof(vehicle_command));
-	memset(&vehicle_attitude, 0, sizeof(vehicle_attitude));
-	memset(&position_setpoint_triplet, 0, sizeof(position_setpoint_triplet));
-	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
-	memset(&parameter_update, 0, sizeof(parameter_update));
-	memset(&vehicle_command_ack, 0, sizeof(vehicle_command_ack));
-
-
-	vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
-	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
-
-	vehicle_command_ack_pub = orb_advertise(ORB_ID(vehicle_command_ack), &vehicle_command_ack);
-
-	if (!vehicle_roi_sub || !position_setpoint_triplet_sub ||
-	    !manual_control_setpoint_sub || !vehicle_global_position_sub ||
-	    !vehicle_command_sub || !parameter_update_sub || !vehicle_command_ack_pub ||
-		!vehicle_attitude_sub) {
-		err(1, "could not subscribe to uORB topics");
-	}
-
-	polls[0].fd = 		vehicle_roi_sub;
-	polls[0].events = 	POLLIN;
-	polls[1].fd = 		vehicle_global_position_sub;
-	polls[1].events = 	POLLIN;
-	polls[2].fd = 		vehicle_attitude_sub;
-	polls[2].events = 	POLLIN;
-	polls[3].fd = 		vehicle_command_sub;
-	polls[3].events = 	POLLIN;
-	polls[4].fd = 		position_setpoint_triplet_sub;
-	polls[4].events = 	POLLIN;
-	polls[5].fd = 		manual_control_setpoint_sub;
-	polls[5].events = 	POLLIN;
-	polls[6].fd = 		parameter_update_sub;
-	polls[6].events = 	POLLIN;
-
+	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	thread_running = true;
+	OutputConfig output_config;
+	ControlData *control_data = nullptr;
+	InputBase *input_obj = nullptr;
+	OutputBase *output_obj = nullptr;
+	InputRC *manual_input = nullptr;
 
-	run: {
-		if (vmount_state == MAVLINK) {
-			if (!vmount_mavlink_init()) {
-				err(1, "could not initiate vmount_mavlink");
-			}
+	while (!thread_should_exit) {
 
-			warnx("running mount driver in mavlink mode");
+		if (!input_obj && params.mnt_mode_in != 0) { //need to initialize
 
-			if (params.mnt_man_control) manual_control_desired = true;
-
-			while (!thread_should_exit && !thread_should_restart) {
-				vmount_update_topics();
-
-				if (vehicle_roi_updated) {
-					vehicle_roi_updated = false;
-					vmount_mavlink_configure(vehicle_roi.mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
-
-					if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
-						if (params.mnt_man_control) manual_control_desired = true;
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-						manual_control_desired = false;
-						vmount_mavlink_set_location(
-							position_setpoint_triplet.next.lat,
-							position_setpoint_triplet.next.lon,
-							position_setpoint_triplet.next.alt
-						);
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
-						manual_control_desired = false;
-						//TODO how to do this?
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-						manual_control_desired = false;
-						vmount_mavlink_set_location(
-							vehicle_roi.lat,
-							vehicle_roi.lon,
-							vehicle_roi.alt
-						);
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
-						manual_control_desired = false;
-						//TODO is this even suported?
-					}
-				}
-
-				else if (manual_control_desired && manual_control_setpoint_updated)
-				{
-					manual_control_setpoint_updated = false;
-					vmount_mavlink_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
-				}
-
-				else if (!manual_control_desired && vehicle_global_position_updated)
-				{
-					vehicle_global_position_updated = false;
-					vmount_mavlink_point(vehicle_global_position.lat, vehicle_global_position.lon, vehicle_global_position.alt);
-				}
-
-			vmount_mavlink_deinit();
-			}
-
-		} else if (vmount_state == RC) {
-			if (!vmount_rc_init()) {
-				err(1, "could not initiate vmount_rc");
-			}
-
-			warnx("running mount driver in rc mode");
+			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
+			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
+			output_config.mavlink_sys_id = params.mnt_mav_sysid;
+			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
 			if (params.mnt_man_control) {
-				manual_control_desired = true;
-			}
+				manual_input = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 
-			while (!thread_should_exit && !thread_should_restart) {
-				vmount_update_topics();
-
-				if (vehicle_roi_updated) {
-					vehicle_roi_updated = false;
-					vmount_rc_configure(vehicle_roi.mode, (params.mnt_man_control == 1), params.mnt_ob_norm_mode, params.mnt_ob_lock_mode);
-
-					if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
-						if (params.mnt_man_control) manual_control_desired = true;
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-						manual_control_desired = false;
-						vmount_rc_set_location(
-							position_setpoint_triplet.next.lat,
-							position_setpoint_triplet.next.lon,
-							position_setpoint_triplet.next.alt
-						);
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
-						manual_control_desired = false;
-						//TODO how to do this?
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-						manual_control_desired = false;
-						vmount_rc_set_location(
-							vehicle_roi.lat,
-							vehicle_roi.lon,
-							vehicle_roi.alt
-						);
-
-					} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
-						manual_control_desired = false;
-						//TODO is this even suported?
-					}
-				}
-
-				else if (manual_control_desired && manual_control_setpoint_updated) {
-					manual_control_setpoint_updated = false;
-					vmount_rc_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
-				}
-
-				else if (!manual_control_desired && vehicle_global_position_updated)
-				{
-					vehicle_global_position_updated = false;
-					vmount_rc_point(vehicle_global_position.lat, vehicle_global_position.lon, vehicle_global_position.alt);
+				if (!manual_input) {
+					PX4_ERR("memory allocation failed");
+					break;
 				}
 			}
 
-			vmount_rc_deinit();
+			switch (params.mnt_mode_in) {
+			case 1: //RC
+				if (manual_input) {
+					input_obj = manual_input;
+					manual_input = nullptr;
 
-		} else if (vmount_state == ONBOARD) {
-			if (!vmount_onboard_init()) {
-				err(1, "could not initiate vmount_onboard");
+				} else {
+					input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+				}
+
+				break;
+
+			case 2: //MAVLINK_ROI
+				input_obj = new InputMavlinkROI(manual_input);
+				break;
+
+			case 3: //MAVLINK_DO_MOUNT
+				input_obj = new InputMavlinkCmdMount(manual_input);
+				break;
+
+			default:
+				PX4_ERR("invalid input mode %i", params.mnt_mode_in);
+				break;
 			}
 
-			warnx("running mount driver in onboard mode");
+			switch (params.mnt_mode_out) {
+			case 0: //AUX
+				output_obj = new OutputRC(output_config);
+				break;
 
-			if (params.mnt_man_control) manual_control_desired = true;
+			case 1: //MAVLINK
+				output_obj = new OutputMavlink(output_config);
+				break;
 
-			while (!thread_should_exit && !thread_should_restart) {
-				vmount_update_topics();
+			default:
+				PX4_ERR("invalid output mode %i", params.mnt_mode_out);
+				break;
+			}
 
-				if(vehicle_attitude_updated)
-				{
-					vmount_onboard_update_attitude(vehicle_attitude);
-					vehicle_attitude_updated = false;
+			if (!input_obj || !output_obj) {
+				PX4_ERR("memory allocation failed");
+				break;
+			}
+
+			int ret = output_obj->initialize();
+
+			if (ret) {
+				PX4_ERR("failed to initialize output mode (%i)", ret);
+				break;
+			}
+		}
+
+		if (params.mnt_mode_in != 0) {
+
+			//get input: we cannot make the timeout too large, because the output needs to update
+			//periodically for stabilization and angle updates.
+			int ret = input_obj->update(50, &control_data);
+
+			if (ret) {
+				PX4_ERR("failed to read input (%i)", ret);
+				break;
+			}
+
+			//update output
+			ret = output_obj->update(control_data);
+
+			if (ret) {
+				PX4_ERR("failed to write output (%i)", ret);
+				break;
+			}
+
+		} else {
+			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
+			usleep(1e6);
+		}
+
+		//check for parameter changes
+		bool updated;
+
+		if (orb_check(parameter_update_sub, &updated) == 0 && updated) {
+			parameter_update_s param_update;
+			orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update);
+			update_params(param_handles, params, updated);
+
+			if (updated) {
+				//re-init objects
+				if (input_obj) {
+					delete(input_obj);
+					input_obj = nullptr;
 				}
 
-				if (params.mnt_mode_ovr && manual_control_setpoint_updated) {
-					manual_control_setpoint_updated = false;
-
-					float ovr_value = get_aux_value(params.mnt_mode_ovr);
-
-					if(ovr_value < 0.0f)
-					{
-						vmount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT);
-					}
-					else if (ovr_value > 0.0f)
-					{
-						vmount_onboard_set_mode(vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING);
-					}
-
+				if (output_obj) {
+					delete(output_obj);
+					output_obj = nullptr;
 				}
 
-				else if (vehicle_command_updated) {
-					vehicle_command_updated = false;
-
-					if(vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL)
-					{
-						switch ((int)vehicle_command.param7) {
-						case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-						case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-							manual_control_desired = false;
-							break;
-
-						case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-							manual_control_desired = false;
-							vmount_onboard_set_mode(vehicle_command.param7);
-							vmount_onboard_set_manual(vehicle_command.param1,
-										 vehicle_command.param2, vehicle_command.param3);
-
-						case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-							if (params.mnt_man_control) {
-								manual_control_desired = true;
-								vmount_onboard_set_mode(vehicle_command.param7);
-							}
-
-						case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-							manual_control_desired = false;
-							vmount_onboard_set_mode(vehicle_command.param7);
-							vmount_onboard_set_location(
-								vehicle_command.param1,
-								vehicle_command.param2,
-								vehicle_command.param3);
-
-						default:
-							manual_control_desired = false;
-							break;
-						}
-
-						ack_mount_command(vehicle_command.command);
-					}
-
-					else if(vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE)
-					{
-						vmount_onboard_configure(vehicle_command.param1,
-									((uint8_t) vehicle_command.param2 == 1), ((uint8_t) vehicle_command.param3 == 1), ((uint8_t) vehicle_command.param4 == 1));
-
-						ack_mount_command(vehicle_command.command);
-					}
-				}
-
-				else if (manual_control_desired && manual_control_setpoint_updated)
-				{
-					manual_control_setpoint_updated = false;
-					vmount_onboard_point_manual(get_aux_value(params.mnt_man_pitch), get_aux_value(params.mnt_man_roll), get_aux_value(params.mnt_man_yaw));
-				}
-				else if (!manual_control_desired && vehicle_global_position_updated)
-				{
-					vehicle_global_position_updated = false;
-					vmount_onboard_point(vehicle_global_position.lat, vehicle_global_position.lon, vehicle_global_position.alt);
+				if (manual_input) {
+					delete(manual_input);
+					manual_input = nullptr;
 				}
 			}
-		} else if (vmount_state == IDLE)
-		{
-			warnx("running mount driver in idle mode");
+		}
 
-			while (!thread_should_exit && !thread_should_restart) {
-				vmount_update_topics();
+		if (thread_do_report_status) {
+			if (input_obj) {
+				input_obj->print_status();
+
+			} else {
+				PX4_INFO("Input: None");
 			}
+
+			if (output_obj) {
+				output_obj->print_status();
+
+			} else {
+				PX4_INFO("Output: None");
+			}
+
+			thread_do_report_status = false;
 		}
 	}
 
-	if (thread_should_restart)
-	{
-		thread_should_restart = false;
-		warnx("parameter update, restarting mount driver!");
-		goto run;
+	orb_unsubscribe(parameter_update_sub);
+
+	if (input_obj) {
+		delete(input_obj);
+	}
+
+	if (output_obj) {
+		delete(output_obj);
+	}
+
+	if (manual_input) {
+		delete(manual_input);
 	}
 
 	thread_running = false;
@@ -466,227 +304,116 @@ static int vmount_thread_main(int argc, char *argv[])
  */
 int vmount_main(int argc, char *argv[])
 {
-	if (argc < 1) {
-		warnx("missing command");
+	if (argc < 2) {
+		PX4_ERR("missing command");
 		usage();
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		/* this is not an error */
 		if (thread_running) {
-			errx(0, "mount driver already running");
+			PX4_WARN("mount driver already running");
+			return 0;
 		}
 
 		thread_should_exit = false;
-		vmount_task = px4_task_spawn_cmd("vmount",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_DEFAULT + 40, //TODO we might want a higher priority?
-						1100,
-						vmount_thread_main,
-						(char *const *)argv);
+		int vmount_task = px4_task_spawn_cmd("vmount",
+						     SCHED_DEFAULT,
+						     SCHED_PRIORITY_DEFAULT + 40,
+						     1200,
+						     vmount_thread_main,
+						     (char *const *)argv);
 
-		while (!thread_running) {
+		while (!thread_running && vmount_task >= 0) {
 			usleep(200);
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 
 		/* this is not an error */
 		if (!thread_running) {
-			errx(0, "mount driver already stopped");
+			PX4_WARN("mount driver not running");
+			return 0;
 		}
 
 		thread_should_exit = true;
 
 		while (thread_running) {
-			usleep(1000000);
-			warnx(".");
+			usleep(100000);
 		}
 
-		warnx("terminated.");
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			switch (vmount_state) {
-			case IDLE:
-				errx(0, "running: IDLE");
-				break;
+			thread_do_report_status = true;
 
-			case MAVLINK:
-				errx(0, "running: MAVLINK - Manual Control? %d", manual_control_desired);
-				break;
-
-			case RC:
-				errx(0, "running: RC - Manual Control? %d", manual_control_desired);
-				break;
-
-			case ONBOARD:
-				errx(0, "running: ONBOARD");
-				break;
-
+			while (thread_do_report_status) {
+				usleep(10000);
 			}
 
 		} else {
-			errx(1, "not running");
+			PX4_INFO("not running");
 		}
+
+		return 0;
 	}
 
-	warnx("unrecognized command");
+	PX4_ERR("unrecognized command");
 	usage();
-	/* not getting here */
-	return 0;
+	return -1;
 }
 
-/* Update oURB topics */
-void vmount_update_topics()
+void update_params(ParameterHandles &param_handles, Parameters &params, bool &got_changes)
 {
-	/*
-	polls = {
-		{ .fd = vehicle_roi_sub,   .events = POLLIN },
-		{ .fd = vehicle_global_position_sub,   .events = POLLIN },
-		{ .fd = vehicle_attitude_sub,   .events = POLLIN },
-		{ .fd = vehicle_command_sub,   .events = POLLIN },
-		{ .fd = position_setpoint_triplet_sub,   .events = POLLIN },
-		{ .fd = manual_control_setpoint_sub,   .events = POLLIN },
-		{ .fd = parameter_update_sub,   .events = POLLIN },
-	};
-	*/
+	Parameters prev_params = params;
+	param_get(param_handles.mnt_mode_in, &params.mnt_mode_in);
+	param_get(param_handles.mnt_mode_out, &params.mnt_mode_out);
+	param_get(param_handles.mnt_mav_sysid, &params.mnt_mav_sysid);
+	param_get(param_handles.mnt_mav_compid, &params.mnt_mav_compid);
+	param_get(param_handles.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
+	param_get(param_handles.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
+	param_get(param_handles.mnt_man_control, &params.mnt_man_control);
+	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
+	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
+	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
 
-	/* wait for sensor update of 7 file descriptors for 100 ms */
-	int poll_ret = px4_poll(polls, 7, 100);
-
-	//Nothing updated.
-	if(poll_ret == 0) return;
-
-	if (polls[0].revents & POLLIN) {
-		orb_copy(ORB_ID(vehicle_roi), vehicle_roi_sub, &vehicle_roi);
-		vehicle_roi_updated = true;
-	}
-
-	if (polls[1].revents & POLLIN) {
-		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &vehicle_global_position);
-		vehicle_global_position_updated = true;
-	}
-
-	if (polls[2].revents & POLLIN) {
-		orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &vehicle_attitude);
-		vehicle_attitude_updated = true;
-	}
-
-	if (polls[3].revents & POLLIN) {
-		orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &vehicle_command);
-		vehicle_command_updated = true;
-	}
-
-	if (polls[4].revents & POLLIN) {
-		orb_copy(ORB_ID(position_setpoint_triplet), position_setpoint_triplet_sub, &position_setpoint_triplet);
-		position_setpoint_triplet_updated = true;
-	}
-
-	if (polls[5].revents & POLLIN) {
-		orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual_control_setpoint);
-		manual_control_setpoint_updated = true;
-	}
-
-	if (polls[6].revents & POLLIN) {
-		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &parameter_update);
-		parameter_update_updated = true;
-		update_params();
-	}
+	got_changes = prev_params != params;
 }
 
-void update_params()
+bool get_params(ParameterHandles &param_handles, Parameters &params)
 {
-	param_get(params_handels.mnt_mode, &params.mnt_mode);
-	param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid);
-	param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid);
-	param_get(params_handels.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
-	param_get(params_handels.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
-	param_get(params_handels.mnt_man_control, &params.mnt_man_control);
-	param_get(params_handels.mnt_man_pitch, &params.mnt_man_pitch);
-	param_get(params_handels.mnt_man_roll, &params.mnt_man_roll);
-	param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw);
-	param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr);
+	param_handles.mnt_mode_in = param_find("MNT_MODE_IN");
+	param_handles.mnt_mode_out = param_find("MNT_MODE_OUT");
+	param_handles.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
+	param_handles.mnt_mav_compid = param_find("MNT_MAV_COMPID");
+	param_handles.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
+	param_handles.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
+	param_handles.mnt_man_control = param_find("MNT_MAN_CONTROL");
+	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
+	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
+	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
 
-	if (vmount_state != params.mnt_mode)
-	{
-		thread_should_restart = true;
-	}
-	else if (vmount_state == MAVLINK)
-	{
-		vmount_mavlink_configure(vehicle_roi.mode, (params.mnt_man_control == 1), params.mnt_mav_sysid, params.mnt_mav_compid);
-	}
-	else if (vmount_state == RC)
-	{
-		vmount_rc_configure(vehicle_roi.mode, (params.mnt_man_control == 1), params.mnt_ob_norm_mode, params.mnt_ob_lock_mode);
-	}
-	else if(vmount_state == ONBOARD)
-	{
-		//None of the parameter changes require a reconfiguration of the onboard mount.
-	}
-}
-
-bool get_params()
-{
-	params_handels.mnt_mode = param_find("MNT_MODE");
-	params_handels.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
-	params_handels.mnt_mav_compid = param_find("MNT_MAV_COMPID");
-	params_handels.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
-	params_handels.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
-	params_handels.mnt_man_control = param_find("MNT_MAN_CONTROL");
-	params_handels.mnt_man_pitch = param_find("MNT_MAN_PITCH");
-	params_handels.mnt_man_roll = param_find("MNT_MAN_ROLL");
-	params_handels.mnt_man_yaw = param_find("MNT_MAN_YAW");
-	params_handels.mnt_mode_ovr = param_find("MNT_MODE_OVR");
-
-	if (param_get(params_handels.mnt_mode, &params.mnt_mode) ||
-	    param_get(params_handels.mnt_mav_sysid, &params.mnt_mav_sysid) ||
-	    param_get(params_handels.mnt_mav_compid, &params.mnt_mav_compid) ||
-		param_get(params_handels.mnt_ob_lock_mode, &params.mnt_ob_lock_mode) ||
-		param_get(params_handels.mnt_ob_norm_mode, &params.mnt_ob_norm_mode) ||
-	    param_get(params_handels.mnt_man_control, &params.mnt_man_control) ||
-	    param_get(params_handels.mnt_man_pitch, &params.mnt_man_pitch) ||
-		param_get(params_handels.mnt_man_roll, &params.mnt_man_roll) ||
-	    param_get(params_handels.mnt_man_yaw, &params.mnt_man_yaw) ||
-		param_get(params_handels.mnt_mode_ovr, &params.mnt_mode_ovr)) {
+	if (param_handles.mnt_mode_in == PARAM_INVALID ||
+	    param_handles.mnt_mode_out == PARAM_INVALID ||
+	    param_handles.mnt_mav_sysid == PARAM_INVALID ||
+	    param_handles.mnt_mav_compid == PARAM_INVALID ||
+	    param_handles.mnt_ob_lock_mode == PARAM_INVALID ||
+	    param_handles.mnt_ob_norm_mode == PARAM_INVALID ||
+	    param_handles.mnt_man_control == PARAM_INVALID ||
+	    param_handles.mnt_man_pitch == PARAM_INVALID ||
+	    param_handles.mnt_man_roll == PARAM_INVALID ||
+	    param_handles.mnt_man_yaw == PARAM_INVALID) {
 		return false;
 	}
 
+	bool dummy;
+	update_params(param_handles, params, dummy);
 	return true;
-
-}
-
-void ack_mount_command(uint16_t command)
-{
-	vehicle_command_ack.command = command;
-	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-	orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
-}
-
-float get_aux_value(int aux)
-{
-	switch (aux)
-	{
-		case 0:
-			return 0.0f;
-		case 1:
-			return manual_control_setpoint.aux1;
-		case 2:
-			return manual_control_setpoint.aux2;
-		case 3:
-			return manual_control_setpoint.aux3;
-		case 4:
-			return manual_control_setpoint.aux4;
-		case 5:
-			return manual_control_setpoint.aux5;
-		default:
-			return 0.0f;
-	}
 }

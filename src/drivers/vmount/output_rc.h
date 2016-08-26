@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -32,25 +32,40 @@
 ****************************************************************************/
 
 /**
- * @file vmount_mavlink.h
- * @author Leon Müller (thedevleon)
+ * @file output_rc.h
+ * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#ifndef _VMOUNT_MAVLINK_H
-#define _VMOUNT_MAVLINK_H
+#pragma once
 
-#include <sys/types.h>
-#include <stdbool.h>
+#include "output.h"
 
-// Public functions
-bool vmount_mavlink_init();
-void vmount_mavlink_deinit(void);
-void vmount_mavlink_configure(int roi_mode, bool man_control, int sysid, int compid);
-void vmount_mavlink_set_location(double lat_new, double lon_new, float alt_new);
-void vmount_mavlink_point(double global_lat, double global_lon, float global_alt);
-void vmount_mavlink_point_manual(float pitch_new, float roll_new, float yaw_new);
-float vmount_mavlink_calculate_pitch(double global_lat, double global_lon, float global_alt);
+#include <uORB/uORB.h>
 
 
-#endif /* _VMOUNT_MAVLINK_H */
+namespace vmount
+{
+
+
+/**
+ ** class OutputRC
+ *  Output via actuator_controls_2 topic
+ */
+class OutputRC : public OutputBase
+{
+public:
+	OutputRC(const OutputConfig &output_config);
+	virtual ~OutputRC() { }
+
+	virtual int update(const ControlData *control_data);
+
+	virtual void print_status();
+
+private:
+	orb_advert_t _actuator_controls_pub = nullptr;
+	bool _retract_gimbal = true;
+};
+
+
+} /* namespace vmount */

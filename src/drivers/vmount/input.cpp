@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -32,28 +32,47 @@
 ****************************************************************************/
 
 /**
- * @file vmount_onboard
- * @author Leon Müller (thedevleon)
+ * @file input.cpp
+ * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#ifndef _VMOUNT_ONBOARD_H
-#define _VMOUNT_ONBOARD_H
+#include "input.h"
 
-#include <sys/types.h>
-#include <stdbool.h>
-#include <uORB/topics/vehicle_attitude.h>
 
-// Public functions
-bool vmount_onboard_init(void);
-void vmount_onboard_deinit(void);
-void vmount_onboard_configure(int new_mount_mode, bool new_stab_roll, bool new_stab_pitch, bool new_stab_yaw);
-void vmount_onboard_set_location(double lat, double lon, float alt);
-void vmount_onboard_set_manual(double pitch_new, double roll_new, float yaw_new);
-void vmount_onboard_set_mode(int new_mount_mode);
-void vmount_onboard_point(double global_lat, double global_lon, float global_alt);
-void vmount_onboard_point_manual(float pitch_target, float roll_target, float yaw_target);
-void vmount_onboard_update_attitude(vehicle_attitude_s vehicle_attitude_new);
-float vmount_onboard_calculate_pitch(double global_lat, double global_lon, float global_alt);
+namespace vmount
+{
 
-#endif /* _VMOUNT_ONBOARD_H */
+int InputBase::update(unsigned int timeout_ms, ControlData **control_data)
+{
+	if (!_initialized) {
+		int ret = initialize();
+
+		if (ret) {
+			return ret;
+		}
+
+		//on startup, set the mount to a neutral position
+		_control_data.type = ControlData::Type::Neutral;
+		_control_data.gimbal_shutter_retract = true;
+		*control_data = &_control_data;
+		_initialized = true;
+		return 0;
+	}
+
+	return update_impl(timeout_ms, control_data);
+}
+
+void InputBase::control_data_set_lon_lat(double lon, double lat, float altitude, float roll_angle,
+		float pitch_fixed_angle)
+{
+	_control_data.type = ControlData::Type::LonLat;
+	_control_data.type_data.lonlat.lon = lon;
+	_control_data.type_data.lonlat.lat = lat;
+	_control_data.type_data.lonlat.altitude = altitude;
+	_control_data.type_data.lonlat.roll_angle = roll_angle;
+	_control_data.type_data.lonlat.pitch_fixed_angle = pitch_fixed_angle;
+}
+
+} /* namespace vmount */
+
