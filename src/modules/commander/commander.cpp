@@ -2833,19 +2833,20 @@ int commander_thread_main(int argc, char *argv[])
 			     internal_state.main_state == commander_state_s::MAIN_STATE_STAB ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL) &&
-			    ((status.rc_signal_lost && status_flags.gps_failure) ||
+			    ((status.rc_signal_lost /*&& status_flags.gps_failure*/) ||
 			     (status_flags.rc_signal_lost_cmd && status_flags.gps_failure_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					warnx("Flight termination because of RC signal loss and GPS failure");
+					PX4_WARN("Flight termination because of RC signal loss"); // and GPS failure");
 					flight_termination_printed = true;
 				}
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
+//					mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
+					mavlink_log_critical(&mavlink_log_pub, "RC lost: flight termination");
 				}
 			}
 		}
