@@ -64,14 +64,14 @@ public:
 	 * Write to the shell
 	 * @return number of written bytes
 	 */
-	size_t write(uint8_t* buffer, size_t len);
+	size_t write(uint8_t *buffer, size_t len);
 
 	/**
 	 * Read from the shell. This is blocking, if 0 bytes are available, this will block.
 	 * @param len buffer length
 	 * @return number of bytes read.
 	 */
-	size_t read(uint8_t* buffer, size_t len);
+	size_t read(uint8_t *buffer, size_t len);
 
 	/**
 	 * Get the number of bytes that can be read.
@@ -82,7 +82,7 @@ private:
 
 	int _to_shell_fd = -1; /** fd to write to the shell */
 	int _from_shell_fd = -1; /** fd to read from the shell */
-	int _shell_fds[2] = {-1, -1}; /** stdin & out used by the shell */
+	int _shell_fds[2] = { -1, -1}; /** stdin & out used by the shell */
 	px4_task_t _task;
 
 	static int shell_start_thread(int argc, char *argv[]);

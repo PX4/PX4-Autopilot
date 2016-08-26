@@ -97,8 +97,8 @@ private:
 	bool _published;		///< topic was ever published
 
 	/* do not allow copying this class */
-	MavlinkOrbSubscription(const MavlinkOrbSubscription&);
-	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription&);
+	MavlinkOrbSubscription(const MavlinkOrbSubscription &);
+	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription &);
 };
 
 

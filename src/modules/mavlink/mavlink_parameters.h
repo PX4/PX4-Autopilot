@@ -82,7 +82,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
-	MavlinkParametersManager& operator = (const MavlinkParametersManager &);
+	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
