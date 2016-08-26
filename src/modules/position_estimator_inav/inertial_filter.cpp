@@ -32,7 +32,7 @@ void inertial_filter_correct(float e, float dt, float x[2], int i, float w)
 	if (isfinite(e) && isfinite(w) && isfinite(dt)) {
 		float ewdt = e * w * dt;
 		/*
-		 * 补偿中可以将e看作是误差，w是权重，位置增量由e,w,dt补偿，速度增量由e,w2,dt补偿
+		 * 补偿中可以将e看作是误差，w是权重，位置增量由e,w,dt补偿，速度增量由e,w^2,dt补偿
 		 */
 		x[i] += ewdt;
 

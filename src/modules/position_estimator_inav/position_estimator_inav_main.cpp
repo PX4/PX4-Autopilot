@@ -90,7 +90,7 @@ static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime lidar_timeout = 150000;	// lidar timeout = 150ms
 static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distance during this time after lidar loss
-static const unsigned updates_counter_len = 1000000;
+static const unsigned updates_counter_len = 1000000;    // 时间长度1s
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
 extern "C" __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
@@ -1254,9 +1254,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/*
+		 * 至此已经得到了校正的加速度值，将其用于速度与位置的估计
+		 * 依旧是分别计算各个外置传感器对xyz三个方向上的估计与校正
+		 */
 		/* inertial filter prediction for altitude */
 		// 高度的惯性滤波器预测
-		inertial_filter_predict(dt, z_est, acc[2]);
+		inertial_filter_predict(dt, z_est, acc[2]);//用加速度的积分预测速度和位置 
 
 		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
@@ -1268,7 +1272,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* inertial filter correction for altitude */
 		// 高度的惯性滤波器校正
 		if (use_lidar) {
-			inertial_filter_correct(corr_lidar, dt, z_est, 0, params.w_z_lidar);
+			inertial_filter_correct(corr_lidar, dt, z_est, 0, params.w_z_lidar); 
 
 		} else {
 			inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
@@ -1295,8 +1299,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 					acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
-			memcpy(z_est, z_est_prev, sizeof(z_est));
-			memset(corr_gps, 0, sizeof(corr_gps));
+			memcpy(z_est, z_est_prev, sizeof(z_est));  // 恢复上一刻的估计值
+			memset(corr_gps, 0, sizeof(corr_gps)); //各校正系数复位
 			memset(corr_vision, 0, sizeof(corr_vision));
 			memset(corr_mocap, 0, sizeof(corr_mocap));
 			corr_baro = 0;
@@ -1394,7 +1398,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			// 满足更新时间条件就输出更新频率
 			//加速度计，气压计，GPS，高度，光流，视觉和动作捕捉装置
 			if (t > updates_counter_start + updates_counter_len) {
-				float updates_dt = (t - updates_counter_start) * 0.000001f;
+				float updates_dt = (t - updates_counter_start) * 0.000001f;  //时间转换成秒s，当前时间与更新开始的时间差
 				warnx(
 					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision = %.1f/s, mocap = %.1f/s",
 					(double)(accel_updates / updates_dt),
@@ -1403,9 +1407,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					(double)(attitude_updates / updates_dt),
 					(double)(flow_updates / updates_dt),
 					(double)(vision_updates / updates_dt),
-					(double)(mocap_updates / updates_dt));
-				updates_counter_start = t;
-				accel_updates = 0;
+					(double)(mocap_updates / updates_dt)); //更新频率=更新次数/时间差
+				updates_counter_start = t; //将当前时间作为下一循环的开始时间
+				accel_updates = 0; // 更新次数全置0，重新开始循环
 				baro_updates = 0;
 				gps_updates = 0;
 				attitude_updates = 0;
