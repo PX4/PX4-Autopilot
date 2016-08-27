@@ -645,6 +645,9 @@ void Ekf2Replay::logIfUpdated()
 			log_message.body.innov.s[i] = innov.vel_pos_innov[i];
 			log_message.body.innov.s[i + 6] = innov.vel_pos_innov_var[i];
 		}
+		for (unsigned i = 0; i < 3; i++) {
+			log_message.body.innov.s[i + 12] = innov.output_tracking_error[i];
+		}
 
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST4_MSG].length);
 
