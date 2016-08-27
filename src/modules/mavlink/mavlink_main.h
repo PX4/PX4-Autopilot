@@ -507,6 +507,7 @@ private:
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
 	uint64_t		_mavlink_start_time;
+	int32_t			_protocol_version_switch;
 	int32_t			_protocol_version;
 
 	unsigned		_bytes_tx;
