@@ -533,7 +533,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (att.R_valid) {
 						/* correct accel bias */
 						// 校正加速度偏差       
-						sensor.accelerometer_m_s2[0] -= acc_bias[0];   //全部都是为了计算acc_bias[]
+						sensor.accelerometer_m_s2[0] -= acc_bias[0];   //全部都是为了计算acc用于最后的位置速度估计校正，先计算acc_bias[]
 						sensor.accelerometer_m_s2[1] -= acc_bias[1];   //选用各种外置传感器，分别计算其对加速度计偏差的矫正
 						sensor.accelerometer_m_s2[2] -= acc_bias[2];   // 最后对传感器获得的加速度进行校正
 
@@ -1397,7 +1397,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* print updates rate */
 			// 满足更新时间条件就输出更新频率
 			//加速度计，气压计，GPS，高度，光流，视觉和动作捕捉装置
-			if (t > updates_counter_start + updates_counter_len) {
+			if (t > updates_counter_start + updates_counter_len) {  //更新计数开始1s后，打印更新频率
 				float updates_dt = (t - updates_counter_start) * 0.000001f;  //时间转换成秒s，当前时间与更新开始的时间差
 				warnx(
 					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision = %.1f/s, mocap = %.1f/s",
@@ -1425,10 +1425,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* push current estimate to buffer */
 			// 将当前XYZ的位置速度估计推送到缓冲区
-			est_buf[buf_ptr][0][0] = x_est[0];
-			est_buf[buf_ptr][0][1] = x_est[1];
-			est_buf[buf_ptr][1][0] = y_est[0];
-			est_buf[buf_ptr][1][1] = y_est[1];
+			est_buf[buf_ptr][0][0] = x_est[0]; // xyz的速度位置估计保存到缓冲区
+			est_buf[buf_ptr][0][1] = x_est[1]; // 用于计算GPS校正系数corr_gps[][]
+			est_buf[buf_ptr][1][0] = y_est[0]; // GPS校正系数进而用于气压计校正系数
+			est_buf[buf_ptr][1][1] = y_est[1]; // corr_baro，accel_bias_corr,xyz的速度位置预测校正
 			est_buf[buf_ptr][2][0] = z_est[0];
 			est_buf[buf_ptr][2][1] = z_est[1];
 
