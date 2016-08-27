@@ -37,7 +37,7 @@
  * Crazyflie LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
@@ -60,37 +60,42 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
+static uint32_t g_ledmap[] = {
+	GPIO_LED_BLUE_L,  // Indexed by LED_BLUE
+	GPIO_LED_RED_R,   // Indexed by LED_RED, LED_AMBER
+	0,				  // Indexed by LED_SAFETY
+	GPIO_LED_GREEN_R, // Indexed by LED_GREEN
+	GPIO_LED_RED_L,   // Indexed by LED_TX
+	GPIO_LED_GREEN_L  // Indexed by LED_RX
+};
+
+
 __EXPORT void led_init()
 {
 	/* Configure LED1 GPIO for output */
-
-	stm32_configgpio(GPIO_LED_RED_L);
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		px4_arch_configgpio(g_ledmap[l]);
+	}
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1) {
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED_RED_L, false);
-	}
+	/* Pull down to switch on */
+	px4_arch_gpiowrite(g_ledmap[led], g_ledmap[led] & GPIO_OUTPUT_SET ? true : false);
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1) {
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED_RED_L, true);
-	}
+	/* Pull up to switch off */
+	px4_arch_gpiowrite(g_ledmap[led], g_ledmap[led] & GPIO_OUTPUT_SET ? false : true);
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1) {
-		if (stm32_gpioread(GPIO_LED_RED_L)) {
-			stm32_gpiowrite(GPIO_LED_RED_L, false);
+	if (px4_arch_gpioread(g_ledmap[led])) {
+		px4_arch_gpiowrite(g_ledmap[led], false);
 
-		} else {
-			stm32_gpiowrite(GPIO_LED_RED_L, true);
-		}
+	} else {
+		px4_arch_gpiowrite(g_ledmap[led], true);
 	}
 }
