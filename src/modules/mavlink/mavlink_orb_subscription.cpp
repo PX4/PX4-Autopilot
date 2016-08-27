@@ -51,14 +51,17 @@ MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instanc
 	next(nullptr),
 	_topic(topic),
 	_instance(instance),
-	_fd(orb_subscribe_multi(_topic, instance)),
-	_published(false)
+	_fd(-1),
+	_published(false),
+	_last_pub_check(0)
 {
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
 {
-	orb_unsubscribe(_fd);
+	if (_fd >= 0) {
+		orb_unsubscribe(_fd);
+	}
 }
 
 orb_id_t
@@ -76,6 +79,8 @@ MavlinkOrbSubscription::get_instance() const
 bool
 MavlinkOrbSubscription::update(uint64_t *time, void *data)
 {
+
+
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 
@@ -86,19 +91,10 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 		time_topic = 0;
 	}
 
-	if (orb_copy(_topic, _fd, data)) {
-		if (data != nullptr) {
-			/* error copying topic data */
-			memset(data, 0, _topic->o_size);
-		}
-
-		return false;
-
-	} else {
+	if (update(data)) {
 		/* data copied successfully */
-		_published = true;
 
-		if (time_topic != *time) {
+		if (time_topic == 0 || (time_topic != *time)) {
 			*time = time_topic;
 			return true;
 
@@ -106,24 +102,14 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 			return false;
 		}
 	}
+
+	return false;
 }
 
 bool
 MavlinkOrbSubscription::update(void *data)
 {
-	return !orb_copy(_topic, _fd, data);
-}
-
-bool
-MavlinkOrbSubscription::update_if_changed(void *data)
-{
-	bool updated;
-
-	if (orb_check(_fd, &updated)) {
-		return false;
-	}
-
-	if (!updated) {
+	if (!is_published()) {
 		return false;
 	}
 
@@ -140,10 +126,50 @@ MavlinkOrbSubscription::update_if_changed(void *data)
 }
 
 bool
+MavlinkOrbSubscription::update_if_changed(void *data)
+{
+	bool prevpub = _published;
+
+	if (!is_published()) {
+		return false;
+	}
+
+	bool updated;
+
+	if (orb_check(_fd, &updated)) {
+		return false;
+	}
+
+	// If we didn't update and this topic did not change
+	// its publication status then nothing really changed
+	if (!updated && prevpub == _published) {
+		return false;
+	}
+
+	return update(data);
+}
+
+bool
 MavlinkOrbSubscription::is_published()
 {
+	// If we marked it as published no need to check again
 	if (_published) {
 		return true;
+	}
+
+	// Telemetry can sustain an initial published check at 10 Hz
+	hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_pub_check < 100000) {
+		return false;
+	}
+
+	// We are checking now
+	_last_pub_check = now;
+
+	// If it does not exist its not published
+	if (orb_exists(_topic, _instance)) {
+		return false;
 	}
 
 	bool updated;
