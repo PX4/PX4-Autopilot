@@ -41,36 +41,36 @@
 
 #include "led.hpp"
 
-void rgb_led(int r, int g ,int b, int freqs)
+void rgb_led(int r, int g , int b, int freqs)
 {
 
-  long fosc = 72000000;
-  long prescale = 2048;
-  long p1s = fosc/prescale;
-  long p0p5s  = p1s/2;
-  stm32_tim_channel_t mode = (stm32_tim_channel_t)(STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_NEG);
-  static struct stm32_tim_dev_s *tim = 0;
+	long fosc = 72000000;
+	long prescale = 2048;
+	long p1s = fosc / prescale;
+	long p0p5s  = p1s / 2;
+	stm32_tim_channel_t mode = (stm32_tim_channel_t)(STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_NEG);
+	static struct stm32_tim_dev_s *tim = 0;
 
-  if (tim == 0) {
-      tim = stm32_tim_init(3);
-      STM32_TIM_SETMODE(tim, STM32_TIM_MODE_UP);
-      STM32_TIM_SETCLOCK(tim, p1s-8);
-      STM32_TIM_SETPERIOD(tim, p1s);
-      STM32_TIM_SETCOMPARE(tim, 1, 0);
-      STM32_TIM_SETCOMPARE(tim, 2, 0);
-      STM32_TIM_SETCOMPARE(tim, 3, 0);
-      STM32_TIM_SETCHANNEL(tim, 1, mode);
-      STM32_TIM_SETCHANNEL(tim, 2, mode);
-      STM32_TIM_SETCHANNEL(tim, 3, mode);
-  }
+	if (tim == 0) {
+		tim = stm32_tim_init(3);
+		STM32_TIM_SETMODE(tim, STM32_TIM_MODE_UP);
+		STM32_TIM_SETCLOCK(tim, p1s - 8);
+		STM32_TIM_SETPERIOD(tim, p1s);
+		STM32_TIM_SETCOMPARE(tim, 1, 0);
+		STM32_TIM_SETCOMPARE(tim, 2, 0);
+		STM32_TIM_SETCOMPARE(tim, 3, 0);
+		STM32_TIM_SETCHANNEL(tim, 1, mode);
+		STM32_TIM_SETCHANNEL(tim, 2, mode);
+		STM32_TIM_SETCHANNEL(tim, 3, mode);
+	}
 
-  long p  = freqs==0 ? p1s : p1s/freqs;
-  STM32_TIM_SETPERIOD(tim, p);
+	long p  = freqs == 0 ? p1s : p1s / freqs;
+	STM32_TIM_SETPERIOD(tim, p);
 
-  p  = freqs==0 ? p1s+1 : p0p5s/freqs;
+	p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
 
-  STM32_TIM_SETCOMPARE(tim, 1, (r * p)/255 );
-  STM32_TIM_SETCOMPARE(tim, 2, (g * p)/255);
-  STM32_TIM_SETCOMPARE(tim, 3, (b * p)/255);
+	STM32_TIM_SETCOMPARE(tim, 1, (r * p) / 255);
+	STM32_TIM_SETCOMPARE(tim, 2, (g * p) / 255);
+	STM32_TIM_SETCOMPARE(tim, 3, (b * p) / 255);
 }
 

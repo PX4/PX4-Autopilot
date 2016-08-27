@@ -165,8 +165,9 @@ MissionBlock::is_mission_item_reached()
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
-			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
-			if (_navigator->get_global_position()->alt >= altitude_amsl) {
+			/* require only altitude for takeoff for multicopter */
+			if (_navigator->get_global_position()->alt >
+					altitude_amsl - _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
@@ -276,14 +277,16 @@ MissionBlock::is_mission_item_reached()
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
-					|| (_param_yaw_timeout.get() >= FLT_EPSILON && !_mission_item.force_heading)) {
+				|| (_param_yaw_timeout.get() >= FLT_EPSILON && !_mission_item.force_heading)) {
+
 				_waypoint_yaw_reached = true;
 			}
 
 			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
 			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
-						_param_yaw_timeout.get() >= FLT_EPSILON &&
-						now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f) {
+				(_param_yaw_timeout.get() >= FLT_EPSILON) &&
+				(now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f)) {
+
 				_navigator->set_mission_failure("unable to reach heading within timeout");
 			}
 
@@ -403,6 +406,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+
 		return false;
 	}
 

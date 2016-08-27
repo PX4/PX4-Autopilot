@@ -10,7 +10,7 @@ add_executable(firmware_nuttx
 	builtin_commands.c)
 
 
-set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+set(nuttx_export_dir ${PX4_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
 	apps nuttx m gcc
@@ -53,7 +53,7 @@ endif()
 if(NOT ${BOARD} STREQUAL "sim")
 	set(main_link_flags
 		"-T${nuttx_export_dir}/build/${nuttx_ld_prefix}ld.script"
-		"-Wl,-Map=${CMAKE_BINARY_DIR}/${BOARD}/main.map"
+		"-Wl,-Map=${PX4_BINARY_DIR}/${BOARD}/main.map"
 		)
 	px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
 	set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
@@ -105,8 +105,8 @@ if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
 	px4_nuttx_add_firmware(OUT ${fw_file}
 		BOARD ${BOARD}
 		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
-		PARAM_XML ${CMAKE_BINARY_DIR}/parameters.xml
-		AIRFRAMES_XML ${CMAKE_BINARY_DIR}/airframes.xml
+		PARAM_XML ${PX4_BINARY_DIR}/parameters.xml
+		AIRFRAMES_XML ${PX4_BINARY_DIR}/airframes.xml
 		)
 endif()
 
@@ -132,21 +132,21 @@ endif()
 
 	add_custom_target(debug_io
 		COMMAND ${GDB}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_tui
 		COMMAND ${GDBTUI}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_ddd
 		COMMAND ${DDD} --debugger ${GDB}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)

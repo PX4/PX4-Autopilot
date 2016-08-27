@@ -1,47 +1,28 @@
 #!/usr/bin/env bash
 set -eu
-failed=0
+
+if [[ "$@" == "--fix" ]]
+then
+    export PX4_ASTYLE_FIX=1
+fi
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-find \
-    src/drivers \
-    src/examples \
-    src/firmware \
-    src/include \
-    src/lib/controllib \
-    src/lib/conversion \
-    src/lib/geo \
-    src/lib/geo_lookup \
-    src/lib/launchdetection \
-    src/lib/rc \
-    src/lib/tailsitter_recovery \
-    src/lib/terrain_estimation \
-    src/lib/version \
-    src/modules/attitude_estimator_q \
-    src/modules/bottle_drop \
-    src/modules/controllib_test \
-    src/modules/dataman \
-    src/modules/fw_att_control \
-    src/modules/fw_pos_control_l1 \
-    src/modules/gpio_led \
-    src/modules/land_detector \
-    src/modules/local_position_estimator \
-    src/modules/logger \
-    src/modules/mavlink/mavlink_tests \
-    src/modules/muorb \
-    src/modules/param \
-    src/modules/px4iofirmware \
-    src/modules/replay \
-    src/modules/segway \
-    src/modules/sensors \
-    src/modules/simulator \
-    src/modules/systemlib \
-    src/modules/unit_test \
-    src/modules/uORB \
-    src/modules/vtol_att_control \
-    src/platforms \
-    src/systemcmds \
+find src \
+    -path src/lib/DriverFramework -prune -o \
+    -path src/lib/ecl -prune -o \
+    -path src/lib/external_lgpl -prune -o \
+    -path src/lib/mathlib -prune -o \
+    -path src/lib/matrix -prune -o \
+    -path src/modules/attitude_estimator_ekf -prune -o \
+    -path src/modules/commander -prune -o \
+    -path src/examples/ekf_att_pos_estimator -prune -o \
+    -path src/modules/mavlink -prune -o \
+    -path src/examples/attitude_estimator_ekf -prune -o \
+    -path src/modules/navigator -prune -o \
+    -path src/modules/sdlog2 -prune -o \
+    -path src/modules/uavcan -prune -o \
+    -path src/modules/uavcan/libuavcan -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) \
     -not -name '*generated.h' \
     -not -name '*uthash.h' \

@@ -54,6 +54,7 @@ set(config_module_list
 	#
 	modules/param
 	modules/systemlib
+	modules/uORB
 
 	#
 	# Libraries

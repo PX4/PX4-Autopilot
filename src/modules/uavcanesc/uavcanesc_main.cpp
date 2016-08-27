@@ -246,8 +246,8 @@ static void cb_reboot(const uavcan::TimerEvent &)
 }
 
 void UavcanEsc::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanEsc::BeginFirmwareUpdate::Request>
-		&req,
-		uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &rsp)
+					&req,
+					uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &rsp)
 {
 	static bool inprogress = false;
 
@@ -362,9 +362,9 @@ int UavcanEsc::run()
 		_task_should_exit = true;
 	}
 
-	 /* If we had an  RTC we would call uavcan_stm32::clock::setUtc()
-         * but for now we use adjustUtc with a correction of 0
-         */
+	/* If we had an  RTC we would call uavcan_stm32::clock::setUtc()
+	* but for now we use adjustUtc with a correction of 0
+	*/
 //        uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(0));
 
 	_node.setModeOperational();
@@ -457,7 +457,7 @@ UavcanEsc::print_info()
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-	      "\tuavcanesc {start|status|stop}");
+		 "\tuavcanesc {start|status|stop}");
 }
 
 extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
@@ -524,7 +524,7 @@ int uavcanesc_main(int argc, char *argv[])
 
 	if (!inst) {
 		PX4_ERR("application not running");
-                ::exit(1);
+		::exit(1);
 
 	}
 

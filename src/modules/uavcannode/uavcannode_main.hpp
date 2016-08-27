@@ -87,7 +87,7 @@ class UavcanNode : public device::CDev
 	 * This memory is uses for the tasks stack size
 	 */
 
-        static constexpr unsigned StackSize          = 2500;
+	static constexpr unsigned StackSize          = 2500;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
@@ -130,19 +130,19 @@ private:
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-        uavcan::GlobalTimeSyncSlave _time_sync_slave;
+	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
 
-	typedef uavcan::MethodBinder<UavcanNode*,
-	    void (UavcanNode::*) (const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,
-	     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &)>
-	    BeginFirmwareUpdateCallBack;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,
+				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &)>
+		BeginFirmwareUpdateCallBack;
 
 	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
 	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
-	                             uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
+				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
 
 public:
 

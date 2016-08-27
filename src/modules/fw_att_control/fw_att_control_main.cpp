@@ -985,7 +985,7 @@ FixedwingAttitudeControl::task_main()
 					_att_sp.yaw_body = 0.0f;
 					_att_sp.thrust = _manual.z;
 					int instance;
-					orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
+					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
 				}
 
 				roll_sp = _att_sp.roll_body;

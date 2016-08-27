@@ -61,8 +61,8 @@ const char *decode_states[] = {"UNSYNCED",
 			      };
 
 /* define range mapping here, -+100% -> 1000..2000 */
-#define ST24_RANGE_MIN 0.0f
-#define ST24_RANGE_MAX 4096.0f
+#define ST24_RANGE_MIN 500.0f
+#define ST24_RANGE_MAX 3500.0f
 
 #define ST24_TARGET_MIN 1000.0f
 #define ST24_TARGET_MAX 2000.0f

@@ -7,21 +7,25 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	add_compile_options(-Qunused-arguments)
 endif()
 
-project(unittests)
+project(px4_unittests)
 enable_testing()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=gnu99 -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=c++11 -g -fno-exceptions -fno-rtti -fno-threadsafe-statics")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=gnu++0x -g -fno-exceptions -fno-rtti -fno-threadsafe-statics -DCONFIG_WCHAR_BUILTIN -D__CUSTOM_FILE_IO__")
+
+if (NOT PX4_SOURCE_DIR)
+	set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+endif()
 
 
-set(GTEST_DIR ${CMAKE_SOURCE_DIR}/googletest)
+set(GTEST_DIR ${PX4_SOURCE_DIR}/unittests/googletest)
 add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
-set(PX4_SRC ${CMAKE_SOURCE_DIR}/../src)
+set(PX4_SRC ${PX4_SOURCE_DIR}/src)
 set(PX4_SITL_BUILD ${PX4_SRC}/../build_posix_sitl_default)
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${PX4_SOURCE_DIR})
 include_directories(${PX4_SITL_BUILD}/src)
 include_directories(${PX4_SITL_BUILD}/src/modules)
 include_directories(${PX4_SITL_BUILD}/src/modules/param)
@@ -55,57 +59,32 @@ else()
 	add_definitions(-D__PX4_LINUX)
 endif()
 
-add_library(px4_platform 
-			${PX4_SITL_BUILD}/src/modules/param/px4_parameters.c
-			${PX4_SRC}/drivers/device/device_posix.cpp 
-			${PX4_SRC}/drivers/device/i2c_posix.cpp 
-			${PX4_SRC}/drivers/device/ringbuffer.cpp
-			${PX4_SRC}/drivers/device/sim.cpp 
-			${PX4_SRC}/drivers/device/vdev.cpp 
-			${PX4_SRC}/drivers/device/vdev_posix.cpp
-			${PX4_SRC}/drivers/device/vfile.cpp
-			${PX4_SRC}/platforms/posix/px4_layer/drv_hrt.c
-			${PX4_SRC}/platforms/posix/px4_layer/lib_crc32.c
-			${PX4_SRC}/platforms/posix/px4_layer/px4_log.c
-			${PX4_SRC}/platforms/posix/px4_layer/px4_log.c
-			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
-			${PX4_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
-			${PX4_SRC}/platforms/posix/px4_layer/px4_sem.cpp
-			${PX4_SRC}/platforms/posix/work_queue/dq_addlast.c
-			${PX4_SRC}/platforms/posix/work_queue/dq_rem.c
-			${PX4_SRC}/platforms/posix/work_queue/dq_remfirst.c
-			${PX4_SRC}/platforms/posix/work_queue/hrt_queue.c
-			${PX4_SRC}/platforms/posix/work_queue/hrt_thread.c
-			${PX4_SRC}/platforms/posix/work_queue/hrt_work_cancel.c
-			${PX4_SRC}/platforms/posix/work_queue/queue.c
-			${PX4_SRC}/platforms/posix/work_queue/sq_addafter.c
-			${PX4_SRC}/platforms/posix/work_queue/sq_addlast.c
-			${PX4_SRC}/platforms/posix/work_queue/sq_remfirst.c
-			${PX4_SRC}/platforms/posix/work_queue/work_cancel.c
-			${PX4_SRC}/platforms/posix/work_queue/work_lock.c
-			${PX4_SRC}/platforms/posix/work_queue/work_queue.c
-			${PX4_SRC}/platforms/posix/work_queue/work_thread.c
-			)
-target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms)
-target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms/posix/include)
-target_include_directories(px4_platform PUBLIC ${PX4_SRC}/platforms/posix/work_queue)
-
+set(PX4_PLATFORM
+	${PX4_SITL_BUILD}/libmsg_gen.a
+	${PX4_SITL_BUILD}/src/drivers/boards/sitl/libdrivers__boards__sitl.a
+	${PX4_SITL_BUILD}/src/drivers/device/libdrivers__device.a
+	${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/liblib__DriverFramework__framework.a
+	${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/src/libdf_driver_framework.a
+	${PX4_SITL_BUILD}/src/platforms/common/libplatforms__common.a
+	${PX4_SITL_BUILD}/src/platforms/posix/px4_layer/libplatforms__posix__px4_layer.a
+	${PX4_SITL_BUILD}/src/platforms/posix/work_queue/libplatforms__posix__work_queue.a
+	)
 
 # check
 add_custom_target(check
 		COMMAND ${CMAKE_CTEST_COMMAND} -j2 --output-on-failure
-		WORKING_DIR ${CMAKE_BINARY_DIR}
+		WORKING_DIR ${PX4_BINARY_DIR}
 		USES_TERMINAL)
 
 # add_gtest
 function(add_gtest)
 	foreach(test_name ${ARGN})
 		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-			target_link_libraries(${test_name} gtest_main pthread px4_platform)
+			target_link_libraries(${test_name} gtest_main pthread ${PX4_PLATFORM})
 		else()
-			target_link_libraries(${test_name} gtest_main pthread rt px4_platform)
+			target_link_libraries(${test_name} gtest_main pthread rt ${PX4_PLATFORM})
 		endif()
-		add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+		add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${PX4_SOURCE_DIR})
 		add_dependencies(check ${test_name})
 	endforeach()
 endfunction()
@@ -121,5 +100,5 @@ endfunction()
 add_executable(param_test param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/bson/tinybson.c
 						${PX4_SRC}/modules/systemlib/param/param.c)
-target_link_libraries(param_test ${PX4_SITL_BUILD}/libmsg_gen.a)
+target_link_libraries(param_test ${PX4_PLATFORM})
 add_gtest(param_test)

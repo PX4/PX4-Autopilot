@@ -55,6 +55,7 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/topics/parameter_update.h>
 
@@ -277,22 +278,21 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	data.field_y_ga = tmp;
 
 	// TODO: remove these (or get the values)
-	mag_report.x_raw = NAN;
-	mag_report.y_raw = NAN;
-	mag_report.z_raw = NAN;
+	mag_report.x_raw = 0;
+	mag_report.y_raw = 0;
+	mag_report.z_raw = 0;
 
-
-	math::Vector<3> mag_val((data.field_x_ga - _mag_calibration.x_offset) * _mag_calibration.x_scale,
-				(data.field_y_ga - _mag_calibration.y_offset) * _mag_calibration.y_scale,
-				(data.field_z_ga - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+	math::Vector<3> mag_val(data.field_x_ga,
+				data.field_y_ga,
+				data.field_z_ga);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
 
-	mag_report.x = mag_val(0);
-	mag_report.y = mag_val(1);
-	mag_report.z = mag_val(2);
-
+	// Apply calibration after rotation.
+	mag_report.x = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;
+	mag_report.y = (mag_val(1) - _mag_calibration.y_offset) * _mag_calibration.y_scale;
+	mag_report.z = (mag_val(2) - _mag_calibration.z_offset) * _mag_calibration.z_scale;
 
 	// TODO: get these right
 	//mag_report.scaling = -1.0f;

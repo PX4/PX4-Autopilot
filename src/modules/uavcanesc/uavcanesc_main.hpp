@@ -84,7 +84,7 @@ class UavcanEsc : public device::CDev
 	 * This memory is uses for the tasks stack size
 	 */
 
-        static constexpr unsigned StackSize          = 4096;
+	static constexpr unsigned StackSize          = 4096;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
@@ -131,14 +131,14 @@ private:
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
 
-	typedef uavcan::MethodBinder<UavcanEsc*,
-	    void (UavcanEsc::*) (const uavcan::ReceivedDataStructure<UavcanEsc::BeginFirmwareUpdate::Request> &,
-	     uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &)>
-	    BeginFirmwareUpdateCallBack;
+	typedef uavcan::MethodBinder<UavcanEsc *,
+		void (UavcanEsc::*)(const uavcan::ReceivedDataStructure<UavcanEsc::BeginFirmwareUpdate::Request> &,
+				    uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &)>
+		BeginFirmwareUpdateCallBack;
 
 	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
 	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanEsc::BeginFirmwareUpdate::Request> &req,
-	                             uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &rsp);
+				     uavcan::ServiceResponseDataStructure<UavcanEsc::BeginFirmwareUpdate::Response> &rsp);
 
 public:
 

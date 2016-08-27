@@ -43,7 +43,7 @@
 #include <uORB/uORB.h>
 #include <uORB/uORBTopics.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -234,6 +234,7 @@ void Logger::print_statistics()
 	float mebibytes = kibibytes / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
 
+	PX4_INFO("Log file: %s/%s", _log_dir, _log_file_name);
 	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
 	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
 		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
@@ -440,7 +441,7 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 		if (OK == orb_exists(sub.metadata, multi_instance)) {
 			handle = orb_subscribe_multi(sub.metadata, multi_instance);
 
-			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, topic->o_name);
+			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
 
 			/* copy first data */
 			if (handle >= 0) {
@@ -453,8 +454,11 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 					orb_set_interval(handle, interval);
 				}
 
-				orb_copy(sub.metadata, handle, buffer);
-				updated = true;
+				/* It can happen that orb_exists returns true, even if there is no publisher (but another subscriber).
+				 * We catch this here, because orb_copy will fail in this case. */
+				if (orb_copy(sub.metadata, handle, buffer) == PX4_OK) {
+					updated = true;
+				}
 			}
 		}
 
@@ -583,7 +587,7 @@ void Logger::run()
 
 	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
-	uORB::Subscription<mavlink_log_s> mavlink_log_sub(ORB_ID(mavlink_log));
+	uORB::Subscription<log_message_s> log_message_sub(ORB_ID(log_message), 20);
 
 	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
 
@@ -734,10 +738,10 @@ void Logger::run()
 				}
 			}
 
-			//check for new mavlink log message
-			if (mavlink_log_sub.check_updated()) {
-				mavlink_log_sub.update();
-				const char *message = (const char *)mavlink_log_sub.get().text;
+			//check for new logging message(s)
+			if (log_message_sub.check_updated()) {
+				log_message_sub.update();
+				const char *message = (const char *)log_message_sub.get().text;
 				int message_len = strlen(message);
 
 				if (message_len > 0) {
@@ -746,8 +750,8 @@ void Logger::run()
 					_msg_buffer[0] = (uint8_t)write_msg_size;
 					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
 					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
-					_msg_buffer[3] = mavlink_log_sub.get().severity + '0';
-					memcpy(_msg_buffer + 4, &mavlink_log_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
+					_msg_buffer[3] = log_message_sub.get().severity + '0';
+					memcpy(_msg_buffer + 4, &log_message_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
 					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
 					write(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
@@ -942,9 +946,10 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 			return -1;
 		}
 
-		char log_file_name[64] = "";
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S", &tt);
-		snprintf(file_name, file_name_size, "%s/%s%s.ulg", _log_dir, log_file_name, replay_suffix);
+		char log_file_name_time[16] = "";
+		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
+		snprintf(_log_file_name, sizeof(_log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
+		snprintf(file_name, file_name_size, "%s/%s", _log_dir, _log_file_name);
 
 	} else {
 		if (create_log_dir(nullptr)) {
@@ -956,7 +961,8 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
-			snprintf(file_name, file_name_size, "%s/log%03u%s.ulg", _log_dir, file_number, replay_suffix);
+			snprintf(_log_file_name, sizeof(_log_file_name), "log%03u%s.ulg", file_number, replay_suffix);
+			snprintf(file_name, file_name_size, "%s/%s", _log_dir, _log_file_name);
 
 			if (!file_exist(file_name)) {
 				break;

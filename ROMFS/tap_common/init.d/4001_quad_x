@@ -12,7 +12,10 @@
 #
 
 sh /etc/init.d/rc.mc_defaults
+if tap_esc start -d /dev/ttyS4 -n 4
+then
+fi
+set OUTPUT_MODE tap_esc
+param set BAT_N_CELLS 4
 
 set MIXER quad_x
-
-set PWM_OUT 1234

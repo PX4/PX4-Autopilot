@@ -121,6 +121,14 @@
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+
+execute_process(
+	COMMAND Tools/check_submodules.sh
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+
 # Use clang
 #SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
 #SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
@@ -167,6 +175,9 @@ add_definitions(-DBUILD_URI=${BUILD_URI})
 # Define GNU standard installation directories
 include(GNUInstallDirs)
 
+# Add support for external project building
+include(ExternalProject)
+
 # Setup install paths
 if(NOT CMAKE_INSTALL_PREFIX)
 	if (${OS} STREQUAL "posix")
@@ -175,12 +186,8 @@ if(NOT CMAKE_INSTALL_PREFIX)
 endif()
 message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 
-# switch to ros CMake file if building ros
-if (${OS} STREQUAL "ros")
-	include("cmake/ros-CMakeLists.txt")
-else()  # otherwise use the rest of this file
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+message(STATUS "cmake module path: ${CMAKE_MODULE_PATH}")
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
@@ -211,6 +218,9 @@ if(DEFINED config_df_driver_list)
 	message("DF Drivers: ${config_df_driver_list}")
 endif()
 
+# force static lib build
+set(BUILD_SHARED_LIBS OFF)
+
 #=============================================================================
 # project definition
 #
@@ -231,14 +241,33 @@ set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
 #=============================================================================
-# programs
+# find programs and packages
 #
+
+# see if catkin was invoked to build this
+if (CATKIN_DEVEL_PREFIX)
+	message(STATUS "catkin ENABLED")
+	find_package(catkin REQUIRED)
+	if (catkin_FOUND)
+		catkin_package()
+	else()
+		message(FATAL_ERROR "catkin not found")
+	endif()
+else()
+	message(STATUS "catkin DISABLED")
+endif()
+
 find_package(PythonInterp REQUIRED)
 
 #=============================================================================
 # cmake modules
 #
 enable_testing()
+
+#=============================================================================
+# generate compile command database
+#
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #=============================================================================
 # check required toolchain variables
@@ -269,7 +298,7 @@ px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 
 add_custom_target(submodule_clean
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	COMMAND git submodule deinit -f .
 	COMMAND rm -rf .git/modules/*
 	)
@@ -279,12 +308,12 @@ add_custom_target(submodule_clean
 #
 add_custom_target(check_format
 	COMMAND Tools/check_code_style.sh
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
 add_custom_target(config
 	COMMAND cmake-gui .
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 
 #=============================================================================
@@ -334,7 +363,7 @@ add_custom_target(xml_gen
 # external projects
 #
 
-set(ep_base ${CMAKE_BINARY_DIR}/external)
+set(ep_base ${PX4_BINARY_DIR}/external)
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 
 # add external project install folders to build
@@ -363,7 +392,7 @@ foreach(module ${config_module_list})
 	if(external_module)
 		STRING(REGEX REPLACE "//" "/" EXT_MODULE ${module})
 		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
-		add_subdirectory(${module} ${CMAKE_BINARY_DIR}/${EXT_MODULE_PREFIX})
+		add_subdirectory(${module} ${PX4_BINARY_DIR}/${EXT_MODULE_PREFIX})
 	else()
 		add_subdirectory(src/${module})
 	endif()
@@ -388,7 +417,7 @@ endif()
 #=============================================================================
 # generate git version
 #
-px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
+px4_create_git_hash_header(HEADER ${PX4_BINARY_DIR}/build_git_version.h)
 
 #=============================================================================
 # packaging
@@ -407,17 +436,14 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${version}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_SET_DESTDIR "OFF")
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
-  find_program(DPKG_PROGRAM dpkg)
-  if (EXISTS ${DPKG_PROGRAM})
-    list (APPEND CPACK_GENERATOR "DEB")
-  endif()
-endif()
-if (${OS} STREQUAL "posix")
-	set(CPACK_SET_DESTDIR "ON")
+	find_program(DPKG_PROGRAM dpkg)
+	if (EXISTS ${DPKG_PROGRAM})
+		list (APPEND CPACK_GENERATOR "DEB")
+	endif()
 endif()
 include(CPack)
-
-endif() # ros alternative endif
 
 # vim: set noet fenc=utf-8 ff=unix ft=cmake :

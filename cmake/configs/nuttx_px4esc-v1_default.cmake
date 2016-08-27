@@ -73,7 +73,7 @@ set(config_module_list
 	platforms/nuttx
 	platforms/common
 	platforms/nuttx/px4_layer
-
+	modules/uORB
 
 )
 

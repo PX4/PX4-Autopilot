@@ -983,6 +983,8 @@ Sensors::parameters_update()
 		_parameters.battery_v_div = 5.7013919372f;
 #elif defined (CONFIG_ARCH_BOARD_SITL)
 		_parameters.battery_v_div = 10.177939394f;
+#elif defined (CONFIG_ARCH_BOARD_TAP_V1)
+		_parameters.battery_v_div = 9.0f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
 		_parameters.battery_v_div = 0.0f;

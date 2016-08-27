@@ -64,6 +64,9 @@ bool uORB::Manager::initialize()
 uORB::Manager::Manager()
 	: _comm_channel(nullptr)
 {
+	for (int i = 0; i < Flavor_count; ++i) {
+		_device_masters[i] = nullptr;
+	}
 
 #ifdef ORB_USE_PUBLISHER_RULES
 	const char *file_name = "./rootfs/orb_publisher.rules";
@@ -79,6 +82,39 @@ uORB::Manager::Manager()
 
 #endif /* ORB_USE_PUBLISHER_RULES */
 
+}
+
+uORB::Manager::~Manager()
+{
+	for (int i = 0; i < Flavor_count; ++i) {
+		if (_device_masters[i]) {
+			delete _device_masters[i];
+		}
+	}
+}
+
+uORB::DeviceMaster *uORB::Manager::get_device_master(Flavor flavor)
+{
+	if (!_device_masters[flavor]) {
+		_device_masters[flavor] = new DeviceMaster(flavor);
+
+		if (_device_masters[flavor]) {
+			int ret = _device_masters[flavor]->init();
+
+			if (ret != PX4_OK) {
+				PX4_ERR("Initialization of DeviceMaster failed (%i)", ret);
+				errno = -ret;
+				delete _device_masters[flavor];
+				_device_masters[flavor] = nullptr;
+			}
+
+		} else {
+			PX4_ERR("Failed to allocate DeviceMaster");
+			errno = ENOMEM;
+		}
+	}
+
+	return _device_masters[flavor];
 }
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
@@ -414,10 +450,10 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 	_remote_subscriber_topics.insert(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		// get the node name.
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		if (node == nullptr) {
 			PX4_DEBUG("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
@@ -446,9 +482,10 @@ int16_t uORB::Manager::process_remove_subscription(
 	_remote_subscriber_topics.erase(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {
@@ -475,9 +512,10 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 	int16_t rc = -1;
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {

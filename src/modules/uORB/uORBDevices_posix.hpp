@@ -43,6 +43,7 @@ namespace uORB
 {
 class DeviceNode;
 class DeviceMaster;
+class Manager;
 }
 
 class uORB::DeviceNode : public device::VDev
@@ -115,6 +116,13 @@ public:
 	 */
 	int update_queue_size(unsigned int queue_size);
 
+	/**
+	 * Print statistics (nr of lost messages)
+	 * @param reset if true, reset statistics afterwards
+	 * @return true if printed something, false otherwise (if no lost messages)
+	 */
+	bool print_statistics(bool reset);
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void    poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -153,6 +161,10 @@ private:
 
 	int32_t _subscriber_count;
 
+	//statistics
+	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
+	///message, it is counted as two.
+
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
 	 */
@@ -190,15 +202,37 @@ private:
 class uORB::DeviceMaster : public device::VDev
 {
 public:
+	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+
+	/**
+	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNode(const char *node_name);
+
+	/**
+	 * Print statistics for each existing topic.
+	 * @param reset if true, reset statistics afterwards
+	 */
+	void printStatistics(bool reset);
+
+private:
+	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
 	virtual ~DeviceMaster();
 
-	static uORB::DeviceNode *GetDeviceNode(const char *node_name);
+	friend class uORB::Manager;
 
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
-private:
+	/**
+	 * Find a node give its name.
+	 * _lock must already be held when calling this.
+	 * @return node if exists, nullptr otherwise
+	 */
+	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
+
 	const Flavor      _flavor;
-	static std::map<std::string, uORB::DeviceNode *> _node_map;
+	std::map<std::string, uORB::DeviceNode *> _node_map;
+	hrt_abstime       _last_statistics_output;
 };
 
 #endif /* _uORBDeviceNode_posix.hpp */

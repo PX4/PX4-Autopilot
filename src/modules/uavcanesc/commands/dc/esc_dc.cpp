@@ -41,17 +41,18 @@
 
 static void print_usage()
 {
-      PX4_INFO("usage: \n"
-              "\tdc {yada|yada|yada}");
+	PX4_INFO("usage: \n"
+		 "\tdc {yada|yada|yada}");
 }
 
 extern "C" __EXPORT int dc_main(int argc, char *argv[]);
 int dc_main(int argc, char *argv[])
 {
-        if (argc < 2) {
-                print_usage();
-                ::exit(1);
-        }
-        print_usage();
-        ::exit(1);
+	if (argc < 2) {
+		print_usage();
+		::exit(1);
+	}
+
+	print_usage();
+	::exit(1);
 }

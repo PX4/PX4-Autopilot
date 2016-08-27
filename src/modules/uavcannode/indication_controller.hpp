@@ -37,5 +37,5 @@
 #include <uavcan_stm32/uavcan_stm32.hpp>
 
 
-int init_indication_controller(uavcan::INode& node);
+int init_indication_controller(uavcan::INode &node);
 

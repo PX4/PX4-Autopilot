@@ -588,12 +588,17 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 				     vec_integrated_unused,
 				     integral_dt_unused);
 
-	math::Vector<3> gyro_val((data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale,
-				 (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale,
-				 (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale);
+	math::Vector<3> gyro_val(data.gyro_rad_s_x,
+				 data.gyro_rad_s_y,
+				 data.gyro_rad_s_z);
 
 	// apply sensor rotation on the gyro measurement
 	gyro_val = _rotation_matrix * gyro_val;
+
+	// Apply calibration after rotation.
+	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
+	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
+	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
@@ -656,18 +661,18 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	}
 
 	// TODO: remove these (or get the values)
-	gyro_report.x_raw = NAN;
-	gyro_report.y_raw = NAN;
-	gyro_report.z_raw = NAN;
+	gyro_report.x_raw = 0;
+	gyro_report.y_raw = 0;
+	gyro_report.z_raw = 0;
 
-	accel_report.x_raw = NAN;
-	accel_report.y_raw = NAN;
-	accel_report.z_raw = NAN;
+	accel_report.x_raw = 0;
+	accel_report.y_raw = 0;
+	accel_report.z_raw = 0;
 
 	if (_mag_enabled) {
-		mag_report.x_raw = NAN;
-		mag_report.y_raw = NAN;
-		mag_report.z_raw = NAN;
+		mag_report.x_raw = 0;
+		mag_report.y_raw = 0;
+		mag_report.z_raw = 0;
 	}
 
 	math::Vector<3> gyro_val_filt;

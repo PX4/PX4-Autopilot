@@ -44,49 +44,55 @@
 #include "led.hpp"
 
 
-uavcan::Publisher<uavcan::equipment::esc::Status>* pub_status;
-namespace {
+uavcan::Publisher<uavcan::equipment::esc::Status> *pub_status;
+namespace
+{
 unsigned self_index = 0;
 int rpm = 0;
 
-static void cb_raw_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand>& msg)
+static void cb_raw_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &msg)
 {
 	if (msg.cmd.size() <= self_index) {
-		rgb_led(0,0,0,0);
+		rgb_led(0, 0, 0, 0);
 		return;
 	}
 
-	const float scaled = msg.cmd[self_index] / float(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max());
+	const float scaled = msg.cmd[self_index] / float(
+				     uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max());
 
-        static int c = 0;
-        if (c++ % 100 == 0) {
-            ::syslog(LOG_INFO,"scaled:%d\n",(int)scaled);
-        }
+	static int c = 0;
+
+	if (c++ % 100 == 0) {
+		::syslog(LOG_INFO, "scaled:%d\n", (int)scaled);
+	}
+
 	if (scaled > 0) {
 	} else {
 	}
 }
 
-static void cb_rpm_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RPMCommand>& msg)
+static void cb_rpm_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RPMCommand> &msg)
 {
 	if (msg.rpm.size() <= self_index) {
 		return;
 	}
 
 	rpm = msg.rpm[self_index];
-        static int c = 0;
-        if (c++ % 100 == 0) {
-            ::syslog(LOG_INFO,"rpm:%d\n",rpm);
-        }
+	static int c = 0;
+
+	if (c++ % 100 == 0) {
+		::syslog(LOG_INFO, "rpm:%d\n", rpm);
+	}
 
 	if (rpm > 0) {
-            rgb_led(255,0,0,rpm);
+		rgb_led(255, 0, 0, rpm);
+
 	} else {
-	     rgb_led(0,0,0,0);
+		rgb_led(0, 0, 0, 0);
 	}
 }
 
-void cb_10Hz(const uavcan::TimerEvent& event)
+void cb_10Hz(const uavcan::TimerEvent &event)
 {
 	uavcan::equipment::esc::Status msg;
 
@@ -101,22 +107,24 @@ void cb_10Hz(const uavcan::TimerEvent& event)
 	if (rpm != 0) {
 		// Lower the publish rate to 1Hz if the motor is not running
 		static uavcan::MonotonicTime prev_pub_ts;
+
 		if ((event.scheduled_time - prev_pub_ts).toMSec() >= 990) {
 			prev_pub_ts = event.scheduled_time;
 			pub_status->broadcast(msg);
 		}
+
 	} else {
 		pub_status->broadcast(msg);
 	}
 }
 
 }
-int init_sim_controller(uavcan::INode& node)
+int init_sim_controller(uavcan::INode &node)
 {
 
-        typedef void (*cb)(const uavcan::TimerEvent&);
+	typedef void (*cb)(const uavcan::TimerEvent &);
 	static uavcan::Subscriber<uavcan::equipment::esc::RawCommand> sub_raw_command(node);
-        static uavcan::Subscriber<uavcan::equipment::esc::RPMCommand> sub_rpm_command(node);
+	static uavcan::Subscriber<uavcan::equipment::esc::RPMCommand> sub_rpm_command(node);
 	static uavcan::TimerEventForwarder<cb>  timer_10hz(node);
 
 	self_index = 0;
@@ -124,17 +132,20 @@ int init_sim_controller(uavcan::INode& node)
 	int res = 0;
 
 	res = sub_raw_command.start(cb_raw_command);
+
 	if (res != 0) {
 		return res;
 	}
 
 	res = sub_rpm_command.start(cb_rpm_command);
+
 	if (res != 0) {
 		return res;
 	}
 
 	pub_status = new uavcan::Publisher<uavcan::equipment::esc::Status>(node);
 	res = pub_status->init();
+
 	if (res != 0) {
 		return res;
 	}

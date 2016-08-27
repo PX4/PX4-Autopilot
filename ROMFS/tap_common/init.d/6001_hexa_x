@@ -13,7 +13,13 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER hexa_x
+param set MAV_TYPE 13
+param set MC_YAWRATE_P 0.12
+param set CAL_MAG0_ROT 6
 
-# Need to set all 8 channels
-set PWM_OUT 12345678
+if tap_esc start -d /dev/ttyS4 -n 6
+then
+fi
+set OUTPUT_MODE tap_esc
+
+set MIXER hexa_x

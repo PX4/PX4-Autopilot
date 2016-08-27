@@ -429,6 +429,10 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		parseMessage(data, dest_ptr, type);
 		_range.timestamp = replay_part4.time_rng_usec;
 		_range.current_distance = replay_part4.range_to_ground;
+		_range.covariance = 0.0f;
+		// magic values
+		_range.min_distance = 0.05f;
+		_range.max_distance = 30.0f;
 		_read_part4 = true;
 
 	} else if (type == LOG_RPL6_MSG) {

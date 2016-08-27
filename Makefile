@@ -42,7 +42,7 @@ endif
 CMAKE_VER := $(shell Tools/check_cmake.sh; echo $$?)
 ifneq ($(CMAKE_VER),0)
     $(warning Not a valid CMake version or CMake not installed.)
-    $(warning On Ubuntu, install or upgrade via:)
+    $(warning On Ubuntu 16.04, install or upgrade via:)
     $(warning )
     $(warning 3rd party PPA:)
     $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
@@ -111,20 +111,23 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e ./build_$@$(BUILD_DIR_SUFFIX)/Makefile ]; then rm -rf ./build_$@$(BUILD_DIR_SUFFIX); fi
-+@if [ ! -e ./build_$@$(BUILD_DIR_SUFFIX)/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p ./build_$@$(BUILD_DIR_SUFFIX) && cd ./build_$@$(BUILD_DIR_SUFFIX) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf ./build_$@$(BUILD_DIR_SUFFIX)); fi
-+@Tools/check_submodules.sh
-+@(echo "PX4 CONFIG: $@$(BUILD_DIR_SUFFIX)" && cd ./build_$@$(BUILD_DIR_SUFFIX) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
++@(echo "PX4 CONFIG: $(BUILD_DIR)" && cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 define cmake-build-other
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e ./build_$@/Makefile ]; then rm -rf ./build_$@; fi
-+@if [ ! -e ./build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p ./build_$@ && cd ./build_$@ && cmake $(2) -G$(PX4_CMAKE_GENERATOR) || (cd .. && rm -rf ./build_$@); fi
-+@(cd ./build_$@ && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
++@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 # create empty targets to avoid msgs for targets passed to cmake
@@ -146,6 +149,9 @@ endef
 
 tap-v1_default:
 	$(call cmake-build,nuttx_tap-v1_default)
+
+asc-v1_default:
+	$(call cmake-build,nuttx_asc-v1_default)
 
 px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
@@ -210,6 +216,9 @@ posix_sitl_default:
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
+posix_sitl_ekf2:
+	$(call cmake-build,$@)
+
 posix_sitl_replay:
 	$(call cmake-build,$@)
 
@@ -269,14 +278,8 @@ run_sitl_ros: sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL: gazebo_build uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-
-gazebo_build:
-	@mkdir -p build_gazebo
-	@if [ ! -e ./build_gazebo/CMakeCache.txt ];then cd build_gazebo && cmake -Wno-dev -G$(PX4_CMAKE_GENERATOR) ../Tools/sitl_gazebo; fi
-	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS)
-	@cd build_gazebo && $(PX4_MAKE) $(PX4_MAKE_ARGS) sdf
+.PHONY: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -290,6 +293,7 @@ sizes:
 checks_defaults: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v4_default \
 	check_mindpx-v2_default \
 	check_px4-stm32f4discovery_default \
 	check_mavstation_default \
@@ -310,7 +314,8 @@ checks_tests: \
 	check_px4fmu-v2_test
 
 checks_alts: \
-	check_px4fmu-v2_ekf2 \
+	check_asc-v1_default \
+	check_px4-stm32f4discovery_default
 
 checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
@@ -323,12 +328,17 @@ checks_last: \
 	check_format \
 
 check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
-quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_tests check_format
+quick_check: check_px4fmu-v2_default check_px4fmu-v4_default check_posix_sitl_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/fix_code_style.sh
 	@./Tools/check_code_style_all.sh
+
+format:
+	$(call colorecho,"Formatting with astyle")
+	@./Tools/fix_code_style.sh
+	@./Tools/check_code_style_all.sh --fix
 
 check_%:
 	@echo
@@ -350,11 +360,7 @@ unittest: posix_sitl_default
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix: posix_sitl_default
-	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/fs/microsd
-	@mkdir -p build_posix_sitl_default/src/firmware/posix/rootfs/eeprom
-	@touch build_posix_sitl_default/src/firmware/posix/rootfs/eeprom/parameters
-	@(cd build_posix_sitl_default/src/firmware/posix && ./px4 -d ../../../../posix-configs/SITL/init/rcS_tests | tee test_output)
-	@(cd build_posix_sitl_default/src/firmware/posix && grep --color=always "All tests passed" test_output)
+	@(cd build_posix_sitl_default/ && ctest -V)
 
 tests: check_unittest run_tests_posix
 
@@ -363,13 +369,13 @@ qgc_firmware: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_mindpx-v2_default \
+	check_tap-v1_default \
 	check_px4fmu-v4_default_and_uavcan \
 	check_format
 
 extra_firmware: \
 	check_px4-stm32f4discovery_default \
-	check_px4fmu-v2_test \
-	check_px4fmu-v2_ekf2
+	check_px4fmu-v2_test
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`

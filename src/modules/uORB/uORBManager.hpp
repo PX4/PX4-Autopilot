@@ -78,6 +78,14 @@ public:
 		return _Instance;
 	}
 
+	/**
+	 * Get the DeviceMaster for a given Flavor. If it does not exist,
+	 * it will be created and initialized.
+	 * Note: the first call to this is not thread-safe.
+	 * @return nullptr if initialization failed (and errno will be set)
+	 */
+	uORB::DeviceMaster *get_device_master(Flavor flavor);
+
 	// ==== uORB interface methods ====
 	/**
 	 * Advertise as the publisher of a topic.
@@ -287,7 +295,8 @@ public:
 	int  orb_stat(int handle, uint64_t *time) ;
 
 	/**
-	 * Check if a topic has already been created.
+	 * Check if a topic has already been created (a publisher or a subscriber exists with
+	 * the given instance).
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
@@ -399,8 +408,11 @@ private: // data members
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;
 
+	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
+
 private: //class methods
 	Manager();
+	~Manager();
 
 	/**
 	   * Interface to process a received AddSubscription from remote.
