@@ -337,7 +337,7 @@ void
 Mavlink::set_proto_version(unsigned version)
 {
 	if ((version == 1 || version == 0) &&
-		   ((_protocol_version_switch == 0) || (_protocol_version_switch == 1))) {
+	    ((_protocol_version_switch == 0) || (_protocol_version_switch == 1))) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
 		_protocol_version = 1;
 

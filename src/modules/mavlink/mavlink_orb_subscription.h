@@ -95,6 +95,7 @@ private:
 	const int _instance;		///< get topic instance
 	int _fd;			///< subscription handle
 	bool _published;		///< topic was ever published
+	hrt_abstime _last_pub_check;	///< when we checked last
 
 	/* do not allow copying this class */
 	MavlinkOrbSubscription(const MavlinkOrbSubscription &);
