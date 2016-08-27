@@ -2065,10 +2065,8 @@ Mavlink::task_main(int argc, char *argv[])
 		init_udp();
 	}
 
-	/* if the protocol is serial, we send the system version blindly */
-	if (get_protocol() == SERIAL) {
-		send_autopilot_capabilites();
-	}
+	/* send the system version without asking */
+	send_autopilot_capabilites();
 
 	while (!_task_should_exit) {
 		/* main loop */
