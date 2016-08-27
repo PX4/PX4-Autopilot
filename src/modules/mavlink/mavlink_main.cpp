@@ -216,6 +216,7 @@ Mavlink::Mavlink() :
 	_last_write_success_time(0),
 	_last_write_try_time(0),
 	_mavlink_start_time(0),
+	_protocol_version_switch(0),
 	_protocol_version(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
@@ -335,13 +336,14 @@ Mavlink::~Mavlink()
 void
 Mavlink::set_proto_version(unsigned version)
 {
-	_protocol_version = version;
-
 	if (version == 1 || ((version == 0) && !_received_messages)) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+		_protocol_version = 1;
 
-	} else if (version == 2) {
+	} else if (version == 2 &&
+		   ((_protocol_version_switch == 0) || (_protocol_version_switch == 2))) {
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
+		_protocol_version = 2;
 	}
 }
 
@@ -564,9 +566,13 @@ void Mavlink::mavlink_update_system(void)
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
 
-	int32_t proto;
+	int32_t proto = 0;
 	param_get(_param_proto_ver, &proto);
-	set_proto_version(proto);
+
+	if (_protocol_version_switch != proto) {
+		_protocol_version_switch = proto;
+		set_proto_version(proto);
+	}
 
 	param_get(_param_radio_id, &_radio_id);
 
@@ -1249,6 +1255,7 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.flight_sw_version = version_tag_to_number(px4_git_tag);
 		msg.middleware_sw_version = version_tag_to_number(px4_git_tag);
 		msg.os_sw_version = version_tag_to_number(os_git_tag);
