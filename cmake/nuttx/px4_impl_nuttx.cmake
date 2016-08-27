@@ -226,7 +226,7 @@ function(px4_nuttx_add_export)
 		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${PX4_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} ${DEPENDS}
+		DEPENDS ${config_files} "${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/nsh/defconfig" ${DEPENDS}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Building NuttX for ${CONFIG}")
 
