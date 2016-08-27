@@ -94,6 +94,19 @@
 #  endif
 #endif
 
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+__END_DECLS
+
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
@@ -168,6 +181,14 @@ __EXPORT int nsh_archinitialize(void)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
+
+	/* initial LED state */
+	drv_led_start();
+	led_off(LED_RED);
+	led_off(LED_GREEN);
+	led_off(LED_BLUE);
+	led_off(LED_TX);
+	led_off(LED_RX);
 
 
 
