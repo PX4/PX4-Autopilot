@@ -87,6 +87,7 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 set -e
 echo "=====> run tests"
 rostest px4 mavros_posix_tests_iris.launch
+rostest px4 mavros_posix_tests_iris_opt_flow.launch
 rostest px4 mavros_posix_tests_standard_vtol.launch
 TEST_RESULT=$?
 echo "<====="
