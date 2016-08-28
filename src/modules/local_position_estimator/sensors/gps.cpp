@@ -148,6 +148,17 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
+	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
+
+	if (gps_s_stddev > _gps_vxy_stddev.get()) {
+		var_vxy = gps_s_stddev * gps_s_stddev;
+	}
+
+	if (gps_s_stddev > _gps_vz_stddev.get()) {
+		var_z = gps_s_stddev * gps_s_stddev;
+	}
+
+
 	R(0, 0) = var_xy;
 	R(1, 1) = var_xy;
 	R(2, 2) = var_z;
