@@ -131,6 +131,10 @@ Syslink::set_address(uint64_t addr)
 int
 Syslink::open_serial(const char *dev)
 {
+#ifndef B1000000
+#define B1000000 1000000
+#endif
+
 	int rate = B1000000;
 
 	// open uart
