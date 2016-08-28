@@ -44,6 +44,7 @@ set(config_module_list
 	modules/land_detector
 
 	modules/dummy
+	modules/syslink
 
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
