@@ -109,7 +109,7 @@ void RCRecover::update_mission_item()
 			loiter_lat = _mission_item.lat;
 			loiter_lon = _mission_item.lon;
 			loiter_alt = _mission_item.altitude;
-			TRACKER_DBG("tracker proposed %lf %lf %f", _mission_item.lat, _mission_item.lon, _mission_item.altitude);
+			TRACKER_DBG("tracker proposed %f %f %f", _mission_item.lat, _mission_item.lon, (double)_mission_item.altitude);
 			
 			_mission_item.altitude_is_relative = false;
 			_mission_item.yaw = NAN;

@@ -21,6 +21,8 @@
 
 #define DELAY_SIGMA	0.01f
 
+#define DEBUG_RTL
+
 RTLAdvanced::RTLAdvanced(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_fallback_delay(this, "RTLA_FALLBCK_DLY", false),
@@ -100,6 +102,15 @@ void RTLAdvanced::on_active() {
 		else
 			_tracker = NULL; // If the return path is empty, discard the tracker so we don't make further unneccessary checks.
 	}
+
+#ifdef DEBUG_RTL
+	hrt_abstime now = hrt_absolute_time();
+	if (now >= next_log) {
+		next_log = now + (hrt_abstime)(1 * 1e6f);
+		position_setpoint_s &sp = _navigator->get_position_setpoint_triplet()->next;
+		PX4_WARN("next waypoint: %.0f°, %.2fm", (double)bearing_to_setpoint(sp), (double)distance_to_setpoint(sp));
+	}
+#endif
 }
 
 void RTLAdvanced::update_deadline() {
@@ -111,7 +122,7 @@ void RTLAdvanced::update_deadline() {
 	if (delay < 0)
 		deadline = HRT_ABSTIME_MAX;
 	else
-		deadline = hrt_absolute_time() + (hrt_abstime)delay * 1e6f;
+		deadline = hrt_absolute_time() + (hrt_abstime)(delay * 1e6f);
 }
 
 void RTLAdvanced::setpoint_from_xyz(position_setpoint_s &sp, float x, float y, float z) {
@@ -121,24 +132,22 @@ void RTLAdvanced::setpoint_from_xyz(position_setpoint_s &sp, float x, float y, f
 
 	if (globallocalconverter_toglobal(x, y, z, &lat, &lon, &alt))
 		return; // todo: proper error handling
-
-	sp = {
-		.valid = true,
-		//.type = position_setpoint_s::SETPOINT_TYPE_OFFBOARD, // this seems wrong but we want to define a local (instead of global) position for this setpoint 
-		.position_valid = true,
-		//.x = x,
-		//.y = y,
-		//.z = z,
-		.lat = lat,
-		.lon = lon,
-		.alt = alt,
-		.acceptance_radius = 1,
-		.disable_mc_yaw_control = true,
-		.cruising_speed = _navigator->get_cruising_speed(),
-		.cruising_throttle = _navigator->get_cruising_throttle(),
-		.loiter_radius = _navigator->get_loiter_radius(),
-		.loiter_direction = 1
-	};
+	
+	sp.valid = true;
+	//sp.type = position_setpoint_s::SETPOINT_TYPE_OFFBOARD; // this seems wrong but we want to define a local (instead of global) position for this setpoint 
+	sp.position_valid = true;
+	//sp.x = x;
+	//sp.y = y;
+	//sp.z = z;
+	sp.lat = lat;
+	sp.lon = lon;
+	sp.alt = alt;
+	sp.acceptance_radius = 1;
+	sp.disable_mc_yaw_control = true;
+	sp.cruising_speed = _navigator->get_cruising_speed();
+	sp.cruising_throttle = _navigator->get_cruising_throttle();
+	sp.loiter_radius = _navigator->get_loiter_radius();
+	sp.loiter_direction = 1;
 }
 
 
@@ -153,6 +162,13 @@ float RTLAdvanced::distance_to_setpoint(position_setpoint_s &sp) {
 	return sqrt(x1 * x1 + y1 * y1 + z1 * z1);
 }
 
+float RTLAdvanced::bearing_to_setpoint(position_setpoint_s &sp) {
+	float bearing = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, sp.lat, sp.lon) * 180.f / (float)M_PI;
+	if (bearing <= 0)
+		bearing += 360;
+	return bearing;
+}
+
 
 void RTLAdvanced::dump_setpoint(const char *name, position_setpoint_s &sp, bool local) {
 	float x = sp.x;
@@ -162,7 +178,7 @@ void RTLAdvanced::dump_setpoint(const char *name, position_setpoint_s &sp, bool 
 	if (!local)
 		globallocalconverter_tolocal(sp.lat, sp.lon, sp.alt, &x, &y, &z);
 
-	TRACKER_DBG("%s setpoint is (%f, %f, %f), distance %f, %s", name, x, y, z, distance_to_setpoint(sp), sp.valid ? "valid" : "invalid");
+	TRACKER_DBG("%s setpoint is (%f, %f, %f), distance %f, %s", name, (double)x, (double)y, (double)z, (double)distance_to_setpoint(sp), sp.valid ? "valid" : "invalid");
 }
 
 

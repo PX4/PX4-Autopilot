@@ -33,8 +33,9 @@ private:
 	// Updates the deadline from the current time and parameters.
 	void update_deadline();
 
-	// Returns the current distance to a setpoint
+	// Returns the current distance/bearing to a setpoint
 	float distance_to_setpoint(position_setpoint_s &sp);
+	float bearing_to_setpoint(position_setpoint_s &sp);
 
 	// Prints information about the specified setpoint
 	void dump_setpoint(const char *name, position_setpoint_s &sp, bool local);
@@ -51,6 +52,8 @@ private:
 
 	hrt_abstime deadline = HRT_ABSTIME_MAX; // This deadline makes sure that progress is made.
 	bool land_after_deadline; // If true and the deadline is reached, land, otherwise, fall back to basic RTL.
+
+	hrt_abstime next_log = 0;
 
 	control::BlockParamFloat _param_fallback_delay;
 	control::BlockParamFloat _param_land_delay;
