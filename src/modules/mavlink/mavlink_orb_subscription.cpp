@@ -170,6 +170,9 @@ MavlinkOrbSubscription::is_published()
 	// If it does not exist its not published
 	if (orb_exists(_topic, _instance)) {
 		return false;
+
+	} else if (_fd < 0) {
+		_fd = orb_subscribe_multi(_topic, _instance);
 	}
 
 	bool updated;
