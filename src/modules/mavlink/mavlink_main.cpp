@@ -216,7 +216,7 @@ Mavlink::Mavlink() :
 	_last_write_success_time(0),
 	_last_write_try_time(0),
 	_mavlink_start_time(0),
-	_protocol_version_switch(0),
+	_protocol_version_switch(-1),
 	_protocol_version(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
@@ -336,7 +336,8 @@ Mavlink::~Mavlink()
 void
 Mavlink::set_proto_version(unsigned version)
 {
-	if (version == 1 || ((version == 0) && !_received_messages)) {
+	if ((version == 1 || version == 0) &&
+		   ((_protocol_version_switch == 0) || (_protocol_version_switch == 1))) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
 		_protocol_version = 1;
 

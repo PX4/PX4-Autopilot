@@ -2090,7 +2090,7 @@ MavlinkReceiver::receive_thread(void *arg)
 #endif
 	mavlink_message_t msg;
 
-	struct pollfd fds[1];
+	struct pollfd fds[1] = {};
 
 	if (_mavlink->get_protocol() == SERIAL) {
 		fds[0].fd = _mavlink->get_uart_fd();
