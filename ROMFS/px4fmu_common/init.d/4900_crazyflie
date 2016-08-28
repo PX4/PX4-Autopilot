@@ -18,6 +18,18 @@ then
 	param set PWM_DISARMED 0
 	param set PWM_MIN 0
 	param set PWM_MAX 255
+
+	param set SYS_COMPANION 20
+
+	param set MC_PITCHRATE_D 0.0028
+	param set MC_PITCHRATE_P 0.075
+	param set MC_PITCH_P 4.0
+	param set MC_ROLLRATE_D 0.0028
+	param set MC_ROLLRATE_P 0.075
+	param set MC_ROLL_P 4.0
+
+	param set CBRK_SUPPLY_CHK 894281
+	param set CBRK_USB_CHK 197848
 fi
 
 set PWM_MIN none
