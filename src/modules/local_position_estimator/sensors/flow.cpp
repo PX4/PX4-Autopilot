@@ -29,9 +29,19 @@ void BlockLocalPositionEstimator::flowInit()
 					     "quality %d std %d",
 					     int(_flowQStats.getMean()(0)),
 					     int(_flowQStats.getStdDev()(0)));
+		// set flow x, y as estimate x, y at beginning of optical
+		// flow tracking
+		_flowX = _x(X_x);
+		_flowY = _x(X_y);
 		_flowInitialized = true;
 		_flowFault = FAULT_NONE;
 	}
+}
+
+void BlockLocalPositionEstimator::flowDeinit()
+{
+	_flowInitialized = false;
+	_flowQStats.reset();
 }
 
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
@@ -66,8 +76,9 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 
 		if (delta.norm() > 3) {
 			mavlink_and_console_log_info(&mavlink_log_pub,
-						     "[lpe] flow too far from GPS, disabled");
-			_flowInitialized = false;
+						     "[lpe] flow too far from GPS, resetting position");
+			_flowX = px;
+			_flowY = py;
 			return -1;
 		}
 	}
@@ -127,10 +138,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	SquareMatrix<float, n_y_flow> R;
 	R.setZero();
-	R(Y_flow_x, Y_flow_x) =
-		_flow_xy_stddev.get() * _flow_xy_stddev.get();
-	R(Y_flow_y, Y_flow_y) =
-		_flow_xy_stddev.get() * _flow_xy_stddev.get();
+	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
+	float flow_xy_stddev = _flow_xy_stddev.get() + _flow_xy_d_stddev.get() * d ;
+	R(Y_flow_x, Y_flow_x) = flow_xy_stddev * flow_xy_stddev;
+	R(Y_flow_y, Y_flow_y) = R(Y_flow_x, Y_flow_x);
 
 	// residual
 	Vector<float, 2> r = y - C * _x;
@@ -178,8 +189,7 @@ void BlockLocalPositionEstimator::flowCheckTimeout()
 {
 	if (_timeStamp - _time_last_flow > FLOW_TIMEOUT) {
 		if (_flowInitialized) {
-			_flowInitialized = false;
-			_flowQStats.reset();
+			flowDeinit();
 			mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
 		}
 	}

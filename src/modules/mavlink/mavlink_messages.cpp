@@ -3158,12 +3158,33 @@ protected:
 			struct vehicle_local_position_s local_pos;
 			updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
 			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
+
+			// publish this data if global isn't publishing
+			if (_global_pos_time == 0) {
+				if (local_pos.dist_bottom_valid) {
+					msg.bottom_clearance = local_pos.dist_bottom;
+					msg.altitude_terrain = msg.altitude_local - msg.bottom_clearance;
+
+				} else {
+					msg.bottom_clearance = NAN;
+					msg.altitude_terrain = NAN;
+				}
+			}
 		}
 
 		{
 			struct home_position_s home;
 			updated |= _home_sub->update(&_home_time, &home);
-			msg.altitude_relative = (_home_time > 0) ? (global_alt - home.alt) : NAN;
+
+			if (_global_pos_time > 0 and _home_time > 0) {
+				msg.altitude_relative = global_alt - home.alt;
+
+			} else if (_local_pos_time > 0 and _home_time > 0) {
+				msg.altitude_relative = msg.altitude_local;
+
+			} else {
+				msg.altitude_relative = NAN;
+			}
 		}
 
 		if (updated) {
