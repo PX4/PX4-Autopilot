@@ -36,8 +36,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
 	// vision 5 hz
 	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 5, 0, &getSubscriptions()),
-	// all distance sensors, 10 hz
+	// mocap 10 hz
 	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 10, 0, &getSubscriptions()),
+	// land 1 hz
+	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 1, 0, &getSubscriptions()),
+	// all distance sensors, 10 hz
 	_sub_dist0(ORB_ID(distance_sensor), 1000 / 10, 0, &getSubscriptions()),
 	_sub_dist1(ORB_ID(distance_sensor), 1000 / 10, 1, &getSubscriptions()),
 	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
@@ -119,6 +122,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
 	_time_last_hist(0),
+	_time_last_land(0),
 	_time_last_xy(0),
 	_time_last_z(0),
 	_time_last_tz(0),
@@ -290,6 +294,7 @@ void BlockLocalPositionEstimator::update()
 	bool baroUpdated = _sub_sensor.updated();
 	bool gpsUpdated = _gps_on.get() && _sub_gps.updated();
 	bool visionUpdated = _vision_on.get() && _sub_vision_pos.updated();
+	bool landUpdated = _sub_land.updated();
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
@@ -491,6 +496,14 @@ void BlockLocalPositionEstimator::update()
 		} else {
 			mocapCorrect();
 		}
+	}
+
+
+	float dt_land = 1.0e-6f * (_timeStamp - _time_last_land);
+	if ((!armedState && dt_land > 1.0f) ||
+			(landUpdated && _sub_land.get().landed)) {
+		_time_last_land = _timeStamp;
+		landCorrect();
 	}
 
 	if (_altOriginInitialized) {
@@ -892,4 +905,46 @@ void BlockLocalPositionEstimator::predict()
 
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
+}
+
+void BlockLocalPositionEstimator::landCorrect() {
+	// measurement
+	Vector<float, n_y_land> y;
+	y(Y_land_x) = _x(X_x);
+	y(Y_land_y) = _x(X_y);
+	y(Y_land_z) = _x(X_z);
+	y(Y_land_vx) = 0;
+	y(Y_land_vy) = 0;
+	y(Y_land_vz) = 0;
+	y(Y_land_tz) = _x(X_z);
+
+	// measurement matrix
+	Matrix<float, n_y_land, n_x> C;
+	C(Y_land_x, X_x) = 1;
+	C(Y_land_y, X_y) = 1;
+	C(Y_land_z, X_z) = 1;
+	C(Y_land_vx, X_vx) = 1;
+	C(Y_land_vy, X_vy) = 1;
+	C(Y_land_vz, X_vz) = 1;
+	C(Y_land_tz, X_tz) = 1;
+
+	// measurement noise
+	SquareMatrix<float, n_y_land> R;
+	R(Y_land_x, Y_land_x) = 0.1;
+	R(Y_land_y, Y_land_y) = 0.1;
+	R(Y_land_z, Y_land_z) = 0.1;
+	R(Y_land_vx, Y_land_vx) = 0.1;
+	R(Y_land_vy, Y_land_vy) = 0.1;
+	R(Y_land_vz, Y_land_vz) = 0.1;
+	R(Y_land_tz, Y_land_tz) = 0.1;
+
+	// residual
+	Vector<float, n_y_land> r = y - C * _x;
+
+	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>(C * _P * C.transpose() + R);
+	Matrix<float, n_x, n_y_land> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	correctionLogic(dx);
+	_x += dx;
+	_P -= K * C * _P;
 }

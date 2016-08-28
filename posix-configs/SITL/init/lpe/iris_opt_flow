@@ -45,9 +45,9 @@ param set MPC_XY_VEL_I 0.2
 param set LPE_GPS_ON 0
 param set MPC_ALT_MODE 1
 param set LPE_T_MAX_GRADE 0
-param set MPC_XY_VEL_MAX 2
-param set MPC_Z_VEL_MAX 2
-param set MPC_XY_P 0.5
+param set MPC_XY_VEL_MAX 1
+param set MPC_Z_VEL_MAX 1
+param set MPC_XY_P 0.1
 param set MIS_TAKEOFF_ALT 2
 
 replay tryapplyparams

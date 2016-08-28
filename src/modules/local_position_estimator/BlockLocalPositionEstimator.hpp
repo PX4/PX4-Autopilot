@@ -22,6 +22,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -131,6 +132,7 @@ public:
 	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
+	enum {Y_land_x = 0, Y_land_y, Y_land_z, Y_land_vx, Y_land_vy, Y_land_vz, Y_land_tz, n_y_land};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM, n_poll};
 
 	BlockLocalPositionEstimator();
@@ -155,6 +157,9 @@ private:
 
 	// predict the next state
 	void predict();
+	
+	// landed
+	void landCorrect();
 
 	// lidar
 	int  lidarMeasure(Vector<float, n_y_lidar> &y);
@@ -226,6 +231,7 @@ private:
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<vehicle_land_detected_s> _sub_land;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
 	uORB::Subscription<distance_sensor_s> _sub_dist2;
@@ -324,6 +330,7 @@ private:
 	px4_pollfd_struct_t _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_hist;
+	uint64_t _time_last_land;
 	uint64_t _time_last_xy;
 	uint64_t _time_last_z;
 	uint64_t _time_last_tz;
