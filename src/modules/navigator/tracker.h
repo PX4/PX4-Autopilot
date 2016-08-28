@@ -12,11 +12,11 @@
 
 
 #ifdef DEBUG_TRACKER
-#define TRACKER_DBG(...) PX4_INFO(__VA_ARGS__)
-#define DUMP_GRAPH()    dump_graph()
+#define TRACKER_DBG(...)    PX4_INFO(__VA_ARGS__)
+#define DUMP_GRAPH()        dump_graph()
 #else
-#define TRACKER_DBG(...)
-#define DUMP_GRAPH()
+#define TRACKER_DBG(...)    (void)0
+#define DUMP_GRAPH()        (void)0
 #endif
 
 #define GRAPH_ERR(...) do { \

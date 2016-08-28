@@ -77,6 +77,7 @@ set(config_module_list
 	drivers/sf0x/sf0x_tests
 	drivers/test_ppm
 	modules/commander/commander_tests
+	modules/navigator/navigator_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/unit_test

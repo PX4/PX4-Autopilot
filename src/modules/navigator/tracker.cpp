@@ -268,7 +268,7 @@ int Tracker::get_granularity_at(ipos_t pos) {
     log_dist = (log_dist - HIGH_PRECISION_RANGE) >> 1;
 
     // The graph precision is lowered every second time the memory pressure increases
-    int p = (memory_pressure + 1) >> 1;
+    int p = (memory_pressure >> 1) + 1;
 
     int margin = std::max(((p - 1) >> 1) + 1, log_dist * p);
     //                    \___ regime 1 ___/  \ regime 2 /
@@ -288,23 +288,22 @@ void Tracker::set_home(float x, float y, float z) {
         node_at(0).distance = MAX_DISTANCE;
     }
 
-    node_at(0) = {
-        .index1 = 0,
-        .index2 = 0,
-        .coef1 = 0,
-        .coef2 = 0,
-        .dirty = 1,
-        .obsolete = 0,
-        .use_line2 = 0,
-        .go_forward = 0,
-        .distance = 0 
-    };
+    node_t &home_node = node_at(0);
+    home_node.index1 = 0;
+    home_node.index2 = 0;
+    home_node.coef1 = 0;
+    home_node.coef2 = 0;
+    home_node.dirty = 1;
+    home_node.obsolete = 0;
+    home_node.use_line2 = 0;
+    home_node.go_forward = 0;
+    home_node.distance = 0;
 
     consolidate_graph("new home position");
 
     did_set_home = true;
 
-    TRACKER_DBG("tracker received new home position %zu-%.2f (%.2f, %.2f, %.2f)", nodes->index1, coef_to_float(nodes->coef1), x, y, z);
+    TRACKER_DBG("tracker received new home position %zu-%.2f (%.2f, %.2f, %.2f)", nodes->index1, (double)coef_to_float(nodes->coef1), (double)x, (double)y, (double)z);
 }
 
 void Tracker::update(float x, float y, float z) {
@@ -464,8 +463,8 @@ void Tracker::push_graph(fpos_t &position) {
 
         (void)free_space_before;
         TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%%",
-            100.f * (1.f - (float)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
-            100.f * (1.f - (float)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
+            100.L * (1.L - (double)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
+            100.L * (1.L - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
     }
 
 
@@ -804,10 +803,11 @@ void Tracker::consolidate_graph(const char *reason) {
             node_t node = {
                 .index1 = (uint16_t)read_index,
                 .index2 = (uint16_t)search_index,
-                .coef1 = 0,
-                .coef2 = 0,
                 .dirty = 1,
+                .coef1 = 0,
                 .obsolete = 0,
+                .coef2 = 0,
+                .delta = pack_compact_delta_item({ .x = 0, .y = 0, .z = 0 }),
                 .use_line2 = 0,
                 .go_forward = 0,
                 .distance = MAX_DISTANCE
@@ -841,7 +841,7 @@ void Tracker::consolidate_graph(const char *reason) {
                         //    line_to_line.x, line_to_line.y, line_to_line.z,
                         //    coef1, coef2);
                         
-                        TRACKER_DBG("  create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, coef_to_float(node.coef1), (size_t)node.index2, coef_to_float(node.coef2));
+                        TRACKER_DBG("  create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, (double)coef_to_float(node.coef1), (size_t)node.index2, (double)coef_to_float(node.coef2));
 
                         push_node(node, granularity);
                     }
@@ -891,13 +891,11 @@ bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forwa
     for (; !graph_fault;) {
         // Look through all nodes to find the closest one that lies on the current line in the direction of travel
         int best_coef = forward ? -1 : (MAX_COEFFICIENT + 1);
-        size_t best_node;
         for (size_t i = 0; i < node_count; i++) {
             if (node_at(i).index1 == index || (i && node_at(i).index2 == index)) {
                 int node_coef = node_at(i).index1 == index ? node_at(i).coef1 : node_at(i).coef2;
                 if (forward ? (node_coef < coef && node_coef > best_coef) : (node_coef >= coef && node_coef < best_coef)) {
                     best_coef = node_coef;
-                    best_node = i;
                 }
             }
         }
@@ -1002,7 +1000,7 @@ bool Tracker::set_node_distance(size_t index, int coef, float distance, bool go_
             int int_distance = new_distance > MAX_DISTANCE ? MAX_DISTANCE : ceil(new_distance);
 
             if (node_at(i).distance > int_distance) {
-                TRACKER_DBG("  distance at %zu, improved from %.1f to %d (%.2f) (go %s from %zu-%.2f)", i, node_at(i).distance >= MAX_DISTANCE ? INFINITY : (float)node_at(i).distance, int_distance, distance, go_forward ? "forward" : "backward", index, coef_to_float(coef));
+                TRACKER_DBG("  distance at %zu, improved from %.1f to %d (%.2f) (go %s from %zu-%.2f)", i, node_at(i).distance >= MAX_DISTANCE ? (double)INFINITY : (double)node_at(i).distance, int_distance, (double)distance, go_forward ? "forward" : "backward", index, (double)coef_to_float(coef));
 
                 node_at(i).distance = int_distance;
                 node_at(i).use_line2 = index == node_at(i).index2 && coef == node_at(i).coef2;
@@ -1112,7 +1110,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
     // Before making any decision, make sure we know the distance of every node to home.
     refresh_distances();
 
-    TRACKER_DBG("calculate return path from %zu-%.2f (%d %d %d) to (%d %d %d)", context.current_index, coef_to_float(context.current_coef),
+    TRACKER_DBG("calculate return path from %zu-%.2f (%d %d %d) to (%d %d %d)", context.current_index, (double)coef_to_float(context.current_coef),
         context.current_pos.x, context.current_pos.y, context.current_pos.z,
         home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
@@ -1160,11 +1158,11 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
         if (direction == 1)
             backward_dist = INFINITY;
 
-        TRACKER_DBG("distance from %zu-%.2f is %f forward (to %zu-%.2f) and %f backward (to %zu-%.2f)", context.current_index, coef_to_float(context.current_coef), forward_dist, forward_node_index, coef_to_float(forward_node_coef), backward_dist, backward_node_index, coef_to_float(backward_node_coef));
+        TRACKER_DBG("distance from %zu-%.2f is %f forward (to %zu-%.2f) and %f backward (to %zu-%.2f)", context.current_index, (double)coef_to_float(context.current_coef), (double)forward_dist, forward_node_index, (double)coef_to_float(forward_node_coef), (double)backward_dist, backward_node_index, (double)coef_to_float(backward_node_coef));
 
         // Abort if we don't know what to do
         if (isinf(backward_dist) && forward_dist >= FLT_MAX) {
-            PX4_WARN("Could not find any path home from %zu-%.2f.", context.current_index, coef_to_float(context.current_coef));
+            PX4_WARN("Could not find any path home from %zu-%.2f.", context.current_index, (double)coef_to_float(context.current_coef));
             return false;
         }
 
@@ -1221,7 +1219,7 @@ void Tracker::mark_obsolete(size_t index, int coef, bool forward, bool backward,
     size_t start_index = index;
     int start_coef = coef;
 
-    TRACKER_DBG("  mark as obsolete from %zu-%.2f %s", index, coef_to_float(coef), forward ? backward ? "both dirs" : "forward" : backward ? "backward" : "nothing");
+    TRACKER_DBG("  mark as obsolete from %zu-%.2f %s", index, (double)coef_to_float(coef), forward ? backward ? "both dirs" : "forward" : backward ? "backward" : "nothing");
 
     bool is_jump;
 
@@ -1299,6 +1297,8 @@ void Tracker::rewrite_graph() {
         .current_pos = graph_head_pos,
         .current_index = graph_next_write - 1,
         .current_coef = 0,
+        .checkpoint_index = 0,
+        .checkpoint_coef = 0,
         .graph_version = graph_version
     };
     context.checkpoint_index = context.current_index;
@@ -1359,6 +1359,7 @@ void Tracker::rewrite_graph() {
 
         
         // Once in a while, flush the cache to the rewrite area
+        // todo: recall the reasoning here: why would multiple cache flushes make sense?
         while ((!not_home || cache_full) && cache_size && !graph_fault) {
             TRACKER_DBG("  flush rewrite cache of size %zu", cache_size);
 
@@ -1473,6 +1474,8 @@ bool Tracker::init_return_path(path_finding_context_t &context, float &x, float 
         .current_pos = graph_head_pos,
         .current_index = graph_next_write - 1,
         .current_coef = 0,
+        .checkpoint_index = 0,
+        .checkpoint_coef = 0,
         .graph_version = graph_version
     };
 
@@ -1566,8 +1569,8 @@ void Tracker::dump_graph() {
         return;
     }
 
-    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, 100.0f * (1.0f - (float)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
-    PX4_INFO("  home: %zu-%.2f (%d %d %d)", nodes->index1, coef_to_float(nodes->coef1), home_on_graph.x, home_on_graph.y, home_on_graph.z);
+    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, 100.0L * (1.0L - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
+    PX4_INFO("  home: %zu-%.2f (%d %d %d)", nodes->index1, (double)coef_to_float(nodes->coef1), home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
     ipos_t pos = graph_head_pos;
 
@@ -1593,9 +1596,9 @@ void Tracker::dump_nodes() {
     PX4_INFO("nodes (%zu elements of size %zu bytes)%s:", node_count, (sizeof(node_t) * CHAR_BIT) / 8, have_dirty_nodes ? " *" : "");
     for (size_t i = 0; i < node_count; i++) {
         PX4_INFO("  node %zu: %s%zu-%.2f%s to %s%zu-%.2f%s, expansion %.3f, dist to home %d %s%s%s", i,
-            node_at(i).use_line2 ? " " : ">", (size_t)node_at(i).index1, coef_to_float(node_at(i).coef1), node_at(i).use_line2 ? " " : "<",
-            node_at(i).use_line2 ? ">" : " ", (size_t)node_at(i).index2, coef_to_float(node_at(i).coef2), node_at(i).use_line2 ? "<" : " ",
-            fast_sqrt(dot(unpack_compact_delta_item(node_at(i).delta)), false), node_at(i).distance,
+            node_at(i).use_line2 ? " " : ">", (size_t)node_at(i).index1, (double)coef_to_float(node_at(i).coef1), node_at(i).use_line2 ? " " : "<",
+            node_at(i).use_line2 ? ">" : " ", (size_t)node_at(i).index2, (double)coef_to_float(node_at(i).coef2), node_at(i).use_line2 ? "<" : " ",
+            (double)fast_sqrt(dot(unpack_compact_delta_item(node_at(i).delta)), false), node_at(i).distance,
             node_at(i).go_forward ? "forward" : "backward",
             node_at(i).dirty ? " *" : "",
             i ? "" : " <= home");
@@ -1614,6 +1617,6 @@ void Tracker::dump_path_to_home() {
     PX4_INFO("shortest path to home:");
 
     do {
-        PX4_INFO("  %zu-%.2f: (%d, %d, %d)", context.current_index, coef_to_float(context.current_coef), (int)x, (int)y, (int)z);
+        PX4_INFO("  %zu-%.2f: (%d, %d, %d)", context.current_index, (double)coef_to_float(context.current_coef), (int)x, (int)y, (int)z);
     } while (advance_return_path(context, x, y, z));
 }
