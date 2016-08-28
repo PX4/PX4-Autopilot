@@ -17,6 +17,8 @@ static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
+static const float P_MAX = 1.0e6f; // max allowed value in state covariance
+
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
@@ -390,15 +392,28 @@ void BlockLocalPositionEstimator::update()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit x");
 	}
 
-	// reinitialize P if necessary
+	// force P symmetry and reinitialize P if necessary
 	bool reinit_P = false;
 
 	for (int i = 0; i < n_x; i++) {
-		for (int j = 0; j < n_x; j++) {
+		for (int j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(_P(i, j))) {
 				reinit_P = true;
-				break;
 			}
+
+			if (i == j) {
+				// make sure diagonal elements are positive
+				if (_P(i, i) <= 0) {
+					reinit_P = true;
+				}
+
+			} else {
+				// copy elememnt from upper triangle to force
+				// symmetry
+				_P(j, i) = _P(i, j);
+			}
+
+			if (reinit_P) { break; }
 		}
 
 		if (reinit_P) { break; }
@@ -598,6 +613,22 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 	if (std::abs(by) > BIAS_MAX) { by = BIAS_MAX * by / std::abs(by); }
 
 	if (std::abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / std::abs(bz); }
+}
+
+
+void BlockLocalPositionEstimator::covPropagationLogic(Matrix<float, n_x, n_x> &dP)
+{
+	for (int i = 0; i < n_x; i++) {
+		if (_P(i, i) > P_MAX) {
+			// if diagonal element greater than max, stop propagating
+			dP(i, i) = 0;
+
+			for (int j = 0; j < n_x; j++) {
+				dP(i, j) = 0;
+				dP(j, i) = 0;
+			}
+		}
+	}
 }
 
 void BlockLocalPositionEstimator::detectDistanceSensors()
@@ -847,9 +878,11 @@ void BlockLocalPositionEstimator::predict()
 	// propagate
 	correctionLogic(dx);
 	_x += dx;
-	_P += (_A * _P + _P * _A.transpose() +
-	       _B * _R * _B.transpose() +
-	       _Q) * getDt();
+	Matrix<float, n_x, n_x> dP = (_A * _P + _P * _A.transpose() +
+				      _B * _R * _B.transpose() + _Q) * getDt();
+	covPropagationLogic(dP);
+	_P += dP;
+
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
 }
