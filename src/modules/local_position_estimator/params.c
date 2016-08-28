@@ -297,6 +297,17 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
 
 /**
+ * Barometric pressure bias propgation noise density
+ *
+ * @group Local Position Estimator
+ * @unit (m)/s/sqrt(hz)
+ * @min 0.01
+ * @max 0.5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_PN_BB, 0.1f);
+
+/**
  * Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
  *
  * @group Local Position Estimator

@@ -86,6 +86,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
+	_pn_bb_noise_density(this, "PN_BB"),
 	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
@@ -773,6 +774,7 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_by, X_by) = 1e-6;
 	_P(X_bz, X_bz) = 1e-6;
 	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID;
+	_P(X_bb, X_bb) = 1e-6;
 }
 
 void BlockLocalPositionEstimator::initSS()
@@ -848,6 +850,8 @@ void BlockLocalPositionEstimator::updateSSParams()
 		(_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
 	_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
 
+	// baro random walk noise
+	_Q(X_bb, X_bb) = _pn_bb_noise_density.get() * _pn_bb_noise_density.get();
 }
 
 void BlockLocalPositionEstimator::predict()

@@ -102,6 +102,7 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 // 	vx, vy, vz ( vel NED, m/s),
 // 	bx, by, bz ( accel bias, m/s^2)
 // 	tz (terrain altitude, ASL, m)
+// 	bb (baro bias, m)
 //
 // measurements:
 //
@@ -122,7 +123,7 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 public:
 
 	// constants
-	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
+	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, X_bb, n_x};
 	enum {U_ax = 0, U_ay, U_az, n_u};
 	enum {Y_baro_z = 0, n_y_baro};
 	enum {Y_lidar_z = 0, n_y_lidar};
@@ -292,6 +293,7 @@ private:
 	BlockParamFloat  _pn_p_noise_density;
 	BlockParamFloat  _pn_v_noise_density;
 	BlockParamFloat  _pn_b_noise_density;
+	BlockParamFloat  _pn_bb_noise_density;
 	BlockParamFloat  _pn_t_noise_density;
 	BlockParamFloat  _t_max_grade;
 
