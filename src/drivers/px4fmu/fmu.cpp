@@ -810,8 +810,8 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 		}
 	}
 
-	_rc_in.timestamp_publication = now;
-	_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+	_rc_in.timestamp = now;
+	_rc_in.timestamp_last_signal = _rc_in.timestamp;
 	_rc_in.rc_ppm_frame_length = 0;
 
 	/* fake rssi if no value was provided */

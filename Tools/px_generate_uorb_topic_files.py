@@ -259,7 +259,12 @@ def convert_dir_save(format_idx, inputdir, outputdir, templatedir, temporarydir,
 
 def generate_topics_list_file(msgdir, outputdir, templatedir):
         # generate cpp file with topics list
-        tl_globals = {"msgs" : get_msgs_list(msgdir)}
+        msgs = get_msgs_list(msgdir)
+        multi_topics = []
+        for msg in msgs:
+            msg_filename = os.path.join(msgdir, msg)
+            multi_topics.extend(get_multi_topics(msg_filename))
+        tl_globals = {"msgs" : msgs, "multi_topics" : multi_topics}
         tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
         tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
         generate_by_template(tl_out_file, tl_template_file, tl_globals)
@@ -267,7 +272,10 @@ def generate_topics_list_file(msgdir, outputdir, templatedir):
 def generate_topics_list_file_from_files(files, outputdir, templatedir):
         # generate cpp file with topics list
         filenames = [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]
-        tl_globals = {"msgs" : filenames}
+        multi_topics = []
+        for msg_filename in files:
+            multi_topics.extend(get_multi_topics(msg_filename))
+        tl_globals = {"msgs" : filenames, "multi_topics" : multi_topics}
         tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
         tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
         generate_by_template(tl_out_file, tl_template_file, tl_globals)

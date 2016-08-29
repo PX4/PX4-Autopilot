@@ -248,8 +248,8 @@ void task_main(int argc, char *argv[])
 
 		// populate the input_rc_s structure
 		if (ret == 0) {
-			_rc_in.timestamp_publication = ts;
-			_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+			_rc_in.timestamp = ts;
+			_rc_in.timestamp_last_signal = _rc_in.timestamp;
 			_rc_in.channel_count = num_channels;
 
 			// TODO - need to add support for RSSI, failsafe mode
