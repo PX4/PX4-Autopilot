@@ -155,7 +155,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	}
 
 	if (gps_s_stddev > _gps_vz_stddev.get()) {
-		var_z = gps_s_stddev * gps_s_stddev;
+		var_vz = gps_s_stddev * gps_s_stddev;
 	}
 
 
