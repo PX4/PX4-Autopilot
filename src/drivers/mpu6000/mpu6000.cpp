@@ -708,14 +708,8 @@ int MPU6000::reset()
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
 
-		if (is_i2c()) {
-			// Enable I2C bus (recommended on datasheet)
-			write_checked_reg(MPUREG_USER_CTRL, 0);
-
-		} else {
-			// Disable I2C bus (recommended on datasheet)
-			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-		}
+		// Enable I2C bus or Disable I2C bus (recommended on data sheet)
+		write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
 
 		px4_leave_critical_section(state);
 
@@ -1661,13 +1655,15 @@ void
 MPU6000::start()
 {
 	/* make sure we are stopped first */
+	uint32_t last_call_interval = _call_interval;
 	stop();
+	_call_interval = last_call_interval;
 
 	/* discard any stale data in the buffers */
 	_accel_reports->flush();
 	_gyro_reports->flush();
 
-	if (_use_hrt) {
+	if (!is_i2c()) {
 		/* start polling at the specified rate */
 		hrt_call_every(&_call,
 			       1000,
@@ -1686,7 +1682,7 @@ void
 MPU6000::stop()
 {
 
-	if (_use_hrt) {
+	if (!is_i2c()) {
 		hrt_cancel(&_call);
 
 	} else {
