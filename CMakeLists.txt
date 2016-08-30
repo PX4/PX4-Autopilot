@@ -411,6 +411,12 @@ px4_create_git_hash_header(HEADER ${PX4_BINARY_DIR}/build_git_version.h)
 #
 # Important to having packaging at end of cmake file.
 #
+execute_process(
+	COMMAND git describe --always --tags
+	OUTPUT_VARIABLE git_tag
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
 set(CPACK_PACKAGE_VERSION ${version})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
@@ -420,7 +426,7 @@ set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(short-description "The px4 autopilot.")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${short-description})
 set(CPACK_GENERATOR "ZIP")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${version}")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
