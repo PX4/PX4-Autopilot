@@ -56,7 +56,7 @@ class OutputRC : public OutputBase
 {
 public:
 	OutputRC(const OutputConfig &output_config);
-	virtual ~OutputRC() { }
+	virtual ~OutputRC();
 
 	virtual int update(const ControlData *control_data);
 

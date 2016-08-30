@@ -49,9 +49,11 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <px4_defines.h>
 
-#include "input_rc.h"
 #include "input_mavlink.h"
+#include "input_rc.h"
+#include "input_test.h"
 #include "output_rc.h"
 #include "output_mavlink.h"
 
@@ -118,7 +120,8 @@ extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
 static void usage()
 {
-	PX4_INFO("usage: vmount {start|stop|status}");
+	PX4_INFO("usage: vmount {start|stop|status|test}");
+	PX4_INFO("       vmount test {roll|pitch|yaw} <angle_deg>");
 }
 
 static int vmount_thread_main(int argc, char *argv[])
@@ -126,6 +129,44 @@ static int vmount_thread_main(int argc, char *argv[])
 	ParameterHandles param_handles;
 	Parameters params;
 	memset(&params, 0, sizeof(params));
+
+
+	InputTest *test_input = nullptr;
+
+	if (argc > 0 && !strcmp(argv[0], "test")) {
+		PX4_INFO("Starting in test mode");
+
+		const char *axis_names[3] = {"roll", "pitch", "yaw"};
+		float angles[3] = { 0.f, 0.f, 0.f };
+
+		if (argc == 3) {
+			bool found_axis = false;
+
+			for (int i = 0 ; i < 3; ++i) {
+				if (!strcmp(argv[1], axis_names[i])) {
+					long angle_deg = strtol(argv[2], NULL, 0);
+					angles[i] = (float)angle_deg;
+					found_axis = true;
+				}
+			}
+
+			if (!found_axis) {
+				usage();
+				return -1;
+			}
+
+			test_input = new InputTest(angles[0], angles[1], angles[2]);
+
+			if (!test_input) {
+				PX4_ERR("memory allocation failed");
+				return -1;
+			}
+
+		} else {
+			usage();
+			return -1;
+		}
+	}
 
 	if (!get_params(param_handles, params)) {
 		PX4_ERR("could not get mount parameters!");
@@ -149,38 +190,43 @@ static int vmount_thread_main(int argc, char *argv[])
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
-			if (params.mnt_man_control) {
-				manual_input = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+			if (test_input) {
+				input_obj = test_input;
 
-				if (!manual_input) {
-					PX4_ERR("memory allocation failed");
+			} else {
+				if (params.mnt_man_control) {
+					manual_input = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+
+					if (!manual_input) {
+						PX4_ERR("memory allocation failed");
+						break;
+					}
+				}
+
+				switch (params.mnt_mode_in) {
+				case 1: //RC
+					if (manual_input) {
+						input_obj = manual_input;
+						manual_input = nullptr;
+
+					} else {
+						input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					}
+
+					break;
+
+				case 2: //MAVLINK_ROI
+					input_obj = new InputMavlinkROI(manual_input);
+					break;
+
+				case 3: //MAVLINK_DO_MOUNT
+					input_obj = new InputMavlinkCmdMount(manual_input);
+					break;
+
+				default:
+					PX4_ERR("invalid input mode %i", params.mnt_mode_in);
 					break;
 				}
-			}
-
-			switch (params.mnt_mode_in) {
-			case 1: //RC
-				if (manual_input) {
-					input_obj = manual_input;
-					manual_input = nullptr;
-
-				} else {
-					input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
-				}
-
-				break;
-
-			case 2: //MAVLINK_ROI
-				input_obj = new InputMavlinkROI(manual_input);
-				break;
-
-			case 3: //MAVLINK_DO_MOUNT
-				input_obj = new InputMavlinkCmdMount(manual_input);
-				break;
-
-			default:
-				PX4_ERR("invalid input mode %i", params.mnt_mode_in);
-				break;
 			}
 
 			switch (params.mnt_mode_out) {
@@ -199,6 +245,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (!input_obj || !output_obj) {
 				PX4_ERR("memory allocation failed");
+				thread_should_exit = true;
 				break;
 			}
 
@@ -206,6 +253,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (ret) {
 				PX4_ERR("failed to initialize output mode (%i)", ret);
+				thread_should_exit = true;
 				break;
 			}
 		}
@@ -233,6 +281,12 @@ static int vmount_thread_main(int argc, char *argv[])
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
 			usleep(1e6);
 		}
+
+		if (test_input && test_input->finished()) {
+			thread_should_exit = true;
+			break;
+		}
+
 
 		//check for parameter changes
 		bool updated;
@@ -310,7 +364,7 @@ int vmount_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[1], "start") || !strcmp(argv[1], "test")) {
 
 		/* this is not an error */
 		if (thread_running) {
@@ -324,13 +378,19 @@ int vmount_main(int argc, char *argv[])
 						     SCHED_PRIORITY_DEFAULT + 40,
 						     1200,
 						     vmount_thread_main,
-						     (char *const *)argv);
+						     (char *const *)argv + 1);
+
+		int counter = 0;
 
 		while (!thread_running && vmount_task >= 0) {
-			usleep(200);
+			usleep(5000);
+
+			if (++counter >= 100) {
+				break;
+			}
 		}
 
-		return 0;
+		return counter < 100 || thread_should_exit ? 0 : -1;
 	}
 
 	if (!strcmp(argv[1], "stop")) {

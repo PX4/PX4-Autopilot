@@ -32,65 +32,47 @@
 ****************************************************************************/
 
 /**
- * @file output_rc.cpp
- * @author Leon Müller (thedevleon)
+ * @file input_test.h
  * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#include "output_rc.h"
+#pragma once
 
-#include <uORB/topics/actuator_controls.h>
-#include <px4_defines.h>
-
+#include "input.h"
 
 namespace vmount
 {
 
-OutputRC::OutputRC(const OutputConfig &output_config)
-	: OutputBase(output_config)
+/**
+ ** class InputTest
+ * Send a single control command, configured via constructor arguments
+ */
+class InputTest : public InputBase
 {
-}
-OutputRC::~OutputRC()
-{
-	if (_actuator_controls_pub) {
-		orb_unadvertise(_actuator_controls_pub);
-	}
-}
+public:
 
-int OutputRC::update(const ControlData *control_data)
-{
-	if (control_data) {
-		//got new command
-		_retract_gimbal = control_data->gimbal_shutter_retract;
-		_set_angle_setpoints(control_data);
-	}
+	/**
+	 * set to a fixed angle
+	 */
+	InputTest(float roll_deg, float pitch_deg, float yaw_deg);
+	virtual ~InputTest() {}
 
-	_handle_position_update();
+	/** check whether the test finished, and thus the main thread can quit */
+	bool finished();
 
-	hrt_abstime t = hrt_absolute_time();
-	_calculate_output_angles(t);
+	virtual int update(unsigned int timeout_ms, ControlData **control_data);
 
-	actuator_controls_s actuator_controls;
-	actuator_controls.timestamp = hrt_absolute_time();
-	actuator_controls.control[0] = _angle_outputs[0] / M_PI_F;
-	actuator_controls.control[1] = _angle_outputs[1] / M_PI_F;
-	actuator_controls.control[2] = _angle_outputs[2] / M_PI_F;
-	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
+protected:
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data) { return 0; } //not needed
 
-	int instance;
-	orb_publish_auto(ORB_ID(actuator_controls_2), &_actuator_controls_pub, &actuator_controls,
-			 &instance, ORB_PRIO_DEFAULT);
+	virtual int initialize();
 
-	_last_update = t;
+	virtual void print_status();
 
-	return 0;
-}
+private:
+	float _angles[3]; /**< desired angles in [deg] */
+};
 
-void OutputRC::print_status()
-{
-	PX4_INFO("Output: AUX");
-}
 
 } /* namespace vmount */
-

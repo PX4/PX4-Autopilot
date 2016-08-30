@@ -40,6 +40,7 @@ px4_add_module(
 		input.cpp
 		input_mavlink.cpp
 		input_rc.cpp
+		input_test.cpp
 		output.cpp
 		output_mavlink.cpp
 		output_rc.cpp

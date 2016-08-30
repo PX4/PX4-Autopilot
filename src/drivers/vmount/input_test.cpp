@@ -32,65 +32,57 @@
 ****************************************************************************/
 
 /**
- * @file output_rc.cpp
- * @author Leon Müller (thedevleon)
+ * @file input_test.cpp
  * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#include "output_rc.h"
+#include "input_test.h"
 
-#include <uORB/topics/actuator_controls.h>
-#include <px4_defines.h>
+#include <px4_posix.h>
 
 
 namespace vmount
 {
 
-OutputRC::OutputRC(const OutputConfig &output_config)
-	: OutputBase(output_config)
+InputTest::InputTest(float roll_deg, float pitch_deg, float yaw_deg)
 {
-}
-OutputRC::~OutputRC()
-{
-	if (_actuator_controls_pub) {
-		orb_unadvertise(_actuator_controls_pub);
-	}
+	_angles[0] = roll_deg;
+	_angles[1] = pitch_deg;
+	_angles[2] = yaw_deg;
 }
 
-int OutputRC::update(const ControlData *control_data)
+bool InputTest::finished()
 {
-	if (control_data) {
-		//got new command
-		_retract_gimbal = control_data->gimbal_shutter_retract;
-		_set_angle_setpoints(control_data);
+	return true; /* only a single-shot test (for now) */
+}
+
+int InputTest::update(unsigned int timeout_ms, ControlData **control_data)
+{
+	//we directly override the update() here, since we don't need the initialization from the base class
+
+	_control_data.type = ControlData::Type::Angle;
+
+	for (int i = 0; i < 3; ++i) {
+		_control_data.type_data.angle.is_speed[i] = false;
+		_control_data.type_data.angle.angles[i] = _angles[i] * M_DEG_TO_RAD_F;
+
+		_control_data.stabilize_axis[i] = false;
 	}
 
-	_handle_position_update();
-
-	hrt_abstime t = hrt_absolute_time();
-	_calculate_output_angles(t);
-
-	actuator_controls_s actuator_controls;
-	actuator_controls.timestamp = hrt_absolute_time();
-	actuator_controls.control[0] = _angle_outputs[0] / M_PI_F;
-	actuator_controls.control[1] = _angle_outputs[1] / M_PI_F;
-	actuator_controls.control[2] = _angle_outputs[2] / M_PI_F;
-	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
-
-	int instance;
-	orb_publish_auto(ORB_ID(actuator_controls_2), &_actuator_controls_pub, &actuator_controls,
-			 &instance, ORB_PRIO_DEFAULT);
-
-	_last_update = t;
-
+	_control_data.gimbal_shutter_retract = false;
+	*control_data = &_control_data;
 	return 0;
 }
 
-void OutputRC::print_status()
+int InputTest::initialize()
 {
-	PX4_INFO("Output: AUX");
+	return 0;
+}
+
+void InputTest::print_status()
+{
+	PX4_INFO("Input: Test");
 }
 
 } /* namespace vmount */
-
