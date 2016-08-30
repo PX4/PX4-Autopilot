@@ -382,6 +382,10 @@ private:
     // Makes sure that the meaning of the specified index does not change unless the graph version is incremented.
     inline size_t pin_index(size_t index) { pinned_index = index > pinned_index ? index : pinned_index; return index; }
 
+    // Measures the direct distance between two positions on the graph.
+    // Returns infinity if the positions are separated by a jump.
+    float measure_distance(size_t index1, int coef1, size_t index2, int coef2);
+
     // Walks the graph from the specified position up to the next node, while tracking the covered distance.
     // If the search bound or a jump is encountered before a node, the function returns false.
     // Note that jumps can have nodes as well, but only at the end. Therefore, walking backwards may end at a jump node and walking forward may start at one.
@@ -399,7 +403,7 @@ private:
     //      in: the position at which the nodes should be examined
     //      out: the position that leads home
     //  delta: if not NULL, set to the position difference between the input and output positions
-    //  go_forward: if not NULL, set to the best direction to home from the new line (valid iif the position was at a node, i.e. if the result is finite)
+    //  go_forward: set to the best direction to home from the new line (valid iif the position was at a node, i.e. if the result is finite)
     float apply_node_delta(size_t &index, unsigned int &coef, ipos_t *delta, bool &go_forward);
     
     // Returns the distance to home of any position on the graph which coincides with a node,

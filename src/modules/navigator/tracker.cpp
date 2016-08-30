@@ -878,61 +878,77 @@ void Tracker::consolidate_graph(const char *reason) {
 }
 
 
-bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forward, size_t search_bound) {
+float Tracker::measure_distance(size_t index1, int coef1, size_t index2, int coef2) {
+    // make sure position 1 is before position 2
+    if (index1 > index2 || (index1 == index2 && coef1 < coef2)) {
+        std::swap(index1, index2);
+        std::swap(coef1, coef2);
+    }
+    
+
     bool is_jump;
-    size_t next_index = index;
-    ipos_t delta = forward ? fetch_delta(index, is_jump) : walk_backward(next_index, is_jump);
-    float pos_to_line_end_dist = fast_sqrt(dot(apply_coef(delta, coef)), false);
+    ipos_t delta = fetch_delta(index1, is_jump);
+    float coef1_to_line_end = fast_sqrt(dot(apply_coef(delta, coef1)), false);
 
-    // Tweak the starting position a bit, so we don't match the exact same position where we left off
-    if (!forward)
-        coef++;
-
-    for (; !graph_fault;) {
-        // Look through all nodes to find the closest one that lies on the current line in the direction of travel
-        int best_coef = forward ? -1 : (MAX_COEFFICIENT + 1);
-        for (size_t i = 0; i < node_count; i++) {
-            if (node_at(i).index1 == index || (i && node_at(i).index2 == index)) {
-                int node_coef = node_at(i).index1 == index ? node_at(i).coef1 : node_at(i).coef2;
-                if (forward ? (node_coef < coef && node_coef > best_coef) : (node_coef >= coef && node_coef < best_coef)) {
-                    best_coef = node_coef;
-                }
-            }
-        }
-
-        // If there was a suitable node on the current line, break
-        if (best_coef >= 0 && best_coef <= MAX_COEFFICIENT) {
-            float node_to_line_end_dist = fast_sqrt(dot(apply_coef(delta, best_coef)), false);
-            distance += std::abs(pos_to_line_end_dist - node_to_line_end_dist);
-            coef = best_coef;
-            return true;
-        }
-
-        // Walk in the direction of travel
-        if (forward) {
-            distance += pos_to_line_end_dist;
-            if (index >= search_bound)
-                break;
-            delta = walk_forward(index, is_jump);
-            if (is_jump)
-                break;
-            coef = MAX_COEFFICIENT + 1;
-            pos_to_line_end_dist = fast_sqrt(dot(delta), false);
-        } else {
-            if (index <= search_bound)
-                break;
-            if (is_jump)
-                break;
-            distance += fast_sqrt(dot(delta), false) - pos_to_line_end_dist;
-            index = next_index;
-            delta = walk_backward(next_index, is_jump);
-            coef = 0;
-            pos_to_line_end_dist = 0;
-        }
-
+    // Walk along the interval to measure distance
+    float distance = 0;
+    while (index1 < index2) {
+        delta = walk_forward(index1, is_jump);
+        distance += fast_sqrt(dot(delta), false);
+        if (is_jump)
+            return INFINITY;
     }
 
-    return false;
+    float coef2_to_line_end = fast_sqrt(dot(apply_coef(delta, coef2)), false);
+    return coef1_to_line_end + distance - coef2_to_line_end;
+}
+
+
+bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forward, size_t search_bound) {
+    // Look through all nodes to find the closest one that lies in the direction of travel
+    size_t best_index = search_bound;
+    int best_coef = 0;
+    bool have_node = false;
+
+    for (size_t i = 0; i < node_count; i++) {
+        if (forward) {
+            if ((node_at(i).index1 < best_index || (node_at(i).index1 == best_index && node_at(i).coef1 >= best_coef)) &&
+                (node_at(i).index1 > index || (node_at(i).index1 == index && node_at(i).coef1 < coef))) {
+                best_index = node_at(i).index1;
+                best_coef = node_at(i).coef1;
+                have_node = true;
+            }
+            if (i && (node_at(i).index2 < best_index || (node_at(i).index2 == best_index && node_at(i).coef2 >= best_coef)) &&
+                (node_at(i).index2 > index || (node_at(i).index2 == index && node_at(i).coef2 < coef))) {
+                best_index = node_at(i).index2;
+                best_coef = node_at(i).coef2;
+                have_node = true;
+            }
+        } else {
+            if ((node_at(i).index1 > best_index || (node_at(i).index1 == best_index && node_at(i).coef1 <= best_coef)) &&
+                (node_at(i).index1 < index || (node_at(i).index1 == index && node_at(i).coef1 > coef))) {
+                best_index = node_at(i).index1;
+                best_coef = node_at(i).coef1;
+                have_node = true;
+            }
+            if (i && (node_at(i).index2 > best_index || (node_at(i).index2 == best_index && node_at(i).coef2 <= best_coef)) &&
+                (node_at(i).index2 < index || (node_at(i).index2 == index && node_at(i).coef2 > coef))) {
+                best_index = node_at(i).index2;
+                best_coef = node_at(i).coef2;
+                have_node = true;
+            }
+        }
+    }
+
+    if (!have_node)
+        return false;
+
+    distance = measure_distance(index, coef, best_index, best_coef);
+
+    index = best_index;
+    coef = best_coef;
+    
+    return !isinf(distance);
 }
 
 
@@ -985,7 +1001,7 @@ float Tracker::get_node_distance(size_t index, unsigned int coef, int &direction
     unsigned int old_coef = coef;
     bool go_forward;
     float distance = apply_node_delta(index, coef, NULL, go_forward);
-    direction = (index == old_index && coef == old_coef) ? go_forward ? 1 : -1 : 0;
+    direction = (index == old_index && coef == old_coef && !isinf(distance)) ? go_forward ? 1 : -1 : 0;
     return distance;
 }
 
@@ -1144,7 +1160,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
             forward_dist += get_node_distance(forward_node_index, forward_node_coef, direction);
         else
             forward_dist = INFINITY;
-        if (direction == -1)
+        if (direction == -1) 
             forward_dist = INFINITY;
 
         // Determine cost and bound of walking backward (except if the current node recommended to go forward)
