@@ -223,8 +223,8 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 endif()
 
 set(version_major 1)
-set(version_minor 4)
-set(version_patch 1)
+set(version_minor 5)
+set(version_patch 0)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
