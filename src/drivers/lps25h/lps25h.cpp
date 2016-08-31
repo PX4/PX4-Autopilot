@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file lps25h.cpp
  *
- * Driver for the LPS25H magnetometer connected via I2C or SPI.
+ * Driver for the LPS25H barometer connected via I2C or SPI.
  */
 
 #include <px4_config.h>
@@ -221,29 +221,20 @@ private:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-	float 			_range_scale;
-	float 			_range_pa;
 	bool			_collect_phase;
-	int			_class_instance;
-	int			_orb_class_instance;
+
+	/* altitude conversion calibration */
+	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
+	int			_orb_class_instance;
+	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
-	perf_counter_t		_range_errors;
-	perf_counter_t		_conf_errors;
-
-	/* status reporting */
-	bool			_sensor_ok;		/**< sensor was found and reports ok */
-	bool			_calibrated;		/**< the calibration is valid */
 
 	struct baro_report	_last_report;           /**< used for info() */
-
-	uint8_t			_conf_reg;
-	uint8_t			_temperature_counter;
-	uint8_t			_temperature_error_count;
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -273,15 +264,6 @@ private:
 	 * @param enable set to 1 to enable self-test strap, 0 to disable
 	 */
 	int			calibrate(struct file *filp, unsigned enable);
-
-	/**
-	 * check the sensor configuration.
-	 *
-	 * checks that the config of the sensor is correctly set, to
-	 * cope with communication errors causing the configuration to
-	 * change
-	 */
-	void 			check_conf(void);
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -336,35 +318,6 @@ private:
 	 */
 	int			collect();
 
-	/**
-	 * Convert a big-endian signed 16-bit value to a float.
-	 *
-	 * @param in		A signed 16-bit big-endian value.
-	 * @return		The floating-point representation of the value.
-	 */
-	float			meas_to_float(uint8_t in[2]);
-
-	/**
-	 * Check the current calibration and update device status
-	 *
-	 * @return 0 if calibration is ok, 1 else
-	 */
-	int 			check_calibration();
-
-	/**
-	* Check the current scale calibration
-	*
-	* @return 0 if scale calibration is ok, 1 else
-	*/
-	int 			check_scale();
-
-	/**
-	* Check the current offset calibration
-	*
-	* @return 0 if offset calibration is ok, 1 else
-	*/
-	int 			check_offset();
-
 	/* this class has pointer data members, do not allow copying it */
 	LPS25H(const LPS25H &);
 	LPS25H operator=(const LPS25H &);
@@ -382,23 +335,15 @@ LPS25H::LPS25H(device::Device *interface, const char *path) :
 	_work{},
 	_measure_ticks(0),
 	_reports(nullptr),
-	_range_scale(0.00149536132f), /* default range scale from counts to gauss */
-	_range_pa(49.f),
 	_collect_phase(false),
-	_class_instance(-1),
-	_orb_class_instance(-1),
+	_msl_pressure(101325),
 	_baro_topic(nullptr),
+	_orb_class_instance(-1),
+	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps25h_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "lps25h_buffer_overflows")),
-	_range_errors(perf_alloc(PC_COUNT, "lps25h_range_errors")),
-	_conf_errors(perf_alloc(PC_COUNT, "lps25h_conf_errors")),
-	_sensor_ok(false),
-	_calibrated(false),
-	_last_report{0},
-	_conf_reg(0),
-	_temperature_counter(0),
-	_temperature_error_count(0)
+	_last_report{0}
 {
 	// enable debug() calls
 	_debug_enabled = false;
@@ -412,26 +357,26 @@ LPS25H::~LPS25H()
 	/* make sure we are truly inactive */
 	stop();
 
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
 	if (_class_instance != -1) {
 		unregister_class_devname(BARO_BASE_DEVICE_PATH, _class_instance);
+	}
+
+	if (_reports != nullptr) {
+		delete _reports;
 	}
 
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
-	perf_free(_range_errors);
-	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int
 LPS25H::init()
 {
-	int ret = ERROR;
+	int ret;
 
 	ret = CDev::init();
 
@@ -441,60 +386,32 @@ LPS25H::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
+		DEVICE_DEBUG("can't get memory for reports");
+		ret = -ENOMEM;
 		goto out;
 	}
 
-	/* reset the device configuration */
-	reset();
+	if (reset() != OK) {
+		goto out;
+	}
 
+	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	ret = OK;
-	/* sensor is ok, but not calibrated */
-	_sensor_ok = true;
+
 out:
 	return ret;
-}
-
-/**
-   check that the configuration register has the right value. This is
-   done periodically to cope with I2C bus noise causing the
-   configuration of the compass to change.
- */
-void LPS25H::check_conf(void)
-{
-	/* TODO */
-
-	/*
-	int ret;
-
-	uint8_t conf_reg_in = 0;
-	ret = read_reg(ADDR_CNTL1, conf_reg_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return;
-	}
-
-	if (conf_reg_in | CNTL1_BIT) {
-		perf_count(_conf_errors);
-		ret = write_reg(ADDR_CNTL1, conf_reg_in | CNTL1_BIT);
-
-		if (OK != ret) {
-			perf_count(_comms_errors);
-		}
-	}
-	*/
 }
 
 ssize_t
 LPS25H::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *mag_buf = reinterpret_cast<struct baro_report *>(buffer);
+	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -504,15 +421,16 @@ LPS25H::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* if automatic measurement is enabled */
 	if (_measure_ticks > 0) {
+
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct baro_report);
-				mag_buf++;
+			if (_reports->get(brp)) {
+				ret += sizeof(*brp);
+				brp++;
 			}
 		}
 
@@ -540,7 +458,7 @@ LPS25H::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		if (_reports->get(mag_buf)) {
+		if (_reports->get(brp)) {
 			ret = sizeof(struct baro_report);
 		}
 	} while (0);
@@ -618,7 +536,7 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return SENSOR_POLLRATE_MANUAL;
 		}
 
-		return 1000000 / TICK2USEC(_measure_ticks);
+		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -626,15 +544,14 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
-
+			px4_leave_critical_section(flags);
 			return OK;
 		}
 
@@ -644,13 +561,18 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case BAROIOCGMSLPRESSURE:
-		// TODO
-		return 0;
-
 	case BAROIOCSMSLPRESSURE:
-		// TODO
-		return 0;
+
+		/* range-check for sanity */
+		if ((arg < 80000) || (arg > 120000)) {
+			return -EINVAL;
+		}
+
+		_msl_pressure = arg;
+		return OK;
+
+	case BAROIOCGMSLPRESSURE:
+		return _msl_pressure;
 
 	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
@@ -691,7 +613,7 @@ LPS25H::reset()
 	// Reset
 	ret = write_reg(ADDR_CTRL_REG2, CTRL_REG2_BOOT | CTRL_REG2_SWRESET);
 
-	usleep(1000);
+	usleep(5000);
 
 	// Power on
 	ret = write_reg(ADDR_CTRL_REG1, CTRL_REG1_PD);
@@ -704,7 +626,7 @@ LPS25H::reset()
 void
 LPS25H::cycle_trampoline(void *arg)
 {
-	LPS25H *dev = (LPS25H *)arg;
+	LPS25H *dev = reinterpret_cast<LPS25H *>(arg);
 
 	dev->cycle();
 }
@@ -768,7 +690,6 @@ LPS25H::measure()
 	 */
 	ret = write_reg(ADDR_CTRL_REG2, CTRL_REG2_ONE_SHOT);
 
-
 	if (OK != ret) {
 		perf_count(_comms_errors);
 	}
@@ -788,7 +709,6 @@ LPS25H::collect()
 #pragma pack(pop)
 
 	int	ret;
-	uint8_t check_counter;
 
 	perf_begin(_sample_perf);
 	struct baro_report new_report;
@@ -805,22 +725,29 @@ LPS25H::collect()
 	 *        we're better off just never being early.
 	 */
 
-	/* get measurements from the device */
-	ret = _interface->read(ADDR_STATUS_REG, (uint8_t *)&report, sizeof(report));
+	/* get measurements from the device : MSB enables register address auto-increment */
+	ret = _interface->read(ADDR_STATUS_REG | (1 << 7), (uint8_t *)&report, sizeof(report));
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("data/status read error");
-		goto out;
+		perf_end(_sample_perf);
+		return ret;
 	}
 
 	/* get measurements from the device */
 	new_report.temperature = 42.5 + (report.t / 480);
 
-	/*
-	 * RAW outputs
-	 */
-	new_report.pressure = report.p_xl + (report.p_l << 8) + (report.p_h << 16);
+	/* raw pressure */
+	uint32_t raw = report.p_xl + (report.p_l << 8) + (report.p_h << 16);
+
+	/* Pressure and MSL in mBar */
+	double p = raw / 4096.0;
+	double msl = _msl_pressure / 100.0;
+
+	double alt = (1.0 - pow(p / msl, 0.190263)) * 44330.8;
+
+	new_report.pressure = p;
+	new_report.altitude = alt;
 
 	if (!(_pub_blocked)) {
 
@@ -848,61 +775,11 @@ LPS25H::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	/*
-	  periodically check the range register and configuration
-	  registers. With a bad I2C cable it is possible for the
-	  registers to become corrupt, leading to bad readings. It
-	  doesn't happen often, but given the poor cables some
-	  vehicles have it is worth checking for.
-	 */
-	check_counter = perf_event_count(_sample_perf) % 256;
-
-	if (check_counter == 128) {
-		check_conf();
-	}
 
 	ret = OK;
 
-out:
 	perf_end(_sample_perf);
 	return ret;
-}
-
-int LPS25H::calibrate(struct file *filp, unsigned enable)
-{
-	int ret = 1;
-
-	return ret;
-}
-
-int LPS25H::check_scale()
-{
-	bool scale_valid = false;
-
-	/* return 0 if calibrated, 1 else */
-	return !scale_valid;
-}
-
-int LPS25H::check_offset()
-{
-	bool offset_valid = false;
-
-	return !offset_valid;
-}
-
-int LPS25H::check_calibration()
-{
-	bool offset_valid = (check_offset() == OK);
-	bool scale_valid  = (check_scale() == OK);
-
-	if (_calibrated != (offset_valid && scale_valid)) {
-		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-		      (offset_valid) ? "" : "offset invalid");
-		_calibrated = (offset_valid && scale_valid);
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return (!_calibrated);
 }
 
 int
@@ -921,20 +798,6 @@ LPS25H::read_reg(uint8_t reg, uint8_t &val)
 	return ret;
 }
 
-float
-LPS25H::meas_to_float(uint8_t in[2])
-{
-	union {
-		uint8_t	b[2];
-		int16_t	w;
-	} u;
-
-	u.b[0] = in[1];
-	u.b[1] = in[0];
-
-	return (float) u.w;
-}
-
 void
 LPS25H::print_info()
 {
@@ -943,7 +806,9 @@ LPS25H::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("pressure    %.2f\n", (double)_last_report.pressure);
+	printf("altitude:    %.2f\n", (double)_last_report.altitude);
 	printf("temperature %.2f\n", (double)_last_report.temperature);
+
 	_reports->print_info("report queue");
 }
 
@@ -984,9 +849,8 @@ bool	start_bus(struct lps25h_bus_option &bus);
 struct lps25h_bus_option &find_bus(enum LPS25H_BUS busid);
 void	test(enum LPS25H_BUS busid);
 void	reset(enum LPS25H_BUS busid);
-int	info(enum LPS25H_BUS busid);
-int	calibrate(enum LPS25H_BUS busid);
-int	temp_enable(LPS25H_BUS busid, bool enable);
+void	info();
+void	calibrate(unsigned altitude, enum LPS25H_BUS busid);
 void	usage();
 
 /**
@@ -1017,13 +881,14 @@ start_bus(struct lps25h_bus_option &bus)
 
 	int fd = open(bus.devpath, O_RDONLY);
 
-	if (fd < 0) {
-		return false;
+	/* set the poll rate to default, starts automatic data collection */
+	if (fd == -1) {
+		errx(1, "can't open baro device");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
-		errx(1, "Failed to setup poll rate");
+		errx(1, "failed setting default poll rate");
 	}
 
 	close(fd);
@@ -1089,13 +954,14 @@ test(enum LPS25H_BUS busid)
 	struct lps25h_bus_option &bus = find_bus(busid);
 	struct baro_report report;
 	ssize_t sz;
-	int ret = 0;
-	const char *path = bus.devpath;
+	int ret;
 
-	int fd = open(path, O_RDONLY);
+	int fd;
+
+	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'lps25h start')", path);
+		err(1, "open failed (try 'lps25h start' if the driver is not running)");
 	}
 
 	/* do a simple demand read */
@@ -1106,17 +972,12 @@ test(enum LPS25H_BUS busid)
 	}
 
 	warnx("single read");
-	warnx("measurement: %.6f", (double)report.temperature);
+	warnx("pressure:    %10.4f", (double)report.pressure);
+	warnx("altitude:    %11.4f", (double)report.altitude);
+	warnx("temperature: %8.4f", (double)report.temperature);
 	warnx("time:        %lld", report.timestamp);
 
-	/* check if mag is onboard or external */
-	//if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
-	//	errx(1, "failed to get if mag is onboard or external");
-	//}
-
-	warnx("device active: %s", ret ? "external" : "onboard");
-
-	/* set the queue depth to 5 */
+	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
 		errx(1, "failed to set queue depth");
 	}
@@ -1147,58 +1008,23 @@ test(enum LPS25H_BUS busid)
 		}
 
 		warnx("periodic read %u", i);
-		warnx("measurement: %.6f", (double)report.temperature);
+		warnx("pressure:    %10.4f", (double)report.pressure);
+		warnx("altitude:    %11.4f", (double)report.altitude);
+		warnx("temperature K: %8.4f", (double)report.temperature);
 		warnx("time:        %lld", report.timestamp);
 	}
 
+	close(fd);
 	errx(0, "PASS");
 }
 
 
 /**
- * Automatic scale calibration.
- *
- * Basic idea:
- *
- *   output = (ext field +- 1.1 Ga self-test) * scale factor
- *
- * and consequently:
- *
- *   1.1 Ga = (excited - normal) * scale factor
- *   scale factor = (excited - normal) / 1.1 Ga
- *
- *   sxy = (excited - normal) / 766	| for conf reg. B set to 0x60 / Gain = 3
- *   sz  = (excited - normal) / 713	| for conf reg. B set to 0x60 / Gain = 3
- *
- * By subtracting the non-excited measurement the pure 1.1 Ga reading
- * can be extracted and the sensitivity of all axes can be matched.
- *
- * SELF TEST OPERATION
- * To check the LPS25HL for proper operation, a self test feature in incorporated
- * in which the sensor offset straps are excited to create a nominal field strength
- * (bias field) to be measured. To implement self test, the least significant bits
- * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias)
- * or 10 (negetive bias), e.g. 0x11 or 0x12.
- * Then, by placing the mode register into single-measurement mode (0x01),
- * two data acquisition cycles will be made on each magnetic vector.
- * The first acquisition will be a set pulse followed shortly by measurement
- * data of the external field. The second acquisition will have the offset strap
- * excited (about 10 mA) in the positive bias mode for X, Y, and Z axes to create
- * about a ±1.1 gauss self test field plus the external field. The first acquisition
- * values will be subtracted from the second acquisition, and the net measurement
- * will be placed into the data output registers.
- * Since self test adds ~1.1 Gauss additional field to the existing field strength,
- * using a reduced gain setting prevents sensor from being saturated and data registers
- * overflowed. For example, if the configuration register B is set to 0x60 (Gain=3),
- * values around +766 LSB (1.16 Ga * 660 LSB/Ga) will be placed in the X and Y data
- * output registers and around +713 (1.08 Ga * 660 LSB/Ga) will be placed in Z data
- * output register. To leave the self test mode, change MS1 and MS0 bit of the
- * configuration register A back to 00 (Normal Measurement Mode), e.g. 0x10.
- * Using the self test method described above, the user can scale sensor
+ * Calculate actual MSL pressure given current altitude
  */
-int calibrate(enum LPS25H_BUS busid)
+void
+calibrate(unsigned altitude, enum LPS25H_BUS busid)
 {
-	int ret = 0;
 	struct lps25h_bus_option &bus = find_bus(busid);
 	const char *path = bus.devpath;
 
@@ -1208,13 +1034,9 @@ int calibrate(enum LPS25H_BUS busid)
 		err(1, "%s open failed (try 'lps25h start' if the driver is not running", path);
 	}
 
-	//if (OK != (ret = ioctl(fd, MAGIOCCALIBRATE, fd))) {
-	//	warnx("failed to enable sensor calibration mode");
-	//}
+	// TODO: Implement calibration
 
 	close(fd);
-
-	return ret;
 }
 
 /**
@@ -1243,54 +1065,33 @@ reset(enum LPS25H_BUS busid)
 	exit(0);
 }
 
-
-/**
- * enable/disable temperature compensation
- */
-int
-temp_enable(enum LPS25H_BUS busid, bool enable)
-{
-	struct lps25h_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	//if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0) {
-	//	err(1, "set temperature compensation failed");
-	//}
-
-	close(fd);
-	return 0;
-}
-
 /**
  * Print a little info about the driver.
  */
-int
-info(enum LPS25H_BUS busid)
+void
+info()
 {
-	struct lps25h_bus_option &bus = find_bus(busid);
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
+		struct lps25h_bus_option &bus = bus_options[i];
 
-	warnx("running on bus: %u (%s)\n", (unsigned)bus.busid, bus.devpath);
-	bus.dev->print_info();
+		if (bus.dev != nullptr) {
+			warnx("%s", bus.devpath);
+			bus.dev->print_info();
+		}
+	}
+
 	exit(0);
 }
 
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'info', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'calibrate'");
 	warnx("options:");
-	warnx("    -R rotation");
-	warnx("    -C calibrate on start");
-	warnx("    -X only external bus");
-#if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
-	warnx("    -I only internal bus");
-#endif
+	warnx("    -X    (external I2C bus)");
+	warnx("    -I    (internal I2C bus)");
+	warnx("    -S    (external SPI bus)");
+	warnx("    -s    (internal SPI bus)");
 }
 
 } // namespace
@@ -1298,12 +1099,10 @@ usage()
 int
 lps25h_main(int argc, char *argv[])
 {
-	int ch;
 	enum LPS25H_BUS busid = LPS25H_BUS_ALL;
-	bool calibrate = false;
-	bool temp_compensation = false;
+	int ch;
 
-	while ((ch = getopt(argc, argv, "XIS:CT")) != EOF) {
+	while ((ch = getopt(argc, argv, "XIS:")) != EOF) {
 		switch (ch) {
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -1320,14 +1119,6 @@ lps25h_main(int argc, char *argv[])
 			busid = LPS25H_BUS_SPI;
 			break;
 
-		case 'C':
-			calibrate = true;
-			break;
-
-		case 'T':
-			temp_compensation = true;
-			break;
-
 		default:
 			lps25h::usage();
 			exit(0);
@@ -1341,18 +1132,6 @@ lps25h_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		lps25h::start(busid);
-
-		if (calibrate && lps25h::calibrate(busid) != 0) {
-			errx(1, "calibration failed");
-		}
-
-		if (temp_compensation) {
-			// we consider failing to setup temperature
-			// compensation as non-fatal
-			lps25h::temp_enable(busid, true);
-		}
-
-		exit(0);
 	}
 
 	/*
@@ -1370,34 +1149,24 @@ lps25h_main(int argc, char *argv[])
 	}
 
 	/*
-	 * enable/disable temperature compensation
-	 */
-	if (!strcmp(verb, "tempoff")) {
-		lps25h::temp_enable(busid, false);
-	}
-
-	if (!strcmp(verb, "tempon")) {
-		lps25h::temp_enable(busid, true);
-	}
-
-	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
-		lps25h::info(busid);
+	if (!strcmp(verb, "info")) {
+		lps25h::info();
 	}
 
 	/*
-	 * Autocalibrate the scaling
+	 * Perform MSL pressure calibration given an altitude in metres
 	 */
 	if (!strcmp(verb, "calibrate")) {
-		if (lps25h::calibrate(busid) == 0) {
-			errx(0, "calibration successful");
-
-		} else {
-			errx(1, "calibration failed");
+		if (argc < 2) {
+			errx(1, "missing altitude");
 		}
+
+		long altitude = strtol(argv[optind + 1], nullptr, 10);
+
+		lps25h::calibrate(altitude, busid);
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
+	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }
