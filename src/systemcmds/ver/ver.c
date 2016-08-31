@@ -162,6 +162,11 @@ uint32_t version_tag_to_number(const char *tag)
 		type = FIRMWARE_TYPE_DEV;
 	}
 
+	/* looks like a release */
+	if (type == -1) {
+		type = FIRMWARE_TYPE_RELEASE;
+	}
+
 	ver = (ver << 8);
 
 	return ver | type;
