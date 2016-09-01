@@ -39,7 +39,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 elseif ("${BOARD}" STREQUAL "rpi")
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
@@ -66,7 +66,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
@@ -96,10 +96,11 @@ elseif ("${BOARD}" STREQUAL "bebop")
 
 else()
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
+
 	if (NOT APPLE)
 		target_link_libraries(px4
 			-Wl,--start-group
