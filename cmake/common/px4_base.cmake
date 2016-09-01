@@ -98,9 +98,6 @@ include(CMakeParseArguments)
 function(px4_parse_function_args)
 	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
 	cmake_parse_arguments(OUT "${IN_OPTIONS}" "${IN_ONE_VALUE}" "${IN_MULTI_VALUE}" "${IN_ARGN}")
-	if (OUT_UNPARSED_ARGUMENTS)
-		message(FATAL_ERROR "${IN_NAME}: unparsed ${OUT_UNPARSED_ARGUMENTS}")
-	endif()
 	foreach(arg ${IN_REQUIRED})
 		if (NOT OUT_${arg})
 			message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
@@ -239,7 +236,7 @@ endfunction()
 #		STACK			: deprecated use stack main instead
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
-#		COMPILE_FLAGS	: compile flags
+#		COMPILE_FLAGS		: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
 #		INCLUDES		: include directories
@@ -573,7 +570,7 @@ endfunction()
 #
 #	px4_add_common_flags
 #
-#	Set ths default build flags.
+#	Set the default build flags.
 #
 #	Usage:
 #		px4_add_common_flags(
@@ -591,8 +588,8 @@ endfunction()
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
-#		EXE_LINKER_FLAGS		: executable linker flags variable
-#		INCLUDE_DIRS			: include directories
+#		EXE_LINKER_FLAGS			: executable linker flags variable
+#		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
 #

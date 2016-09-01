@@ -5,7 +5,7 @@ set -e
 echo args: $@
 
 sitl_bin=$1
-label=$2
+rcS_dir=$2
 debugger=$3
 program=$4
 model=$5
@@ -15,7 +15,7 @@ build_path=$7
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo label: $label
+echo rcS_dir: $rcS_dir
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -40,9 +40,9 @@ then
 	model="iris"
 fi
 
-if [ "$#" -lt 5 ]
+if [ "$#" -lt 7 ]
 then
-	echo usage: sitl_run.sh rc_script debugger program model devel_path
+	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -109,7 +109,7 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${label}/${model}"
+sitl_command="$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${rcS_dir}/${model}"
 
 echo SITL COMMAND: $sitl_command
 
