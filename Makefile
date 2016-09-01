@@ -147,89 +147,29 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
-tap-v1_default:
-	$(call cmake-build,nuttx_tap-v1_default)
-
-asc-v1_default:
-	$(call cmake-build,nuttx_asc-v1_default)
-
-px4fmu-v1_default:
-	$(call cmake-build,nuttx_px4fmu-v1_default)
-
-px4fmu-v2_default:
-	$(call cmake-build,nuttx_px4fmu-v2_default)
-
-px4fmu-v2_test:
-	$(call cmake-build,nuttx_px4fmu-v2_test)
-
-px4fmu-v4_default:
-	$(call cmake-build,nuttx_px4fmu-v4_default)
-
-px4-stm32f4discovery_default:
-	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
-
-mindpx-v2_default:
-	$(call cmake-build,nuttx_mindpx-v2_default)
-
-crazyflie_default:
-	$(call cmake-build,nuttx_crazyflie_default)
-
-posix_sitl_default:
+# All nuttx, posix and qurt targets.
+nuttx_% posix_% qurt_%:
 	$(call cmake-build,$@)
 
-posix_sitl_lpe:
-	$(call cmake-build,$@)
+# Abbreviated config targets.
 
-posix_sitl_ekf2:
-	$(call cmake-build,$@)
+# nuttx_ is left off by default.
+tap-% asc-% px4fmu-% px4-% mindpx-% crazyflie_default:
+	$(call cmake-build,nuttx_$@)
 
-posix_sitl_replay:
-	$(call cmake-build,$@)
+posix: posix_sitl_default
+broadcast: posix_sitl_broadcast
 
-posix_sitl_broadcast:
-	$(call cmake-build,$@)
-
-ros_sitl_default:
-	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
-
-qurt_eagle_travis:
-	$(call cmake-build,$@)
-
-qurt_eagle_default:
-	$(call cmake-build,$@)
-
-posix_eagle_default:
-	$(call cmake-build,$@)
+# Multi- config targets.
 
 eagle_default: posix_eagle_default qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
-
-qurt_eagle_legacy_driver_default:
-	$(call cmake-build,$@)
-
-posix_eagle_legacy_driver_default:
-	$(call cmake-build,$@)
-
-qurt_excelsior_default:
-	$(call cmake-build,$@)
-
-posix_excelsior_default:
-	$(call cmake-build,$@)
-
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
-posix_rpi_native:
-	$(call cmake-build,$@)
+# Deprecated config targets.
 
-posix_rpi_cross:
-	$(call cmake-build,$@)
-
-posix_bebop_default:
-	$(call cmake-build,$@)
-
-posix: posix_sitl_default
-
-broadcast: posix_sitl_broadcast
+ros_sitl_default:
+	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
@@ -341,11 +281,13 @@ submodulesclean:
 distclean: submodulesclean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
+# A list of all current viewers.
+viewers = gazebo jmavsim replay
+# A list of make patterns that match the viewer_model_debugger triplet 'targets'.
+sitl_vmd_triplet_masks = $(foreach viewer,$(viewers),$(viewer) $(viewer)_%)
 # targets handled by cmake
 cmake_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
-	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
-	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
-	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol gazebo_plane gazebo_solo gazebo_typhoon_h480
+	run_cmake_config config $(sitl_vmd_triplet_masks)
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean
