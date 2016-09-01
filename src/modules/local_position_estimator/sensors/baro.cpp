@@ -29,8 +29,7 @@ void BlockLocalPositionEstimator::baroInit()
 		_baroInitialized = true;
 		_baroFault = FAULT_NONE;
 
-		// only initialize alt origin with baro and no gps
-		if (!_altOriginInitialized && !_gps_on.get()) {
+		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
 			_altOrigin = _baroAltOrigin;
 		}

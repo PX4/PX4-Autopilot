@@ -83,11 +83,12 @@ echo -e "ROS_LOG_DIR\t\t: $ROS_LOG_DIR"
 echo -e "PX4_LOG_DIR\t\t: $PX4_LOG_DIR"
 echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 
-# don't exit on error anymore from here on (because single tests or exports might fail)
+# don't exit on error anymore (because single tests or exports might fail)
+# however, stop executing tests after the first failure
 set +e
 echo "=====> run tests"
-rostest px4 mavros_posix_tests_iris.launch
-rostest px4 mavros_posix_tests_standard_vtol.launch
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch
+test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch
 TEST_RESULT=$?
 echo "<====="
 
