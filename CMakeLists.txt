@@ -318,6 +318,7 @@ px4_os_add_flags(
 	BOARD ${BOARD}
 	C_FLAGS c_flags
 	CXX_FLAGS cxx_flags
+	OPTIMIZATION_FLAGS optimization_flags
 	EXE_LINKER_FLAGS exe_linker_flags
 	INCLUDE_DIRS include_dirs
 	LINK_DIRS link_dirs
