@@ -80,7 +80,8 @@ struct ControlData {
 	} type_data;
 
 
-	bool stabilize_axis[3] = { false, false, false }; /**< whether the vmount driver should stabilize an axis */
+	bool stabilize_axis[3] = { false, false, false }; /**< whether the vmount driver should stabilize an axis
+	 	 	 	 	 	 	 	 	 	 (if the output supports it, this can also be done externally) */
 
 	bool gimbal_shutter_retract = false; /**< whether to lock the gimbal (only in RC output mode) */
 

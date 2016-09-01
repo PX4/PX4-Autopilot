@@ -67,7 +67,11 @@ using namespace vmount;
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
-static volatile bool thread_do_report_status = false;
+struct ThreadData {
+	InputBase *input_obj = nullptr;
+	OutputBase *output_obj = nullptr;
+};
+static volatile ThreadData *g_thread_data = nullptr;
 
 struct Parameters {
 	int mnt_mode_in;
@@ -128,10 +132,23 @@ static int vmount_thread_main(int argc, char *argv[])
 {
 	ParameterHandles param_handles;
 	Parameters params;
+	OutputConfig output_config;
+	ThreadData thread_data;
 	memset(&params, 0, sizeof(params));
 
 
 	InputTest *test_input = nullptr;
+
+#ifdef __PX4_NUTTX
+	/* the NuttX optarg handler does not
+	 * ignore argv[0] like the POSIX handler
+	 * does, nor does it deal with non-flag
+	 * verbs well. So we Remove the application
+	 * name and the verb.
+	 */
+	argc -= 1;
+	argv += 1;
+#endif
 
 	if (argc > 0 && !strcmp(argv[0], "test")) {
 		PX4_INFO("Starting in test mode");
@@ -175,15 +192,13 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	thread_running = true;
-	OutputConfig output_config;
 	ControlData *control_data = nullptr;
-	InputBase *input_obj = nullptr;
-	OutputBase *output_obj = nullptr;
 	InputRC *manual_input = nullptr;
+	g_thread_data = &thread_data;
 
 	while (!thread_should_exit) {
 
-		if (!input_obj && params.mnt_mode_in != 0) { //need to initialize
+		if (!thread_data.input_obj && params.mnt_mode_in != 0) { //need to initialize
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
@@ -191,7 +206,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
 			if (test_input) {
-				input_obj = test_input;
+				thread_data.input_obj = test_input;
 
 			} else {
 				if (params.mnt_man_control) {
@@ -206,21 +221,21 @@ static int vmount_thread_main(int argc, char *argv[])
 				switch (params.mnt_mode_in) {
 				case 1: //RC
 					if (manual_input) {
-						input_obj = manual_input;
+						thread_data.input_obj = manual_input;
 						manual_input = nullptr;
 
 					} else {
-						input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+						thread_data.input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 					}
 
 					break;
 
 				case 2: //MAVLINK_ROI
-					input_obj = new InputMavlinkROI(manual_input);
+					thread_data.input_obj = new InputMavlinkROI(manual_input);
 					break;
 
 				case 3: //MAVLINK_DO_MOUNT
-					input_obj = new InputMavlinkCmdMount(manual_input);
+					thread_data.input_obj = new InputMavlinkCmdMount(manual_input);
 					break;
 
 				default:
@@ -231,11 +246,11 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			switch (params.mnt_mode_out) {
 			case 0: //AUX
-				output_obj = new OutputRC(output_config);
+				thread_data.output_obj = new OutputRC(output_config);
 				break;
 
 			case 1: //MAVLINK
-				output_obj = new OutputMavlink(output_config);
+				thread_data.output_obj = new OutputMavlink(output_config);
 				break;
 
 			default:
@@ -243,13 +258,13 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
-			if (!input_obj || !output_obj) {
+			if (!thread_data.input_obj || !thread_data.output_obj) {
 				PX4_ERR("memory allocation failed");
 				thread_should_exit = true;
 				break;
 			}
 
-			int ret = output_obj->initialize();
+			int ret = thread_data.output_obj->initialize();
 
 			if (ret) {
 				PX4_ERR("failed to initialize output mode (%i)", ret);
@@ -262,7 +277,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
-			int ret = input_obj->update(50, &control_data);
+			int ret = thread_data.input_obj->update(50, &control_data);
 
 			if (ret) {
 				PX4_ERR("failed to read input (%i)", ret);
@@ -270,7 +285,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 
 			//update output
-			ret = output_obj->update(control_data);
+			ret = thread_data.output_obj->update(control_data);
 
 			if (ret) {
 				PX4_ERR("failed to write output (%i)", ret);
@@ -298,14 +313,14 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				//re-init objects
-				if (input_obj) {
-					delete(input_obj);
-					input_obj = nullptr;
+				if (thread_data.input_obj) {
+					delete(thread_data.input_obj);
+					thread_data.input_obj = nullptr;
 				}
 
-				if (output_obj) {
-					delete(output_obj);
-					output_obj = nullptr;
+				if (thread_data.output_obj) {
+					delete(thread_data.output_obj);
+					thread_data.output_obj = nullptr;
 				}
 
 				if (manual_input) {
@@ -314,38 +329,25 @@ static int vmount_thread_main(int argc, char *argv[])
 				}
 			}
 		}
-
-		if (thread_do_report_status) {
-			if (input_obj) {
-				input_obj->print_status();
-
-			} else {
-				PX4_INFO("Input: None");
-			}
-
-			if (output_obj) {
-				output_obj->print_status();
-
-			} else {
-				PX4_INFO("Output: None");
-			}
-
-			thread_do_report_status = false;
-		}
 	}
+
+	g_thread_data = nullptr;
 
 	orb_unsubscribe(parameter_update_sub);
 
-	if (input_obj) {
-		delete(input_obj);
+	if (thread_data.input_obj) {
+		delete(thread_data.input_obj);
+		thread_data.input_obj = nullptr;
 	}
 
-	if (output_obj) {
-		delete(output_obj);
+	if (thread_data.output_obj) {
+		delete(thread_data.output_obj);
+		thread_data.output_obj = nullptr;
 	}
 
 	if (manual_input) {
 		delete(manual_input);
+		manual_input = nullptr;
 	}
 
 	thread_running = false;
@@ -376,7 +378,7 @@ int vmount_main(int argc, char *argv[])
 		int vmount_task = px4_task_spawn_cmd("vmount",
 						     SCHED_DEFAULT,
 						     SCHED_PRIORITY_DEFAULT + 40,
-						     1200,
+						     1500,
 						     vmount_thread_main,
 						     (char *const *)argv + 1);
 
@@ -388,6 +390,11 @@ int vmount_main(int argc, char *argv[])
 			if (++counter >= 100) {
 				break;
 			}
+		}
+
+		if (vmount_task < 0) {
+			PX4_ERR("failed to start");
+			return -1;
 		}
 
 		return counter < 100 || thread_should_exit ? 0 : -1;
@@ -411,11 +418,20 @@ int vmount_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			thread_do_report_status = true;
+		if (thread_running && g_thread_data) {
 
-			while (thread_do_report_status) {
-				usleep(10000);
+			if (g_thread_data->input_obj) {
+				g_thread_data->input_obj->print_status();
+
+			} else {
+				PX4_INFO("Input: None");
+			}
+
+			if (g_thread_data->output_obj) {
+				g_thread_data->output_obj->print_status();
+
+			} else {
+				PX4_INFO("Output: None");
 			}
 
 		} else {

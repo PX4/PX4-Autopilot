@@ -34,8 +34,6 @@ px4_add_module(
 	MODULE drivers__vmount
 	MAIN vmount
 	STACK_MAIN 1024
-	COMPILE_FLAGS
-		-Os
 	SRCS
 		input.cpp
 		input_mavlink.cpp

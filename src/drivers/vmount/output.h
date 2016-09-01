@@ -101,6 +101,8 @@ protected:
 	float _angle_outputs[3] = { 0.f, 0.f, 0.f };
 	hrt_abstime _last_update;
 
+	int _get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
+
 private:
 	int _vehicle_attitude_sub = -1;
 	int _vehicle_global_position_sub = -1;

@@ -64,19 +64,18 @@ public:
 	InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw);
 	virtual ~InputRC();
 
+	virtual void print_status();
 
 protected:
 	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data);
 	virtual int initialize();
 
-	virtual void print_status();
-
-private:
-	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
+	virtual void _read_control_data_from_subscription(ControlData &control_data);
 
 	int _get_subscription_fd() const { return _manual_control_setpoint_sub; }
 
-	void _read_control_data_from_subscription(ControlData &control_data);
+private:
+	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
 	int _aux_channels[3];
 	int _manual_control_setpoint_sub = -1;
