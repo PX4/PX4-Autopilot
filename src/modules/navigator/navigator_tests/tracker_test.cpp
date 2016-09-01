@@ -50,6 +50,10 @@ DEFINE_TEST(simpleJumps, 25, 24, 4, 3, 2, 1, 0) {
     #include "simple_jumps.path"
 };
 
+DEFINE_TEST(longPath) {
+    #include "long_path1.path"
+};
+
 
 
 class TrackerTest : public UnitTest
@@ -120,6 +124,9 @@ private:
     // new home along the path and returns to that new home
     bool fly_and_change_home_test();
 
+    // Takes several performance measurements
+    bool performance_test();
+
     // Tests if the minimum line-to-line delta is calculated correctly
     bool line_to_line_test();
 
@@ -142,7 +149,8 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(complexLoop),
     USE_TEST(largeNodes),
     USE_TEST(fromSim),
-    USE_TEST(simpleJumps)
+    USE_TEST(simpleJumps),
+    USE_TEST(longPath)
 };
 
 TrackerTest::line_test_t TrackerTest::line_test_cases[] = {
@@ -330,6 +338,8 @@ bool TrackerTest::try_return_unsupervised(Tracker &tracker, const test_t *test, 
 bool TrackerTest::fly_and_return_test(void) {
     for (size_t t = 0; t < sizeof(test_cases) / sizeof(test_cases[0]); t++) {
         const test_t *test = test_cases + t;
+        if (!test->ret_size)
+            continue;
         TRACKER_DBG("running fly-and-return on %s %s", test->name, rewrite_graph ? "with graph rewriting" : "without graph rewriting");
 
         _tracker.reset_graph();
@@ -450,6 +460,25 @@ bool TrackerTest::fly_and_change_home_test(void) {
 }
 
 
+bool TrackerTest::performance_test(void) {
+    for (size_t t = 0; t < sizeof(test_cases) / sizeof(test_cases[0]); t++) {
+        const test_t *test = test_cases + t;
+        PX4_WARN("running performance test on %s", test->name);
+
+        _tracker.reset_graph();
+        _tracker.set_home(test->path[0], test->path[1], test->path[2]);
+        
+        // Simulate flight along the specified path
+        for (size_t p = 0; p < test->path_size; p += 3)
+            _tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
+
+        PX4_WARN("memory pressure: %d", _tracker.memory_pressure);
+    }
+
+	return true;
+}
+
+
 bool TrackerTest::line_to_line_test() {
     size_t count = sizeof(line_test_cases) / sizeof(line_test_cases[0]);
 
@@ -503,6 +532,8 @@ bool TrackerTest::run_tests(void) {
 	ut_run_test(fly_and_return_test);
 	ut_run_test(fly_and_leave_return_path_test);
 	ut_run_test(fly_and_change_home_test);
+
+	ut_run_test(performance_test);
 
     return (_tests_failed == 0);
 }

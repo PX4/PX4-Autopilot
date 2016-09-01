@@ -372,7 +372,7 @@ private:
     //  end_index:
     //      in: ignored
     //      out: the index at which the longest possible line ends (start_index < end_index <= bound)
-    //  is_jump: set to the jump property of the line under consideration (jump and non-jump deltas are never aggeregated)
+    //  is_jump: set to the jump property of the line under consideration (jump and non-jump deltas are never aggregated)
     //  bound: the line is constrained not to go beyond this index, but it may end there.
     void get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end_pos, size_t &end_index, bool &is_jump, size_t bound);
 
