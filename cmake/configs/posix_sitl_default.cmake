@@ -97,9 +97,12 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
+# Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
+# for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
+# which are based on posix_sitl_default.
 set(config_sitl_rcS_dir
 	posix-configs/SITL/init/lpe
-	CACHE FILEPATH "init script dir for sitl"
+	CACHE INTERNAL "init script dir for sitl"
 	)
 
 set(config_sitl_viewer
