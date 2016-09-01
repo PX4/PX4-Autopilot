@@ -37,27 +37,43 @@ void BlockLocalPositionEstimator::gpsInit()
 
 	// if finished
 	if (_gpsStats.getCount() > REQ_GPS_INIT_COUNT) {
-		double gpsLatOrigin = _gpsStats.getMean()(0);
-		double gpsLonOrigin = _gpsStats.getMean()(1);
+		// get mean gps values
+		double gpsLat = _gpsStats.getMean()(0);
+		double gpsLon = _gpsStats.getMean()(1);
+		float gpsAlt = _gpsStats.getMean()(2);
 
-		if (!_receivedGps) {
-			_receivedGps = true;
-			map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
-		}
-
-		_gpsAltOrigin = _gpsStats.getMean()(2);
-		PX4_INFO("[lpe] gps init "
-			 "lat %6.2f lon %6.2f alt %5.1f m",
-			 gpsLatOrigin,
-			 gpsLonOrigin,
-			 double(_gpsAltOrigin));
 		_gpsInitialized = true;
 		_gpsFault = FAULT_NONE;
 		_gpsStats.reset();
 
-		if (!_altOriginInitialized) {
-			_altOriginInitialized = true;
+		if (!_receivedGps) {
+			// this is the first time we have received gps
+			_receivedGps = true;
+
+			// note we subtract X_z which is in down directon so it is
+			// an addition
+			_gpsAltOrigin = gpsAlt + _x(X_z);
+
+			// find lat, lon of current origin by subtracting x and y
+			double gpsLatOrigin = 0;
+			double gpsLonOrigin = 0;
+			// reproject at current coordinates
+			map_projection_init(&_map_ref, gpsLat, gpsLon);
+			// find origin
+			map_projection_reproject(&_map_ref, -_x(X_x), -_x(X_y), &gpsLatOrigin, &gpsLonOrigin);
+			// reinit origin
+			map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
+
+			// always override alt origin on first GPS to fix
+			// possible baro offset in global altitude at init
 			_altOrigin = _gpsAltOrigin;
+			_altOriginInitialized = true;
+
+			PX4_INFO("[lpe] gps init "
+				 "lat %6.2f lon %6.2f alt %5.1f m",
+				 gpsLatOrigin,
+				 gpsLonOrigin,
+				 double(_gpsAltOrigin));
 		}
 	}
 }
@@ -131,6 +147,17 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (_sub_gps.get().epv > _gps_z_stddev.get()) {
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
+
+	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
+
+	if (gps_s_stddev > _gps_vxy_stddev.get()) {
+		var_vxy = gps_s_stddev * gps_s_stddev;
+	}
+
+	if (gps_s_stddev > _gps_vz_stddev.get()) {
+		var_vz = gps_s_stddev * gps_s_stddev;
+	}
+
 
 	R(0, 0) = var_xy;
 	R(1, 1) = var_xy;

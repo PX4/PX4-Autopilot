@@ -17,6 +17,8 @@ static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
+static const float P_MAX = 1.0e6f; // max allowed value in state covariance
+
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
@@ -77,12 +79,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocap_p_stddev(this, "VIC_P"),
 	_flow_z_offset(this, "FLW_OFF_Z"),
 	_flow_xy_stddev(this, "FLW_XY"),
+	_flow_xy_d_stddev(this, "FLW_XY_D"),
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
+	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
 	// init origin
@@ -148,7 +152,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// flow integration
 	_flowX(0),
 	_flowY(0),
-	_flowMeanQual(0),
 
 	// status
 	_validXY(false),
@@ -195,8 +198,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// initialize A, B,  P, x, u
 	_x.setZero();
 	_u.setZero();
-	_flowX = 0;
-	_flowY = 0;
 	initSS();
 
 	// perf counters
@@ -390,15 +391,28 @@ void BlockLocalPositionEstimator::update()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit x");
 	}
 
-	// reinitialize P if necessary
+	// force P symmetry and reinitialize P if necessary
 	bool reinit_P = false;
 
 	for (int i = 0; i < n_x; i++) {
-		for (int j = 0; j < n_x; j++) {
+		for (int j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(_P(i, j))) {
 				reinit_P = true;
-				break;
 			}
+
+			if (i == j) {
+				// make sure diagonal elements are positive
+				if (_P(i, i) <= 0) {
+					reinit_P = true;
+				}
+
+			} else {
+				// copy elememnt from upper triangle to force
+				// symmetry
+				_P(j, i) = _P(i, j);
+			}
+
+			if (reinit_P) { break; }
 		}
 
 		if (reinit_P) { break; }
@@ -600,6 +614,22 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 	if (std::abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / std::abs(bz); }
 }
 
+
+void BlockLocalPositionEstimator::covPropagationLogic(Matrix<float, n_x, n_x> &dP)
+{
+	for (int i = 0; i < n_x; i++) {
+		if (_P(i, i) > P_MAX) {
+			// if diagonal element greater than max, stop propagating
+			dP(i, i) = 0;
+
+			for (int j = 0; j < n_x; j++) {
+				dP(i, j) = 0;
+				dP(j, i) = 0;
+			}
+		}
+	}
+}
+
 void BlockLocalPositionEstimator::detectDistanceSensors()
 {
 	for (int i = 0; i < N_DIST_SUBS; i++) {
@@ -658,7 +688,11 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
 		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
 		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
-		_pub_lpos.get().dist_bottom_valid = _validTZ && _validZ;
+		// we estimate agl even when we don't have terrain info
+		// if you are in terrain following mode this is important
+		// so that if terrain estimation fails there isn't a
+		// sudden altitude jump
+		_pub_lpos.get().dist_bottom_valid = _validZ;
 		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
 		_pub_lpos.update();
@@ -809,8 +843,11 @@ void BlockLocalPositionEstimator::updateSSParams()
 	_Q(X_bz, X_bz) = pn_b_sq;
 
 	// terrain random walk noise ((m/s)/sqrt(hz)), scales with velocity
-	float pn_t_stddev = (_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
-	_Q(X_tz, X_tz) = pn_t_stddev * pn_t_stddev;
+	float pn_t_noise_density =
+		_pn_t_noise_density.get() +
+		(_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
+	_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
+
 }
 
 void BlockLocalPositionEstimator::predict()
@@ -822,6 +859,7 @@ void BlockLocalPositionEstimator::predict()
 	if (integrate && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
+		// note, bias is removed in dynamics function
 		_u = R_att * a;
 		_u(U_az) += 9.81f; // add g
 
@@ -847,9 +885,11 @@ void BlockLocalPositionEstimator::predict()
 	// propagate
 	correctionLogic(dx);
 	_x += dx;
-	_P += (_A * _P + _P * _A.transpose() +
-	       _B * _R * _B.transpose() +
-	       _Q) * getDt();
+	Matrix<float, n_x, n_x> dP = (_A * _P + _P * _A.transpose() +
+				      _B * _R * _B.transpose() + _Q) * getDt();
+	covPropagationLogic(dP);
+	_P += dP;
+
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
 }

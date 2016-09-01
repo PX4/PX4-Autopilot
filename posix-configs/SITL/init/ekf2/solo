@@ -18,7 +18,7 @@ param set CAL_ACC0_YSCALE 1.01
 param set CAL_ACC0_ZSCALE 1.01
 param set CAL_ACC1_XOFF 0.01
 param set CAL_MAG0_XOFF 0.01
-param set SENS_BOARD_ROT 8
+param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2

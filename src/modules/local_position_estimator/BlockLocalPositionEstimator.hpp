@@ -98,10 +98,10 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 // 	ax, ay, az (acceleration NED)
 //
 // states:
-// 	px, py, pz , ( position NED)
-// 	vx, vy, vz ( vel NED),
-// 	bx, by, bz ( accel bias)
-// 	tz (terrain altitude, ASL)
+// 	px, py, pz , ( position NED, m)
+// 	vx, vy, vz ( vel NED, m/s),
+// 	bx, by, bz ( accel bias, m/s^2)
+// 	tz (terrain altitude, ASL, m)
 //
 // measurements:
 //
@@ -184,6 +184,7 @@ private:
 	int  flowMeasure(Vector<float, n_y_flow> &y);
 	void flowCorrect();
 	void flowInit();
+	void flowDeinit();
 	void flowCheckTimeout();
 
 	// vision
@@ -204,6 +205,7 @@ private:
 	// misc
 	float agl();
 	void correctionLogic(Vector<float, n_x> &dx);
+	void covPropagationLogic(Matrix<float, n_x, n_x> &dP);
 	void detectDistanceSensors();
 
 	// publications
@@ -281,6 +283,7 @@ private:
 	// flow parameters
 	BlockParamFloat  _flow_z_offset;
 	BlockParamFloat  _flow_xy_stddev;
+	BlockParamFloat  _flow_xy_d_stddev;
 	//BlockParamFloat  _flow_board_x_offs;
 	//BlockParamFloat  _flow_board_y_offs;
 	BlockParamInt    _flow_min_q;
@@ -289,6 +292,7 @@ private:
 	BlockParamFloat  _pn_p_noise_density;
 	BlockParamFloat  _pn_v_noise_density;
 	BlockParamFloat  _pn_b_noise_density;
+	BlockParamFloat  _pn_t_noise_density;
 	BlockParamFloat  _t_max_grade;
 
 	// init origin
@@ -353,7 +357,6 @@ private:
 	// flow integration
 	float _flowX;
 	float _flowY;
-	float _flowMeanQual;
 
 	// status
 	bool _validXY;

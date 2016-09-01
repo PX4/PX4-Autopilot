@@ -1201,11 +1201,12 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 
 	// we only support shell commands
 	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL
-			|| (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
+	    || (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
 		return;
 	}
 
-	MavlinkShell* shell = _mavlink->get_shell();
+	MavlinkShell *shell = _mavlink->get_shell();
+
 	if (shell) {
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0) {
@@ -2073,9 +2074,11 @@ MavlinkReceiver::receive_thread(void *arg)
 {
 
 	/* set thread name */
-	char thread_name[24];
-	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-	px4_prctl(PR_SET_NAME, thread_name, getpid());
+	{
+		char thread_name[24];
+		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+		px4_prctl(PR_SET_NAME, thread_name, getpid());
+	}
 
 	const int timeout = 500;
 #ifdef __PX4_POSIX
@@ -2087,14 +2090,10 @@ MavlinkReceiver::receive_thread(void *arg)
 #endif
 	mavlink_message_t msg;
 
-	struct pollfd fds[1];
-
-	int uart_fd = -1;
+	struct pollfd fds[1] = {};
 
 	if (_mavlink->get_protocol() == SERIAL) {
-		uart_fd = _mavlink->get_uart_fd();
-
-		fds[0].fd = uart_fd;
+		fds[0].fd = _mavlink->get_uart_fd();
 		fds[0].events = POLLIN;
 	}
 
@@ -2126,7 +2125,7 @@ MavlinkReceiver::receive_thread(void *arg)
 				const unsigned character_count = 20;
 
 				/* non-blocking read. read may return negative values */
-				if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)character_count) {
+				if ((nread = ::read(fds[0].fd, buf, sizeof(buf))) < (ssize_t)character_count) {
 					unsigned sleeptime = (1.0f / (_mavlink->get_baudrate() / 10)) * character_count * 1000000;
 					usleep(sleeptime);
 				}
@@ -2171,8 +2170,11 @@ MavlinkReceiver::receive_thread(void *arg)
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
 
-						/* check if we received version 2 */
-						// XXX todo _mavlink->set_proto_version(2);
+						/* check if we received version 2 and request a switch. */
+						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+							/* this will only switch to proto version 2 if allowed in settings */
+							_mavlink->set_proto_version(2);
+						}
 
 						/* handle generic messages and commands */
 						handle_message(&msg);
@@ -2238,12 +2240,6 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
-
-#ifndef __PX4_POSIX
-	// set to non-blocking read
-	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
-	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
-#endif
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
