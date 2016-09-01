@@ -70,7 +70,7 @@
 /**
  * A UAVCAN Server Sub node.
  */
-class UavcanServers
+class __EXPORT UavcanServers
 {
 	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
 
@@ -78,6 +78,10 @@ class UavcanServers
 	static constexpr unsigned Priority  =  120;
 
 	static constexpr unsigned VirtualIfaceBlockAllocationQuota =  80;
+
+	static constexpr float BeepFrequencyGenericIndication       = 1000.0F;
+	static constexpr float BeepFrequencySuccess                 = 2000.0F;
+	static constexpr float BeepFrequencyError                   = 100.0F;
 
 public:
 	UavcanServers(uavcan::INode &main_node);
@@ -138,23 +142,23 @@ private:
 	 *
 	 * The node's UAVCAN ID is used as the index into the _param_counts array.
 	 */
-	uint8_t _param_counts[128];
-	bool _count_in_progress;
-	uint8_t _count_index;
+	uint8_t _param_counts[128] = {};
+	bool _count_in_progress = false;
+	uint8_t _count_index = 0;
 
-	bool _param_in_progress;
-	uint8_t _param_index;
-	bool _param_list_in_progress;
-	bool _param_list_all_nodes;
-	uint8_t _param_list_node_id;
+	bool _param_in_progress = false;
+	uint8_t _param_index = 0;
+	bool _param_list_in_progress = false;
+	bool _param_list_all_nodes = false;
+	uint8_t _param_list_node_id = 1;
 
-	uint32_t _param_dirty_bitmap[4];
-	uint8_t _param_save_opcode;
+	uint32_t _param_dirty_bitmap[4] = {};
+	uint8_t _param_save_opcode = 0;
 
-	bool _cmd_in_progress;
+	bool _cmd_in_progress = false;
 
 	// uORB topic handle for MAVLink parameter responses
-	orb_advert_t _param_response_pub;
+	orb_advert_t _param_response_pub = nullptr;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
@@ -179,15 +183,16 @@ private:
 	void clear_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] &= ~(1 << (node_id & 31)); }
 	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
 
-	bool _mutex_inited;
-	volatile bool _check_fw;
+	void beep(float frequency);
+
+	bool _mutex_inited = false;
+	volatile bool _check_fw = false;
 
 	// ESC enumeration
-	bool _esc_enumeration_active;
+	bool _esc_enumeration_active = false;
 	uint8_t _esc_enumeration_ids[uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize];
-	uint8_t _esc_enumeration_index;
-	uint8_t _esc_set_index;
-	uint8_t _esc_count;
+	uint8_t _esc_enumeration_index = 0;
+	uint8_t _esc_count = 0;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &)> EnumerationBeginCallback;

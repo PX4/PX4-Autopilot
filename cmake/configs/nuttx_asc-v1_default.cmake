@@ -1,6 +1,6 @@
 include(nuttx/px4_impl_nuttx)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_module_list
 	#
@@ -9,13 +9,12 @@ set(config_module_list
 	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
-	drivers/stm32/tone_alarm
 	drivers/led
 	#drivers/px4fmu
 	drivers/boards/asc-v1
 	drivers/rgbled_pwm
 	drivers/tap_esc
-	#drivers/mpu6500
+	drivers/mpu6500
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps

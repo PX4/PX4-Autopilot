@@ -129,25 +129,11 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* Hold power state */
-
-	board_pwr_init(0);
-
-	/* TEMP ctrl Off (active high, init is clear) */
-
-	stm32_configgpio(GPIO_TEMP_CONT);
-
-
 	/* Select 0 */
 
 	stm32_configgpio(GPIO_S0);
 	stm32_configgpio(GPIO_S1);
 	stm32_configgpio(GPIO_S2);
-
-	/* Radio Off (active low, init is set) */
-
-	stm32_configgpio(GPIO_PCON_RADIO);
-
 
 	/* configure always-on ADC pins */
 
@@ -199,8 +185,6 @@ __EXPORT int nsh_archinitialize(void)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
-
-	board_pwr_init(1);
 
 	/* initial LED state */
 	drv_led_start();

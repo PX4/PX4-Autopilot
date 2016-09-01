@@ -18,7 +18,7 @@ param set CAL_ACC0_YSCALE 1.01
 param set CAL_ACC0_ZSCALE 1.01
 param set CAL_ACC1_XOFF 0.01
 param set CAL_MAG0_XOFF 0.01
-param set SENS_BOARD_ROT 8
+param set SENS_BOARD_ROT 0
 param set SENS_DPRES_OFF 0.001
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
@@ -47,7 +47,7 @@ ekf2 start
 fw_pos_control_l1 start
 fw_att_control start
 land_detector start fixedwing
-mixer load /dev/pwm_output0 ../../../../ROMFS/sitl/mixers/plane_sitl.main.mix
+mixer load /dev/pwm_output0 ROMFS/sitl/mixers/plane_sitl.main.mix
 mavlink start -u 14556 -r 2000000
 mavlink start -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556

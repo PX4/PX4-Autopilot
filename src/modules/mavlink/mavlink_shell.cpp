@@ -62,6 +62,7 @@ MavlinkShell::~MavlinkShell()
 		PX4_INFO("Stopping mavlink shell");
 		close(_to_shell_fd);
 	}
+
 	if (_from_shell_fd >= 0) {
 		close(_from_shell_fd);
 	}
@@ -91,6 +92,7 @@ int MavlinkShell::start()
 	if (pipe(p1) != 0) {
 		return -errno;
 	}
+
 	if (pipe(p2) != 0) {
 		close(p1[0]);
 		close(p1[1]);
@@ -105,22 +107,26 @@ int MavlinkShell::start()
 	_shell_fds[1] = p1[1];
 
 	int fd_backups[2]; //we don't touch stderr, we will redirect it to stdout in the startup of the shell task
+
 	for (int i = 0; i < 2; ++i) {
 		fd_backups[i] = dup(i);
+
 		if (fd_backups[i] == -1) {
 			ret = -errno;
 		}
 	}
+
 	dup2(_shell_fds[0], 0);
 	dup2(_shell_fds[1], 1);
 
 	if (ret == 0) {
 		_task = px4_task_spawn_cmd("mavlink_shell",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_DEFAULT,
-				2048,
-				&MavlinkShell::shell_start_thread,
-				nullptr);
+					   SCHED_DEFAULT,
+					   SCHED_PRIORITY_DEFAULT,
+					   2048,
+					   &MavlinkShell::shell_start_thread,
+					   nullptr);
+
 		if (_task < 0) {
 			ret = -1;
 		}
@@ -131,6 +137,7 @@ int MavlinkShell::start()
 		if (dup2(fd_backups[i], i) == -1) {
 			ret = -errno;
 		}
+
 		close(fd_backups[i]);
 	}
 
@@ -152,12 +159,12 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 	return 0;
 }
 
-size_t MavlinkShell::write(uint8_t* buffer, size_t len)
+size_t MavlinkShell::write(uint8_t *buffer, size_t len)
 {
 	return ::write(_to_shell_fd, buffer, len);
 }
 
-size_t MavlinkShell::read(uint8_t* buffer, size_t len)
+size_t MavlinkShell::read(uint8_t *buffer, size_t len)
 {
 	return ::read(_from_shell_fd, buffer, len);
 }
@@ -165,8 +172,10 @@ size_t MavlinkShell::read(uint8_t* buffer, size_t len)
 size_t MavlinkShell::available()
 {
 	int ret = 0;
+
 	if (ioctl(_from_shell_fd, FIONREAD, (unsigned long)&ret) == OK) {
 		return ret;
 	}
+
 	return 0;
 }

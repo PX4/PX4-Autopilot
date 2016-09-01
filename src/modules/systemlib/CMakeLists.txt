@@ -32,7 +32,7 @@
 ############################################################################
 
 # for generated files
-include_directories(${CMAKE_BINARY_DIR}/src/modules/param)
+include_directories(${PX4_BINARY_DIR}/src/modules/param)
 
 set(SRCS
 	perf_counter.c

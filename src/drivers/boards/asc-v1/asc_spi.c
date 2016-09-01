@@ -70,19 +70,131 @@
 
 __EXPORT void stm32_spiinitialize(void)
 {
-	stm32_configgpio(GPIO_SPI_CS_SDCARD);
-	stm32_configgpio(GPIO_SPI_SD_SW);
+#ifdef CONFIG_STM32_SPI3
+	// px4_arch_configgpio(GPIO_SPI_CS_MPU9250);
+	// px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
+	// px4_arch_configgpio(GPIO_SPI_CS_MS5611);
+	// px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
+
+	// /* De-activate all peripherals,
+	//  * required for some peripheral
+	//  * state machines
+	//  */
+	// px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	// px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	// px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	// px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+
+	// px4_arch_configgpio(GPIO_DRDY_MPU9250);
+	// px4_arch_configgpio(GPIO_DRDY_HMC5983);
+	// px4_arch_configgpio(GPIO_DRDY_ICM_20608_G);
+#endif
+
+#ifdef CONFIG_STM32_SPI4
+	// px4_arch_configgpio(GPIO_SPI_CS_FRAM);
+	// px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+#endif
 }
 
 
-__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* there can only be one device on this bus, so always select it */
-	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, !selected);
+	/* SPI select is active low, so write !selected to select the device */
+
+	switch (devid) {
+	case PX4_SPIDEV_ICM:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		break;
+
+	case PX4_SPIDEV_ACCEL_MAG:
+		/* Making sure the other peripherals are not selected */
+		break;
+
+	case PX4_SPIDEV_BARO:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	case PX4_SPIDEV_HMC:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	case PX4_SPIDEV_MPU:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	default:
+		break;
+	}
 }
 
-__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-	return !stm32_gpioread(GPIO_SPI_SD_SW);
+	return SPI_STATUS_PRESENT;
 }
 
+__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+	/* SPI select is active low, so write !selected to select the device */
+
+	switch (devid) {
+	case PX4_SPIDEV_ICM:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		break;
+
+	case PX4_SPIDEV_ACCEL_MAG:
+		/* Making sure the other peripherals are not selected */
+		break;
+
+	case PX4_SPIDEV_BARO:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	case PX4_SPIDEV_HMC:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	case PX4_SPIDEV_MPU:
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		break;
+
+	default:
+		break;
+	}
+}
+
+__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	return SPI_STATUS_PRESENT;
+}

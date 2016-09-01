@@ -136,7 +136,7 @@ public:
 	bool isMapped() { return _gpio_map != nullptr; }
 
 private:
-	void atomic_modify(uint32_t addr,
+	void atomic_modify(uintptr_t addr,
 			   unsigned int shift,
 			   unsigned int mask,
 			   unsigned int value);

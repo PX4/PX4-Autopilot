@@ -155,7 +155,7 @@ private:
 	 * @param interval the interval in us to send the message at
 	 * @param data_rate the total link data rate in bytes per second
 	 */
-	void set_message_interval(int msgId, float interval, int data_rate=-1);
+	void set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
 	/**

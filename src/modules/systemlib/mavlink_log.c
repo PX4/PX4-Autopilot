@@ -38,6 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <drivers/drv_hrt.h>
 #include <px4_posix.h>
 #include <string.h>
 #include <stdlib.h>

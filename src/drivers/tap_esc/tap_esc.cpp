@@ -97,6 +97,7 @@ private:
 
 	static const uint8_t crcTable[256];
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
+	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 
 	bool _is_armed;
 
@@ -149,6 +150,7 @@ private:
 
 const uint8_t TAP_ESC::crcTable[256] = TAP_ESC_CRC;
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 actuator_armed_s TAP_ESC::_armed = {};
 
@@ -245,7 +247,9 @@ TAP_ESC::init()
 
 	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
 		config.channelMapTable[phy_chan_index] = device_mux_map[phy_chan_index] &
-				ESC_CHANNEL_MAP_CHANNEL; // Use ESC_CHANNEL_MAP_RUNNING_DIRECTION;
+				ESC_CHANNEL_MAP_CHANNEL;
+		config.channelMapTable[phy_chan_index] |= (device_dir_map[phy_chan_index] << 4) &
+				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
 	}
 
 	config.maxChannelValue = RPMMAX;
@@ -626,31 +630,6 @@ TAP_ESC::cycle()
 
 		size_t num_outputs = _channels_count;
 
-		/*
-		// FIXME: don't know what this mode should be used for. It's hardcoded in initialization and never changed.
-		switch (_mode) {
-		case MODE_2PWM:
-			num_outputs = 2;
-			break;
-
-		case MODE_4PWM:
-			num_outputs = 4;
-			break;
-
-		case MODE_6PWM:
-			num_outputs = 6;
-			break;
-
-		case MODE_8PWM:
-			num_outputs = 8;
-			break;
-
-		default:
-			num_outputs = 0;
-			break;
-		}
-		*/
-
 		/* can we mix? */
 		if (_is_armed && _mixers != nullptr) {
 
@@ -719,8 +698,24 @@ TAP_ESC::cycle()
 		const unsigned esc_count = num_outputs;
 		float motor_out[TAP_ESC_MAX_MOTOR_NUM];
 
-		for (int i = 0; i < esc_count; ++i) {
-			motor_out[i] = _outputs.output[i];
+		// We need to remap from the system default to what PX4's normal
+		// scheme is
+		if (num_outputs == 6) {
+			motor_out[0] = _outputs.output[3];
+			motor_out[1] = _outputs.output[0];
+			motor_out[2] = _outputs.output[4];
+			motor_out[3] = _outputs.output[2];
+			motor_out[4] = _outputs.output[1];
+			motor_out[5] = _outputs.output[5];
+			motor_out[6] = RPMSTOPPED;
+			motor_out[7] = RPMSTOPPED;
+
+		} else {
+
+			// Use the system defaults
+			for (int i = 0; i < esc_count; ++i) {
+				motor_out[i] = _outputs.output[i];
+			}
 		}
 
 		send_esc_outputs(motor_out, esc_count);
@@ -1078,7 +1073,7 @@ void start()
 	_task_handle = px4_task_spawn_cmd("tap_esc_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
-					  1200,
+					  1000,
 					  (px4_main_t)&task_main_trampoline,
 					  nullptr);
 

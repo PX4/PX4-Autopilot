@@ -245,11 +245,16 @@ PX4FLOW::init()
 	/* get a publish handle on the range finder topic */
 	struct distance_sensor_s ds_report = {};
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		}
+
+	} else {
+		DEVICE_LOG("not primary range device, not advertising");
 	}
 
 	ret = OK;

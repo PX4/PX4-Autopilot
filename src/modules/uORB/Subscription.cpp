@@ -49,6 +49,7 @@
 #include "topics/vehicle_status.h"
 #include "topics/manual_control_setpoint.h"
 #include "topics/mavlink_log.h"
+#include "topics/log_message.h"
 #include "topics/vehicle_local_position_setpoint.h"
 #include "topics/vehicle_local_position.h"
 #include "topics/vehicle_attitude_setpoint.h"
@@ -84,7 +85,7 @@ SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 		_handle =  orb_subscribe(getMeta());
 	}
 
-	if (_handle < 0) { warnx("sub failed"); }
+	if (_handle < 0) { PX4_ERR("sub failed"); }
 
 	if (interval > 0) {
 		orb_set_interval(getHandle(), interval);
@@ -96,7 +97,7 @@ bool SubscriptionBase::updated()
 	bool isUpdated = false;
 	int ret = orb_check(_handle, &isUpdated);
 
-	if (ret != PX4_OK) { warnx("orb check failed"); }
+	if (ret != PX4_OK) { PX4_ERR("orb check failed"); }
 
 	return isUpdated;
 }
@@ -106,7 +107,7 @@ void SubscriptionBase::update(void *data)
 	if (updated()) {
 		int ret = orb_copy(_meta, _handle, data);
 
-		if (ret != PX4_OK) { warnx("orb copy failed"); }
+		if (ret != PX4_OK) { PX4_ERR("orb copy failed"); }
 	}
 }
 
@@ -114,7 +115,7 @@ SubscriptionBase::~SubscriptionBase()
 {
 	int ret = orb_unsubscribe(_handle);
 
-	if (ret != PX4_OK) { warnx("orb unsubscribe failed"); }
+	if (ret != PX4_OK) { PX4_ERR("orb unsubscribe failed"); }
 }
 
 template <class T>
@@ -129,7 +130,7 @@ Subscription<T>::Subscription(const struct orb_metadata *meta,
 
 template <class T>
 Subscription<T>::Subscription(const Subscription &other) :
-	SubscriptionNode(other._meta, other._interval, other._instance, nullptr),
+	SubscriptionNode(other._meta, other.getInterval(), other._instance, nullptr),
 	_data() // initialize data structure to zero
 {
 }
@@ -166,6 +167,7 @@ template class __EXPORT Subscription<position_setpoint_triplet_s>;
 template class __EXPORT Subscription<vehicle_status_s>;
 template class __EXPORT Subscription<manual_control_setpoint_s>;
 template class __EXPORT Subscription<mavlink_log_s>;
+template class __EXPORT Subscription<log_message_s>;
 template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
 template class __EXPORT Subscription<vehicle_local_position_s>;
 template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;

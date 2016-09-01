@@ -168,10 +168,9 @@ private:
 	 * SPI bus based device use hrt
 	 * I2C bus needs to use work queue
 	 */
-	bool 			_use_hrt;
 	work_s			_work;
 #endif
-
+	bool 			_use_hrt;
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
@@ -265,7 +264,7 @@ private:
 
 #if defined(USE_I2C)
 	/**
-	 * When the I2C interfase is cho
+	 * When the I2C interfase is on
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 *
@@ -288,11 +287,11 @@ private:
 	 */
 	static void		cycle_trampoline(void *arg);
 
-	bool is_i2c(void) { return !_use_hrt; }
-
 	void use_i2c(bool on_true) { _use_hrt = !on_true; }
 
 #endif
+
+	bool is_i2c(void) { return !_use_hrt; }
 
 
 	/**
@@ -396,7 +395,8 @@ private:
 	/*
 	  set low pass filter frequency
 	 */
-	void			_set_dlpf_filter(uint16_t frequency_hz);
+	void 			_set_dlpf_filter(uint16_t frequency_hz);
+	void 			_set_icm_acc_dlpf_filter(uint16_t frequency_hz);
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
@@ -473,8 +473,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
 #if defined(USE_I2C)
+	_work {},
 	_use_hrt(false),
-	_work{},
+#else
+	_use_hrt(true),
 #endif
 	_call {},
 	_call_interval(0),
@@ -516,10 +518,6 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_last_accel{},
 	_got_duplicate(false)
 {
-#if defined(USE_I2C)
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-#endif
 	// disable debug() calls
 	_debug_enabled = false;
 
@@ -710,14 +708,8 @@ int MPU6000::reset()
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
 
-#if defined(USE_I2C)
-
-		if (!is_i2c())
-#endif
-		{
-			// Disable I2C bus (recommended on datasheet)
-			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-		}
+		// Enable I2C bus or Disable I2C bus (recommended on data sheet)
+		write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
 
 		px4_leave_critical_section(state);
 
@@ -743,6 +735,11 @@ int MPU6000::reset()
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
+
+	if (is_icm_device()) {
+		_set_icm_acc_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
+	}
+
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -850,34 +847,73 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	   choose next highest filter frequency available
 	 */
 	if (frequency_hz == 0) {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
 
 	} else if (frequency_hz <= 5) {
-		filter = BITS_DLPF_CFG_5HZ;
+		filter = MPU_GYRO_DLPF_CFG_5HZ;
 
 	} else if (frequency_hz <= 10) {
-		filter = BITS_DLPF_CFG_10HZ;
+		filter = MPU_GYRO_DLPF_CFG_10HZ;
 
 	} else if (frequency_hz <= 20) {
-		filter = BITS_DLPF_CFG_20HZ;
+		filter = MPU_GYRO_DLPF_CFG_20HZ;
 
 	} else if (frequency_hz <= 42) {
-		filter = BITS_DLPF_CFG_42HZ;
+		filter = MPU_GYRO_DLPF_CFG_42HZ;
 
 	} else if (frequency_hz <= 98) {
-		filter = BITS_DLPF_CFG_98HZ;
+		filter = MPU_GYRO_DLPF_CFG_98HZ;
 
 	} else if (frequency_hz <= 188) {
-		filter = BITS_DLPF_CFG_188HZ;
+		filter = MPU_GYRO_DLPF_CFG_188HZ;
 
 	} else if (frequency_hz <= 256) {
-		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+		filter = MPU_GYRO_DLPF_CFG_256HZ_NOLPF2;
 
 	} else {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
+}
+
+void
+MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
+{
+	uint8_t filter;
+
+	/*
+	   choose next highest filter frequency available
+	 */
+	if (frequency_hz == 0) {
+		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+
+	} else if (frequency_hz <= 5) {
+		filter = ICM_ACC_DLPF_CFG_5HZ;
+
+	} else if (frequency_hz <= 10) {
+		filter = ICM_ACC_DLPF_CFG_10HZ;
+
+	} else if (frequency_hz <= 21) {
+		filter = ICM_ACC_DLPF_CFG_21HZ;
+
+	} else if (frequency_hz <= 44) {
+		filter = ICM_ACC_DLPF_CFG_44HZ;
+
+	} else if (frequency_hz <= 99) {
+		filter = ICM_ACC_DLPF_CFG_99HZ;
+
+	} else if (frequency_hz <= 218) {
+		filter = ICM_ACC_DLPF_CFG_218HZ;
+
+	} else if (frequency_hz <= 420) {
+		filter = ICM_ACC_DLPF_CFG_420HZ;
+
+	} else {
+		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+	}
+
+	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
 }
 
 ssize_t
@@ -1288,6 +1324,11 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
 					_set_dlpf_filter(cutoff_freq_hz);
+
+					if (is_icm_device()) {
+						_set_icm_acc_dlpf_filter(cutoff_freq_hz);
+					}
+
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -1309,11 +1350,8 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					  them. This prevents aliasing due to a beat between the
 					  stm32 clock and the mpu6000 clock
 					 */
-#if defined(USE_I2C)
 
-					if (!is_i2c())
-#endif
-					{
+					if (!is_i2c()) {
 						_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
 					}
 
@@ -1368,6 +1406,11 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
 		_set_dlpf_filter(arg);
+
+		if (is_icm_device()) {
+			_set_icm_acc_dlpf_filter(arg);
+		}
+
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1612,46 +1655,43 @@ void
 MPU6000::start()
 {
 	/* make sure we are stopped first */
+	uint32_t last_call_interval = _call_interval;
 	stop();
+	_call_interval = last_call_interval;
 
 	/* discard any stale data in the buffers */
 	_accel_reports->flush();
 	_gyro_reports->flush();
 
-#if defined(USE_I2C)
-
-	if (_use_hrt) {
-#endif
+	if (!is_i2c()) {
 		/* start polling at the specified rate */
 		hrt_call_every(&_call,
 			       1000,
 			       _call_interval - MPU6000_TIMER_REDUCTION,
 			       (hrt_callout)&MPU6000::measure_trampoline, this);
-#if defined(USE_I2C)
 
 	} else {
+#ifdef USE_I2C
 		/* schedule a cycle to start things */
 		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
-	}
-
 #endif
+	}
 }
 
 void
 MPU6000::stop()
 {
-#if defined(USE_I2C)
 
-	if (_use_hrt) {
-#endif
+	if (!is_i2c()) {
 		hrt_cancel(&_call);
-#if defined(USE_I2C)
 
 	} else {
+#ifdef USE_I2C
+		_call_interval = 0;
 		work_cancel(HPWORK, &_work);
+#endif
 	}
 
-#endif
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 
@@ -2587,7 +2627,7 @@ mpu6000_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info")) {
+	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
 		mpu6000::info(busid);
 	}
 
