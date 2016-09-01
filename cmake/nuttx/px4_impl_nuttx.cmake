@@ -209,7 +209,7 @@ function(px4_nuttx_add_export)
 		REGEX "CONFIG_ARMV7M_STACKCHECK=y"
 		)
 	if ("${hw_stack_check_${CONFIG}}" STREQUAL "CONFIG_ARMV7M_STACKCHECK=y")
-		set(config_nuttx_hw_stack_check_${CONFIG} y CACHE INTERNAL "" FORCE)
+		set(config_nuttx_hw_stack_check_${CONFIG} y CACHE INTERNAL "")
 	endif()
 
 	# copy and export
@@ -365,7 +365,7 @@ endfunction()
 #
 #	px4_os_add_flags
 #
-#	Set ths nuttx build flags.
+#	Set the nuttx build flags.
 #
 #	Usage:
 #		px4_os_add_flags(
@@ -382,8 +382,8 @@ endfunction()
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
-#		EXE_LINKER_FLAGS		: executable linker flags variable
-#		INCLUDE_DIRS			: include directories
+#		EXE_LINKER_FLAGS			: executable linker flags variable
+#		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
 #
@@ -400,7 +400,7 @@ function(px4_os_add_flags)
 		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
 	px4_parse_function_args(
-		NAME px4_add_flags
+		NAME px4_os_add_flags
 		ONE_VALUE ${inout_vars} BOARD
 		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})

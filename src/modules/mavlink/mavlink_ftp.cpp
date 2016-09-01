@@ -486,7 +486,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 	payload->session = 0;
 	payload->size = sizeof(uint32_t);
-	*((uint32_t *)payload->data) = fileSize;
+	std::memcpy(payload->data, &fileSize, payload->size);
 
 	return kErrNone;
 }
@@ -571,7 +571,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 	}
 
 	payload->size = sizeof(uint32_t);
-	*((uint32_t *)payload->data) = bytes_written;
+	std::memcpy(payload->data, &bytes_written, payload->size);
 
 	return kErrNone;
 }
@@ -795,7 +795,7 @@ MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload)
 	::close(fd);
 
 	payload->size = sizeof(uint32_t);
-	*((uint32_t *)payload->data) = checksum;
+	std::memcpy(payload->data, &checksum, payload->size);
 	return kErrNone;
 }
 
