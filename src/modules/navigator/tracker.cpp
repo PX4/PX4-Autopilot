@@ -463,8 +463,8 @@ void Tracker::push_graph(fpos_t &position) {
 
         (void)free_space_before;
         TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%%",
-            100.L * (1.L - (double)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
-            100.L * (1.L - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
+            (double)100 * ((double)1 - (double)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
+            (double)100 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
     }
 
 
@@ -678,7 +678,7 @@ void Tracker::get_longest_line(ipos_t start_pos, size_t start_index, ipos_t &end
 
 
 // Consolidates the most recent positions on the graph, by applying some optimizations:
-//  1. Consecutive positions that lie roughly on a line are aggeregated.
+//  1. Consecutive positions that lie roughly on a line are aggregated.
 //  2. If multiple consecutive positions lie close to the graph, they are removed and replaced by a jump.
 //  3. For lines that pass close to each other, a node is created.
 // The entire tracker is guaranteed to remain consistent, however exposed indices may become invalid.
@@ -695,6 +695,7 @@ void Tracker::consolidate_graph(const char *reason) {
     remove_nodes(consolidated_head_index, graph_next_write - 1);
 
     /*** Pass 1: detect lines ***/
+    TRACKER_DBG("  line detection...");
 
     ipos_t pos = consolidated_head_pos;
     size_t read_index = consolidated_head_index;
@@ -711,12 +712,12 @@ void Tracker::consolidate_graph(const char *reason) {
         
         // Push the line delta ONLY if it uses less space than the original deltas
         if (push_delta(write_index, line_end_pos - pos, is_jump, line_end_index - read_index)) {
-            TRACKER_DBG("  aggeregated %zu to %zu into line %zu", read_index, line_end_index, write_index - 1);
+            TRACKER_DBG("    aggregated %zu to %zu into line %zu", read_index, line_end_index, write_index - 1);
             //TRACKER_DBG("    from %d %d %d to %d %d %d, %s", pos.x, pos.y, pos.z, line_end_pos.x, line_end_pos.y, line_end_pos.z, is_jump ? "is jump" : "no jump");
             read_index = line_end_index;
         }
 
-        // Copy the deltas that were not aggeregated into a line
+        // Copy the deltas that were not aggregated into a line
         while (read_index < line_end_index)
             push_delta(write_index, walk_forward(read_index, is_jump), is_jump);
         
@@ -727,6 +728,7 @@ void Tracker::consolidate_graph(const char *reason) {
 
 
     /*** Pass 2: remove positions that are already in the graph ***/
+    TRACKER_DBG("  redundancy removal...");
 
     pos = consolidated_head_pos;
     read_index = consolidated_head_index;
@@ -766,7 +768,7 @@ void Tracker::consolidate_graph(const char *reason) {
                     // We append the last position once again and go on from there
                     push_delta(write_index = overwrite_index, delta, is_jump);
 
-                    TRACKER_DBG("  replaced redundant path of size %zu by a jump at %zu", max_space, overwrite_index - 1);
+                    TRACKER_DBG("    replaced redundant path of size %zu by a jump at %zu", max_space, overwrite_index - 1);
                 }
             }
 
@@ -780,6 +782,7 @@ void Tracker::consolidate_graph(const char *reason) {
 
 
     /*** Pass 3: detect nodes ***/
+    TRACKER_DBG("  node detection...");
 
     pos = consolidated_head_pos;
     read_index = consolidated_head_index;
@@ -841,7 +844,7 @@ void Tracker::consolidate_graph(const char *reason) {
                         //    line_to_line.x, line_to_line.y, line_to_line.z,
                         //    coef1, coef2);
                         
-                        TRACKER_DBG("  create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, (double)coef_to_float(node.coef1), (size_t)node.index2, (double)coef_to_float(node.coef2));
+                        TRACKER_DBG("    create node from %zu-%.2f to %zu-%.2f", (size_t)node.index1, (double)coef_to_float(node.coef1), (size_t)node.index2, (double)coef_to_float(node.coef2));
 
                         push_node(node, granularity);
                     }
@@ -1400,6 +1403,9 @@ void Tracker::rewrite_graph() {
                 for (size_t i = 0; i <= graph_next_write; i++) {
                     if (i == graph_next_write ? true : (graph[i] == OBSOLETE_DELTA)) {
                         if (copy_length) {
+                            // Update indices that point to shifted deltas
+                            context.current_index -= context.current_index < copy_origin ? 0 : copy_origin - copy_destination;
+                            context.checkpoint_index -= context.checkpoint_index < copy_origin ? 0 : copy_origin - copy_destination;
                             for (size_t j = 0; j < node_count; j++) {
                                 node_at(j).index1 -= node_at(j).index1 < copy_origin ? 0 : copy_origin - copy_destination;
                                 node_at(j).index2 -= node_at(j).index2 < copy_origin ? 0 : copy_origin - copy_destination;
@@ -1432,6 +1438,7 @@ void Tracker::rewrite_graph() {
                     graph[next_rewrite_index--] = rewrite_cache[i + 2];
                     graph[next_rewrite_index--] = rewrite_cache[i + 1];
                     graph[next_rewrite_index--] = rewrite_cache[i];
+                    i += 2;
                 } else {
                     graph[next_rewrite_index--] = rewrite_cache[i];
                 }
@@ -1585,7 +1592,7 @@ void Tracker::dump_graph() {
         return;
     }
 
-    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, 100.0L * (1.0L - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
+    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full, pressure %d):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, (double)100.0 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))), memory_pressure);
     PX4_INFO("  home: %zu-%.2f (%d %d %d)", nodes->index1, (double)coef_to_float(nodes->coef1), home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
     ipos_t pos = graph_head_pos;
