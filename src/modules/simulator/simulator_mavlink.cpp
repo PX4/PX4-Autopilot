@@ -76,37 +76,26 @@ const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
 
-void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg, unsigned index)
+void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index)
 {
-	// reset state
-	memset(&actuator_msg, 0, sizeof(actuator_msg));
 	actuator_msg.time_usec = hrt_absolute_time();
 
-	float out[8] = {};
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	for (unsigned i = 0; i < (sizeof(out) / sizeof(out[0])); i++) {
+	for (unsigned i = 0; i < MAVLINK_MSG_HIL_ACTUATOR_CONTROLS_FIELD_CONTROLS_LEN; i++) {
 		// scale PWM out 900..2100 us to -1..1 */
-		out[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+		actuator_msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
-		if (!PX4_ISFINITE(out[i])) {
-			out[i] = -1.0f;
+		if (!PX4_ISFINITE(actuator_msg.controls[i])) {
+			actuator_msg.controls[i] = -1.0f;
 		}
 	}
 
-	actuator_msg.roll_ailerons = out[0];
-	actuator_msg.pitch_elevator = out[1];
-	actuator_msg.yaw_rudder = out[2];
-	actuator_msg.throttle = out[3];
-	actuator_msg.aux1 = out[4];
-	actuator_msg.aux2 = out[5];
-	actuator_msg.aux3 = out[6];
-	actuator_msg.aux4 = out[7];
 	actuator_msg.mode = mode_flag_custom;
 	actuator_msg.mode |= (armed) ? mode_flag_armed : 0;
-	actuator_msg.nav_mode = index; // XXX this indicates the output group in our use of the message
+	actuator_msg.flags = 0;
 }
 
 void Simulator::send_controls()
@@ -117,9 +106,9 @@ void Simulator::send_controls()
 			continue;
 		}
 
-		mavlink_hil_controls_t msg;
+		mavlink_hil_actuator_controls_t msg;
 		pack_actuator_message(msg, i);
-		send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
+		send_mavlink_message(MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS, &msg, 200);
 	}
 }
 

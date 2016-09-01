@@ -471,6 +471,10 @@ PWMSim::task_main()
 				num_outputs = 8;
 				break;
 
+			case MODE_16PWM:
+				num_outputs = 16;
+				break;
+
 			default:
 				num_outputs = 0;
 				break;
@@ -729,7 +733,11 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
-		if (_mode == MODE_8PWM) {
+		if (_mode == MODE_16PWM) {
+			*(unsigned *)arg = 16;
+
+		} else if (_mode == MODE_8PWM) {
+
 			*(unsigned *)arg = 8;
 
 		} else if (_mode == MODE_4PWM) {
@@ -1000,6 +1008,9 @@ pwm_out_sim_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_port2_pwm16")) {
 		new_mode = PORT2_8PWM;
+
+	} else if (!strcmp(verb, "mode_pwm16")) {
+		new_mode = PORT2_16PWM;
 	}
 
 	/* was a new mode set? */
