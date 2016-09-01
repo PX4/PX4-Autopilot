@@ -318,14 +318,15 @@ px4_os_add_flags(
 	BOARD ${BOARD}
 	C_FLAGS c_flags
 	CXX_FLAGS cxx_flags
+	OPTIMIZATION_FLAGS optimization_flags
 	EXE_LINKER_FLAGS exe_linker_flags
 	INCLUDE_DIRS include_dirs
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
 
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
+px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags};${optimization_flags}" GLUE " ")
+px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags};${optimization_flags}" GLUE " ")
 
 include_directories(${include_dirs})
 #message("INCLUDE_DIRS=${include_dirs}")
