@@ -267,6 +267,10 @@ struct pwm_output_rc_config {
 /** enable/disable oneshot mode */
 #define PWM_SERVO_SET_ONESHOT			_PX4_IOC(_PWM_SERVO_BASE, 33)
 
+/** fetch PX4IO status */
+#define PWM_IO_GET_STATUS			_PX4_IOC(_PWM_SERVO_BASE, 34)
+
+
 /*
  *
  *

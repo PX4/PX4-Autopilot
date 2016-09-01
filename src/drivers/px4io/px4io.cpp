@@ -2856,6 +2856,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
+	case PWM_IO_GET_STATUS:
+		*(unsigned *)arg = system_status();
+		ret = OK;
+		break;
+
 	case PX4IO_CHECK_CRC: {
 			/* check IO firmware CRC against passed value */
 			uint32_t io_crc = 0;
