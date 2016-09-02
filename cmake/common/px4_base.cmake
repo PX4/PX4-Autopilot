@@ -1061,14 +1061,21 @@ endfunction()
 #
 #	px4_add_optimization_flags_for_target
 #
+set(all_posix_cmake_targets "" CACHE INTERNAL "All cmake targets for which optimization can be suppressed")
 function(px4_add_optimization_flags_for_target target)
 	set(_no_optimization_for_target FALSE)
-	foreach(_regexp $ENV{PX4_NO_OPTIMIZATION})
-		if("${target}" MATCHES "${_regexp}")
-			set(_no_optimization_for_target TRUE)
-			set(_matched_regexp "${_regexp}")
-		endif()
-	endforeach()
+	# If the current CONFIG is posix_sitl_* then suppress optimization for certain targets.
+	if(CONFIG MATCHES "^posix_sitl_")
+		foreach(_regexp $ENV{PX4_NO_OPTIMIZATION})
+			if("${target}" MATCHES "${_regexp}")
+				set(_no_optimization_for_target TRUE)
+				set(_matched_regexp "${_regexp}")
+			endif()
+		endforeach()
+		# Create a full list of targets that optimization can be suppressed for.
+		list(APPEND all_posix_cmake_targets ${target})
+		set(all_posix_cmake_targets ${all_posix_cmake_targets} CACHE INTERNAL "All cmake targets for which optimization can be suppressed")
+	endif()
 	if(NOT ${_no_optimization_for_target})
 		target_compile_options(${target} PRIVATE ${optimization_flags})
 	else()
