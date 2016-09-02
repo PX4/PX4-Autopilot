@@ -50,10 +50,13 @@ DEFINE_TEST(simpleJumps, 25, 24, 4, 3, 2, 1, 0) {
     #include "simple_jumps.path"
 };
 
-DEFINE_TEST(longPath) {
+DEFINE_TEST(longPath1) {
     #include "long_path1.path"
 };
 
+DEFINE_TEST(longPath2) {
+    #include "long_path2.path"
+};
 
 
 class TrackerTest : public UnitTest
@@ -150,7 +153,8 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(largeNodes),
     USE_TEST(fromSim),
     USE_TEST(simpleJumps),
-    USE_TEST(longPath)
+    USE_TEST(longPath1),
+    USE_TEST(longPath2)
 };
 
 TrackerTest::line_test_t TrackerTest::line_test_cases[] = {
@@ -472,7 +476,31 @@ bool TrackerTest::performance_test(void) {
         for (size_t p = 0; p < test->path_size; p += 3)
             _tracker.update(test->path[p], test->path[p + 1], test->path[p + 2]);
 
+
+
+        char number[128] = { 0 };
+        char msg1[256] = { 0 };
+        char msg2[256] = { 0 };
+
+        // print stats of each performance measurement
+        for (int i = 0; i < _tracker.memory_pressure - 1; i++) {
+            Tracker::compress_perf_t *perf = _tracker.perf_measurements + i;
+            
+            sprintf(number, "%zu, %zu; %zu, %zu; ", perf->deltas_before, perf->nodes_before, perf->deltas_after, perf->nodes_after);
+            std::strcat(msg1, number);
+
+            sprintf(number, "%.3f ", (double)perf->runtime / (double)1e3f);
+            std::strcat(msg2, number);
+        }
+
+        // print final memory stats
+        sprintf(number, "%zu, %zu; 0, 0", _tracker.graph_next_write, _tracker.node_count);
+        std::strcat(msg1, number);
+
+        _tracker.dump_graph();
         PX4_WARN("memory pressure: %d", _tracker.memory_pressure);
+        PX4_WARN("memory usage: [%s]", msg1);
+        PX4_WARN("CPU usage: [%s]", msg2);
     }
 
 	return true;
