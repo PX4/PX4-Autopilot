@@ -148,6 +148,9 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
+# For a list of all config targets, please look in cmake/configs,
+# For example: ls cmake/configs | sed -e 's/\.cmake$//'
+
 # All nuttx, posix and qurt targets.
 nuttx_% posix_% qurt_%:
 	$(call cmake-build,$@)
@@ -288,7 +291,7 @@ viewers = gazebo jmavsim replay
 sitl_vmd_triplet_masks = $(foreach viewer,$(viewers),$(viewer) $(viewer)_%)
 # targets handled by PX4_MAKE
 make_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
-	run_cmake_config config $(sitl_vmd_triplet_masks)
+	run_cmake_config config list_vmd_make_targets list_cmake_targets $(sitl_vmd_triplet_masks)
 $(foreach targ,$(make_targets),$(eval $(call make-targ,$(targ))))
 
 .PHONY: clean

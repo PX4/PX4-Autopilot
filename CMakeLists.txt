@@ -403,6 +403,19 @@ if (config_io_board)
 endif()
 
 #=============================================================================
+# generate custom target to print for all executable and module cmake targets
+#
+if(all_posix_cmake_targets)
+	list(SORT all_posix_cmake_targets)
+	px4_join(OUT posix_cmake_target_list LIST ${all_posix_cmake_targets} GLUE "\\n")
+	add_custom_target(list_cmake_targets
+		COMMAND sh -c "printf \"${posix_cmake_target_list}\\n\""
+		COMMENT "List of cmake targets that can be matched by PX4_NO_OPTIMIZATION:"
+		VERBATIM
+		)
+endif()
+
+#=============================================================================
 # generate git version
 #
 px4_create_git_hash_header(HEADER ${PX4_BINARY_DIR}/build_git_version.h)
