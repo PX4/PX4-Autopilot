@@ -100,7 +100,7 @@ ifdef SYSTEMROOT
 else
 	PX4_CMAKE_GENERATOR ?= "Unix Makefiles"
 endif
-    PX4_MAKE = make
+    PX4_MAKE = $(MAKE)
     PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
@@ -120,18 +120,19 @@ define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 +@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
-+@(echo "PX4 CONFIG: $(BUILD_DIR)" && cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@echo "PX4 CONFIG: $(BUILD_DIR)"
++@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 define cmake-build-other
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 +@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
-+@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
-# create empty targets to avoid msgs for targets passed to cmake
-define cmake-targ
+# create empty targets to avoid msgs for targets passed to PX4_MAKE
+define make-targ
 $(1):
 	@#
 .PHONY: $(1)
@@ -271,7 +272,7 @@ package_firmware:
 
 clean:
 	@rm -rf build_*/
-	@(cd NuttX/nuttx && make clean)
+	@$(MAKE) -C NuttX/nuttx clean
 
 submodulesclean:
 	@git submodule sync --recursive
@@ -285,10 +286,10 @@ distclean: submodulesclean
 viewers = gazebo jmavsim replay
 # A list of make patterns that match the viewer_model_debugger triplet 'targets'.
 sitl_vmd_triplet_masks = $(foreach viewer,$(viewers),$(viewer) $(viewer)_%)
-# targets handled by cmake
-cmake_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
+# targets handled by PX4_MAKE
+make_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config $(sitl_vmd_triplet_masks)
-$(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
+$(foreach targ,$(make_targets),$(eval $(call make-targ,$(targ))))
 
 .PHONY: clean
 
