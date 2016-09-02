@@ -91,7 +91,6 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-						 ${PX4_SOURCE_DIR}/posix-configs/bebop/px4.config
 			 DEPENDS px4
 			 DEST /usr/bin)
 
