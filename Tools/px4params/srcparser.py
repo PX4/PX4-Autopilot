@@ -129,8 +129,7 @@ class Parameter(object):
         Return list of existing bitmask codes in convenient order
         """
         keys = self.bitmask.keys()
-        keys.sort(key=float)
-        return keys
+        return sorted(keys, key=float)
 
     def GetBitmaskBit(self, index):
         """
