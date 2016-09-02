@@ -69,14 +69,28 @@ public:
 	DfBebopBusWrapper();
 	~DfBebopBusWrapper() = default;
 
+  /// Start and initialize the driver
 	int start();
+
+	/// Stop the driver
 	int stop();
+
+	/// Print various infos (version, type, flights, errors
 	int print_info();
+
+	/// Start the motors
 	int start_motors();
+
+	/// Stop the motors
 	int stop_motors();
+
+	/// Reset pending errors on the Bebop hardware
 	int clear_errors();
+
+	/// Set the ESC speeds [front left, front right, back right, back left]
 	int set_esc_speeds(const float pwm[4]);
 
+  /// Capture the last throttle value for the battey computation
 	void set_last_throttle(float throttle) {_last_throttle = throttle;};
 
 private:
@@ -182,6 +196,7 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 	const hrt_abstime timestamp = hrt_absolute_time();
 
 	// TODO Check if this is the right way for the Bebop
+	// We don't have current measurements
 	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, _last_throttle, _armed, &battery_report);
 
 	// TODO: when is this ever blocked?
@@ -209,8 +224,7 @@ static bool _is_running = false;         // flag indicating if bebop esc  app is
 static bool _motors_running = false;     // flag indicating if the motors are running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 
-static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "/home/root/quad_x.main.mix";
+static const char *MIXER_FILENAME = "/home/root/bebop.main.mix";
 
 // subscriptions
 int     _controls_sub;
@@ -230,12 +244,14 @@ MixerGroup *_mixers = nullptr;
 int start();
 int stop();
 int info();
+int clear_errors();
 void usage();
 void task_main(int argc, char *argv[]);
 
 /* mixers initialization */
 int initialize_mixers(const char *mixers_filename);
-int mixers_control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
+int mixers_control_callback(uintptr_t handle, uint8_t control_group, 
+    uint8_t control_index, float &input);
 
 int mixers_control_callback(uintptr_t handle,
 			    uint8_t control_group,
@@ -286,7 +302,6 @@ int initialize_mixers(const char *mixers_filename)
 void task_main(int argc, char *argv[])
 {
 	_is_running = true;
-	_motors_running = false;
 
 	// Subscribe for orb topics
 	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
@@ -295,6 +310,7 @@ void task_main(int argc, char *argv[])
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
+	_motors_running = false;
 
 	// Set up poll topic
 	px4_pollfd_struct_t fds[1];
@@ -308,9 +324,6 @@ void task_main(int argc, char *argv[])
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
-
-	// TODO check if we have to adjust the frequency
-	//orb_set_interval(_controls_sub, 1000);
 
 	// Main loop
 	while (!_task_should_exit) {
@@ -352,9 +365,8 @@ void task_main(int argc, char *argv[])
 				_outputs.output[i] = NAN;
 			}
 
-			float motor_out[4];
-
-			for (size_t i = 0; i < 4; ++i) {
+      // Check if the outputs are in range and rescale
+			for (size_t i = 0; i < _outputs.noutputs; ++i) {
 				if (i < _outputs.noutputs &&
 				    PX4_ISFINITE(_outputs.output[i]) &&
 				    _outputs.output[i] >= -1.0f &&
@@ -373,6 +385,7 @@ void task_main(int argc, char *argv[])
 			}
 
 			// Adjust order of BLDCs from PX4 to Bebop
+			float motor_out[4];
 			motor_out[0] = _outputs.output[2];
 			motor_out[1] = _outputs.output[0];
 			motor_out[2] = _outputs.output[3];
@@ -395,14 +408,15 @@ void task_main(int argc, char *argv[])
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
 
+    // Start the motors if armed but not alreay running
 		if (_armed.armed && !_motors_running) {
 			g_dev->start_motors();
 			_motors_running = true;
 		}
 
+    // Stop motors if not armed but running
 		if (!_armed.armed && _motors_running) {
 			g_dev->stop_motors();
-			g_dev->clear_errors();
 			_motors_running = false;
 		}
 	}
@@ -515,10 +529,33 @@ info()
 	return 0;
 }
 
+/**
+ * Clear errors present on the Bebop hardware
+ */
+int
+clear_errors()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return 1;
+	}
+
+	PX4_DEBUG("state @ %p", g_dev);
+
+	int ret = g_dev->clear_errors();
+
+	if (ret != 0) {
+		PX4_ERR("Unable to clear errors");
+		return ret;
+	}
+
+	return 0;
+}
+
 void
 usage()
 {
-	PX4_INFO("Usage: df_bebop_bus_wrapper 'start', 'info', 'stop'");
+	PX4_INFO("Usage: df_bebop_bus_wrapper 'start', 'info', 'clear_errors', 'stop'");
 }
 
 } /* df_bebop_bus_wrapper */
@@ -548,6 +585,10 @@ df_bebop_bus_wrapper_main(int argc, char *argv[])
 
 	else if (!strcmp(verb, "info")) {
 		ret = df_bebop_bus_wrapper::info();
+	}
+
+	else if (!strcmp(verb, "clear_errors")) {
+		ret = df_bebop_bus_wrapper::clear_errors();
 	}
 
 	else {
