@@ -86,7 +86,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_need_mission_reset(false),
 	_missionFeasibilityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
-	_mission_item_previous_alt(NAN),
 	_distance_current_previous(0.0f),
 	_work_item_type(WORK_ITEM_TYPE_DEFAULT)
 {
@@ -400,12 +399,6 @@ Mission::set_mission_items()
 	bool has_next_position_item = false;
 
 	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-	/* copy information about the previous mission item */
-	if (item_contains_position(&_mission_item) && pos_sp_triplet->current.valid) {
-		/* Copy previous mission item altitude */
-		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
-	}
 
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get()
@@ -928,9 +921,13 @@ Mission::altitude_sp_foh_update()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* Don't change setpoint if last and current waypoint are not valid */
-	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-	    !PX4_ISFINITE(_mission_item_previous_alt)) {
+	/* Don't change setpoint if last and current waypoint are not valid
+	 * or if the previous altitude isn't from a position or loiter setpoint
+	 */
+	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
+		|| !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+			pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+
 		return;
 	}
 
@@ -949,6 +946,7 @@ Mission::altitude_sp_foh_update()
 	    || _mission_item.nav_cmd == NAV_CMD_TAKEOFF
 	    || _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT
 	    || !_navigator->is_planned_mission()) {
+
 		return;
 	}
 
@@ -972,10 +970,10 @@ Mission::altitude_sp_foh_update()
 		* The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
 		* radius around the current waypoint
 		**/
-		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - _mission_item_previous_alt);
+		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - pos_sp_triplet->previous.alt);
 		float grad = -delta_alt / (_distance_current_previous - _navigator->get_acceptance_radius(
 						   _mission_item.acceptance_radius));
-		float a = _mission_item_previous_alt - grad * _distance_current_previous;
+		float a = pos_sp_triplet->previous.alt - grad * _distance_current_previous;
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
