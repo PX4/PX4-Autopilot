@@ -70,6 +70,7 @@ Syslink::Syslink() :
 	_syslink_task(-1),
 	_task_running(false),
 	_fd(0),
+	_writebuffer(16, sizeof(crtp_message_t)),
 	_battery_pub(nullptr),
 	_rc_pub(nullptr),
 	_cmd_pub(nullptr),
@@ -87,7 +88,7 @@ Syslink::start()
 				"syslink",
 				SCHED_DEFAULT,
 				SCHED_PRIORITY_DEFAULT,
-				3600,
+				1500,
 				Syslink::task_main_trampoline,
 				NULL
 			);
@@ -127,6 +128,27 @@ Syslink::set_address(uint64_t addr)
 }
 
 
+int count_out = 0;
+
+int
+Syslink::send_queued_raw_message()
+{
+	if (_writebuffer.empty()) {
+		return 0;
+	}
+
+	syslink_message_t msg;
+	msg.type = SYSLINK_RADIO_RAW;
+
+	count_out++;
+
+	_writebuffer.get(&msg.length, sizeof(crtp_message_t));
+
+	return send_message(&msg);
+}
+
+
+
 // 1M 8N1 serial connection to NRF51
 int
 Syslink::open_serial(const char *dev)
@@ -154,7 +176,6 @@ Syslink::open_serial(const char *dev)
 	config.c_oflag &= ~ONLCR;
 
 	// Disable hardware flow control
-	// TODO: CF2 uses a TX EN as output flow control
 	config.c_cflag &= ~CRTSCTS;
 
 
@@ -199,7 +220,8 @@ Syslink::task_main()
 	param_get(_param_radio_addr1, &addr + 4);
 	param_get(_param_radio_addr2, &addr);
 
-
+	_bridge = new SyslinkBridge(this);
+	_bridge->init();
 
 	_battery.reset(&_battery_status);
 
@@ -217,9 +239,12 @@ Syslink::task_main()
 
 
 	/* Set non-blocking */
+	/*
 	int flags = fcntl(_fd, F_GETFL, 0);
 	fcntl(_fd, F_SETFL, flags | O_NONBLOCK);
+	*/
 
+	px4_arch_configgpio(GPIO_NRF_TXEN);
 
 	set_datarate(rate);
 	usleep(1000);
@@ -283,6 +308,8 @@ Syslink::task_main()
 
 static int count = 0;
 static int null_count = 0;
+static int count_in = 0;
+//static int count_out = 0;
 static hrt_abstime lasttime = 0;
 
 
@@ -292,10 +319,12 @@ Syslink::handle_message(syslink_message_t *msg)
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - lasttime > 1000000) {
-		PX4_INFO("%d packets per second (%d null)", count, null_count);
+		PX4_INFO("%d p/s (%d null) (%d in / %d out raw)", count, null_count, count_in, count_out);
 		lasttime = t;
 		count = 0;
 		null_count = 0;
+		count_in = 0;
+		count_out = 0;
 	}
 
 	count++;
@@ -313,7 +342,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		float vbat;
 		memcpy(&vbat, &msg->data[1], sizeof(float));
 
-		_battery.updateBatteryStatus(t, vbat, 0, 0, false, &_battery_status);
+		_battery.updateBatteryStatus(t, vbat, -1, 0, false, &_battery_status);
 
 		// announce the battery status if needed, just publish else
 		if (_battery_pub != nullptr) {
@@ -335,6 +364,9 @@ Syslink::handle_message(syslink_message_t *msg)
 
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
 		handle_raw(msg);
+
+	} else {
+		PX4_INFO("GOT %d", msg->type);
 	}
 
 
@@ -343,17 +375,14 @@ Syslink::handle_message(syslink_message_t *msg)
 void
 Syslink::handle_raw(syslink_message_t *sys)
 {
-	// TODO: Now allow one raw message to be sent from the queue
-
-	crtp_message_t *c = (crtp_message_t *) &sys->data;
+	crtp_message_t *c = (crtp_message_t *) &sys->length;
 
 	if (CRTP_NULL(*c)) {
+		// TODO: Handle bootloader messages if possible
+
 		null_count++;
-		return;
-	}
 
-
-	if (c->port == CRTP_PORT_COMMANDER) {
+	} else if (c->port == CRTP_PORT_COMMANDER) {
 
 		crtp_commander *cmd = (crtp_commander *) &c->data[0];
 
@@ -388,28 +417,136 @@ Syslink::handle_raw(syslink_message_t *sys)
 		}
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
+		count_in++;
 		/* Pipe to Mavlink bridge */
+		_bridge->pipe_message(c);
+
+	} else {
+		handle_raw_other(sys);
 	}
 
+	// Allow one raw message to be sent from the queue
+	send_queued_raw_message();
+}
+
+
+void
+Syslink::handle_raw_other(syslink_message_t *sys)
+{
+	// This function doesn't actually do anything
+	// It is just here to return null responses to most standard messages
+
+	crtp_message_t *c = (crtp_message_t *) &sys->length;
+
+	if (c->port == CRTP_PORT_LOG) {
+
+		PX4_INFO("Log: %d %d", c->channel, c->data[0]);
+
+		if (c->channel == 0) { // Table of Contents Access
+
+			uint8_t cmd = c->data[0];
+
+			if (cmd == 0) { // GET_ITEM
+				//int id = c->data[1];
+				memset(&c->data[2], 0, 3);
+				c->data[2] = 1; // type
+				c->size = 1 + 5;
+				send_message(sys);
+
+			} else if (cmd == 1) { // GET_INFO
+				memset(&c->data[1], 0, 7);
+				c->size = 1 + 8;
+				send_message(sys);
+			}
+
+		} else if (c->channel == 1) { // Log control
+
+			uint8_t cmd = c->data[0];
+
+			PX4_INFO("Responding to cmd: %d", cmd);
+			c->data[2] = 0; // Success
+			c->size = 3 + 1;
+
+			// resend message
+			send_message(sys);
+
+		} else if (c->channel == 2) { // Log data
+
+		}
+	} else if (c->port == CRTP_PORT_MEM) {
+		if (c->channel == 0) { // Info
+			int cmd = c->data[0];
+
+			if (cmd == 1) { // GET_NBR_OF_MEMS
+				c->data[1] = 0;
+				c->size = 2 + 1;
+
+				// resend message
+				send_message(sys);
+			}
+		}
+
+	} else if (c->port == CRTP_PORT_PARAM) {
+		if (c->channel == 0) { // TOC Access
+			//	uint8_t msgId = c->data[0];
+
+			c->data[1] = 0; // Last parameter (id = 0)
+			memset(&c->data[2], 0, 10);
+			c->size = 1 + 8;
+			send_message(sys);
+		}
+
+		else if (c->channel == 1) { // Param read
+			// 0 is ok
+			c->data[1] = 0; // value
+			c->size = 1 + 3;
+			send_message(sys);
+		}
+
+	} else {
+		PX4_INFO("Got raw: %d", c->port);
+	}
+}
+
+int
+Syslink::send_bytes(const void *data, size_t len)
+{
+	// TODO: This could be way more efficient
+	//       Using interrupts/DMA/polling would be much better
+
+	for (int i = 0; i < len; i++) {
+		// Block until we can send a byte
+		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
+
+		write(_fd, ((const char *)data) + i, 1);
+	}
+
+	return 0;
 }
 
 int
 Syslink::send_message(syslink_message_t *msg)
 {
 	syslink_compute_cksum(msg);
-	write(_fd, syslink_magic, 2);
-	write(_fd, &msg->type, sizeof(msg->type));
-	write(_fd, &msg->length, sizeof(msg->length));
-	write(_fd, &msg->data, msg->length);
-	write(_fd, &msg->cksum, sizeof(msg->cksum));
+	send_bytes(syslink_magic, 2);
+	send_bytes(&msg->type, sizeof(msg->type));
+	send_bytes(&msg->length, sizeof(msg->length));
+	send_bytes(&msg->data, msg->length);
+	send_bytes(&msg->cksum, sizeof(msg->cksum));
 	return 0;
 }
 
+
+
 int syslink_main(int argc, char *argv[])
 {
-	PX4_INFO("Starting daemon...");
 	g_syslink = new Syslink();
 	g_syslink->start();
+
+	// Wait for task and bridge to start
+	usleep(5000);
+
+	PX4_INFO("Started syslink on /dev/ttyS2");
 
 	return 0;
 }
