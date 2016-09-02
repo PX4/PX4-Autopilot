@@ -5,10 +5,11 @@
 #include <limits.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <drivers/drv_hrt.h>
 
 
 // Enables verbose debug messages by the flight path tracker
-#define DEBUG_TRACKER
+//#define DEBUG_TRACKER
 
 
 #ifdef DEBUG_TRACKER
@@ -103,7 +104,7 @@ private:
     
     // Number of positions that are retained in the recent path buffer.
     // This must be a multiple of 16 (?)
-    static constexpr int RECENT_PATH_LENGTH = 64;
+    static constexpr int RECENT_PATH_LENGTH = 32;
     
     // Number of small lines that can be stored in the full flight graph.
     // The graph size in bytes is usually twice this number.
@@ -119,7 +120,7 @@ private:
     // At the beginning and end of each consolidation pass, usually some optimization opportunities are missed.
     // For this reason, a larger number is preferred here.
     // The only drawback of a larger number should be a high workload once consolidation kicks in.
-    static constexpr int MAX_CONSOLIDATION_DEPT = 64;
+    static constexpr int MAX_CONSOLIDATION_DEBT = 64;
 
     // Controls the maximum distance from home where the graph is retained at maximum precision.
     // Everything at distance 2^(HIGH_PRECISION_RANGE/2+1) or closer falls into this regime.
@@ -131,6 +132,9 @@ private:
     // A smaller number results in higher CPU load when a rewrite is invoked.
     // A larger number leads to a higher stack, so be careful.
     static constexpr int REWRITE_CACHE_SIZE = 9; // 3 * FAR_DELTA_SIZE
+
+    // Maximum number of graph compression performance measurements (this can be 0 unless you're analyzing the graph performance)
+    static constexpr int MAX_PERF_MEASUREMENTS = 10;
 
 
     // Limitations and properties inherent to the graph representation (should not be changed)
@@ -472,6 +476,9 @@ private:
     // Each even time, the graph precision is reduced, each odd time, the graph is rewritten.
     int memory_pressure = 1;
 
+    // The first valid position in the graph, corresponding to the first position in the buffer.
+    ipos_t graph_start = { .x = 0, .y = 0, .z = 0 };
+
     // The last position in the graph, corresponding to the end of the buffer.
     // This roughly corresponds to the current vehicle position.
     // The absolute positions in the path can be calculated based on this.
@@ -507,6 +514,18 @@ private:
 
     // True as long as any nodes in the buffer have dirty set to 1
     bool have_dirty_nodes = true;
+
+
+    
+    struct compress_perf_t {
+        hrt_abstime runtime;
+        size_t deltas_before;
+        size_t nodes_before;
+        size_t deltas_after;
+        size_t nodes_after;
+    };
+
+    compress_perf_t perf_measurements[MAX_PERF_MEASUREMENTS]; 
 };
 
 struct Tracker::path_finding_context_t {

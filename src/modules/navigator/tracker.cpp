@@ -2,6 +2,7 @@
 #include <limits.h>     // CHAR_BIT
 #include <algorithm>    // std::min
 #include <geo/geo.h>
+#include <systemlib/perf_counter.h>
 #include "tracker.h"
 
 
@@ -450,26 +451,47 @@ void Tracker::push_graph(fpos_t &position) {
 
         PX4_WARN("flight graph reached limit at memory pressure %d - flight graph will be optimized", memory_pressure);
 
-        memory_pressure++;
+        compress_perf_t *perf = memory_pressure > MAX_PERF_MEASUREMENTS ? NULL : &(perf_measurements[memory_pressure - 1] = {
+            .runtime = 0,
+            .deltas_before = graph_next_write,
+            .nodes_before = node_count
+        });
+
+        memory_pressure++; 
 
         size_t free_space_before = get_free_graph_space();
+
+        hrt_abstime start_time = hrt_absolute_time();
 
         // Rewrite graph every other time the memory limit is reached
         if (memory_pressure & 1) {
             rewrite_graph(); // the rewrite pass includes consolidation
         } else {
+            consolidated_head_pos = graph_start;
+            consolidated_head_index = 0;
             consolidate_graph("reached memory limit");
         }
 
+        start_time = hrt_absolute_time() - start_time;
+        //TRACKER_DBG("time: %f", start_time / 1e6f);
+
+        if (perf) {
+            perf->runtime = start_time;
+            perf->deltas_after = graph_next_write;
+            perf->nodes_after = node_count;
+        };
+
         (void)free_space_before;
-        TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%%",
+        TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%% in %f ms",
             (double)100 * ((double)1 - (double)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
-            (double)100 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))));
+            (double)100 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))),
+            start_time / 1e3f);
     }
 
 
     if (!graph_next_write) {
         graph_head_pos = new_pos; // make sure that the very first delta is a compact delta
+        graph_start = new_pos;
         consolidated_head_pos = new_pos;
         consolidated_head_index = 0;
     }
@@ -477,8 +499,8 @@ void Tracker::push_graph(fpos_t &position) {
     push_delta(graph_next_write, new_pos - graph_head_pos, false);
     graph_head_pos = new_pos;
         
-    if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEPT)
-        consolidate_graph("consolidation dept limit reached");
+    if (graph_next_write - 1 - consolidated_head_index >= MAX_CONSOLIDATION_DEBT)
+        consolidate_graph("consolidation debt limit reached");
 }
 
 
@@ -1592,7 +1614,10 @@ void Tracker::dump_graph() {
         return;
     }
 
-    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full, pressure %d):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8, (double)100.0 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))), memory_pressure);
+    PX4_INFO("full path (%zu elements of size %zu bytes, %.2f%% full, pressure %d, tracker overhead is %zu bytes):", graph_next_write, (sizeof(delta_item_t) * CHAR_BIT) / 8,
+        (double)100.0 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))),
+        memory_pressure,
+        sizeof(Tracker) - sizeof(graph));
     PX4_INFO("  home: %zu-%.2f (%d %d %d)", nodes->index1, (double)coef_to_float(nodes->coef1), home_on_graph.x, home_on_graph.y, home_on_graph.z);
 
     ipos_t pos = graph_head_pos;
