@@ -852,12 +852,14 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
 		configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
+		configure_stream("HIL_CONTROLS", 200.0f); //for compatibility, publish the old message as well
 	}
 
 	/* disable HIL */
 	if (!hil_enabled && _hil_enabled) {
 		_hil_enabled = false;
 		configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
+		configure_stream("HIL_CONTROLS", 0.0f);
 
 	} else {
 		ret = ERROR;
