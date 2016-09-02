@@ -2,7 +2,7 @@ include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m7 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_uavcan_num_ifaces 2)
 
@@ -25,7 +25,6 @@ set(config_module_list
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
-	drivers/sf10a
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -57,23 +56,22 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/bl_update
+	systemcmds/config
+	systemcmds/dumpfile
+	systemcmds/esc_calib
+	systemcmds/hardfault_log
 	systemcmds/mixer
+	systemcmds/motor_ramp
+	systemcmds/mtd
+	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
-	systemcmds/hardfault_log
 	systemcmds/reboot
-	systemcmds/topic_listener
-	systemcmds/top
-	systemcmds/config
-	systemcmds/nshterm
-	systemcmds/mtd
-	systemcmds/dumpfile
-	systemcmds/ver
 	systemcmds/sd_bench
-	systemcmds/tests
-	systemcmds/motor_ramp
+	systemcmds/top
+	systemcmds/topic_listener
+	systemcmds/ver
 
 	#
 	# General system control
@@ -87,13 +85,12 @@ set(config_module_list
 	modules/land_detector
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
-	modules/ekf2
 	modules/local_position_estimator
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -108,8 +105,8 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
 	modules/logger
+	modules/sdlog2
 
 	#
 	# Library modules
