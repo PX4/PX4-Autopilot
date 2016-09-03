@@ -45,6 +45,9 @@
 #		* px4_generate_messages
 #		* px4_add_upload
 #		* px4_add_common_flags
+#		* px4_add_optimization_flags_for_target
+#		* px4_add_executable
+#		* px4_add_library
 #
 
 include(CMakeParseArguments)
@@ -98,9 +101,6 @@ include(CMakeParseArguments)
 function(px4_parse_function_args)
 	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
 	cmake_parse_arguments(OUT "${IN_OPTIONS}" "${IN_ONE_VALUE}" "${IN_MULTI_VALUE}" "${IN_ARGN}")
-	if (OUT_UNPARSED_ARGUMENTS)
-		message(FATAL_ERROR "${IN_NAME}: unparsed ${OUT_UNPARSED_ARGUMENTS}")
-	endif()
 	foreach(arg ${IN_REQUIRED})
 		if (NOT OUT_${arg})
 			message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
@@ -239,7 +239,7 @@ endfunction()
 #		STACK			: deprecated use stack main instead
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
-#		COMPILE_FLAGS	: compile flags
+#		COMPILE_FLAGS		: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
 #		INCLUDES		: include directories
@@ -266,7 +266,7 @@ function(px4_add_module)
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
-	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
@@ -326,6 +326,9 @@ function(px4_add_module)
 	# store module properties in target
 	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
 	# STACK_MAIN, MAIN, PRIORITY are PX4 specific
+	if(COMPILE_FLAGS AND ${_no_optimization_for_target})
+		px4_strip_optimization(COMPILE_FLAGS ${COMPILE_FLAGS})
+	endif()
 	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
@@ -448,7 +451,7 @@ function(px4_generate_messages)
 		VERBATIM
 		)
 
-	add_library(${TARGET}
+	px4_add_library(${TARGET}
 		${msg_source_files_out}
 		${msg_multi_files_out}
 		${msg_files_out}
@@ -573,13 +576,14 @@ endfunction()
 #
 #	px4_add_common_flags
 #
-#	Set ths default build flags.
+#	Set the default build flags.
 #
 #	Usage:
 #		px4_add_common_flags(
 #			BOARD <in-string>
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
+#			OPTIMIZATION_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
 #			INCLUDE_DIRS <inout-variable>
 #			LINK_DIRS <inout-variable>
@@ -591,8 +595,9 @@ endfunction()
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
-#		EXE_LINKER_FLAGS		: executable linker flags variable
-#		INCLUDE_DIRS			: include directories
+#		OPTIMIZATION_FLAGS			: optimization compile flags variable
+#		EXE_LINKER_FLAGS			: executable linker flags variable
+#		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
 #
@@ -601,13 +606,14 @@ endfunction()
 #			BOARD px4fmu-v2
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
+#			OPTIMIZATION_FLAGS optimization_flags
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
 function(px4_add_common_flags)
 
 	set(inout_vars
-		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
+		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
 	px4_parse_function_args(
 		NAME px4_add_common_flags
@@ -663,7 +669,8 @@ function(px4_add_common_flags)
 		message(STATUS "address sanitizer enabled")
 		set(max_optimization -Os)
 
-		set(optimization_flags
+		# Do not use optimization_flags (without _) as that is already used.
+		set(_optimization_flags
 			-fno-strict-aliasing
 			-fno-omit-frame-pointer
 			-funsafe-math-optimizations
@@ -677,7 +684,7 @@ function(px4_add_common_flags)
 		if ("${OS}" STREQUAL "qurt")
 			set(PIC_FLAG -fPIC)
 		endif()
-		set(optimization_flags
+		set(_optimization_flags
 			-fno-strict-aliasing
 			-fomit-frame-pointer
 			-funsafe-math-optimizations
@@ -688,7 +695,7 @@ function(px4_add_common_flags)
 	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		list(APPEND optimization_flags
+		list(APPEND _optimization_flags
 			-fno-strength-reduce
 			-fno-builtin-printf
 		)
@@ -746,8 +753,6 @@ function(px4_add_common_flags)
 		${c_compile_flags}
 		${warnings}
 		${c_warnings}
-		${max_optimization}
-		${optimization_flags}
 		${visibility_flags}
 		)
 
@@ -755,9 +760,12 @@ function(px4_add_common_flags)
 		${cxx_compile_flags}
 		${warnings}
 		${cxx_warnings}
-		${max_optimization}
-		${optimization_flags}
 		${visibility_flags}
+		)
+
+	set(added_optimization_flags
+		${max_optimization}
+		${_optimization_flags}
 		)
 
 	set(added_include_dirs
@@ -1033,5 +1041,72 @@ function(px4_copy_tracked)
 	set(${OUT} ${_files_out} PARENT_SCOPE)
 endfunction()
 
+#=============================================================================
+#
+#	px4_strip_optimization
+#
+function(px4_strip_optimization name)
+	set(_compile_flags)
+	separate_arguments(_args UNIX_COMMAND ${ARGN})
+	foreach(_flag ${_args})
+		if(NOT "${_flag}" MATCHES "^-O")
+			set(_compile_flags "${_compile_flags} ${_flag}")
+		endif()
+	endforeach()
+	string(STRIP "${_compile_flags}" _compile_flags)
+	set(${name} "${_compile_flags}" PARENT_SCOPE)
+endfunction()
+
+#=============================================================================
+#
+#	px4_add_optimization_flags_for_target
+#
+function(px4_add_optimization_flags_for_target target)
+	set(_no_optimization_for_target FALSE)
+	# If the current CONFIG is posix_sitl_* then suppress optimization for certain targets.
+	if(CONFIG MATCHES "^posix_sitl_")
+		foreach(_regexp $ENV{PX4_NO_OPTIMIZATION})
+			if("${target}" MATCHES "${_regexp}")
+				set(_no_optimization_for_target TRUE)
+				set(_matched_regexp "${_regexp}")
+			endif()
+		endforeach()
+		# Create a full list of targets that optimization can be suppressed for.
+		list(APPEND all_posix_cmake_targets ${target})
+		set(all_posix_cmake_targets ${all_posix_cmake_targets} CACHE INTERNAL "All cmake targets for which optimization can be suppressed")
+	endif()
+	if(NOT ${_no_optimization_for_target})
+		target_compile_options(${target} PRIVATE ${optimization_flags})
+	else()
+		message(STATUS "Disabling optimization for target '${target}' because it matches the regexp '${_matched_regexp}' in env var PX4_NO_OPTIMIZATION")
+		target_compile_options(${target} PRIVATE -O0)
+	endif()
+	# Pass variable to the parent px4_add_library.
+	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
+endfunction()
+
+#=============================================================================
+#
+#	px4_add_executable
+#
+#	Like add_executable but with optimization flag fixup.
+#
+function(px4_add_executable target)
+	add_executable(${target} ${ARGN})
+	px4_add_optimization_flags_for_target(${target})
+endfunction()
+
+#=============================================================================
+#
+#	px4_add_library
+#
+#	Like add_library but with optimization flag fixup.
+#
+function(px4_add_library target)
+	add_library(${target} ${ARGN})
+	px4_add_optimization_flags_for_target(${target})
+	# Pass variable to the parent px4_add_module.
+	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
+endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
