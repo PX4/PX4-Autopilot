@@ -796,6 +796,7 @@ GPS::task_main()
 			}
 
 #if !defined(__PX4_POSIX_RPI)
+
 			/* select next mode */
 			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
@@ -813,6 +814,7 @@ GPS::task_main()
 			default:
 				break;
 			}
+
 #endif
 		}
 
