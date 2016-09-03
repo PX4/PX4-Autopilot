@@ -1704,6 +1704,7 @@ protected:
 
 			mavlink_estimator_status_t est_msg = {};
 
+			est_msg.time_usec = est.timestamp;
 			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
 			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
 
