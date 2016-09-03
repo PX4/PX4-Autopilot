@@ -374,7 +374,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
 	handleInjectDataTopic();
 
-#if !defined(__PX4_QURT) || !defined(__PX4_POSIX_RPI)
+#if !defined(__PX4_QURT)
 
 	/* For non QURT, use the usual polling. */
 
@@ -701,7 +701,11 @@ GPS::task_main()
 
 			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+#ifndef __PX4_POSIX_RPI
+				_helper = new GPSDriverUBX(GPSHelper::Interface::UART, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+#else
+				_helper = new GPSDriverUBX(GPSHelper::Interface::SPI, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+#endif
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
