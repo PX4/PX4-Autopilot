@@ -893,13 +893,13 @@ MulticopterPositionControl::control_manual(float dt)
 
 		} else {
 			_alt_hold_engaged = false;
+			_pos_sp(2) = _pos(2);
 		}
 
 		/* set requested velocity setpoint */
 		if (!_alt_hold_engaged) {
 			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
 			_vel_sp(2) = req_vel_sp_scaled(2);
-			_pos_sp(2) = _pos(2);
 		}
 	}
 }
