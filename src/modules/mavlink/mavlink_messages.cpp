@@ -1702,9 +1702,13 @@ protected:
 
 		if (_est_sub->update(&_est_time, &est)) {
 
-			// To be added and filled
-			// mavlink_estimator_status_t msg = {};
-			//mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_estimator_status_t est_msg = {};
+
+			est_msg.time_usec = est.timestamp;
+			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
+			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+
+			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
 			mavlink_vibration_t msg = {};
 
