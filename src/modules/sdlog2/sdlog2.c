@@ -1126,7 +1126,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	if (check_free_space() != OK) {
-		PX4_WARN("ERR: MicroSD almost full");
 		return 1;
 	}
 
@@ -2359,7 +2358,7 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		PX4_WARN("ERR: statfs");
+		mavlink_and_console_log_critical(&mavlink_log_pub, "[blackbox] no microSD card, disabling logging");
 		return PX4_ERROR;
 	}
 
