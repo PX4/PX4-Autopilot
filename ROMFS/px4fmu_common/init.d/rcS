@@ -218,16 +218,6 @@ then
 	fi
 	unset FCONFIG
 
-	#
-	# If autoconfig parameter was set, reset it and save parameters
-	#
-	if [ $AUTOCNF == yes ]
-	then
-		param set SYS_AUTOCONFIG 0
-		param save
-	fi
-	unset AUTOCNF
-
 	set IO_PRESENT no
 
 	if [ $USE_IO == yes ]
@@ -840,8 +830,7 @@ then
 		then
 			echo "Unknown MAV_TYPE"
 			param set MAV_TYPE 19
-		else
-			param set MAV_TYPE $MAV_TYPE
+			set MAV_TYPE 19
 		fi
 
 		# Load mixer and configure outputs
@@ -864,8 +853,6 @@ then
 
 		# Start standard rover apps
 		sh /etc/init.d/rc.axialracing_ax10_apps
-
-		param set MAV_TYPE 10
 	fi
 
 	#
@@ -907,6 +894,17 @@ then
 		# Use 400 Hz PWM on all channels.
 		pwm rate -a -r 400
 	fi
+
+	#
+	# If autoconfig parameter was set, reset it and save parameters
+	#
+	if [ $AUTOCNF == yes ]
+	then
+		param set MAV_TYPE $MAV_TYPE
+		param set SYS_AUTOCONFIG 0
+		param save
+	fi
+	unset AUTOCNF
 
 	unset MIXER
 	unset MAV_TYPE
