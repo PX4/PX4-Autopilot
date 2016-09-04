@@ -2047,14 +2047,14 @@ MulticopterPositionControl::task_main()
 					   ) {
 
 						/* limit setpoint rate of change */
-						math::Quaternion q_cur(_ctrl_state.q);
-						math::Matrix<3, 3> R_cur = q_cur.to_dcm();
-						math::Vector<3> zb(R_cur.data[2]);
-						math::Vector<3> zsp(R_sp.data[2]);
-						float tilt_error = acosf(zb * zsp);
-						math::Vector<3> xb(R_cur.data[0]);
-						math::Vector<3> xsp(R_sp.data[0]);
-						float yaw_error = acosf(xb * xsp);
+//						math::Quaternion q_cur(_ctrl_state.q);
+//						math::Matrix<3, 3> R_cur = q_cur.to_dcm();
+//						math::Vector<3> zb(R_cur.data[2]);
+//						math::Vector<3> zsp(R_sp.data[2]);
+//						float tilt_error = acosf(zb * zsp);
+//						math::Vector<3> xb(R_cur.data[0]);
+//						math::Vector<3> xsp(R_sp.data[0]);
+//						float yaw_error = acosf(xb * xsp);
 
 						/* update attitude setpoint rotation matrix */
 						/* interpret roll/pitch/yaw inputs as rate demands */
@@ -2062,14 +2062,14 @@ MulticopterPositionControl::task_main()
 						float dPitch = 0.0f;
 						float dYaw = 0.0f;
 
-						if (tilt_error < M_PI_4_F) {
+//						if (tilt_error < M_PI_4_F) {
 							dRoll = _manual.y * _params.acro_rollRate_max * dt;
 							dPitch = -_manual.x * _params.acro_pitchRate_max * dt;
-						}
+//						}
 
-						if (yaw_error < M_PI_4_F) {
+//						if (yaw_error < M_PI_4_F) {
 							dYaw = _manual.r * _params.acro_yawRate_max * dt;
-						}
+//						}
 
 //						math::Matrix<3, 3> R_xyz;
 //						R_xyz.from_euler(dRoll, dPitch, dYaw);
@@ -2078,12 +2078,12 @@ MulticopterPositionControl::task_main()
 						math::Matrix<3, 3> R_xy;
 						R_xy.from_euler(dRoll, dPitch, 0.0f);
 
-						R_sp = R_sp * R_xy;
-
 						math::Matrix<3, 3> R_z;
 						R_z.from_euler(0.0f, 0.0f, dYaw);
 
 						R_sp = R_z * R_sp;
+
+						R_sp = R_sp * R_xy;
 
 						/* renormalize rows */
 						for (int row = 0; row < 3; row++) {
