@@ -164,9 +164,21 @@ then
 		then
 			set USE_IO no
 		fi
+
+		if ver hwcmp CRAZYFLIE
+		then
+			set USE_IO no
+
+			if param compare SYS_AUTOSTART 0
+			then
+				param set SYS_AUTOSTART 4900
+				set AUTOCNF yes
+			fi
+		fi
 	else
 		set USE_IO no
 	fi
+
 
 	# should set to 0.8 for mindpx-v2 borad.
 	if param compare INAV_LIDAR_ERR 0.5
@@ -512,6 +524,10 @@ then
 		then
 			frsky_telemetry start -d /dev/ttyS2
 		fi
+		if param compare SYS_COMPANION 20
+		then
+			syslink start
+		fi
 		if param compare SYS_COMPANION 921600
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 80000 -x
@@ -622,8 +638,23 @@ then
 		px4flow start &
 	fi
 
-	# Start USB shell if no microSD present, MAVLink else
+
+	set DEBUG_MODE no
+
 	if [ $LOG_FILE == /dev/null ]
+	then
+		set DEBUG_MODE yes
+	fi
+
+
+	if ver hwcmp CRAZYFLIE
+	then
+		set DEBUG_MODE no
+	fi
+
+
+	# Start USB shell if no microSD present, MAVLink else
+	if [ $DEBUG_MODE == yes ]
 	then
 		# Try to get an USB console
 		nshterm /dev/ttyACM0 &

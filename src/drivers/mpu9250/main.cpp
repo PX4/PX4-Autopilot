@@ -34,7 +34,7 @@
 /**
  * @file main.cpp
  *
- * Driver for the Invensense mpu9250 connected via SPI.
+ * Driver for the Invensense mpu9250 connected via I2C or SPI.
  *
  * @authors Andrew Tridgell
  *          Robert Dickenson
@@ -69,8 +69,6 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
-#include "mag.h"
-#include "gyro.h"
 #include "mpu9250.h"
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
@@ -83,67 +81,132 @@
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
+
+enum MPU9250_BUS {
+	MPU9250_BUS_ALL = 0,
+	MPU9250_BUS_I2C_INTERNAL,
+	MPU9250_BUS_I2C_EXTERNAL,
+	MPU9250_BUS_SPI_INTERNAL,
+	MPU9250_BUS_SPI_EXTERNAL
+};
+
+
 /**
  * Local functions in support of the shell command.
  */
 namespace mpu9250
 {
 
-MPU9250	*g_dev_int; // on internal bus
-MPU9250	*g_dev_ext; // on external bus
+/*
+  list of supported bus configurations
+ */
 
-void	start(bool, enum Rotation);
-void	stop(bool);
-void	test(bool);
-void	reset(bool);
-void	info(bool);
-void	regdump(bool);
-void	testerror(bool);
+struct mpu9250_bus_option {
+	enum MPU9250_BUS busid;
+	const char *accelpath;
+	const char *gyropath;
+	const char *magpath;
+	MPU9250_constructor interface_constructor;
+	bool magpassthrough;
+	uint8_t busnum;
+	MPU9250	*dev;
+} bus_options[] = {
+#if defined (USE_I2C)
+#  if defined(PX4_I2C_BUS_ONBOARD)
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, NULL },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, NULL },
+#  endif
+#endif
+#ifdef PX4_SPIDEV_MPU
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, NULL },
+#endif
+#if defined(PX4_SPI_BUS_EXT)
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, NULL },
+#endif
+};
+
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
+
+void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus);
+bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus);
+struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid);
+void	stop(enum MPU9250_BUS busid);
+void	test(enum MPU9250_BUS busid);
+void	reset(enum MPU9250_BUS busid);
+void	info(enum MPU9250_BUS busid);
+void	regdump(enum MPU9250_BUS busid);
+void	testerror(enum MPU9250_BUS busid);
 void	usage();
 
 /**
- * Start the driver.
- *
- * This function only returns if the driver is up and running
- * or failed to detect the sensor.
+ * find a bus structure for a busid
  */
-void
-start(bool external_bus, enum Rotation rotation)
+struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid)
 {
-	int fd;
-	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
-	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
-	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
-	const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
-
-	if (*g_dev_ptr != nullptr)
-		/* if already started, the still command succeeded */
-	{
-		errx(0, "already started");
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if ((busid == MPU9250_BUS_ALL ||
+		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
+			return bus_options[i];
+		}
 	}
 
-	/* create the driver */
-	if (external_bus) {
-#ifdef PX4_SPI_BUS_EXT
-		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
-#else
-		errx(0, "External SPI not available");
+	errx(1, "bus %u not started", (unsigned)busid);
+}
+
+/**
+ * start driver for a specific bus option
+ */
+bool
+start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
+{
+	int fd = -1;
+
+	if (bus.dev != nullptr) {
+		warnx("%s SPI not available", external ? "External" : "Internal");
+		return false;
+	}
+
+	device::Device *interface = bus.interface_constructor(bus.busnum, external);
+
+	if (interface == nullptr) {
+		warnx("no device on bus %u", (unsigned)bus.busid);
+		return false;
+	}
+
+	if (interface->init() != OK) {
+		delete interface;
+		warnx("no device on bus %u", (unsigned)bus.busid);
+		return false;
+	}
+
+	device::Device *mag_interface = nullptr;
+
+#ifdef USE_I2C
+	/* For i2c interfaces, connect to the magnetomer directly */
+	bool is_i2c = bus.busid == MPU9250_BUS_I2C_INTERNAL || bus.busid == MPU9250_BUS_I2C_EXTERNAL;
+
+	if (is_i2c) {
+		mag_interface = AK8963_I2C_interface(bus.busnum, external);
+	}
+
 #endif
 
-	} else {
-		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
+	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation);
+
+	if (bus.dev == nullptr) {
+		delete interface;
+		return false;
 	}
 
-	if (*g_dev_ptr == nullptr) {
-		goto fail;
-	}
-
-	if (OK != (*g_dev_ptr)->init()) {
+	if (OK != bus.dev->init()) {
 		goto fail;
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(path_accel, O_RDONLY);
+	fd = open(bus.accelpath, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -153,27 +216,64 @@ start(bool external_bus, enum Rotation rotation)
 		goto fail;
 	}
 
+
 	close(fd);
 
-	exit(0);
+	return true;
+
 fail:
 
-	if (*g_dev_ptr != nullptr) {
-		delete(*g_dev_ptr);
-		*g_dev_ptr = nullptr;
+	if (fd >= 0) {
+		close(fd);
+	}
+
+	if (bus.dev != nullptr) {
+		delete(bus.dev);
+		bus.dev = nullptr;
 	}
 
 	errx(1, "driver start failed");
 }
 
+/**
+ * Start the driver.
+ *
+ * This function only returns if the driver is up and running
+ * or failed to detect the sensor.
+ */
 void
-stop(bool external_bus)
+start(enum MPU9250_BUS busid, enum Rotation rotation, bool external)
 {
-	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
-	if (*g_dev_ptr != nullptr) {
-		delete *g_dev_ptr;
-		*g_dev_ptr = nullptr;
+	bool started = false;
+
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (busid == MPU9250_BUS_ALL && bus_options[i].dev != NULL) {
+			// this device is already started
+			continue;
+		}
+
+		if (busid != MPU9250_BUS_ALL && bus_options[i].busid != busid) {
+			// not the one that is asked for
+			continue;
+		}
+
+		started |= start_bus(bus_options[i], rotation, external);
+	}
+
+	exit(started ? 0 : 1);
+
+}
+
+void
+stop(enum MPU9250_BUS busid)
+{
+	struct mpu9250_bus_option &bus = find_bus(busid);
+
+
+	if (bus.dev != nullptr) {
+		delete bus.dev;
+		bus.dev = nullptr;
 
 	} else {
 		/* warn, but not an error */
@@ -189,35 +289,33 @@ stop(bool external_bus)
  * and automatic modes.
  */
 void
-test(bool external_bus)
+test(enum MPU9250_BUS busid)
 {
-	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
-	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
-	const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
+	struct mpu9250_bus_option &bus = find_bus(busid);
 	accel_report a_report;
 	gyro_report g_report;
 	mag_report m_report;
 	ssize_t sz;
 
 	/* get the driver */
-	int fd = open(path_accel, O_RDONLY);
+	int fd = open(bus.accelpath, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'm start')", path_accel);
+		err(1, "%s open failed (try 'm start')", bus.accelpath);
 	}
 
 	/* get the driver */
-	int fd_gyro = open(path_gyro, O_RDONLY);
+	int fd_gyro = open(bus.gyropath, O_RDONLY);
 
 	if (fd_gyro < 0) {
-		err(1, "%s open failed", path_gyro);
+		err(1, "%s open failed", bus.gyropath);
 	}
 
 	/* get the driver */
-	int fd_mag = open(path_mag, O_RDONLY);
+	int fd_mag = open(bus.magpath, O_RDONLY);
 
 	if (fd_mag < 0) {
-		err(1, "%s open failed", path_mag);
+		err(1, "%s open failed", bus.magpath);
 	}
 
 	/* reset to manual polling */
@@ -292,7 +390,7 @@ test(bool external_bus)
 
 	/* XXX add poll-rate tests here too */
 
-	reset(external_bus);
+	reset(busid);
 	errx(0, "PASS");
 }
 
@@ -300,10 +398,10 @@ test(bool external_bus)
  * Reset the driver.
  */
 void
-reset(bool external_bus)
+reset(enum MPU9250_BUS busid)
 {
-	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
-	int fd = open(path_accel, O_RDONLY);
+	struct mpu9250_bus_option &bus = find_bus(busid);
+	int fd = open(bus.accelpath, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -326,15 +424,17 @@ reset(bool external_bus)
  * Print a little info about the driver.
  */
 void
-info(bool external_bus)
+info(enum MPU9250_BUS busid)
 {
-	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	struct mpu9250_bus_option &bus = find_bus(busid);
 
-	if (*g_dev_ptr == nullptr) {
+
+	if (bus.dev == nullptr) {
 		errx(1, "driver not running");
 	}
 
-	(*g_dev_ptr)->print_info();
+	printf("state @ %p\n", bus.dev);
+	bus.dev->print_info();
 
 	exit(0);
 }
@@ -343,15 +443,17 @@ info(bool external_bus)
  * Dump the register information
  */
 void
-regdump(bool external_bus)
+regdump(enum MPU9250_BUS busid)
 {
-	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	struct mpu9250_bus_option &bus = find_bus(busid);
 
-	if (*g_dev_ptr == nullptr) {
+
+	if (bus.dev == nullptr) {
 		errx(1, "driver not running");
 	}
 
-	(*g_dev_ptr)->print_registers();
+	printf("regdump @ %p\n", bus.dev);
+	bus.dev->print_registers();
 
 	exit(0);
 }
@@ -360,15 +462,16 @@ regdump(bool external_bus)
  * deliberately produce an error to test recovery
  */
 void
-testerror(bool external_bus)
+testerror(enum MPU9250_BUS busid)
 {
-	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	struct mpu9250_bus_option &bus = find_bus(busid);
 
-	if (*g_dev_ptr == nullptr) {
+
+	if (bus.dev == nullptr) {
 		errx(1, "driver not running");
 	}
 
-	(*g_dev_ptr)->test_error();
+	bus.dev->test_error();
 
 	exit(0);
 }
@@ -387,15 +490,28 @@ usage()
 int
 mpu9250_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
 	int ch;
+	bool external = false;
 	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISsR:")) != EOF) {
 		switch (ch) {
 		case 'X':
-			external_bus = true;
+			busid = MPU9250_BUS_I2C_EXTERNAL;
+			break;
+
+		case 'I':
+			busid = MPU9250_BUS_I2C_INTERNAL;
+			break;
+
+		case 'S':
+			busid = MPU9250_BUS_SPI_EXTERNAL;
+			break;
+
+		case 's':
+			busid = MPU9250_BUS_SPI_INTERNAL;
 			break;
 
 		case 'R':
@@ -408,49 +524,52 @@ mpu9250_main(int argc, char *argv[])
 		}
 	}
 
+	external = (busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL);
+
 	const char *verb = argv[optind];
 
 	/*
 	 * Start/load the driver.
+
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu9250::start(external_bus, rotation);
+		mpu9250::start(busid, rotation, external);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		mpu9250::stop(external_bus);
+		mpu9250::stop(busid);
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test")) {
-		mpu9250::test(external_bus);
+		mpu9250::test(busid);
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-		mpu9250::reset(external_bus);
+		mpu9250::reset(busid);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-		mpu9250::info(external_bus);
+		mpu9250::info(busid);
 	}
 
 	/*
 	 * Print register information.
 	 */
 	if (!strcmp(verb, "regdump")) {
-		mpu9250::regdump(external_bus);
+		mpu9250::regdump(busid);
 	}
 
 	if (!strcmp(verb, "testerror")) {
-		mpu9250::testerror(external_bus);
+		mpu9250::testerror(busid);
 	}
 
 	mpu9250::usage();
