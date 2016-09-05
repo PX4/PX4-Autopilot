@@ -85,7 +85,7 @@
 #define RPMSTOPPED (RPMMIN - 10)
 
 
-#define MAX_BOOT_TIME_MS		 (500) // Minimum time to wait after Power on before sending commands
+#define MAX_BOOT_TIME_MS		 (550) // Minimum time to wait after Power on before sending commands
 
 #pragma pack(push,1)
 

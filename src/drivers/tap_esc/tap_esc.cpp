@@ -232,7 +232,7 @@ TAP_ESC::init()
 
 	ASSERT(!_initialized);
 
-	/* Respect boot time requierd by the ESC FW */
+	/* Respect boot time required by the ESC FW */
 
 	hrt_abstime uptime_us = hrt_absolute_time();
 
