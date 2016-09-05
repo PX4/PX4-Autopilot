@@ -342,7 +342,8 @@ public:
 			printf("[ ");
 
 			for (unsigned int j = 0; j < N; j++)
-				printf("%.3f\t", (double)data[i][j]);
+				/* make rotation matrices look nice */
+				printf("% 8.3f ", (double)data[i][j]);
 
 			printf(" ]\n");
 		}
@@ -454,11 +455,11 @@ public:
 	}
 
 	/**
-	 * get euler angles from rotation matrix
+	 * get XYZ-fixed euler angles (gamma, beta, alpha) from rotation matrix
 	 */
 	Vector<3> to_euler(void) const {
 		Vector<3> euler;
-		euler.data[1] = asinf(-data[2][0]);
+		euler.data[1] = asinf(-data[2][0]);	/* beta */
 
 		if (fabsf(euler.data[1] - M_PI_2_F) < 1.0e-3f) {
 			euler.data[0] = 0.0f;
@@ -469,8 +470,8 @@ public:
 			euler.data[2] = atan2f(data[1][2] - data[0][1], data[0][2] + data[1][1]) - euler.data[0];
 
 		} else {
-			euler.data[0] = atan2f(data[2][1], data[2][2]);
-			euler.data[2] = atan2f(data[1][0], data[0][0]);
+			euler.data[0] = atan2f(data[2][1], data[2][2]);	/* gamma */
+			euler.data[2] = atan2f(data[1][0], data[0][0]);	/* alpha */
 		}
 
 		return euler;
