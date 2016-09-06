@@ -2110,22 +2110,26 @@ int commander_thread_main(int argc, char *argv[])
 
 					if (!armed.armed) {
 						mavlink_and_console_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+
 					} else {
 						if (low_bat_action == 1) {
-							if (!rtl_on) {
-								if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
-									rtl_on = true;
-									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
-								} else {
-									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
-								}
+							// let us send the critical message even if already in RTL
+							if (rtl_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+								rtl_on = true;
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
+
+							} else {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 							}
+
 						} else if (low_bat_action == 2) {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+
 							} else {
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
 							}
+
 						} else {
 							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
 						}
@@ -2333,12 +2337,14 @@ int commander_thread_main(int argc, char *argv[])
 			// reset if no longer in LOITER or if manually switched to LOITER
 			geofence_loiter_on = geofence_loiter_on
 									&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
-									&& (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+									&& (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+										|| sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			// reset if no longer in RTL or if manually switched to RTL
 			geofence_rtl_on = geofence_rtl_on
 								&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
-								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+									|| sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			rtl_on = rtl_on || (geofence_loiter_on || geofence_rtl_on);
 		}
@@ -2359,7 +2365,11 @@ int commander_thread_main(int argc, char *argv[])
 				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
+				if (TRANSITION_CHANGED == main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state)) {
+					// need to reset this to be able to update the state, otherwise
+					// it switches to the same state again when sticks move
+					rtl_on = false;
+				}
 			}
 		}
 
