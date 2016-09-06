@@ -2088,8 +2088,8 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
-			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (hrt_absolute_time() > commander_boot_timestamp + 2000000
+			/* only consider battery voltage if system has been running 6s (usb most likely detected) and battery voltage is valid */
+			if (hrt_absolute_time() > commander_boot_timestamp + 6000000
 			    && battery.voltage_filtered_v > 2.0f * FLT_EPSILON) {
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
@@ -2104,8 +2104,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
-					   !critical_battery_voltage_actions_done &&
-					   low_battery_voltage_actions_done) {
+					   !critical_battery_voltage_actions_done) {
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
