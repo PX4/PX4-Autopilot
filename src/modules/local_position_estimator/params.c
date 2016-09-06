@@ -161,6 +161,29 @@ PARAM_DEFINE_FLOAT(LPE_GPS_XY, 1.0f);
 PARAM_DEFINE_FLOAT(LPE_GPS_Z, 3.0f);
 
 /**
+ * Minimum DGPS xy standard deviation, uses reported EPH if greater.
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.01
+ * @max 5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_DGPS_XY, 0.1f);
+
+/**
+ * Minimum DGPS z standard deviation, uses reported EPV if greater.
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.01
+ * @max 200
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_DGPS_Z, 0.12f);
+
+
+/**
  * GPS xy velocity standard deviation.
  * EPV used if greater than this value.
  *

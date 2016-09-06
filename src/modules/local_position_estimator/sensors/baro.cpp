@@ -55,7 +55,8 @@ void BlockLocalPositionEstimator::baroCorrect()
 	if (baroMeasure(y) != OK) { return; }
 
 	// subtract baro origin alt
-	y -= _baroAltOrigin;
+	y -= (_baroAltOrigin + _gpsbaroHgtDiff);
+//	y -= _baroAltOrigin;
 
 	// baro measurement matrix
 	Matrix<float, n_y_baro, n_x> C;

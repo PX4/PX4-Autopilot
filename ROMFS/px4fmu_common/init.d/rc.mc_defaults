@@ -2,6 +2,20 @@
 
 set VEHICLE_TYPE mc
 
+############# bdai ##############
+#using for dgps
+#set param in system_params.c, using EKF2 as estiamtor
+param set SYS_MC_EST_GROUP 2
+
+# set param in ekf2_params.c, using for dgps
+# using dgps height
+param set EKF2_HGT_MODE 1
+param set EKF2_GPS_DELAY 100
+param set EKF2_GPS_P_NOISE 0.01
+param set EKF2_GPS_V_NOISE 0.01
+
+#################################
+
 if [ $AUTOCNF == yes ]
 then
 	param set PE_VELNE_NOISE 0.5

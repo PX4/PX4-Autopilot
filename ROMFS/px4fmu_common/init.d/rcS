@@ -656,7 +656,7 @@ then
 		else
 			if param compare SYS_LOGGER 0
 			then
-				if sdlog2 start -r 100 -a -b 9 -t
+				if sdlog2 start -r 100 -e -b 9 -t
 				then
 				fi
 			else

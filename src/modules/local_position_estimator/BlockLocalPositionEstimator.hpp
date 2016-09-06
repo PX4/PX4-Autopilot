@@ -265,6 +265,8 @@ private:
 	BlockParamFloat  _gps_delay;
 	BlockParamFloat  _gps_xy_stddev;
 	BlockParamFloat  _gps_z_stddev;
+	BlockParamFloat  _dgps_xy_stddev;
+	BlockParamFloat  _dgps_z_stddev;
 	BlockParamFloat  _gps_vxy_stddev;
 	BlockParamFloat  _gps_vz_stddev;
 	BlockParamFloat  _gps_eph_max;
@@ -344,9 +346,13 @@ private:
 
 	// reference altitudes
 	float _altOrigin;
+	float _gpsbaroHgtDiff;
 	bool _altOriginInitialized;
+
 	float _baroAltOrigin;
 	float _gpsAltOrigin;
+
+
 	Vector3f _visionOrigin;
 	Vector3f _mocapOrigin;
 

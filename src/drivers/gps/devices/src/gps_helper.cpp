@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,31 +31,35 @@
  *
  ****************************************************************************/
 
+#include "gps_helper.h"
+
 /**
- * @file drv_gps.h
+ * @file gps_helper.cpp
  *
- * GPS driver interface.
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#pragma once
+GPSHelper::GPSHelper(GPSCallbackPtr callback, void *callback_user)
+	: _callback(callback), _callback_user(callback_user)
+{
+}
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+GPSHelper::~GPSHelper()
+{
+}
 
-#include "board_config.h"
+void
+GPSHelper::resetUpdateRates()
+{
+	_rate_count_vel = 0;
+	_rate_count_lat_lon = 0;
+	_interval_rate_start = gps_absolute_time();
+}
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#ifndef GPS_DEFAULT_UART_PORT
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-#endif
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_OEM615,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
-} gps_driver_mode_t;
-
+void
+GPSHelper::storeUpdateRates()
+{
+	_rate_vel = _rate_count_vel / (((float)(gps_absolute_time() - _interval_rate_start)) / 1000000.0f);
+	_rate_lat_lon = _rate_count_lat_lon / (((float)(gps_absolute_time() - _interval_rate_start)) / 1000000.0f);
+}

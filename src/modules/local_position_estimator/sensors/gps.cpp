@@ -9,6 +9,7 @@ extern orb_advert_t mavlink_log_pub;
 static const uint32_t 		REQ_GPS_INIT_COUNT = 10;
 static const uint32_t 		GPS_TIMEOUT =      1000000; // 1.0 s
 
+
 void BlockLocalPositionEstimator::gpsInit()
 {
 	// check for good gps signal
@@ -37,6 +38,7 @@ void BlockLocalPositionEstimator::gpsInit()
 
 	// if finished
 	if (_gpsStats.getCount() > REQ_GPS_INIT_COUNT) {
+
 		double gpsLatOrigin = _gpsStats.getMean()(0);
 		double gpsLonOrigin = _gpsStats.getMean()(1);
 
@@ -118,17 +120,25 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	R.setZero();
 
 	// default to parameter, use gps cov if provided
-	float var_xy = _gps_xy_stddev.get() * _gps_xy_stddev.get();
-	float var_z = _gps_z_stddev.get() * _gps_z_stddev.get();
 	float var_vxy = _gps_vxy_stddev.get() * _gps_vxy_stddev.get();
 	float var_vz = _gps_vz_stddev.get() * _gps_vz_stddev.get();
+	float var_xy = _gps_xy_stddev.get() * _gps_xy_stddev.get();
+	float var_z = _gps_z_stddev.get() * _gps_z_stddev.get();
+
+
+	if (_sub_gps.get().fix_type == 6){
+		var_xy = _dgps_xy_stddev.get() * _dgps_xy_stddev.get();
+		var_z = _dgps_z_stddev.get() * _dgps_z_stddev.get();
+	}
+
+//	PX4_INFO("var_xy is: %8.4f", (double)var_xy);
 
 	// if field is not below minimum, set it to the value provided
-	if (_sub_gps.get().eph > _gps_xy_stddev.get()) {
+	if (_sub_gps.get().eph > var_xy) {
 		var_xy = _sub_gps.get().eph * _sub_gps.get().eph;
 	}
 
-	if (_sub_gps.get().epv > _gps_z_stddev.get()) {
+	if (_sub_gps.get().epv > var_z) {
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 

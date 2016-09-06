@@ -67,6 +67,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_delay(this, "GPS_DELAY"),
 	_gps_xy_stddev(this, "GPS_XY"),
 	_gps_z_stddev(this, "GPS_Z"),
+	_dgps_xy_stddev(this, "DGPS_XY"),
+	_dgps_z_stddev(this, "DGPS_Z"),
 	_gps_vxy_stddev(this, "GPS_VXY"),
 	_gps_vz_stddev(this, "GPS_VZ"),
 	_gps_eph_max(this, "EPH_MAX"),
@@ -139,11 +141,13 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// reference altitudes
 	_altOrigin(0),
+	_gpsbaroHgtDiff(0),
 	_altOriginInitialized(false),
 	_baroAltOrigin(0),
 	_gpsAltOrigin(0),
 	_visionOrigin(),
 	_mocapOrigin(),
+
 
 	// flow integration
 	_flowX(0),
@@ -416,19 +420,29 @@ void BlockLocalPositionEstimator::update()
 	if (gpsUpdated) {
 		if (!_gpsInitialized) {
 			gpsInit();
-
 		} else {
 			gpsCorrect();
 		}
 	}
 
 	if (baroUpdated) {
+
+		if(gpsUpdated){
+			float baroHgt =  _sub_sensor.get().baro_alt_meter;
+			//PX4_INFO("baroHgt is:%8.4f",(double)baroHgt);
+			float gpsAlt = _sub_gps.get().alt * 1e-3;
+			_gpsbaroHgtDiff = (baroHgt -_baroAltOrigin) - (gpsAlt-_gpsAltOrigin);
+//			PX4_INFO("baroHgt is:%8.4f gpsAlt is : %8.4f",(double)baroHgt,(double)gpsAlt);
+		}
 		if (!_baroInitialized) {
 			baroInit();
 
-		} else {
-			baroCorrect();
+		} else if(!gpsUpdated) {
+//		} else {
+			baroCorrect(); //using dgps
 		}
+//		PX4_INFO("X is :%8.4f\t%8.4f\t%8.4f",(double)_x(0),(double)_x(1),(double)_x(2));
+
 	}
 
 	if (lidarUpdated) {

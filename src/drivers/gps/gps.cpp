@@ -76,6 +76,7 @@
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/gps_dump.h>
@@ -85,12 +86,16 @@
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
+#include "devices/src/oem615.h"
 
+#include <geo/geo.h>
 
 #define TIMEOUT_5HZ 500
-#define RATE_MEASUREMENT_PERIOD 5000000
+#define RATE_MEASUREMENT_PERIOD 1000000
 #define GPS_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 
+static const float 			OFFSET[3] = {0.08, 0, 0.08};
+static float 				Rbn[9];
 
 /* class for dynamic allocation of satellite info data */
 class GPS_Sat_Info
@@ -139,6 +144,7 @@ private:
 	int 				_gps_num;					///< number of GPS connected
 
 	int _orb_inject_data_fd;
+	int _att_sub;
 
 	orb_advert_t _dump_communication_pub;			///< if non-null, dump communication
 	gps_dump_s *_dump_to_device;
@@ -258,6 +264,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_fake_gps(fake_gps),
 	_gps_num(gps_num),
 	_orb_inject_data_fd(-1),
+	_att_sub(-1),
 	_dump_communication_pub(nullptr),
 	_dump_to_device(nullptr),
 	_dump_from_device(nullptr)
@@ -644,8 +651,9 @@ GPS::task_main()
 	}
 
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
-	initializeCommunicationDump();
+	initializeCommunicationDump();/*what is means? -bdai<30 Aug 2016>*/
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
@@ -688,17 +696,22 @@ GPS::task_main()
 			}
 
 			switch (_mode) {
+
 			case GPS_DRIVER_MODE_UBX:
 				_helper = new GPSDriverUBX(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				break;
+
+			case GPS_DRIVER_MODE_OEM615:
+				_helper = new GPSDriverOEM615(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
 				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
 				break;
 
-			case GPS_DRIVER_MODE_ASHTECH:
-				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
-				break;
+//			case GPS_DRIVER_MODE_ASHTECH:
+//				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+//				break;
 
 			default:
 				break;
@@ -738,7 +751,7 @@ GPS::task_main()
 				int helper_ret;
 
 				while ((helper_ret = _helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
-
+//					PX4_INFO("mode:%d \tmain time is: %8.4f",_mode,hrt_absolute_time()*1e-6);
 					if (helper_ret & 1) {
 						publish();
 
@@ -797,15 +810,24 @@ GPS::task_main()
 
 			/* select next mode */
 			switch (_mode) {
+
 			case GPS_DRIVER_MODE_UBX:
+				_mode = GPS_DRIVER_MODE_OEM615;
+				break;
+
+			case GPS_DRIVER_MODE_OEM615:
 				_mode = GPS_DRIVER_MODE_MTK;
 				break;
 
-			case GPS_DRIVER_MODE_MTK:
-				_mode = GPS_DRIVER_MODE_ASHTECH;
-				break;
+//			case GPS_DRIVER_MODE_MTK:
+//				_mode = GPS_DRIVER_MODE_ASHTECH;
+//				break;
+//
+//			case GPS_DRIVER_MODE_ASHTECH:
+//				_mode = GPS_DRIVER_MODE_UBX;
+//				break;
 
-			case GPS_DRIVER_MODE_ASHTECH:
+			case GPS_DRIVER_MODE_MTK:
 				_mode = GPS_DRIVER_MODE_UBX;
 				break;
 
@@ -864,13 +886,17 @@ GPS::print_info()
 			PX4_WARN("protocol: UBX");
 			break;
 
+		case GPS_DRIVER_MODE_OEM615:
+			PX4_WARN("protocol: OEM615");
+			break;
+
 		case GPS_DRIVER_MODE_MTK:
 			PX4_WARN("protocol: MTK");
 			break;
 
-		case GPS_DRIVER_MODE_ASHTECH:
-			PX4_WARN("protocol: ASHTECH");
-			break;
+//		case GPS_DRIVER_MODE_ASHTECH:
+//			PX4_WARN("protocol: ASHTECH");
+//			break;
 
 		default:
 			break;
@@ -904,7 +930,40 @@ GPS::print_info()
 void
 GPS::publish()
 {
+
+	double lat,lon,alt;
+
+	lat = _report_gps_pos.lat * 1e-7;
+	lon = _report_gps_pos.lon * 1e-7;
+	alt = _report_gps_pos.alt * 1e-3;
+
+//	PX4_INFO("GPS Pre: %12.9f\t%12.9f\t%12.9f",lat,lon,alt);
+
+	struct map_projection_reference_s map_ref;
+	struct vehicle_attitude_s att;
+	float offset[3] = {0, 0, 0};
+	bool att_updated = false;
+	orb_check(_att_sub, &att_updated);
+	if (att_updated){
+		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+		memcpy(&Rbn, &(att.R), sizeof(Rbn));
+	}
+	for (int i = 0; i < 3; i++){
+		offset[i] = Rbn[i*3]*OFFSET[0] + Rbn[i*3 + 1]*OFFSET[1] + Rbn[i*3 + 2]*OFFSET[2];
+	}
+
+	map_projection_init(&map_ref, lat, lon);
+
+	map_projection_reproject(&map_ref, offset[0], offset[1], &lat, &lon);
+	_report_gps_pos.lat = (int)(lat * 1e7);
+	_report_gps_pos.lon = (int)(lon * 1e7);
+	_report_gps_pos.alt = (int)((alt - (double)offset[2]) * 1e3);
+
+//	PX4_INFO("GPS Aft: %12.9f\t%12.9f\t%12.9f",lat,lon,alt);
+	PX4_INFO("GPS int: %d\t%d\t%d",_report_gps_pos.lat,_report_gps_pos.lon,_report_gps_pos.alt);
+
 	if (_gps_num == 1) {
+//		_report_gps_pos.satellites_used = 10;
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
 		is_gps1_advertised = true;
