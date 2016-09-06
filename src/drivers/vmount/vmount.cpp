@@ -198,7 +198,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 
-		if (!thread_data.input_obj && params.mnt_mode_in != 0) { //need to initialize
+		if (!thread_data.input_obj && (params.mnt_mode_in != 0 || test_input)) { //need to initialize
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
@@ -273,7 +273,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (params.mnt_mode_in != 0) {
+		if (thread_data.input_obj) {
 
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
