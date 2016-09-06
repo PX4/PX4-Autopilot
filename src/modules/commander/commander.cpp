@@ -89,8 +89,9 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/subsystem_info.h>
@@ -175,6 +176,7 @@ static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status = {};
+static struct vehicle_roi_s _roi = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
@@ -228,7 +230,8 @@ void usage(const char *reason);
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd,
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack);
+		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
+			orb_advert_t *roi_pub);
 
 /**
  * Mainloop of commander.
@@ -656,7 +659,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack)
+		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
+			struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1066,9 +1070,41 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
+
+		roi->mode = cmd->param1;
+
+		if (roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+			roi->mission_seq =  cmd->param2;
+		}
+		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+			roi->lat = cmd->param5;
+			roi->lon = cmd->param6;
+			roi->alt = cmd->param7;
+		}
+		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+			roi->target_seq = cmd->param2;
+		}
+
+		if (*roi_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_roi), *roi_pub, roi);
+
+		} else {
+			*roi_pub = orb_advertise(ORB_ID(vehicle_roi), roi);
+		}
+
+		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+		break;
+	}
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
@@ -1079,10 +1115,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
 	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
 	case vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
@@ -1329,6 +1362,10 @@ int commander_thread_main(int argc, char *argv[])
 	/* home position */
 	orb_advert_t home_pub = nullptr;
 	memset(&_home, 0, sizeof(_home));
+
+	/* region of interest */
+	orb_advert_t roi_pub = nullptr;
+	memset(&_roi, 0, sizeof(_roi));
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
@@ -2656,7 +2693,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &command_ack)) {
+					&attitude, &home_pub, &command_ack_pub, &command_ack, &_roi, &roi_pub)) {
 				status_changed = true;
 			}
 		}
@@ -2982,7 +3019,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 	}
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {

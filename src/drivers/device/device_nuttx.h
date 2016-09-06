@@ -204,6 +204,8 @@ protected:
 		sem_post(&_lock);
 	}
 
+	DeviceId &get_device_id() { return _device_id; }
+
 	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:

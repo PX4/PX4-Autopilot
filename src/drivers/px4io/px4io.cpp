@@ -1167,7 +1167,7 @@ PX4IO::task_main()
 					int32_t ival;
 
 					/* fill the channel reverse mask from parameters */
-					sprintf(pname, "PWM_MAIN_REV%d", i + 1);
+					sprintf(pname, "PWM_MAIN_REV%u", i + 1);
 					param_t param_h = param_find(pname);
 
 					if (param_h != PARAM_INVALID) {
@@ -1569,26 +1569,26 @@ PX4IO::io_set_rc_config()
 		 * Inverted flag: -1 (inverted) or 1 (normal)
 		 */
 
-		sprintf(pname, "RC%d_MIN", i + 1);
+		sprintf(pname, "RC%u_MIN", i + 1);
 		param_get(param_find(pname), &fval);
 		regs[PX4IO_P_RC_CONFIG_MIN] = fval;
 
-		sprintf(pname, "RC%d_TRIM", i + 1);
+		sprintf(pname, "RC%u_TRIM", i + 1);
 		param_get(param_find(pname), &fval);
 		regs[PX4IO_P_RC_CONFIG_CENTER] = fval;
 
-		sprintf(pname, "RC%d_MAX", i + 1);
+		sprintf(pname, "RC%u_MAX", i + 1);
 		param_get(param_find(pname), &fval);
 		regs[PX4IO_P_RC_CONFIG_MAX] = fval;
 
-		sprintf(pname, "RC%d_DZ", i + 1);
+		sprintf(pname, "RC%u_DZ", i + 1);
 		param_get(param_find(pname), &fval);
 		regs[PX4IO_P_RC_CONFIG_DEADZONE] = fval;
 
 		regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = input_map[i];
 
 		regs[PX4IO_P_RC_CONFIG_OPTIONS] = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
-		sprintf(pname, "RC%d_REV", i + 1);
+		sprintf(pname, "RC%u_REV", i + 1);
 		param_get(param_find(pname), &fval);
 
 		/*
@@ -1610,7 +1610,7 @@ PX4IO::io_set_rc_config()
 
 		/* check the IO initialisation flag */
 		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
-			mavlink_and_console_log_critical(&_mavlink_log_pub, "config for RC%d rejected by IO", i + 1);
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "config for RC%u rejected by IO", i + 1);
 			break;
 		}
 
@@ -2019,7 +2019,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_set(%hhu,%hhu,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2044,7 +2044,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_get(%hhu,%hhu,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2264,7 +2264,7 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	uint16_t io_status_flags = flags;
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04hx%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	       flags,
 	       ((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
@@ -2281,7 +2281,7 @@ PX4IO::print_status(bool extended_status)
 	       ((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
-	printf("alarms 0x%04x%s%s%s%s%s%s%s%s\n",
+	printf("alarms 0x%04hx%s%s%s%s%s%s%s%s\n",
 	       alarms,
 	       ((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
 	       ((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
@@ -2343,7 +2343,7 @@ PX4IO::print_status(bool extended_status)
 	       (double)trim_roll, (double)trim_pitch, (double)trim_yaw);
 
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
-	printf("%d raw R/C inputs", raw_inputs);
+	printf("%hu raw R/C inputs", raw_inputs);
 
 	for (unsigned i = 0; i < raw_inputs; i++) {
 		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i));
@@ -2352,7 +2352,7 @@ PX4IO::print_status(bool extended_status)
 	printf("\n");
 
 	flags = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_FLAGS);
-	printf("R/C flags: 0x%04x%s%s%s%s%s\n", flags,
+	printf("R/C flags: 0x%04hx%s%s%s%s%s\n", flags,
 	       (((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11))) ? " DSM10" : ""),
 	       (((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11)) ? " DSM11" : ""),
 	       ((flags & PX4IO_P_RAW_RC_FLAGS_FRAME_DROP) ? " FRAME_DROP" : ""),
@@ -2362,7 +2362,7 @@ PX4IO::print_status(bool extended_status)
 
 	if ((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM)) {
 		int frame_len = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_DATA);
-		printf("RC data (PPM frame len) %u us\n", frame_len);
+		printf("RC data (PPM frame len) %d us\n", frame_len);
 
 		if ((frame_len - raw_inputs * 2000 - 3000) < 0) {
 			printf("WARNING  WARNING  WARNING! This RC receiver does not allow safe frame detection.\n");
@@ -2370,11 +2370,11 @@ PX4IO::print_status(bool extended_status)
 	}
 
 	uint16_t mapped_inputs = io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_VALID);
-	printf("mapped R/C inputs 0x%04x", mapped_inputs);
+	printf("mapped R/C inputs 0x%04hx", mapped_inputs);
 
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		if (mapped_inputs & (1 << i)) {
-			printf(" %u:%d", i, REG_TO_SIGNED(io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i)));
+			printf(" %u:%hd", i, REG_TO_SIGNED(io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i)));
 		}
 	}
 
@@ -2390,14 +2390,14 @@ PX4IO::print_status(bool extended_status)
 
 	/* setup and state */
 	uint16_t features = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES);
-	printf("features 0x%04x%s%s%s%s\n", features,
+	printf("features 0x%04hx%s%s%s%s\n", features,
 	       ((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_PWM_RSSI) ? " RSSI_PWM" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s%s%s%s%s%s%s\n",
+	printf("arming 0x%04hx%s%s%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
@@ -2430,7 +2430,7 @@ PX4IO::print_status(bool extended_status)
 		printf("controls %u:", group);
 
 		for (unsigned i = 0; i < _max_controls; i++) {
-			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
+			printf(" %hd", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 		}
 
 		printf("\n");
@@ -2440,7 +2440,7 @@ PX4IO::print_status(bool extended_status)
 		for (unsigned i = 0; i < _max_rc_input; i++) {
 			unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 			uint16_t options = io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_OPTIONS);
-			printf("input %u min %u center %u max %u deadzone %u assigned %u options 0x%04x%s%s\n",
+			printf("input %u min %u center %u max %u deadzone %u assigned %u options 0x%04hx%s%s\n",
 			       i,
 			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MIN),
 			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_CENTER),
@@ -2944,7 +2944,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			if (io_crc != arg) {
-				DEVICE_DEBUG("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
+				DEVICE_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
 				return -EINVAL;
 			}
 
@@ -3405,7 +3405,7 @@ test(void)
 		ret = write(fd, servos, sizeof(servos));
 
 		if (ret != (int)sizeof(servos)) {
-			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+			err(1, "error writing PWM servo data, wrote %lu got %d", sizeof(servos), ret);
 		}
 
 		if (direction > 0) {
@@ -3430,11 +3430,11 @@ test(void)
 			servo_position_t value;
 
 			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %d", i);
+				err(1, "error reading PWM servo %u", i);
 			}
 
 			if (value != servos[i]) {
-				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+				errx(1, "servo %u readback error, got %hu expected %hu", i, value, servos[i]);
 			}
 		}
 
@@ -3820,7 +3820,7 @@ px4io_main(int argc, char *argv[])
 			exit(1);
 		}
 
-		warnx("SET_DEBUG %u OK", (unsigned)level);
+		warnx("SET_DEBUG %hhu OK", level);
 		exit(0);
 	}
 

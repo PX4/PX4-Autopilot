@@ -1702,9 +1702,13 @@ protected:
 
 		if (_est_sub->update(&_est_time, &est)) {
 
-			// To be added and filled
-			// mavlink_estimator_status_t msg = {};
-			//mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_estimator_status_t est_msg = {};
+
+			est_msg.time_usec = est.timestamp;
+			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
+			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+
+			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
 			mavlink_vibration_t msg = {};
 
@@ -2049,6 +2053,7 @@ protected:
 };
 
 
+//TODO: this is deprecated (09.2016). Remove it some time in the future...
 class MavlinkStreamHILControls : public MavlinkStream
 {
 public:
@@ -2212,6 +2217,158 @@ protected:
 	}
 };
 
+class MavlinkStreamHILActuatorControls : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamHILActuatorControls::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "HIL_ACTUATOR_CONTROLS";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS;
+	}
+
+	uint8_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamHILActuatorControls(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_status_sub;
+	uint64_t _status_time;
+
+	MavlinkOrbSubscription *_act_sub;
+	uint64_t _act_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamHILActuatorControls(MavlinkStreamHILActuatorControls &);
+	MavlinkStreamHILActuatorControls &operator = (const MavlinkStreamHILActuatorControls &);
+
+protected:
+	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_status_time(0),
+		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs))),
+		_act_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_status_s status;
+		struct actuator_outputs_s act;
+
+		bool updated = _act_sub->update(&_act_time, &act);
+		updated |= _status_sub->update(&_status_time, &status);
+
+		if (updated && (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			/* translate the current syste state to mavlink state and mode */
+			uint8_t mavlink_state;
+			uint8_t mavlink_base_mode;
+			uint32_t mavlink_custom_mode;
+			mavlink_hil_actuator_controls_t msg;
+
+			get_mavlink_mode_state(&status, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+
+			const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
+
+			unsigned system_type = _mavlink->get_system_type();
+
+			/* scale outputs depending on system type */
+			if (system_type == MAV_TYPE_QUADROTOR ||
+			    system_type == MAV_TYPE_HEXAROTOR ||
+			    system_type == MAV_TYPE_OCTOROTOR ||
+			    system_type == MAV_TYPE_VTOL_DUOROTOR ||
+			    system_type == MAV_TYPE_VTOL_QUADROTOR) {
+
+				/* multirotors: set number of rotor outputs depending on type */
+
+				unsigned n;
+
+				switch (system_type) {
+				case MAV_TYPE_QUADROTOR:
+					n = 4;
+					break;
+
+				case MAV_TYPE_HEXAROTOR:
+					n = 6;
+					break;
+
+				case MAV_TYPE_VTOL_DUOROTOR:
+					n = 2;
+					break;
+
+				case MAV_TYPE_VTOL_QUADROTOR:
+					n = 4;
+					break;
+
+				default:
+					n = 8;
+					break;
+				}
+
+				for (unsigned i = 0; i < 16; i++) {
+					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
+						if (i < n) {
+							/* scale PWM out 900..2100 us to 0..1 for rotors */
+							msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+						} else {
+							/* scale PWM out 900..2100 us to -1..1 for other channels */
+							msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+						}
+
+					} else {
+						/* send 0 when disarmed and for disabled channels */
+						msg.controls[i] = 0.0f;
+					}
+				}
+
+			} else {
+				/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
+
+				for (unsigned i = 0; i < 16; i++) {
+					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
+						if (i != 3) {
+							/* scale PWM out 900..2100 us to -1..1 for normal channels */
+							msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+						} else {
+							/* scale PWM out 900..2100 us to 0..1 for throttle */
+							msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+						}
+
+					} else {
+						/* set 0 for disabled channels */
+						msg.controls[i] = 0.0f;
+					}
+				}
+			}
+
+			msg.time_usec = hrt_absolute_time();
+			msg.mode = mavlink_base_mode;
+			msg.flags = 0;
+
+			mavlink_msg_hil_actuator_controls_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
 
 class MavlinkStreamPositionTargetGlobalInt : public MavlinkStream
 {
@@ -3310,6 +3467,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static, &MavlinkStreamServoOutputRaw<2>::get_id_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<3>::new_instance, &MavlinkStreamServoOutputRaw<3>::get_name_static, &MavlinkStreamServoOutputRaw<3>::get_id_static),
 	new StreamListItem(&MavlinkStreamHILControls::new_instance, &MavlinkStreamHILControls::get_name_static, &MavlinkStreamHILControls::get_id_static),
+	new StreamListItem(&MavlinkStreamHILActuatorControls::new_instance, &MavlinkStreamHILActuatorControls::get_name_static, &MavlinkStreamHILActuatorControls::get_id_static),
 	new StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static, &MavlinkStreamPositionTargetGlobalInt::get_id_static),
 	new StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static, &MavlinkStreamLocalPositionSetpoint::get_id_static),
 	new StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static, &MavlinkStreamAttitudeTarget::get_id_static),

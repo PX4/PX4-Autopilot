@@ -38,10 +38,10 @@ px4_add_module(
 		../common/board_name.c
 		../common/board_dma_alloc.c
 		aerocore_init.c
-		aerocore_pwm_servo.c
+		aerocore_timer_config.c
 		aerocore_spi.c
 		aerocore_led.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

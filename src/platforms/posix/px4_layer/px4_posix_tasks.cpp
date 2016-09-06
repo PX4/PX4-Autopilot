@@ -185,6 +185,10 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		stack_size = PTHREAD_STACK_MIN;
 	}
 
+	// The stack size is intended for 32-bit architectures; therefore
+	// we often run out of stack space when pointers are larger than 4 bytes.
+	// Double the stack size on posix when we're on a 64-bit architecture.
+	stack_size *= __SIZEOF_POINTER__ >> 2;
 	rv = pthread_attr_setstacksize(&attr, stack_size);
 
 	if (rv != 0) {

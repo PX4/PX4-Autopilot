@@ -8,11 +8,19 @@ then
 	if ms5611 start
 	then
 	fi
+
 else
+	if ver hwcmp CRAZYFLIE
+	then
+	# Crazyflie uses separate driver
+	else
+
 	# Configure all I2C buses to 100 KHz as they
 	# are all external or slow
 	fmu i2c 1 100000
 	fmu i2c 2 100000
+
+	fi
 
 	if ver hwcmp PX4FMU_V4
 	then
@@ -194,6 +202,19 @@ then
 	fi
 
 	if lis3mdl -R 2 start
+	then
+	fi
+fi
+
+if ver hwcmp CRAZYFLIE
+then
+	# Onboard I2C
+	if mpu9250 -R 12 start
+	then
+	fi
+
+	# I2C bypass of mpu 
+	if lps25h start
 	then
 	fi
 fi

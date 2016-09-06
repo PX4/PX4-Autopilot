@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,43 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file gimbal_params.c
+ * @file syslink_params.c
  *
- * Parameters for the gimbal controller.
+ * Parameters defined by the syslink module and the exposed NRF51 radio
  *
- * @author Andreas Antener <andreas@uaventure.com>
+ * @author Dennis Shtatnov <densht@gmail.com>
  */
 
-#include <px4_config.h>
-
+#include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-/**
- * Consider mount operation mode.
- *
- * If set to 1, mount mode will be enforced.
- *
- * @boolean
- * @group Gimbal
- */
-PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
 
 /**
- * Auxiliary switch to set mount operation mode.
+ * Operating channel of the NRF51
  *
- * Set to 0 to disable manual mode control.
- *
- * If set to an auxiliary switch:
- * Switch off means the gimbal is put into safe/locked position.
- * Switch on means the gimbal can move freely, and landing gear
- * will be retracted if applicable.
- *
- * @value 0 Disable
- * @value 1 AUX1
- * @value 2 AUX2
- * @value 3 AUX3
  * @min 0
- * @max 3
- * @group Gimbal
+ * @max 125
+ * @group Syslink
  */
-PARAM_DEFINE_INT32(GMB_AUX_MNT_CHN, 0);
+PARAM_DEFINE_INT32(SLNK_RADIO_CHAN, 80);
+
+/**
+ * Operating datarate of the NRF51
+ *
+ * @min 0
+ * @max 2
+ * @group Syslink
+ */
+PARAM_DEFINE_INT32(SLNK_RADIO_RATE, 0);
+
+/**
+ * Operating address of the NRF51 (most significant byte)
+ *
+ * @group Syslink
+ */
+PARAM_DEFINE_INT32(SLNK_RADIO_ADDR1, (uint32_t) 0xE7);
+
+/**
+ * Operating address of the NRF51 (least significant 4 bytes)
+ *
+ * @group Syslink
+ */
+PARAM_DEFINE_INT32(SLNK_RADIO_ADDR2, (uint32_t) 0xE7E7E7E7);

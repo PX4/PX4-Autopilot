@@ -157,6 +157,15 @@ MavlinkOrbSubscription::is_published()
 		return true;
 	}
 
+	// This is a workaround for this issue:
+	// https://github.com/PX4/Firmware/issues/5438
+#if defined(__PX4_LINUX) || defined(__PX4_QURT)
+
+	if (_fd < 0) {
+		_fd = orb_subscribe_multi(_topic, _instance);
+	}
+
+#else
 	// Telemetry can sustain an initial published check at 10 Hz
 	hrt_abstime now = hrt_absolute_time();
 
@@ -174,6 +183,8 @@ MavlinkOrbSubscription::is_published()
 	} else if (_fd < 0) {
 		_fd = orb_subscribe_multi(_topic, _instance);
 	}
+
+#endif
 
 	bool updated;
 	orb_check(_fd, &updated);

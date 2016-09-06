@@ -726,6 +726,9 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 		+ (_sonarInitialized << SENSOR_SONAR)
 		+ (_visionInitialized << SENSOR_VISION)
 		+ (_mocapInitialized << SENSOR_MOCAP);
+	_pub_est_status.get().pos_horiz_accuracy = _pub_gpos.get().eph;
+	_pub_est_status.get().pos_vert_accuracy = _pub_gpos.get().epv;
+
 	_pub_est_status.update();
 }
 

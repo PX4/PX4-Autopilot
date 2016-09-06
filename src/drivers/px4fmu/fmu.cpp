@@ -1628,10 +1628,18 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
 					_failsafe_pwm[i] = PWM_HIGHEST_MAX;
 
-				} else if (pwm->values[i] < PWM_LOWEST_MIN) {
+				}
+
+#if PWM_LOWEST_MIN > 0
+
+				else if (pwm->values[i] < PWM_LOWEST_MIN) {
 					_failsafe_pwm[i] = PWM_LOWEST_MIN;
 
-				} else {
+				}
+
+#endif
+
+				else {
 					_failsafe_pwm[i] = pwm->values[i];
 				}
 			}
@@ -1676,11 +1684,17 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					/* ignore 0 */
 				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
 					_disarmed_pwm[i] = PWM_HIGHEST_MAX;
+				}
 
-				} else if (pwm->values[i] < PWM_LOWEST_MIN) {
+#if PWM_LOWEST_MIN > 0
+
+				else if (pwm->values[i] < PWM_LOWEST_MIN) {
 					_disarmed_pwm[i] = PWM_LOWEST_MIN;
+				}
 
-				} else {
+#endif
+
+				else {
 					_disarmed_pwm[i] = pwm->values[i];
 				}
 			}
@@ -1726,10 +1740,17 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
 					_min_pwm[i] = PWM_HIGHEST_MIN;
 
-				} else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_min_pwm[i] = PWM_LOWEST_MIN;
+				}
 
-				} else {
+#if PWM_LOWEST_MIN > 0
+
+				else if (pwm->values[i] < PWM_LOWEST_MIN) {
+					_min_pwm[i] = PWM_LOWEST_MIN;
+				}
+
+#endif
+
+				else {
 					_min_pwm[i] = pwm->values[i];
 				}
 			}

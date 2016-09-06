@@ -130,4 +130,4 @@ notifications:
       - secure: "QKw73Zel/s3JAbe/7XyO9tPnJwiiGFpYzSjdR8lG3tYFjRdXZnhxG4c+G7bkgkaPTS4Hult33VXE3kcEqOI7+C+eRwRlZhDfL0knQbXVCxjcLjzmUFdoPOwurlgZDw66PFWCi5tZcLKSRo3u4U8ibT4WKi3jm9sDSyOcfBAucMU="
     on_pull_requests: false
     on_success: never  # options: [always|never|change] default: always
-    on_failure: change  # options: [always|never|change] default: always
+    on_failure: never  # options: [always|never|change] default: always

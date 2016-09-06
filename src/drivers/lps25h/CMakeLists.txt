@@ -31,14 +31,17 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__gimbal
-	MAIN gimbal
-	STACK_MAIN 1024
+	MODULE drivers__lps25h
+	MAIN lps25h
+	STACK 1200
 	COMPILE_FLAGS
+		-Weffc++
 		-Os
 	SRCS
-		gimbal.cpp
-		gimbal_params.c
+		lps25h.cpp
+		lps25h_i2c.cpp
+		lps25h_spi.cpp
+
 	DEPENDS
 		platforms__common
 	)

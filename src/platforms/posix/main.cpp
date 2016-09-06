@@ -231,11 +231,11 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 static void usage()
 {
 
-	cout << "./px4 [-d] data_directory startup_config [-h]" << endl;
+	cout << "./px4 [-d] [data_directory] startup_config [-h]" << endl;
 	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
 	     endl;
 	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << endl;
-	cout << "<data_directory> - directory where romfs and posix-configs are located" << endl;
+	cout << "<data_directory> - directory where ROMFS and posix-configs are located (if not given, CWD is used)" << endl;
 	cout << "<startup_config> - config file for starting/stopping px4 modules" << endl;
 	cout << "   -h            - help/usage information" << endl;
 }
@@ -343,22 +343,28 @@ int main(int argc, char **argv)
 
 			if (positional_arg_count == 1) {
 				data_path = argv[index];
-				cout << "data path: " << data_path << endl;
 
 			} else if (positional_arg_count == 2) {
 				commands_file = argv[index];
-				cout << "commands file: " << commands_file << endl;
 			}
 		}
 
 		++index;
 	}
 
-	if (positional_arg_count != 2) {
-		PX4_ERR("Error expected 2 position arguments, got %d", positional_arg_count);
+	if (positional_arg_count != 2 && positional_arg_count != 1) {
+		PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
 		usage();
 		return -1;
 	}
+
+	if (positional_arg_count == 1) { //data path is optional
+		commands_file = data_path;
+		data_path = ".";
+	}
+
+	cout << "data path: " << data_path << endl;
+	cout << "commands file: " << commands_file << endl;
 
 	if (commands_file.size() < 1) {
 		PX4_ERR("Error commands file not specified");

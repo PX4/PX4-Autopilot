@@ -327,32 +327,35 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	warnx("FTP: list %s offset %d", dirPath, payload->offset);
 #endif
 
-	struct dirent entry, *result = nullptr;
+	struct dirent *result = nullptr;
 
 	// move to the requested offset
 	seekdir(dp, payload->offset);
 
 	for (;;) {
+		errno = 0;
+		result = readdir(dp);
+
 		// read the directory entry
-		if (readdir_r(dp, &entry, &result)) {
+		if (result == nullptr) {
+			if (errno) {
 #ifdef MAVLINK_FTP_UNIT_TEST
-			warnx("readdir_r failed");
+				warnx("readdir failed");
 #else
-			_mavlink->send_statustext_critical("FTP: list readdir_r failure");
-			_mavlink->send_statustext_critical(dirPath);
+				_mavlink->send_statustext_critical("FTP: list readdir failure");
+				_mavlink->send_statustext_critical(dirPath);
 #endif
 
-			payload->data[offset++] = kDirentSkip;
-			*((char *)&payload->data[offset]) = '\0';
-			offset++;
-			payload->size = offset;
-			closedir(dp);
+				payload->data[offset++] = kDirentSkip;
+				*((char *)&payload->data[offset]) = '\0';
+				offset++;
+				payload->size = offset;
+				closedir(dp);
 
-			return errorCode;
-		}
+				return errorCode;
+			}
 
-		// no more entries?
-		if (result == nullptr) {
+			// no more entries?
 			if (payload->offset != 0 && offset == 0) {
 				// User is requesting subsequent dir entries but there were none. This means the user asked
 				// to seek past EOF.
@@ -368,7 +371,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 		char direntType;
 
 		// Determine the directory entry type
-		switch (entry.d_type) {
+		switch (result->d_type) {
 #ifdef __PX4_NUTTX
 
 		case DTYPE_FILE:
@@ -377,7 +380,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 #endif
 			// For files we get the file size as well
 			direntType = kDirentFile;
-			snprintf(buf, sizeof(buf), "%s/%s", dirPath, entry.d_name);
+			snprintf(buf, sizeof(buf), "%s/%s", dirPath, result->d_name);
 			struct stat st;
 
 			if (stat(buf, &st) == 0) {
@@ -391,8 +394,8 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 #else
 		case DT_DIR:
 #endif
-			if ((!list_hidden && (strncmp(entry.d_name, ".", 1) == 0)) ||
-			    strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+			if ((!list_hidden && (strncmp(result->d_name, ".", 1) == 0)) ||
+			    strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 
@@ -413,11 +416,11 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 
 		} else if (direntType == kDirentFile) {
 			// Files send filename and file length
-			snprintf(buf, sizeof(buf), "%s\t%d", entry.d_name, fileSize);
+			snprintf(buf, sizeof(buf), "%s\t%d", result->d_name, fileSize);
 
 		} else {
 			// Everything else just sends name
-			strncpy(buf, entry.d_name, sizeof(buf));
+			strncpy(buf, result->d_name, sizeof(buf));
 			buf[sizeof(buf) - 1] = 0;
 		}
 
