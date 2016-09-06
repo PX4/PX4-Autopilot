@@ -69,7 +69,7 @@ public:
 	DfBebopBusWrapper();
 	~DfBebopBusWrapper() = default;
 
-  /// Start and initialize the driver
+	/// Start and initialize the driver
 	int start();
 
 	/// Stop the driver
@@ -90,7 +90,7 @@ public:
 	/// Set the ESC speeds [front left, front right, back right, back left]
 	int set_esc_speeds(const float pwm[4]);
 
-  /// Capture the last throttle value for the battey computation
+	/// Capture the last throttle value for the battey computation
 	void set_last_throttle(float throttle) {_last_throttle = throttle;};
 
 private:
@@ -250,8 +250,8 @@ void task_main(int argc, char *argv[]);
 
 /* mixers initialization */
 int initialize_mixers(const char *mixers_filename);
-int mixers_control_callback(uintptr_t handle, uint8_t control_group, 
-    uint8_t control_index, float &input);
+int mixers_control_callback(uintptr_t handle, uint8_t control_group,
+			    uint8_t control_index, float &input);
 
 int mixers_control_callback(uintptr_t handle,
 			    uint8_t control_group,
@@ -365,7 +365,7 @@ void task_main(int argc, char *argv[])
 				_outputs.output[i] = NAN;
 			}
 
-      // Check if the outputs are in range and rescale
+			// Check if the outputs are in range and rescale
 			for (size_t i = 0; i < _outputs.noutputs; ++i) {
 				if (i < _outputs.noutputs &&
 				    PX4_ISFINITE(_outputs.output[i]) &&
@@ -408,13 +408,13 @@ void task_main(int argc, char *argv[])
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
 
-    // Start the motors if armed but not alreay running
+		// Start the motors if armed but not alreay running
 		if (_armed.armed && !_motors_running) {
 			g_dev->start_motors();
 			_motors_running = true;
 		}
 
-    // Stop motors if not armed but running
+		// Stop motors if not armed but running
 		if (!_armed.armed && _motors_running) {
 			g_dev->stop_motors();
 			_motors_running = false;
