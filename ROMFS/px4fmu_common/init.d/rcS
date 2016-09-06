@@ -438,7 +438,7 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if pwm_out_sim mode_port2_pwm8
+			if pwm_out_sim mode_pwm16
 			then
 			else
 				tone_alarm $TUNE_ERR

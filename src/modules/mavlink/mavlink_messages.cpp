@@ -2295,7 +2295,8 @@ protected:
 			    system_type == MAV_TYPE_HEXAROTOR ||
 			    system_type == MAV_TYPE_OCTOROTOR ||
 			    system_type == MAV_TYPE_VTOL_DUOROTOR ||
-			    system_type == MAV_TYPE_VTOL_QUADROTOR) {
+			    system_type == MAV_TYPE_VTOL_QUADROTOR ||
+			    system_type == MAV_TYPE_VTOL_RESERVED2) {
 
 				/* multirotors: set number of rotor outputs depending on type */
 
@@ -2316,6 +2317,10 @@ protected:
 
 				case MAV_TYPE_VTOL_QUADROTOR:
 					n = 4;
+					break;
+
+				case MAV_TYPE_VTOL_RESERVED2:
+					n = 8;
 					break;
 
 				default:
