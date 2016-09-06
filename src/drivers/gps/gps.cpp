@@ -124,8 +124,9 @@ private:
 	bool				_healthy;					///< flag to signal if the GPS is ok
 	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
+	bool        _mode_auto;
 	gps_driver_mode_t		_mode;						///< current mode
-	gps_driver_interface_t  _interface;
+	gps_driver_interface_t  _interface;   ///< interface
 	GPSHelper			*_helper;					///< instance of GPS parser
 	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
@@ -278,6 +279,10 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interf
 		_sat_info = new GPS_Sat_Info();
 		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
+	}
+
+	if (mode == GPS_DRIVER_MODE_NONE) {
+		_mode_auto = true;
 	}
 }
 
@@ -719,6 +724,9 @@ GPS::task_main()
 			}
 
 			switch (_mode) {
+			case GPS_DRIVER_MODE_NONE:
+				_mode = GPS_DRIVER_MODE_UBX;
+
 			case GPS_DRIVER_MODE_UBX:
 				_helper = new GPSDriverUBX(helper_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
@@ -825,6 +833,26 @@ GPS::task_main()
 					_rate_rtcm_injection = 0.0f;
 				}
 			}
+
+			if (_mode_auto) {
+				switch (_mode) {
+				case GPS_DRIVER_MODE_UBX:
+					_mode = GPS_DRIVER_MODE_MTK;
+					break;
+
+				case GPS_DRIVER_MODE_MTK:
+					_mode = GPS_DRIVER_MODE_ASHTECH;
+					break;
+
+				case GPS_DRIVER_MODE_ASHTECH:
+					_mode = GPS_DRIVER_MODE_UBX;
+					break;
+
+				default:
+					break;
+				}
+			}
+
 		}
 	}
 
@@ -1049,7 +1077,7 @@ gps_main(int argc, char *argv[])
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	gps_driver_interface_t interface = GPS_DRIVER_UART;
-	gps_driver_mode_t mode = GPS_DRIVER_MODE_UBX;
+	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
 
 	if (argc < 2) {
 		goto out;
