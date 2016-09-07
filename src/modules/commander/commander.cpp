@@ -2075,6 +2075,10 @@ int commander_thread_main(int argc, char *argv[])
 			// store the last good main_state when not in an navigation
 			// hold state
 			main_state_before_rtl = internal_state.main_state;
+
+		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL) {
+			// reset flag again when we switched out of it
+			rtl_on = false;
 		}
 
 		orb_check(cpuload_sub, &updated);
@@ -2366,11 +2370,7 @@ int commander_thread_main(int argc, char *argv[])
 				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-				if (TRANSITION_CHANGED == main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state)) {
-					// need to reset this to be able to update the state, otherwise
-					// it switches to the same state again when sticks move
-					rtl_on = false;
-				}
+				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
 			}
 		}
 
