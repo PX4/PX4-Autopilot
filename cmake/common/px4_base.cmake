@@ -231,6 +231,7 @@ endfunction()
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
+#			[ EXTERNAL ]
 #			)
 #
 #	Input:
@@ -244,6 +245,7 @@ endfunction()
 #		SRCS			: source files
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
+#		EXTERNAL		: flag to indicate that this module is out-of-tree
 #
 #	Output:
 #		Static library with name matching MODULE.
@@ -263,8 +265,13 @@ function(px4_add_module)
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
+		OPTIONS EXTERNAL
 		REQUIRED MODULE
 		ARGN ${ARGN})
+
+	if(EXTERNAL)
+		px4_mangle_name("${EXTERNAL_MODULES_LOCATION}/src/${MODULE}" MODULE)
+	endif()
 
 	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
