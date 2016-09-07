@@ -24,7 +24,7 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
-	drivers/srf02
+	#drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
