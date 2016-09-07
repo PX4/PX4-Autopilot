@@ -884,7 +884,7 @@ Mavlink::get_free_tx_buf()
 	} else {
 		// No FIONWRITE on Linux
 #if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
-		(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
 #else
 		//Linux cp210x does not support TIOCOUTQ
 		buf_free = 256;
