@@ -477,7 +477,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// initialize threads
 	pthread_attr_t sender_thread_attr;
 	pthread_attr_init(&sender_thread_attr);
-	pthread_attr_setstacksize(&sender_thread_attr, 1000);
+	pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(4000));
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
