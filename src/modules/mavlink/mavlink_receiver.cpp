@@ -45,6 +45,7 @@
 #include <px4_time.h>
 #include <px4_tasks.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -2246,7 +2247,7 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2100);
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2100));
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
