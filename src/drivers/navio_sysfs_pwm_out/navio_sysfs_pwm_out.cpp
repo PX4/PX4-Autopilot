@@ -360,7 +360,13 @@ void task_main(int argc, char *argv[])
 				       pwm,
 				       &_pwm_limit);
 
-			send_outputs_pwm(pwm);
+
+			if (_armed.lockdown) {
+				send_outputs_pwm(disarmed_pwm);
+
+			} else {
+				send_outputs_pwm(pwm);
+			}
 
 			if (_outputs_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
