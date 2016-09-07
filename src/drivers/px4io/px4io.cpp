@@ -825,7 +825,7 @@ PX4IO::init()
 		cmd.confirmation =  1;
 
 		/* send command once */
-		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 		/* spin here until IO's state has propagated into the system */
 		do {

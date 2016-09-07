@@ -302,9 +302,14 @@ void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
 	vehicle_command_ack.command = command;
 	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-	int instance;
-	orb_publish_auto(ORB_ID(vehicle_command_ack), &_vehicle_command_ack_pub, &vehicle_command_ack,
-			 &instance, ORB_PRIO_DEFAULT);
+	if (_vehicle_command_ack_pub == nullptr) {
+		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
+					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_command_ack_pub, &vehicle_command_ack);
+	}
+
 }
 
 void InputMavlinkCmdMount::print_status()

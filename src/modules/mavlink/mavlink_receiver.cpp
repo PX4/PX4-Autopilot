@@ -412,7 +412,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.confirmation =  cmd_mavlink.confirmation;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -488,7 +488,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.source_component = msg->compid;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -636,7 +636,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.confirmation = 1;
 
 	if (_cmd_pub == nullptr) {
-		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
