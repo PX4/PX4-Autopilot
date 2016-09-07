@@ -83,6 +83,8 @@ uint32 VEHICLE_ROI_LOCATION = 3                     # Point toward fixed locatio
 uint32 VEHICLE_ROI_TARGET = 4                       # Point toward target
 uint32 VEHICLE_ROI_ENUM_END = 5
 
+uint32 ORB_QUEUE_LENGTH = 3
+
 float32 param1			# Parameter 1, as defined by MAVLink uint32 VEHICLE_CMD enum.
 float32 param2			# Parameter 2, as defined by MAVLink uint32 VEHICLE_CMD enum.
 float32 param3			# Parameter 3, as defined by MAVLink uint32 VEHICLE_CMD enum.

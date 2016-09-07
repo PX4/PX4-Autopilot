@@ -424,7 +424,7 @@ int commander_main(int argc, char *argv[])
 				cmd.param6 = NAN;
 				cmd.param7 = NAN;
 
-				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 				(void)orb_unadvertise(h);
 
 			} else {
@@ -453,7 +453,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param6 = NAN;
 		cmd.param7 = NAN;
 
-		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
 		return 0;
@@ -476,7 +476,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param6 = NAN;
 		cmd.param7 = NAN;
 
-		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
 		return 0;
@@ -538,8 +538,8 @@ int commander_main(int argc, char *argv[])
 		/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
 		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
 
-		// XXX inspect use of publication handle
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		(void)orb_unadvertise(h);
 
 		return 0;
 	}
@@ -3665,7 +3665,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
 	} else {
-		command_ack_pub = orb_advertise(ORB_ID(vehicle_command_ack), &command_ack);
+		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
 }
 

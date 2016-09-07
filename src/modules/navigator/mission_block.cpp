@@ -364,7 +364,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 	}
 
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		PX4_WARN("do_set_servo command");
+		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
 		memset(&actuators, 0, sizeof(actuators));
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
@@ -380,7 +380,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		}
 
 	} else {
-		PX4_WARN("forwarding command %d\n", item->nav_cmd);
+		PX4_INFO("forwarding command %d", item->nav_cmd);
 		struct vehicle_command_s cmd = {};
 		mission_item_to_vehicle_command(item, &cmd);
 		_action_start = hrt_absolute_time();
@@ -389,7 +389,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		}
 	}
 }
@@ -616,7 +616,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		}
 	}
 
