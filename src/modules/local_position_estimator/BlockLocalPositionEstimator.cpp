@@ -607,11 +607,20 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 	float by = dx(X_by) + _x(X_by);
 	float bz = dx(X_bz) + _x(X_bz);
 
-	if (std::abs(bx) > BIAS_MAX) { bx = BIAS_MAX * bx / std::abs(bx); }
+	if (std::abs(bx) > BIAS_MAX) {
+		bx = BIAS_MAX * bx / std::abs(bx);
+		dx(X_bx) = bx - _x(X_bx);
+	}
 
-	if (std::abs(by) > BIAS_MAX) { by = BIAS_MAX * by / std::abs(by); }
+	if (std::abs(by) > BIAS_MAX) {
+		by = BIAS_MAX * by / std::abs(by);
+		dx(X_by) = by - _x(X_by);
+	}
 
-	if (std::abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / std::abs(bz); }
+	if (std::abs(bz) > BIAS_MAX) {
+		bz = BIAS_MAX * bz / std::abs(bz);
+		dx(X_bz) = bz - _x(X_bz);
+	}
 }
 
 
