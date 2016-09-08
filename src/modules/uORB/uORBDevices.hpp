@@ -185,11 +185,11 @@ public:
 	 */
 	bool print_statistics(bool reset);
 
-	unsigned int queue_size() const { return _queue_size; }
+	unsigned int get_queue_size() const { return _queue_size; }
 	int32_t subscriber_count() const { return _subscriber_count; }
 	uint32_t lost_message_count() const { return _lost_messages; }
 	unsigned int published_message_count() const { return _generation; }
-	const struct orb_metadata *meta() const { return _meta; }
+	const struct orb_metadata *get_meta() const { return _meta; }
 
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);

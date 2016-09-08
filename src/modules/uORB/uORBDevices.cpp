@@ -995,7 +995,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 			bool matched = false;
 
 			for (int i = 0; i < num_filters; ++i) {
-				if (strstr(node->meta()->o_name, topic_filter[i])) {
+				if (strstr(node->get_meta()->o_name, topic_filter[i])) {
 					matched = true;
 				}
 			}
@@ -1021,7 +1021,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		last_node->node = node;
 		int node_name_len = strlen(node_name);
 		last_node->instance = (uint8_t)(node_name[node_name_len - 1] - '0');
-		size_t name_length = strlen(last_node->node->meta()->o_name);
+		size_t name_length = strlen(last_node->node->get_meta()->o_name);
 
 		if (name_length > max_topic_name_length) {
 			max_topic_name_length = name_length;
@@ -1131,9 +1131,9 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 #else
 					printf(CLEAR_LINE "%*s %2i %4i %4i %5i %i\n", -(int)max_topic_name_length,
 #endif
-					       cur_node->node->meta()->o_name, (int)cur_node->instance,
+					       cur_node->node->get_meta()->o_name, (int)cur_node->instance,
 					       cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-					       cur_node->lost_msg_delta, cur_node->node->queue_size());
+					       cur_node->lost_msg_delta, cur_node->node->get_queue_size());
 				}
 
 				cur_node = cur_node->next;
