@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,8 @@
 #include <stdlib.h>
 #include "ORBMap.hpp"
 
-namespace device {
+namespace device
+{
 //type mappings to NuttX
 typedef ::file file_t;
 typedef CDev VDev;
@@ -198,6 +199,9 @@ private:
 	struct UpdateIntervalData {
 		unsigned  interval; /**< if nonzero minimum interval between updates */
 		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
+#ifndef __PX4_NUTTX
+		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
+#endif
 	};
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete(update_interval); } }
@@ -217,15 +221,20 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	pid_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
 	unsigned int _queue_size; /**< maximum number of elements in the queue */
 
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
+#ifdef __PX4_NUTTX
+	pid_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+					We allow one publisher to have an open file descriptor at the same time. */
 	bool    _IsRemoteSubscriberPresent;
+#else
+	unsigned long     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+					We allow one publisher to have an open file descriptor at the same time. */
+#endif
 	int32_t _subscriber_count;
 
 	//statistics
@@ -316,8 +325,13 @@ private:
 	 */
 	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
 
-	const Flavor  _flavor;
+	const Flavor _flavor;
+
+#ifdef __PX4_NUTTX
 	ORBMap _node_map;
+#else
+	std::map<std::string, uORB::DeviceNode *> _node_map;
+#endif
 	hrt_abstime       _last_statistics_output;
 };
 

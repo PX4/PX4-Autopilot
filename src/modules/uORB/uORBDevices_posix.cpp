@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,34 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <algorithm>
+#include <systemlib/px4_macros.h>
 
+#ifdef __PX4_NUTTX
+#include <nuttx/arch.h>
+#define ATOMIC_ENTER irqstate_t flags = px4_enter_critical_section()
+#define ATOMIC_LEAVE px4_leave_critical_section(flags)
+#define FILE_FLAGS(filp) filp->f_oflags
+#define FILE_PRIV(filp) filp->f_priv
+#define ITERATE_NODE_MAP() \
+	for (ORBMap::Node *node_iter = _node_map.top(); node_iter; node_iter = node_iter->next)
+#define INIT_NODE_MAP_VARS(node_obj, node_name_str) \
+	DeviceNode *node_obj = node_iter->node; \
+	const char *node_name_str = node_iter->node_name; \
+	UNUSED(node_name_str);
+
+#else
+#define FILE_FLAGS(filp) filp->flags
+#define FILE_PRIV(filp) filp->priv
+#include <algorithm>
+#define ATOMIC_ENTER lock()
+#define ATOMIC_LEAVE unlock()
+#define ITERATE_NODE_MAP() \
+	for (const auto &node_iter : _node_map)
+#define INIT_NODE_MAP_VARS(node_obj, node_name_str) \
+	DeviceNode *node_obj = node_iter.second; \
+	const char *node_name_str = node_iter.first.c_str(); \
+	UNUSED(node_name_str);
+#endif
 #include "uORBDevices_posix.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -48,16 +74,14 @@ using namespace device;
 
 uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
 {
-	uORB::DeviceNode::SubscriberData *sd;
+#ifndef __PX4_NUTTX
 
-	if (filp) {
-		sd = (uORB::DeviceNode::SubscriberData *)(filp->priv);
-
-	} else {
-		sd = 0;
+	if (!filp) {
+		return nullptr;
 	}
 
-	return sd;
+#endif
+	return (SubscriberData *)(FILE_PRIV(filp));
 }
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
@@ -67,10 +91,13 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 	_data(nullptr),
 	_last_update(0),
 	_generation(0),
-	_publisher(0),
 	_priority(priority),
 	_published(false),
 	_queue_size(queue_size),
+	_publisher(0),
+#ifdef __PX4_NUTTX
+	_IsRemoteSubscriberPresent(false),
+#endif
 	_subscriber_count(0)
 {
 	// enable debug() calls
@@ -91,7 +118,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 	int ret;
 
 	/* is this a publisher? */
-	if (filp->flags == PX4_F_WRONLY) {
+	if (FILE_FLAGS(filp) == PX4_F_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
@@ -120,7 +147,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 	}
 
 	/* is this a new subscriber? */
-	if (filp->flags == PX4_F_RDONLY) {
+	if (FILE_FLAGS(filp) == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData;
@@ -137,7 +164,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 		/* set priority */
 		sd->set_priority(_priority);
 
-		filp->priv = (void *)sd;
+		FILE_PRIV(filp) = (void *)sd;
 
 		ret = VDev::open(filp);
 
@@ -197,7 +224,7 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	lock();
+	ATOMIC_ENTER;
 
 	if (_generation > sd->generation + _queue_size) {
 		/* Reader is too far behind: some messages are lost */
@@ -230,7 +257,7 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	 */
 	sd->set_update_reported(false);
 
-	unlock();
+	ATOMIC_LEAVE;
 
 	return _meta->o_size;
 }
@@ -248,6 +275,21 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 	 * Note that filp will usually be NULL.
 	 */
 	if (nullptr == _data) {
+#ifdef __PX4_NUTTX
+
+		if (!up_interrupt_context()) {
+
+			lock();
+
+			/* re-check size */
+			if (nullptr == _data) {
+				_data = new uint8_t[_meta->o_size * _queue_size];
+			}
+
+			unlock();
+		}
+
+#else
 		lock();
 
 		/* re-check size */
@@ -256,6 +298,7 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 		}
 
 		unlock();
+#endif
 
 		/* failed or could not allocate */
 		if (nullptr == _data) {
@@ -268,7 +311,8 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 		return -EIO;
 	}
 
-	lock();
+	/* Perform an atomic copy. */
+	ATOMIC_ENTER;
 	memcpy(_data + (_meta->o_size * (_generation % _queue_size)), buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
@@ -278,7 +322,7 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 
 	_published = true;
 
-	unlock();
+	ATOMIC_LEAVE;
 
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
@@ -292,16 +336,21 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
-	case ORBIOCLASTUPDATE:
-		lock();
-		*(hrt_abstime *)arg = _last_update;
-		unlock();
-		return PX4_OK;
+	case ORBIOCLASTUPDATE: {
+			ATOMIC_ENTER;
+			*(hrt_abstime *)arg = _last_update;
+			ATOMIC_LEAVE;
+			return PX4_OK;
+		}
 
 	case ORBIOCUPDATED:
+#ifndef __PX4_NUTTX
 		lock();
+#endif
 		*(bool *)arg = appears_updated(sd);
+#ifndef __PX4_NUTTX
 		unlock();
+#endif
 		return PX4_OK;
 
 	case ORBIOCSETINTERVAL: {
@@ -317,7 +366,9 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			} else {
 				if (sd->update_interval) {
 					sd->update_interval->interval = arg;
+#ifndef __PX4_NUTTX
 					sd->update_interval->last_update = hrt_absolute_time();
+#endif
 
 				} else {
 					sd->update_interval = new UpdateIntervalData();
@@ -325,7 +376,9 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					if (sd->update_interval) {
 						memset(&sd->update_interval->update_call, 0, sizeof(hrt_call));
 						sd->update_interval->interval = arg;
+#ifndef __PX4_NUTTX
 						sd->update_interval->last_update = hrt_absolute_time();
+#endif
 
 					} else {
 						ret = -ENOMEM;
@@ -458,6 +511,88 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 	}
 }
 
+#ifdef __PX4_NUTTX
+bool
+uORB::DeviceNode::appears_updated(SubscriberData *sd)
+{
+	/* assume it doesn't look updated */
+	bool ret = false;
+
+	/* avoid racing between interrupt and non-interrupt context calls */
+	irqstate_t state = px4_enter_critical_section();
+
+	/* check if this topic has been published yet, if not bail out */
+	if (_data == nullptr) {
+		ret = false;
+		goto out;
+	}
+
+	/*
+	 * If the subscriber's generation count matches the update generation
+	 * count, there has been no update from their perspective; if they
+	 * don't match then we might have a visible update.
+	 */
+	while (sd->generation != _generation) {
+
+		/*
+		 * Handle non-rate-limited subscribers.
+		 */
+		if (sd->update_interval == nullptr) {
+			ret = true;
+			break;
+		}
+
+		/*
+		 * If we have previously told the subscriber that there is data,
+		 * and they have not yet collected it, continue to tell them
+		 * that there has been an update.  This mimics the non-rate-limited
+		 * behaviour where checking / polling continues to report an update
+		 * until the topic is read.
+		 */
+		if (sd->update_reported()) {
+			ret = true;
+			break;
+		}
+
+		/*
+		 * If the interval timer is still running, the topic should not
+		 * appear updated, even though at this point we know that it has.
+		 * We have previously been through here, so the subscriber
+		 * must have collected the update we reported, otherwise
+		 * update_reported would still be true.
+		 */
+		if (!hrt_called(&sd->update_interval->update_call)) {
+			break;
+		}
+
+		/*
+		 * Make sure that we don't consider the topic to be updated again
+		 * until the interval has passed once more by restarting the interval
+		 * timer and thereby re-scheduling a poll notification at that time.
+		 */
+		hrt_call_after(&sd->update_interval->update_call,
+			       sd->update_interval->interval,
+			       &uORB::DeviceNode::update_deferred_trampoline,
+			       (void *)this);
+
+		/*
+		 * Remember that we have told the subscriber that there is data.
+		 */
+		sd->set_update_reported(true);
+		ret = true;
+
+		break;
+	}
+
+out:
+	px4_leave_critical_section(state);
+
+	/* consider it updated */
+	return ret;
+}
+
+#else
+
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
@@ -520,6 +655,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 
 	return ret;
 }
+#endif /* ifdef __PX4_NUTTX */
 
 void
 uORB::DeviceNode::update_deferred()
@@ -774,7 +910,11 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				} else {
 					// add to the node map;.
+#ifdef __PX4_NUTTX
+					_node_map.insert(nodepath, node);
+#else
 					_node_map[std::string(nodepath)] = node;
+#endif
 				}
 
 				group_tries++;
@@ -805,9 +945,10 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	bool had_print = false;
 
 	lock();
+	ITERATE_NODE_MAP() {
+		INIT_NODE_MAP_VARS(node, node_name)
 
-	for (const auto &node : _node_map) {
-		if (node.second->print_statistics(reset)) {
+		if (node->print_statistics(reset)) {
 			had_print = true;
 		}
 	}
@@ -833,13 +974,15 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 	}
 
-	for (const auto &node : _node_map) {
+
+	ITERATE_NODE_MAP() {
+		INIT_NODE_MAP_VARS(node, node_name)
 		++num_topics;
 
 		//check if already added
 		cur_node = *first_node;
 
-		while (cur_node && cur_node->node != node.second) {
+		while (cur_node && cur_node->node != node) {
 			cur_node = cur_node->next;
 		}
 
@@ -851,7 +994,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 			bool matched = false;
 
 			for (int i = 0; i < num_filters; ++i) {
-				if (strstr(node.second->meta()->o_name, topic_filter[i])) {
+				if (strstr(node->meta()->o_name, topic_filter[i])) {
 					matched = true;
 				}
 			}
@@ -874,8 +1017,9 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 			break;
 		}
 
-		last_node->node = node.second;
-		last_node->instance = (uint8_t)(node.first[node.first.length() - 1] - '0');
+		last_node->node = node;
+		int node_name_len = strlen(node_name);
+		last_node->instance = (uint8_t)(node_name[node_name_len - 1] - '0');
 		size_t name_length = strlen(last_node->node->meta()->o_name);
 
 		if (name_length > max_topic_name_length) {
@@ -949,7 +1093,11 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		if (!quit) {
 			printf("\033[H"); // move cursor home and clear screen
 			printf(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
+#ifdef __PX4_NUTTX
+			printf(CLEAR_LINE "%*-s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+#else
 			printf(CLEAR_LINE "%*s INST #SUB #MSG #LOST #QSIZE\n", -(int)max_topic_name_length + 2, "TOPIC NAME");
+#endif
 			cur_node = first_node;
 
 			while (cur_node) {
@@ -957,7 +1105,11 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 				unsigned int num_msgs = cur_node->node->published_message_count();
 
 				if (!print_active_only || num_msgs - cur_node->last_pub_msg_count > 0) {
+#ifdef __PX4_NUTTX
+					printf(CLEAR_LINE "%*-s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
+#else
 					printf(CLEAR_LINE "%*s %2i %4i %4i %5i %i\n", -(int)max_topic_name_length,
+#endif
 					       cur_node->node->meta()->o_name, (int)cur_node->instance,
 					       cur_node->node->subscriber_count(), num_msgs - cur_node->last_pub_msg_count,
 					       num_lost - cur_node->last_lost_msg_count, cur_node->node->queue_size());
@@ -997,6 +1149,21 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 	return node;
 }
 
+
+#ifdef __PX4_NUTTX
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
+{
+	uORB::DeviceNode *rc = nullptr;
+
+	if (_node_map.find(nodepath)) {
+		rc = _node_map.get(nodepath);
+	}
+
+	return rc;
+}
+
+#else
+
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
 {
 	uORB::DeviceNode *rc = nullptr;
@@ -1010,3 +1177,4 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
 
 	return rc;
 }
+#endif
