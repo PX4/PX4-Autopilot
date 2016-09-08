@@ -129,7 +129,8 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-
+	/* turn sensors on */
+	stm32_configgpio(GPIO_SENSORS_POWER);
 
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
