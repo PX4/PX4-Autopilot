@@ -129,11 +129,6 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* Select 0 */
-
-	stm32_configgpio(GPIO_S0);
-	stm32_configgpio(GPIO_S1);
-	stm32_configgpio(GPIO_S2);
 
 
 	/* configure SPI interfaces */
