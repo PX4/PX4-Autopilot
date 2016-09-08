@@ -86,29 +86,9 @@
  * I2C3_SDL     PA8     COMPASS_I2C3_SCL          JP1-25,26
  *
  */
-#define PX4_I2C_BUS_ONBOARD    1
-#define PX4_I2C_BUS_SONAR      2
-#define PX4_I2C_BUS_EXPANSION  3
+#define PX4_I2C_BUS_ONBOARD    3
 
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
-/*
- * Devices on the onboard bus.
- *
- * Note that these are unshifted addresses (not includinf R/W).
- */
-
-/* todo:
- * Cannot tell from the schematic if there is one or 2 MPU6050
- * The slave address of the MPU-60X0 is b110100X which is 7 bits long.
- * The LSB bit of the 7 bit address is determined by the logic level
- * on pin AD0. This allows two MPU-60X0s to be connected to the same I2C bus.
- * When used in this configuration, the address of the one of the devices
- * should be b1101000 (pin AD0 is logic low) and the address of the other
- * should be b1101001 (pin AD0 is logic high).
- */
-#define PX4_I2C_ON_BOARD_MPU6050_ADDRS {0x68,0x69}
-
+#define PX4_I2C_OBDEV_HMC5883	0x1E
 
 /*
  * ADC channels
