@@ -31,8 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef _uORBDevices_nuttx_hpp_
-#define _uORBDevices_nuttx_hpp_
+#pragma once
 
 #include <stdint.h>
 #include <string.h>
@@ -54,28 +53,15 @@ class Manager;
 class uORB::DeviceNode : public device::CDev
 {
 public:
-	/**
-	 * Constructor
-	 */
-	DeviceNode
-	(
-		const struct orb_metadata *meta,
-		const char *name,
-		const char *path,
-		int priority,
-		unsigned int queue_size = 1
-	);
-
-	/**
-	 * Destructor
-	 */
+	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
+		   int priority, unsigned int queue_size = 1);
 	~DeviceNode();
 
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int  open(struct file *filp);
+	virtual int open(struct file *filp);
 
 	/**
 	 * Method to close a subscriber for this topic.
@@ -117,12 +103,7 @@ public:
 	/**
 	 * Method to publish a data to this node.
 	 */
-	static ssize_t publish
-	(
-		const orb_metadata *meta,
-		orb_advert_t handle,
-		const void *data
-	);
+	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	static int        unadvertise(orb_advert_t handle);
 
@@ -225,11 +206,7 @@ private:
 	bool _published;  /**< has ever data been published */
 	unsigned int _queue_size; /**< maximum number of elements in the queue */
 
-	static SubscriberData    *filp_to_sd(struct file *filp)
-	{
-		SubscriberData *sd = (SubscriberData *)(filp->f_priv);
-		return sd;
-	}
+	inline static SubscriberData    *filp_to_sd(struct file *filp);
 
 	bool    _IsRemoteSubscriberPresent;
 	int32_t _subscriber_count;
@@ -253,10 +230,13 @@ private:
 	/**
 	 * Check whether a topic appears updated to a subscriber.
 	 *
+	 * Lock must already be held when calling this.
+	 *
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber
 	 */
 	bool      appears_updated(SubscriberData *sd);
+
 
 	// disable copy and assignment operators
 	DeviceNode(const DeviceNode &);
@@ -325,5 +305,3 @@ private:
 };
 
 
-
-#endif
