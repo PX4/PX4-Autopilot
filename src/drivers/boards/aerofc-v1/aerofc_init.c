@@ -135,17 +135,11 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_S1);
 	stm32_configgpio(GPIO_S2);
 
-	/* configure always-on ADC pins */
-
-	stm32_configgpio(GPIO_ADC1_IN10);
-
 
 	/* configure SPI interfaces */
-
 	stm32_spiinitialize();
 
 	/* configure LEDs (empty call to NuttX' ledinit) */
-
 	up_ledinit();
 }
 

@@ -96,13 +96,14 @@
  * PC0     VOLTAGE                   JP2-13,14          - 1.84 @16.66  1.67 @15.12 Scale 0.1105
  *
  */
-#define ADC_CHANNELS (1 << 10)
-/* todo:Revisit - cannnot tell from schematic - some could be ADC */
+#define ADC_CHANNELS 0
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-
+/*
+ * ADC defines just to not break sensors.cpp build, battery voltage and current
+ * will be read in another way in future.
+ */
+#define ADC_BATTERY_VOLTAGE_CHANNEL    0
+#define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
 /* User GPIOs
  *
