@@ -44,6 +44,7 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
+using namespace device;
 
 uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
 {
@@ -288,7 +289,6 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 int
 uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
-	//warnx("uORB::DeviceNode::ioctl fd = %d cmd = %d", filp->fd, cmd);
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
@@ -433,7 +433,6 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 pollevent_t
 uORB::DeviceNode::poll_state(device::file_t *filp)
 {
-	//warnx("uORB::DeviceNode::poll_state fd = %d", filp->fd);
 	SubscriberData *sd = filp_to_sd(filp);
 
 	/*
@@ -449,7 +448,6 @@ uORB::DeviceNode::poll_state(device::file_t *filp)
 void
 uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	//warnx("uORB::DeviceNode::poll_notify_one fds = %p fds->priv = %p", fds, fds->priv);
 	SubscriberData *sd = filp_to_sd((device::file_t *)fds->priv);
 
 	/*
@@ -469,7 +467,6 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		usleep(100);
 	}
 
-	//warnx("uORB::DeviceNode::appears_updated sd = %p", sd);
 	/* assume it doesn't look updated */
 	bool ret = false;
 
@@ -671,7 +668,6 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	return PX4_OK;
 }
 
-
 uORB::DeviceMaster::DeviceMaster(Flavor f) :
 	VDev((f == PUBSUB) ? "obj_master" : "param_master",
 	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
@@ -781,7 +777,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					_node_map[std::string(nodepath)] = node;
 				}
 
-
 				group_tries++;
 
 			} while (ret != PX4_OK && (group_tries < max_group_tries));
@@ -807,9 +802,9 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	_last_statistics_output = current_time;
 
 	PX4_INFO("TOPIC, NR LOST MSGS");
+	bool had_print = false;
 
 	lock();
-	bool had_print = false;
 
 	for (const auto &node : _node_map) {
 		if (node.second->print_statistics(reset)) {
