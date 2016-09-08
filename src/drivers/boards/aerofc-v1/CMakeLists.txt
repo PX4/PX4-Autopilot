@@ -37,7 +37,6 @@ px4_add_module(
 	SRCS
 		../common/board_name.c
 		aerofc_init.c
-		aerofc_timer_config.c
 		aerofc_spi.c
 		aerofc_usb.c
 		aerofc_led.c
