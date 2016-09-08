@@ -833,6 +833,177 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	}
 }
 
+void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
+		size_t &max_topic_name_length,
+		char **topic_filter, int num_filters)
+{
+	DeviceNodeStatisticsData *cur_node;
+	num_topics = 0;
+	DeviceNodeStatisticsData *last_node = *first_node;
+
+	if (last_node) {
+		while (last_node->next) {
+			last_node = last_node->next;
+		}
+	}
+
+
+	for (ORBMap::Node *node = _node_map.top(); node; node = node->next) {
+		++num_topics;
+
+		//check if already added
+		cur_node = *first_node;
+
+		while (cur_node && cur_node->node != node->node) {
+			cur_node = cur_node->next;
+		}
+
+		if (cur_node) {
+			continue;
+		}
+
+		if (num_filters > 0 && topic_filter) {
+			bool matched = false;
+
+			for (int i = 0; i < num_filters; ++i) {
+				if (strstr(node->node->meta()->o_name, topic_filter[i])) {
+					matched = true;
+				}
+			}
+
+			if (!matched) {
+				continue;
+			}
+		}
+
+		if (last_node) {
+			last_node->next = new DeviceNodeStatisticsData();
+			last_node = last_node->next;
+
+		} else {
+			*first_node = last_node = new DeviceNodeStatisticsData();
+		}
+
+		if (!last_node) {
+			PX4_ERR("mem alloc failed");
+			break;
+		}
+
+		last_node->node = node->node;
+		int node_name_len = strlen(node->node_name);
+		last_node->instance = (uint8_t)(node->node_name[node_name_len - 1] - '0');
+		size_t name_length = strlen(last_node->node->meta()->o_name);
+
+		if (name_length > max_topic_name_length) {
+			max_topic_name_length = name_length;
+		}
+
+		last_node->last_lost_msg_count = last_node->node->lost_message_count();
+		last_node->last_pub_msg_count = last_node->node->published_message_count();
+
+	}
+}
+
+#define CLEAR_LINE "\033[K"
+
+void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
+{
+
+	bool print_active_only = true;
+
+	if (topic_filter && num_filters > 0) {
+		if (!strcmp("-a", topic_filter[0])) {
+			num_filters = 0;
+		}
+
+		print_active_only = false; // print non-active if -a or some filter given
+	}
+
+	printf("\033[2J\n"); //clear screen
+
+	lock();
+
+	if (!_node_map.top()) {
+		unlock();
+		PX4_INFO("no active topics");
+		return;
+	}
+
+	DeviceNodeStatisticsData *first_node = nullptr;
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	size_t max_topic_name_length = 0;
+	int num_topics = 0;
+	addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+
+	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
+	unlock();
+
+	struct pollfd fds;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
+	bool quit = false;
+
+	while (!quit) {
+		/* Sleep 200 ms waiting for user input five times ~ 1s */
+		for (int k = 0; k < 5; k++) {
+			char c;
+
+			int ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+
+			if (ret > 0) {
+
+				ret = read(0, &c, 1);
+
+				if (ret) {
+					quit = true;
+					break;
+				}
+			}
+
+			usleep(200000);
+		}
+
+		if (!quit) {
+			printf("\033[H"); // move cursor home and clear screen
+			printf(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
+			printf(CLEAR_LINE "%*-s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			cur_node = first_node;
+
+			while (cur_node) {
+				uint32_t num_lost = cur_node->node->lost_message_count();
+				unsigned int num_msgs = cur_node->node->published_message_count();
+
+				if (!print_active_only || num_msgs - cur_node->last_pub_msg_count > 0) {
+					printf(CLEAR_LINE "%*-s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
+					       cur_node->node->meta()->o_name, (int)cur_node->instance,
+					       cur_node->node->subscriber_count(), num_msgs - cur_node->last_pub_msg_count,
+					       num_lost - cur_node->last_lost_msg_count, cur_node->node->queue_size());
+				}
+
+				cur_node->last_lost_msg_count = num_lost;
+				cur_node->last_pub_msg_count = num_msgs;
+
+				cur_node = cur_node->next;
+			}
+
+			lock();
+			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			unlock();
+		}
+	}
+
+	//cleanup
+	cur_node = first_node;
+
+	while (cur_node) {
+		DeviceNodeStatisticsData *next_node = cur_node->next;
+		delete cur_node;
+		cur_node = next_node;
+	}
+}
+
+#undef CLEAR_LINE
+
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 {

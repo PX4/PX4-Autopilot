@@ -123,6 +123,12 @@ public:
 	 */
 	bool print_statistics(bool reset);
 
+	unsigned int queue_size() const { return _queue_size; }
+	int32_t subscriber_count() const { return _subscriber_count; }
+	uint32_t lost_message_count() const { return _lost_messages; }
+	unsigned int published_message_count() const { return _generation; }
+	const struct orb_metadata *meta() const { return _meta; }
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void    poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -216,10 +222,29 @@ public:
 	 */
 	void printStatistics(bool reset);
 
+	/**
+	 * Continuously print statistics, like the unix top command for processes.
+	 * Exited when the user presses the enter key.
+	 * @param topic_filter list of topic filters: if set, each string can be a substring for topics to match.
+	 *        Or it can be '-a', which means to print all topics instead of only currently publishing ones.
+	 * @param num_filters
+	 */
+	void showTop(char **topic_filter, int num_filters);
+
 private:
 	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
 	virtual ~DeviceMaster();
+
+	struct DeviceNodeStatisticsData {
+		DeviceNode *node;
+		uint8_t instance;
+		uint32_t last_lost_msg_count;
+		unsigned int last_pub_msg_count;
+		DeviceNodeStatisticsData *next = nullptr;
+	};
+	void addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
+			       char **topic_filter, int num_filters);
 
 	friend class uORB::Manager;
 
