@@ -35,6 +35,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <poll.h>
 #include <systemlib/px4_macros.h>
 
 #ifdef __PX4_NUTTX
@@ -1066,14 +1067,26 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
 	unlock();
 
+#ifdef __PX4_QURT //QuRT has no poll()
+	int num_runs = 0;
+#else
 	struct pollfd fds;
 	fds.fd = 0; /* stdin */
 	fds.events = POLLIN;
+#endif
 	bool quit = false;
 
 	hrt_abstime start_time = hrt_absolute_time();
 
 	while (!quit) {
+
+#ifdef __PX4_QURT
+
+		if (++num_runs > 1) {
+			quit = true; //just exit after one output
+		}
+
+#else
 
 		/* Sleep 200 ms waiting for user input five times ~ 1s */
 		for (int k = 0; k < 5; k++) {
@@ -1093,6 +1106,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			usleep(200000);
 		}
+
+#endif
 
 		if (!quit) {
 
@@ -1132,8 +1147,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 					printf(CLEAR_LINE "%*s %2i %4i %4i %5i %i\n", -(int)max_topic_name_length,
 #endif
 					       cur_node->node->get_meta()->o_name, (int)cur_node->instance,
-					       cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-					       cur_node->lost_msg_delta, cur_node->node->get_queue_size());
+					       (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
+					       (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());
 				}
 
 				cur_node = cur_node->next;
