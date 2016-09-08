@@ -34,10 +34,27 @@
 #pragma once
 
 #include <stdint.h>
+#include "uORBCommon.hpp"
+
+
+#ifdef __PX4_NUTTX
 #include <string.h>
 #include <stdlib.h>
 #include "ORBMap.hpp"
-#include "uORBCommon.hpp"
+
+namespace device {
+//type mappings to NuttX
+typedef ::file file_t;
+typedef CDev VDev;
+}
+
+#else
+
+#include <string>
+#include <map>
+
+#endif /* __PX4_NUTTX */
+
 
 
 namespace uORB
@@ -50,7 +67,7 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public device::CDev
+class uORB::DeviceNode : public device::VDev
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
@@ -61,12 +78,12 @@ public:
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int open(struct file *filp);
+	virtual int open(device::file_t *filp);
 
 	/**
 	 * Method to close a subscriber for this topic.
 	 */
-	virtual int   close(struct file *filp);
+	virtual int   close(device::file_t *filp);
 
 	/**
 	 * reads data from a subscriber node to the buffer provided.
@@ -79,7 +96,7 @@ public:
 	 * @return
 	 *   ssize_t the number of bytes read.
 	 */
-	virtual ssize_t  read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t   read(device::file_t *filp, char *buffer, size_t buflen);
 
 	/**
 	 * writes the published data to the internal buffer to be read by
@@ -93,12 +110,12 @@ public:
 	 * @return ssize_t
 	 *   The number of bytes that are written
 	 */
-	virtual ssize_t   write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t   write(device::file_t *filp, const char *buffer, size_t buflen);
 
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Method to publish a data to this node.
@@ -174,8 +191,8 @@ public:
 	const struct orb_metadata *meta() const { return _meta; }
 
 protected:
-	virtual pollevent_t poll_state(struct file *filp);
-	virtual void poll_notify_one(struct pollfd *fds, pollevent_t events);
+	virtual pollevent_t poll_state(device::file_t *filp);
+	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 private:
 	struct UpdateIntervalData {
@@ -206,7 +223,7 @@ private:
 	bool _published;  /**< has ever data been published */
 	unsigned int _queue_size; /**< maximum number of elements in the queue */
 
-	inline static SubscriberData    *filp_to_sd(struct file *filp);
+	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	bool    _IsRemoteSubscriberPresent;
 	int32_t _subscriber_count;
@@ -249,10 +266,10 @@ private:
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster : public device::CDev
+class uORB::DeviceMaster : public device::VDev
 {
 public:
-	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.

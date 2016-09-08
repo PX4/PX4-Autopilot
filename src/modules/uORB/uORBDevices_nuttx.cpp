@@ -43,8 +43,9 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
+using namespace device;
 
-uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(struct file *filp)
+uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
 {
 	SubscriberData *sd = (SubscriberData *)(filp->f_priv);
 	return sd;
@@ -52,7 +53,7 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(struct file *filp
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
 			     int priority, unsigned int queue_size) :
-	CDev(name, path),
+	VDev(name, path),
 	_meta(meta),
 	_data(nullptr),
 	_last_update(0),
@@ -77,7 +78,7 @@ uORB::DeviceNode::~DeviceNode()
 }
 
 int
-uORB::DeviceNode::open(struct file *filp)
+uORB::DeviceNode::open(device::file_t *filp)
 {
 	int ret;
 
@@ -88,7 +89,7 @@ uORB::DeviceNode::open(struct file *filp)
 		lock();
 
 		if (_publisher == 0) {
-			_publisher = getpid();
+			_publisher = px4_getpid();
 			ret = PX4_OK;
 
 		} else {
@@ -99,7 +100,7 @@ uORB::DeviceNode::open(struct file *filp)
 
 		/* now complete the open */
 		if (ret == PX4_OK) {
-			ret = CDev::open(filp);
+			ret = VDev::open(filp);
 
 			/* open failed - not the publisher anymore */
 			if (ret != PX4_OK) {
@@ -130,7 +131,7 @@ uORB::DeviceNode::open(struct file *filp)
 
 		filp->f_priv = (void *)sd;
 
-		ret = CDev::open(filp);
+		ret = VDev::open(filp);
 
 		add_internal_subscriber();
 
@@ -147,10 +148,10 @@ uORB::DeviceNode::open(struct file *filp)
 }
 
 int
-uORB::DeviceNode::close(struct file *filp)
+uORB::DeviceNode::close(device::file_t *filp)
 {
 	/* is this the publisher closing? */
-	if (getpid() == _publisher) {
+	if (px4_getpid() == _publisher) {
 		_publisher = 0;
 
 	} else {
@@ -167,11 +168,11 @@ uORB::DeviceNode::close(struct file *filp)
 		}
 	}
 
-	return CDev::close(filp);
+	return VDev::close(filp);
 }
 
 ssize_t
-uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
+uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
@@ -227,7 +228,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 ssize_t
-uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
+uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 {
 	/*
 	 * Writes are legal from interrupt context as long as the
@@ -282,7 +283,7 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 }
 
 int
-uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
+uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	SubscriberData *sd = filp_to_sd(filp);
 
@@ -354,7 +355,7 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -423,7 +424,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 }
 
 pollevent_t
-uORB::DeviceNode::poll_state(struct file *filp)
+uORB::DeviceNode::poll_state(device::file_t *filp)
 {
 	SubscriberData *sd = filp_to_sd(filp);
 
@@ -438,15 +439,15 @@ uORB::DeviceNode::poll_state(struct file *filp)
 }
 
 void
-uORB::DeviceNode::poll_notify_one(struct pollfd *fds, pollevent_t events)
+uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	SubscriberData *sd = filp_to_sd((struct file *)fds->priv);
+	SubscriberData *sd = filp_to_sd((device::file_t *)fds->priv);
 
 	/*
 	 * If the topic looks updated to the subscriber, go ahead and notify them.
 	 */
 	if (appears_updated(sd)) {
-		CDev::poll_notify_one(fds, events);
+		VDev::poll_notify_one(fds, events);
 	}
 }
 
@@ -677,7 +678,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 }
 
 uORB::DeviceMaster::DeviceMaster(Flavor f) :
-	CDev((f == PUBSUB) ? "obj_master" : "param_master",
+	VDev((f == PUBSUB) ? "obj_master" : "param_master",
 	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
 	_flavor(f)
 {
@@ -691,7 +692,7 @@ uORB::DeviceMaster::~DeviceMaster()
 }
 
 int
-uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
+uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -798,7 +799,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
