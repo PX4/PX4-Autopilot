@@ -51,9 +51,9 @@
 	UNUSED(node_name_str);
 
 #else
+#include <algorithm>
 #define FILE_FLAGS(filp) filp->flags
 #define FILE_PRIV(filp) filp->priv
-#include <algorithm>
 #define ATOMIC_ENTER lock()
 #define ATOMIC_LEAVE unlock()
 #define ITERATE_NODE_MAP() \
@@ -64,7 +64,7 @@
 	UNUSED(node_name_str);
 #endif
 
-#include "uORBDevices_nuttx.hpp"
+#include "uORBDevices.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBCommunicator.hpp"
