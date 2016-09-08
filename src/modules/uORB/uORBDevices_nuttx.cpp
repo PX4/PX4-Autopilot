@@ -43,14 +43,15 @@
 #include <px4_sem.hpp>
 #include <stdlib.h>
 
-uORB::DeviceNode::DeviceNode
-(
-	const struct orb_metadata *meta,
-	const char *name,
-	const char *path,
-	int priority,
-	unsigned int queue_size
-) :
+
+uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(struct file *filp)
+{
+	SubscriberData *sd = (SubscriberData *)(filp->f_priv);
+	return sd;
+}
+
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
+			     int priority, unsigned int queue_size) :
 	CDev(name, path),
 	_meta(meta),
 	_data(nullptr),
@@ -64,7 +65,7 @@ uORB::DeviceNode::DeviceNode
 	_subscriber_count(0)
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	//_debug_enabled = true;
 }
 
 uORB::DeviceNode::~DeviceNode()
@@ -88,7 +89,7 @@ uORB::DeviceNode::open(struct file *filp)
 
 		if (_publisher == 0) {
 			_publisher = getpid();
-			ret = OK;
+			ret = PX4_OK;
 
 		} else {
 			ret = -EBUSY;
@@ -97,11 +98,11 @@ uORB::DeviceNode::open(struct file *filp)
 		unlock();
 
 		/* now complete the open */
-		if (ret == OK) {
+		if (ret == PX4_OK) {
 			ret = CDev::open(filp);
 
 			/* open failed - not the publisher anymore */
-			if (ret != OK) {
+			if (ret != PX4_OK) {
 				_publisher = 0;
 			}
 		}
@@ -133,7 +134,8 @@ uORB::DeviceNode::open(struct file *filp)
 
 		add_internal_subscriber();
 
-		if (ret != OK) {
+		if (ret != PX4_OK) {
+			PX4_ERR("VDev::open failed");
 			delete sd;
 		}
 
@@ -289,12 +291,12 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 			irqstate_t state = px4_enter_critical_section();
 			*(hrt_abstime *)arg = _last_update;
 			px4_leave_critical_section(state);
-			return OK;
+			return PX4_OK;
 		}
 
 	case ORBIOCUPDATED:
 		*(bool *)arg = appears_updated(sd);
-		return OK;
+		return PX4_OK;
 
 	case ORBIOCSETINTERVAL: {
 			int ret = PX4_OK;
@@ -329,11 +331,11 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
-		return OK;
+		return PX4_OK;
 
 	case ORBIOCGPRIORITY:
 		*(int *)arg = sd->priority();
-		return OK;
+		return PX4_OK;
 
 	case ORBIOCSETQUEUESIZE:
 		//no need for locking here, since this is used only during the advertisement call,
@@ -357,24 +359,19 @@ uORB::DeviceNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-uORB::DeviceNode::publish
-(
-	const orb_metadata *meta,
-	orb_advert_t handle,
-	const void *data
-)
+uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
 {
-	uORB::DeviceNode *DeviceNode = (uORB::DeviceNode *)handle;
+	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
 	/* this is a bit risky, since we are trusting the handle in order to deref it */
-	if (DeviceNode->_meta != meta) {
+	if (devnode->_meta != meta) {
 		errno = EINVAL;
 		return ERROR;
 	}
 
-	/* call the DeviceNode write method with no file pointer */
-	ret = DeviceNode->write(nullptr, (const char *)data, meta->o_size);
+	/* call the devnode write method with no file pointer */
+	ret = devnode->write(nullptr, (const char *)data, meta->o_size);
 
 	if (ret < 0) {
 		return ERROR;
@@ -398,7 +395,7 @@ uORB::DeviceNode::publish
 		}
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 int uORB::DeviceNode::unadvertise(orb_advert_t handle)
@@ -642,14 +639,14 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int16_t uORB::DeviceNode::process_remove_subscription()
 {
-	return OK;
+	return PX4_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -676,7 +673,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 		return ERROR;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 uORB::DeviceMaster::DeviceMaster(Flavor f) :
@@ -685,7 +682,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 	_flavor(f)
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	//_debug_enabled = true;
 	_last_statistics_output = hrt_absolute_time();
 }
 
@@ -710,7 +707,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* construct a path to the node - this also checks the node name */
 			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
 
-			if (ret != OK) {
+			if (ret != PX4_OK) {
 				return ret;
 			}
 
@@ -762,8 +759,8 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* initialise the node - this may fail if e.g. a node with this name already exists */
 				ret = node->init();
 
-				if (ret != OK) {
-					/* if init failed, discard the node */
+				/* if init failed, discard the node and its name */
+				if (ret != PX4_OK) {
 					delete node;
 
 					if (ret == -EEXIST) {
@@ -773,7 +770,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
-							ret = OK;
+							ret = PX4_OK;
 
 						} else {
 							/* otherwise: data has already been published, keep looking */
@@ -790,7 +787,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				group_tries++;
 
-			} while (ret != OK && (group_tries < max_group_tries));
+			} while (ret != PX4_OK && (group_tries < max_group_tries));
 
 			if (ret != PX4_OK && group_tries >= max_group_tries) {
 				ret = -ENOMEM;
@@ -900,7 +897,6 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 
 		last_node->last_lost_msg_count = last_node->node->lost_message_count();
 		last_node->last_pub_msg_count = last_node->node->published_message_count();
-
 	}
 }
 
@@ -1003,7 +999,6 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 }
 
 #undef CLEAR_LINE
-
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 {

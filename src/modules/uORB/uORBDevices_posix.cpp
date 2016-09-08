@@ -45,7 +45,7 @@
 #include <stdlib.h>
 
 
-uORB::DeviceNode::SubscriberData  *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
+uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
 {
 	uORB::DeviceNode::SubscriberData *sd;
 
@@ -143,11 +143,10 @@ uORB::DeviceNode::open(device::file_t *filp)
 		add_internal_subscriber();
 
 		if (ret != PX4_OK) {
-			warnx("ERROR: VDev::open failed\n");
+			PX4_ERR("VDev::open failed");
 			delete sd;
 		}
 
-		//warnx("uORB::DeviceNode::Open: fd = %d flags = %d, priv = %p cdev = %p\n", filp->fd, filp->flags, filp->priv, filp->cdev);
 		return ret;
 	}
 
@@ -158,7 +157,6 @@ uORB::DeviceNode::open(device::file_t *filp)
 int
 uORB::DeviceNode::close(device::file_t *filp)
 {
-	//warnx("uORB::DeviceNode::close fd = %d", filp->fd);
 	/* is this the publisher closing? */
 	if (px4_getpid() == _publisher) {
 		_publisher = 0;
@@ -183,7 +181,6 @@ uORB::DeviceNode::close(device::file_t *filp)
 ssize_t
 uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-	//warnx("uORB::DeviceNode::read fd = %d\n", filp->fd);
 	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
 	/* if the object has not been written yet, return zero */
@@ -240,7 +237,6 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 ssize_t
 uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 {
-	//warnx("uORB::DeviceNode::write filp = %p (null is normal)", filp);
 	/*
 	 * Writes are legal from interrupt context as long as the
 	 * object has already been initialised from thread context.
@@ -373,14 +369,6 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 ssize_t
 uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
 {
-	//warnx("uORB::DeviceNode::publish meta = %p", meta);
-
-	if (handle == nullptr) {
-		warnx("uORB::DeviceNode::publish called with invalid handle");
-		errno = EINVAL;
-		return ERROR;
-	}
-
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
