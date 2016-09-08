@@ -34,10 +34,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
-	// vision 5 hz
-	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 5, 0, &getSubscriptions()),
+	// vision 30 hz
+	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 30, 0, &getSubscriptions()),
+	// mocap 50 hz
+	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 50, 0, &getSubscriptions()),
 	// all distance sensors, 10 hz
-	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 10, 0, &getSubscriptions()),
 	_sub_dist0(ORB_ID(distance_sensor), 1000 / 10, 0, &getSubscriptions()),
 	_sub_dist1(ORB_ID(distance_sensor), 1000 / 10, 1, &getSubscriptions()),
 	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
@@ -607,11 +608,20 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 	float by = dx(X_by) + _x(X_by);
 	float bz = dx(X_bz) + _x(X_bz);
 
-	if (std::abs(bx) > BIAS_MAX) { bx = BIAS_MAX * bx / std::abs(bx); }
+	if (std::abs(bx) > BIAS_MAX) {
+		bx = BIAS_MAX * bx / std::abs(bx);
+		dx(X_bx) = bx - _x(X_bx);
+	}
 
-	if (std::abs(by) > BIAS_MAX) { by = BIAS_MAX * by / std::abs(by); }
+	if (std::abs(by) > BIAS_MAX) {
+		by = BIAS_MAX * by / std::abs(by);
+		dx(X_by) = by - _x(X_by);
+	}
 
-	if (std::abs(bz) > BIAS_MAX) { bz = BIAS_MAX * bz / std::abs(bz); }
+	if (std::abs(bz) > BIAS_MAX) {
+		bz = BIAS_MAX * bz / std::abs(bz);
+		dx(X_bz) = bz - _x(X_bz);
+	}
 }
 
 

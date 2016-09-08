@@ -251,11 +251,11 @@ PARAM_DEFINE_INT32(LPE_VIS_ON, 1);
  *
  * @group Local Position Estimator
  * @unit m
- * @min 0.01
+ * @min 0.0001
  * @max 1
- * @decimal 3
+ * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
+PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.001f);
 
 /**
  * Position propagation noise density
