@@ -12,16 +12,12 @@ set(config_module_list
 	drivers/led
 	#drivers/px4fmu
 	drivers/boards/aerofc-v1
-	drivers/rgbled_pwm
 	drivers/tap_esc
 	drivers/mpu6500
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
-	drivers/airspeed
-	drivers/meas_airspeed
 	modules/sensors
-	drivers/camera_trigger
 
 	#
 	# System commands
