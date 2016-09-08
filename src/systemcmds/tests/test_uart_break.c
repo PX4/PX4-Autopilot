@@ -121,7 +121,7 @@ int test_uart_break(int argc, char *argv[])
 
 	/* Read the  buffer length */
 
-	ioctl(uart2, FIONWRITE, (unsigned long)&uart2_buffer_size);
+	ioctl(uart2, FIONSPACE, (unsigned long)&uart2_buffer_size);
 
 
 #define UART_BREAK_RUNTIME_CONF
@@ -231,7 +231,7 @@ int test_uart_break(int argc, char *argv[])
 	int wait = 0;
 
 	for (wait = 0; wait < 1000 && left != uart2_buffer_size;  wait++) {
-		ioctl(uart2, FIONWRITE, (unsigned long)&left);
+		ioctl(uart2, FIONSPACE, (unsigned long)&left);
 		usleep(250000);
 	}
 
