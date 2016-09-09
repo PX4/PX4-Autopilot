@@ -217,6 +217,8 @@ static struct cpuload_s cpuload = {};
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
+static bool rtl_on = false;
+static bool last_overload = false;
 
 static struct status_flags_s status_flags = {};
 
@@ -3124,17 +3126,28 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
+control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed,
+	bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
 {
-	bool overload = (cpuload_local->load > 0.75f) || (cpuload_local->ram_usage > 0.98f);
+	static hrt_abstime overload_start = 0;
+
+	bool overload = (cpuload_local->load > 0.80f) || (cpuload_local->ram_usage > 0.98f);
+
+	if (overload_start == 0 && overload) {
+		overload_start = hrt_absolute_time();
+	} else if (!overload) {
+		overload_start = 0;
+	}
 
 	/* driving rgbled */
-	if (changed) {
+	if (changed || last_overload != overload) {
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
+		int overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1000 : 250000;
+
 		/* set mode */
-		if (overload) {
+		if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 			rgbled_set_color(RGBLED_COLOR_PURPLE);
 			set_normal_color = false;
@@ -3178,6 +3191,8 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			}
 		}
 	}
+
+	last_overload = overload;
 
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE)
 
