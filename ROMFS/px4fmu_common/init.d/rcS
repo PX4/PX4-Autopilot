@@ -179,6 +179,11 @@ then
 		set USE_IO no
 	fi
 
+	if ver hwcmp AEROFC_V1
+	then
+		param set SYS_AUTOSTART 4070
+	fi
+
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
