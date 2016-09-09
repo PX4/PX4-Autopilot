@@ -32,15 +32,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__asc-v1
+	MODULE drivers__boards__aerofc-v1
 	COMPILE_FLAGS
 	SRCS
 		../common/board_name.c
-		asc_init.c
-		asc_timer_config.c
-		asc_spi.c
-		asc_usb.c
-		asc_led.c
+		aerofc_init.c
+		aerofc_timer_config.c
+		aerofc_spi.c
+		aerofc_usb.c
+		aerofc_led.c
 	DEPENDS
 		platforms__common
 	)

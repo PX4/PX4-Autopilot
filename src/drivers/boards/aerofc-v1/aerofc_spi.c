@@ -64,7 +64,7 @@
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the tap-v1 board.
+ *   Called to configure SPI chip select GPIO pins for the AEROFC-v1 board.
  *
  ************************************************************************************/
 

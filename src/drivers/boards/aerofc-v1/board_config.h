@@ -37,7 +37,7 @@
  * @author David Sidrane <david_s5@nscdg.com>
  * @author Lorenz Meier <lorenz@px4.io>
  *
- * TAP_V1 internal definitions
+ * AEROFC_V1 internal definitions
  */
 
 #pragma once
@@ -201,7 +201,7 @@
 #define HRT_TIMER		3	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
 
-#define	BOARD_NAME "TAP_V1"
+#define	BOARD_NAME "AEROFC_V1"
 
 /* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
  * system_power interface, and herefore provides the true logic
