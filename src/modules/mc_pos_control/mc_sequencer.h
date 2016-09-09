@@ -51,7 +51,7 @@ void prog_sequence(
 	float &rollRate, float &pitchRate, float &yawRate);
 
 enum Seq_state {
-	IDLE, RATE, ATTITUDE, DELAY
+	IDLE, RATE, ATTITUDE, DELAY, NEXT_ENTRY
 };
 struct seq_entry_s {
 	Seq_state type;
@@ -68,8 +68,8 @@ struct seq_entry_s {
 };
 
 void entryAction(Seq_state cur_state,
-		const seq_entry_s& seq_entry, math::Quaternion& q_end,
-		float& rollRate, float& pitchRate, float& yawRate,
-		struct vehicle_attitude_setpoint_s& att_sp, math::Matrix<3, 3>& R_sp);
+		 const seq_entry_s &seq_entry, math::Quaternion &q_end,
+		 float &rollRate, float &pitchRate, float &yawRate,
+		 struct vehicle_attitude_setpoint_s &att_sp, math::Matrix<3, 3> &R_sp);
 
 #endif
