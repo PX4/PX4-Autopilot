@@ -11,7 +11,7 @@ set(config_module_list
 	drivers/stm32/adc
 	drivers/led
 	#drivers/px4fmu
-	drivers/boards/asc-v1
+	drivers/boards/aerofc-v1
 	drivers/rgbled_pwm
 	drivers/tap_esc
 	drivers/mpu6500
