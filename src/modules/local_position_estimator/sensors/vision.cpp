@@ -21,20 +21,19 @@ void BlockLocalPositionEstimator::visionInit(Vector<float, n_x> &xLP)
 
 	// increament sums for mean
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
-		_visionOrigin = _visionStats.getMean();
 
-		_visionOrigin(Y_vision_x) -= xLP(X_x);
-		_visionOrigin(Y_vision_y) -= xLP(X_y);
-		_visionOrigin(Y_vision_z) -= xLP(X_z);
+		_visionOrigin(Y_vision_x) = _visionStats.getMean()(Y_vision_x) - xLP(X_x);
+		_visionOrigin(Y_vision_y) = _visionStats.getMean()(Y_vision_y) - xLP(X_y);
+		_visionOrigin(Y_vision_z) = _visionStats.getMean()(Y_vision_z) - xLP(X_z);
 
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position init: "
 					     "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
-					     double(_visionStats.getMean()(0)),
-					     double(_visionStats.getMean()(1)),
-					     double(_visionStats.getMean()(2)),
-					     double(_visionStats.getStdDev()(0)),
-					     double(_visionStats.getStdDev()(1)),
-					     double(_visionStats.getStdDev()(2)));
+					     double(_visionOrigin(Y_vision_x)),
+					     double(_visionOrigin(Y_vision_y)),
+					     double(_visionOrigin(Y_vision_z)),
+					     double(_visionStats.getStdDev()(Y_vision_x)),
+					     double(_visionStats.getStdDev()(Y_vision_y)),
+					     double(_visionStats.getStdDev()(Y_vision_z)));
 		_visionInitialized = true;
 		_visionFault = FAULT_NONE;
 
