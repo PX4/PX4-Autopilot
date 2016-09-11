@@ -239,6 +239,22 @@ void flip_sequence(
 
 }
 
+/*
+ * Execute a sequence of commands: each command is a seq_entry_s struct specifying
+ * 	type: attitude, rate, or delay
+ * 	roll/pitch/yaw rates
+ * 	target attitude (fixed xyz Euler angles)
+ * 	delay
+ *
+ * Inputs:
+ * ctrl_state: for current attitude quaternion
+ * manual: sequence trigger switch
+ *
+ * Outputs:
+ * att_sp: thrust and rotation angle setpoints
+ * R_sp: attitude setpoint
+ * rollRate, pitchRate, yawRate: rotation rate commands
+ */
 void prog_sequence(
 	struct control_state_s &ctrl_state,
 	struct vehicle_attitude_setpoint_s &att_sp,
@@ -262,10 +278,8 @@ void prog_sequence(
 
 	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
 
-	/* if seq_switch just transitioned from off to on, begin substituting sequencer
-	 * controls for manual controls. The sequencer could be a separate module publishing
-	 * manual_control_setpoint messages, or a smaller message containing only
-	 * x, y, z, r
+	/* if seq_switch is on, begin substituting sequencer
+	 * controls for manual controls.
 	 */
 //						uint8_t seq_switch = _manual.seq_switch;
 
@@ -278,7 +292,6 @@ void prog_sequence(
 		start_sequence = cur_time;
 	}
 
-	/* substitute attitude sequence for _manual_control_setpoint */
 	// perform state transitions
 	switch (cur_state) {
 
@@ -372,9 +385,9 @@ void prog_sequence(
 			q_end.from_euler(seq_entry.target_euler[0], seq_entry.target_euler[1],
 					 seq_entry.target_euler[2]);
 			PX4_INFO("ATTITUDE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
-			printf("R_sp:\n"); R_sp.print();
-			printf("q_end: "); q_end.print();
-			printf("target Euler angles: "); q_end.to_euler().print();
+//			printf("R_sp:\n"); R_sp.print();
+//			printf("q_end: "); q_end.print();
+//			printf("target Euler angles: "); q_end.to_euler().print();
 			break;
 
 		case DELAY:

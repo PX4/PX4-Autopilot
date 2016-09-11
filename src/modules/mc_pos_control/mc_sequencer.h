@@ -67,9 +67,4 @@ struct seq_entry_s {
 	float delay;
 };
 
-void entryAction(Seq_state cur_state,
-		 const seq_entry_s &seq_entry, math::Quaternion &q_end,
-		 float &rollRate, float &pitchRate, float &yawRate,
-		 struct vehicle_attitude_setpoint_s &att_sp, math::Matrix<3, 3> &R_sp);
-
 #endif
