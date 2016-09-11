@@ -428,6 +428,7 @@ void BlockLocalPositionEstimator::update()
 	predict();
 
 	// sensor corrections/ initializations
+
 	if (gpsUpdated) {
 		if (!_gpsInitialized) {
 			gpsInit();
@@ -478,7 +479,7 @@ void BlockLocalPositionEstimator::update()
 
 	if (visionUpdated) {
 		if (!_visionInitialized) {
-			visionInit();
+			visionInit(_x);
 
 		} else {
 			visionCorrect();
