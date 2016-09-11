@@ -428,7 +428,6 @@ void BlockLocalPositionEstimator::update()
 	predict();
 
 	// sensor corrections/ initializations
-
 	if (gpsUpdated) {
 		if (!_gpsInitialized) {
 			gpsInit();
