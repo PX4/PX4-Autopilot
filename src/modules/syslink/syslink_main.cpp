@@ -51,6 +51,7 @@
 #include <termios.h>
 
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_led.h>
 
 #include <systemlib/err.h>
 
@@ -58,8 +59,17 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/input_rc.h>
 
+#include <board_config.h>
+
 #include "crtp.h"
 #include "syslink_main.h"
+
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
 extern "C" { __EXPORT int syslink_main(int argc, char *argv[]); }
 
@@ -74,7 +84,8 @@ Syslink::Syslink() :
 	_battery_pub(nullptr),
 	_rc_pub(nullptr),
 	_cmd_pub(nullptr),
-	_rssi(RC_INPUT_RSSI_MAX)
+	_rssi(RC_INPUT_RSSI_MAX),
+	_bstate(BAT_DISCHARGING)
 {
 
 }
@@ -130,12 +141,16 @@ Syslink::set_address(uint64_t addr)
 
 int count_out = 0;
 
+static hrt_abstime lasttxtime = 0; // Last time a radio message was recieved
+
 int
 Syslink::send_queued_raw_message()
 {
 	if (_writebuffer.empty()) {
 		return 0;
 	}
+
+	lasttxtime = hrt_absolute_time();
 
 	syslink_message_t msg;
 	msg.type = SYSLINK_RADIO_RAW;
@@ -312,6 +327,8 @@ static int count_in = 0;
 //static int count_out = 0;
 static hrt_abstime lasttime = 0;
 
+static hrt_abstime lastrxtime = 0; // Last time a radio message was recieved
+
 
 void
 Syslink::handle_message(syslink_message_t *msg)
@@ -337,12 +354,26 @@ Syslink::handle_message(syslink_message_t *msg)
 			return;
 		}
 
-		//uint8_t flags = msg->data[0];
-		//float iset = *((float *)&msg->data[5]);
-		float vbat;
+		uint8_t flags = msg->data[0];
+		int charging = flags & 1;
+		int powered = flags & 2;
+
+		float vbat; //, iset;
 		memcpy(&vbat, &msg->data[1], sizeof(float));
+		//memcpy(&iset, &msg->data[5], sizeof(float));
 
 		_battery.updateBatteryStatus(t, vbat, -1, 0, false, &_battery_status);
+
+
+		// Update battery charge state
+		if(charging)
+			_bstate = BAT_CHARGING;
+		/* With the usb plugged in and battery disconnected, it appears to be charged. The voltage check ensures that a battery is connected  */
+		else if(powered && !charging && _battery_status.voltage_filtered_v > 3.7f)
+			_bstate = BAT_CHARGED;
+		else
+			_bstate = BAT_DISCHARGING;
+			
 
 		// announce the battery status if needed, just publish else
 		if (_battery_pub != nullptr) {
@@ -364,11 +395,38 @@ Syslink::handle_message(syslink_message_t *msg)
 
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
 		handle_raw(msg);
-
+		lastrxtime = t;
 	} else {
 		PX4_INFO("GOT %d", msg->type);
 	}
 
+
+	float p = (t % 500000) / 500000.0f;
+
+	/* Use LED_GREEN for charging indicator */
+	if(_bstate == BAT_CHARGED) {
+		led_on(LED_GREEN);
+	}
+	else if(_bstate == BAT_CHARGING && p < 0.25f) {
+		led_on(LED_GREEN);
+	}
+	else
+		led_off(LED_GREEN);
+
+	/* Alternate RX/TX LEDS when transfering */
+	bool rx = t - lastrxtime < 200000,
+		 tx = t - lasttxtime < 200000;
+
+
+	if(rx && p < 0.25f)
+		led_on(LED_RX);
+	else
+		led_off(LED_RX);
+
+	if(tx && p > 0.5f && p > 0.75f)
+		led_on(LED_TX);
+	else
+		led_off(LED_TX);
 
 }
 
