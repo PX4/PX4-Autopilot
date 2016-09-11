@@ -479,7 +479,7 @@ void BlockLocalPositionEstimator::update()
 
 	if (visionUpdated) {
 		if (!_visionInitialized) {
-			visionInit(_x);
+			visionInit();
 
 		} else {
 			visionCorrect();

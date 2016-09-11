@@ -190,7 +190,7 @@ private:
 	// vision
 	int  visionMeasure(Vector<float, n_y_vision> &y);
 	void visionCorrect();
-	void visionInit(Vector<float, n_x> &xLP);
+	void visionInit();
 	void visionCheckTimeout();
 
 	// mocap

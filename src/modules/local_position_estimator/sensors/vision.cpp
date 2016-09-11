@@ -9,7 +9,7 @@ extern orb_advert_t mavlink_log_pub;
 static const uint32_t 		REQ_VISION_INIT_COUNT = 20;
 static const uint32_t 		VISION_TIMEOUT =    500000;	// 0.5 s
 
-void BlockLocalPositionEstimator::visionInit(Vector<float, n_x> &xLP)
+void BlockLocalPositionEstimator::visionInit()
 {
 	// measure
 	Vector<float, n_y_vision> y;
@@ -22,9 +22,9 @@ void BlockLocalPositionEstimator::visionInit(Vector<float, n_x> &xLP)
 	// increament sums for mean
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
 
-		_visionOrigin(Y_vision_x) = _visionStats.getMean()(Y_vision_x) - xLP(X_x);
-		_visionOrigin(Y_vision_y) = _visionStats.getMean()(Y_vision_y) - xLP(X_y);
-		_visionOrigin(Y_vision_z) = _visionStats.getMean()(Y_vision_z) - xLP(X_z);
+		_visionOrigin(Y_vision_x) = _visionStats.getMean()(Y_vision_x) - _x(X_x);
+		_visionOrigin(Y_vision_y) = _visionStats.getMean()(Y_vision_y) - _x(X_y);
+		_visionOrigin(Y_vision_z) = _visionStats.getMean()(Y_vision_z) - _x(X_z);
 
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position init: "
 					     "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
