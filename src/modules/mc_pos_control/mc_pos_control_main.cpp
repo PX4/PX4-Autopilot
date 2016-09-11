@@ -2063,7 +2063,11 @@ MulticopterPositionControl::task_main()
 					/* the control sequencer overrides manual inputs
 					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
 					 */
+#ifdef JUST_FLIPS
+					flip_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
+#else
 					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
+#endif
 
 					/* limit setpoint lead angle */
 					float tilt_error = 0.0f;
