@@ -43,6 +43,13 @@
 #include "syslink.h"
 #include "crtp.h"
 
+typedef enum {
+	BAT_DISCHARGING = 0,
+	BAT_CHARGING = 1,
+	BAT_CHARGED = 2
+} battery_state;
+
+
 class SyslinkBridge;
 
 class Syslink
@@ -97,6 +104,7 @@ private:
 	Battery _battery;
 
 	int32_t _rssi;
+	battery_state _bstate;
 
 	static int task_main_trampoline(int argc, char *argv[]);
 
