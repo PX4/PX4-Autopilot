@@ -56,6 +56,7 @@ extern const char *syslink_magic;
 #define SYSLINK_OW_READ	0x22
 #define SYSLINK_OW_WRITE	0x23
 
+// Limited by the CRTP packet which is limited by the ESB protocol used by the NRF
 #define SYSLINK_MAX_DATA_LEN	32
 
 #define SYSLINK_RADIO_RATE_250K 0
