@@ -51,6 +51,7 @@
 #include <unistd.h> //this is POSIX, used for usleep
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_gps.h>
 
 /**
  * Get the current time in us. Function signature:
@@ -59,6 +60,9 @@
 #define gps_absolute_time hrt_absolute_time
 typedef hrt_abstime gps_abstime;
 
+#define INTERFACE_UART GPS_DRIVER_UART
+#define INTERFACE_SPI GPS_DRIVER_SPI
+typedef gps_driver_interface_t gps_interface;
 
 // TODO: this functionality is not available on the Snapdragon yet
 #ifdef __PX4_QURT

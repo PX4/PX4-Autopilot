@@ -696,27 +696,12 @@ GPS::task_main()
 				_helper = nullptr;
 			}
 
-			GPSHelper::Interface helper_interface = GPSHelper::Interface::UART;
-
-			switch (_interface) {
-			case GPS_DRIVER_UART:
-				helper_interface = GPSHelper::Interface::UART;
-				break;
-
-			case GPS_DRIVER_SPI:
-				helper_interface = GPSHelper::Interface::SPI;
-				break;
-
-			default:
-				break;
-			}
-
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
 				_mode = GPS_DRIVER_MODE_UBX;
 
 			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(helper_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
