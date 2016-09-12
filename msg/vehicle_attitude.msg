@@ -18,3 +18,5 @@ float32[4] q		# Quaternion (NED)
 float32[3] g_comp	# Compensated gravity vector
 bool R_valid		# Rotation matrix valid
 bool q_valid		# Quaternion valid
+
+# TOPICS vehicle_attitude vehicle_attitude_groundtruth
