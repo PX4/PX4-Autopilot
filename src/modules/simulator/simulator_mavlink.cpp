@@ -322,7 +322,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 				orb_publish_auto(ORB_ID(vehicle_attitude), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
 			}
 		}
-
+		break;
 	}
 
 }
