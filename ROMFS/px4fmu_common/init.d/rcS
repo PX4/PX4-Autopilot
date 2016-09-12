@@ -505,9 +505,19 @@ then
 				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
+
+		if ver hwcmp CRAZYFLIE
+		then
+			# Avoid using either of the two available serials
+			set MAVLINK_F none
+		fi
 	fi
 
-	mavlink start $MAVLINK_F
+	if [ $MAVLINK_F == "none" ]
+	then
+	else
+		mavlink start $MAVLINK_F
+	fi
 	unset MAVLINK_F
 
 	#
