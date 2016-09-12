@@ -2645,7 +2645,7 @@ protected:
 			/* send RC channel data and RSSI */
 			mavlink_rc_channels_t msg;
 
-			msg.time_boot_ms = rc.timestamp_publication / 1000;
+			msg.time_boot_ms = rc.timestamp / 1000;
 			msg.chancount = rc.channel_count;
 			msg.chan1_raw = (rc.channel_count > 0) ? rc.values[0] : UINT16_MAX;
 			msg.chan2_raw = (rc.channel_count > 1) ? rc.values[1] : UINT16_MAX;

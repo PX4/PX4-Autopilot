@@ -1839,7 +1839,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	_rc_chan_count = channel_count;
 
-	input_rc.timestamp_publication = hrt_absolute_time();
+	input_rc.timestamp = hrt_absolute_time();
 
 	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
 
@@ -1868,7 +1868,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	/* rc_lost has to be set before the call to this function */
 	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
-		_rc_last_valid = input_rc.timestamp_publication;
+		_rc_last_valid = input_rc.timestamp;
 	}
 
 	input_rc.timestamp_last_signal = _rc_last_valid;
