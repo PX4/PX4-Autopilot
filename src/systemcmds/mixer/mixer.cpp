@@ -91,7 +91,7 @@ mixer_main(int argc, char *argv[])
 		int ret = load(argv[2], argv[3], true);
 
 		if (ret != 0) {
-			warnx("failed to append mixer");
+			PX4_ERR("failed to append mixer");
 			return 1;
 		}
 

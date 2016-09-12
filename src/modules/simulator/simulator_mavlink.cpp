@@ -41,6 +41,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+#include <mathlib/mathlib.h>
+
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
 #define SEND_INTERVAL 	20
@@ -301,7 +303,40 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		}
 
 		break;
+
+	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
+		mavlink_hil_state_quaternion_t hil_state;
+		mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
+
+		uint64_t timestamp = hrt_absolute_time();
+
+		/* attitude */
+		struct vehicle_attitude_s hil_attitude;
+		{
+			hil_attitude.timestamp = timestamp;
+
+			math::Quaternion q(hil_state.attitude_quaternion);
+			math::Matrix<3, 3> C_nb = q.to_dcm();
+			math::Vector<3> euler = C_nb.to_euler();
+
+			hil_attitude.q[0] = q(0);
+			hil_attitude.q[1] = q(1);
+			hil_attitude.q[2] = q(2);
+			hil_attitude.q[3] = q(3);
+			hil_attitude.q_valid = true;
+
+			hil_attitude.roll = euler(1);
+			hil_attitude.pitch = euler(0);
+			hil_attitude.yaw = euler(2);
+
+			if (true) {
+				int hilstate_multi;
+				orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
+			}
+		}
+		break;
 	}
+
 }
 
 void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID)

@@ -476,6 +476,7 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 void Logger::add_default_topics()
 {
 	add_topic("vehicle_attitude", 10);
+	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("actuator_outputs", 50);
 	add_topic("telemetry_status", 50);
 	add_topic("vehicle_command");
