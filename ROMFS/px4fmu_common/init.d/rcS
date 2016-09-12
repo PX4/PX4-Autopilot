@@ -934,12 +934,19 @@ then
 	fi
 	unset FEXTRAS
 
-	# Run no SD alarm
-	if [ $LOG_FILE == /dev/null ]
+	if ver hwcmp CRAZYFLIE
 	then
-		# Play SOS
-		tone_alarm error
-	fi
+		# CF2 shouldn't have an sd card
+	else
+
+		# Run no SD alarm
+		if [ $LOG_FILE == /dev/null ]
+		then
+			# Play SOS
+			tone_alarm error
+		fi
+
+	else
 
 # End of autostart
 fi
