@@ -301,7 +301,30 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		}
 
 		break;
+
+	case MAVLINK_MSG_ID_HIL_STATE:
+		mavlink_hil_state_t hil_state;
+		mavlink_msg_hil_state_decode(msg, &hil_state);
+
+		uint64_t timestamp = hrt_absolute_time();
+
+		/* attitude */
+		struct vehicle_attitude_s hil_attitude;
+		{
+			hil_attitude.timestamp = timestamp;
+
+			hil_attitude.roll = hil_state.roll;
+			hil_attitude.pitch = hil_state.pitch;
+			hil_attitude.yaw = hil_state.yaw;
+
+			if (true) {
+				int hilstate_multi;
+				orb_publish_auto(ORB_ID(vehicle_attitude), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
+			}
+		}
+
 	}
+
 }
 
 void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
