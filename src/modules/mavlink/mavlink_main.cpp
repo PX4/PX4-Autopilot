@@ -1258,6 +1258,7 @@ void Mavlink::send_autopilot_capabilites()
 		mavlink_autopilot_version_t msg = {};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
