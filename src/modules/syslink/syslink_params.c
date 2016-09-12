@@ -59,7 +59,7 @@ PARAM_DEFINE_INT32(SLNK_RADIO_CHAN, 80);
  * @max 2
  * @group Syslink
  */
-PARAM_DEFINE_INT32(SLNK_RADIO_RATE, 0);
+PARAM_DEFINE_INT32(SLNK_RADIO_RATE, 2);
 
 /**
  * Operating address of the NRF51 (most significant byte)

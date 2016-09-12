@@ -1029,19 +1029,11 @@ int Ekf2::start()
 {
 	ASSERT(_control_task == -1);
 
-#ifdef __PX4_QURT
-	// On the DSP we seem to get random crashes with a stack size below 13000.
-	const unsigned stack_size = 15000;
-#else
-	const unsigned stack_size = 6000;
-#endif
-
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("ekf2",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   stack_size,
+					   6000,
 					   (px4_main_t)&Ekf2::task_main_trampoline,
 					   nullptr);
 

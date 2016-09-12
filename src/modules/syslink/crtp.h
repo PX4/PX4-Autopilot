@@ -50,9 +50,12 @@
 
 #define CRTP_NULL(x) (((x).header & 0xf3) == 0xf3)
 
-#define CRTP_MAX_DATA_SIZE 29
+// 1 byte header + 31 bytes data = 32 (max ESB packet size)
+// With the NRF51, this could be increased to ~250, but the Crazyradio PA uses a NRF24 which can't do this
+#define CRTP_MAX_DATA_SIZE 31
 
 typedef struct {
+	uint8_t size; // Total size of this message, including the header (placed here to overlap with syslink length field)
 	union {
 		uint8_t header;
 		struct {

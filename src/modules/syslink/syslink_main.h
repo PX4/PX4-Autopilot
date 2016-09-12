@@ -32,9 +32,18 @@
  ****************************************************************************/
 
 #include <stdint.h>
+
 #include <systemlib/battery.h>
+
+#include <drivers/device/device.h>
+#include <drivers/device/ringbuffer.h>
+
 #include <uORB/uORB.h>
+
 #include "syslink.h"
+#include "crtp.h"
+
+class SyslinkBridge;
 
 class Syslink
 {
@@ -50,18 +59,34 @@ public:
 
 private:
 
+	friend class SyslinkBridge;
+
 	int open_serial(const char *dev);
 
 	void handle_message(syslink_message_t *msg);
 	void handle_raw(syslink_message_t *sys);
 
+	// Handles other types of messages that we don't really care about, but
+	// will be maintained with the bare minimum implementation for supporting
+	// other crazyflie libraries
+	void handle_raw_other(syslink_message_t *sys);
+
+	int send_bytes(const void *data, size_t len);
+
 	// Checksums and transmits a syslink message
 	int send_message(syslink_message_t *msg);
+
+	int send_queued_raw_message();
+
 
 	int _syslink_task;
 	bool _task_running;
 
 	int _fd;
+
+	// Stores data that was needs to be written as a raw message
+	ringbuffer::RingBuffer _writebuffer;
+	SyslinkBridge *_bridge;
 
 	orb_advert_t _battery_pub;
 	orb_advert_t _rc_pub;
@@ -76,5 +101,36 @@ private:
 	static int task_main_trampoline(int argc, char *argv[]);
 
 	void task_main();
+
+};
+
+
+class SyslinkBridge : public device::CDev
+{
+
+public:
+	SyslinkBridge(Syslink *link);
+	virtual ~SyslinkBridge();
+
+	virtual int	init();
+
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	// Makes the message available for reading to processes reading from the bridge
+	void pipe_message(crtp_message_t *msg);
+
+protected:
+
+	virtual pollevent_t poll_state(struct file *filp);
+
+private:
+
+	Syslink *_link;
+
+	// Stores data that was received from syslink but not yet read by another driver
+	ringbuffer::RingBuffer _readbuffer;
+
 
 };
