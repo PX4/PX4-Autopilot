@@ -107,21 +107,10 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL    0
 #define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
-/*
- * PWM
- *
- * Four PWM outputs can be configured on pins
- *
- *
- * Peripheral   Port     Signal Name               CONN
- * TIM3_CH1     PA6     LED_R                     JP2-23,24
- * TIM3_CH2     PA7     LED_G                     JP2-25,26
- * TIM3_CH3     PB0     LED_B                     JP2-27,28
- * TIM3_CH4     PB1     nPWM_1 AUX1(Landing Gear) JP1-21,22
- *
- */
-#define DIRECT_PWM_OUTPUT_CHANNELS	0
-#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+#define DIRECT_PWM_OUTPUT_CHANNELS	1
+#define BOARD_HAS_PWM	0
+
+#define BOARD_FMU_GPIO_TAB {{0, 0, 0}}
 
 /* USB OTG FS
  *

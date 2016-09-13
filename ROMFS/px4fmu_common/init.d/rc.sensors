@@ -253,6 +253,21 @@ then
 	fi
 fi
 
+if ver hwcmp AEROFC_V1
+then
+	if ms5611 start
+	then
+	fi
+
+	if mpu6500 start
+	then
+	fi
+
+	if hmc5883 start
+	then
+	fi
+fi
+
 if meas_airspeed start
 then
 else

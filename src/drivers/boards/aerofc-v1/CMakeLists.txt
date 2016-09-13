@@ -40,6 +40,7 @@ px4_add_module(
 		aerofc_spi.c
 		aerofc_usb.c
 		aerofc_led.c
+		aerofc_timer_config.c
 	DEPENDS
 		platforms__common
 	)

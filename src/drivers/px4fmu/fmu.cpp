@@ -2255,6 +2255,10 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	unsigned count = len / 2;
 	uint16_t values[8];
 
+#if BOARD_HAS_PWM == 0
+	return 0;
+#endif
+
 	if (count > BOARD_HAS_PWM) {
 		// we have at most BOARD_HAS_PWM outputs
 		count = BOARD_HAS_PWM;
