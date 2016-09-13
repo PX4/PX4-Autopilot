@@ -118,6 +118,8 @@ private:
 	static unsigned		_count;					///< Count of items in active mission
 	static int		_current_seq;				///< Current item sequence in active mission
 
+	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
+
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
 	unsigned		_transfer_seq;				///< Item sequence in current transmission
