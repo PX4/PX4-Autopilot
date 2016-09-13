@@ -92,79 +92,92 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	 * Near            +              +              +
 	 * On trajectory --+----o---------+---------o----+--
 	 *                    prev                curr
+	 *
+	 * Expected targets (1, 2, 3):
+	 * Far             +              +              +
+	 *
+	 *
+	 * On trajectory -------1---------2---------3-------
+	 *
+	 *
+	 * Near            +              +              +
+	 * On trajectory -------o---1---------2-----3-------
+	 *
+	 *
+	 * On trajectory --+----o----1----+--------2/3---+--
 	 */
 
 	// on line, near, before previous waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 50);
+	ut_compare_float("target A 0", res(0), 0.0f, 2);
+	ut_compare_float("target A 1", res(1), 0.0f, 2);
+	ut_compare_float("target A 2", res(2), 0.5f, 2);
 
 	// on line, near, before target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 200);
+	ut_compare_float("target B 0", res(0), 0.0f, 2);
+	ut_compare_float("target B 1", res(1), 0.0f, 2);
+	ut_compare_float("target B 2", res(2), 2.0f, 2);
 
 	// on line, near, after target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 150);
+	ut_compare_float("target C 0", res(0), 0.0f, 2);
+	ut_compare_float("target C 1", res(1), 0.0f, 2);
+	ut_compare_float("target C 2", res(2), 2.0f, 2);
 
 	// near, before previous waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 37);
+	ut_compare_float("target D 0", res(0), 0.0f, 2);
+	ut_compare_float("target D 1", res(1), 0.0f, 2);
+	ut_compare_float("target D 2", res(2), 0.37f, 2);
 
 	// near, before target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 187);
+	ut_compare_float("target E 0", res(0), 0.0f, 2);
+	ut_compare_float("target E 1", res(1), 0.0f, 2);
+	ut_compare_float("target E 2", res(2), 1.87f, 2);
 
 	// near, after target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 163);
+	ut_compare_float("target F 0", res(0), 0.0f, 2);
+	ut_compare_float("target F 1", res(1), 0.0f, 2);
+	ut_compare_float("target F 2", res(2), 2.0f, 2);
 
 	// far, before previous waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true(res(2) == 0.0f);
+	ut_compare_float("target G 0", res(0), 0.0f, 2);
+	ut_compare_float("target G 1", res(1), 0.0f, 2);
+	ut_compare_float("target G 2", res(2), 0.0f, 2);
 
 	// far, before target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 100);
+	ut_compare_float("target H 0", res(0), 0.0f, 2);
+	ut_compare_float("target H 1", res(1), 0.0f, 2);
+	ut_compare_float("target H 2", res(2), 1.0f, 2);
 
 	// far, after target waypoint
 	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
-	ut_assert_true(res(0) == 0.0f);
-	ut_assert_true(res(1) == 0.0f);
-	ut_assert_true((int)(res(2) * 1e2f + 0.5f) == 200);
+	ut_compare_float("target I 0", res(0), 0.0f, 2);
+	ut_compare_float("target I 1", res(1), 0.0f, 2);
+	ut_compare_float("target I 2", res(2), 2.0f, 2);
 
 	return true;
 }
