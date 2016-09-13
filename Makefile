@@ -158,7 +158,7 @@ nuttx_% posix_% qurt_%:
 # Abbreviated config targets.
 
 # nuttx_ is left off by default.
-tap-% asc-% px4fmu-% px4-% mindpx-% crazyflie_default:
+tap-% asc-% px4fmu-% px4-% mindpx-% crazyflie_%:
 	$(call cmake-build,nuttx_$@)
 
 posix: posix_sitl_default
