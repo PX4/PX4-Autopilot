@@ -214,17 +214,23 @@
 #define GPIO_USART1_RX	GPIO_USART1_RX_2
 #define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
 
-// Mavlink
+// Companion
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
+#define GPIO_USART2_CTS	0 // unused
+#define GPIO_USART2_RTS	0 // unused
 
 // GPS
 #define GPIO_USART3_TX	GPIO_USART3_TX_1
 #define GPIO_USART3_RX	GPIO_USART3_RX_1
+#define GPIO_USART3_CTS	0 // unused
+#define GPIO_USART3_RTS	0 // unused
 
 // RC
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
 #define GPIO_UART4_RX	GPIO_UART4_RX_1
+#define GPIO_UART4_CTS	0 // unused
+#define GPIO_UART4_RTS	0 // unused
 
 // Serial console
 #define GPIO_USART6_TX	GPIO_USART6_TX_1

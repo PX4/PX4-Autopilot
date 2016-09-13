@@ -118,6 +118,13 @@
  */
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS2"
+
+/* RC Serial port
+ */
+#define RC_SERIAL_PORT		"/dev/ttyS3"
+#define INVERT_RC_INPUT(_s)		while(0)
+
 /* High-resolution timer
  */
 #define HRT_TIMER		3	/* use timer3 for the HRT */
