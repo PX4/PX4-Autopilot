@@ -976,9 +976,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 
 		if ((sphere_c - line_b) * ab_norm > 0.0f) {
 			/* target waypoint is already behind us */
-			math::Vector<3> ba_norm = line_a - line_b;
-			ba_norm.normalize();
-			res = d + ba_norm * dx_len; // vector B->A on line
+			res = line_b;
 
 		} else {
 			/* target is in front of us */
