@@ -63,6 +63,7 @@ int MavlinkMissionManager::_dataman_id = 0;
 bool MavlinkMissionManager::_dataman_init = false;
 unsigned MavlinkMissionManager::_count = 0;
 int MavlinkMissionManager::_current_seq = 0;
+int MavlinkMissionManager::_last_reached = -1;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
@@ -327,7 +328,10 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		if (_verbose) { warnx("WPM: got mission result, new current_seq: %d", _current_seq); }
 
 		if (mission_result.reached) {
+			_last_reached = mission_result.seq_reached;
 			send_mission_item_reached((uint16_t)mission_result.seq_reached);
+		} else {
+			_last_reached = -1;
 		}
 
 		send_mission_current(_current_seq);
@@ -341,6 +345,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	} else {
 		if (_slow_rate_limiter.check(now)) {
 			send_mission_current(_current_seq);
+			if (_last_reached >= 0) {
+				send_mission_item_reached((uint16_t)_last_reached);
+			}
 		}
 	}
 

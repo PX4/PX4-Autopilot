@@ -266,6 +266,11 @@ Mission::update_onboard_mission()
 		_navigator->get_mission_result()->valid = true;
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->mission_failure = false;
+
+		/* reset reached info as well */
+		_navigator->get_mission_result()->reached = false;
+		_navigator->get_mission_result()->seq_reached = 0;
+
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
 
@@ -310,6 +315,10 @@ Mission::update_offboard_mission()
 		if (!failed) {
 			/* reset mission failure if we have an updated valid mission */
 			_navigator->get_mission_result()->mission_failure = false;
+
+			/* reset reached info as well */
+			_navigator->get_mission_result()->reached = false;
+			_navigator->get_mission_result()->seq_reached = 0;
 		}
 
 	} else {
@@ -1206,7 +1215,6 @@ Mission::set_mission_item_reached()
 void
 Mission::set_current_offboard_mission_item()
 {
-	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
 	_navigator->set_mission_result_updated();
