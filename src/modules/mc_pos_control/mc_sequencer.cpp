@@ -212,9 +212,9 @@ static const struct seq_entry_s coord_turn[] {
 	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
 };
 static const struct seq_entry_s tilt_lr[] {
-	{Seq_state::ATTITUDE, 0.6f, 0.0f, 0.0f, 0.0f, {0.707f, 0.0f, 0.0f}, 1.0f},
-	{Seq_state::ATTITUDE, 0.6f, 0.0f, 0.0f, 0.0f, { -0.707f, 0.0f, 0.0f}, 1.0f},
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
+	{Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
+	{Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f},
+	{Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f}
 };
 static const struct seq_entry_s pitch_flip[] {
 	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
@@ -255,7 +255,7 @@ static const struct sequence roll_flip_seq {
 static const struct sequence two_point_roll_seq {
 	sizeof(two_point_roll) / sizeof(seq_entry_s), two_point_roll
 };
-static const struct sequence *cur_sequence = &coord_turn_seq;
+static const struct sequence *cur_sequence = &tilt_lr_seq;
 
 /*
  * Execute a sequence of commands: each command is a seq_entry_s struct specifying
@@ -294,33 +294,40 @@ void prog_sequence(
 	static float start_sequence = -1.0f;
 	static float start_time = cur_time;
 
-	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
+	static uint8_t seq_switch_last = manual_control_setpoint_s::SWITCH_POS_OFF;
+
+#if !defined CONFIG_ARCH_BOARD_SITL
 
 	/* if seq_switch is on, begin substituting sequencer
 	 * controls for manual controls.
 	 */
-//						uint8_t seq_switch = _manual.seq_switch;
-
+	uint8_t seq_switch = manual.seq_switch;
+#else
 	// for SITL, simulate seq_switch activation
 
-//	if ((cur_time - start_sequence) > 10.0f) {
-	if (start_sequence < 0.0f) {
+	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
+	if ((cur_time - start_sequence) > 10.0f) {
 		seq_switch = manual_control_setpoint_s::SWITCH_POS_ON;
 		PX4_INFO("seq_switch on: at %f", (double) cur_time);
 
-		start_sequence = cur_time;
 	}
+#endif
 
 	// perform state transitions
 	switch (cur_state) {
 
 	case IDLE: {
 
-			if (seq_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-				seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
+			// only the rising edge of seq_switch triggers a sequence
+			if (seq_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+			    seq_switch != seq_switch_last) {
+
 				seq_index = -1;
+				start_sequence = cur_time;
 				cur_state = NEXT_ENTRY;
 			}
+
+			seq_switch_last = seq_switch;
 
 			break;
 		}
@@ -367,8 +374,24 @@ void prog_sequence(
 		}
 
 	case NEXT_ENTRY:
-		att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
-		cur_state = seq_entry.type;
+		PX4_INFO("NEXT_ENTRY seq_index: %d at %6.3f, thrust: %6.3f", seq_index, (double) cur_time, (double)att_sp.thrust);
+
+		if (seq_index < cur_sequence->N_entries) {
+			seq_entry = cur_sequence->entries[seq_index];
+
+			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
+			cur_state = seq_entry.type;
+
+			PX4_INFO("seq_entry: type: %d, \nrates: (%6.3f, %6.3f, %6.3f), \ntarget_euler: (%6.3f, %6.3f, %6.3f), \nthrust: %6.3f delay: %6.3f",
+				 seq_entry.type,
+				 (double)seq_entry.rollRate, (double)seq_entry.pitchRate, (double)seq_entry.yawRate,
+				 (double)seq_entry.target_euler[0], (double)seq_entry.target_euler[1], (double)seq_entry.target_euler[2],
+				 (double)seq_entry.thrust, (double)seq_entry.delay);
+
+		} else {
+			cur_state = IDLE;
+		}
+
 		break;
 	}
 
@@ -379,12 +402,17 @@ void prog_sequence(
 		switch (cur_state) {
 		case IDLE:
 			// initialize sequencer
-			seq_index = 0;
+			seq_index = -1;
 			seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
 			PX4_INFO("sequence end at %6.3f, duration: %6.3f",
 				 (double) cur_time,
 				 (double)(cur_time - start_sequence));
 			PX4_INFO("IDLE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
+
+#if defined CONFIG_ARCH_BOARD_SITL
+			// reset start_sequence to current time so SITL hack will cycle again
+			start_sequence = cur_time;
+#endif
 			break;
 
 		case RATE:
@@ -416,19 +444,7 @@ void prog_sequence(
 
 		case NEXT_ENTRY:
 			seq_index++;
-			PX4_INFO("NEXT_ENTRY seq_index: %d at %6.3f, thrust: %6.3f", seq_index, (double) cur_time, (double)att_sp.thrust);
-
-			if (seq_index < cur_sequence->N_entries) {
-				seq_entry = cur_sequence->entries[seq_index];
-				PX4_INFO("seq_entry: type: %d, \nrates: (%6.3f, %6.3f, %6.3f), \ntarget_euler: (%6.3f, %6.3f, %6.3f), \nthrust: %6.3f delay: %6.3f",
-					 seq_entry.type,
-					 (double)seq_entry.rollRate, (double)seq_entry.pitchRate, (double)seq_entry.yawRate,
-					 (double)seq_entry.target_euler[0], (double)seq_entry.target_euler[1], (double)seq_entry.target_euler[2],
-					 (double)seq_entry.thrust, (double)seq_entry.delay);
-
-			} else {
-				cur_state = IDLE;
-			}
+			break;
 
 		default:
 			break;
