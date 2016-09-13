@@ -306,11 +306,13 @@ void prog_sequence(
 	// for SITL, simulate seq_switch activation
 
 	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
+
 	if ((cur_time - start_sequence) > 10.0f) {
 		seq_switch = manual_control_setpoint_s::SWITCH_POS_ON;
 		PX4_INFO("seq_switch on: at %f", (double) cur_time);
 
 	}
+
 #endif
 
 	// perform state transitions
