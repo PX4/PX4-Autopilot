@@ -36,7 +36,8 @@ px4_add_module(
 	COMPILE_FLAGS -Os
 	STACK_MAIN 1200
 	SRCS
-		mc_pos_control_main.cpp
+		mc_sequencer.cpp
+		mc_pos_control_main.cpp 
 	DEPENDS
 		platforms__common
 	)

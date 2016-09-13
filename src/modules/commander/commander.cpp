@@ -185,6 +185,7 @@ static struct offboard_control_mode_s offboard_control_mode = {};
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
+static bool acro_att = false;
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
 static unsigned _last_mission_instance = 0;
@@ -1242,6 +1243,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
+	param_t _param_acro_att = param_find("ACRO_ATT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1689,6 +1691,9 @@ int commander_thread_main(int argc, char *argv[])
 			auto_disarm_hysteresis.set_hysteresis_time_from(false,
 									(hrt_abstime)disarm_when_landed * 1000000);
 
+			int32_t v;
+			param_get(_param_acro_att, &v);
+			acro_att = (v != 0);
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
@@ -3508,7 +3513,7 @@ set_control_mode()
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = false;
+		control_mode.flag_control_attitude_enabled = acro_att;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
