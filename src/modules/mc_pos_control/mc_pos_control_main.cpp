@@ -121,6 +121,9 @@ public:
 	 */
 	int		start();
 
+	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
+					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
@@ -323,9 +326,6 @@ private:
 	 * Set position setpoint using offboard control
 	 */
 	void		control_offboard(float dt);
-
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
 
 	/**
 	 * Set position setpoint for AUTO
@@ -970,16 +970,37 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 	math::Vector<3> d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
 	float cd_len = (sphere_c - d).length();
 
-	/* we have triangle CDX with known CD and CX = R, find DX */
 	if (sphere_r > cd_len) {
-		/* have two roots, select one in A->B direction from D */
+		/* we have triangle CDX with known CD and CX = R, find DX */
 		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
-		res = d + ab_norm * dx_len;
+
+		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+			/* target waypoint is already behind us */
+			math::Vector<3> ba_norm = line_a - line_b;
+			ba_norm.normalize();
+			res = d + ba_norm * dx_len; // vector B->A on line
+
+		} else {
+			/* target is in front of us */
+			res = d + ab_norm * dx_len; // vector A->B on line
+		}
+
 		return true;
 
 	} else {
 		/* have no roots, return D */
-		res = d;
+		res = d; /* go directly to line */
+
+		/* previous waypoint is still in front of us */
+		if ((sphere_c - line_a) * ab_norm < 0.0f) {
+			res = line_a;
+		}
+
+		/* target waypoint is already behind us */
+		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+			res = line_b;
+		}
+
 		return false;
 	}
 }
@@ -1125,26 +1146,8 @@ void MulticopterPositionControl::control_auto(float dt)
 				} else {
 					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 
-					if (near) {
-						/* unit sphere crosses trajectory */
-						/* if copter is in front of curr waypoint, go directly to curr waypoint */
-						if ((pos_sp_s - curr_sp_s) * prev_curr_s > 0.0f) {
-							pos_sp_s = curr_sp_s;
-							pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
-						}
-
-					} else {
-						/* copter is too far from trajectory */
-						/* if copter is behind prev waypoint, go directly to prev waypoint */
-						if ((pos_sp_s - prev_sp_s) * prev_curr_s < 0.0f) {
-							pos_sp_s = prev_sp_s;
-						}
-
-						/* if copter is in front of curr waypoint, go directly to curr waypoint */
-						if ((pos_sp_s - curr_sp_s) * prev_curr_s > 0.0f) {
-							pos_sp_s = curr_sp_s;
-						}
-
+					if (!near) {
+						/* we're far away from trajectory, pos_sp_s is set to the nearest point on the trajectory */
 						pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
 					}
 				}
