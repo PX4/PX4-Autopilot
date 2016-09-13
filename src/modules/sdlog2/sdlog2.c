@@ -111,6 +111,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/adc_report.h> // ADDED BY DONALD LEAR
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1222,6 +1223,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
+		struct adc_report_s adc_report; // ADDED BY DONALD LEAR
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1283,6 +1285,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LAND_s log_LAND;
 			struct log_RPL6_s log_RPL6;
 			struct log_LOAD_s log_LOAD;
+			struct log_AOASS_s log_AOASS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1332,6 +1335,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int land_detected_sub;
 		int commander_state_sub;
 		int cpuload_sub;
+		int adc_report_sub; // ADDED BY DONALD LEAR
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1376,7 +1380,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
-
+        subs.adc_report_sub = -1 // ADDED BY DONALD LEAR
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
@@ -2277,6 +2281,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
+                /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
+                if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc_report)) {
+                	log_msg.msg_type = LOG_AOASS_MSG;
+                	log_msg.body.log_AOASS.aoa_v = adc.channel_value[13];
+                	log_msg.body.log_AOASS.ss_v = adc.channel_value[14];
+                }
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
 			log_msg.msg_type = LOG_CAMT_MSG;
