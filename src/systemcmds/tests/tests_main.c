@@ -90,6 +90,7 @@ const struct {
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
+	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	//{"mavlink",		mavlink_tests_main,	0}, // TODO: fix mavlink_tests
 	{"sf0x",		sf0x_tests_main,	0},
 #ifndef __PX4_DARWIN
