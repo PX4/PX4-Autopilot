@@ -881,11 +881,11 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaps by default to manual if valid */
 			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabs(_parameters.flaps_scale) > 0.01) {
+			    && fabsf(_parameters.flaps_scale) > 0.01f) {
 				flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
 
 			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabs(_parameters.flaps_scale) > 0.01) {
+				   && fabsf(_parameters.flaps_scale) > 0.01f) {
 				flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
 			}
 
@@ -902,11 +902,11 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaperons by default to manual if valid */
 			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabs(_parameters.flaperon_scale) > 0.01) {
+			    && fabsf(_parameters.flaperon_scale) > 0.01f) {
 				flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
 
 			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabs(_parameters.flaperon_scale) > 0.01) {
+				   && fabsf(_parameters.flaperon_scale) > 0.01f) {
 				flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
 			}
 
