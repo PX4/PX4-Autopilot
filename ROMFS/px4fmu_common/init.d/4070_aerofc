@@ -11,4 +11,5 @@ set OUTPUT_DEV /dev/tap_esc
 set MIXER quad_x
 set USE_IO no
 
-set MAVLINK_F "-r 1200 -d /dev/ttyS2"
+param set SYS_COMPANION 0
+set MAVLINK_F "-b 115200 -mode onboard -r 80000 -d /dev/ttyS1"
