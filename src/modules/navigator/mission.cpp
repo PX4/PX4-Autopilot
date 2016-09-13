@@ -204,7 +204,12 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
-		set_mission_item_reached();
+
+		/* If we just completed a takeoff which was inserted before the right waypoint,
+		   there is no need to report that we reached it because we didn't. */
+		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
+			set_mission_item_reached();
+		}
 
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
