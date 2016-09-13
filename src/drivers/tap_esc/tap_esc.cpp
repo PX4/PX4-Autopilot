@@ -262,6 +262,9 @@ TAP_ESC::init()
 		return ret;
 	}
 
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
+#else
+
 	/* Verify All ESC got the config */
 
 	for (uint8_t cid = 0; cid < _channels_count; cid++) {
@@ -304,7 +307,10 @@ TAP_ESC::init()
 		if (!valid) {
 			return -EIO;
 		}
+
 	}
+
+#endif
 
 	/* To Unlock the ESC from the Power up state we need to issue 10
 	 * ESCBUS_MSG_ID_RUN request with all the values 0;
