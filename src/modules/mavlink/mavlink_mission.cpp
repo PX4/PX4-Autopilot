@@ -884,8 +884,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 
-		// only support global waypoints for now
-
 		if (_int_mode) {
 			/* The argument is actually a mavlink_mission_item_int_t in int_mode */
 			const mavlink_mission_item_int_t *item_int
