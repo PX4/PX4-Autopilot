@@ -329,7 +329,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_attitude.pitch = euler(0);
 			hil_attitude.yaw = euler(2);
 
-			if (true) {
+			if (publish) {
 				int hilstate_multi;
 				orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
 			}
