@@ -885,7 +885,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 
 		if (_int_mode) {
-			/* The argument is actually a mavlink_mission_item_int_t in int_mode */
+			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
+			 * mavlink_mission_item_t and mavlink_mission_item_int_t have the same
+			 * alignment, so we can just swap float for int32_t. */
 			const mavlink_mission_item_int_t *item_int
 				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
 			mission_item->lat = ((double)item_int->x)*1e-7;
@@ -1058,7 +1060,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->param4 = 0.0f;
 
 		if (_int_mode) {
-			// This function actually receives a mavlink_mission_item_int_t in _int_mode.
+			// This function actually receives a mavlink_mission_item_int_t in _int_mode
+			// which has the same alignment as mavlink_mission_item_t and the only
+			// difference is int32_t vs. float for x and y.
 			mavlink_mission_item_int_t *item_int =
 				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
 
