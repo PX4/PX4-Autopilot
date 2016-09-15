@@ -879,6 +879,10 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not disabled */
 
 		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
+
+			status->failsafe = true;
+
+		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
