@@ -163,6 +163,11 @@ private:
 	void altitude_sp_foh_reset();
 
 	/**
+	 * Update the cruising speed setpoint.
+	 */
+	void cruising_speed_sp_update();
+
+	/**
 	 * Abort landing
 	 */
 	void do_abort_landing();
@@ -274,7 +279,6 @@ private:
 		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND,	/**<  */
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION	/**<  */
 	} _work_item_type;	/**< current type of work to do (sub mission item) */
-
 };
 
 #endif

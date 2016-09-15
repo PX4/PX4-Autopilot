@@ -757,7 +757,7 @@ Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.is_rotary_wing) {
-		if (_mission_cruising_speed_mc > FLT_EPSILON
+		if (_mission_cruising_speed_mc > 0.0f
 		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			return _mission_cruising_speed_mc;
 
@@ -766,7 +766,7 @@ Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (_mission_cruising_speed_fw > FLT_EPSILON
+		if (_mission_cruising_speed_fw > 0.0f
 		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			return _mission_cruising_speed_fw;
 
