@@ -230,6 +230,12 @@ Mission::on_active()
 		}
 	}
 
+
+	/* check if a cruise speed change has been commanded */
+	if (_mission_type != MISSION_TYPE_NONE) {
+		cruising_speed_sp_update();
+	}
+
 	/* see if we need to update the current yaw heading */
 	if ((_param_yawmode.get() != MISSION_YAWMODE_NONE
 	     && _param_yawmode.get() < MISSION_YAWMODE_MAX
@@ -1104,6 +1110,24 @@ void
 Mission::altitude_sp_foh_reset()
 {
 	_min_current_sp_distance_xy = FLT_MAX;
+}
+
+void
+Mission::cruising_speed_sp_update()
+{
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	const float cruising_speed = _navigator->get_cruising_speed();
+
+	/* Don't change setpoint if the current waypoint is not valid */
+	if (!pos_sp_triplet->current.valid ||
+	    fabsf(pos_sp_triplet->current.cruising_speed - cruising_speed) < FLT_EPSILON) {
+		return;
+	}
+
+	pos_sp_triplet->current.cruising_speed = cruising_speed;
+
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
