@@ -80,9 +80,14 @@ int mtd_main(int argc, char *argv[])
 static void	ramtron_attach(void);
 #else
 
-#ifndef PX4_I2C_BUS_ONBOARD
-#  error PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
+#ifndef PX4_I2C_BUS_MTD
+#  ifdef PX4_I2C_BUS_ONBOARD
+#    define PX4_I2C_BUS_MTD PX4_I2C_BUS_ONBOARD
+#  else
+#    error PX4_I2C_BUS_MTD and PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
+#  endif
 #endif
+
 
 static void	at24xxx_attach(void);
 #endif
@@ -225,7 +230,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
+	struct i2c_dev_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_MTD);
 	/* this resets the I2C bus, set correct bus speed again */
 	I2C_SETFREQUENCY(i2c, 400000);
 

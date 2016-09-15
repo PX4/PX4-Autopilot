@@ -7,6 +7,7 @@ uint8 VEHICLE_VTOL_STATE_FW = 4
 
 bool vtol_in_rw_mode			# true: vtol vehicle is in rotating wing mode
 bool vtol_in_trans_mode
+bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 bool vtol_transition_failsafe	# vtol in transition failsafe mode
 bool fw_permanent_stab			# In fw mode stabilize attitude even if in manual mode
 float32 airspeed_tot			# Estimated airspeed over control surfaces

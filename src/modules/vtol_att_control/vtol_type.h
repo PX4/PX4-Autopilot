@@ -65,7 +65,8 @@ struct Params {
 enum mode {
 	ROTARY_WING = 0,
 	FIXED_WING,
-	TRANSITION,
+	TRANSITION_TO_FW,
+	TRANSITION_TO_MC,
 	EXTERNAL
 };
 

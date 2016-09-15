@@ -379,8 +379,13 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
+#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
+	/* configure the timer to update at 328.125 kHz (recommended) */
+	rARR(timer) = 255;
+#else
 	/* configure the timer to update at the desired rate */
 	rARR(timer) = 1000000 / rate;
+#endif
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;
@@ -427,9 +432,14 @@ static int io_timer_init_timer(unsigned timer)
 			rBDTR(timer) = ATIM_BDTR_MOE;
 		}
 
+#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
+		/* configure the timer to free-run at timer frequency */
+		rPSC(timer) = 0;
+#else
 		/* configure the timer to free-run at 1MHz */
 
 		rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
+#endif
 
 
 		/*

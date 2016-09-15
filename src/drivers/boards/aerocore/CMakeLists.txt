@@ -37,10 +37,10 @@ px4_add_module(
 	SRCS
 		../common/board_name.c
 		aerocore_init.c
-		aerocore_pwm_servo.c
+		aerocore_timer_config.c
 		aerocore_spi.c
 		aerocore_led.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

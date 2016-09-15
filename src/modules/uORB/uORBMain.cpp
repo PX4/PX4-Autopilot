@@ -36,6 +36,7 @@
 #include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
+#include <px4_log.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
@@ -77,6 +78,13 @@ uorb_main(int argc, char *argv[])
 		if (g_dev == nullptr) {
 			return -errno;
 		}
+
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE)
+		/* FIXME: this fails on Snapdragon (see https://github.com/PX4/Firmware/issues/5406),
+		 * so we disable logging messages to the ulog for now. This needs further investigations.
+		 */
+		px4_log_initialize();
+#endif
 
 		return OK;
 	}

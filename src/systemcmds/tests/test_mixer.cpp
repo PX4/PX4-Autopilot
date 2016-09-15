@@ -96,7 +96,7 @@ int test_mixer(int argc, char *argv[])
 #if !defined(CONFIG_ARCH_BOARD_SITL)
 	const char *filename = "/etc/mixers/IO_pass.mix";
 #else
-	const char *filename = "../../../../ROMFS/px4fmu_test/mixers/IO_pass.mix";
+	const char *filename = "ROMFS/px4fmu_test/mixers/IO_pass.mix";
 #endif
 
 	//PX4_INFO("loading: %s", filename);
@@ -406,7 +406,7 @@ int test_mixer(int argc, char *argv[])
 #if !defined(CONFIG_ARCH_BOARD_SITL)
 	filename = "/etc/mixers/quad_test.mix";
 #else
-	filename = "../../../../ROMFS/px4fmu_test/mixers/quad_test.mix";
+	filename = "ROMFS/px4fmu_test/mixers/quad_test.mix";
 #endif
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));

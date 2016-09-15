@@ -164,8 +164,8 @@ private:
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 	bool		_debug;				/**< if set to true, print debug output */
 
-	float _flaps_cmd_last;
-	float _flaperons_cmd_last;
+	float _flaps_applied;
+	float _flaperons_applied;
 
 
 	struct {
@@ -391,8 +391,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	/* states */
 	_setpoint_valid(false),
 	_debug(false),
-	_flaps_cmd_last(0),
-	_flaperons_cmd_last(0)
+	_flaps_applied(0),
+	_flaperons_applied(0)
 {
 	/* safely initialize structs */
 	_ctrl_state = {};
@@ -877,60 +877,45 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* default flaps to center */
-			float flaps_control = 0.0f;
-
-			static float delta_flaps = 0;
+			float flap_control = 0.0f;
 
 			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
-				flaps_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
+			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
+			    && fabsf(_parameters.flaps_scale) > 0.01f) {
+				flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
 
-			} else if (_vcontrol_mode.flag_control_auto_enabled) {
-				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+			} else if (_vcontrol_mode.flag_control_auto_enabled
+				   && fabsf(_parameters.flaps_scale) > 0.01f) {
+				flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
 			}
 
-			// move the actual control value continuous with time
-			static hrt_abstime t_flaps_changed = 0;
+			// move the actual control value continuous with time, full flap travel in 1sec
+			if (fabsf(_flaps_applied - flap_control) > 0.01f) {
+				_flaps_applied += (_flaps_applied - flap_control) < 0 ? deltaT : -deltaT;
 
-			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {
-				t_flaps_changed = hrt_absolute_time();
-				delta_flaps = flaps_control - _flaps_cmd_last;
-				_flaps_cmd_last = flaps_control;
-			}
-
-			static float flaps_applied = 0.0f;
-
-			if (fabsf(flaps_applied - flaps_control) > 0.01f) {
-				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
+			} else {
+				_flaps_applied = flap_control;
 			}
 
 			/* default flaperon to center */
-			float flaperon = 0.0f;
-
-			static float delta_flaperon = 0.0f;
+			float flaperon_control = 0.0f;
 
 			/* map flaperons by default to manual if valid */
-			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled) {
-				flaperon = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
+			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
+			    && fabsf(_parameters.flaperon_scale) > 0.01f) {
+				flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
 
-			} else if (_vcontrol_mode.flag_control_auto_enabled) {
-				flaperon = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
+			} else if (_vcontrol_mode.flag_control_auto_enabled
+				   && fabsf(_parameters.flaperon_scale) > 0.01f) {
+				flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
 			}
 
-			// move the actual control value continuous with time
-			static hrt_abstime t_flaperons_changed = 0;
+			// move the actual control value continuous with time, full flap travel in 1sec
+			if (fabsf(_flaperons_applied - flaperon_control) > 0.01f) {
+				_flaperons_applied += (_flaperons_applied - flaperon_control) < 0 ? deltaT : -deltaT;
 
-			if (fabsf(flaperon - _flaperons_cmd_last) > 0.01f) {
-				t_flaperons_changed = hrt_absolute_time();
-				delta_flaperon = flaperon - _flaperons_cmd_last;
-				_flaperons_cmd_last = flaperon;
-			}
-
-			static float flaperon_applied = 0.0f;
-
-			if (fabsf(flaperon_applied - flaperon) > 0.01f) {
-				flaperon_applied = (flaperon - delta_flaperon) + (float)hrt_elapsed_time(&t_flaperons_changed) *
-						   (delta_flaperon) / 1000000;
+			} else {
+				_flaperons_applied = flaperon_control;
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -1174,9 +1159,9 @@ FixedwingAttitudeControl::task_main()
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
-			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_applied;
+			_actuators.control[actuator_controls_s::INDEX_FLAPS] = _flaps_applied;
 			_actuators.control[5] = _manual.aux1;
-			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = flaperon_applied;
+			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = _flaperons_applied;
 			_actuators.control[7] = _manual.aux3;
 
 			/* lazily publish the setpoint only once available */

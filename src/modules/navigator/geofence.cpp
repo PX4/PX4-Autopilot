@@ -134,8 +134,8 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-		int32_t max_horizontal_distance = _param_max_hor_distance.get();
-		int32_t max_vertical_distance = _param_max_ver_distance.get();
+		float max_horizontal_distance = _param_max_hor_distance.get();
+		float max_vertical_distance = _param_max_ver_distance.get();
 
 		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
 			if (_home_pos_set) {

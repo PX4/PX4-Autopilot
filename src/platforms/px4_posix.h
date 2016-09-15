@@ -77,11 +77,14 @@ typedef struct pollfd px4_pollfd_struct_t;
 #define px4_access 	_GLOBAL access
 #define px4_getpid 	_GLOBAL getpid
 
+#define  PX4_STACK_OVERHEAD	0
+
 #elif defined(__PX4_POSIX)
 
 #define  PX4_F_RDONLY O_RDONLY
 #define  PX4_F_WRONLY O_WRONLY
 #define  PX4_F_CREAT  O_CREAT
+#define	 PX4_STACK_OVERHEAD	8192
 
 typedef short pollevent_t;
 
@@ -117,6 +120,13 @@ __END_DECLS
 #else
 #error "No TARGET OS Provided"
 #endif
+
+
+// The stack size is intended for 32-bit architectures; therefore
+// we often run out of stack space when pointers are larger than 4 bytes.
+// Double the stack size on posix when we're on a 64-bit architecture.
+// Most full-scale OS use 1-4K of memory from the stack themselves
+#define PX4_STACK_ADJUSTED(_s) (_s * (__SIZEOF_POINTER__ >> 2) + PX4_STACK_OVERHEAD)
 
 __BEGIN_DECLS
 extern int px4_errno;

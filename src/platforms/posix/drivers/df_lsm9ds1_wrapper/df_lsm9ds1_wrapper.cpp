@@ -640,18 +640,18 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	}
 
 	// TODO: remove these (or get the values)
-	gyro_report.x_raw = NAN;
-	gyro_report.y_raw = NAN;
-	gyro_report.z_raw = NAN;
+	gyro_report.x_raw = 0;
+	gyro_report.y_raw = 0;
+	gyro_report.z_raw = 0;
 
-	accel_report.x_raw = NAN;
-	accel_report.y_raw = NAN;
-	accel_report.z_raw = NAN;
+	accel_report.x_raw = 0;
+	accel_report.y_raw = 0;
+	accel_report.z_raw = 0;
 
 	if (_mag_enabled) {
-		mag_report.x_raw = NAN;
-		mag_report.y_raw = NAN;
-		mag_report.z_raw = NAN;
+		mag_report.x_raw = 0;
+		mag_report.y_raw = 0;
+		mag_report.z_raw = 0;
 	}
 
 	math::Vector<3> gyro_val_filt;

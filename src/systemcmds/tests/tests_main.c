@@ -97,6 +97,7 @@ const struct {
 #ifndef __PX4_DARWIN
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
+	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 #endif /* __PX4_DARWIN */
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
@@ -111,7 +112,6 @@ const struct {
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"mathlib",		test_mathlib,	0},
 	{"matrix",		test_matrix,	0},
-	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"param",		test_param,	0},
 	{"perf",		test_perf,	OPT_NOJIGTEST},

@@ -109,6 +109,11 @@ then
         set MIXER_AUX none
 fi
 
+if ver hwcmp CRAZYFLIE
+then
+	set MIXER_AUX none
+fi
+
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
@@ -133,7 +138,18 @@ then
 	then
 		if fmu mode_$AUX_MODE
 		then
-			if [ -e $OUTPUT_AUX_DEV ]
+			# Append aux mixer to main device
+			if [ $OUTPUT_MODE == hil ]
+			then
+				if mixer append $OUTPUT_DEV $MIXER_AUX_FILE
+				then
+					echo "INFO  [init] Mixer: $MIXER_AUX_FILE appended to $OUTPUT_DEV"
+				else
+					echo "ERROR [init] Error appending mixer: $MIXER_AUX_FILE"
+					echo "ERROR [init] Could not append mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+				fi
+			fi
+			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then

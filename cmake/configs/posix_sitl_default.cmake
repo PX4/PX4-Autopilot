@@ -1,12 +1,13 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
 	drivers/boards/sitl
 	drivers/device
 	drivers/gps
 	drivers/pwm_out_sim
+	drivers/vmount
 
 	platforms/common
 	platforms/posix/drivers/accelsim
@@ -96,9 +97,12 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-set(config_sitl_rcS
-	posix-configs/SITL/init/rcS
-	CACHE FILEPATH "init script for sitl"
+# Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
+# for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
+# which are based on posix_sitl_default.
+set(config_sitl_rcS_dir
+	posix-configs/SITL/init/lpe
+	CACHE INTERNAL "init script dir for sitl"
 	)
 
 set(config_sitl_viewer

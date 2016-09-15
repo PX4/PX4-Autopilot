@@ -474,8 +474,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_product(0),
 #if defined(USE_I2C)
 	_work {},
-#endif
 	_use_hrt(false),
+#else
+	_use_hrt(true),
+#endif
 	_call {},
 	_call_interval(0),
 	_accel_reports(nullptr),
@@ -706,14 +708,8 @@ int MPU6000::reset()
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
 
-		if (is_i2c()) {
-			// Enable I2C bus (recommended on datasheet)
-			write_checked_reg(MPUREG_USER_CTRL, 0);
-
-		} else {
-			// Disable I2C bus (recommended on datasheet)
-			write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-		}
+		// Enable I2C bus or Disable I2C bus (recommended on data sheet)
+		write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
 
 		px4_leave_critical_section(state);
 
@@ -1410,7 +1406,11 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
 		_set_dlpf_filter(arg);
-		_set_icm_acc_dlpf_filter(arg);
+
+		if (is_icm_device()) {
+			_set_icm_acc_dlpf_filter(arg);
+		}
+
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1655,13 +1655,15 @@ void
 MPU6000::start()
 {
 	/* make sure we are stopped first */
+	uint32_t last_call_interval = _call_interval;
 	stop();
+	_call_interval = last_call_interval;
 
 	/* discard any stale data in the buffers */
 	_accel_reports->flush();
 	_gyro_reports->flush();
 
-	if (_use_hrt) {
+	if (!is_i2c()) {
 		/* start polling at the specified rate */
 		hrt_call_every(&_call,
 			       1000,
@@ -1680,7 +1682,7 @@ void
 MPU6000::stop()
 {
 
-	if (_use_hrt) {
+	if (!is_i2c()) {
 		hrt_cancel(&_call);
 
 	} else {

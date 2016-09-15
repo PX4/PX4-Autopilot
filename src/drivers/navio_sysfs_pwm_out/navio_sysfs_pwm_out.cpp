@@ -124,7 +124,7 @@ int mixer_control_callback(uintptr_t handle,
 int initialize_mixer(const char *mixer_filename)
 {
 	char buf[2048];
-	size_t buflen = sizeof(buf);
+	unsigned buflen = sizeof(buf);
 
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
@@ -360,7 +360,13 @@ void task_main(int argc, char *argv[])
 				       pwm,
 				       &_pwm_limit);
 
-			send_outputs_pwm(pwm);
+
+			if (_armed.lockdown) {
+				send_outputs_pwm(disarmed_pwm);
+
+			} else {
+				send_outputs_pwm(pwm);
+			}
 
 			if (_outputs_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);

@@ -67,7 +67,8 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
 #define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
-class MavlinkMissionManager : public MavlinkStream {
+class MavlinkMissionManager : public MavlinkStream
+{
 public:
 	~MavlinkMissionManager();
 
@@ -113,9 +114,11 @@ private:
 	static int		_dataman_id;				///< Global Dataman storage ID for active mission
 	int			_my_dataman_id;				///< class Dataman storage ID
 	static bool		_dataman_init;				///< Dataman initialized
-	
+
 	static unsigned		_count;					///< Count of items in active mission
 	static int		_current_seq;				///< Current item sequence in active mission
+
+	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
@@ -133,11 +136,12 @@ private:
 
 	bool _verbose;
 
-	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT = 2;	///< Error count limit before stopping to report FS errors
+	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
+		2;	///< Error count limit before stopping to report FS errors
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
-	MavlinkMissionManager& operator = (const MavlinkMissionManager &);
+	MavlinkMissionManager &operator = (const MavlinkMissionManager &);
 
 	void init_offboard_mission();
 
@@ -196,7 +200,8 @@ private:
 	/**
 	 * Format mission_item_s as mavlink MISSION_ITEM message.
 	 */
-	int format_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
+					mavlink_mission_item_t *mavlink_mission_item);
 
 protected:
 	explicit MavlinkMissionManager(Mavlink *mavlink);

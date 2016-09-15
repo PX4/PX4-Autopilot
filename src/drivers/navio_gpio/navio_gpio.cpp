@@ -77,7 +77,7 @@ int Gpio::stop(void)
 	return 0;
 }
 
-void Gpio::atomic_modify(uint32_t addr,
+void Gpio::atomic_modify(uintptr_t addr,
 			 unsigned int shift,
 			 unsigned int mask,
 			 unsigned int value)
@@ -99,13 +99,13 @@ int Gpio::configgpio(uint32_t pinset)
 	unsigned int pin;
 	unsigned int cnf;
 
-	uint32_t addr;
+	uintptr_t addr;
 	unsigned int shift;
 
 	pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 	cnf = (pinset & GPIO_CNF_MASK) >> GPIO_CNF_SHIFT;
 
-	addr = (uint32_t)_gpio_map + GPIO_GPFSEL0_OFFSET + pin / 10;
+	addr = (uintptr_t)_gpio_map + GPIO_GPFSEL0_OFFSET + pin / 10;
 	shift = (pin % 10) * 3;
 
 	atomic_modify(addr, shift, GPIO_CNF_MASK, cnf);
@@ -124,12 +124,12 @@ bool Gpio::gpioread(uint32_t pinset)
 {
 	unsigned int pin;
 
-	uint32_t addr;
+	uintptr_t addr;
 	unsigned int shift;
 
 	pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 
-	addr = (uint32_t)_gpio_map + GPIO_GPLEV0_OFFSET + pin / 32;
+	addr = (uintptr_t)_gpio_map + GPIO_GPLEV0_OFFSET + pin / 32;
 	shift = pin % 32;
 
 	return (*(volatile uint32_t *)addr >> shift) & 0x1u;
@@ -140,16 +140,16 @@ void Gpio::gpiowrite(uint32_t pinset, bool value)
 {
 	unsigned int pin;
 
-	uint32_t addr;
+	uintptr_t addr;
 	unsigned int shift;
 
 	pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 
 	if (value == 0) {
-		addr = (uint32_t)_gpio_map + GPIO_GPCLR0_OFFSET + pin / 32;
+		addr = (uintptr_t)_gpio_map + GPIO_GPCLR0_OFFSET + pin / 32;
 
 	} else {
-		addr = (uint32_t)_gpio_map + GPIO_GPSET0_OFFSET + pin / 32;
+		addr = (uintptr_t)_gpio_map + GPIO_GPSET0_OFFSET + pin / 32;
 	}
 
 	shift = pin % 32;

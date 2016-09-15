@@ -50,7 +50,7 @@
 #
 
 include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/qurt)
 
 #=============================================================================
 #
@@ -95,19 +95,20 @@ function(px4_qurt_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
 endfunction()
 
 #=============================================================================
 #
 #	px4_os_add_flags
 #
-#	Set ths qurt build flags.
+#	Set the qurt build flags.
 #
 #	Usage:
 #		px4_os_add_flags(
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
+#			OPTIMIZATION_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
 #			INCLUDE_DIRS <inout-variable>
 #			LINK_DIRS <inout-variable>
@@ -119,8 +120,9 @@ endfunction()
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
-#		EXE_LINKER_FLAGS		: executable linker flags variable
-#		INCLUDE_DIRS			: include directories
+#		OPTIMIZATION_FLAGS			: optimization compile flags variable
+#		EXE_LINKER_FLAGS			: executable linker flags variable
+#		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
 #
@@ -128,16 +130,17 @@ endfunction()
 #		px4_os_add_flags(
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
+#			OPTIMIZATION_FLAGS optimization_flags
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
 function(px4_os_add_flags)
 
 	set(inout_vars
-		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
+		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
 	px4_parse_function_args(
-		NAME px4_add_flags
+		NAME px4_os_add_flags
 		ONE_VALUE ${inout_vars} BOARD
 		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})
@@ -146,6 +149,7 @@ function(px4_os_add_flags)
 		BOARD ${BOARD}
 		C_FLAGS ${C_FLAGS}
 		CXX_FLAGS ${CXX_FLAGS}
+		OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
 		EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS}
 		INCLUDE_DIRS ${INCLUDE_DIRS}
 		LINK_DIRS ${LINK_DIRS}

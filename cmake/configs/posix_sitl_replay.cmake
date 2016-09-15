@@ -1,6 +1,6 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
 	drivers/device
@@ -34,9 +34,9 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-set(config_sitl_rcS
-	posix-configs/SITL/init/rcS
-	CACHE FILEPATH "init script for sitl"
+set(config_sitl_rcS_dir
+	posix-configs/SITL/init/replay
+	CACHE INTERNAL "init script dir for sitl"
 	)
 
 set(config_sitl_viewer

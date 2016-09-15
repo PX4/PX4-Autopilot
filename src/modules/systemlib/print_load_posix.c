@@ -114,7 +114,6 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		return;
 	}
 
-	task_basic_info_t basic_info;
 	thread_array_t thread_list;
 	mach_msg_type_number_t th_cnt;
 
@@ -123,8 +122,6 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 
 	thread_basic_info_t basic_info_th;
 	uint32_t stat_thread = 0;
-
-	basic_info = (task_basic_info_t)tinfo;
 
 	// get all threads of the PX4 main task
 	kr = task_threads(task_handle, &thread_list, &th_cnt);

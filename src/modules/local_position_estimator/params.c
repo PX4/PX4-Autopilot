@@ -26,6 +26,17 @@ PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
 PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
 
 /**
+ * Optical flow xy standard deviation linear factor on distance
+ *
+ * @group Local Position Estimator
+ * @unit m / m
+ * @min 0.01
+ * @max 1
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_XY_D, 0.01f);
+
+/**
  * Optical flow minimum quality threshold
  *
  * @group Local Position Estimator
@@ -240,11 +251,11 @@ PARAM_DEFINE_INT32(LPE_VIS_ON, 1);
  *
  * @group Local Position Estimator
  * @unit m
- * @min 0.01
+ * @min 0.0001
  * @max 1
- * @decimal 3
+ * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
+PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.001f);
 
 /**
  * Position propagation noise density
@@ -286,7 +297,19 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
 
 /**
+ * Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
+ *
+ * @group Local Position Estimator
+ * @unit (m/s)/(sqrt(hz))
+ * @min 0
+ * @max 1
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_PN_T, 0.001f);
+
+/**
  * Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
+ * Used to calculate increased terrain random walk nosie due to movement.
  *
  * @group Local Position Estimator
  * @unit %
