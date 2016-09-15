@@ -420,6 +420,8 @@ void Ekf2::task_main()
 	vision_position_estimate_s ev = {};
 	vehicle_status_s _vehicle_status = {};
 
+	hrt_abstime pretime = hrt_absolute_time();
+
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
@@ -465,6 +467,11 @@ void Ekf2::task_main()
 		}
 
 		orb_check(_gps_sub, &gps_updated);
+
+		hrt_abstime nowtime = hrt_absolute_time();
+		if (nowtime - pretime < 5*1e6){
+			gps_updated = false;
+		}
 
 		if (gps_updated) {
 			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);

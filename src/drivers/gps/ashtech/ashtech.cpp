@@ -230,6 +230,10 @@ int GPSDriverAshtech::handleMessage(int len)
 		_gps_position->lat = static_cast<int>((int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->lon = static_cast<int>((int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->alt = static_cast<int>(alt * 1000);
+
+		_gps_position->satellites_used = num_of_sv;
+		_gps_position->hdop = hdop;
+
 		_rate_count_lat_lon++;
 
 		if (fix_quality <= 0) {
@@ -254,8 +258,7 @@ int GPSDriverAshtech::handleMessage(int len)
 		_gps_position->vel_n_m_s = 0;                                /**< GPS ground speed in m/s */
 		_gps_position->vel_e_m_s = 0;                                /**< GPS ground speed in m/s */
 		_gps_position->vel_d_m_s = 0;                                /**< GPS ground speed in m/s */
-		_gps_position->cog_rad =
-			0;                                  /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
+		_gps_position->cog_rad = 0;                                  /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
 		_gps_position->vel_ned_valid = true;                         /**< Flag to indicate if NED speed is valid */
 		_gps_position->c_variance_rad = 0.1f;
 		ret = 1;

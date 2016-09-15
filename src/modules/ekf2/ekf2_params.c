@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
  * @unit ms
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
+PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 100);
 
 /**
  * Optical flow measurement delay relative to IMU measurements
@@ -317,7 +317,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.02f);
 
 /**
  * Measurement noise for non-aiding position hold.
@@ -518,7 +518,7 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
  * @value 3 Vision
  *
  */
-PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
+PARAM_DEFINE_INT32(EKF2_HGT_MODE, 1);
 
 /**
  * Measurement noise for range finder fusion

@@ -84,7 +84,8 @@
 
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
-#include "devices/src/ashtech.h"
+//#include "devices/src/ashtech.h"
+#include "ashtech/ashtech.h"
 
 
 #define TIMEOUT_5HZ 500

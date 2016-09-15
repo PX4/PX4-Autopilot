@@ -40,8 +40,9 @@ px4_add_module(
 		gps.cpp
 		devices/src/gps_helper.cpp
 		devices/src/mtk.cpp
-		devices/src/ashtech.cpp
+#		devices/src/ashtech.cpp
 		devices/src/ubx.cpp
+		ashtech/ashtech.cpp
 	DEPENDS
 		platforms__common
 	)
