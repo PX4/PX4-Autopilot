@@ -350,7 +350,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	if (target_ok) {
 		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
+		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 			/* This is the link shutdown command, terminate mavlink */
 			warnx("terminated by remote");
 			fflush(stdout);
