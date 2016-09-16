@@ -170,6 +170,7 @@ private:
 
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
+	hrt_abstime _time_last_mix = 0;
 
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -220,6 +221,8 @@ private:
 	bool		_safety_off;
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
+
+	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 
 	static bool	arm_nothrottle()
 	{
@@ -328,7 +331,8 @@ PX4FMU::PX4FMU() :
 	_num_disarmed_set(0),
 	_safety_off(false),
 	_safety_disabled(false),
-	_to_safety(nullptr)
+	_to_safety(nullptr),
+	_mot_t_max(0.0f)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -924,6 +928,7 @@ PX4FMU::cycle()
 		px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif
 #endif
+		param_find("MOT_SLEW_MAX");
 
 		_initialized = true;
 	}
@@ -1059,6 +1064,20 @@ PX4FMU::cycle()
 				break;
 			}
 
+			hrt_abstime now = hrt_absolute_time();
+			float dt = (now - _time_last_mix) / 1e6f;
+			_time_last_mix = now;
+
+			if (dt < 0.0001f) {
+				dt = 0.0001f;
+
+			} else if (dt > 0.02f) {
+				dt = 0.02f;
+			}
+
+			float slew_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
+			_mixers->update_slew_rate(slew_max);
+
 			/* do mixing */
 			float outputs[_max_actuators];
 			num_outputs = _mixers->mix(outputs, num_outputs, NULL);
@@ -1169,15 +1188,22 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 		int32_t dsm_bind_val;
-		param_t dsm_bind_param;
+		param_t param_handle;
 
 		/* see if bind parameter has been set, and reset it to -1 */
-		param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+		param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
 
 		if (dsm_bind_val > -1) {
 			dsm_bind_ioctl(dsm_bind_val);
 			dsm_bind_val = -1;
-			param_set(dsm_bind_param, &dsm_bind_val);
+			param_set(param_handle, &dsm_bind_val);
+		}
+
+		// maximum motor slew rate parameter
+		param_handle = param_find("MOT_SLEW_MAX");
+
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &_mot_t_max);
 		}
 	}
 
