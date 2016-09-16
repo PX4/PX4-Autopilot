@@ -72,8 +72,6 @@ static bool should_arm_nothrottle = false;
 static bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
-static uint16_t outputs_prev[4] = {900, 900, 900, 900};
-
 extern int _sbus_fd;
 
 /* selected control values and count for mixing */
@@ -234,6 +232,11 @@ mixer_tick(void)
 		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
 
+		// update slew rate value
+		float slew_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
+					 r_setup_slew_max);
+		mixer_group.update_slew_rate(slew_max);
+
 		/* mix */
 
 		/* poor mans mutex */
@@ -244,26 +247,6 @@ mixer_tick(void)
 		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
 			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
-
-		// test slew rate limiting of motor outputs
-		// other option would be low pass filtering
-		float d_pwm_max = 1000.0f / REG_TO_FLOAT(r_setup_slew_max);	// max allowed delta pwm per second
-
-		for (unsigned i = 0; i < 4; i++) {
-			if (d_pwm_max > 0.0f) {
-				float pwm_diff = r_page_servos[i] - outputs_prev[i];
-
-				if (pwm_diff > d_pwm_max * dt) {
-					r_page_servos[i] = outputs_prev[i] + d_pwm_max * dt;
-
-				} else if (pwm_diff < -d_pwm_max * dt) {
-					// XXX might not need this as we won't lose sync on deccelerating
-					r_page_servos[i] = outputs_prev[i] - d_pwm_max * dt;
-				}
-			}
-
-			outputs_prev[i] = r_page_servos[i];
-		}
 
 		/* clamp unused outputs to zero */
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
@@ -534,6 +517,11 @@ mixer_set_failsafe()
 	/* set failsafe defaults to the values for all inputs = 0 */
 	float	outputs[PX4IO_SERVO_COUNT];
 	unsigned mixed;
+
+	// update slew rate value
+	float slew_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
+				 r_setup_slew_max);
+	mixer_group.update_slew_rate(slew_max);
 
 	/* mix */
 	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);

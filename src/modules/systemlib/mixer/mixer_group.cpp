@@ -200,3 +200,13 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	/* nothing more in the buffer for us now */
 	return ret;
 }
+
+void MixerGroup::update_slew_rate(float slew_rate_max)
+{
+	Mixer	*mixer = _first;
+
+	while (mixer != nullptr) {
+		mixer->update_slew_rate(slew_rate_max);
+		mixer = mixer->_next;
+	}
+}
