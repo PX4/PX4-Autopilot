@@ -178,12 +178,17 @@ private:
 		param_t z_vel_max_up;
 		param_t z_vel_max_down;
 		param_t z_ff;
-		param_t xy_p;
-		param_t xy_vel_p;
-		param_t xy_vel_i;
-		param_t xy_vel_d;
+		param_t x_p;
+		param_t y_p;
+		param_t x_vel_p;
+		param_t y_vel_p;
+		param_t x_vel_i;
+		param_t y_vel_i;
+		param_t x_vel_d;
+		param_t y_vel_d;
 		param_t xy_vel_max;
-		param_t xy_vel_cruise;
+		param_t x_vel_cruise;
+		param_t y_vel_cruise;
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
@@ -454,12 +459,17 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
+	_params_handles.x_p		= param_find("MPC_X_P");
+	_params_handles.y_p		= param_find("MPC_Y_P");
+	_params_handles.x_vel_p		= param_find("MPC_X_VEL_P");
+	_params_handles.y_vel_p		= param_find("MPC_Y_VEL_P");
+	_params_handles.x_vel_i		= param_find("MPC_X_VEL_I");
+	_params_handles.y_vel_i		= param_find("MPC_Y_VEL_I");
+	_params_handles.x_vel_d		= param_find("MPC_X_VEL_D");
+	_params_handles.y_vel_d		= param_find("MPC_Y_VEL_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
-	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
+	_params_handles.x_vel_cruise	= param_find("MPC_X_CRUISE");
+	_params_handles.y_vel_cruise	= param_find("MPC_Y_CRUISE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
@@ -536,23 +546,27 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		float v;
 		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);
+		param_get(_params_handles.x_p, &v);
 		_params.pos_p(0) = v;
+		param_get(_params_handles.y_p, &v);
 		_params.pos_p(1) = v;
 		param_get(_params_handles.z_p, &v);
 		_params.pos_p(2) = v;
-		param_get(_params_handles.xy_vel_p, &v);
+		param_get(_params_handles.x_vel_p, &v);
 		_params.vel_p(0) = v;
+		param_get(_params_handles.y_vel_p, &v);
 		_params.vel_p(1) = v;
 		param_get(_params_handles.z_vel_p, &v);
 		_params.vel_p(2) = v;
-		param_get(_params_handles.xy_vel_i, &v);
+		param_get(_params_handles.x_vel_i, &v);
 		_params.vel_i(0) = v;
+		param_get(_params_handles.y_vel_i, &v);
 		_params.vel_i(1) = v;
 		param_get(_params_handles.z_vel_i, &v);
 		_params.vel_i(2) = v;
-		param_get(_params_handles.xy_vel_d, &v);
+		param_get(_params_handles.x_vel_d, &v);
 		_params.vel_d(0) = v;
+		param_get(_params_handles.y_vel_d, &v);
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
@@ -564,8 +578,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_max(2) = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
-		param_get(_params_handles.xy_vel_cruise, &v);
+		param_get(_params_handles.x_vel_cruise, &v);
 		_params.vel_cruise(0) = v;
+		param_get(_params_handles.y_vel_cruise, &v);
 		_params.vel_cruise(1) = v;
 		/* using Z max up for now */
 		param_get(_params_handles.z_vel_max_up, &v);
@@ -789,6 +804,18 @@ MulticopterPositionControl::limit_pos_sp_offset()
 	if (_control_mode.flag_control_position_enabled) {
 		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
 		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+
+		/* Limit maximum setpoint offset in position in body frame */
+		float pos_err_bx, pos_err_by;
+		float pos_sp_offs_bx, pos_sp_offs_by;
+		pos_err_bx = (_pos_sp(0) - _pos(0)) * cosf(_yaw) + (_pos_sp(1) - _pos(1)) * sinf(_yaw);
+		pos_err_by = (_pos_sp(1) - _pos(1)) * cosf(_yaw) - (_pos_sp(0) - _pos(0)) * sinf(_yaw);
+		pos_sp_offs_bx = pos_err_bx / _params.sp_offs_max(0);
+		pos_sp_offs_by = pos_err_by / _params.sp_offs_max(1);
+
+		/* Project offsets back on world frame */
+		pos_sp_offs(0) = pos_sp_offs_bx * cosf(_yaw) - pos_sp_offs_by * sinf(_yaw);
+		pos_sp_offs(1) = pos_sp_offs_by * cosf(_yaw) + pos_sp_offs_bx * sinf(_yaw);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -1082,7 +1109,11 @@ void MulticopterPositionControl::control_auto(float dt)
 			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
 		}
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+		/* Get the scale in the world frame */
+		math::Vector<3> scale;
+		scale(0) = (_params.pos_p(0) / cruising_speed(0)) * cosf(_yaw) - (_params.pos_p(1) / cruising_speed(1)) * sinf(_yaw);
+		scale(1) = (_params.pos_p(1) / cruising_speed(1)) * cosf(_yaw) + (_params.pos_p(0) / cruising_speed(0)) * sinf(_yaw);
+		scale(2) = _params.pos_p(2) / cruising_speed(2);
 
 		/* convert current setpoint to scaled space */
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
@@ -1160,11 +1191,34 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
 
 		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+		math::Vector<3> d_pos_m;
+
+		/* Calculate the scaled differnce with the gains in body frame */
+		float d_pos_m_bx, d_pos_m_by;
+		d_pos_m_bx = ((pos_sp_s(0) - pos_sp_old_s(0)) * cosf(_yaw) + (pos_sp_s(1) - pos_sp_old_s(1)) * sinf(
+				      _yaw)) / _params.pos_p(0);
+		d_pos_m_by = ((pos_sp_s(1) - pos_sp_old_s(1)) * cosf(_yaw) - (pos_sp_s(0) - pos_sp_old_s(0)) * sinf(
+				      _yaw)) / _params.pos_p(1);
+
+		/* Project back on the world frame */
+		d_pos_m(0) = d_pos_m_bx * cosf(_yaw) - d_pos_m_by * sinf(_yaw);
+		d_pos_m(1) = d_pos_m_by * cosf(_yaw) + d_pos_m_bx * sinf(_yaw);
+		d_pos_m(2) = (pos_sp_s(2) - pos_sp_old_s(2)) / _params.pos_p(2);
+
+
 		float d_pos_m_len = d_pos_m.length();
 
 		if (d_pos_m_len > dt) {
-			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
+			float incr_bx, incr_by, incr_x, incr_y;
+			incr_x = d_pos_m(0) / d_pos_m_len * dt;
+			incr_y = d_pos_m(1) / d_pos_m_len * dt;
+			incr_bx = (incr_x * cosf(_yaw) + incr_y * sinf(_yaw)) * _params.pos_p(0);
+			incr_by = (incr_y * cosf(_yaw) - incr_x * sinf(_yaw)) * _params.pos_p(1);
+			incr_x = incr_bx * cosf(_yaw) - incr_by * sinf(_yaw);
+			incr_y = incr_by * cosf(_yaw) + incr_bx * sinf(_yaw);
+			pos_sp_s(0) = pos_sp_old_s(0) + incr_x;
+			pos_sp_s(1) = pos_sp_old_s(1) + incr_y;
+			pos_sp_s(2) = pos_sp_old_s(2) + (d_pos_m(2) / d_pos_m_len * dt) * _params.pos_p(2);
 		}
 
 		/* scale result back to normal space */
@@ -1465,8 +1519,25 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+					/* Separate Gains */
+					float vel_sp_bx, vel_sp_by;
+					float k_bx, k_by;
+					float pos_err_bx, pos_err_by;
+
+					k_bx = _params.pos_p(0);
+					k_by = _params.pos_p(1);
+
+					/* Project error on body axis */
+					pos_err_bx = (_pos_sp(0) - _pos(0)) * cosf(_yaw) + (_pos_sp(1) - _pos(1)) * sinf(_yaw);
+					pos_err_by = (_pos_sp(1) - _pos(1)) * cosf(_yaw) - (_pos_sp(0) - _pos(0)) * sinf(_yaw);
+
+					/* Use separate position gains Gains */
+					vel_sp_bx = pos_err_bx * k_bx;
+					vel_sp_by = pos_err_by * k_by;
+
+					/* Project setpoint back on world frame */
+					_vel_sp(0) = vel_sp_bx * cosf(_yaw) - vel_sp_by * sinf(_yaw);
+					_vel_sp(1) = vel_sp_bx * sinf(_yaw) + vel_sp_by * cosf(_yaw);
 				}
 
 				// guard against any bad velocity values
@@ -1702,7 +1773,29 @@ MulticopterPositionControl::task_main()
 						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 					} else {
-						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+						
+						float th_sp_bx, th_sp_by;
+						float vel_err_bx, vel_err_by, vel_err_d_bx, vel_err_d_by;
+
+						/* Project errors onto body frame */
+						vel_err_bx = vel_err(0) * cosf(_yaw) + vel_err(1) * sinf(_yaw);
+						vel_err_by = vel_err(1) * cosf(_yaw) - vel_err(0) * sinf(_yaw);
+						vel_err_d_bx = _vel_err_d(0) * cosf(_yaw) + _vel_err_d(1) * sinf(_yaw);
+						vel_err_d_by = _vel_err_d(1) * cosf(_yaw) - _vel_err_d(0) * sinf(_yaw);
+
+						/* Use separate gains for velocity */
+						th_sp_bx = vel_err_bx * _params.vel_p(0) + vel_err_d_bx * _params.vel_d(0);
+						th_sp_by = vel_err_by * _params.vel_p(1) + vel_err_d_by * _params.vel_d(1);
+
+						/* Project thrust setpoint back to world frame */
+						thrust_sp(0) = th_sp_bx * cosf(_yaw) - th_sp_by * sinf(_yaw);
+						thrust_sp(1) = th_sp_by * cosf(_yaw) + th_sp_bx * sinf(_yaw);
+
+						/* update the altitude thrust setpoint as usual */
+						thrust_sp(2) = vel_err(2) * _params.vel_p(2) + _vel_err_d(2) * _params.vel_d(2);
+
+						/* Add integral to thrust setpoint */
+						thrust_sp += thrust_int;
 					}
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1871,8 +1964,16 @@ MulticopterPositionControl::task_main()
 
 					/* update integrals */
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-						thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
-						thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
+						/* Use separate gains for integrals */
+						float vel_err_i_bx, vel_err_i_by, th_sp_i_bx, th_sp_i_by;
+						vel_err_i_bx = vel_err(0) * cosf(_yaw) + vel_err(1) * sinf(_yaw);
+						vel_err_i_by = vel_err(1) * cosf(_yaw) - vel_err(0) * sinf(_yaw);
+						th_sp_i_bx = vel_err_i_bx * _params.vel_i(0) * dt;
+						th_sp_i_by = vel_err_i_by * _params.vel_i(1) * dt;
+
+						/* Project back to world frame */
+						thrust_int(0) += th_sp_i_bx * cosf(_yaw) - th_sp_i_by * sinf(_yaw);
+						thrust_int(1) += th_sp_i_by * cosf(_yaw) + th_sp_i_bx * sinf(_yaw);
 					}
 
 					if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
