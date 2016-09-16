@@ -184,6 +184,15 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+	/**
+	 * @brief      Update slew rate parameter. This tells the multicopter mixer
+	 *             the maximum allowed change of the output values per cycle.
+	 *
+	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 */
+	virtual void 			update_slew_rate(float slew_rate_max) {};
+
+
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -311,6 +320,14 @@ public:
 	 * @return			Zero on successful load, nonzero otherwise.
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
+
+	/**
+	 * @brief      Update slew rate parameter. This tells the multicopter mixer
+	 *             the maximum allowed change of the output values per cycle.
+	 *
+	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 */
+	virtual void 			update_slew_rate(float slew_rate_max);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -518,17 +535,29 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 
+	/**
+	 * @brief      Update slew rate parameter. This tells the multicopter mixer
+	 *             the maximum allowed change of the output values per cycle.
+	 *
+	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 */
+	virtual void		update_slew_rate(float slew_rate_max) {_slew_rate_max = slew_rate_max;}
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
 	float				_idle_speed;
 
+	float 				_slew_rate_max;
+
 	orb_advert_t			_limits_pub;
 	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+	float 				*_outputs_prev = nullptr;
 
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);
