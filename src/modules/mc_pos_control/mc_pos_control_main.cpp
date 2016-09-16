@@ -1751,12 +1751,30 @@ MulticopterPositionControl::task_main()
 
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
-						_vel_sp(0) = _vel(0) + (-Rb(0,
-									    2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
-						_vel_sp(1) = _vel(1) + (-Rb(1,
-									    2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
-						_vel_sp(2) = _vel(2) + (-Rb(2,
-									    2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
+						float vel_err_bx, vel_err_by, vel_err_d_bx, vel_err_d_by;
+						float vel_err_x, vel_err_y, vel_err_d_x, vel_err_d_y;
+						
+						/* Calculate vel d err in body frame and scale with d gains in body frame */
+						vel_err_d_bx = (_vel_err_d(0) * cosf(_yaw) + _vel_err_d(1) * sinf(_yaw)) * _params.vel_d(0);
+						vel_err_d_by = (_vel_err_d(1) * cosf(_yaw) - _vel_err_d(0) * sinf(_yaw)) * _params.vel_d(1);
+						
+						/* Project th_d back to world frame */
+						vel_err_d_x = vel_err_d_bx * cosf(_yaw) - vel_err_d_by * sinf(_yaw);
+						vel_err_d_y = vel_err_d_by * cosf(_yaw) + vel_err_d_bx * sinf(_yaw);
+
+						/* Calculate p error in body frame and scale with p gains in body frame */
+						vel_err_x = (-Rb(0, 2) * _att_sp.thrust - thrust_int(0) - vel_err_d_x);
+						vel_err_y = (-Rb(1, 2) * _att_sp.thrust - thrust_int(1) - vel_err_d_y);
+						/* Rescale in body frame */
+						vel_err_bx = (vel_err_x * cosf(_yaw) + vel_err_y * sinf(_yaw)) / _params.vel_p(0);
+						vel_err_by = (vel_err_y * cosf(_yaw) - vel_err_x * sinf(_yaw)) / _params.vel_p(1);
+						/* Project back to world frame */
+						vel_err_x = vel_err_bx * cosf(_yaw) - vel_err_by * sinf(_yaw);
+						vel_err_y = vel_err_by * cosf(_yaw) + vel_err_bx * sinf(_yaw);
+
+						_vel_sp(0) = _vel(0) + vel_err_x;
+						_vel_sp(1) = _vel(1) + vel_err_y;
+						_vel_sp(2) = _vel(2) + (-Rb(2, 2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
 						_vel_sp_prev(0) = _vel_sp(0);
 						_vel_sp_prev(1) = _vel_sp(1);
 						_vel_sp_prev(2) = _vel_sp(2);
