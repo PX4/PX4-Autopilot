@@ -1521,19 +1521,15 @@ MulticopterPositionControl::task_main()
 				if (_run_pos_control) {
 					/* Separate Gains */
 					float vel_sp_bx, vel_sp_by;
-					float k_bx, k_by;
 					float pos_err_bx, pos_err_by;
-
-					k_bx = _params.pos_p(0);
-					k_by = _params.pos_p(1);
 
 					/* Project error on body axis */
 					pos_err_bx = (_pos_sp(0) - _pos(0)) * cosf(_yaw) + (_pos_sp(1) - _pos(1)) * sinf(_yaw);
 					pos_err_by = (_pos_sp(1) - _pos(1)) * cosf(_yaw) - (_pos_sp(0) - _pos(0)) * sinf(_yaw);
 
 					/* Use separate position gains Gains */
-					vel_sp_bx = pos_err_bx * k_bx;
-					vel_sp_by = pos_err_by * k_by;
+					vel_sp_bx = pos_err_bx * _params.pos_p(0);
+					vel_sp_by = pos_err_by * _params.pos_p(1);
 
 					/* Project setpoint back on world frame */
 					_vel_sp(0) = vel_sp_bx * cosf(_yaw) - vel_sp_by * sinf(_yaw);
