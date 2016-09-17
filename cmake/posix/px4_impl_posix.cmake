@@ -109,7 +109,7 @@ endfunction()
 #
 #	px4_os_add_flags
 #
-#	Set ths posix build flags.
+#	Set the posix build flags.
 #
 #	Usage:
 #		px4_os_add_flags(
@@ -132,6 +132,10 @@ endfunction()
 #		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
+#
+#	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
+#	these flags are added before any of the object files and static libraries.
+#	Add libraries in src/firmware/posix/CMakeLists.txt.
 #
 #	Example:
 #		px4_os_add_flags(
@@ -170,15 +174,17 @@ function(px4_os_add_flags)
                 mavlink/include/mavlink
                 )
 
-# Use the pthread instead of lpthread if the firmware is build for the parrot
-# bebop. This resolves some linker errors in DriverFramework, when building a 
-# static target.
+# This block sets added_exe_linker_flags.
 if ("${BOARD}" STREQUAL "bebop")
-  set(PX4_PTHREAD_BUILD "-pthread")
+	# Use the -pthread if the firmware is build for the parrot bebop.
+	# This resolves some linker errors in DriverFramework, when building
+	# a static target.
+	set(added_exe_linker_flags "-pthread")
 else()
-  set(PX4_PTHREAD_BUILD "-lpthread")
+	set(added_exe_linker_flags)
 endif()
 
+# This block sets added_definitions and added_cxx_flags.
 if(UNIX AND APPLE)
         set(added_definitions
 		-D__PX4_POSIX
@@ -189,9 +195,7 @@ if(UNIX AND APPLE)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
-        set(added_exe_linker_flags
-          ${PX4_PTHREAD_BUILD}
-		)
+	set(added_cxx_flags)
 
 else()
 
@@ -204,12 +208,14 @@ else()
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
-        set(added_exe_linker_flags
-		      ${PX4_PTHREAD_BUILD} -lrt
+	# Use -pthread For linux/g++.
+	set(added_cxx_flags
+		-pthread
 		)
 
 endif()
 
+# This block sets added_c_flags (appends to others).
 if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
 
 	if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
@@ -220,9 +226,13 @@ if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
 
 	# Add the toolchain specific flags
         set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
-        set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
 
-        list(APPEND added_exe_linker_flags
+	list(APPEND added_cxx_flags
+		${POSIX_CMAKE_CXX_FLAGS}
+		--sysroot=${HEXAGON_ARM_SYSROOT}
+		)
+
+	list(APPEND added_exe_linker_flags
 		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib/arm-linux-gnueabihf
 		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/arm-linux-gnueabihf
 		--sysroot=${HEXAGON_ARM_SYSROOT}
@@ -237,20 +247,19 @@ elseif ("${BOARD}" STREQUAL "rpi" AND "$ENV{RPI_USE_CLANG}" STREQUAL "1")
 		--sysroot=${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/arm-linux-gnueabihf/libc/)
 
 	set(added_c_flags ${POSIX_CMAKE_C_FLAGS} ${clang_added_flags})
-	set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${clang_added_flags})
-	set(added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${clang_added_flags})
+	list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${clang_added_flags})
+	list(APPEND added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${clang_added_flags})
 else()
 	# Add the toolchain specific flags
         set(added_cflags ${POSIX_CMAKE_C_FLAGS})
-        set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS})
-
+	list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS})
 endif()
 
 	# output
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 		#message(STATUS "posix: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
+		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 	endforeach()
 
 endfunction()
