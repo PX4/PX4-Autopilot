@@ -87,7 +87,8 @@ Syslink::Syslink() :
 	_rssi(RC_INPUT_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
-
+	px4_sem_init(&radio_sem, 0, 0);
+	px4_sem_init(&memory_sem, 0, 0);
 }
 
 
@@ -238,6 +239,9 @@ Syslink::task_main()
 	_bridge = new SyslinkBridge(this);
 	_bridge->init();
 
+	_memory = new SyslinkMemory(this);
+	_memory->init();
+
 	_battery.reset(&_battery_status);
 
 
@@ -373,7 +377,7 @@ Syslink::handle_message(syslink_message_t *msg)
 			_bstate = BAT_CHARGED;
 		else
 			_bstate = BAT_DISCHARGING;
-			
+
 
 		// announce the battery status if needed, just publish else
 		if (_battery_pub != nullptr) {
@@ -386,16 +390,16 @@ Syslink::handle_message(syslink_message_t *msg)
 	} else if (msg->type == SYSLINK_RADIO_RSSI) {
 		uint8_t rssi = msg->data[0]; // Between 40 and 100 meaning -40 dBm to -100 dBm
 		_rssi = 140 - rssi * 100 / (100 - 40);
-
-	} else if (msg->type == SYSLINK_RADIO_CHANNEL) {
-		PX4_INFO("Channel ACK %d", msg->data[0]);
-
-	} else if (msg->type == SYSLINK_RADIO_DATARATE) {
-		PX4_INFO("Datarate ACK %d", msg->data[0]);
-
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
 		handle_raw(msg);
 		lastrxtime = t;
+
+	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_RADIO) {
+		radio_msg = *msg;
+		px4_sem_post(&radio_sem);
+	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_OW) {
+		_memory->msgbuf = *msg;
+		px4_sem_post(&memory_sem);
 	} else {
 		PX4_INFO("GOT %d", msg->type);
 	}

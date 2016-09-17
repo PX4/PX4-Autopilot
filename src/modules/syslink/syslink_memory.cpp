@@ -32,33 +32,28 @@
  ****************************************************************************/
 
 
-/**
- * @file syslink_bridge.cpp
- *
- * Character device for talking to the radio as a plain serial port
- */
-
 #include "syslink_main.h"
 
+#include "drv_deck.h"
 
 
-SyslinkBridge::SyslinkBridge(Syslink *link) :
-	CDev("SyslinkBridge", "/dev/bridge0"),
+SyslinkMemory::SyslinkMemory(Syslink *link) :
+	CDev("SyslinkMemory", DECK_DEVICE_PATH),
 	_link(link),
-	_readbuffer(16, sizeof(crtp_message_t))
+	_activeI(0)
 {
 
 
 }
 
-SyslinkBridge::~SyslinkBridge()
+SyslinkMemory::~SyslinkMemory()
 {
 
 }
 
 
 int
-SyslinkBridge::init()
+SyslinkMemory::init()
 {
 	int ret = CDev::init();
 
@@ -72,90 +67,102 @@ SyslinkBridge::init()
 	return ret;
 }
 
-pollevent_t
-SyslinkBridge::poll_state(struct file *filp)
+ssize_t
+SyslinkMemory::read(struct file *filp, char *buffer, size_t buflen)
 {
-	pollevent_t state = 0;
-
-	if (!_readbuffer.empty()) {
-		state |= POLLIN;
-	}
-
-	if (_link->_writebuffer.space() > 0) {
-		state |= POLLOUT;
-	}
-
-	return 0;
+	return read(_activeI, 0, buffer, buflen);
 }
 
 ssize_t
-SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
+SyslinkMemory::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	int nread = 0;
-	crtp_message_t msg;
-
-	while (!_readbuffer.empty() && buflen >= sizeof(CRTP_MAX_DATA_SIZE)) {
-		_readbuffer.get(&msg, sizeof(msg));
-		int size = msg.size - sizeof(msg.header);
-		memcpy(buffer, &msg.data, size);
-
-		nread += size;
-		buffer += size;
-		buflen -= size;
-	}
-
-	return nread;
-}
-
-ssize_t
-SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
-{
-	crtp_message_t msg;
-
-	// Queue and send next time we get a RAW radio packet
-	int remaining = buflen;
-
-	while (remaining > 0) {
-		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE);
-		msg.size = datasize + sizeof(msg.header);
-		msg.port = CRTP_PORT_MAVLINK;
-		memcpy(&msg.data, buffer, datasize);
-
-		_link->_writebuffer.force(&msg, sizeof(crtp_message_t));
-
-		buffer += datasize;
-		remaining -= datasize;
-	}
-
-	return buflen;
+	// For now, unsupported
+	return -1;
+//	return buflen;
 }
 
 int
-SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
+SyslinkMemory::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	// All termios commands should be silently ignored as they are handled
-
 	switch (cmd) {
-#ifdef FIONSPACE
-
-	case FIONSPACE:
-#else
-	case FIONWRITE:
-#endif
-		*((int *) arg) = _link->_writebuffer.space() * CRTP_MAX_DATA_SIZE;
+	case DECKIOGNUM:
+		*((int *) arg) = scan();
+	case DECKIOSNUM:
+		_activeI = *((int *) arg);
 		return 0;
 
+	case DECKIOID:
+		syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
+		getinfo(_activeI)
+		arg = &data->index;
+		return sizeof(data->index);
+
 	default:
-		/* give it to the superclass */
 		CDev::ioctl(filp, cmd, arg);
 		return 0;
 	}
 }
 
 
-void
-SyslinkBridge::pipe_message(crtp_message_t *msg)
+uint8_t
+SyslinkMemory::scan()
 {
-	_readbuffer.force(msg, sizeof(msg->size) + msg->size);
-	poll_notify(POLLIN);
+	syslink_ow_scan_t *data = (syslink_ow_scan_t *) &msgbuf.data;
+	msgbuf.type = SYSLINK_OW_SCAN;
+	msgbuf.length = 0;
+	sendAndWait();
+
+	return data->nmems;
+}
+
+void
+SyslinkMemory::getinfo(int i)
+{
+	syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
+	msgbuf.type = SYSLINK_OW_SCAN;
+	msgbuf.length = 1;
+	data->idx = i;
+	sendAndWait();
+}
+
+int
+SyslinkMemory::read(int i, uint16_t addr, char *buf, int length)
+{
+	syslink_ow_read_t *data = (syslink_ow_read_t *) &msgbuf.data;
+	msgbuf.type = SYSLINK_OW_READ;
+
+	int nread = 0;
+	while (nread < length) {
+
+		msgbuf.length = 3;
+		data->idx = i;
+		data->addr = addr;
+		sendAndWait();
+
+		// Number of bytes actually read
+		int n = MIN(length - nread, msgbuf.length - 3);
+		if(n == 0)
+			break;
+
+		memcpy(buf, data->data, n);
+		nread += n;
+		buf += n;
+	}
+
+	return nread;
+}
+
+int
+SyslinkMemory::write(int i, uint16_t addr, const char *buf, int length)
+{
+	// TODO: Unimplemented
+	return -1;
+}
+
+void
+SyslinkMemory::sendAndWait()
+{
+	// TODO: Mutex lock sending a message
+	_link->send_message(&msgbuf);
+	px4_sem_wait(&_link->memory_sem);
 }
