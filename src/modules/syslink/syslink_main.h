@@ -68,6 +68,12 @@ public:
 	int set_channel(uint8_t channel);
 	int set_address(uint64_t addr);
 
+
+	int pktrate;
+	int nullrate;
+	int rxrate;
+	int txrate;
+
 private:
 
 	friend class SyslinkBridge;
@@ -94,7 +100,18 @@ private:
 	int _syslink_task;
 	bool _task_running;
 
+	int _count;
+	int _null_count;
+	int _count_in;
+	int _count_out;
+	hrt_abstime _lasttime;
+	hrt_abstime _lasttxtime; // Last time a radio message was sent
+	hrt_abstime _lastrxtime; // Last time a radio message was recieved
+
 	int _fd;
+
+	// For receiving raw syslink messages to send from other processes
+	ringbuffer::RingBuffer _queue;
 
 	// Stores data that was needs to be written as a raw message
 	ringbuffer::RingBuffer _writebuffer;

@@ -87,15 +87,18 @@ SyslinkMemory::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case DECKIOGNUM:
 		*((int *) arg) = scan();
+		return 0;
+
 	case DECKIOSNUM:
 		_activeI = *((int *) arg);
 		return 0;
 
-	case DECKIOID:
-		syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
-		getinfo(_activeI)
-		arg = &data->index;
-		return sizeof(data->index);
+	case DECKIOID: {
+			syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
+			getinfo(_activeI);
+			*((uint8_t **)arg) = data->id;
+			return 8;
+		}
 
 	default:
 		CDev::ioctl(filp, cmd, arg);
@@ -119,7 +122,7 @@ void
 SyslinkMemory::getinfo(int i)
 {
 	syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
-	msgbuf.type = SYSLINK_OW_SCAN;
+	msgbuf.type = SYSLINK_OW_GETINFO;
 	msgbuf.length = 1;
 	data->idx = i;
 	sendAndWait();
@@ -132,6 +135,7 @@ SyslinkMemory::read(int i, uint16_t addr, char *buf, int length)
 	msgbuf.type = SYSLINK_OW_READ;
 
 	int nread = 0;
+
 	while (nread < length) {
 
 		msgbuf.length = 3;
@@ -141,12 +145,15 @@ SyslinkMemory::read(int i, uint16_t addr, char *buf, int length)
 
 		// Number of bytes actually read
 		int n = MIN(length - nread, msgbuf.length - 3);
-		if(n == 0)
+
+		if (n == 0) {
 			break;
+		}
 
 		memcpy(buf, data->data, n);
 		nread += n;
 		buf += n;
+		addr += n;
 	}
 
 	return nread;
@@ -162,7 +169,7 @@ SyslinkMemory::write(int i, uint16_t addr, const char *buf, int length)
 void
 SyslinkMemory::sendAndWait()
 {
-	// TODO: Mutex lock sending a message
-	_link->send_message(&msgbuf);
+	// TODO: Force the syslink thread to wake up
+	_link->_queue.force(&msgbuf, sizeof(msgbuf));
 	px4_sem_wait(&_link->memory_sem);
 }

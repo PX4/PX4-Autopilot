@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
- /* Definitions for crazyflie related drivers */
+/* Definitions for crazyflie related drivers */
 
 #ifndef _DRV_CRAZYFLIE_H
 #define _DRV_CRAZYFLIE_H
@@ -47,14 +47,14 @@
 
 /* structure of the data stored in deck memory */
 typedef struct {
-	uint8_t header;
+	uint8_t header; // Should be 0xEB
 	uint32_t pins;
 	uint8_t vendorId;
 	uint8_t productId;
 	uint8_t crc;
 	uint8_t data[104];
 
-} deck_descriptor_t;
+} __attribute__((packed)) deck_descriptor_t;
 
 
 
