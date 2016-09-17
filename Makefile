@@ -84,6 +84,7 @@ all: posix_sitl_default
 # assume 1st argument passed is the main target, the
 # rest are arguments to pass to the makefile generated
 # by cmake in the subdirectory
+FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
@@ -131,34 +132,29 @@ define cmake-build-other
 +@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
-# create empty targets to avoid msgs for targets passed to PX4_MAKE
-define make-targ
-$(1):
-	@#
-.PHONY: $(1)
-endef
-
 define colorecho
       @tput setaf 6
       @echo $1
       @tput sgr0
 endef
 
+# Get a list of all config targets.
+ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+# Strip off leading nuttx_
+NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
+
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
-# For a list of all config targets, please look in cmake/configs,
-# For example: ls cmake/configs | sed -e 's/\.cmake$//'
-
-# All nuttx, posix and qurt targets.
-nuttx_% posix_% qurt_%:
+# All targets.
+$(ALL_CONFIG_TARGETS):
 	$(call cmake-build,$@)
 
 # Abbreviated config targets.
 
-# nuttx_ is left off by default.
-tap-% asc-% px4fmu-% px4-% mindpx-% crazyflie_%:
+# nuttx_ is left off by default; provide a rule to allow that.
+$(NUTTX_CONFIG_TARGETS):
 	$(call cmake-build,nuttx_$@)
 
 posix: posix_sitl_default
@@ -175,19 +171,25 @@ excelsior_default: posix_excelsior_default qurt_excelsior_default
 ros_sitl_default:
 	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
-sitl_deprecation:
+_sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
 	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
 
-run_sitl_quad: sitl_deprecation
-run_sitl_plane: sitl_deprecation
-run_sitl_ros: sitl_deprecation
+run_sitl_quad: _sitl_deprecation
+run_sitl_plane: _sitl_deprecation
+run_sitl_ros: _sitl_deprecation
+
+# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
+.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros
 
 # Other targets
 # --------------------------------------------------------------------
 
 .PHONY: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 .NOTPARALLEL: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+
+# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
+.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check check_px4fmu-v4_default tests extra_firmware
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -285,14 +287,10 @@ submodulesclean:
 distclean: submodulesclean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
-# A list of all current viewers.
-viewers = gazebo jmavsim replay
-# A list of make patterns that match the viewer_model_debugger triplet 'targets'.
-sitl_vmd_triplet_masks = $(foreach viewer,$(viewers),$(viewer) $(viewer)_%)
-# targets handled by PX4_MAKE
-make_targets = install test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
-	run_cmake_config config list_vmd_make_targets list_cmake_targets $(sitl_vmd_triplet_masks)
-$(foreach targ,$(make_targets),$(eval $(call make-targ,$(targ))))
+# All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
+%:
+	$(if $(filter $(FIRST_ARG),$@), \
+		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 .PHONY: clean
 
@@ -303,3 +301,22 @@ CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 #	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
 #	@echo "build configurations."
 #	@echo
+
+empty :=
+space := $(empty) $(empty)
+
+# Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
+help:
+	@echo "Usage: $(MAKE) <target>"
+	@echo "Where <target> is one of:"
+	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
+		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS) $(NUTTX_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+	@echo
+	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
+	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."
+
+# Print a list of all config targets.
+list_config_targets:
+	@for targ in $(patsubst nuttx_%,[nuttx_]%,$(ALL_CONFIG_TARGETS)); do echo $$targ; done
+
