@@ -134,6 +134,9 @@ __EXPORT int map_projection_global_project(double lat, double lon, float *x, flo
 
 }
 
+//将球面坐标转化为平面坐标的过程便称为投影。
+
+//将经纬度转换成地坐标系xy值,也就是说是基于GPS的位置自动控制  
 __EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
 				    float *y)
 {
@@ -141,7 +144,7 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 		return -1;
 	}
 
-	double lat_rad = lat * M_DEG_TO_RAD;
+	double lat_rad = lat * M_DEG_TO_RAD; // 度 -> 弧度    A/57.295
 	double lon_rad = lon * M_DEG_TO_RAD;
 
 	double sin_lat = sin(lat_rad);
@@ -154,7 +157,7 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 		arg = 1.0;
 
 	} else if (arg < -1.0) {
-		arg = -1.0;
+		arg = -1.0;  //限幅
 	}
 
 	double c = acos(arg);
@@ -178,7 +181,7 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 		return -1;
 	}
 
-	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH; // x/鍦扮悆鍗婂緞
+	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH; // 地球半径 
 	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
@@ -196,7 +199,7 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 		lon_rad = ref->lon_rad;
 	}
 
-	*lat = lat_rad * 180.0 / M_PI;
+	*lat = lat_rad * 180.0 / M_PI; // 弧度 -> 度
 	*lon = lon_rad * 180.0 / M_PI;
 
 	return 0;

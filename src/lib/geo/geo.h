@@ -35,6 +35,7 @@
  * @file geo.h
  *
  * Definition of geo / math functions to perform geodesic calculations
+ * 地理/数学函数的定义，用于表现大地测量的计算
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
@@ -54,7 +55,7 @@ __BEGIN_DECLS
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
 #define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
-#define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* 掳C			*/
+#define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* 绝对零度		*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
 
 // XXX remove
@@ -65,6 +66,7 @@ struct crosstrack_error_s {
 } ;
 
 /* lat/lon are in radians */
+// 经纬度单位为弧度
 struct map_projection_reference_s {
 	double lat_rad;
 	double lon_rad;
@@ -159,20 +161,35 @@ __EXPORT int map_projection_init(struct map_projection_reference_s *ref, double 
 __EXPORT int map_projection_global_project(double lat, double lon, float *x, float *y);
 
 
+/* 是假想球面与平面相切，切于极点为正轴，切于赤道为横轴，切于极点和赤道之间的任意点为斜轴。
+ * 经纬线形式同一般方位投影，只是在中央经线上纬线间隔相等。
+ * 其特点是：由切点至任一方向的距离同实地相符；最大角度和面积变形均为以切点为圆心的同心圆。
+ * 这种投影常用于半球图，交通图等
+ */
 /* Transforms a point in the geographic coordinate system to the local
  * azimuthal equidistant plane using the projection given by the argument
-* @param x north
-* @param y east
-* @param lat in degrees (47.1234567掳, not 471234567掳)
-* @param lon in degrees (8.1234567掳, not 81234567掳)
-* @return 0 if map_projection_init was called before, -1 else
-*/
+ * 
+ * 详情查看https://en.wikipedia.org/wiki/Azimuthal_equidistant_projection
+ * 将地理学坐标系中的点(球)转换到本地方位等距平面(XOY)中
+ * 
+ * @param x north
+ * @param y east
+ * @param lat in degrees (47.1234567掳, not 471234567掳)
+ * @param lon in degrees (8.1234567掳, not 81234567掳)
+ * @return 0 if map_projection_init was called before, -1 else
+ */
 __EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
 				    float *y);
 
+/*
+ * 在实际应用中多把经线绘成直线，并保持沿经线方向距离相等，面积和角度有些变形，多用于绘制交通图。
+ * 通常是在沿经线方向上等距离，此时投影后经纬线正交。
+ */
 /**
  * Transforms a point in the local azimuthal equidistant plane to the
  * geographic coordinate system using the global projection
+ *
+ * 使用全球投影将本地方位等距平面中的点转换到地理学坐标系中
  *
  * @param x north
  * @param y east
@@ -185,6 +202,8 @@ __EXPORT int map_projection_global_reproject(float x, float y, double *lat, doub
 /**
  * Transforms a point in the local azimuthal equidistant plane to the
  * geographic coordinate system using the projection given by the argument
+ * 
+ * 将本地方位等距平面中的点转换到地理学坐标系！
  *
  * @param x north
  * @param y east
