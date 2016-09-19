@@ -232,7 +232,7 @@ private:
 					We allow one publisher to have an open file descriptor at the same time. */
 	bool    _IsRemoteSubscriberPresent;
 #else
-	unsigned long     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+	px4_task_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
 #endif
 	int32_t _subscriber_count;
