@@ -387,9 +387,21 @@ bool px4_task_is_running(const char *taskname)
 	return false;
 }
 
-unsigned long px4_getpid()
+px4_task_t px4_getpid()
 {
-	return (unsigned long)pthread_self();
+	pthread_t pid = pthread_self();
+	px4_task_t ret = -1;
+
+	pthread_mutex_lock(&task_mutex);
+
+	for (int i = 0; i < PX4_MAX_TASKS; i++) {
+		if (taskmap[i].isused && taskmap[i].pid == pid) {
+			ret = i;
+		}
+	}
+
+	pthread_mutex_unlock(&task_mutex);
+	return ret;
 }
 
 const char *px4_get_taskname()
@@ -410,7 +422,7 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
-int px4_prctl(int option, const char *arg2, unsigned pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv;
 
