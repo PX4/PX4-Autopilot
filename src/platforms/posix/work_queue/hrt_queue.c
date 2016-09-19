@@ -121,11 +121,15 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
 	//PX4_INFO("hrt work_queue adding work delay=%u time=%lu", delay, work->qtime);
 
 	dq_addlast((dq_entry_t *)work, &wqueue->q);
+
+	if (px4_getpid() != wqueue->pid) { /* only need to wake up if called from a different thread */
 #ifdef __PX4_QURT
-	px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
+		px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
 #else
-	px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+		//wqueue->pid == own task? -> don't signal
+		px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
 #endif
+	}
 
 	hrt_work_unlock();
 	return PX4_OK;
