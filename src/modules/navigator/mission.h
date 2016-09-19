@@ -227,6 +227,11 @@ private:
 	 */
 	bool need_to_reset_mission(bool active);
 
+	/**
+	 * Project current location with heading to far away location and fill setpoint.
+	 */
+	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
