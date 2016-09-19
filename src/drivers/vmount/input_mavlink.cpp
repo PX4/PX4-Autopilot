@@ -46,6 +46,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
 
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <errno.h>
 
@@ -257,9 +258,9 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_control_data.type_data.angle.is_speed[0] = false;
 					_control_data.type_data.angle.is_speed[1] = false;
 					_control_data.type_data.angle.is_speed[2] = false;
-					_control_data.type_data.angle.angles[0] = vehicle_command.param1;
-					_control_data.type_data.angle.angles[1] = vehicle_command.param2;
-					_control_data.type_data.angle.angles[2] = vehicle_command.param3;
+					_control_data.type_data.angle.angles[0] = vehicle_command.param1 * M_DEG_TO_RAD_F;
+					_control_data.type_data.angle.angles[1] = vehicle_command.param2 * M_DEG_TO_RAD_F;
+					_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
 
 					break;
 

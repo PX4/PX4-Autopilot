@@ -245,6 +245,7 @@ private:
 #ifndef __PX4_QURT
 		,
 		_rc_channels_pub(nullptr),
+		_attitude_pub(nullptr),
 		_actuator_outputs_sub{},
 		_vehicle_attitude_sub(-1),
 		_manual_sub(-1),
@@ -306,6 +307,7 @@ private:
 #ifndef __PX4_QURT
 	// uORB publisher handlers
 	orb_advert_t _rc_channels_pub;
+	orb_advert_t _attitude_pub;
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES];

@@ -74,7 +74,7 @@ struct ControlData {
 			double lon;              /**< longitude in [deg] */
 			double lat;              /**< latitude in [deg] */
 			float altitude;          /**< altitude in [m] */
-			float roll_angle;        /**< roll is set to a fixed angle. Set to 0 for level horizon */
+			float roll_angle;        /**< roll is set to a fixed angle. Set to 0 for level horizon [rad] */
 			float pitch_fixed_angle; /**< ignored if < -pi, otherwise use a fixed pitch angle instead of the altitude */
 		} lonlat;
 	} type_data;

@@ -49,8 +49,13 @@
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <termios.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <mqueue.h>
 
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_led.h>
 
 #include <systemlib/err.h>
 
@@ -58,25 +63,50 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/input_rc.h>
 
+#include <board_config.h>
+
 #include "crtp.h"
 #include "syslink_main.h"
+#include "drv_deck.h"
+
+
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
 extern "C" { __EXPORT int syslink_main(int argc, char *argv[]); }
 
 
-Syslink *g_syslink;
+Syslink *g_syslink = nullptr;
 
 Syslink::Syslink() :
+	pktrate(0),
+	nullrate(0),
+	rxrate(0),
+	txrate(0),
 	_syslink_task(-1),
 	_task_running(false),
+	_count(0),
+	_null_count(0),
+	_count_in(0),
+	_count_out(0),
+	_lasttime(0),
+	_lasttxtime(0),
+	_lastrxtime(0),
 	_fd(0),
+	_queue(2, sizeof(syslink_message_t)),
 	_writebuffer(16, sizeof(crtp_message_t)),
 	_battery_pub(nullptr),
 	_rc_pub(nullptr),
 	_cmd_pub(nullptr),
-	_rssi(RC_INPUT_RSSI_MAX)
+	_rssi(RC_INPUT_RSSI_MAX),
+	_bstate(BAT_DISCHARGING)
 {
-
+	px4_sem_init(&radio_sem, 0, 0);
+	px4_sem_init(&memory_sem, 0, 0);
 }
 
 
@@ -104,7 +134,20 @@ Syslink::set_datarate(uint8_t datarate)
 	msg.type = SYSLINK_RADIO_DATARATE;
 	msg.length = 1;
 	msg.data[0] = datarate;
-	return send_message(&msg);
+
+	if (send_message(&msg) != 0) {
+		return -1;
+	}
+
+	// Wait for a second
+//	struct timespec abstime = {1, 0};
+//	if(px4_sem_timedwait(&radio_sem, &abstime) != 0) {
+//		return -1;
+//	}
+
+
+
+	return OK;
 }
 
 int
@@ -127,9 +170,6 @@ Syslink::set_address(uint64_t addr)
 	return send_message(&msg);
 }
 
-
-int count_out = 0;
-
 int
 Syslink::send_queued_raw_message()
 {
@@ -137,10 +177,12 @@ Syslink::send_queued_raw_message()
 		return 0;
 	}
 
+	_lasttxtime = hrt_absolute_time();
+
 	syslink_message_t msg;
 	msg.type = SYSLINK_RADIO_RAW;
 
-	count_out++;
+	_count_out++;
 
 	_writebuffer.get(&msg.length, sizeof(crtp_message_t));
 
@@ -223,6 +265,9 @@ Syslink::task_main()
 	_bridge = new SyslinkBridge(this);
 	_bridge->init();
 
+	_memory = new SyslinkMemory(this);
+	_memory->init();
+
 	_battery.reset(&_battery_status);
 
 
@@ -304,30 +349,25 @@ Syslink::task_main()
 
 }
 
-
-
-static int count = 0;
-static int null_count = 0;
-static int count_in = 0;
-//static int count_out = 0;
-static hrt_abstime lasttime = 0;
-
-
 void
 Syslink::handle_message(syslink_message_t *msg)
 {
 	hrt_abstime t = hrt_absolute_time();
 
-	if (t - lasttime > 1000000) {
-		PX4_INFO("%d p/s (%d null) (%d in / %d out raw)", count, null_count, count_in, count_out);
-		lasttime = t;
-		count = 0;
-		null_count = 0;
-		count_in = 0;
-		count_out = 0;
+	if (t - _lasttime > 1000000) {
+		pktrate = _count;
+		rxrate = _count_in;
+		txrate = _count_out;
+		nullrate = _null_count;
+
+		_lasttime = t;
+		_count = 0;
+		_null_count = 0;
+		_count_in = 0;
+		_count_out = 0;
 	}
 
-	count++;
+	_count++;
 
 	if (msg->type == SYSLINK_PM_ONOFF_SWITCHOFF) {
 		// When the power button is hit
@@ -337,12 +377,30 @@ Syslink::handle_message(syslink_message_t *msg)
 			return;
 		}
 
-		//uint8_t flags = msg->data[0];
-		//float iset = *((float *)&msg->data[5]);
-		float vbat;
+		uint8_t flags = msg->data[0];
+		int charging = flags & 1;
+		int powered = flags & 2;
+
+		float vbat; //, iset;
 		memcpy(&vbat, &msg->data[1], sizeof(float));
+		//memcpy(&iset, &msg->data[5], sizeof(float));
 
 		_battery.updateBatteryStatus(t, vbat, -1, 0, false, &_battery_status);
+
+
+		// Update battery charge state
+		if (charging) {
+			_bstate = BAT_CHARGING;
+		}
+
+		/* With the usb plugged in and battery disconnected, it appears to be charged. The voltage check ensures that a battery is connected  */
+		else if (powered && !charging && _battery_status.voltage_filtered_v > 3.7f) {
+			_bstate = BAT_CHARGED;
+
+		} else {
+			_bstate = BAT_DISCHARGING;
+		}
+
 
 		// announce the battery status if needed, just publish else
 		if (_battery_pub != nullptr) {
@@ -356,19 +414,60 @@ Syslink::handle_message(syslink_message_t *msg)
 		uint8_t rssi = msg->data[0]; // Between 40 and 100 meaning -40 dBm to -100 dBm
 		_rssi = 140 - rssi * 100 / (100 - 40);
 
-	} else if (msg->type == SYSLINK_RADIO_CHANNEL) {
-		PX4_INFO("Channel ACK %d", msg->data[0]);
-
-	} else if (msg->type == SYSLINK_RADIO_DATARATE) {
-		PX4_INFO("Datarate ACK %d", msg->data[0]);
-
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
 		handle_raw(msg);
+		_lastrxtime = t;
+
+	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_RADIO) {
+		radio_msg = *msg;
+		px4_sem_post(&radio_sem);
+
+	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_OW) {
+		memcpy(&_memory->msgbuf, msg, sizeof(syslink_message_t));
+		px4_sem_post(&memory_sem);
 
 	} else {
 		PX4_INFO("GOT %d", msg->type);
 	}
 
+	// Send queued messages
+	if (!_queue.empty()) {
+		_queue.get(msg, sizeof(syslink_message_t));
+		send_message(msg);
+	}
+
+
+	float p = (t % 500000) / 500000.0f;
+
+	/* Use LED_GREEN for charging indicator */
+	if (_bstate == BAT_CHARGED) {
+		led_on(LED_GREEN);
+
+	} else if (_bstate == BAT_CHARGING && p < 0.25f) {
+		led_on(LED_GREEN);
+
+	} else {
+		led_off(LED_GREEN);
+	}
+
+	/* Alternate RX/TX LEDS when transfering */
+	bool rx = t - _lastrxtime < 200000,
+	     tx = t - _lasttxtime < 200000;
+
+
+	if (rx && p < 0.25f) {
+		led_on(LED_RX);
+
+	} else {
+		led_off(LED_RX);
+	}
+
+	if (tx && p > 0.5f && p > 0.75f) {
+		led_on(LED_TX);
+
+	} else {
+		led_off(LED_TX);
+	}
 
 }
 
@@ -380,7 +479,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 	if (CRTP_NULL(*c)) {
 		// TODO: Handle bootloader messages if possible
 
-		null_count++;
+		_null_count++;
 
 	} else if (c->port == CRTP_PORT_COMMANDER) {
 
@@ -417,7 +516,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		}
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
-		count_in++;
+		_count_in++;
 		/* Pipe to Mavlink bridge */
 		_bridge->pipe_message(c);
 
@@ -537,16 +636,165 @@ Syslink::send_message(syslink_message_t *msg)
 }
 
 
-
-int syslink_main(int argc, char *argv[])
+namespace syslink
 {
+
+void usage();
+void start();
+void status();
+void test();
+void attached(int pid);
+
+void usage()
+{
+	warnx("missing command: try 'start', 'status', 'attached', 'test'");
+}
+
+void start()
+{
+	if (g_syslink != nullptr) {
+		printf("Already started\n");
+		exit(1);
+	}
+
 	g_syslink = new Syslink();
 	g_syslink->start();
 
 	// Wait for task and bridge to start
 	usleep(5000);
 
-	PX4_INFO("Started syslink on /dev/ttyS2");
+
+	warnx("Started syslink on /dev/ttyS2\n");
+	exit(0);
+
+}
+
+void status()
+{
+	if (g_syslink == nullptr) {
+		printf("Please start syslink first\n");
+		exit(1);
+	}
+
+	printf("Connection activity:\n");
+	printf("- total rx: %d p/s\n", g_syslink->pktrate);
+	printf("- radio rx: %d p/s (%d null)\n", g_syslink->rxrate, g_syslink->nullrate);
+	printf("- radio tx: %d p/s\n\n", g_syslink->txrate);
+
+	int deckfd = open(DECK_DEVICE_PATH, O_RDONLY);
+	int ndecks = 0; ioctl(deckfd, DECKIOGNUM, (unsigned long) &ndecks);
+	printf("Deck scan: (found %d)\n", ndecks);
+
+	for (int i = 0; i < ndecks; i++) {
+		ioctl(deckfd, DECKIOSNUM, (unsigned long) &i);
+
+		uint8_t *id;
+		int idlen = ioctl(deckfd, DECKIOID, (unsigned long) &id);
+
+		// TODO: Validate the ID
+		printf("%i: ROM ID: ", i);
+
+		for (int idi = 0; idi < idlen; idi++) {
+			printf("%02X", id[idi]);
+		}
+
+		deck_descriptor_t desc;
+		read(deckfd, &desc, sizeof(desc));
+
+		printf(", VID: %02X , PID: %02X\n", desc.header, desc.vendorId, desc.productId);
+
+		// Print pages of memory
+		for (int di = 0; di < sizeof(desc); di++) {
+			if (di % 16 == 0) {
+				printf("\n");
+			}
+
+			printf("%02X ", ((uint8_t *)&desc)[di]);
+
+		}
+
+		printf("\n\n");
+
+	}
+
+	close(deckfd);
+	exit(0);
+}
+
+void attached(int pid)
+{
+	bool found = false;
+
+	int deckfd = open(DECK_DEVICE_PATH, O_RDONLY);
+	int ndecks = 0; ioctl(deckfd, DECKIOGNUM, (unsigned long) &ndecks);
+
+	for (int i = 0; i < ndecks; i++) {
+		ioctl(deckfd, DECKIOSNUM, (unsigned long) &i);
+
+		deck_descriptor_t desc;
+		read(deckfd, &desc, sizeof(desc));
+
+		if (desc.productId == pid) {
+			found = true;
+			break;
+		}
+	}
+
+	close(deckfd);
+	exit(found ? 1 : 0);
+}
+
+
+
+void test()
+{
+	// TODO: Ensure battery messages are recent
+	// TODO: Read and write from memory to ensure it is working
+}
+
+
+
+
+}
+
+
+
+int syslink_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		syslink::usage();
+		exit(1);
+	}
+
+
+	const char *verb = argv[1];
+
+	if (!strcmp(verb, "start")) {
+		syslink::start();
+	}
+
+	if (!strcmp(verb, "status")) {
+		syslink::status();
+	}
+
+	if (!strcmp(verb, "attached")) {
+		if (argc != 3) {
+			errx(1, "usage: syslink attached [deck_pid]");
+		}
+
+		int pid = atoi(argv[2]);
+		syslink::attached(pid);
+	}
+
+	if (!strcmp(verb, "test")) {
+		syslink::test();
+	}
+
+
+
+
+	syslink::usage();
+	exit(1);
 
 	return 0;
 }

@@ -37,7 +37,9 @@
 
 extern const char *syslink_magic;
 
+#define SYSLINK_GROUP	0xF0
 
+#define SYSLINK_RADIO	0x00
 #define SYSLINK_RADIO_RAW	0x00
 #define SYSLINK_RADIO_CHANNEL	0x01
 #define SYSLINK_RADIO_DATARATE	0x02
@@ -45,12 +47,14 @@ extern const char *syslink_magic;
 #define SYSLINK_RADIO_RSSI	0x04
 #define SYSLINK_RADIO_ADDRESS	0x05
 
+#define SYSLINK_PM	0x10
 #define SYSLINK_PM_SOURCE	0x10
 #define SYSLINK_PM_ONOFF_SWITCHOFF	0x11
 #define SYSLINK_PM_BATTERY_VOLTAGE	0x12
 #define SYSLINK_PM_BATTERY_STATE	0x13
 #define SYSLINK_PM_BATTERY_AUTOUPDATE	0x14
 
+#define SYSLINK_OW	0x20
 #define SYSLINK_OW_SCAN	0x20
 #define SYSLINK_OW_GETINFO	0x21
 #define SYSLINK_OW_READ	0x22
@@ -69,7 +73,41 @@ typedef struct {
 	uint8_t length;
 	uint8_t data[SYSLINK_MAX_DATA_LEN];
 	uint8_t cksum[2];
-} syslink_message_t;
+} __attribute__((packed)) syslink_message_t;
+
+
+#define OW_SIZE 112
+#define OW_READ_BLOCK 29
+#define OW_WRITE_BLOCK 26 // TODO: Use even, but can be up to 27
+
+typedef struct {
+	uint8_t nmems;
+} __attribute__((packed)) syslink_ow_scan_t;
+
+typedef struct {
+	uint8_t family; // Should by 0x0D for most chips
+	uint8_t sn[6];
+	uint8_t crc;
+} __attribute__((packed)) syslink_ow_id_t;
+
+typedef struct {
+	uint8_t idx;
+	uint8_t id[8];
+} __attribute__((packed)) syslink_ow_getinfo_t;
+
+typedef struct {
+	uint8_t idx;
+	uint16_t addr;
+	uint8_t data[OW_READ_BLOCK];
+} __attribute__((packed)) syslink_ow_read_t;
+
+typedef struct {
+	uint8_t idx;
+	uint16_t addr;
+	uint16_t length;
+	uint8_t data[OW_WRITE_BLOCK];
+} __attribute__((packed)) syslink_ow_write_t;
+
 
 typedef enum {
 	SYSLINK_STATE_START = 0,

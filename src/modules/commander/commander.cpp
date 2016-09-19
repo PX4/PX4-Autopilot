@@ -196,7 +196,7 @@ static struct cpuload_s cpuload = {};
 
 
 static uint8_t main_state_prev = 0;
-static bool rtl_on = false;
+static bool warning_action_on = false;
 
 static struct status_flags_s status_flags = {};
 
@@ -2071,14 +2071,16 @@ int commander_thread_main(int argc, char *argv[])
 			arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 		}
 
-		if (!rtl_on) {
+		if (!warning_action_on) {
 			// store the last good main_state when not in an navigation
 			// hold state
 			main_state_before_rtl = internal_state.main_state;
 
-		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL) {
+		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
+			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 			// reset flag again when we switched out of it
-			rtl_on = false;
+			warning_action_on = false;
 		}
 
 		orb_check(cpuload_sub, &updated);
@@ -2118,8 +2120,8 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						if (low_bat_action == 1) {
 							// let us send the critical message even if already in RTL
-							if (rtl_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
-								rtl_on = true;
+							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+								warning_action_on = true;
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
 
 							} else {
@@ -2127,7 +2129,8 @@ int commander_thread_main(int argc, char *argv[])
 							}
 
 						} else if (low_bat_action == 2) {
-							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+								warning_action_on = true;
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
 
 							} else {
@@ -2350,11 +2353,11 @@ int commander_thread_main(int argc, char *argv[])
 								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
 									|| sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
-			rtl_on = rtl_on || (geofence_loiter_on || geofence_rtl_on);
+			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
 		}
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
-		if (rtl_on &&
+		if (warning_action_on &&
 		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
@@ -3091,7 +3094,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 
 		// update these fields for the geofence system
 
-		if (!rtl_on) {
+		if (!warning_action_on) {
 			_last_sp_man.timestamp = sp_man.timestamp;
 			_last_sp_man.x = sp_man.x;
 			_last_sp_man.y = sp_man.y;

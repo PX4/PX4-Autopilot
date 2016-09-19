@@ -475,6 +475,10 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 
 void Logger::add_default_topics()
 {
+#ifdef CONFIG_ARCH_BOARD_SITL
+	add_topic("vehicle_attitude_groundtruth", 10);
+#endif
+
 	add_topic("vehicle_attitude", 10);
 	add_topic("actuator_outputs", 50);
 	add_topic("telemetry_status", 50);
@@ -499,6 +503,7 @@ void Logger::add_default_topics()
 	add_topic("vision_position_estimate", 50);
 	add_topic("optical_flow", 50);
 	add_topic("rc_channels");
+	add_topic("input_rc");
 	add_topic("airspeed", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
@@ -656,6 +661,7 @@ void Logger::run()
 
 	/* init the update timer */
 	struct hrt_call timer_call;
+	memset(&timer_call, 0, sizeof(hrt_call));
 	px4_sem_t timer_semaphore;
 	px4_sem_init(&timer_semaphore, 0, 0);
 	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);

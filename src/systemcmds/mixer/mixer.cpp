@@ -78,7 +78,7 @@ mixer_main(int argc, char *argv[])
 		int ret = load(argv[2], argv[3], false);
 
 		if (ret != 0) {
-			warnx("failed to load mixer");
+			PX4_ERR("failed to load mixer");
 			return 1;
 		}
 
@@ -91,7 +91,7 @@ mixer_main(int argc, char *argv[])
 		int ret = load(argv[2], argv[3], true);
 
 		if (ret != 0) {
-			warnx("failed to append mixer");
+			PX4_ERR("failed to append mixer");
 			return 1;
 		}
 
@@ -124,14 +124,14 @@ load(const char *devname, const char *fname, bool append)
 
 	/* open the device */
 	if ((dev = px4_open(devname, 0)) < 0) {
-		warnx("can't open %s\n", devname);
+		PX4_ERR("can't open %s\n", devname);
 		return 1;
 	}
 
 	/* reset mixers on the device, but not if appending */
 	if (!append) {
 		if (px4_ioctl(dev, MIXERIOCRESET, 0)) {
-			warnx("can't reset mixers on %s", devname);
+			PX4_ERR("can't reset mixers on %s", devname);
 			return 1;
 		}
 	}
@@ -139,7 +139,7 @@ load(const char *devname, const char *fname, bool append)
 	char buf[2048];
 
 	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
-		warnx("can't load mixer: %s", fname);
+		PX4_ERR("can't load mixer file: %s", fname);
 		return 1;
 	}
 
@@ -147,7 +147,7 @@ load(const char *devname, const char *fname, bool append)
 	int ret = px4_ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
 
 	if (ret < 0) {
-		warnx("error loading mixers from %s", fname);
+		PX4_ERR("failed to load mixers from %s", fname);
 		return 1;
 	}
 

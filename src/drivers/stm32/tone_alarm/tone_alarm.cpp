@@ -441,6 +441,11 @@ ToneAlarm::init()
 	/* configure the GPIO to the idle state */
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 
+#ifdef GPIO_TONE_ALARM_NEG
+
+	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
+#endif
+
 	/* clock/power on our timer */
 	modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
 

@@ -1,18 +1,6 @@
-@###############################################
-@#
-@# EmPy template for generating uORBTopics.cpp file
-@# for logging purposes
-@#
-@###############################################
-@# Start of Template
-@#
-@# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,31 +31,49 @@
  *
  ****************************************************************************/
 
-#include <uORB/uORBTopics.h>
-#include <uORB/uORB.h>
-@{
-msg_names = [mn.replace(".msg", "") for mn in msgs]
-msgs_count = len(msg_names)
-msg_names_all = list(set(msg_names + multi_topics)) # set() filters duplicates
-msgs_count_all = len(msg_names_all)
-}@
-@[for msg_name in msg_names]@
-#include <uORB/topics/@(msg_name).h>
-@[end for]
+/* Definitions for crazyflie related drivers */
 
-const size_t _uorb_topics_count = @(msgs_count_all);
-const struct orb_metadata* _uorb_topics_list[_uorb_topics_count] = { 
-@[for idx, msg_name in enumerate(msg_names_all, 1)]@
-    ORB_ID(@(msg_name))@[if idx != msgs_count_all],@[end if]
-@[end for]
-};
+#ifndef _DRV_CRAZYFLIE_H
+#define _DRV_CRAZYFLIE_H
 
-size_t orb_topics_count()
-{
-	return _uorb_topics_count;
-}
+#include <px4_defines.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-const struct orb_metadata **orb_get_topics()
-{
-	return _uorb_topics_list;
-}
+
+#define DECK_DEVICE_PATH	"/dev/deck"
+
+
+
+/* structure of the data stored in deck memory */
+typedef struct {
+	uint8_t header; // Should be 0xEB
+	uint32_t pins;
+	uint8_t vendorId;
+	uint8_t productId;
+	uint8_t crc;
+	uint8_t data[104];
+
+} __attribute__((packed)) deck_descriptor_t;
+
+
+
+/*
+ * ioctl() definitions
+ */
+
+#define _DECKIOCBASE		(0x4100)
+#define _DECKIOC(_n)		(_PX4_IOC(_DECKIOCBASE, _n))
+
+/** get the number of connected deck memory devices */
+#define DECKIOGNUM	_DECKIOC(0)
+
+/** set the index of the current deck memory being accessed */
+#define DECKIOSNUM	_DECKIOC(1)
+
+#define DECKIOID	_DECKIOC(2)
+
+
+
+
+#endif
