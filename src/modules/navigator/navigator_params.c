@@ -175,3 +175,12 @@ PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
+
+/**
+ * Force VTOL mode takeoff and land
+ *
+ * @min 0
+ * @max 1
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);

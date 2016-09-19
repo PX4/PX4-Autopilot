@@ -148,7 +148,9 @@ protected:
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
 	control::BlockParamInt _param_vtol_wv_land;
+	control::BlockParamInt _param_vtol_wv_takeoff;
 	control::BlockParamInt _param_vtol_wv_loiter;
+	control::BlockParamInt _param_force_vtol;
 };
 
 #endif

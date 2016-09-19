@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int		start();
+	int			start();
 
 	/**
 	 * Display the navigator status.
@@ -182,8 +182,21 @@ public:
 
 	/**
 	 * Set the cruising speed
+	 *
+	 * Passing a negative value or leaving the parameter away will reset the cruising speed
+	 * to its default value.
+	 *
+	 * For VTOL: sets cuising speed for current mode only (multirotor or fixed-wing).
+	 *
 	 */
-	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
+	void		set_cruising_speed(float speed=-1.0f);
+
+	/**
+	 * Reset cruising speed to default values
+	 *
+	 * For VTOL: resets both cruising speeds.
+	 */
+	void		reset_cruising_speed();
 
 	/**
 	 * Get the target throttle
@@ -302,7 +315,8 @@ private:
 	control::BlockParamFloat _param_cruising_speed_plane;
 	control::BlockParamFloat _param_cruising_throttle_plane;
 
-	float _mission_cruising_speed;
+	float _mission_cruising_speed_mc;
+	float _mission_cruising_speed_fw;
 	float _mission_throttle;
 
 	/**

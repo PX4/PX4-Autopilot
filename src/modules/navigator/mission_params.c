@@ -160,15 +160,33 @@ PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
 /**
  * Weather-vane mode landings for missions
  *
- * @boolean
+ * @unit bool
+ * @min 0
+ * @max 1
+ * @increment 1
+ * @decimal 0
  * @group Mission
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
 
 /**
- * Weather-vane mode for loiter mode
+ * Enable weather-vane mode takeoff for missions
  *
- * @boolean
+ * @min 0
+ * @max 1
+ * @decimal 0
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_TKO_EN, 0);
+
+/**
+ * Weather-vane mode for loiter
+ *
+ * @unit bool
+ * @min 0
+ * @max 1
+ * @increment 1
+ * @decimal 0
  * @group Mission
  */
 PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);

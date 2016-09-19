@@ -161,7 +161,8 @@ Navigator::Navigator() :
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
-	_mission_cruising_speed(-1.0f),
+	_mission_cruising_speed_mc(-1.0f),
+	_mission_cruising_speed_fw(-1.0f),
 	_mission_throttle(-1.0f)
 {
 	/* Create a list of our possible navigation types */
@@ -517,7 +518,24 @@ Navigator::task_main()
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
-				PX4_INFO("got pause/continue command");
+				warnx("navigator: got pause/continue command");
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
+				if (cmd.param2 > FLT_EPSILON) {
+					// XXX not differentiating ground and airspeed yet
+					set_cruising_speed(cmd.param2);
+
+				} else {
+					set_cruising_speed();
+
+					/* if no speed target was given try to set throttle */
+					if (cmd.param3 > FLT_EPSILON) {
+						set_cruising_throttle(cmd.param3 / 100);
+
+					} else {
+						set_cruising_throttle();
+					}
+				}
 			}
 		}
 
@@ -738,20 +756,48 @@ float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_mission_cruising_speed > 0.0f) {
-		return _mission_cruising_speed;
-	} else if (_vstatus.is_rotary_wing) {
-		return _param_cruising_speed_hover.get();
+	if (_vstatus.is_rotary_wing) {
+		if (_mission_cruising_speed_mc > FLT_EPSILON
+		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			return _mission_cruising_speed_mc;
+
+		} else {
+			return _param_cruising_speed_hover.get();
+		}
+
 	} else {
-		return _param_cruising_speed_plane.get();
+		if (_mission_cruising_speed_fw > FLT_EPSILON
+		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			return _mission_cruising_speed_fw;
+
+		} else {
+			return _param_cruising_speed_plane.get();
+		}
 	}
+}
+
+void
+Navigator::set_cruising_speed(float speed) {
+	if (_vstatus.is_rotary_wing) {
+		_mission_cruising_speed_mc = speed;
+
+	} else {
+		_mission_cruising_speed_fw = speed;
+	}
+}
+
+void
+Navigator::reset_cruising_speed()
+{
+	_mission_cruising_speed_mc = -1.0f;
+	_mission_cruising_speed_fw = -1.0f;
 }
 
 float
 Navigator::get_cruising_throttle()
 {
 	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
-	if (_mission_throttle > 0.0f) {
+	if (_mission_throttle > FLT_EPSILON) {
 		return _mission_throttle;
 	} else {
 		return _param_cruising_throttle_plane.get();
@@ -882,6 +928,7 @@ Navigator::publish_mission_result()
 	}
 
 	/* reset some of the flags */
+	_mission_result.seq_reached = false;
 	_mission_result.seq_current = 0;
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
