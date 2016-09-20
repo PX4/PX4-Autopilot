@@ -216,6 +216,7 @@ check: 	check_px4fmu-v1_default \
 	check_tap-v1_default \
 	check_asc-v1_default \
 	check_px4-stm32f4discovery_default \
+	check_crazyflie_default \
 	check_tests \
 	check_format
 
