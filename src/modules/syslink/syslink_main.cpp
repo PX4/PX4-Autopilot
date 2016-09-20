@@ -487,8 +487,8 @@ Syslink::handle_raw(syslink_message_t *sys)
 
 		struct rc_input_values rc = {};
 
-		rc.timestamp_publication = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp_publication;
+		rc.timestamp = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp;
 		rc.channel_count = 5;
 		rc.rc_failsafe = false;
 		rc.rc_lost = false;
