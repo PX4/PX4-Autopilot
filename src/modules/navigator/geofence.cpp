@@ -141,7 +141,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
 					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max vertical distance by %.1f m",
 									         (double)(dist_z - max_vertical_distance));
 						_last_vertical_range_warning = hrt_absolute_time();
@@ -152,7 +152,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
 					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max horizontal distance by %.1f m",
 									         (double)(dist_xy - max_horizontal_distance));
 						_last_horizontal_range_warning = hrt_absolute_time();

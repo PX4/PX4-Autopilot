@@ -190,7 +190,7 @@ void BlockLocalPositionEstimator::flowCheckTimeout()
 	if (_timeStamp - _time_last_flow > FLOW_TIMEOUT) {
 		if (_flowInitialized) {
 			flowDeinit();
-			mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
+			mavlink_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
 		}
 	}
 }
