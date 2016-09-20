@@ -525,12 +525,6 @@ private:
 namespace l1_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 FixedwingPositionControl	*g_control = nullptr;
 }
 

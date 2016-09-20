@@ -45,6 +45,7 @@
 
 #include <fcntl.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,12 +60,6 @@
 #include "../messages.h"
 
 #define DEFAULT_UART "/dev/ttyS6";		/**< Serial4 */
-
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
@@ -124,7 +119,7 @@ recv_req_id(int uart, uint8_t *id)
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 		/* Read the device ID being polled */
@@ -132,10 +127,10 @@ recv_req_id(int uart, uint8_t *id)
 
 	} else {
 		warnx("UART timeout on TX/RX port");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 int
@@ -165,7 +160,7 @@ send_data(int uart, uint8_t *buffer, size_t size)
 	uint8_t dummy[size];
 	read(uart, &dummy, size);
 
-	return OK;
+	return PX4_OK;
 }
 
 int
@@ -217,10 +212,9 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 		// Listen for and serve poll from the receiver.
-		if (recv_req_id(uart, &id) == OK) {
+		if (recv_req_id(uart, &id) == PX4_OK) {
 			if (!connected) {
 				connected = true;
-				warnx("OK");
 			}
 
 			switch (id) {

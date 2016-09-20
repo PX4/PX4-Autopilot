@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,12 +92,6 @@
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
 #endif
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #define DEFAULT_REMOTE_PORT_UDP			14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
@@ -439,8 +434,8 @@ Mavlink::destroy_all_instances()
 			iterations++;
 
 			if (iterations > 1000) {
-				warnx("ERROR: Couldn't stop all mavlink instances.");
-				return ERROR;
+				PX4_ERR("Couldn't stop all mavlink instances.");
+				return PX4_ERROR;
 			}
 		}
 
@@ -695,7 +690,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 	case 1000000: speed = B1000000; break;
 
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n1000000\n",
+		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n1000000\n",
 		      baud);
 		return -EINVAL;
 	}
@@ -862,7 +857,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 		configure_stream("HIL_CONTROLS", 0.0f);
 
 	} else {
-		ret = ERROR;
+		ret = PX4_ERROR;
 	}
 
 	return ret;
@@ -1362,7 +1357,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	/* if we reach here, the stream list does not contain the stream */
 	warnx("stream %s not found", stream_name);
 
-	return ERROR;
+	return PX4_ERROR;
 }
 
 void
@@ -1432,7 +1427,7 @@ Mavlink::message_buffer_init(int size)
 	int ret;
 
 	if (_message_buffer.data == 0) {
-		ret = ERROR;
+		ret = PX4_ERROR;
 		_message_buffer.size = 0;
 
 	} else {
@@ -1824,7 +1819,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	if (err_flag) {
 		usage();
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	if (_datarate == 0) {
@@ -1839,7 +1834,7 @@ Mavlink::task_main(int argc, char *argv[])
 	if (get_protocol() == SERIAL) {
 		if (Mavlink::instance_exists(_device_name, this)) {
 			warnx("%s already running", _device_name);
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 		PX4_INFO("mode: %s, data rate: %d B/s on %s @ %dB",
@@ -1853,7 +1848,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
 			warn("could not open %s", _device_name);
-			return ERROR;
+			return PX4_ERROR;
 
 		} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 			/* the config link is optional */
@@ -1863,7 +1858,7 @@ Mavlink::task_main(int argc, char *argv[])
 	} else if (get_protocol() == UDP) {
 		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
 			warnx("port %d already occupied", _network_port);
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 		PX4_INFO("mode: %s, data rate: %d B/s on udp port %hu remote port %hu",
