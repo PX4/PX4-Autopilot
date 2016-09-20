@@ -230,6 +230,7 @@ quick_check: check_posix_sitl_default check_px4fmu-v4_default check_tests check_
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/check_code_style_all.sh
+	@git diff --check
 
 format:
 	$(call colorecho,"Formatting with astyle")
