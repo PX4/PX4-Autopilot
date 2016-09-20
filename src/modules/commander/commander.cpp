@@ -65,6 +65,7 @@
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
 #include <navigator/navigation.h>
+#include <px4_defines.h>
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -106,12 +107,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -1347,7 +1342,7 @@ int commander_thread_main(int argc, char *argv[])
 	if (status_pub == nullptr) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
-		px4_task_exit(ERROR);
+		px4_task_exit(PX4_ERROR);
 	}
 
 	/* Initialize armed with all false */
@@ -3780,7 +3775,7 @@ void *commander_low_prio_loop(void *arg)
 
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-					int calib_ret = ERROR;
+					int calib_ret = PX4_ERROR;
 
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status,

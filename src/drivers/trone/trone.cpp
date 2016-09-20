@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -89,12 +90,6 @@
 #define TRONE_MAX_DISTANCE (14.00f)
 
 #define TRONE_CONVERSION_INTERVAL 50000 /* 50ms */
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -279,7 +274,7 @@ TRONE::~TRONE()
 int
 TRONE::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -721,12 +716,6 @@ TRONE::print_info()
  */
 namespace trone
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 TRONE	*g_dev;
 
