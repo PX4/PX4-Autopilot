@@ -1314,6 +1314,11 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.offboard_control_signal_found_once = false;
 	status_flags.rc_signal_found_once = false;
 
+	/* assume we don't have a valid GPS & baro on startup */
+	status_flags.gps_failure = true;
+	status_flags.barometer_failure = true;
+	status_flags.ever_had_barometer_data = false;
+
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
@@ -1833,7 +1838,10 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.barometer_failure) {
 					status_flags.barometer_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "baro healthy");
+					if (status_flags.ever_had_barometer_data) {
+						mavlink_log_critical(&mavlink_log_pub, "baro healthy");
+					}
+					status_flags.ever_had_barometer_data = true;
 				}
 
 			} else {
