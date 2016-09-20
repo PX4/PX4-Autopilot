@@ -20,6 +20,7 @@ sercon
 
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
+set DM_FILE ""
 
 #
 # Try to mount the microSD card.
@@ -40,6 +41,9 @@ else
 		fi
 	else
 		set LOG_FILE /dev/null
+		mkrd -m1 -s 512 4
+		rtd start /dev/ram1 /fs/rdt_waypoints
+		set DM_FILE "-f /fs/rdt_waypoints"
 	fi
 fi
 
@@ -141,7 +145,7 @@ gps start -d /dev/ttyS0
 
 # waypoint storage
 # REBOOTWORK this needs to start in parallel
-if dataman start
+if dataman start $DM_FILE
 then
 fi
 

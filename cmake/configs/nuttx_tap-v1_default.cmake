@@ -39,6 +39,7 @@ set(config_module_list
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/mtd
+	systemcmds/rtd
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/topic_listener
