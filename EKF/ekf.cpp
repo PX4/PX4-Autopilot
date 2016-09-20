@@ -411,8 +411,8 @@ bool Ekf::initialiseFilter(void)
 		// initialise the state covariance matrix
 		initialiseCovariance();
 
-		// initialise the terrain estimator
-		initHagl();
+		// try to initialise the terrain estimator
+		_terrain_initialised = initHagl();
 
 		// reset the essential fusion timeout counters
 		_time_last_hgt_fuse = _time_last_imu;
