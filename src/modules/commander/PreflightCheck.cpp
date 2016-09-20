@@ -391,8 +391,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	// all the sensors are supported
 	PX4_WARN("Preflight checks always pass on Snapdragon.");
 	return true;
-#elif defined(__LINUX)
-	PX4_WARN("Preflight checks always pass on Linux (RPI).");
+#elif defined(__PX4_POSIX_RPI)
+	PX4_WARN("Preflight checks always pass on RPI.");
 	return true;
 #endif
 
