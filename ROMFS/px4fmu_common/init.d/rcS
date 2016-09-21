@@ -201,6 +201,11 @@ then
 		set MIXER_AUX none
 	fi
 
+	if ver hwcmp AEROFC_V1
+	then
+		set MIXER_AUX none
+	fi
+
 	#
 	# Override parameters from user configuration file
 	#
