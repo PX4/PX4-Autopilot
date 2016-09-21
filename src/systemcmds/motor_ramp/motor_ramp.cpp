@@ -384,7 +384,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_WAIT: {
-				if (timer > 1.0f) {
+				if (timer > 0.5f) {
 					_thread_should_exit = true;
 					PX4_WARN("stopping");
 					break;
