@@ -175,6 +175,11 @@ then
 				set AUTOCNF yes
 			fi
 		fi
+
+		if ver hwcmp AEROFC_V1
+		then
+			set USE_IO no
+		fi
 	else
 		set USE_IO no
 	fi
