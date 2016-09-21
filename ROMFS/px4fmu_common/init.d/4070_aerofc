@@ -7,6 +7,7 @@
 sh /etc/init.d/rc.mc_defaults
 
 tap_esc start -d /dev/ttyS0 -n 4
+set OUTPUT_MODE rcin
 set OUTPUT_DEV /dev/tap_esc
 set MIXER quad_x
 set USE_IO no
