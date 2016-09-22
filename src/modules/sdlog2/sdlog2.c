@@ -1223,7 +1223,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
-		struct adc_report_s adc; // ADDED BY DONALD LEAR
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
