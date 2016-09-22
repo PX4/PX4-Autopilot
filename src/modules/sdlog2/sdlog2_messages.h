@@ -652,7 +652,7 @@ struct log_PARM_s {
 struct log_AOASS_s {
 	float aoa_v;     //# Angle-of-Attack voltage in volts.  Range 0-3.3 Volts
 	float ss_v;      //# Sideslip voltage.  Range 0 - 3.3 Volts
-}
+};
 #pragma pack(pop)
 
 // the lower type of initialisation is not supported in C++
