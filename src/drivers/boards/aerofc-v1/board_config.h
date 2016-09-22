@@ -136,16 +136,6 @@
 
 #define	BOARD_NAME "AEROFC_V1"
 
-/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
- * system_power interface, and herefore provides the true logic
- * GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID   (1)
-#define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (0)
-#define BOARD_ADC_HIPOWER_5V_OC (0)
-
 #define GPIO_SPI_CS_MPU6500		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #define PX4_SPI_BUS_SENSORS	1
 #define PX4_SPIDEV_MPU			1
