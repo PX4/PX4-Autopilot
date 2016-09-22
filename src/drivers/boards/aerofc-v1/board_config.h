@@ -131,7 +131,7 @@
 
 /* High-resolution timer
  */
-#define HRT_TIMER		3	/* use timer8 for the HRT */
+#define HRT_TIMER		3	/* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
 
 #define	BOARD_NAME "AEROFC_V1"
