@@ -74,14 +74,14 @@ __EXPORT void dm_lock(dm_item_t item);
 __EXPORT void dm_unlock(dm_item_t item);
 __EXPORT int dm_restart(dm_reset_reason restart_type);
 
-/* File based Operations */
+/* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf,
 			   size_t count);
 static ssize_t _file_read(dm_item_t item, unsigned char index, void *buf, size_t count);
 static int  _file_clear(dm_item_t item);
 static int  _file_restart(dm_reset_reason reason);
 
-/* Ram based Operations */
+/* Private Ram based Operations */
 static ssize_t _ram_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf,
 			  size_t count);
 static ssize_t _ram_read(dm_item_t item, unsigned char index, void *buf, size_t count);
@@ -632,7 +632,7 @@ _file_clear(dm_item_t item)
 }
 
 
-/** Tell the data manager about the type of the last reset */
+/* Tell the data manager about the type of the last reset */
 static int  _ram_restart(dm_reset_reason reason)
 {
 	int offset = 0;
@@ -800,6 +800,7 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
 
+/** Clear a data Item */
 __EXPORT int
 dm_clear(dm_item_t item)
 {
@@ -822,6 +823,7 @@ dm_clear(dm_item_t item)
 	return enqueue_work_item_and_wait_for_result(work);
 }
 
+/** Lock a data Item */
 __EXPORT void
 dm_lock(dm_item_t item)
 {
@@ -839,6 +841,7 @@ dm_lock(dm_item_t item)
 	}
 }
 
+/** Unlock a data Item */
 __EXPORT void
 dm_unlock(dm_item_t item)
 {
@@ -856,7 +859,7 @@ dm_unlock(dm_item_t item)
 	}
 }
 
-/* Tell the data manager about the type of the last reset */
+/** Tell the data manager about the type of the last reset */
 __EXPORT int
 dm_restart(dm_reset_reason reason)
 {
