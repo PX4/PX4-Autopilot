@@ -725,8 +725,8 @@ static const struct log_format_s log_formats[] = {
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
-	LOG_FORMAT(PARM, "Nf", "Name,Value")
-	LOG_FORMAT(AOASS, "ff", "AOA,SS") // ADDED BY DONALD LEAR
+	LOG_FORMAT(PARM, "Nf", "Name,Value"),
+	LOG_FORMAT(AOASS, "ff", "AOA,SS"), // ADDED BY DONALD LEAR
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);
