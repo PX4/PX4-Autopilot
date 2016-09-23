@@ -1380,7 +1380,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
-        subs.adc_report_sub = -1 // ADDED BY DONALD LEAR
+        subs.adc_report_sub = -1; // ADDED BY DONALD LEAR
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
