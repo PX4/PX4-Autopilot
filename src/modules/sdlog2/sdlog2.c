@@ -1285,7 +1285,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LAND_s log_LAND;
 			struct log_RPL6_s log_RPL6;
 			struct log_LOAD_s log_LOAD;
-			struct log_AOASS_s log_AOASS;  // ADDED BY DONALD LEAR
+			struct log_AOAS_s log_AOAS;  // ADDED BY DONALD LEAR
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -2283,9 +2283,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
                 /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
                 if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc)) {
-                	log_msg.msg_type = LOG_AOASS_MSG;
-                	log_msg.body.log_AOASS.channel_value_aoa = adc.channel_value[13];
-                	log_msg.body.log_AOASS.channel_value_ss = adc.channel_value[14];
+                	log_msg.msg_type = LOG_AOAS_MSG;
+                	log_msg.body.log_AOAS.channel_value_aoa = adc.channel_value[13];
+                	log_msg.body.log_AOAS.channel_value_ss = adc.channel_value[14];
                 }
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
