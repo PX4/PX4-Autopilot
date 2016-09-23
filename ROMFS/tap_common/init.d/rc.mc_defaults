@@ -4,11 +4,6 @@ set VEHICLE_TYPE mc
 
 if [ $AUTOCNF == yes ]
 then
-	param set PE_VELNE_NOISE 0.5
-	param set PE_VELD_NOISE 0.35
-	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.25
-
 	param set PWM_DISARMED 900
 	param set PWM_MIN 1075
 	param set PWM_MAX 1950
