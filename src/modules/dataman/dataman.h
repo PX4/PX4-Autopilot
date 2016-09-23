@@ -42,6 +42,7 @@
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
+#include <uORB/topics/fence_vertex.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,8 +103,18 @@ typedef enum {
 	DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
 } dm_reset_reason;
 
-/** Maximum size in bytes of a single item instance */
-#define DM_MAX_DATA_SIZE 126
+/** Maximum size in bytes of a single item instance is
+ * defined by adding the structure type to the union below
+ */
+
+typedef union dataman_max_size_t {
+	struct mission_item_s    mission_item;
+	struct mission_s	      mission;
+	struct fence_vertex_s    vertex;
+} dataman_max_size_t;
+
+
+#define DM_MAX_DATA_SIZE sizeof(dataman_max_size_t)
 
 /** Retrieve from the data manager store */
 __EXPORT ssize_t

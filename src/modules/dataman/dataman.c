@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -388,7 +389,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned char index, dm_persitence_t p
 
 	/* Make sure caller has not given us more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE) {
-		return -1;
+		return -E2BIG;
 	}
 
 	uint8_t *buffer = &g_task_data[offset];
@@ -429,7 +430,7 @@ _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, co
 
 	/* Make sure caller has not given us more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE) {
-		return -1;
+		return -E2BIG;
 	}
 
 	/* Write out the data, prefixed with length and persistence level */
@@ -474,7 +475,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned char index, void *buf, size_t 
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE) {
-		return -1;
+		return -E2BIG;
 	}
 
 	/* Read the prefix and data */
@@ -517,7 +518,7 @@ _file_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE) {
-		return -1;
+		return -E2BIG;
 	}
 
 	/* Read the prefix and data */
