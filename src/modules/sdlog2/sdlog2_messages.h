@@ -648,8 +648,8 @@ struct log_PARM_s {
 };
 
 /* --- AOA,SS - ANGLE OF ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
-#define LOG_AOASS_MSG 120
-struct log_AOASS_s {
+#define LOG_AOAS_MSG 120
+struct log_AOAS_s {
 	float channel_value_aoa;     //# Angle-of-Attack voltage in volts.  Range 0-3.3 Volts
 	float channel_value_ss;      //# Sideslip voltage.  Range 0 - 3.3 Volts
 };
@@ -726,7 +726,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
 	LOG_FORMAT(PARM, "Nf", "Name,Value"),
-	LOG_FORMAT(AOASS, "ff", "AOA,SS") // ADDED BY DONALD LEAR
+	LOG_FORMAT(AOAS, "ff", "AOA,SS") // ADDED BY DONALD LEAR
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);
