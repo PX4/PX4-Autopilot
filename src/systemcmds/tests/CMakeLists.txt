@@ -34,6 +34,7 @@
 set(srcs
 	test_adc.c
 	test_autodeclination.cpp
+	test_dataman.c
 	test_hysteresis.cpp
 	test_bson.c
 	test_conv.cpp
