@@ -1223,7 +1223,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
-		struct adc_report_s adc_report; // ADDED BY DONALD LEAR
+		struct adc_report_s adc; // ADDED BY DONALD LEAR
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -2282,10 +2282,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
                 /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
-                if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc_report)) {
+                if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc)) {
                 	log_msg.msg_type = LOG_AOAS_MSG;
-                	log_msg.body.log_AOAS.channel_value_aoa = channel_value[13];
-                	log_msg.body.log_AOAS.channel_value_ss = channel_value[14];
+                	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[13];
+                	log_msg.body.log_AOAS.channel_value_ss = buf.adc.channel_value[14];
                 }
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
