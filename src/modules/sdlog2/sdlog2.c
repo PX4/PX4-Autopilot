@@ -2284,8 +2284,8 @@ int sdlog2_thread_main(int argc, char *argv[])
                 /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
                 if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc)) {
                 	log_msg.msg_type = LOG_AOAS_MSG;
-                	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[13];
-                	log_msg.body.log_AOAS.channel_value_ss = buf.adc.channel_value[14];
+                	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[i];
+                	log_msg.body.log_AOAS.channel_value_ss = buf.adc.channel_value[i];
                 }
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
