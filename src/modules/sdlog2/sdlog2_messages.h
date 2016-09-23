@@ -650,8 +650,8 @@ struct log_PARM_s {
 /* --- AOA,SS - ANGLE OF ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
 #define LOG_AOASS_MSG 120
 struct log_AOASS_s {
-	float channel_value[13];     //# Angle-of-Attack voltage in volts.  Range 0-3.3 Volts
-	float channel_value[14];      //# Sideslip voltage.  Range 0 - 3.3 Volts
+	float channel_value_aoa;     //# Angle-of-Attack voltage in volts.  Range 0-3.3 Volts
+	float channel_value_ss;      //# Sideslip voltage.  Range 0 - 3.3 Volts
 };
 #pragma pack(pop)
 
