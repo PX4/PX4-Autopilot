@@ -2155,6 +2155,8 @@ Sensors::rc_poll()
 			actuator_group_3.control[6] = manual.aux2;
 			actuator_group_3.control[7] = manual.aux3;
 
+//			warnx("aux1: %8.4f, aux2%8.4f", (double)actuator_group_3.control[5], (double)actuator_group_3.control[6]);
+
 			/* publish actuator_controls_3 topic */
 			if (_actuator_group_3_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);

@@ -49,11 +49,14 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/servo_control.h>
 
+#define PUB_SERVO
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
 {
+#ifdef SIMPLE
 	PX4_INFO("Hello Sky!");
 
 	/* subscribe to sensor_combined topic */
@@ -122,4 +125,39 @@ int px4_simple_app_main(int argc, char *argv[])
 	PX4_INFO("exiting");
 
 	return 0;
+#endif
+#ifdef PUB_SERVO
+while(1){
+	struct servo_control_s servo;
+	servo.tretch = true;
+	servo.duration = 1;
+	orb_advert_t servo_pub = orb_advertise(ORB_ID(servo_control), &servo);
+	sleep(2);
+
+	servo.tretch = true;
+	servo.duration = 1;
+	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+	sleep(2);
+
+	servo.tretch = false;
+	servo.duration = 0;
+	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+	sleep(2);
+	warnx("Mission over one time");
+}
+
+//	servo.tretch = true;
+//	servo.duration = 0.5;
+//	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+//	sleep(2);
+//
+//	servo.tretch = false;
+//	servo.duration = 0.5;
+//	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+//	sleep(2);
+
+
+
+	return 0;
+#endif
 }
