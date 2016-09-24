@@ -1198,6 +1198,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool was_armed = false;
 
 	bool startup_in_hil = false;
+    bool start_disarm = false;
 
 	// XXX for now just set sensors as initialized
 	status_flags.condition_system_sensors_initialized = true;
@@ -2043,8 +2044,15 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (was_landed != land_detector.landed) {
 				if (land_detector.landed) {
+                    // Check for auto-disarm
+                    if (disarm_when_landed > 0) {
+                        start_disarm = true;
+                        auto_disarm_hysteresis.set_state_and_update(true);
+                    }
 					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 				} else {
+                    start_disarm = false;
+                    auto_disarm_hysteresis.set_state_and_update(false);
 					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
 				}
 			}
@@ -2055,20 +2063,17 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-
-			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
 
-		// Check for auto-disarm
-		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
-			auto_disarm_hysteresis.set_state_and_update(true);
-		} else {
-			auto_disarm_hysteresis.set_state_and_update(false);
-		}
+        if (start_disarm && land_detector.landed) {
+            auto_disarm_hysteresis.update();
+        }
 
 		if (auto_disarm_hysteresis.get_state()) {
 			arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
+            start_disarm = false;
+            auto_disarm_hysteresis.set_state_and_update(false);
 		}
 
 		if (!warning_action_on) {
@@ -2781,6 +2786,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		was_armed = armed.armed;
+        was_landed = land_detector.landed;
 
 		/* print new state */
 		if (arming_state_changed) {
