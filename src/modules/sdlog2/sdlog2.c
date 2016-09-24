@@ -1335,7 +1335,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int land_detected_sub;
 		int commander_state_sub;
 		int cpuload_sub;
-		int adc_report_sub; // ADDED BY DONALD LEAR
+		int adc_sub; // ADDED BY DONALD LEAR
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1380,7 +1380,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
-        subs.adc_report_sub = -1; // ADDED BY DONALD LEAR
+        subs.adc_sub = -1; // ADDED BY DONALD LEAR
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
@@ -2282,7 +2282,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
                 /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
-                if (copy_if_updated(ORB_ID(adc_report), &subs.adc_report_sub, &buf.adc)) {
+                if (copy_if_updated(ORB_ID(adc_report), &subs.adc_sub, &buf.adc)) {
                 	log_msg.msg_type = LOG_AOAS_MSG;
                 	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[6];
                 	log_msg.body.log_AOAS.channel_value_ss = buf.adc.channel_value[7];
