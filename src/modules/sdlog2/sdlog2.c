@@ -111,7 +111,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/adc_report.h> // ADDED BY DONALD LEAR
+#include <uORB/topics/adc_report.h> // ADDED BY DEAFRO
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1223,7 +1223,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
-		struct adc_report_s adc; // ADDED BY DONALD LEAR
+		struct adc_report_s adc; // ADDED BY DEAFRO
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1285,7 +1285,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LAND_s log_LAND;
 			struct log_RPL6_s log_RPL6;
 			struct log_LOAD_s log_LOAD;
-			struct log_AOAS_s log_AOAS;  // ADDED BY DONALD LEAR
+			struct log_AOAS_s log_AOAS;  // ADDED BY DEAFRO
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1335,7 +1335,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int land_detected_sub;
 		int commander_state_sub;
 		int cpuload_sub;
-		int adc_sub; // ADDED BY DONALD LEAR
+		int adc_sub; // ADDED BY DEAFRO
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1380,7 +1380,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
-        subs.adc_sub = -1; // ADDED BY DONALD LEAR
+        subs.adc_sub = -1; // ADDED BY DEAFRO
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
@@ -2281,7 +2281,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
-                /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DONALD LEAR
+                /* --- ANGLE-OF-ATTACK AND SIDESLIP --- */ // ADDED BY DEAFRO
                 if (copy_if_updated(ORB_ID(adc_report), &subs.adc_sub, &buf.adc)) {
                 	log_msg.msg_type = LOG_AOAS_MSG;
                 	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[6];
