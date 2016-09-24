@@ -2286,6 +2286,7 @@ int sdlog2_thread_main(int argc, char *argv[])
                 	log_msg.msg_type = LOG_AOAS_MSG;
                 	log_msg.body.log_AOAS.channel_value_aoa = buf.adc.channel_value[0];
                 	log_msg.body.log_AOAS.channel_value_ss = buf.adc.channel_value[1];
+                	LOGBUFFER_WRITE_AND_COUNT(AOAS);
                 }
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
