@@ -265,14 +265,14 @@ package_firmware:
 
 clean:
 	@rm -rf build_*/
-	@$(MAKE) -C NuttX/nuttx clean
+	-@$(MAKE) -C NuttX/nuttx clean
 
 submodulesclean:
 	@git submodule sync --recursive
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean
+distclean: submodulesclean clean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
