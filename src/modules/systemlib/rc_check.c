@@ -78,11 +78,14 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
+
 		} else {
 			int32_t transition_switch;
 			param_get(trans_parm, &transition_switch);
+
 			if (transition_switch < 1) {
 				if (report_fail) { mavlink_and_console_log_critical(mavlink_log_pub, "ERR: transition switch (RC_MAP_TRANS_SW) not set"); }
+
 				map_fail_count++;
 			}
 
