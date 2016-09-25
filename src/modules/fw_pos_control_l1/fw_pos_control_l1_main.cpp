@@ -2090,7 +2090,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
 		   !_runway_takeoff.runwayTakeoffEnabled()) {
@@ -2100,16 +2100,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = (_launchDetector.launchDetectionEnabled()) ? _launchDetector.getThrottlePreTakeoff() :
 				 _parameters.throttle_idle;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_OTHER) {
+	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
 
 	} else {
@@ -2140,7 +2140,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			    _land_noreturn_vertical);
 
 	// manual attitude control
-	use_tecs_pitch &=  !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
+	use_tecs_pitch &= !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
 
 	if (use_tecs_pitch) {
 		_att_sp.pitch_body = get_tecs_pitch();
@@ -2441,6 +2441,9 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	} else if (_was_in_transition) {
 		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 		_asp_after_transition += dt * 2; // increase 2m/s
+
+
+		//throttle_cruise =
 
 		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
 			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
