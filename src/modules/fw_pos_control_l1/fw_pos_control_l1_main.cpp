@@ -68,6 +68,7 @@
 #include <px4_posix.h>
 
 #include "landingslope.h"
+
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
@@ -84,7 +85,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/systemlib.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
@@ -98,7 +98,6 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -2405,7 +2404,6 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		unsigned mode)
 {
-	bool run_tecs = true;
 	float dt = 0.01f; // prevent division with 0
 
 	if (_last_tecs_update > 0) {
@@ -2415,7 +2413,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	_last_tecs_update = hrt_absolute_time();
 
 	// do not run TECS if we are not in air
-	run_tecs &= !_vehicle_land_detected.landed;
+	bool run_tecs = !_vehicle_land_detected.landed;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
@@ -2442,14 +2440,10 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 		_asp_after_transition += dt * 2; // increase 2m/s
 
-
-		//throttle_cruise =
-
 		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
 			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
-		}
 
-		else {
+		} else {
 			_was_in_transition = false;
 			_asp_after_transition = 0;
 		}
@@ -2479,7 +2473,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 	/* Using tecs library */
-	float pitch_for_tecs = _pitch;
+	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
 
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
