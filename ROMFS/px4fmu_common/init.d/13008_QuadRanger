@@ -34,6 +34,8 @@ then
 	param set MC_YAWRATE_I 0.04
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
+	param set MC_YAWRATE_MAX 40.0
+	param set MC_YAWRAUTO_MAX 40.0
 
 	param set MPC_ACC_HOR_MAX 2.0
 	param set MPC_Z_VEL_MAX 1.5
