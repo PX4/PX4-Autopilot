@@ -93,37 +93,7 @@ static void hrt_unlock(void)
 	px4_sem_post(&_hrt_lock);
 }
 
-#if (defined(__APPLE__) && defined(__MACH__))
-#include <time.h>
-#include <sys/time.h>
-#define CLOCK_REALTIME 0
-
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC 1
-#endif
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	struct timeval now;
-	int rv = gettimeofday(&now, NULL);
-
-	if (rv) {
-		return rv;
-	}
-
-	tp->tv_sec = now.tv_sec;
-	tp->tv_nsec = now.tv_usec * 1000;
-
-	return 0;
-}
-
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
-{
-	/* do nothing right now */
-	return 0;
-}
-
-#elif defined(__QURT)
+#if defined(__QURT)
 
 #include "dspal_time.h"
 
