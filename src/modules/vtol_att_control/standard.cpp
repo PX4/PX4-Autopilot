@@ -44,6 +44,8 @@
 #include "standard.h"
 #include "vtol_att_control_main.h"
 
+#include <float.h>
+
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),

@@ -42,6 +42,7 @@
 #include "vtol_type.h"
 #include "drivers/drv_pwm_output.h"
 #include <px4_defines.h>
+#include <float.h>
 #include "vtol_att_control_main.h"
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
