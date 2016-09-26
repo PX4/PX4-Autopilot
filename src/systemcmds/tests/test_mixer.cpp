@@ -58,7 +58,7 @@
 
 #include <uORB/topics/actuator_controls.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
