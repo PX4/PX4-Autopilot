@@ -354,7 +354,8 @@ private:
 	/**
 	 * Function to scale lateral errors(world xy plane) in world frame by gains in body frame
 	 */
-	void 		separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains, const bool set_z);
+	void 		separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains,
+				       const bool set_z);
 };
 
 namespace pos_control
@@ -644,13 +645,17 @@ MulticopterPositionControl::parameters_update(bool force)
 	return OK;
 }
 
-void 
-MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains, const bool set_z){
+void
+MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
+		const math::Vector<3> &gains, const bool set_z)
+{
 	float z_setpoint;
+
 	if (!set_z) {
 		// Preserve z-component
 		z_setpoint = setpoint(2);
 	}
+
 	/* Project errors to body frame, scale by gains in body frame, project back to world frame */
 	math::Matrix<3, 3> Gains;
 	Gains.identity();
@@ -658,11 +663,11 @@ MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math
 	Gains(1, 1) = gains(1);
 	Gains(2, 2) = gains(2);
 	setpoint = _R_yaw * Gains * _R_yaw.transposed() * errors;
-	
+
 	/* Reset z setpoint if required */
 	if (!set_z) {
 		setpoint(2) = z_setpoint;
-	} 
+	}
 }
 
 void
@@ -1128,9 +1133,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* Get the scale in the world frame */
 		math::Vector<3> scale;
-		scale(0) = (_params.pos_p(0) / cruising_speed(0)) * cosf(_yaw) - (_params.pos_p(1) / cruising_speed(1)) * sinf(_yaw);
-		scale(1) = (_params.pos_p(1) / cruising_speed(1)) * cosf(_yaw) + (_params.pos_p(0) / cruising_speed(0)) * sinf(_yaw);
-		scale(2) = _params.pos_p(2) / cruising_speed(2);
+		scale = _R_yaw * _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
@@ -1210,7 +1213,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* difference between current and desired position setpoints, 1 = max speed */
 		math::Vector<3> d_pos_m;
 
-		/* Calculate the scaled differnce with the gains in body frame */
+		/* Calculate the scaled difference with the gains in body frame */
 		separate_gains(d_pos_m, pos_sp_s - pos_sp_old_s, _params.pos_p.einv(), true);
 
 		float d_pos_m_len = d_pos_m.length();
@@ -1744,9 +1747,7 @@ MulticopterPositionControl::task_main()
 						separate_gains(req_vel_err, req_th_p, _params.vel_p.einv(), true);
 
 						_vel_sp = _vel + req_vel_err;
-						_vel_sp_prev(0) = _vel_sp(0);
-						_vel_sp_prev(1) = _vel_sp(1);
-						_vel_sp_prev(2) = _vel_sp(2);
+						_vel_sp_prev = _vel_sp;
 						control_vel_enabled_prev = true;
 
 						// compute updated velocity error
