@@ -48,6 +48,7 @@
 #include <px4_spi.h>
 #include <string.h>
 #include <stdbool.h>
+#include <float.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
