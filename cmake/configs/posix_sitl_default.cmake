@@ -88,7 +88,7 @@ set(config_module_list
 	#modules/mavlink/mavlink_tests #TODO: fix mavlink_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
-	#systemcmds/tests
+	systemcmds/tests
 
 	)
 

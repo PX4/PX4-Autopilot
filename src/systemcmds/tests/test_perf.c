@@ -36,7 +36,7 @@
 
 #include <systemlib/perf_counter.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 int
 test_perf(int argc, char *argv[])

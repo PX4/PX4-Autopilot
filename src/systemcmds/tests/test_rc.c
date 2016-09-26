@@ -54,7 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>

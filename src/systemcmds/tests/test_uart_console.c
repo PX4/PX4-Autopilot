@@ -50,7 +50,7 @@
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>

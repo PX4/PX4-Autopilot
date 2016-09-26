@@ -38,11 +38,9 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <px4_config.h>
-
-#include <sys/types.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -52,7 +50,7 @@
 // Not using Eigen at the moment
 #define TESTS_EIGEN_DISABLE
 
-#include "tests.h"
+#include "tests_main.h"
 
 /****************************************************************************
  * Private Function Prototypes

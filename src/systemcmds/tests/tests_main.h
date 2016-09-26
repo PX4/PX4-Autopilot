@@ -35,7 +35,7 @@
 #define __APPS_PX4_TESTS_H
 
 /**
- * @file tests.h
+ * @file tests_main.h
  * Tests declaration file.
  *
  */
@@ -49,26 +49,6 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#    define msgflush()
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#    define msgflush() fflush(stdout)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#    define msgflush()
-#  else
-#    define message printf
-#    define msgflush() fflush(stdout)
-#  endif
-#endif
 
 __BEGIN_DECLS
 
