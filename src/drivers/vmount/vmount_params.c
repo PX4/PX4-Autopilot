@@ -37,9 +37,6 @@
 *
 */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /**
 * Mount input mode
 * RC uses the AUX input channels (see MNT_MAN_* parameters),
