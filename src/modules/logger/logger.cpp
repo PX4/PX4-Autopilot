@@ -55,6 +55,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_sem.h>
+#include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
