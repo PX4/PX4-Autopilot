@@ -159,6 +159,8 @@ $(ALL_CONFIG_TARGETS):
 $(NUTTX_CONFIG_TARGETS):
 	$(call cmake-build,nuttx_$@)
 
+all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
+
 posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
 
