@@ -54,7 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
+#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
@@ -137,7 +137,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 		float max_horizontal_distance = _param_max_hor_distance.get();
 		float max_vertical_distance = _param_max_ver_distance.get();
 
-		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
+		if (max_horizontal_distance > 1 || max_vertical_distance > 1) {
 			if (_home_pos_set) {
 				float dist_xy = -1.0f;
 				float dist_z = -1.0f;
