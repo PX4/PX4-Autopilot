@@ -88,7 +88,9 @@ FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
+ifndef NO_NINJA_BUILD
 NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+endif
 ifdef NINJA_BUILD
     PX4_CMAKE_GENERATOR ?= "Ninja"
     PX4_MAKE = ninja
