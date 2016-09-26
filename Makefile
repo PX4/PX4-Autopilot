@@ -88,7 +88,9 @@ FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
+ifndef NO_NINJA_BUILD
 NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+endif
 ifdef NINJA_BUILD
     PX4_CMAKE_GENERATOR ?= "Ninja"
     PX4_MAKE = ninja
@@ -156,6 +158,8 @@ $(ALL_CONFIG_TARGETS):
 # nuttx_ is left off by default; provide a rule to allow that.
 $(NUTTX_CONFIG_TARGETS):
 	$(call cmake-build,nuttx_$@)
+
+all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 
 posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
