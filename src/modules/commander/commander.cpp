@@ -78,7 +78,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <systemlib/systemlib.h>
+#include <float.h>
 #include <systemlib/hysteresis/hysteresis.h>
 
 #include <sys/stat.h>
