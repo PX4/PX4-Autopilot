@@ -40,6 +40,7 @@
  * @author Christoph Tobler <toblech@student.ethz.ch>
  */
 #include <px4_posix.h>
+#include <px4_tasks.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,7 +67,6 @@
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
-#include <systemlib/systemlib.h>
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
 
