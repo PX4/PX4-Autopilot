@@ -1572,7 +1572,7 @@ int commander_thread_main(int argc, char *argv[])
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-				!can_arm_without_gps, /*checkDynamic */ false, /* reportFailures */ false);
+				!can_arm_without_gps, /*checkDynamic */ false, is_vtol(&status), /* reportFailures */ false);
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 

@@ -52,7 +52,7 @@
 
 #define RC_INPUT_MAP_UNMAPPED 0
 
-int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail)
+int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
 {
 
 	char nbuf[20];
@@ -67,6 +67,32 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail)
 	};
 
 	unsigned j = 0;
+
+	/* if VTOL, check transition switch mapping */
+	if (isVTOL) {
+		param_t trans_parm = param_find("RC_MAP_TRANS_SW");
+
+		if (trans_parm == PARAM_INVALID) {
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_log_pub, "ERR: RC_MAP_TRANS_SW PARAMETER MISSING"); }
+
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			map_fail_count++;
+
+		} else {
+			int32_t transition_switch;
+			param_get(trans_parm, &transition_switch);
+
+			if (transition_switch < 1) {
+				if (report_fail) { mavlink_and_console_log_critical(mavlink_log_pub, "ERR: transition switch (RC_MAP_TRANS_SW) not set"); }
+
+				map_fail_count++;
+			}
+
+		}
+
+	}
+
 
 	/* first check channel mappings */
 	while (rc_map_mandatory[j] != 0) {
