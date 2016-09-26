@@ -13,7 +13,7 @@ matrix:
         - docker
     - os: osx
       sudo: true
-      osx_image: xcode8.0
+      osx_image: xcode8
       env: CCACHE_CPP2=1
 
 cache:
@@ -46,7 +46,6 @@ before_install:
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
       && sudo mv ninja /usr/local/bin
       && chmod +x /usr/local/bin/ninja
-      && cmake --version
       ;
     fi
 
