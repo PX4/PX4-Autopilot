@@ -41,12 +41,13 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_tasks.h>
+#include <px4_workqueue.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
 #include <pthread.h>
-#include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "work_lock.h"
 

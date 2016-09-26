@@ -41,6 +41,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
 #include <stdint.h>
 #include <signal.h>
 #include <stdio.h>

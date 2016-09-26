@@ -39,13 +39,14 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_workqueue.h>
+#include <px4_tasks.h>
 
 #include <signal.h>
 #include <stdint.h>
 #include <queue.h>
 #include <stdio.h>
 #include <semaphore.h>
-#include <px4_workqueue.h>
 #include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
