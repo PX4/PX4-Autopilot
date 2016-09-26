@@ -106,29 +106,36 @@ MD25::MD25(const char *deviceName, int bus,
 	_command(CMD_RESET_ENCODERS)
 {
     // setup control polling
-            _controlPoll.fd = _actuators.getHandle();
-            _controlPoll.events = POLLIN;
+ //   _controlPoll.fd = _actuators.getHandle();
+ //   _controlPoll.events = POLLIN;
 
+/*    int ret=I2C::init();
+    while(ret!=OK){
+        usleep(500);
+        ret= I2C::init();
+    }*/
+ //   int ret=I2C::init();
+ /*   if (ret != OK) {
+        warnc(ret, "I2C::init failed for bus: %d address: %d\n", bus, address);
 
-            int ret = I2C::init();
-
-                if (ret != OK) {
-                    warnc(ret, "I2C::init failed for bus: %d address: %d\n", bus, address);
-                }
-            // setup default settings, reset encoders
-               setMotor1Speed(0);
-               setMotor2Speed(0);
-               resetEncoders();
-               _setMode(MD25::MODE_UNSIGNED_SPEED);
-               setSpeedRegulation(false);
-               setMotorAccel(10);
-               setTimeout(true);
-
-
+    }
+    // setup default settings, reset encoders
+    setMotor1Speed(0);
+    setMotor2Speed(0);
+    resetEncoders();
+    _setMode(MD25::MODE_UNSIGNED_SPEED);
+    setSpeedRegulation(false);
+    setMotorAccel(10);
+    setTimeout(true);*/
 }
 
 MD25::~MD25()
 {
+}
+
+int MD25::Initdev()
+{
+     return Init();
 }
 
 int MD25::Init()

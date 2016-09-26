@@ -1153,6 +1153,7 @@ void BlockLocalPositionEstimator::correctLidar()
 void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other metric for glitch detection
 {
 
+
 	// gps measurement in local frame
 	double  lat = _sub_gps.get().lat * 1.0e-7;
 	double  lon = _sub_gps.get().lon * 1.0e-7;
@@ -1165,7 +1166,6 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 
 	//printf("gps: lat %10g, lon, %10g alt %10g\n", lat, lon, double(alt));
 	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
-	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
 
 	Vector<float, 6> y;
 	y.setZero();

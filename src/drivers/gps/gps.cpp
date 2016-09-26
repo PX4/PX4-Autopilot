@@ -345,6 +345,7 @@ GPS::task_main()
 
 			case GPS_DRIVER_MODE_ASHTECH:
 				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
+
 				break;
 
 			default:
@@ -399,8 +400,8 @@ GPS::task_main()
 				while ((helper_ret = _Helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 					//				lock();
 					/* opportunistic publishing - else invalid data would end up on the bus */
+				  	if (!(_pub_blocked)) {
 
-					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
 							if (_report_gps_pos_pub != nullptr) {
 

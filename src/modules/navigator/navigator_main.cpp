@@ -457,9 +457,11 @@ Navigator::task_main()
 					// above landing waypoint
 					_navigation_mode = &_loiter;
 					_pos_sp_triplet_published_invalid_once = false;
+
 				} else {
 					_pos_sp_triplet_published_invalid_once = false;
 					_navigation_mode = &_mission;
+
 				}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
@@ -481,6 +483,7 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_takeoff;
+
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_LAND:
 				_pos_sp_triplet_published_invalid_once = false;

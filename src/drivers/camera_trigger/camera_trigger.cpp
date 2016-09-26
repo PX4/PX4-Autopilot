@@ -225,6 +225,7 @@ CameraTrigger::control(bool on)
 	// to reset timings if necessary
 
 	if (on) {
+
 		// schedule trigger on and off calls
 		hrt_call_every(&_engagecall, 500, (_interval * 1000),
 			       (hrt_callout)&CameraTrigger::engage, this);
@@ -234,6 +235,7 @@ CameraTrigger::control(bool on)
 			       (hrt_callout)&CameraTrigger::disengage, this);
 
 	} else {
+
 		// cancel all calls
 		hrt_cancel(&_engagecall);
 		hrt_cancel(&_disengagecall);
@@ -250,12 +252,14 @@ CameraTrigger::start()
 {
 
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+
 		stm32_configgpio(_gpios[_pins[i]]);
-		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);
+		stm32_gpiowrite(_gpios[_pins[i]], _polarity);
 	}
 
 	// enable immediate if configured that way
 	if (_mode > 1) {
+
 		control(true);
 	}
 
@@ -298,7 +302,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
 
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL ) {
+
 			// Set trigger rate from command
 			if (cmd.param2 > 0) {
 				trig->_interval = cmd.param2;
@@ -333,9 +338,12 @@ CameraTrigger::engage(void *arg)
 	trigger.timestamp = hrt_absolute_time();
 
 	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
+
 		if (trig->_pins[i] >= 0) {
+		    fprintf(stderr, "engage pola:%i i=%i\n",trig->_polarity,i);
 			// ACTIVE_LOW == 0
 			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], trig->_polarity);
+
 		}
 	}
 

@@ -3,37 +3,43 @@
 # Standard apps for rovers:
 # att & pos estimator, rover steering control
 #
-#gps stop
+echo "rc.axialracing_ax_apps"
+gps stop
 
-ekf_att_pos_estimator start
+
+attitude_estimator_q start
+#ekf_att_pos_estimator start
+position_estimator_inav start
+#local_position_estimator start
 #
 # Start attitude controller
 #
-rv_pos_control start
-usleep 100000
 rover_md25_control start
+rv_pos_control start
 
-usleep 100000
+#start mavlink on serial4 port
+usleep 1000
+mavlink start -d /dev/ttyS6 -b 57600
+usleep 1000
 #start mavlink custom stream on telem2 (/dev/ttyS2 internally) with 921600 and ftp enabled (-x)
 mavlink start -m custom -d /dev/ttyS2 -b 921600 -x
-usleep 100000
+usleep 1000
 mavlink stream -d /dev/ttyS2 -s HEARTBEAT -r 5
-usleep 100000
+usleep 1000
 mavlink stream -d /dev/ttyS2 -s STATUSTEXT -r 1
-usleep 100000
+usleep 1000
 mavlink stream -d /dev/ttyS2 -s SYS_STATUS -r 1
-usleep 100000
-mavlink stream -d /dev/ttyS2 -s PARAM_VALUE -r 200
-usleep 100000
+usleep 1000
+mavlink stream -d /dev/ttyS2 -s PARAM_VALUE -r 100
+usleep 1000
 mavlink stream -d /dev/ttyS2 -s HIGHRES_IMU -r 50
-usleep 100000
+usleep 10000
 mavlink stream -d /dev/ttyS2 -s ATTITUDE -r 50
-usleep 100000
-mavlink stream -d /dev/ttyS2 -s ATTITUDE_QUATERNION -r 50
-usleep 100000
-mavlink stream -d /dev/ttyS2 -s GLOBAL_POSITION_INT -r 5
-usleep 100000
-mavlink stream -d /dev/ttyS2 -s LOCAL_POSITION_NED -r 5
-usleep 100000
-mavlink stream -d /dev/ttyS2 -s ATTITUDE_CONTROLS -r 10
-usleep 100000
+usleep 1000
+#mavlink stream -d /dev/ttyS2 -s ATTITUDE_QUATERNION -r 50
+#usleep 10000
+mavlink stream -d /dev/ttyS2 -s GLOBAL_POSITION_INT -r 20
+usleep 1000
+mavlink stream -d /dev/ttyS2 -s LOCAL_POSITION_NED -r 50
+usleep 1000
+mavlink stream -d /dev/ttyS2 -s ATTITUDE_CONTROL -r 10

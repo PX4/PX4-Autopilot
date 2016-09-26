@@ -4,26 +4,10 @@
 #
 # @type Rover
 #
-
-
+echo "5001_axialracing_ax10"
+sh /etc/init.d/rc.axialracing_ax10_defaults
 set VEHICLE_TYPE rover
-#choose a mixer, for rover control we need a plain passthrough to the servos
-#set MIXER IO_pass
-# PWM Hz - 50 Hz is the normal rate in RC cars, higher rates
-# may damage analog servos.
-#set PWM_RATE 50
 
-# PWM default value for "disarmed" mode
-# this centers the steering and throttle, which means no motion
-# for a rover
-#set PWM_DISARMED 1500
 
-# PWM range
-#set PWM_MIN 1200
-#set PWM_MAX 1800
-
-# Enable servo output on pins 3 and 4 (steering and thrust)
-# but also include 1+2 as they form together one output group
-# and need to be set together.
-#set PWM_OUT 1234
+usleep 10000
 set OUTPUT_MODE md25

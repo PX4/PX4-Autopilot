@@ -69,8 +69,11 @@
 #include <drivers/drv_accel.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -82,7 +85,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/tecs_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -93,15 +95,16 @@
 #include <mavlink/mavlink_log.h>
 #include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
-
-
+#include <systemlib/param/param.h>
 #include <platforms/px4_defines.h>
 #include <runway_takeoff/RunwayTakeoff.h>
 
+//#include <controllib/blocks.hpp>
+//#include <controllib/block/BlockParam.hpp>
 static int	_control_task = -1;			/**< task handle for sensor task */
-#define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
-#define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
-#define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
+#define HDG_HOLD_DIST_NEXT 			1.0f 	// initial distance of waypoint in front of plane in heading hold mode
+#define HDG_HOLD_REACHED_DIST 		0.2f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
+#define HDG_HOLD_SET_BACK_DIST 		0.2f 		// distance by which previous waypoint is set behind the plane
 #define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
 #define TAKEOFF_IDLE				0.2f 		// idle speed for POSCTRL/ATTCTRL (when landed and throttle stick > 0)
@@ -151,17 +154,19 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 
+    int     _local_pos_sub;      /**< vehicle local position */
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
 	int		_ctrl_state_sub;			/**< control state subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_control_sub;		/**< notification of manual control updates */
+	int 	_params_sub;			/**< notification of parameter updates */
+	int 	_manual_control_sub;		/**< notification of manual control updates */
 	int		_sensor_combined_sub;		/**< for body frame accelerations */
+	int     _att_sub;
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
-
+    orb_advert_t    _local_pos_sp_pub;      /**< vehicle local position setpoint publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	orb_id_t _attitude_setpoint_id;
@@ -175,6 +180,11 @@ private:
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
 	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
+    struct vehicle_local_position_setpoint_s    _local_pos_sp;      /**< vehicle local position setpoint */
+    struct vehicle_local_position_s         _local_pos;     /**< vehicle local position */
+    struct vehicle_attitude_s               att;
+
+
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -185,6 +195,7 @@ private:
 	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	float	_althold_epv;				/**< the position estimate accuracy when engaging alt hold */
 	bool	_was_in_deadband;				/**< wether the last stick input was in althold deadband */
+	float    yaw_dep; /**orientation de  départ**/
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
@@ -196,8 +207,23 @@ private:
 	bool land_motor_lim;
 	bool land_onslope;
 	bool land_useterrain;
+    bool _reset_pos_sp;
+	bool _run_pos_control;
+	bool _mode_auto;
+	bool _pos_hold_engaged;
 
-	// landing relevant states
+
+
+	    math::Vector<3> _pos;
+	    math::Vector<3> _pos_sp;
+	    math::Vector<3> _vel;
+	    math::Vector<3> _vel_sp;
+	    math::Vector<3> _vel_prev;          /**< velocity on previous step */
+	    math::Vector<3> _vel_ff;
+	    math::Vector<3> _vel_sp_prev;
+	    math::Vector<3> _thrust_sp_prev;
+	    math::Vector<3> _vel_err_d;
+	    	// landing relevant states
 	float _t_alt_prev_valid;	//**< last terrain estimate which was valid */
 	hrt_abstime _time_last_t_alt; //*< time at which we had last valid terrain alt */
 	hrt_abstime _time_started_landing;	//*< time at which landing started */
@@ -240,11 +266,21 @@ private:
 		RV_POSCTRL_MODE_AUTO,
 		RV_POSCTRL_MODE_POSITION,
 		RV_POSCTRL_MODE_ALTITUDE,
-		RV_POSCTRL_MODE_OTHER
+		RV_POSCTRL_MODE_OTHER,
+		RV_POSCTRL_MODE_OFFBOARD
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 
-
+	/**
+	     * Reset position setpoint to current position.
+	     *
+	     * This reset will only occur if the _reset_pos_sp flag has been set.
+	     * The general logic is to first "activate" the flag in the flight
+	     * regime where a switch to a position control mode should hold the
+	     * very last position. Once switching to a position control mode
+	     * the last position is stored once.
+	     */
+	void        reset_pos_sp();
 	/**
 	 * Update control outputs
 	 *
@@ -298,7 +334,10 @@ private:
 			struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init);
 
 
-
+	/**
+	     * Set position setpoint using offboard control
+	     */
+	    void        control_offboard();
 
 
 	/**
@@ -346,8 +385,9 @@ private:
 	void		reset_landing_state();
 
 
-
 };
+
+
 
 namespace rv_control
 {
@@ -368,6 +408,7 @@ RoverPositionControl::RoverPositionControl() :
 	_task_running(false),
 
 	/* subscriptions */
+	_local_pos_sub(-1),
 	_global_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_ctrl_state_sub(-1),
@@ -376,10 +417,11 @@ RoverPositionControl::RoverPositionControl() :
 	_params_sub(-1),
 	_manual_control_sub(-1),
 	_sensor_combined_sub(-1),
+	_att_sub(-1),
 
 	/* publications */
 	_attitude_sp_pub(nullptr),
-
+    _local_pos_sp_pub(nullptr),
 	_nav_capabilities_pub(nullptr),
 
 	/* publication ID */
@@ -395,10 +437,12 @@ RoverPositionControl::RoverPositionControl() :
 	_global_pos(),
 	_pos_sp_triplet(),
 	_sensor_combined(),
+	_local_pos_sp(),
+	_local_pos(),
+	att(),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
-
 	_hold_alt(0.0f),
 	_takeoff_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
@@ -416,6 +460,8 @@ RoverPositionControl::RoverPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	land_useterrain(false),
+    _reset_pos_sp(true),//F.BERNAT
+    _run_pos_control(true),//F.BERNAT
 	_t_alt_prev_valid(0),
 	_time_last_t_alt(0),
 	_time_started_landing(0),
@@ -437,13 +483,27 @@ RoverPositionControl::RoverPositionControl() :
 	_control_mode_current(RV_POSCTRL_MODE_OTHER)
 {
 	_nav_capabilities.turn_distance = 0.0f;
-
-
-
-
+    memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
+    memset(&_vehicle_status, 0, sizeof(_vehicle_status));
+    memset(&_ctrl_state, 0, sizeof(_ctrl_state));
+    _ctrl_state.q[0] = 1.0f;
+    memset(&_att_sp, 0, sizeof(_att_sp));
+    memset(&_manual, 0, sizeof(_manual));
+    memset(&_control_mode, 0, sizeof(_control_mode));
+    memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
+    memset(&_local_pos, 0, sizeof(_local_pos));
+    memset(&att, 0, sizeof(att));
+    _pos.zero();
+    _pos_sp.zero();
+    _vel.zero();
+    _vel_sp.zero();
+    _vel_prev.zero();
+    _vel_ff.zero();
+    _vel_sp_prev.zero();
+    _vel_err_d.zero();
 }
 
-	RoverPositionControl::~RoverPositionControl()
+RoverPositionControl::~RoverPositionControl()
 {
 	if (_control_task != -1) {
 
@@ -491,16 +551,15 @@ RoverPositionControl::vehicle_status_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+        /* set correct uORB ID, depending on if vehicle is VTOL or not */
+        if (!_attitude_setpoint_id) {
+            if (_vehicle_status.is_vtol) {
+                _attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_attitude_setpoint_id) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
+            } else {
+                _attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+            }
+        }
 	}
 }
 
@@ -560,6 +619,7 @@ RoverPositionControl::vehicle_sensor_combined_poll()
 void
 RoverPositionControl::vehicle_setpoint_poll()
 {
+
 	/* check if there is a new setpoint */
 	bool pos_sp_triplet_updated;
 	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
@@ -664,6 +724,7 @@ RoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &curre
         float delta_altitude = 0.0f;
 
         if (pos_sp_triplet.previous.valid) {
+
             distance = get_distance_to_next_waypoint(pos_sp_triplet.previous.lat, pos_sp_triplet.previous.lon,
                     pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
             delta_altitude = pos_sp_triplet.current.alt - pos_sp_triplet.previous.alt;
@@ -674,8 +735,8 @@ RoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &curre
             delta_altitude = pos_sp_triplet.current.alt -  _global_pos.alt;
         }
 
-        float ground_speed_desired = 2.0f * cosf(atan2f(delta_altitude, distance));
 
+        float ground_speed_desired = 2.0f * cosf(atan2f(delta_altitude, distance));
 
         /*
          * Ground speed undershoot is the amount of ground velocity not reached
@@ -697,249 +758,368 @@ bool
 RoverPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
+    _control_position_last_called = hrt_absolute_time();
 
-	_control_position_last_called = hrt_absolute_time();
+    bool setpoint = true;
 
-	bool setpoint = true;
+    _att_sp.fw_control_yaw = false;     // by default we don't want yaw to be contoller directly with rudder
+    _att_sp.apply_flaps = false;        // by default we don't use flaps
 
-	_att_sp.apply_flaps = false;		// by default we don't use flaps
-
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-	math::Vector<3> accel_earth = _R_nb * accel_body;
-
-	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
-	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
-
-	_was_in_air = true;
-	_time_went_in_air = hrt_absolute_time();
-
-	/* reset flag when airplane landed */
-	if (_vehicle_status.condition_landed) {
-		_was_in_air = false;
-	}
+    /* filter speed and altitude for controller */
+    math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
+    math::Vector<3> accel_earth = _R_nb * accel_body;
+    math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+    calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
 
-	if (_control_mode.flag_control_auto_enabled &&
-	    pos_sp_triplet.current.valid) {
-		/* AUTONOMOUS FLIGHT */
-		_control_mode_current = RV_POSCTRL_MODE_AUTO;
-		/* reset hold altitude */
-		_hold_alt = _global_pos.alt;
-		/* reset hold yaw */
-		_hdg_hold_yaw = _yaw;
+    if (_control_mode.flag_control_auto_enabled &&
+        pos_sp_triplet.current.valid) {
+        /* AUTONOMOUS FLIGHT */
 
-		/* current waypoint (the one currently heading for) */
-		math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
+        _control_mode_current = RV_POSCTRL_MODE_AUTO;
 
-		/* current waypoint (the one currently heading for) */
-		math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
-
-		/* Initialize attitude controller integrator reset flags to 0 */
-		_att_sp.roll_reset_integral = false;
-		_att_sp.pitch_reset_integral = false;
-		_att_sp.yaw_reset_integral = false;
-
-		/* previous waypoint */
-		math::Vector<2> prev_wp;
-
-		if (pos_sp_triplet.previous.valid) {
-			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
-			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
-
-		} else {
-			/*
-			 * No valid previous waypoint, go for the current wp.
-			 * This is automatically handled by the L1 library.
-			 */
-			prev_wp(0) = (float)pos_sp_triplet.current.lat;
-			prev_wp(1) = (float)pos_sp_triplet.current.lon;
-
-		}
-
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-			_att_sp.thrust = 0.0f;
-			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _rv_control.nav_bearing();
-
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-			/* waypoint is a plain navigation waypoint */
-			_rv_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _rv_control.nav_roll();
-			_att_sp.yaw_body = _rv_control.nav_bearing();
+        /* reset hold yaw */
+        _hdg_hold_yaw = _yaw;
 
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+        /* current waypoint (the one currently heading for) */
+        math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
-			/* waypoint is a loiter waypoint */
-			_rv_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
-						    pos_sp_triplet.current.loiter_direction, ground_speed_2d);
-			_att_sp.roll_body = _rv_control.nav_roll();
-			_att_sp.yaw_body = _rv_control.nav_bearing();
+        /* current waypoint (the one currently heading for) */
+        math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
+
+        /* Initialize attitude controller integrator reset flags to 0 */
+
+        _att_sp.yaw_reset_integral = false;
+
+        /* previous waypoint */
+        math::Vector<2> prev_wp;
+
+        if (pos_sp_triplet.previous.valid) {
+
+            prev_wp(0) = (float)pos_sp_triplet.previous.lat;
+            prev_wp(1) = (float)pos_sp_triplet.previous.lon;
+
+        } else {
+            /*
+             * No valid previous waypoint, go for the current wp.
+             * This is automatically handled by the L1 library.
+             */
+            prev_wp(0) = (float)pos_sp_triplet.current.lat;
+            prev_wp(1) = (float)pos_sp_triplet.current.lon;
+
+        }
+
+        if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+            _att_sp.thrust = 0.0f;
+
+        } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+            /* waypoint is a plain navigation waypoint */
+            _rv_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+
+            _att_sp.yaw_body = _rv_control.nav_bearing();
+
+            _att_sp.thrust = 0.3f;
+
+        } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+
+            /* waypoint is a loiter waypoint */
+            _rv_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
+                            pos_sp_triplet.current.loiter_direction, ground_speed_2d);
+
+            _att_sp.yaw_body = _rv_control.nav_bearing();
+
+            _att_sp.thrust = 0.3f;
+
+        } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+            // apply full flaps for landings. this flag will also trigger the use of flaperons
+            // if they have been enabled using the corresponding parameter
+            _att_sp.apply_flaps = true;
+
+            // save time at which we started landing
+            if (_time_started_landing == 0) {
+                _time_started_landing = hrt_absolute_time();
+            }
+
+            float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			// save time at which we started landing
-			if (_time_started_landing == 0) {
-				_time_started_landing = hrt_absolute_time();
-			}
-
-			// create virtual waypoint which is on the desired flight path but
-			// some distance behind landing waypoint. This will make sure that the plane
-			// will always follow the desired flight path even if we get close or past
-			// the landing waypoint
-			math::Vector<2> curr_wp_shifted;
-			double lat;
-			double lon;
-			create_waypoint_from_line_and_dist(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon, pos_sp_triplet.previous.lat,
-							   pos_sp_triplet.previous.lon, -1000.0f, &lat, &lon);
-			curr_wp_shifted(0) = (float)lat;
-			curr_wp_shifted(1) = (float)lon;
-
-			target_bearing = _yaw;
-
-		    mavlink_log_info(_mavlink_fd, "#Landing, heading hold");
-			_rv_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
-
-			land_noreturn_horizontal = true;
-
-			/* normal navigation */
-			_rv_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-
-			_att_sp.roll_body = _rv_control.nav_roll();
-			_att_sp.yaw_body = _rv_control.nav_bearing();
+            /* Horizontal landing control */
+            /* switch to heading hold for the last meters, continue heading hold after */
+            float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
+            /* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 
 
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-			//if (_runway_takeoff.runwayTakeoffEnabled()) {//F.BERNAT
-				if (!_runway_takeoff.isInitialized()) {
-					math::Quaternion q(&_ctrl_state.q[0]);
-					math::Vector<3> euler = q.to_euler();
-					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon);
+            // create virtual waypoint which is on the desired flight path but
+            // some distance behind landing waypoint. This will make sure that the plane
+            // will always follow the desired flight path even if we get close or past
+            // the landing waypoint
+            math::Vector<2> curr_wp_shifted;
+            double lat;
+            double lon;
+            create_waypoint_from_line_and_dist(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon, pos_sp_triplet.previous.lat,
+                               pos_sp_triplet.previous.lon, -1000.0f, &lat, &lon);
+            curr_wp_shifted(0) = (float)lat;
+            curr_wp_shifted(1) = (float)lon;
 
+            // we want the plane to keep tracking the desired flight path until we start flaring
+            // if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
+            //if (land_noreturn_vertical) {
+            if (wp_distance < 1 || land_noreturn_horizontal) {
 
-					mavlink_log_info(_mavlink_fd, "#Takeoff on runway");
-				}
+                /* heading hold, along the line connecting this and the last waypoint */
 
-				// update runway takeoff helper
-				_runway_takeoff.update(
-					_ctrl_state.airspeed,
-					_global_pos.alt - 0,
-					_global_pos.lat,
-					_global_pos.lon,
-					_mavlink_fd);
+                if (!land_noreturn_horizontal) {//set target_bearing in first occurrence
+                    if (pos_sp_triplet.previous.valid) {
+                        target_bearing = bearing_lastwp_currwp;
 
-				/*
-				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
-				 * If we use the navigator heading or not is decided later.
-				 */
-				_rv_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
+                    } else {
+                        target_bearing = _yaw;
+                    }
 
+                    mavlink_log_info(_mavlink_fd, "#Landing, heading hold");
+                }
 
-				// assign values
-				_att_sp.roll_body = _runway_takeoff.getRoll(_rv_control.nav_roll());
-				_att_sp.yaw_body = _runway_takeoff.getYaw(_rv_control.nav_bearing());
+//                  warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
+                _rv_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 
-				// reset integrals except yaw (which also counts for the wheel controller)
-				_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
-				_att_sp.pitch_reset_integral = _runway_takeoff.resetIntegrators();
-		   }
-		//}F.BERNAT
+                land_noreturn_horizontal = true;
 
-		/* reset landing state */
-		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LAND) {
-			reset_landing_state();
-		}
+            } else {
 
-		/* reset takeoff/launch state */
-		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			reset_takeoff_state();
-		}
+                /* normal navigation */
+                _rv_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+            }
 
 
-	} else {
-		_control_mode_current = RV_POSCTRL_MODE_OTHER;
+            _att_sp.yaw_body = _rv_control.nav_bearing();
+            _att_sp.thrust = 0.2f;
 
-		/** MANUAL FLIGHT **/
+        } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-		// reset hold altitude
-		_hold_alt = _global_pos.alt;
+                // update runway takeoff helper
+                _runway_takeoff.update(
+                    _ctrl_state.airspeed,
+                    15,
+                    _global_pos.lat,
+                    _global_pos.lon,
+                    _mavlink_fd);
 
-		// reset terrain estimation relevant values
-		_time_started_landing = 0;
-		_time_last_t_alt = 0;
-
-		// reset lading abort state
-		_nav_capabilities.abort_landing = false;
-
-		/* no flight mode applies, do not publish an attitude setpoint */
-		setpoint = false;
-
-		/* reset landing and takeoff state */
-		if (!last_manual) {
-			reset_landing_state();
-			reset_takeoff_state();
-		}
-	}
-
-	/* Copy thrust output for publication */
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-		/* Set thrust to 0 to minimize damage */
-		_att_sp.thrust = 0.0f;
-
-	} else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-		   !_runway_takeoff.runwayTakeoffEnabled()) {
-		/* making sure again that the correct thrust is used,
-		* without depending on library calls for safety reasons */
-		_att_sp.thrust = 0.5f;
-
-	} else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _runway_takeoff.runwayTakeoffEnabled()) {
-		_att_sp.thrust = 0.7f;
-	} else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-		_att_sp.thrust = 0.7f;
-
-	} else {
-		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_status.condition_landed &&
-		    (_control_mode_current == RV_POSCTRL_MODE_POSITION )) {
-			// when we are landed in these modes we want the motor to spin
-			_att_sp.thrust = 0.0f;
-
-		} else {
-			_att_sp.thrust = 0.7f;
-		}
+                /*
+                 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
+                 * If we use the navigator heading or not is decided later.
+                 */
+                _rv_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
 
 
-	}
+                _att_sp.thrust = 0.3f;
+
+                // assign values
+
+                _att_sp.yaw_body = _rv_control.nav_bearing();
+                _att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
+
+                reset_takeoff_state();
+        }
+
+        /* reset landing state */
+        if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LAND) {
+            reset_landing_state();
+        }
+
+        /* reset takeoff/launch state */
+        if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+            reset_takeoff_state();
+        }
+
+    }else if (_control_mode.flag_control_velocity_enabled &&
+           _control_mode.flag_control_altitude_enabled) {
+        /* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
+           heading is set to a distant waypoint */
+
+        if (_control_mode_current != RV_POSCTRL_MODE_POSITION) {
+            /* Need to init because last loop iteration was in a different mode */
+            _hold_alt = _global_pos.alt;
+            _hdg_hold_yaw = _yaw;
+            _hdg_hold_enabled = false; // this makes sure the waypoints are reset below
+            _yaw_lock_engaged = false;
+        }
+
+        _control_mode_current = RV_POSCTRL_MODE_POSITION;
+
+        /* heading control */
+
+        if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH) {
+            /* heading / roll is zero, lock onto current heading */
+            if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+                // little yaw movement, lock to current heading
+                _yaw_lock_engaged = true;
+
+            }
 
 
-	if (_control_mode.flag_control_position_enabled) {
-		last_manual = false;
+            if (_yaw_lock_engaged) {
 
-	} else {
-		last_manual = true;
-	}
+                /* just switched back from non heading-hold to heading hold */
+                if (!_hdg_hold_enabled) {
+                    _hdg_hold_enabled = true;
+                    _hdg_hold_yaw = _yaw;
+
+                    get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, true);
+                }
+
+                /* we have a valid heading hold position, are we too close? */
+                if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+                                  _hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < HDG_HOLD_REACHED_DIST) {
+                    get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
+                }
+
+                math::Vector<2> prev_wp;
+                prev_wp(0) = (float)_hdg_hold_prev_wp.lat;
+                prev_wp(1) = (float)_hdg_hold_prev_wp.lon;
+
+                math::Vector<2> curr_wp;
+                curr_wp(0) = (float)_hdg_hold_curr_wp.lat;
+                curr_wp(1) = (float)_hdg_hold_curr_wp.lon;
+
+                /* populate l1 control setpoint */
+                _rv_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 
 
-	return setpoint;
+                _att_sp.yaw_body = _rv_control.nav_bearing();
+
+            }
+
+        } else {
+            _hdg_hold_enabled = false;
+            _yaw_lock_engaged = false;
+        }
+
+    } else{
+
+        _control_mode_current = RV_POSCTRL_MODE_OTHER;
+
+        /** MANUAL FLIGHT **/
+
+        // reset terrain estimation relevant values
+        _time_started_landing = 0;
+        _time_last_t_alt = 0;
+
+        // reset lading abort state
+        _nav_capabilities.abort_landing = false;
+
+        /* no flight mode applies, do not publish an attitude setpoint */
+        setpoint = false;
+
+        /* reset landing and takeoff state */
+        if (!last_manual) {
+            reset_landing_state();
+            reset_takeoff_state();
+        }
+      }
+
+    if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+           pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ) {
+        /* making sure again that the correct thrust is used,
+        * without depending on library calls for safety reasons */
+        _att_sp.thrust = 0.3f;
+
+    } else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
+           pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ) {
+        _att_sp.thrust = 0.3f;
+
+    } else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
+           pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+        _att_sp.thrust = 0.0f;
+
+
+    } else {
+        /* Copy thrust and pitch values from tecs */
+        if (_vehicle_status.condition_landed &&
+                (_control_mode_current == RV_POSCTRL_MODE_POSITION || _control_mode_current == RV_POSCTRL_MODE_ALTITUDE)) {
+            // when we are landed in these modes we want the motor to spin
+            _att_sp.thrust = 0.0f;//F.BERNAT 0 avant
+
+        } else if (!_control_mode.flag_control_offboard_enabled){
+            _att_sp.thrust =0.3f;
+        }
+
+
+    }
+
+    if (_control_mode.flag_control_position_enabled) {
+        last_manual = false;
+
+    } else {
+        last_manual = true;
+    }
+
+
+    return setpoint;
 }
+
+void
+RoverPositionControl::reset_pos_sp()
+{
+    if (_reset_pos_sp) {
+        _reset_pos_sp = false;
+        /* shift position setpoint to make attitude setpoint continuous */
+        _pos_sp(0) = _pos(0) + (_vel(0) - PX4_R(_att_sp.R_body, 0, 2) * _att_sp.thrust /  _vel_sp(0));
+        _pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust / _vel_sp(1)) ;
+
+        //mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+    }
+}
+
+void
+RoverPositionControl::control_offboard()
+{
+    bool updated;
+    orb_check(_pos_sp_triplet_sub, &updated);
+
+    if (updated) {
+        orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+    }
+
+    if (_pos_sp_triplet.current.valid) {
+        if ( _pos_sp_triplet.current.position_valid) {
+            /* control position */
+            _pos_sp(0) = _pos_sp_triplet.current.x;
+            _pos_sp(1) = _pos_sp_triplet.current.y;
+      //      fprintf(stderr, "_pos_sp_triplet.current.x=%0.2f,_pos_sp_triplet.current.y=%0.2f \n",(double)_pos_sp_triplet.current.x,(double)_pos_sp_triplet.current.y);
+
+        } else if (_pos_sp_triplet.current.velocity_valid) {
+            /* control velocity */
+            /* reset position setpoint to current position if needed */
+            reset_pos_sp();
+
+            /* set position setpoint move rate */
+            _vel_sp(0) = _pos_sp_triplet.current.vx;
+            _vel_sp(1) = _pos_sp_triplet.current.vy;
+
+            _run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+        }
+
+        if (_pos_sp_triplet.current.yaw_valid) {
+            _att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+            fprintf(stderr, "_pos_sp_triplet.current.yaw=%0.2f\n",(double)_pos_sp_triplet.current.yaw);
+        }
+    }
+}
+
 
 void
 RoverPositionControl::task_main()
 {
+    bool updated;
+    float x,y,alpha;
+    bool first=true;
 
-	/*
-	 * do subscriptions
-	 */
+
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
@@ -948,6 +1128,8 @@ RoverPositionControl::task_main()
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+    _local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));//F.BERNAT
+    _att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -955,38 +1137,43 @@ RoverPositionControl::task_main()
 	orb_set_interval(_vehicle_status_sub, 200);
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
-
+	/* rate limit position updates to 50 Hz */
+	orb_set_interval(_local_pos_sub, 20);
+    /* rate limit position updates to 50 Hz */
+    orb_set_interval(_att_sub, 20);
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds;
 
-	/* Setup of loop */
+    px4_pollfd_struct_t fds;//F.BERNAT avant 1
 
-	fds.fd = _global_pos_sub;
+	fds.fd = _local_pos_sub;
 	fds.events = POLLIN;
 
 	_task_running = true;
-
+	orb_check(_local_pos_sub, &updated);//F.BERNAT
+    if (updated) {
+         orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+    }//F.BERNAT
 	while (!_task_should_exit) {
 
 	    /* wait for up to 500ms for data */
-	            int pret = px4_poll(&fds, (sizeof(fds) / sizeof(fds)), 100);
+        int pret = px4_poll(&fds, (sizeof(fds) / sizeof(fds)), 100);
 
-	            /* timed out - periodic check for _task_should_exit, etc. */
-	            if (pret == 0) {
-	                continue;
-	            }
+        if (pret == 0) { continue; }
 
-	            /* this is undesirable but not much we can do - might want to flag unhappy status */
-	            if (pret < 0) {
-	                warn("poll error %d, %d", pret, errno);
-	                continue;
-	            }
+        /* this is undesirable but not much we can do - might want to flag unhappy status */
+        if (pret < 0) {
+            warn("poll error %d, %d", pret, errno);
+            continue;
+        }
+
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		/* check vehicle status for changes to publication state */
 		vehicle_status_poll();
 
+		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 		/* only run controller if position changed */
+
 		if (fds.revents & POLLIN) {
 			perf_begin(_loop_perf);
 
@@ -997,16 +1184,17 @@ RoverPositionControl::task_main()
 			}
 
 			/* load local copies */
-			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-
-			// XXX add timestamp check
-			_global_pos_valid = true;
+			orb_check(_global_pos_sub, &updated);//F.BERNAT
+			if (updated) {
+			  orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+			  _global_pos_valid = true;
+			}
 
 			control_state_poll();
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
 			vehicle_manual_control_setpoint_poll();
-			// vehicle_baro_poll();
+
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
@@ -1015,8 +1203,64 @@ RoverPositionControl::task_main()
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
 			 */
+			if (_control_mode.flag_control_offboard_enabled) {
+			       orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+			       orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
-			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
+                   control_offboard();
+                   if(first){
+                       yaw_dep=att.yaw;
+                       first=false;
+                   }
+
+                   if ( _pos_sp_triplet.current.valid){
+                       x= _pos_sp_triplet.current.x - _local_pos.x;
+                       y= _pos_sp_triplet.current.y - _local_pos.y;
+                       alpha=atan2f(y,x);
+                       //fprintf(stderr, "alpha=%0.2f\n",(double)alpha);
+                       //fprintf(stderr, "att.yaw=%0.2f\n",(double)att.yaw);
+                       _att_sp.yaw_body=yaw_dep-alpha;
+                      // fprintf(stderr, "_local_pos.x=%0.2f,_local_pos.y=%0.2f\n",(double)_local_pos.x,(double)_local_pos.y);
+
+                     //  fprintf(stderr, "_att_sp.yaw_body=%0.2f\n",(double)_att_sp.yaw_body);
+                        if ((_att_sp.yaw_body < 0.0f) && (_att_sp.yaw_body < -3.1415926f))
+                         _att_sp.yaw_body= _att_sp.yaw_body + 2*3.1415926f;
+                        else
+                         if ((_att_sp.yaw_body > 0.0f) && (_att_sp.yaw_body >  3.1415926f))
+                          _att_sp.yaw_body = _att_sp.yaw_body - 2*3.1415926f;
+
+                        _att_sp.thrust = _pos_sp_triplet.current.vx; //0.3f;
+                       }else{
+                           _att_sp.thrust = 0.0f;
+                       }
+
+                     _att_sp.timestamp = hrt_absolute_time();
+
+                   /* lazily publish the setpoint only once available */
+                   if (_attitude_sp_pub != nullptr) {
+                       /* publish the attitude setpoint */
+                       orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+
+                   } else if (_attitude_setpoint_id) {
+                       /* advertise and publish */
+                       _attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+                   }
+
+                   /* XXX check if radius makes sense here */
+                   float turn_distance = _rv_control.switch_distance(1.0f);
+
+                   /* lazily publish navigation capabilities */
+                   if ((hrt_elapsed_time(&_nav_capabilities.timestamp) > 1000000)
+                       || (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON
+                       && turn_distance > 0)) {
+
+                       /* set new turn distance */
+                       _nav_capabilities.turn_distance = turn_distance;
+
+                       navigation_capabilities_publish();
+                   }
+
+			}else if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
@@ -1030,7 +1274,7 @@ RoverPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _rv_control.switch_distance(100.0f);
+				float turn_distance = _rv_control.switch_distance(1.0f);
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_nav_capabilities.timestamp) > 1000000)

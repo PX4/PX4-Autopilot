@@ -64,6 +64,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
@@ -575,6 +576,7 @@ void AttitudePositionEstimatorEKF::task_main()
 		perf_begin(_loop_perf);
 		perf_count(_loop_intvl);
 
+
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
@@ -946,6 +948,19 @@ void AttitudePositionEstimatorEKF::publishControlState()
 
 void AttitudePositionEstimatorEKF::publishLocalPosition()
 {
+  /*  bool updated;
+        struct att_pos_mocap_s mocap;
+        memset(&mocap, 0, sizeof(mocap));
+        int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+    orb_check(att_pos_mocap_sub, &updated);
+
+                if (updated) {
+                    orb_copy(ORB_ID(att_pos_mocap), att_pos_mocap_sub, &mocap);
+                    _ekf->states[7] = mocap.x;
+                    _ekf->states[8] = mocap.y;
+                    _ekf->states[9] = mocap.z;
+                    fprintf(stderr, "mocap.x=%0.2f,mocap.y=%0.2f \n",(double)mocap.x,(double)mocap.y);
+                }*/
 	_local_pos.timestamp = _last_sensor_timestamp;
 	_local_pos.x = _ekf->states[7];
 	_local_pos.y = _ekf->states[8];
@@ -981,6 +996,8 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	if (_local_pos_pub != nullptr) {
 		/* publish the attitude setpoint */
 		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_local_pos);
+		//fprintf(stderr, "x=%0.2f,y=%0.2f \n",(double)_local_pos.x,(double)_local_pos.y);
+		//fprintf(stderr, "vx=%0.2f,vy=%0.2f \n",(double)_local_pos.vx,(double)_local_pos.vy);
 
 	} else {
 		/* advertise and publish */
@@ -1067,7 +1084,9 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	if (_global_pos_pub != nullptr) {
 		/* publish the global position */
 		orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
-
+		//fprintf(stderr, "x=%0.2f,y=%0.2f \n",(double)_local_pos.x,(double)_local_pos.y);
+		 //   fprintf(stderr, "lat=%0.2f,lon=%0.2f \n",(double)_global_pos.lat,(double)_global_pos.lon);
+		  //  fprintf(stderr, "vx=%0.2f,vy=%0.2f \n",(double)_local_pos.vx,(double)_local_pos.vy);
 	} else {
 		/* advertise and publish */
 		_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
@@ -1330,6 +1349,8 @@ void AttitudePositionEstimatorEKF::pollData()
 {
 	//Update arming status
 	bool armedUpdate;
+
+
 	orb_check(_armedSub, &armedUpdate);
 
 	if (armedUpdate) {

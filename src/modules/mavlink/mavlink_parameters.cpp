@@ -69,6 +69,7 @@ MavlinkParametersManager::get_size()
 void
 MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 {
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* request all parameters */

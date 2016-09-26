@@ -3278,6 +3278,7 @@ void *commander_low_prio_loop(void *arg)
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM ||
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF ||
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_SERVO) {
+
 				continue;
 			}
 

@@ -51,8 +51,8 @@
 #include <time.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -89,11 +89,13 @@ extern "C" __EXPORT int rover_md25_control_main(int argc, char *argv[]);
 
 struct params {
     float yaw_p;
+    float yaw_t;
     float thr_p;
 };
 
 struct param_handles {
     param_t yaw_p;
+    param_t yaw_t;
     param_t thr_p;
 };
 
@@ -143,6 +145,7 @@ int parameters_init(struct param_handles *h)
 {
     /* PID parameters */
     h->yaw_p    =   param_find("RV_YAW_P");
+    h->yaw_t    =   param_find("RV_YAW_TRESH");
     h->thr_p    =   param_find("RV_THR_CRUISE");
     return OK;
 }
@@ -150,9 +153,12 @@ int parameters_init(struct param_handles *h)
 int parameters_update(const struct param_handles *h, struct params *p)
 {
     param_get(h->yaw_p, &(p->yaw_p));
+    param_get(h->yaw_t, &(p->yaw_t));
     param_get(h->thr_p, &(p->thr_p));
     return OK;
 }
+
+
 
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
               struct actuator_controls_s *actuators)
@@ -180,11 +186,20 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
     /*
      * Calculate yaw error and apply P gain
      */
-    float yaw_err = att->yaw - att_sp->yaw_body;
+
+    float yaw_err =  att_sp->yaw_body - att->yaw ;
+    //normalisation de l'orientation du robot F.BERNAT
+    yaw_err = (float)fmod((float)fmod((yaw_err + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
+   // fprintf(stderr, "att_sp->yaw_body=%0.2f,att->yaw=%0.2f \n",(double)att_sp->yaw_body,(double)att->yaw);
+   // fprintf(stderr, "yaw_err=%0.2f \n",(double)yaw_err);
     float theta = fabs(yaw_err * pp.yaw_p);
-    float thr_p=att_sp->thrust;
-    /* copy throttle */
-    if (fabs(yaw_err)<=0.1){
+    float thr_p;
+    if (att_sp->thrust >0.0f)
+      thr_p=att_sp->thrust + pp.thr_p;
+    else
+      thr_p=att_sp->thrust;
+
+    if (fabs(yaw_err)<=(double)pp.yaw_t){
         actuators->control[0] = thr_p ;
         actuators->control[1] = thr_p ;
         }else
@@ -195,8 +210,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
            actuators->control[0] = thr_p * sinf(theta);
            actuators->control[1] = thr_p * cosf(theta);
     }
-  //  fprintf(stderr, "actuators->control[0] : %0.2f\n",(double)actuators->control[0]);
-   // fprintf(stderr, "actuators->control[1] : %0.2f\n",(double)actuators->control[1]);
+
     actuators->timestamp = hrt_absolute_time();
 }
 
@@ -215,25 +229,6 @@ int rover_md25_control_thread_main(int argc, char *argv[])
     /* initialize parameters, first the handles, then the values */
     parameters_init(&ph);
     parameters_update(&ph, &pp);
-
-
-    /*
-     * PX4 uses a publish/subscribe design pattern to enable
-     * multi-threaded communication.
-     *
-     * The most elegant aspect of this is that controllers and
-     * other processes can either 'react' to new data, or run
-     * at their own pace.
-     *
-     * PX4 developer guide:
-     * https://pixhawk.ethz.ch/px4/dev/shared_object_communication
-     *
-     * Wikipedia description:
-     * http://en.wikipedia.org/wiki/Publish–subscribe_pattern
-     *
-     */
-
-
 
 
     /*
@@ -265,7 +260,7 @@ int rover_md25_control_thread_main(int argc, char *argv[])
         actuators.control[i] = 0.0f;
     }
 
-    struct vehicle_attitude_setpoint_s _att_sp = {};
+
 
     /*
      * Advertise that this controller will publish actuator
@@ -274,6 +269,7 @@ int rover_md25_control_thread_main(int argc, char *argv[])
     orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 
     /* subscribe to topics. */
+
     int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
     int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -286,9 +282,11 @@ int rover_md25_control_thread_main(int argc, char *argv[])
 
     int param_sub = orb_subscribe(ORB_ID(parameter_update));
 
+
+
     /* Setup of loop */
 
-    struct pollfd fds[2];
+    struct pollfd fds[3];
 
     fds[0].fd = param_sub;
 
@@ -297,6 +295,11 @@ int rover_md25_control_thread_main(int argc, char *argv[])
     fds[1].fd = att_sub;
 
     fds[1].events = POLLIN;
+
+    fds[2].fd = global_pos_sub;
+
+    fds[2].events = POLLIN;
+
 
     while (!thread_should_exit) {
        // estimator.update();
@@ -310,7 +313,7 @@ int rover_md25_control_thread_main(int argc, char *argv[])
          * This design pattern makes the controller also agnostic of the attitude
          * update speed - it runs as fast as the attitude updates with minimal latency.
          */
-        int ret = poll(fds, 2, 500);
+        int ret = poll(fds, 3, 500);
 
         if (ret < 0) {
             /*
@@ -334,12 +337,24 @@ int rover_md25_control_thread_main(int argc, char *argv[])
             }
 
             /* only run controller if attitude changed */
+            if (fds[2].revents & POLLIN) {
+
+            /* Check if there is a new position measurement or position setpoint */
+                bool global_pos_updated;
+                orb_check(global_pos_sub, &global_pos_updated);
+               /* get a local copy of pos */
+                if (global_pos_updated) {
+
+                  orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+                 }
+
+            }
+            /* only run controller if attitude changed */
             if (fds[1].revents & POLLIN) {
 
 
                 /* Check if there is a new position measurement or position setpoint */
-                bool pos_updated;
-                orb_check(global_pos_sub, &pos_updated);
+
                 bool att_sp_updated;
                 orb_check(att_sp_sub, &att_sp_updated);
                 bool manual_sp_updated;
@@ -348,10 +363,12 @@ int rover_md25_control_thread_main(int argc, char *argv[])
                 /* get a local copy of attitude */
                 orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
+
+
                 if (att_sp_updated) {
-                    orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &_att_sp);
+                    orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
                     /* control attitude / heading */
-                    control_attitude(&_att_sp, &att, &actuators);
+                    control_attitude(&att_sp, &att, &actuators);
                 }
 
 
@@ -360,9 +377,9 @@ int rover_md25_control_thread_main(int argc, char *argv[])
                 {
                     orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
 
-                    actuators.control[0]=manual_sp.y - manual_sp.x;
-                    actuators.control[1]=manual_sp.y + manual_sp.x;
-
+                    actuators.control[0]=manual_sp.x + manual_sp.y;
+                    actuators.control[1]=manual_sp.x - manual_sp.y;
+                  //  fprintf(stderr, "manual \n");
                 }
 
                 // XXX copy from manual depending on flight / usage mode to override

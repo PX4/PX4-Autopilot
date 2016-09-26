@@ -265,11 +265,13 @@ public:
 	 * read data from i2c
 	 */
 	int readData();
-	 int Init();
+
 	/**
 	 * print status
 	 */
 	void status(char *string, size_t n);
+	int Initdev();
+	int Init();
 
 private:
 	/** poll structure for control packets */

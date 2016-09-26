@@ -61,6 +61,7 @@ static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
 static int deamon_task;             /**< Handle of deamon task / thread */
 
+
 /**
  * Deamon management function.
  */
@@ -71,6 +72,11 @@ extern "C" __EXPORT int md25_main(int argc, char *argv[]);
  */
 int md25_thread_main(int argc, char *argv[]);
 
+namespace
+{
+MD25 *md25dev = nullptr;
+
+}
 /**
  * Print the correct usage.
  */
@@ -285,8 +291,9 @@ int md25_main(int argc, char *argv[])
 
 int md25_thread_main(int argc, char *argv[])
 {
-	printf("[MD25] starting\n");
+    int ret;
 
+	fprintf(stderr, "md25_thread_main\n");
 	if (argc < 4) {
 		// extra md25 in arg list since this is a thread
 		printf("usage: md25 start bus address\n");
@@ -301,7 +308,21 @@ int md25_thread_main(int argc, char *argv[])
 
 	// start
 
-	MD25 md25(deviceName, bus, address);
+	md25dev = new MD25(deviceName, bus, address);
+
+	if (md25dev == nullptr) {
+	  // this is a fatal error
+	 return 1;
+	}
+
+    // init the driver:
+     ret= md25dev->Init();
+     // destroy it again because it failed.
+     if (ret!=OK){
+       delete md25dev;
+       md25dev = nullptr;
+       return ret;
+     }
 
 
 	thread_running = true;
@@ -309,12 +330,13 @@ int md25_thread_main(int argc, char *argv[])
 	// loop
 
 	while (!thread_should_exit) {
-		md25.update();
+		md25dev->update();
 	}
-
 
 	// exit
 	printf("[MD25] exiting.\n");
 	thread_running = false;
+	 delete md25dev;
+	       md25dev = nullptr;
 	return 0;
 }

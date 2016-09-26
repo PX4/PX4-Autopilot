@@ -550,16 +550,20 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_component_id, &component_id);
 
 	param_get(_param_radio_id, &_radio_id);
-
+	fprintf(stderr, "Not mavlink_system.sysid= %i\n",mavlink_system.sysid);
+	fprintf(stderr, "Not mavlink_system..compid= %i\n",mavlink_system.compid);
 	/* only allow system ID and component ID updates
 	 * after reboot - not during operation */
 	if (!_param_initialized) {
 		if (system_id > 0 && system_id < 255) {
 			mavlink_system.sysid = system_id;
+			fprintf(stderr, "mavlink_system.sysid= %i\n",mavlink_system.sysid);
 		}
 
 		if (component_id > 0 && component_id < 255) {
-			mavlink_system.compid = component_id;
+		    mavlink_system.compid = component_id;
+		    fprintf(stderr, "mavlink_system..compid= %i\n",mavlink_system.compid);
+
 		}
 
 		_param_initialized = true;
@@ -942,10 +946,11 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend heartbeat via broadcast */
-		if ((_mode != MAVLINK_MODE_ONBOARD) &&
-			(!get_client_source_initialized()
-			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
-			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+		if ((_mode != MAVLINK_MODE_ONBOARD)
+			&& (_mavlink_start_time > 0 && (hrt_elapsed_time(&_mavlink_start_time) > 4 * 1000 * 1000))
+			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
+			(tstatus.heartbeat_time == 0)) &&
+			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
