@@ -48,8 +48,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <px4_defines.h>
+#include <px4_tasks.h>
 
 #include "input_mavlink.h"
 #include "input_rc.h"
