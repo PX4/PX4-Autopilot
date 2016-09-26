@@ -46,6 +46,7 @@ before_install:
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
       && sudo mv ninja /usr/local/bin
       && chmod +x /usr/local/bin/ninja
+      && cmake --version
       ;
     fi
 
