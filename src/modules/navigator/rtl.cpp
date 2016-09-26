@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
+#include <float.h>
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
