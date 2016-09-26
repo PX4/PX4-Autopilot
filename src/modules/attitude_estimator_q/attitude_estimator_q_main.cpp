@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -68,7 +69,6 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/geo/geo.h>
 
-#include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
