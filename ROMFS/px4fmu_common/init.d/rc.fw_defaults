@@ -17,11 +17,6 @@ then
 	
 	param set MIS_LTRMIN_ALT 25
 	param set MIS_TAKEOFF_ALT 25
-
-	param set PE_VELNE_NOISE 0.3
-	param set PE_VELD_NOISE 0.35
-	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.0
 fi
 
 # This is the gimbal pass mixer
