@@ -266,6 +266,7 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
+	math::Matrix<3, 3> _R_yaw;		/**< in-plane rotation by yaw angle (euler) */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
 	bool _takeoff_jumped;
@@ -349,6 +350,11 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main();
+
+	/**
+	 * Function to scale lateral errors(world xy plane) in world frame by gains in body frame
+	 */
+	void 		separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains, const bool set_z);
 };
 
 namespace pos_control
@@ -438,6 +444,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_err_d.zero();
 
 	_R.identity();
+	_R_yaw.identity();
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -637,6 +644,27 @@ MulticopterPositionControl::parameters_update(bool force)
 	return OK;
 }
 
+void 
+MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains, const bool set_z){
+	float z_setpoint;
+	if (!set_z) {
+		// Preserve z-component
+		z_setpoint = setpoint(2);
+	}
+	/* Project errors to body frame, scale by gains in body frame, project back to world frame */
+	math::Matrix<3, 3> Gains;
+	Gains.identity();
+	Gains(0, 0) = gains(0);
+	Gains(1, 1) = gains(1);
+	Gains(2, 2) = gains(2);
+	setpoint = _R_yaw * Gains * _R_yaw.transposed() * errors;
+	
+	/* Reset z setpoint if required */
+	if (!set_z) {
+		setpoint(2) = z_setpoint;
+	} 
+}
+
 void
 MulticopterPositionControl::poll_subscriptions()
 {
@@ -675,6 +703,7 @@ MulticopterPositionControl::poll_subscriptions()
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
+		_R_yaw.from_euler(0.0f, 0.0f, _yaw);
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -802,20 +831,8 @@ MulticopterPositionControl::limit_pos_sp_offset()
 	pos_sp_offs.zero();
 
 	if (_control_mode.flag_control_position_enabled) {
-		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
-		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
-
 		/* Limit maximum setpoint offset in position in body frame */
-		float pos_err_bx, pos_err_by;
-		float pos_sp_offs_bx, pos_sp_offs_by;
-		pos_err_bx = (_pos_sp(0) - _pos(0)) * cosf(_yaw) + (_pos_sp(1) - _pos(1)) * sinf(_yaw);
-		pos_err_by = (_pos_sp(1) - _pos(1)) * cosf(_yaw) - (_pos_sp(0) - _pos(0)) * sinf(_yaw);
-		pos_sp_offs_bx = pos_err_bx / _params.sp_offs_max(0);
-		pos_sp_offs_by = pos_err_by / _params.sp_offs_max(1);
-
-		/* Project offsets back on world frame */
-		pos_sp_offs(0) = pos_sp_offs_bx * cosf(_yaw) - pos_sp_offs_by * sinf(_yaw);
-		pos_sp_offs(1) = pos_sp_offs_by * cosf(_yaw) + pos_sp_offs_bx * sinf(_yaw);
+		separate_gains(pos_sp_offs, _pos_sp - _pos, _params.sp_offs_max.einv(), false);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -1194,31 +1211,14 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> d_pos_m;
 
 		/* Calculate the scaled differnce with the gains in body frame */
-		float d_pos_m_bx, d_pos_m_by;
-		d_pos_m_bx = ((pos_sp_s(0) - pos_sp_old_s(0)) * cosf(_yaw) + (pos_sp_s(1) - pos_sp_old_s(1)) * sinf(
-				      _yaw)) / _params.pos_p(0);
-		d_pos_m_by = ((pos_sp_s(1) - pos_sp_old_s(1)) * cosf(_yaw) - (pos_sp_s(0) - pos_sp_old_s(0)) * sinf(
-				      _yaw)) / _params.pos_p(1);
-
-		/* Project back on the world frame */
-		d_pos_m(0) = d_pos_m_bx * cosf(_yaw) - d_pos_m_by * sinf(_yaw);
-		d_pos_m(1) = d_pos_m_by * cosf(_yaw) + d_pos_m_bx * sinf(_yaw);
-		d_pos_m(2) = (pos_sp_s(2) - pos_sp_old_s(2)) / _params.pos_p(2);
-
+		separate_gains(d_pos_m, pos_sp_s - pos_sp_old_s, _params.pos_p.einv(), true);
 
 		float d_pos_m_len = d_pos_m.length();
 
 		if (d_pos_m_len > dt) {
-			float incr_bx, incr_by, incr_x, incr_y;
-			incr_x = d_pos_m(0) / d_pos_m_len * dt;
-			incr_y = d_pos_m(1) / d_pos_m_len * dt;
-			incr_bx = (incr_x * cosf(_yaw) + incr_y * sinf(_yaw)) * _params.pos_p(0);
-			incr_by = (incr_y * cosf(_yaw) - incr_x * sinf(_yaw)) * _params.pos_p(1);
-			incr_x = incr_bx * cosf(_yaw) - incr_by * sinf(_yaw);
-			incr_y = incr_by * cosf(_yaw) + incr_bx * sinf(_yaw);
-			pos_sp_s(0) = pos_sp_old_s(0) + incr_x;
-			pos_sp_s(1) = pos_sp_old_s(1) + incr_y;
-			pos_sp_s(2) = pos_sp_old_s(2) + (d_pos_m(2) / d_pos_m_len * dt) * _params.pos_p(2);
+			math::Vector<3> d_pos_m_increment;
+			separate_gains(d_pos_m_increment, d_pos_m, _params.pos_p / d_pos_m_len * dt, true);
+			pos_sp_s = pos_sp_old_s + d_pos_m_increment;
 		}
 
 		/* scale result back to normal space */
@@ -1519,21 +1519,7 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					/* Separate Gains */
-					float vel_sp_bx, vel_sp_by;
-					float pos_err_bx, pos_err_by;
-
-					/* Project error on body axis */
-					pos_err_bx = (_pos_sp(0) - _pos(0)) * cosf(_yaw) + (_pos_sp(1) - _pos(1)) * sinf(_yaw);
-					pos_err_by = (_pos_sp(1) - _pos(1)) * cosf(_yaw) - (_pos_sp(0) - _pos(0)) * sinf(_yaw);
-
-					/* Use separate position gains Gains */
-					vel_sp_bx = pos_err_bx * _params.pos_p(0);
-					vel_sp_by = pos_err_by * _params.pos_p(1);
-
-					/* Project setpoint back on world frame */
-					_vel_sp(0) = vel_sp_bx * cosf(_yaw) - vel_sp_by * sinf(_yaw);
-					_vel_sp(1) = vel_sp_bx * sinf(_yaw) + vel_sp_by * cosf(_yaw);
+					separate_gains(_vel_sp, _pos_sp - _pos, _params.pos_p, false);
 				}
 
 				// guard against any bad velocity values
@@ -1747,30 +1733,17 @@ MulticopterPositionControl::task_main()
 
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
-						float vel_err_bx, vel_err_by, vel_err_d_bx, vel_err_d_by;
-						float vel_err_x, vel_err_y, vel_err_d_x, vel_err_d_y;
-						
-						/* Calculate vel d err in body frame and scale with d gains in body frame */
-						vel_err_d_bx = (_vel_err_d(0) * cosf(_yaw) + _vel_err_d(1) * sinf(_yaw)) * _params.vel_d(0);
-						vel_err_d_by = (_vel_err_d(1) * cosf(_yaw) - _vel_err_d(0) * sinf(_yaw)) * _params.vel_d(1);
-						
-						/* Project th_d back to world frame */
-						vel_err_d_x = vel_err_d_bx * cosf(_yaw) - vel_err_d_by * sinf(_yaw);
-						vel_err_d_y = vel_err_d_by * cosf(_yaw) + vel_err_d_bx * sinf(_yaw);
+						math::Vector<3> req_th_sp_d, req_th_p, req_vel_err;
+						separate_gains(req_th_sp_d, _vel_err_d, _params.vel_d, true);
 
 						/* Calculate p error in body frame and scale with p gains in body frame */
-						vel_err_x = (-Rb(0, 2) * _att_sp.thrust - thrust_int(0) - vel_err_d_x);
-						vel_err_y = (-Rb(1, 2) * _att_sp.thrust - thrust_int(1) - vel_err_d_y);
-						/* Rescale in body frame */
-						vel_err_bx = (vel_err_x * cosf(_yaw) + vel_err_y * sinf(_yaw)) / _params.vel_p(0);
-						vel_err_by = (vel_err_y * cosf(_yaw) - vel_err_x * sinf(_yaw)) / _params.vel_p(1);
-						/* Project back to world frame */
-						vel_err_x = vel_err_bx * cosf(_yaw) - vel_err_by * sinf(_yaw);
-						vel_err_y = vel_err_by * cosf(_yaw) + vel_err_bx * sinf(_yaw);
+						req_th_p(0) = (-Rb(0, 2) * _att_sp.thrust - thrust_int(0) - req_th_sp_d(0));
+						req_th_p(1) = (-Rb(1, 2) * _att_sp.thrust - thrust_int(1) - req_th_sp_d(1));
+						req_th_p(2) = (-Rb(2, 2) * _att_sp.thrust - thrust_int(2) - req_th_sp_d(2));
 
-						_vel_sp(0) = _vel(0) + vel_err_x;
-						_vel_sp(1) = _vel(1) + vel_err_y;
-						_vel_sp(2) = _vel(2) + (-Rb(2, 2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
+						separate_gains(req_vel_err, req_th_p, _params.vel_p.einv(), true);
+
+						_vel_sp = _vel + req_vel_err;
 						_vel_sp_prev(0) = _vel_sp(0);
 						_vel_sp_prev(1) = _vel_sp(1);
 						_vel_sp_prev(2) = _vel_sp(2);
@@ -1787,26 +1760,11 @@ MulticopterPositionControl::task_main()
 						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 					} else {
-						
-						float th_sp_bx, th_sp_by;
-						float vel_err_bx, vel_err_by, vel_err_d_bx, vel_err_d_by;
-
-						/* Project errors onto body frame */
-						vel_err_bx = vel_err(0) * cosf(_yaw) + vel_err(1) * sinf(_yaw);
-						vel_err_by = vel_err(1) * cosf(_yaw) - vel_err(0) * sinf(_yaw);
-						vel_err_d_bx = _vel_err_d(0) * cosf(_yaw) + _vel_err_d(1) * sinf(_yaw);
-						vel_err_d_by = _vel_err_d(1) * cosf(_yaw) - _vel_err_d(0) * sinf(_yaw);
-
-						/* Use separate gains for velocity */
-						th_sp_bx = vel_err_bx * _params.vel_p(0) + vel_err_d_bx * _params.vel_d(0);
-						th_sp_by = vel_err_by * _params.vel_p(1) + vel_err_d_by * _params.vel_d(1);
-
-						/* Project thrust setpoint back to world frame */
-						thrust_sp(0) = th_sp_bx * cosf(_yaw) - th_sp_by * sinf(_yaw);
-						thrust_sp(1) = th_sp_by * cosf(_yaw) + th_sp_bx * sinf(_yaw);
-
-						/* update the altitude thrust setpoint as usual */
-						thrust_sp(2) = vel_err(2) * _params.vel_p(2) + _vel_err_d(2) * _params.vel_d(2);
+						/* Use body-fixed gains */
+						math::Vector<3> thrust_sp_p, thrust_sp_d;
+						separate_gains(thrust_sp_p, vel_err, _params.vel_p, true);
+						separate_gains(thrust_sp_d, _vel_err_d, _params.vel_d, true);
+						thrust_sp = thrust_sp_p + thrust_sp_d;
 
 						/* Add integral to thrust setpoint */
 						thrust_sp += thrust_int;
@@ -1979,15 +1937,10 @@ MulticopterPositionControl::task_main()
 					/* update integrals */
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
 						/* Use separate gains for integrals */
-						float vel_err_i_bx, vel_err_i_by, th_sp_i_bx, th_sp_i_by;
-						vel_err_i_bx = vel_err(0) * cosf(_yaw) + vel_err(1) * sinf(_yaw);
-						vel_err_i_by = vel_err(1) * cosf(_yaw) - vel_err(0) * sinf(_yaw);
-						th_sp_i_bx = vel_err_i_bx * _params.vel_i(0) * dt;
-						th_sp_i_by = vel_err_i_by * _params.vel_i(1) * dt;
-
-						/* Project back to world frame */
-						thrust_int(0) += th_sp_i_bx * cosf(_yaw) - th_sp_i_by * sinf(_yaw);
-						thrust_int(1) += th_sp_i_by * cosf(_yaw) + th_sp_i_bx * sinf(_yaw);
+						math::Vector<3> thrust_int_increment;
+						thrust_int_increment.zero();
+						separate_gains(thrust_int_increment, vel_err, _params.vel_i * dt, false);
+						thrust_int += thrust_int_increment;
 					}
 
 					if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {

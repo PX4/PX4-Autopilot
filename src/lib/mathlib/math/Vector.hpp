@@ -298,6 +298,18 @@ public:
 	}
 
 	/**
+	 * element by element inversion
+	 */
+	const Vector<N> einv() const {
+		Vector<N> res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = 1 / (data[i] + FLT_EPSILON);
+
+		return res;
+	}
+
+	/**
 	 * gets the length of this vector squared
 	 */
 	float length_squared() const {
