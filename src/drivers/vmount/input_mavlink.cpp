@@ -46,6 +46,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
 
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <errno.h>
 
@@ -257,9 +258,9 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_control_data.type_data.angle.is_speed[0] = false;
 					_control_data.type_data.angle.is_speed[1] = false;
 					_control_data.type_data.angle.is_speed[2] = false;
-					_control_data.type_data.angle.angles[0] = vehicle_command.param1;
-					_control_data.type_data.angle.angles[1] = vehicle_command.param2;
-					_control_data.type_data.angle.angles[2] = vehicle_command.param3;
+					_control_data.type_data.angle.angles[0] = vehicle_command.param1 * M_DEG_TO_RAD_F;
+					_control_data.type_data.angle.angles[1] = vehicle_command.param2 * M_DEG_TO_RAD_F;
+					_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
 
 					break;
 
@@ -302,9 +303,14 @@ void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
 	vehicle_command_ack.command = command;
 	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-	int instance;
-	orb_publish_auto(ORB_ID(vehicle_command_ack), &_vehicle_command_ack_pub, &vehicle_command_ack,
-			 &instance, ORB_PRIO_DEFAULT);
+	if (_vehicle_command_ack_pub == nullptr) {
+		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
+					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_command_ack_pub, &vehicle_command_ack);
+	}
+
 }
 
 void InputMavlinkCmdMount::print_status()

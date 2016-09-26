@@ -1285,6 +1285,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
+
+	// tailsitters use the multicopter frame as reference, in fixed wing
+	// we need to use the fixed wing frame
+	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		float tmp = accel_body(0);
+		accel_body(0) = -accel_body(2);
+		accel_body(2) = tmp;
+	}
+
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */

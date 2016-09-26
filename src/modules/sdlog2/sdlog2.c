@@ -755,7 +755,7 @@ void sdlog2_start_log()
 	}
 #endif
 
-	pthread_attr_setstacksize(&logwriter_attr, 2048);
+	pthread_attr_setstacksize(&logwriter_attr, PX4_STACK_ADJUSTED(2048));
 
 	logwriter_should_exit = false;
 

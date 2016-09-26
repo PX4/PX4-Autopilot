@@ -1,29 +1,23 @@
 #!/usr/bin/env bash
 
-file=$1
-
+FILE=$1
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-if [ -f "$file" ];
-then
-	${DIR}/fix_code_style.sh --dry-run $file | grep --quiet Formatted
-	if [[ $? -eq 0 ]]
-	then
-		${DIR}/fix_code_style.sh --quiet < $file > $file.pretty
+if [ -f "$FILE" ]; then
+	${DIR}/fix_code_style.sh --dry-run $FILE | grep --quiet Formatted
+	if [[ $? -eq 0 ]]; then
+		${DIR}/fix_code_style.sh --quiet < $FILE > $FILE.pretty
 
 		echo
-		git --no-pager diff --no-index --minimal --histogram --color=always  $file $file.pretty
+		git --no-pager diff --no-index --minimal --histogram --color=always $FILE $FILE.pretty
+		rm -f $FILE.pretty
 		echo
 
-		rm -f $file.pretty
-
-		if [[ $PX4_ASTYLE_FIX -eq 1 ]]
-		then
-			${DIR}/fix_code_style.sh $file
+		if [[ $PX4_ASTYLE_FIX -eq 1 ]]; then
+			${DIR}/fix_code_style.sh $FILE
 		else
-			echo $file 'bad formatting, please run "./Tools/fix_code_style.sh' $file'"'
+			echo $FILE 'bad formatting, please run "make format" or "./Tools/fix_code_style.sh' $FILE'"'
 			exit 1
 		fi
 	fi
 fi
-

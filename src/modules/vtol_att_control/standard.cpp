@@ -180,8 +180,10 @@ void Standard::update_vtol_state()
 
 	} else {
 		// the transition to fw mode switch is on
-		if (_vtol_schedule.flight_mode == MC_MODE) {
+		if (_vtol_schedule.flight_mode == MC_MODE || _vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// start transition to fw mode
+			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
+			 * unsafe flying state. */
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
@@ -207,9 +209,6 @@ void Standard::update_vtol_state()
 				_trans_finished_ts = hrt_absolute_time();
 			}
 
-		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
-			// transitioning to mc mode & transition switch on - failsafe back into fw mode
-			_vtol_schedule.flight_mode = FW_MODE;
 		}
 	}
 
@@ -224,8 +223,11 @@ void Standard::update_vtol_state()
 		break;
 
 	case TRANSITION_TO_FW:
+		_vtol_mode = mode::TRANSITION_TO_MC;
+		break;
+
 	case TRANSITION_TO_MC:
-		_vtol_mode = TRANSITION;
+		_vtol_mode = mode::TRANSITION_TO_FW;
 		break;
 	}
 }

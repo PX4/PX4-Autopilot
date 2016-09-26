@@ -108,6 +108,9 @@ private:
 
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
+
+	bool			_int_mode;				///< Use accurate int32 instead of float
+
 	unsigned		_max_count;				///< Maximum number of mission items
 	unsigned		_filesystem_errcount;			///< File system error count
 
@@ -117,6 +120,8 @@ private:
 
 	static unsigned		_count;					///< Count of items in active mission
 	static int		_current_seq;				///< Current item sequence in active mission
+
+	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
@@ -183,20 +188,32 @@ private:
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
 	void handle_mission_request(const mavlink_message_t *msg);
+	void handle_mission_request_int(const mavlink_message_t *msg);
+	void handle_mission_request_both(const mavlink_message_t *msg);
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
 	void handle_mission_item(const mavlink_message_t *msg);
+	void handle_mission_item_int(const mavlink_message_t *msg);
+	void handle_mission_item_both(const mavlink_message_t *msg);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
 	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 *
+	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
+	 *			       depending on _int_mode
+	 * @param mission_item	       pointer to mission_item to construct
 	 */
 	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM message.
+	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 *
+	 * @param mission_item:		pointer to the existing mission item
+	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
+	 *				depending on _int_mode.
 	 */
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
 					mavlink_mission_item_t *mavlink_mission_item);

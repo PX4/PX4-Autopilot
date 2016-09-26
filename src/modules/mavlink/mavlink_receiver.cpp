@@ -45,6 +45,7 @@
 #include <px4_time.h>
 #include <px4_tasks.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -349,7 +350,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	if (target_ok) {
 		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
+		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 			/* This is the link shutdown command, terminate mavlink */
 			warnx("terminated by remote");
 			fflush(stdout);
@@ -412,7 +413,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.confirmation =  cmd_mavlink.confirmation;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -488,7 +489,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.source_component = msg->compid;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -636,7 +637,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.confirmation = 1;
 
 	if (_cmd_pub == nullptr) {
-		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -787,6 +788,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				} else {
 					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
 					struct position_setpoint_triplet_s pos_sp_triplet = {};
+					pos_sp_triplet.timestamp = hrt_absolute_time();
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
@@ -1276,9 +1278,9 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 
 	struct rc_input_values rc = {};
 
-	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp = hrt_absolute_time();
 
-	rc.timestamp_last_signal = rc.timestamp_publication;
+	rc.timestamp_last_signal = rc.timestamp;
 
 	rc.channel_count = 8;
 
@@ -1335,8 +1337,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	if (_mavlink->get_manual_input_mode_generation()) {
 
 		struct rc_input_values rc = {};
-		rc.timestamp_publication = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp_publication;
+		rc.timestamp = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp;
 
 		rc.channel_count = 8;
 		rc.rc_failsafe = false;
@@ -2246,7 +2248,7 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2100);
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2100));
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);

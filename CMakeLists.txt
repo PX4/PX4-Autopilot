@@ -330,14 +330,15 @@ px4_os_add_flags(
 	BOARD ${BOARD}
 	C_FLAGS c_flags
 	CXX_FLAGS cxx_flags
+	OPTIMIZATION_FLAGS optimization_flags
 	EXE_LINKER_FLAGS exe_linker_flags
 	INCLUDE_DIRS include_dirs
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
 
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
+px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags};${optimization_flags}" GLUE " ")
+px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags};${optimization_flags}" GLUE " ")
 
 include_directories(${include_dirs})
 #message("INCLUDE_DIRS=${include_dirs}")
@@ -412,6 +413,19 @@ endif()
 
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
+endif()
+
+#=============================================================================
+# generate custom target to print for all executable and module cmake targets
+#
+if(all_posix_cmake_targets)
+	list(SORT all_posix_cmake_targets)
+	px4_join(OUT posix_cmake_target_list LIST ${all_posix_cmake_targets} GLUE "\\n")
+	add_custom_target(list_cmake_targets
+		COMMAND sh -c "printf \"${posix_cmake_target_list}\\n\""
+		COMMENT "List of cmake targets that can be matched by PX4_NO_OPTIMIZATION:"
+		VERBATIM
+		)
 endif()
 
 #=============================================================================

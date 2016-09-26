@@ -177,6 +177,7 @@ void VtolType::update_fw_state()
 	// only wait on TECS we're in a mode where it is actually running
 	if ((!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts))
 	    && _v_control_mode->flag_control_altitude_enabled) {
+
 		waiting_on_tecs();
 	}
 
@@ -195,8 +196,10 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
-	// fixed-wing minimum altitude
-	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
+	// fixed-wing minimum altitude, armed, !landed
+	if (_params->fw_min_alt > FLT_EPSILON
+	    && _armed->armed && !_land_detected->landed) {
+
 		if (-(_local_pos->z) < _params->fw_min_alt) {
 			_attc->abort_front_transition("Minimum altitude");
 		}

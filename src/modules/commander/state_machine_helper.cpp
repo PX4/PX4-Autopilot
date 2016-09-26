@@ -855,9 +855,10 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 
-			/* go into failsafe if RC is lost and datalink loss is not set up */
+			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not disabled */
 
-		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
+		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
+
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -1099,7 +1100,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, true, true, true, true,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-			    !can_arm_without_gps, true, reportFailures);
+			    !can_arm_without_gps, true, status->is_vtol, reportFailures);
 
 	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;

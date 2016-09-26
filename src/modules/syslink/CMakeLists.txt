@@ -36,6 +36,8 @@ px4_add_module(
 	STACK_MAIN 2000
 	SRCS
 		syslink_main.cpp
+		syslink_bridge.cpp
+		syslink_memory.cpp
 		syslink_params.c
 		syslink.c
 	DEPENDS

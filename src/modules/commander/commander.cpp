@@ -196,7 +196,7 @@ static struct cpuload_s cpuload = {};
 
 
 static uint8_t main_state_prev = 0;
-static bool rtl_on = false;
+static bool warning_action_on = false;
 
 static struct status_flags_s status_flags = {};
 
@@ -424,7 +424,7 @@ int commander_main(int argc, char *argv[])
 				cmd.param6 = NAN;
 				cmd.param7 = NAN;
 
-				orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 				(void)orb_unadvertise(h);
 
 			} else {
@@ -453,7 +453,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param6 = NAN;
 		cmd.param7 = NAN;
 
-		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
 		return 0;
@@ -476,7 +476,7 @@ int commander_main(int argc, char *argv[])
 		cmd.param6 = NAN;
 		cmd.param7 = NAN;
 
-		orb_advert_t h = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
 		return 0;
@@ -538,8 +538,8 @@ int commander_main(int argc, char *argv[])
 		/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
 		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
 
-		// XXX inspect use of publication handle
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		(void)orb_unadvertise(h);
 
 		return 0;
 	}
@@ -1572,7 +1572,7 @@ int commander_thread_main(int argc, char *argv[])
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-				!can_arm_without_gps, /*checkDynamic */ false, /* reportFailures */ false);
+				!can_arm_without_gps, /*checkDynamic */ false, is_vtol(&status), /* reportFailures */ false);
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
@@ -1615,7 +1615,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 3000);
+	pthread_attr_setstacksize(&commander_low_prio_attr, PX4_STACK_ADJUSTED(3000));
 
 #ifndef __PX4_QURT
 	// This is not supported by QURT (yet).
@@ -1946,6 +1946,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
+				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
 				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
 				status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
 			}
@@ -2070,10 +2071,16 @@ int commander_thread_main(int argc, char *argv[])
 			arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 		}
 
-		if (!rtl_on) {
+		if (!warning_action_on) {
 			// store the last good main_state when not in an navigation
 			// hold state
 			main_state_before_rtl = internal_state.main_state;
+
+		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
+			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+			// reset flag again when we switched out of it
+			warning_action_on = false;
 		}
 
 		orb_check(cpuload_sub, &updated);
@@ -2088,8 +2095,8 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
-			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (hrt_absolute_time() > commander_boot_timestamp + 2000000
+			/* only consider battery voltage if system has been running 6s (usb most likely detected) and battery voltage is valid */
+			if (hrt_absolute_time() > commander_boot_timestamp + 6000000
 			    && battery.voltage_filtered_v > 2.0f * FLT_EPSILON) {
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
@@ -2104,28 +2111,32 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
-					   !critical_battery_voltage_actions_done &&
-					   low_battery_voltage_actions_done) {
+					   !critical_battery_voltage_actions_done) {
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
 						mavlink_and_console_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+
 					} else {
 						if (low_bat_action == 1) {
-							if (!rtl_on) {
-								if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
-									rtl_on = true;
-									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
-								} else {
-									mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
-								}
+							// let us send the critical message even if already in RTL
+							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+								warning_action_on = true;
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
+
+							} else {
+								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 							}
+
 						} else if (low_bat_action == 2) {
-							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+								warning_action_on = true;
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+
 							} else {
 								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
 							}
+
 						} else {
 							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
 						}
@@ -2333,22 +2344,25 @@ int commander_thread_main(int argc, char *argv[])
 			// reset if no longer in LOITER or if manually switched to LOITER
 			geofence_loiter_on = geofence_loiter_on
 									&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
-									&& (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+									&& (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+										|| sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			// reset if no longer in RTL or if manually switched to RTL
 			geofence_rtl_on = geofence_rtl_on
 								&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
-								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+									|| sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
-			rtl_on = rtl_on || (geofence_loiter_on || geofence_rtl_on);
+			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
 		}
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
-		if (rtl_on &&
+		if (warning_action_on &&
 		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
 
 			// transition to previous state if sticks are increased
@@ -3080,7 +3094,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 
 		// update these fields for the geofence system
 
-		if (!rtl_on) {
+		if (!warning_action_on) {
 			_last_sp_man.timestamp = sp_man.timestamp;
 			_last_sp_man.x = sp_man.x;
 			_last_sp_man.y = sp_man.y;
@@ -3666,7 +3680,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
 	} else {
-		command_ack_pub = orb_advertise(ORB_ID(vehicle_command_ack), &command_ack);
+		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
 }
 

@@ -530,15 +530,6 @@ Navigator::task_main()
 
 		/* Do stuff according to navigation state set by commander */
 		switch (_vstatus.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-			case vehicle_status_s::NAVIGATION_STATE_ACRO:
-			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = nullptr;
-				_can_loiter_at_sp = false;
-				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
@@ -601,7 +592,15 @@ Navigator::task_main()
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_follow_target;
 				break;
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+			case vehicle_status_s::NAVIGATION_STATE_STAB:
 			default:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -622,6 +621,7 @@ Navigator::task_main()
 		}
 
 		if (_pos_sp_triplet_updated) {
+			_pos_sp_triplet.timestamp = hrt_absolute_time();
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
 		}
@@ -878,7 +878,6 @@ Navigator::publish_mission_result()
 	}
 
 	/* reset some of the flags */
-	_mission_result.seq_reached = false;
 	_mission_result.seq_current = 0;
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;

@@ -215,15 +215,17 @@ void Tailsitter::update_vtol_state()
 		break;
 
 	case TRANSITION_FRONT_P1:
-		_vtol_mode = TRANSITION;
+		_vtol_mode = TRANSITION_TO_FW;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
+		break;
 
 	case TRANSITION_FRONT_P2:
-		_vtol_mode = TRANSITION;
+		_vtol_mode = TRANSITION_TO_FW;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
+		break;
 
 	case TRANSITION_BACK:
-		_vtol_mode = TRANSITION;
+		_vtol_mode = TRANSITION_TO_MC;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 	}
@@ -482,7 +484,8 @@ void Tailsitter::fill_actuator_outputs()
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
 		break;
 
-	case TRANSITION:
+	case TRANSITION_TO_FW:
+	case TRANSITION_TO_MC:
 		// in transition engines are mixed by weight (BACK TRANSITION ONLY)
 		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;

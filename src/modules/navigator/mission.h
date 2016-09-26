@@ -257,8 +257,7 @@ private:
 	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
 	float _min_current_sp_distance_xy; /**< minimum distance which was achieved to the current waypoint  */
-	float _mission_item_previous_alt; /**< holds the altitude of the previous mission item,
-					    can be replaced by a full copy of the previous mission item if needed */
+
 	float _on_arrival_yaw; /**< holds the yaw value that should be applied when the current waypoint is reached */
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */

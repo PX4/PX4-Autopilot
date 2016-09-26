@@ -47,8 +47,6 @@
 #include <geo/geo.h>
 #include <math.h>
 
-#define LATLON_TO_M  0.01113195
-
 namespace vmount
 {
 
@@ -85,13 +83,18 @@ int OutputBase::initialize()
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 				   const vehicle_global_position_s &global_position)
 {
-	double scale = cos(M_DEG_TO_RAD * ((global_position.lat + lat) * 0.00000005));
-	float x = (float)((lon - global_position.lon) * scale * LATLON_TO_M);
-	float y = (float)((lat - global_position.lat) * LATLON_TO_M);
-	float z = altitude - global_position.alt;
-	float target_distance = sqrtf(x * x + y * y);
+	if (!map_projection_initialized(&_projection_reference)) {
+		map_projection_init(&_projection_reference, global_position.lat, global_position.lon);
+	}
 
-	return atan2f(z, target_distance) * (float)M_RAD_TO_DEG;
+	float x1, y1, x2, y2;
+	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
+	map_projection_project(&_projection_reference, global_position.lat, global_position.lon, &x2, &y2);
+	float dx = x1 - x2, dy = y1 - y2;
+	float target_distance = sqrtf(dx * dx + dy * dy);
+	float z = altitude - global_position.alt;
+
+	return atan2f(z, target_distance);
 }
 
 void OutputBase::_set_angle_setpoints(const ControlData *control_data)
@@ -160,8 +163,7 @@ void OutputBase::_handle_position_update(bool force_update)
 	}
 
 	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon,
-			lat, lon) * (float)M_RAD_TO_DEG;
+	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
 
 	_angle_setpoints[0] = roll;
 	_angle_setpoints[1] = pitch;

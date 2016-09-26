@@ -75,7 +75,8 @@ int OutputMavlink::update(const ControlData *control_data)
 			orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &vehicle_command);
 
 		} else {
-			_vehicle_command_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command, 3);
+			_vehicle_command_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command,
+					       vehicle_command_s::ORB_QUEUE_LENGTH);
 		}
 
 	}

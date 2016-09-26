@@ -986,7 +986,7 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		unsigned buf_free = get_free_tx_buf();
 
 		if (buf_free < packet_len) {
-			/* no enough space in buffer to send */
+			/* not enough space in buffer to send */
 			count_txerr();
 			count_txerrbytes(packet_len);
 			pthread_mutex_unlock(&_send_mutex);
@@ -1258,6 +1258,7 @@ void Mavlink::send_autopilot_capabilites()
 		mavlink_autopilot_version_t msg = {};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;

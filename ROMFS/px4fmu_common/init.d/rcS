@@ -454,7 +454,7 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if pwm_out_sim mode_port2_pwm8
+			if pwm_out_sim mode_pwm16
 			then
 			else
 				tone_alarm $TUNE_ERR
@@ -521,9 +521,19 @@ then
 				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
+
+		if ver hwcmp CRAZYFLIE
+		then
+			# Avoid using either of the two available serials
+			set MAVLINK_F none
+		fi
 	fi
 
-	mavlink start $MAVLINK_F
+	if [ $MAVLINK_F == "none" ]
+	then
+	else
+		mavlink start $MAVLINK_F
+	fi
 	unset MAVLINK_F
 
 	#
@@ -541,6 +551,7 @@ then
 		if param compare SYS_COMPANION 20
 		then
 			syslink start
+			mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
 		fi
 		if param compare SYS_COMPANION 921600
 		then
@@ -939,11 +950,18 @@ then
 	fi
 	unset FEXTRAS
 
-	# Run no SD alarm
-	if [ $LOG_FILE == /dev/null ]
+	if ver hwcmp CRAZYFLIE
 	then
-		# Play SOS
-		tone_alarm error
+		# CF2 shouldn't have an sd card
+	else
+
+		# Run no SD alarm
+		if [ $LOG_FILE == /dev/null ]
+		then
+			# Play SOS
+			tone_alarm error
+		fi
+
 	fi
 
 # End of autostart
