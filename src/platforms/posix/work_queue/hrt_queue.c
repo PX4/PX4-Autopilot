@@ -39,6 +39,8 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_workqueue.h>
+#include <px4_tasks.h>
 
 #include <signal.h>
 #include <stdint.h>
