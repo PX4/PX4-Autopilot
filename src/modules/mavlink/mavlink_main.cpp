@@ -806,13 +806,6 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 		 * Setup hardware flow control. If the port has no RTS pin this call will fail,
 		 * which is not an issue, but requires a separate call so we can fail silently.
 		 */
-		(void)tcgetattr(_uart_fd, &uart_config);
-#ifdef CRTS_IFLOW
-		uart_config.c_cflag |= CRTS_IFLOW;
-#else
-		uart_config.c_cflag |= CRTSCTS;
-#endif
-		(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
 
 		/* setup output flow control */
 		if (enable_flow_control(true)) {
@@ -840,10 +833,18 @@ Mavlink::enable_flow_control(bool enabled)
 	int ret = tcgetattr(_uart_fd, &uart_config);
 
 	if (enabled) {
+#ifdef CRTS_IFLOW
+		uart_config.c_cflag |= CRTS_IFLOW;
+#else
 		uart_config.c_cflag |= CRTSCTS;
+#endif
 
 	} else {
+#ifdef CRTS_IFLOW
+		uart_config.c_cflag &= ~CRTS_IFLOW;
+#else
 		uart_config.c_cflag &= ~CRTSCTS;
+#endif
 	}
 
 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
