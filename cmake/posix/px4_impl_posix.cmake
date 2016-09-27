@@ -200,6 +200,16 @@ if(UNIX AND APPLE)
 		message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
 	endif()
 
+	EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
+	STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+	message(STATUS "DARWIN_VERSION: ${DARWIN_VERSION}")
+	if (DARWIN_VERSION LESS 16)
+		list(APPEND added_definitions
+			-DCLOCK_MONOTONIC=1
+			-D__PX4_APPLE_LEGACY
+			)
+	endif()
+
 else()
 
         set(added_definitions
