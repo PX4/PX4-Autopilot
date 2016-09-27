@@ -711,6 +711,13 @@ TAP_ESC::cycle()
 			motor_out[6] = RPMSTOPPED;
 			motor_out[7] = RPMSTOPPED;
 
+		} else if (num_outputs == 4) {
+
+			motor_out[0] = _outputs.output[2];
+			motor_out[2] = _outputs.output[0];
+			motor_out[1] = _outputs.output[1];
+			motor_out[3] = _outputs.output[3];
+
 		} else {
 
 			// Use the system defaults
