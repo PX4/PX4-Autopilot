@@ -187,8 +187,7 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
 	}
 
-	matrix::Quaternion<float> q(&vehicle_attitude.q[0]);
-	matrix::Euler<float> euler(q);
+	matrix::Eulerf euler = matrix::Quatf(vehicle_attitude.q);
 
 	for (int i = 0; i < 3; ++i) {
 		if (_stabilize[i]) {

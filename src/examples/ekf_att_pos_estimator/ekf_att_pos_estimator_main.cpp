@@ -952,9 +952,8 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.xy_global = _gps_initialized; //TODO: Handle optical flow mode here
 
 	_local_pos.z_global = false;
-	matrix::Quaternion<float> q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
-	matrix::Euler<float> euler(q);
-	_local_pos.yaw = euler(2);
+	matrix::Eulerf euler = matrix::Quatf(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
+	_local_pos.yaw = euler.psi();
 
 	if (!PX4_ISFINITE(_local_pos.x) ||
 	    !PX4_ISFINITE(_local_pos.y) ||

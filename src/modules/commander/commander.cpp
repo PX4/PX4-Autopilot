@@ -1168,9 +1168,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.y = localPosition.y;
 	home.z = localPosition.z;
 
-	matrix::Quaternion<float> q(&attitude.q[0]);
-	matrix::Euler<float> euler(q);
-	home.yaw = euler(2);
+	matrix::Eulerf euler = matrix::Quatf(attitude.q);
+	home.yaw = euler.psi();
 
 	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
