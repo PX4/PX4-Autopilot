@@ -177,7 +177,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	actuators->control[1] = 0.0f;
 
 	/*
-	 * Calculate roll error and apply P gain
+	 * Calculate yaw error and apply P gain
 	 */
 	float yaw_err = Eulerf(Quaternion(att->q)).psi() - Eulerf(Quaternion(att->q_d)).psi();
 	actuators->control[2] = yaw_err * pp.yaw_p;
