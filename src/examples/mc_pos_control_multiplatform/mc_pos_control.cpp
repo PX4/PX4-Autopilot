@@ -937,9 +937,9 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 					_att_sp_msg.data().R_valid = true;
 
 					/* calculate euler angles, for logging only, must not be used for control */
-					math::Vector<3> euler = _R.to_euler();
-					_att_sp_msg.data().roll_body = euler(0);
-					_att_sp_msg.data().pitch_body = euler(1);
+					math::Vector<3> eul = _R.to_euler();
+					_att_sp_msg.data().roll_body = eul(0);
+					_att_sp_msg.data().pitch_body = eul(1);
 					/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
 
 				} else if (!_control_mode->data().flag_control_manual_enabled) {
