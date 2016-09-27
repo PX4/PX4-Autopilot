@@ -1075,8 +1075,12 @@ PX4FMU::cycle()
 				dt = 0.02f;
 			}
 
-			float slew_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
-			_mixers->update_slew_rate(slew_max);
+			if (_mot_t_max > FLT_EPSILON) {
+				// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+				// factor 2 is needed because actuator ouputs are in the range [-1,1]
+				float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
+				_mixers->set_max_delta_out_once(delta_out_max);
+			}
 
 			/* do mixing */
 			float outputs[_max_actuators];

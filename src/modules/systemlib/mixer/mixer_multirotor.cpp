@@ -90,7 +90,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-	_slew_rate_max(0.0f),
+	_delta_out_max(0.0f),
 	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
@@ -375,14 +375,14 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
 
 		// slew rate limiting
-		if (_slew_rate_max > 0.0f) {
+		if (_delta_out_max > 0.0f) {
 			float delta_out = outputs[i] - _outputs_prev[i];
 
-			if (delta_out > _slew_rate_max) {
-				outputs[i] = _outputs_prev[i] + _slew_rate_max;
+			if (delta_out > _delta_out_max) {
+				outputs[i] = _outputs_prev[i] + _delta_out_max;
 
-			} else if (delta_out < -_slew_rate_max) {
-				outputs[i] = _outputs_prev[i] - _slew_rate_max;
+			} else if (delta_out < -_delta_out_max) {
+				outputs[i] = _outputs_prev[i] - _delta_out_max;
 			}
 		}
 
@@ -391,7 +391,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	}
 
 	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
-	_slew_rate_max = 0.0f;
+	_delta_out_max = 0.0f;
 
 	return _rotor_count;
 }
