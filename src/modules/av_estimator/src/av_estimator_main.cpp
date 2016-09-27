@@ -468,9 +468,9 @@ int av_estimator_thread_main(int argc, char *argv[])
 
 					
 					baro_alt = raw.baro_alt_meter - baro_offset;
-					if (baro_prev_time != raw.baro_timestamp_relative)
+					if (baro_prev_time != raw.baro_timestamp_relative + raw.timestamp)
 					{
-						use_barometer(attitude_params, raw.baro_timestamp_relative, baro_alt, filter_b.att.R, a, baro_data); //FIXME: do we need to consider bias?
+						use_barometer(attitude_params, raw.baro_timestamp_relative + raw.timestamp, baro_alt, filter_b.att.R, a, baro_data); //FIXME: do we need to consider bias?
 					}
 					
 					if (vbar(0) > 2.0f) //FIXME this is a hack changed later
