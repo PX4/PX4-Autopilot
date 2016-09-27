@@ -929,7 +929,7 @@ void BlockLocalPositionEstimator::predict()
 	// state or covariance
 	if (!_validXY && !_validZ) { return; }
 
-	if (integrate && _sub_att.get().q_valid) {
+	if (integrate) {
 		matrix::Quaternion<float> q(&_sub_att.get().q[0]);
 		_eul = matrix::Euler<float>(q);
 		_R_att = matrix::Dcm<float>(q);

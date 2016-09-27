@@ -535,15 +535,15 @@ void Ekf2Replay::logIfUpdated()
 	log_message.body.att.q_x = att.q[1];
 	log_message.body.att.q_y = att.q[2];
 	log_message.body.att.q_z = att.q[3];
-	log_message.body.att.roll = att.roll;
-	log_message.body.att.pitch = att.pitch;
-	log_message.body.att.yaw = att.yaw;
+	log_message.body.att.roll = 0;
+	log_message.body.att.pitch = 0;
+	log_message.body.att.yaw = 0;
 	log_message.body.att.roll_rate = att.rollspeed;
 	log_message.body.att.pitch_rate = att.pitchspeed;
 	log_message.body.att.yaw_rate = att.yawspeed;
-	log_message.body.att.gx = att.g_comp[0];
-	log_message.body.att.gy = att.g_comp[1];
-	log_message.body.att.gz = att.g_comp[2];
+	log_message.body.att.gx = 0;
+	log_message.body.att.gy = 0;
+	log_message.body.att.gz = 0;
 
 	writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_ATT_MSG].length);
 

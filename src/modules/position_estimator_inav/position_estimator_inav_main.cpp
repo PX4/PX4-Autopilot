@@ -507,26 +507,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
 				if (sensor.timestamp + sensor.accelerometer_timestamp_relative != accel_timestamp) {
-					if (att.q_valid) {
-						/* correct accel bias */
-						sensor.accelerometer_m_s2[0] -= acc_bias[0];
-						sensor.accelerometer_m_s2[1] -= acc_bias[1];
-						sensor.accelerometer_m_s2[2] -= acc_bias[2];
+					/* correct accel bias */
+					sensor.accelerometer_m_s2[0] -= acc_bias[0];
+					sensor.accelerometer_m_s2[1] -= acc_bias[1];
+					sensor.accelerometer_m_s2[2] -= acc_bias[2];
 
-						/* transform acceleration vector from body frame to NED frame */
-						for (int i = 0; i < 3; i++) {
-							acc[i] = 0.0f;
+					/* transform acceleration vector from body frame to NED frame */
+					for (int i = 0; i < 3; i++) {
+						acc[i] = 0.0f;
 
-							for (int j = 0; j < 3; j++) {
-								acc[i] += R(i, j) * sensor.accelerometer_m_s2[j];
-							}
+						for (int j = 0; j < 3; j++) {
+							acc[i] += R(i, j) * sensor.accelerometer_m_s2[j];
 						}
-
-						acc[2] += CONSTANTS_ONE_G;
-
-					} else {
-						memset(acc, 0, sizeof(acc));
 					}
+
+					acc[2] += CONSTANTS_ONE_G;
 
 					accel_timestamp = sensor.timestamp + sensor.accelerometer_timestamp_relative;
 					accel_updates++;
@@ -551,8 +546,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
 
-				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance && lidar.current_distance < lidar.max_distance
-			    		&& (R(2, 2) > 0.7f)) {
+				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance
+				    && lidar.current_distance < lidar.max_distance
+				    && (R(2, 2) > 0.7f)) {
 
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
@@ -614,7 +610,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					float body_v_est[2] = { 0.0f, 0.0f };
 
 					for (int i = 0; i < 2; i++) {
-						body_v_est[i] = R( 0, i) * x_est[1] + R(1, i) * y_est[1] + R(2, i) * z_est[1];
+						body_v_est[i] = R(0, i) * x_est[1] + R(1, i) * y_est[1] + R(2, i) * z_est[1];
 					}
 
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */

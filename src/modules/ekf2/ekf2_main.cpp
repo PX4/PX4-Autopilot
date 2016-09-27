@@ -726,7 +726,6 @@ void Ekf2::task_main()
 			att.q[1] = q(1);
 			att.q[2] = q(2);
 			att.q[3] = q(3);
-			att.q_valid = true;
 
 			att.rollspeed = gyro_rad[0];
 			att.pitchspeed = gyro_rad[1];

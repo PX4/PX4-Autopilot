@@ -617,7 +617,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					matrix::Quaternion<float> q(Ro);
 
 					memcpy(&att.q[0],&q._data[0],sizeof(att.q));
-					att.q_valid = true;
 
 					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
 						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
@@ -625,7 +624,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 
 					} else {
-						warnx("ERR: NaN estimate!");
+						PX4_ERR("ERR: NaN estimate!");
 					}
 
 					perf_end(ekf_loop_perf);

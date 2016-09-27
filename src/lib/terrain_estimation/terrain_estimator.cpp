@@ -37,6 +37,7 @@
  */
 
 #include "terrain_estimator.h"
+#include <geo/geo.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 
@@ -65,17 +66,12 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 			       const struct sensor_combined_s *sensor,
 			       const struct distance_sensor_s *distance)
 {
-	if (attitude->q_valid) {
-		matrix::Quaternion<float> q(&attitude->q[0]);
-		matrix::Dcm<float> R_att(q);
-		matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
-		matrix::Vector<float, 3> u;
-		u = R_att * a;
-		_u_z = u(2) + 9.81f; // compensate for gravity
-
-	} else {
-		_u_z = 0.0f;
-	}
+	matrix::Quaternion<float> q(&attitude->q[0]);
+	matrix::Dcm<float> R_att(q);
+	matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+	matrix::Vector<float, 3> u;
+	u = R_att * a;
+	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity
 
 	// dynamics matrix
 	matrix::Matrix<float, n_x, n_x> A;

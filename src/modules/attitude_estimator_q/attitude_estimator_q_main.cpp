@@ -473,7 +473,6 @@ void AttitudeEstimatorQ::task_main()
 		att.yawspeed = _rates(2);
 
 		memcpy(&att.q[0], _q.data, sizeof(att.q));
-		att.q_valid = true;
 
 		/* the instance count is not used here */
 		int att_inst;
