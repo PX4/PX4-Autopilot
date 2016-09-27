@@ -206,6 +206,7 @@ if(UNIX AND APPLE)
 	if (DARWIN_VERSION LESS 16)
 		list(APPEND added_definitions
 			-DCLOCK_MONOTONIC=1
+			-DCLOCK_REALTIME=0
 			-D__PX4_APPLE_LEGACY
 			)
 	endif()
