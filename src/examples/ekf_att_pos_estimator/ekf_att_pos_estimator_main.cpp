@@ -826,7 +826,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.q[1] = _ekf->states[1];
 	_att.q[2] = _ekf->states[2];
 	_att.q[3] = _ekf->states[3];
-	_att.q_valid = true;
 
 	_att.rollspeed = _ekf->dAngIMU.x / _ekf->dtIMU - _ekf->states[10] / _ekf->dtIMUfilt;
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
