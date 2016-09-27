@@ -86,14 +86,12 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	_thrust_sp = _v_att_sp->data().thrust;
 
 	/* construct attitude setpoint rotation matrix */
-	math::Matrix<3, 3> R_sp;
-	matrix::Quaternion<float> q_sp(&_v_att_sp->data().q_d[0]);
-	R_sp.set(&q_sp._data[0][0]);
+	math::Quaternion q_sp(&_v_att_sp->data().q_d[0]);
+	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
 
 	/* rotation matrix for current state */
-	math::Matrix<3, 3> R;
-	matrix::Quaternion<float> q(&_v_att->data().q[0]);
-	R.set(&q._data[0][0]);
+	math::Quaternion q(&_v_att->data().q[0]);
+	math::Matrix<3, 3> R = q.to_dcm();
 
 	/* all input data is ready, run controller itself */
 
