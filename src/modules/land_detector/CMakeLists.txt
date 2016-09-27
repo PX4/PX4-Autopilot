@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN land_detector
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		land_detector_main.cpp
 		LandDetector.cpp
@@ -45,4 +44,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

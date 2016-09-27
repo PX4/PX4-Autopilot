@@ -56,7 +56,6 @@ endif()
 px4_add_module(
 	MODULE platforms__qurt__px4_layer
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		${QURT_LAYER_SRCS}
 		${CONFIG_SRC}

@@ -53,9 +53,8 @@ px4_add_module(
 	MAIN uorb
 	STACK_MAIN 2100
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

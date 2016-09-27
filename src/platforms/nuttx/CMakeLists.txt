@@ -33,10 +33,9 @@
 px4_add_module(
 	MODULE platforms__nuttx
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		px4_nuttx_impl.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

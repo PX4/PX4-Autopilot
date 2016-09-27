@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__hott__hott_telemetry
 	MAIN hott_telemetry
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		hott_telemetry.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
