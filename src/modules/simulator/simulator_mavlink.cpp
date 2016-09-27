@@ -218,7 +218,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			uint64_t sim_timestamp = imu.time_usec;
 			struct timespec ts;
-			px4_clock_gettime(CLOCK_REALTIME, &ts);
+			px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
 			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
