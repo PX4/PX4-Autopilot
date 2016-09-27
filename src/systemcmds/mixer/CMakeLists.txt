@@ -30,17 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(MIXER_CFLAGS -Os)
 
 px4_add_module(
 	MODULE systemcmds__mixer
 	MAIN mixer
 	STACK_MAIN 4096
 	STACK_MAX 2100
-	COMPILE_FLAGS ${MIXER_CFLAGS}
+	COMPILE_FLAGS
 	SRCS
 		mixer.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

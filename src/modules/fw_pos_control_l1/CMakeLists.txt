@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN fw_pos_control_l1
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os -Weffc++
+		-Weffc++
 	SRCS
 		fw_pos_control_l1_main.cpp
 		landingslope.cpp
@@ -45,4 +45,4 @@ px4_add_module(
 		lib__external_lgpl
 		lib__ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
