@@ -38,7 +38,7 @@ endif()
 px4_add_module(
 	MODULE lib__ecl
 	STACK_MAIN 6000
-	COMPILE_FLAGS ${MODULE_CFLAGS} -Os
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		attitude_fw/ecl_controller.cpp
 		attitude_fw/ecl_pitch_controller.cpp
@@ -62,4 +62,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
