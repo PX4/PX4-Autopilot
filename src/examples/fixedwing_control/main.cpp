@@ -383,7 +383,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				}
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
-				if (isfinite(manual_sp.z) &&
+				if (PX4_ISFINITE(manual_sp.z) &&
 				    (manual_sp.z >= 0.6f) &&
 				    (manual_sp.z <= 1.0f)) {
 				}
@@ -395,10 +395,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
 				/* sanity check and publish actuator outputs */
-				if (isfinite(actuators.control[0]) &&
-				    isfinite(actuators.control[1]) &&
-				    isfinite(actuators.control[2]) &&
-				    isfinite(actuators.control[3])) {
+				if (PX4_ISFINITE(actuators.control[0]) &&
+				    PX4_ISFINITE(actuators.control[1]) &&
+				    PX4_ISFINITE(actuators.control[2]) &&
+				    PX4_ISFINITE(actuators.control[3])) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
