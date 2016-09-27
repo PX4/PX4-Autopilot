@@ -102,7 +102,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 MultirotorMixer::~MultirotorMixer()
 {
 	if (_outputs_prev != nullptr) {
-		delete _outputs_prev;
+		delete[] _outputs_prev;
 	}
 }
 
