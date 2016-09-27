@@ -41,8 +41,8 @@ struct orb_test {
 	int val;
 	hrt_abstime time;
 };
-ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
-ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");
+ORB_DECLARE(orb_test);
+ORB_DECLARE(orb_multitest);
 
 
 struct orb_test_medium {
@@ -50,22 +50,17 @@ struct orb_test_medium {
 	hrt_abstime time;
 	char junk[64];
 };
-ORB_DEFINE(orb_test_medium, struct orb_test_medium, sizeof(orb_test_medium),
-	   "ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
-ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium, sizeof(orb_test_medium),
-	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
-ORB_DEFINE(orb_test_medium_queue, struct orb_test_medium, sizeof(orb_test_medium),
-	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
-ORB_DEFINE(orb_test_medium_queue_poll, struct orb_test_medium, sizeof(orb_test_medium),
-	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+ORB_DECLARE(orb_test_medium);
+ORB_DECLARE(orb_test_medium_multi);
+ORB_DECLARE(orb_test_medium_queue);
+ORB_DECLARE(orb_test_medium_queue_poll);
 
 struct orb_test_large {
 	int val;
 	hrt_abstime time;
 	char junk[512];
 };
-ORB_DEFINE(orb_test_large, struct orb_test_large, sizeof(orb_test_large),
-	   "ORB_TEST_LARGE:int val;hrt_abstime time;char[512] junk;");
+ORB_DECLARE(orb_test_large);
 
 
 namespace uORBTest
@@ -132,6 +127,10 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	t.time = hrt_absolute_time();
 
 	orb_advert_t pfd0 = orb_advertise(T, &t);
+
+	if (pfd0 == nullptr) {
+		return test_fail("orb_advertise failed (%i)", errno);
+	}
 
 	char *const args[1] = { NULL };
 
