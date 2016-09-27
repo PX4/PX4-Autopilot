@@ -354,7 +354,7 @@ private:
 	/**
 	 * Function to scale lateral errors(world xy plane) in world frame by gains in body frame
 	 */
-	void 		separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains,
+	void 		scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains,
 				       const bool set_z);
 };
 
@@ -646,7 +646,7 @@ MulticopterPositionControl::parameters_update(bool force)
 }
 
 void
-MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
+MulticopterPositionControl::scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
 		const math::Vector<3> &gains, const bool set_z)
 {
 	float z_setpoint;
@@ -656,7 +656,7 @@ MulticopterPositionControl::separate_gains(math::Vector<3> &setpoint, const math
 		z_setpoint = setpoint(2);
 	}
 
-	/* Project errors to body frame, scale by gains in body frame, project back to world frame */
+	/* Project body-fixed gains to world frame and multiply by world-fixed errors. */
 	math::Matrix<3, 3> Gains;
 	Gains.identity();
 	Gains(0, 0) = gains(0);
@@ -837,7 +837,7 @@ MulticopterPositionControl::limit_pos_sp_offset()
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* Limit maximum setpoint offset in position in body frame */
-		separate_gains(pos_sp_offs, _pos_sp - _pos, _params.sp_offs_max.einv(), false);
+		scale_with_body_fixed_gains(pos_sp_offs, _pos_sp - _pos, _params.sp_offs_max.einv(), false);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -1214,13 +1214,13 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> d_pos_m;
 
 		/* Calculate the scaled difference with the gains in body frame */
-		separate_gains(d_pos_m, pos_sp_s - pos_sp_old_s, _params.pos_p.einv(), true);
+		scale_with_body_fixed_gains(d_pos_m, pos_sp_s - pos_sp_old_s, _params.pos_p.einv(), true);
 
 		float d_pos_m_len = d_pos_m.length();
 
 		if (d_pos_m_len > dt) {
 			math::Vector<3> d_pos_m_increment;
-			separate_gains(d_pos_m_increment, d_pos_m, _params.pos_p / d_pos_m_len * dt, true);
+			scale_with_body_fixed_gains(d_pos_m_increment, d_pos_m, _params.pos_p / d_pos_m_len * dt, true);
 			pos_sp_s = pos_sp_old_s + d_pos_m_increment;
 		}
 
@@ -1522,7 +1522,7 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					separate_gains(_vel_sp, _pos_sp - _pos, _params.pos_p, false);
+					scale_with_body_fixed_gains(_vel_sp, _pos_sp - _pos, _params.pos_p, false);
 				}
 
 				// guard against any bad velocity values
@@ -1737,14 +1737,14 @@ MulticopterPositionControl::task_main()
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
 						math::Vector<3> req_th_sp_d, req_th_p, req_vel_err;
-						separate_gains(req_th_sp_d, _vel_err_d, _params.vel_d, true);
+						scale_with_body_fixed_gains(req_th_sp_d, _vel_err_d, _params.vel_d, true);
 
 						/* Calculate p error in body frame and scale with p gains in body frame */
 						req_th_p(0) = (-Rb(0, 2) * _att_sp.thrust - thrust_int(0) - req_th_sp_d(0));
 						req_th_p(1) = (-Rb(1, 2) * _att_sp.thrust - thrust_int(1) - req_th_sp_d(1));
 						req_th_p(2) = (-Rb(2, 2) * _att_sp.thrust - thrust_int(2) - req_th_sp_d(2));
 
-						separate_gains(req_vel_err, req_th_p, _params.vel_p.einv(), true);
+						scale_with_body_fixed_gains(req_vel_err, req_th_p, _params.vel_p.einv(), true);
 
 						_vel_sp = _vel + req_vel_err;
 						_vel_sp_prev = _vel_sp;
@@ -1763,8 +1763,8 @@ MulticopterPositionControl::task_main()
 					} else {
 						/* Use body-fixed gains */
 						math::Vector<3> thrust_sp_p, thrust_sp_d;
-						separate_gains(thrust_sp_p, vel_err, _params.vel_p, true);
-						separate_gains(thrust_sp_d, _vel_err_d, _params.vel_d, true);
+						scale_with_body_fixed_gains(thrust_sp_p, vel_err, _params.vel_p, true);
+						scale_with_body_fixed_gains(thrust_sp_d, _vel_err_d, _params.vel_d, true);
 						thrust_sp = thrust_sp_p + thrust_sp_d;
 
 						/* Add integral to thrust setpoint */
@@ -1937,10 +1937,10 @@ MulticopterPositionControl::task_main()
 
 					/* update integrals */
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-						/* Use separate gains for integrals */
+						/* Use separate body-fixed gains for integrals */
 						math::Vector<3> thrust_int_increment;
 						thrust_int_increment.zero();
-						separate_gains(thrust_int_increment, vel_err, _params.vel_i * dt, false);
+						scale_with_body_fixed_gains(thrust_int_increment, vel_err, _params.vel_i * dt, false);
 						thrust_int += thrust_int_increment;
 					}
 

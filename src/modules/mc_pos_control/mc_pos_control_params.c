@@ -239,7 +239,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
 
 /**
- * Proportional gain for horizontal position error in body_x axis
+ * Proportional gain for horizontal position error in body x axis
  *
  * @min 0.0
  * @max 2.0
