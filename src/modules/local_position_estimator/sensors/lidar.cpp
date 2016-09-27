@@ -65,6 +65,11 @@ void BlockLocalPositionEstimator::lidarCorrect()
 
 	if (lidarMeasure(y) != OK) { return; }
 
+	// account for leaning
+	y(0) = y(0) *
+	       cosf(_eul.phi()) *
+	       cosf(_eul.theta());
+
 	// measurement matrix
 	Matrix<float, n_y_lidar, n_x> C;
 	C.setZero();
