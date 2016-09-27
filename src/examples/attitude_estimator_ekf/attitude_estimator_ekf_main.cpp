@@ -611,10 +611,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					att.yawspeed = x_aposteriori[2];
 
 					/* magnetic declination */
-					matrix::Dcm<float> R(&Rot_matrix[0]);
+					matrix::Dcm<float> Ro(&Rot_matrix[0]);
 					matrix::Dcm<float> R_declination(&R_decl.data[0][0]);
-					R = R_declination * R;
-					matrix::Quaternion<float> q(R);
+					Ro = R_declination * Ro;
+					matrix::Quaternion<float> q(Ro);
 
 					memcpy(&att.q[0],&q._data[0],sizeof(att.q));
 					att.q_valid = true;
