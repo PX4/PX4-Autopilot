@@ -179,7 +179,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	/*
 	 * Calculate yaw error and apply P gain
 	 */
-	float yaw_err = Eulerf(Quaternion(att->q)).psi() - Eulerf(Quaternion(att->q_d)).psi();
+	float yaw_err = matrix::Eulerf(matrix::Quatf(att->q)).psi() - matrix::Eulerf(matrix::Quatf(att_sp->q_d)).psi();
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
