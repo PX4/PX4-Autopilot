@@ -66,8 +66,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 			       const struct sensor_combined_s *sensor,
 			       const struct distance_sensor_s *distance)
 {
-	matrix::Quaternion<float> q(&attitude->q[0]);
-	matrix::Dcm<float> R_att(q);
+	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
 	matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
 	matrix::Vector<float, 3> u;
 	u = R_att * a;
@@ -112,8 +111,8 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (distance->timestamp > _time_last_distance) {
-		matrix::Quaternion<float> q(&attitude->q[0]);
-		matrix::Euler<float> euler(q);
+		matrix::Quatf q(attitude->q);
+		matrix::Eulerf euler(q);
 		float d = distance->current_distance;
 
 		matrix::Matrix<float, 1, n_x> C;
@@ -122,7 +121,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		float R = 0.009f;
 
 		matrix::Vector<float, 1> y;
-		y(0) = d * cosf(euler(0)) * cosf(euler(1));
+		y(0) = d * cosf(euler.phi()) * cosf(euler.theta());
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());

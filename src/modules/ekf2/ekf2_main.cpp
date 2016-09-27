@@ -772,8 +772,8 @@ void Ekf2::task_main()
 			lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 
 			// The rotation of the tangent plane vs. geographical north
-			matrix::Euler<float> euler(q);
-			lpos.yaw = euler(2);
+			matrix::Eulerf euler(q);
+			lpos.yaw = euler.psi();
 
 			float terrain_vpos;
 			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);

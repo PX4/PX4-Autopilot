@@ -1942,8 +1942,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		struct vehicle_global_position_s hil_global_pos;
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
-		matrix::Quaternion<float> q(&hil_attitude.q[0]);
-		matrix::Euler<float> euler(q);
+		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
 		hil_global_pos.timestamp = timestamp;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
@@ -1951,7 +1950,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
-		hil_global_pos.yaw = euler(2);
+		hil_global_pos.yaw = euler.psi();
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
@@ -1992,9 +1991,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vx = hil_state.vx / 100.0f;
 		hil_local_pos.vy = hil_state.vy / 100.0f;
 		hil_local_pos.vz = hil_state.vz / 100.0f;
-		matrix::Quaternion<float> q(&hil_attitude.q[0]);
-		matrix::Euler<float> euler(q);
-		hil_local_pos.yaw = euler(2);
+		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+		hil_local_pos.yaw = euler.psi();
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 
