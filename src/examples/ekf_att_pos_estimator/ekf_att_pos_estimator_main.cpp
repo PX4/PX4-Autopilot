@@ -820,7 +820,6 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 void AttitudePositionEstimatorEKF::publishAttitude()
 {
 	// Output results
-	matrix::Quaternion<float> q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 
 	_att.timestamp = _last_sensor_timestamp;
 	_att.q[0] = _ekf->states[0];
