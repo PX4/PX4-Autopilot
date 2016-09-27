@@ -187,10 +187,14 @@ public:
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
 	 *             the maximum allowed change of the output values per cycle.
+	 *             The value is only valid for one cycle, in order to have continuous
+	 *             slew rate limiting this function needs to be called before every call
+	 *             to mix().
 	 *
-	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
 	 */
-	virtual void 			update_slew_rate(float slew_rate_max) {};
+	virtual void 			set_max_delta_out_once(float delta_out_max) {};
 
 
 protected:
@@ -324,10 +328,14 @@ public:
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
 	 *             the maximum allowed change of the output values per cycle.
+	 *             The value is only valid for one cycle, in order to have continuous
+	 *             slew rate limiting this function needs to be called before every call
+	 *             to mix().
 	 *
-	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
 	 */
-	virtual void 			update_slew_rate(float slew_rate_max);
+	virtual void 			set_max_delta_out_once(float delta_out_max);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -538,10 +546,14 @@ public:
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
 	 *             the maximum allowed change of the output values per cycle.
+	 *             The value is only valid for one cycle, in order to have continuous
+	 *             slew rate limiting this function needs to be called before every call
+	 *             to mix().
 	 *
-	 * @param[in]  slew_rate_max  The maximum slew rate.
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
 	 */
-	virtual void		update_slew_rate(float slew_rate_max) {_slew_rate_max = slew_rate_max;}
+	virtual void 			set_max_delta_out_once(float delta_out_max) {_delta_out_max = delta_out_max;}
 
 private:
 	float				_roll_scale;
@@ -549,7 +561,7 @@ private:
 	float				_yaw_scale;
 	float				_idle_speed;
 
-	float 				_slew_rate_max;
+	float 				_delta_out_max;
 
 	orb_advert_t			_limits_pub;
 	multirotor_motor_limits_s 	_limits;

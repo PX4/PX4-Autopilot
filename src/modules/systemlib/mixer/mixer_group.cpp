@@ -201,12 +201,12 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	return ret;
 }
 
-void MixerGroup::update_slew_rate(float slew_rate_max)
+void MixerGroup::set_max_delta_out_once(float delta_out_max)
 {
 	Mixer	*mixer = _first;
 
 	while (mixer != nullptr) {
-		mixer->update_slew_rate(slew_rate_max);
+		mixer->set_max_delta_out_once(delta_out_max);
 		mixer = mixer->_next;
 	}
 }

@@ -232,10 +232,13 @@ mixer_tick(void)
 		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
 
-		// update slew rate value
-		float slew_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
-					 r_setup_slew_max);
-		mixer_group.update_slew_rate(slew_max);
+		if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
+			// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+			// factor 2 is needed because actuator ouputs are in the range [-1,1]
+			float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
+						      r_setup_slew_max);
+			mixer_group.set_max_delta_out_once(delta_out_max);
+		}
 
 		/* mix */
 
@@ -518,10 +521,13 @@ mixer_set_failsafe()
 	float	outputs[PX4IO_SERVO_COUNT];
 	unsigned mixed;
 
-	// update slew rate value
-	float slew_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
-				 r_setup_slew_max);
-	mixer_group.update_slew_rate(slew_max);
+	if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
+		// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+		// factor 2 is needed because actuator ouputs are in the range [-1,1]
+		float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
+					      r_setup_slew_max);
+		mixer_group.set_max_delta_out_once(delta_out_max);
+	}
 
 	/* mix */
 	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
