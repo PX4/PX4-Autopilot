@@ -179,11 +179,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	/*
 	 * Calculate roll error and apply P gain
 	 */
-	matrix::Quaternion<float> q(&att->q[0]);
-	matrix::Euler<float> euler(q);
-	matrix::Quaternion<float> q_sp(&att_sp->q_d[0]);
-	matrix::Euler<float> euler_sp(q_sp);
-	float yaw_err = euler(2) - euler_sp(2);
+	float yaw_err = Eulerf(Quaternion(att->q)).psi() - Eulerf(Quaternion(att->q_d)).psi();
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */

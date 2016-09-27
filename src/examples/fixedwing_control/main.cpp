@@ -177,19 +177,16 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	 * Calculate roll error and apply P gain
 	 */
 
-	matrix::Quaternion<float> qa(&att->q[0]);
-	matrix::Euler<float> att_euler(qa);
+	matrix::Eulerf att_euler = matrix::Quatf(att->q);
+	matrix::Eulerf att_sp_euler = matrix::Quatf(att_sp->q_d);
 
-	matrix::Quaternion<float> qd(&att_sp->q_d[0]);
-	matrix::Euler<float> att_sp_euler(qd);
-
-	float roll_err = att_euler(0) - att_sp_euler(0);
+	float roll_err = att_euler.phi() - att_sp_euler.phi();
 	actuators->control[0] = roll_err * p.roll_p;
 
 	/*
 	 * Calculate pitch error and apply P gain
 	 */
-	float pitch_err = att_euler(1) - att_sp_euler(1);
+	float pitch_err = att_euler.theta() - att_sp_euler.theta();
 	actuators->control[1] = pitch_err * p.pitch_p;
 }
 
@@ -203,11 +200,10 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 
 	float bearing = get_bearing_to_next_waypoint(pos->lat, pos->lon, sp->lat, sp->lon);
 
-	matrix::Quaternion<float> qa(&att->q[0]);
-	matrix::Euler<float> att_euler(qa);
+	matrix::Eulerf att_euler = matrix::Quatf(att->q);
 
 	/* calculate heading error */
-	float yaw_err = att_euler(2) - bearing;
+	float yaw_err = att_euler.psi() - bearing;
 	/* apply control gain */
 	float roll_body = yaw_err * p.hdng_p;
 
@@ -219,9 +215,9 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 		roll_body = 0.6f;
 	}
 
-	matrix::Euler<float> att_spe(roll_body, 0, bearing);
+	matrix::Eulerf att_spe(roll_body, 0, bearing);
 
-	matrix::Quaternion<float> qd(att_spe);
+	matrix::Quatf qd(att_spe);
 
 	att_sp->q_d[0] = qd(0);
 	att_sp->q_d[1] = qd(1);

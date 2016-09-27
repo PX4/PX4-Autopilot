@@ -500,8 +500,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* sensor combined */
 			orb_check(sensor_combined_sub, &updated);
 
-			matrix::Quaternion<float> q(&att.q[0]);
-			matrix::Dcm<float> R(q);
+			matrix::Dcmf R = matrix::Quatf(att.q);
 
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
@@ -944,8 +943,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
-		matrix::Quaternion<float> q(&att.q[0]);
-		matrix::Dcm<float> R(q);
+		matrix::Dcm<float> R = matrix::Quatf(att.q);
 
 		/* check for timeout on FLOW topic */
 		if ((flow_valid || lidar_valid) && t > (flow_time + flow_topic_timeout)) {
