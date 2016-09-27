@@ -675,7 +675,9 @@ function(px4_add_common_flags)
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
 		message(STATUS "address sanitizer enabled")
-		set(max_optimization -Os)
+		if ("${OS}" STREQUAL "nuttx")
+			set(max_optimization -Os)
+		endif()
 
 		# Do not use optimization_flags (without _) as that is already used.
 		set(_optimization_flags
@@ -687,7 +689,11 @@ function(px4_add_common_flags)
 			-g3 -fsanitize=address
 			)
 	else()
-		set(max_optimization -Os)
+		if ("${OS}" STREQUAL "nuttx")
+			set(max_optimization -Os)
+		else()
+			set(max_optimization -O2)
+		endif()
 
 		if ("${OS}" STREQUAL "qurt")
 			set(PIC_FLAG -fPIC)
