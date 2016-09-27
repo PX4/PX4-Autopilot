@@ -243,11 +243,11 @@ then
 	then
 	fi
 
-	if mpu6500 start
+	if mpu6500 -R 14 start
 	then
 	fi
 
-	if hmc5883 start
+	if hmc5883 -R 4 start
 	then
 	fi
 fi
