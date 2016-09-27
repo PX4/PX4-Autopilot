@@ -354,8 +354,9 @@ private:
 	/**
 	 * Function to scale lateral errors(world xy plane) in world frame by gains in body frame
 	 */
-	void 		scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors, const math::Vector<3> &gains,
-				       const bool set_z);
+	void 		scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
+			const math::Vector<3> &gains,
+			const bool set_z);
 };
 
 namespace pos_control
