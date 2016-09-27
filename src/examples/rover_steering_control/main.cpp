@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,7 +65,6 @@
 #include <systemlib/pid/pid.h>
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
 
