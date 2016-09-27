@@ -130,6 +130,7 @@ bool Ekf::resetPosition()
 	_state_reset_status.posNE_change = posNE_change;
 	_state_reset_status.posNE_counter++;
 
+	return true;
 }
 
 // Reset height state using the last height measurement
