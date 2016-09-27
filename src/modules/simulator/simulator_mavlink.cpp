@@ -316,18 +316,12 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_attitude.timestamp = timestamp;
 
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Matrix<3, 3> C_nb = q.to_dcm();
-			math::Vector<3> euler = C_nb.to_euler();
 
 			hil_attitude.q[0] = q(0);
 			hil_attitude.q[1] = q(1);
 			hil_attitude.q[2] = q(2);
 			hil_attitude.q[3] = q(3);
 			hil_attitude.q_valid = true;
-
-			hil_attitude.roll = euler(0);
-			hil_attitude.pitch = euler(1);
-			hil_attitude.yaw = euler(2);
 
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;
