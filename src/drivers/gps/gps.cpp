@@ -103,7 +103,7 @@ public:
 class GPS
 {
 public:
-	GPS(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps, bool enable_sat_info,
+	GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps, bool enable_sat_info,
 	    int gps_num);
 	virtual ~GPS();
 
@@ -124,9 +124,9 @@ private:
 	bool				_healthy;					///< flag to signal if the GPS is ok
 	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
-	bool        _mode_auto;
+	bool        			_mode_auto;					///< if true, auto-detect which GPS is attached
 	gps_driver_mode_t		_mode;						///< current mode
-	gps_driver_interface_t  _interface;   ///< interface
+	GPSHelper::Interface  _interface;   						///< interface
 	GPSHelper			*_helper;					///< instance of GPS parser
 	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
@@ -244,7 +244,7 @@ volatile bool is_gps1_advertised = false; ///< for the second gps we want to mak
 }
 
 
-GPS::GPS(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps,
+GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
 	 bool enable_sat_info, int gps_num) :
 	_task_should_exit(false),
 	_healthy(false),
@@ -708,27 +708,12 @@ GPS::task_main()
 				_helper = nullptr;
 			}
 
-			GPSHelper::Interface helper_interface = GPSHelper::Interface::UART;
-
-			switch (_interface) {
-			case GPS_DRIVER_UART:
-				helper_interface = GPSHelper::Interface::UART;
-				break;
-
-			case GPS_DRIVER_SPI:
-				helper_interface = GPSHelper::Interface::SPI;
-				break;
-
-			default:
-				break;
-			}
-
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
 				_mode = GPS_DRIVER_MODE_UBX;
-
+				//no break
 			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(helper_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -975,7 +960,7 @@ namespace gps
 {
 
 
-void	start(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps,
+void	start(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
 	      bool enable_sat_info, int gps_num);
 void	stop();
 void	test();
@@ -986,7 +971,7 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps, bool enable_sat_info,
+start(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps, bool enable_sat_info,
       int gps_num)
 {
 	if (g_dev[gps_num - 1] != nullptr) {
@@ -1076,7 +1061,7 @@ gps_main(int argc, char *argv[])
 	const char *device_name2 = nullptr;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
-	gps_driver_interface_t interface = GPS_DRIVER_UART;
+	GPSHelper::Interface interface = GPSHelper::Interface::UART;
 	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
 
 	if (argc < 2) {
@@ -1120,10 +1105,10 @@ gps_main(int argc, char *argv[])
 
 				if (interface_arg < argc) {
 					if (!strcmp(argv[interface_arg], "spi")) {
-						interface = GPS_DRIVER_SPI;
+						interface = GPSHelper::Interface::SPI;
 
 					} else if (!strcmp(argv[interface_arg], "uart")) {
-						interface = GPS_DRIVER_UART;
+						interface = GPSHelper::Interface::UART;
 					}
 				}
 			}
@@ -1198,6 +1183,6 @@ gps_main(int argc, char *argv[])
 
 out:
 	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'");
-	PX4_ERR("[-d " GPS_DEFAULT_UART_PORT "][-f (for enabling fake)][-s (to enable sat info)]");
+	PX4_ERR("[-d " GPS_DEFAULT_UART_PORT "][-f (for enabling fake)][-s (to enable sat info)] [-i {spi|uart}] [-p {ubx|mtk|ash}]");
 	return 1;
 }
