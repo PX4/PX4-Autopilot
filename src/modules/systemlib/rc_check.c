@@ -73,7 +73,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		param_t trans_parm = param_find("RC_MAP_TRANS_SW");
 
 		if (trans_parm == PARAM_INVALID) {
-			if (report_fail) { mavlink_and_console_log_critical(mavlink_log_pub, "ERR: RC_MAP_TRANS_SW PARAMETER MISSING"); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "ERR: RC_MAP_TRANS_SW PARAMETER MISSING"); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
@@ -84,7 +84,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 			param_get(trans_parm, &transition_switch);
 
 			if (transition_switch < 1) {
-				if (report_fail) { mavlink_and_console_log_critical(mavlink_log_pub, "ERR: transition switch (RC_MAP_TRANS_SW) not set"); }
+				if (report_fail) { mavlink_log_critical(mavlink_log_pub, "ERR: transition switch (RC_MAP_TRANS_SW) not set"); }
 
 				map_fail_count++;
 			}
