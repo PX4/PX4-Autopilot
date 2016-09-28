@@ -250,9 +250,8 @@ MulticopterPositionControlMultiplatform::reset_alt_sp()
 
 		//XXX hack until #1741 is in/ported
 		/* reset yaw sp */
-		matrix::Quaternion<float> q(&_att->data().q[0]);
-		matrix::Euler<float> euler(q);
-		_att_sp_msg.data().yaw_body = euler(2);
+		matrix::Eulerf euler = matrix::Quatf(_att->data().q);
+		_att_sp_msg.data().yaw_body = euler.psi();
 
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
@@ -584,9 +583,8 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 	static bool was_armed = false;
 	static uint64_t t_prev = 0;
 
-	matrix::Quaternion<float> q(&_att->data().q[0]);
-	matrix::Euler<float> euler(q);
-	matrix::Dcm<float> R(q);
+	matrix::Eulerf euler = matrix::Quatf(_att->data().q);
+	matrix::Dcmf R = matrix::Quatf(_att->data().q);
 
 	uint64_t t = get_time_micros();
 	float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.005f;
@@ -647,7 +645,7 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 
 			_att_sp_msg.data().roll_body = 0.0f;
 			_att_sp_msg.data().pitch_body = 0.0f;
-			_att_sp_msg.data().yaw_body = euler(2);
+			_att_sp_msg.data().yaw_body = euler.psi();
 			_att_sp_msg.data().thrust = 0.0f;
 
 			_att_sp_msg.data().timestamp = get_time_micros();
@@ -1011,7 +1009,7 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		/* reset yaw setpoint to current position if needed */
 		if (reset_yaw_sp) {
 			reset_yaw_sp = false;
-			_att_sp_msg.data().yaw_body = euler(2);
+			_att_sp_msg.data().yaw_body = euler.psi();
 		}
 
 		/* do not move yaw while arming */
@@ -1020,13 +1018,13 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 
 			_att_sp_msg.data().yaw_sp_move_rate = _manual_control_sp->data().r * _params.man_yaw_max;
 			_att_sp_msg.data().yaw_body = _wrap_pi(_att_sp_msg.data().yaw_body + _att_sp_msg.data().yaw_sp_move_rate * dt);
-			float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - euler(2));
+			float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - euler.psi());
 
 			if (yaw_offs < - YAW_OFFSET_MAX) {
-				_att_sp_msg.data().yaw_body = _wrap_pi(euler(2) - YAW_OFFSET_MAX);
+				_att_sp_msg.data().yaw_body = _wrap_pi(euler.psi() - YAW_OFFSET_MAX);
 
 			} else if (yaw_offs > YAW_OFFSET_MAX) {
-				_att_sp_msg.data().yaw_body = _wrap_pi(euler(2) + YAW_OFFSET_MAX);
+				_att_sp_msg.data().yaw_body = _wrap_pi(euler.psi() + YAW_OFFSET_MAX);
 			}
 		}
 
