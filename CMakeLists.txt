@@ -30,15 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(MODULE_CFLAGS )
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6000)
-endif()
 
 px4_add_module(
 	MODULE lib__ecl
 	STACK_MAIN 6000
-	COMPILE_FLAGS ${MODULE_CFLAGS}
+	STACK_MAX 6000
+	COMPILE_FLAGS
 	SRCS
 		attitude_fw/ecl_controller.cpp
 		attitude_fw/ecl_pitch_controller.cpp
