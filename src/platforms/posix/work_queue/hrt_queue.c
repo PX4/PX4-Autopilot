@@ -47,6 +47,7 @@
 #include <semaphore.h>
 #include <drivers/drv_hrt.h>
 #include <px4_workqueue.h>
+#include <px4_posix.h>
 #include "hrt_work.h"
 
 /****************************************************************************
