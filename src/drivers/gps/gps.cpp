@@ -401,7 +401,13 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * by 1-2 bytes, wait for some more data to save expensive read() calls.
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
-			usleep(GPS_WAIT_BEFORE_READ * 1000);
+			int err = 0, bytesAvailable = 0;
+			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytesAvailable);
+			//No need to wait if we already have enough data available
+			if((err != 0) || (bytesAvailable < buf_length))
+			{
+				usleep(GPS_WAIT_BEFORE_READ * 1000);
+			}
 			ret = ::read(_serial_fd, buf, buf_length);
 
 		} else {
