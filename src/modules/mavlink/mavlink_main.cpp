@@ -1899,6 +1899,10 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
+	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
+	 * beginning and not just when the topic exists. */
+	ack_sub->subscribe_from_beginning(true);
+
 	uint64_t ack_time = 0;
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
