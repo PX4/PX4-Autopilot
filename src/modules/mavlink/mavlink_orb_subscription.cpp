@@ -199,7 +199,7 @@ MavlinkOrbSubscription::is_published()
 }
 
 void
-MavlinkOrbSubscription::subscribe_from_beginning(bool subscribe_from_beginning)
+MavlinkOrbSubscription::subscribe_from_beginning(bool from_beginning)
 {
-	_subscribe_from_beginning = subscribe_from_beginning;
+	_subscribe_from_beginning = from_beginning;
 }
