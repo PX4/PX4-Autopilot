@@ -3649,7 +3649,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive(true);
+		tune_positive(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
