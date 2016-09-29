@@ -160,6 +160,9 @@ private:
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
 
+	control::BlockDerivative _pos_x_deriv;
+	control::BlockDerivative _pos_y_deriv;
+	control::BlockDerivative _pos_z_deriv;
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
@@ -171,6 +174,8 @@ private:
 		param_t alt_ctl_dz;
 		param_t alt_ctl_dy;
 		param_t z_p;
+		param_t z_i;
+		param_t z_d;
 		param_t z_vel_p;
 		param_t z_vel_i;
 		param_t z_vel_d;
@@ -178,6 +183,8 @@ private:
 		param_t z_vel_max_down;
 		param_t z_ff;
 		param_t xy_p;
+		param_t xy_i;
+		param_t xy_d;
 		param_t xy_vel_p;
 		param_t xy_vel_i;
 		param_t xy_vel_d;
@@ -228,6 +235,8 @@ private:
 		int opt_recover;
 
 		math::Vector<3> pos_p;
+		math::Vector<3> pos_i;
+		math::Vector<3> pos_d;
 		math::Vector<3> vel_p;
 		math::Vector<3> vel_i;
 		math::Vector<3> vel_d;
@@ -251,6 +260,8 @@ private:
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
+	math::Vector<3> _pos_err_d;		/**< derivative of current position */
+
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
@@ -389,6 +400,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
+	_pos_x_deriv(this, "POSD"),
+	_pos_y_deriv(this, "POSD"),
+	_pos_z_deriv(this, "POSD"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -417,6 +431,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
 	_params.pos_p.zero();
+	_params.pos_i.zero();
+	_params.pos_d.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
 	_params.vel_d.zero();
@@ -427,6 +443,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_pos.zero();
 	_pos_sp.zero();
+	_pos_err_d.zero();
+
 	_vel.zero();
 	_vel_sp.zero();
 	_vel_prev.zero();
@@ -441,7 +459,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
 	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
 	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
-	_params_handles.z_p		= param_find("MPC_Z_P");
+	_params_handles.z_p			= param_find("MPC_Z_P");
+	_params_handles.z_i			= param_find("MPC_Z_I");
+	_params_handles.z_d			= param_find("MPC_Z_D");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
@@ -457,6 +477,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
 	_params_handles.xy_p		= param_find("MPC_XY_P");
+	_params_handles.xy_i		= param_find("MPC_XY_I");
+	_params_handles.xy_d		= param_find("MPC_XY_D");
 	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
 	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
 	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
@@ -541,8 +563,21 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.xy_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
+		param_get(_params_handles.xy_i, &v);
+		_params.pos_i(0) = v;
+		_params.pos_i(1) = v;
+		param_get(_params_handles.xy_d, &v);
+		_params.pos_d(0) = v;
+		_params.pos_d(1) = v;
+		param_get(_params_handles.xy_p, &v);
+		_params.pos_p(0) = v;
+		_params.pos_p(1) = v;
 		param_get(_params_handles.z_p, &v);
 		_params.pos_p(2) = v;
+		param_get(_params_handles.z_i, &v);
+		_params.pos_i(2) = v;
+		param_get(_params_handles.z_d, &v);
+		_params.pos_d(2) = v;
 		param_get(_params_handles.xy_vel_p, &v);
 		_params.vel_p(0) = v;
 		_params.vel_p(1) = v;
@@ -893,13 +928,13 @@ MulticopterPositionControl::control_manual(float dt)
 
 		} else {
 			_alt_hold_engaged = false;
+			_pos_sp(2) = _pos(2);
 		}
 
 		/* set requested velocity setpoint */
 		if (!_alt_hold_engaged) {
 			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
 			_vel_sp(2) = req_vel_sp_scaled(2);
-			_pos_sp(2) = _pos(2);
 		}
 	}
 }
@@ -1231,6 +1266,10 @@ MulticopterPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
+	math::Vector<3> vel_int;
+	vel_int.zero();
+
+
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 
@@ -1313,6 +1352,10 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+			_pos_err_d(0) = _pos_x_deriv.update(-_pos(0));
+			_pos_err_d(1) = _pos_y_deriv.update(-_pos(1));
+			_pos_err_d(2) = _pos_z_deriv.update(-_pos(2));
+
 			if (PX4_ISFINITE(_local_pos.vx) &&
 			    PX4_ISFINITE(_local_pos.vy) &&
 			    PX4_ISFINITE(_local_pos.vz)) {
@@ -1361,15 +1404,18 @@ MulticopterPositionControl::task_main()
 				/* manual control */
 				control_manual(dt);
 				_mode_auto = false;
+				warnx("manual control");
 
 			} else if (_control_mode.flag_control_offboard_enabled) {
 				/* offboard control */
 				control_offboard(dt);
 				_mode_auto = false;
+				warnx("offboard control");
 
 			} else {
 				/* AUTO */
 				control_auto(dt);
+				warnx("auto control");
 			}
 
 			/* weather-vane mode for vtol: disable yaw control */
@@ -1432,10 +1478,27 @@ MulticopterPositionControl::task_main()
 				}
 
 			} else {
+				/* position error */
+				math::Vector<3> pos_err = _pos_sp - _pos;
+
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+//					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+//					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(0);
+					_vel_sp(0) = pos_err(0) * _params.pos_p(0) + _pos_err_d(0) * _params.pos_d(0) +  vel_int(0);
+					_vel_sp(1) = pos_err(1) * _params.pos_p(1) + _pos_err_d(1) * _params.pos_d(1) +  vel_int(1);
+
+					if(abs(_vel_sp(0) < _params.vel_max(0))){
+						vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
+					}
+					if(abs(_vel_sp(1) < _params.vel_max(1))){
+						vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
+					}
+
+					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
+							(double)_params.pos_i(0),(double)_params.pos_d(0));
+					warnx("y: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(1),(double)_params.pos_p(1),
+												(double)_params.pos_i(1),(double)_params.pos_d(1));
 				}
 
 				// guard against any bad velocity values
@@ -1479,7 +1542,13 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (_run_alt_control) {
-					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+//					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+					_vel_sp(02) = pos_err(2) * _params.pos_p(2) + _pos_err_d(2) * _params.pos_d(2) +  vel_int(2);
+					if(abs(_vel_sp(2) < _params.vel_max(2))){
+						vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
+					}
+					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
+												(double)_params.pos_i(2),(double)_params.pos_d(2));
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
@@ -2019,47 +2088,48 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if no aiding velocity controller is active
-			 * and only if optimal recovery is not used */
-			if (!_control_mode.flag_control_velocity_enabled
-			    && _params.opt_recover <= 0) {
-				math::Matrix<3, 3> R_sp;
+			/* control roll and pitch directly if no aiding velocity controller is active */
+			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-				// construct attitude setpoint rotation matrix. modify the setpoints for roll
-				// and pitch such that they reflect the user's intention even if a yaw error
-				// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
-				// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
-				// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
-				// heading of the vehicle.
+				/* only if optimal recovery is not used, modify roll/pitch */
+				if (_params.opt_recover <= 0) {
+					// construct attitude setpoint rotation matrix. modify the setpoints for roll
+					// and pitch such that they reflect the user's intention even if a yaw error
+					// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
+					// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
+					// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
+					// heading of the vehicle.
 
-				// calculate our current yaw error
-				float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+					// calculate our current yaw error
+					float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
 
-				// compute the vector obtained by rotating a z unit vector by the rotation
-				// given by the roll and pitch commands of the user
-				math::Vector<3> zB = {0, 0, 1};
-				math::Matrix<3, 3> R_sp_roll_pitch;
-				R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
-				math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
+					// compute the vector obtained by rotating a z unit vector by the rotation
+					// given by the roll and pitch commands of the user
+					math::Vector<3> zB = {0, 0, 1};
+					math::Matrix<3, 3> R_sp_roll_pitch;
+					R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
+					math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
 
-				// transform the vector into a new frame which is rotated around the z axis
-				// by the current yaw error. this vector defines the desired tilt when we look
-				// into the direction of the desired heading
-				math::Matrix<3, 3> R_yaw_correction;
-				R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
-				z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
+					// transform the vector into a new frame which is rotated around the z axis
+					// by the current yaw error. this vector defines the desired tilt when we look
+					// into the direction of the desired heading
+					math::Matrix<3, 3> R_yaw_correction;
+					R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+					z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
-				// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-				// to calculate the new desired roll and pitch angles
-				// R_tilt can be written as a function of the new desired roll and pitch
-				// angles. we get three equations and have to solve for 2 unknowns
-				float pitch_new = asinf(z_roll_pitch_sp(0));
-				float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
+					// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
+					// to calculate the new desired roll and pitch angles
+					// R_tilt can be written as a function of the new desired roll and pitch
+					// angles. we get three equations and have to solve for 2 unknowns
+					_att_sp.pitch_body = asinf(z_roll_pitch_sp(0));
+					_att_sp.roll_body = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
+				}
 
-				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
+				math::Matrix<3, 3> R_sp;
+				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
 				/* copy quaternion setpoint to attitude setpoint topic */

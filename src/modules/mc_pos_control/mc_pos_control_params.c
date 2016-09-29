@@ -160,6 +160,26 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
 PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
 
 /**
+ * Intergral gain for vertical position error
+ *
+ * @min 0.0
+ * @max 0.2
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_I, 0.0f);
+
+/**
+ * Differential gain for vertical position error
+ *
+ * @min 0.0
+ * @max 0.2
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_D, 0.0f);
+
+/**
  * Proportional gain for vertical velocity error
  *
  * @min 0.1
@@ -247,6 +267,27 @@ PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
+
+/**
+ * Intergral gain for horizontal position error
+ *
+ * @min 0.0
+ * @max 0.2
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_I, 0.0f);
+
+/**
+ * Differential gain for horizontal position error
+ *
+ * @min 0.0
+ * @max 0.2
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_D, 0.0f);
+
 
 /**
  * Proportional gain for horizontal velocity error
@@ -434,6 +475,17 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
+
+/**
+ * Low pass filter cut freq. for numerical position derivative
+ *
+ * @unit Hz
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_POSD_LP, 5.0f);
 
 /**
  * Low pass filter cut freq. for numerical velocity derivative
