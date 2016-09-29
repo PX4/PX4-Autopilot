@@ -184,11 +184,13 @@ class uploader(object):
         MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')
         MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
 
-        def __init__(self, portname, baudrate):
+        def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
                 # open the port, keep the default timeout short so we can poll quickly
-                self.port = serial.Serial(portname, baudrate, timeout=0.5)
+                self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5)
                 self.otp = b''
                 self.sn = b''
+                self.baudrate_bootloader = baudrate_bootloader;
+                self.baudrate_flightstack = baudrate_flightstack;
 
         def close(self):
                 if self.port is not None:
@@ -512,6 +514,8 @@ class uploader(object):
         def send_reboot(self):
                 try:
                     # try MAVLINK command first
+                    self.port.flush()
+                    self.port.baudrate = self.baudrate_flightstack
                     self.__send(uploader.MAVLINK_REBOOT_ID1)
                     self.__send(uploader.MAVLINK_REBOOT_ID0)
                     # then try reboot via NSH
@@ -519,7 +523,11 @@ class uploader(object):
                     self.__send(uploader.NSH_REBOOT_BL)
                     self.__send(uploader.NSH_INIT)
                     self.__send(uploader.NSH_REBOOT)
+                    self.port.flush()
+                    self.port.baudrate = self.baudrate_bootloader
                 except:
+                    self.port.flush()
+                    self.port.baudrate = self.baudrate_bootloader
                     return
 
 
@@ -532,7 +540,8 @@ else:
 # Parse commandline arguments
 parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
 parser.add_argument('--port', action="store", required=True, help="Serial port(s) to which the FMU may be attached")
-parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
+parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
+parser.add_argument('--baud-flightstack', action="store", type=int, default=57600, help="Baud rate of the serial port (default is 57600) when communicating with flight stack(Mavlink or NSH), only required for true serial ports.")
 parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
 parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
@@ -573,15 +582,15 @@ try:
                             if "linux" in _platform:
                             # Linux, don't open Mac OS and Win ports
                                     if not "COM" in port and not "tty.usb" in port:
-                                            up = uploader(port, args.baud)
+                                            up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                             elif "darwin" in _platform:
                                     # OS X, don't open Windows and Linux ports
                                     if not "COM" in port and not "ACM" in port:
-                                            up = uploader(port, args.baud)
+                                            up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                             elif "win" in _platform:
                                     # Windows, don't open POSIX ports
                                     if not "/" in port:
-                                            up = uploader(port, args.baud)
+                                            up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                     except Exception:
                             # open failed, rate-limit our attempts
                             time.sleep(0.05)
