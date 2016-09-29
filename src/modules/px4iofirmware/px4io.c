@@ -233,32 +233,39 @@ int
 user_start(int argc, char *argv[])
 {
 	/* configure the first 8 PWM outputs (i.e. all of them) */
+	// 配置开始的8个PWM输出
 	up_pwm_servo_init(0xff);
 
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
 	/* reset all to zero */
+	//将遥控器通道时间以及fmu接收数据的时间清零
 	memset(&system_state, 0, sizeof(system_state));
 
 	/* configure the high-resolution time/callout interface */
+	// 配置高分辨率的时间接口/回调接口
 	hrt_init();
 
 	/* calculate our fw CRC so FMU can decide if we need to update */
+	// 计算fw CRC用于FMU决定是否应该更新
 	calculate_fw_crc();
 
 	/*
 	 * Poll at 1ms intervals for received bytes that have not triggered
 	 * a DMA event.
+	 * 以1ms的时间间隔查询已接收到的字节中还未触发DMA的事件
 	 */
 #ifdef CONFIG_ARCH_DMA
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 #endif
 
 	/* print some startup info */
+	// 打印启动信息
 	lowsyslog("\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
+	// 启动时默认所有的LED熄灭
 	LED_AMBER(false);
 	LED_BLUE(false);
 	LED_SAFETY(false);
