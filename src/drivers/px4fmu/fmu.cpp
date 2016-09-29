@@ -2553,6 +2553,7 @@ bind_spektrum()
 
 	if (true) {
 		PX4_INFO("bind_Spektrum RX");
+
 		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
 		if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
 			PX4_ERR("binding failed.");
