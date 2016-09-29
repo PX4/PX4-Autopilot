@@ -90,6 +90,23 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/uORB.h>
+/*************************************************************/
+#include <uORB/topics/fixed_target_position_g2p.h>
+#include <uORB/topics/fixed_target_position_p2m.h>
+#include <uORB/topics/fixed_target_return_m2p.h>
+#include <uORB/topics/fixed_target_return_p2g.h>
+#include <uORB/topics/yaw_sp_calculated_m2p.h>
+#include <uORB/topics/yaw_sp_calculated_p2g.h>
+#include <uORB/topics/task_status_change_g2p.h>
+#include <uORB/topics/task_status_change_p2m.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
+#include <uORB/topics/task_status_monitor_p2g.h>
+#include <uORB/topics/vision_num_scan_m2p.h>
+#include <uORB/topics/vision_num_scan_p2g.h>
+#include <uORB/topics/vision_one_num_get_m2p.h>
+#include <uORB/topics/vision_one_num_get_p2g.h>
+#include <uORB/topics/obstacle_position_m2p.h>
+#include <uORB/topics/obstacle_position_p2g.h>
 
 
 static uint16_t cm_uint16_from_m_float(float m);
@@ -3228,6 +3245,1122 @@ protected:
 	}
 };
 
+/********** 16 custom mavlink messages ***********/
+
+class MavlinkStreamFixedTargetPositionG2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamFixedTargetPositionG2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "FIXED_TARGET_POSITION_G2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_POSITION_G2P;
+	}
+
+	uint8_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamFixedTargetPositionG2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_POSITION_G2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+	bool const_rate()
+	{
+		return true;
+	}
+
+private:
+	MavlinkOrbSubscription *_fixed_target_position_g2p_sub;
+	uint64_t _fixed_target_position_g2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamFixedTargetPositionG2P(MavlinkStreamFixedTargetPositionG2P &);
+	MavlinkStreamFixedTargetPositionG2P &operator = (const MavlinkStreamFixedTargetPositionG2P &);
+
+protected:
+	explicit MavlinkStreamFixedTargetPositionG2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fixed_target_position_g2p_sub(_mavlink->add_orb_subscription(ORB_ID(fixed_target_position_g2p))),
+		_fixed_target_position_g2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fixed_target_position_g2p_s fixed_target_position_g2p;
+
+		bool updated = _fixed_target_position_g2p_sub->update(&_fixed_target_position_g2p_time, &fixed_target_position_g2p);
+
+		if (updated) {
+
+			mavlink_fixed_target_position_g2p_t msg;
+
+			msg.home_lon=fixed_target_position_g2p.home_lon;
+			msg.home_lat=fixed_target_position_g2p.home_lat;
+			msg.home_alt=fixed_target_position_g2p.home_alt;
+			msg.observe_lon=fixed_target_position_g2p.observe_lon;
+			msg.observe_lat=fixed_target_position_g2p.observe_lat;
+			msg.observe_alt=fixed_target_position_g2p.observe_alt;
+			msg.spray_left_lon=fixed_target_position_g2p.spray_left_lon;
+			msg.spray_left_lat=fixed_target_position_g2p.spray_left_lat;
+			msg.spray_left_alt=fixed_target_position_g2p.spray_left_alt;
+			msg.spray_right_lon=fixed_target_position_g2p.spray_right_lon;
+			msg.spray_right_lat=fixed_target_position_g2p.spray_right_lat;
+			msg.spray_right_alt=fixed_target_position_g2p.spray_right_alt;
+
+			mavlink_msg_fixed_target_position_g2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamFixedTargetPositionP2M : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamFixedTargetPositionP2M::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "FIXED_TARGET_POSITION_P2M";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_POSITION_P2M;
+	}
+
+	uint8_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamFixedTargetPositionP2M(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_POSITION_P2M_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+	bool const_rate()
+	{
+		return true;
+	}
+
+private:
+	MavlinkOrbSubscription *_fixed_target_position_p2m_sub;
+	uint64_t _fixed_target_position_p2m_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamFixedTargetPositionP2M(MavlinkStreamFixedTargetPositionP2M &);
+	MavlinkStreamFixedTargetPositionP2M &operator = (const MavlinkStreamFixedTargetPositionP2M &);
+
+protected:
+	explicit MavlinkStreamFixedTargetPositionP2M(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fixed_target_position_p2m_sub(_mavlink->add_orb_subscription(ORB_ID(fixed_target_position_p2m))),
+		_fixed_target_position_p2m_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fixed_target_position_p2m_s fixed_target_position_p2m;
+
+		bool updated = _fixed_target_position_p2m_sub->update(&_fixed_target_position_p2m_time, &fixed_target_position_p2m);
+
+		if (updated) {
+
+			mavlink_fixed_target_position_p2m_t msg;
+
+			msg.home_lon=fixed_target_position_p2m.home_lon;
+			msg.home_lat=fixed_target_position_p2m.home_lat;
+			msg.home_alt=fixed_target_position_p2m.home_alt;
+			msg.observe_lon=fixed_target_position_p2m.observe_lon;
+			msg.observe_lat=fixed_target_position_p2m.observe_lat;
+			msg.observe_alt=fixed_target_position_p2m.observe_alt;
+			msg.spray_left_lon=fixed_target_position_p2m.spray_left_lon;
+			msg.spray_left_lat=fixed_target_position_p2m.spray_left_lat;
+			msg.spray_left_alt=fixed_target_position_p2m.spray_left_alt;
+			msg.spray_right_lon=fixed_target_position_p2m.spray_right_lon;
+			msg.spray_right_lat=fixed_target_position_p2m.spray_right_lat;
+			msg.spray_right_alt=fixed_target_position_p2m.spray_right_alt;
+
+			mavlink_msg_fixed_target_position_p2m_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamFixedTargetReturnM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamFixedTargetReturnM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "FIXED_TARGET_RETURN_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_RETURN_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamFixedTargetReturnM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_fixed_target_return_m2p_time > 0) ? MAVLINK_MSG_ID_FIXED_TARGET_RETURN_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_fixed_target_return_m2p_sub;
+	uint64_t _fixed_target_return_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamFixedTargetReturnM2P(MavlinkStreamFixedTargetReturnM2P &);
+	MavlinkStreamFixedTargetReturnM2P& operator = (const MavlinkStreamFixedTargetReturnM2P &);
+
+protected:
+	explicit MavlinkStreamFixedTargetReturnM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fixed_target_return_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(fixed_target_return_m2p))),
+		_fixed_target_return_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fixed_target_return_m2p_s fixed_target_return_m2p;
+
+		bool updated = _fixed_target_return_m2p_sub->update(&_fixed_target_return_m2p_time, &fixed_target_return_m2p);
+
+		if (updated) {
+
+			mavlink_fixed_target_return_m2p_t msg;
+
+			msg.timestamp=fixed_target_return_m2p.timestamp;
+			msg.home_lon=fixed_target_return_m2p.home_lon;
+			msg.home_lat=fixed_target_return_m2p.home_lat;
+			msg.home_alt=fixed_target_return_m2p.home_alt;
+			msg.observe_lon=fixed_target_return_m2p.observe_lon;
+			msg.observe_lat=fixed_target_return_m2p.observe_lat;
+			msg.observe_alt=fixed_target_return_m2p.observe_alt;
+			msg.spray_left_lon=fixed_target_return_m2p.spray_left_lon;
+			msg.spray_left_lat=fixed_target_return_m2p.spray_left_lat;
+			msg.spray_left_alt=fixed_target_return_m2p.spray_left_alt;
+			msg.spray_right_lon=fixed_target_return_m2p.spray_right_lon;
+			msg.spray_right_lat=fixed_target_return_m2p.spray_right_lat;
+			msg.spray_right_alt=fixed_target_return_m2p.spray_right_alt;
+
+			mavlink_msg_fixed_target_return_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamFixedTargetReturnP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamFixedTargetReturnP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "FIXED_TARGET_RETURN_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_FIXED_TARGET_RETURN_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamFixedTargetReturnP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_fixed_target_return_p2g_time > 0) ? MAVLINK_MSG_ID_FIXED_TARGET_RETURN_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_fixed_target_return_p2g_sub;
+	uint64_t _fixed_target_return_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamFixedTargetReturnP2G(MavlinkStreamFixedTargetReturnP2G &);
+	MavlinkStreamFixedTargetReturnP2G& operator = (const MavlinkStreamFixedTargetReturnP2G &);
+
+protected:
+	explicit MavlinkStreamFixedTargetReturnP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_fixed_target_return_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(fixed_target_return_p2g))),
+		_fixed_target_return_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct fixed_target_return_p2g_s fixed_target_return_p2g;
+
+		bool updated = _fixed_target_return_p2g_sub->update(&_fixed_target_return_p2g_time, &fixed_target_return_p2g);
+
+		if (updated) {
+
+			mavlink_fixed_target_return_p2g_t msg;
+
+			msg.timestamp=fixed_target_return_p2g.timestamp;
+			msg.home_lon=fixed_target_return_p2g.home_lon;
+			msg.home_lat=fixed_target_return_p2g.home_lat;
+			msg.home_alt=fixed_target_return_p2g.home_alt;
+			msg.observe_lon=fixed_target_return_p2g.observe_lon;
+			msg.observe_lat=fixed_target_return_p2g.observe_lat;
+			msg.observe_alt=fixed_target_return_p2g.observe_alt;
+			msg.spray_left_lon=fixed_target_return_p2g.spray_left_lon;
+			msg.spray_left_lat=fixed_target_return_p2g.spray_left_lat;
+			msg.spray_left_alt=fixed_target_return_p2g.spray_left_alt;
+			msg.spray_right_lon=fixed_target_return_p2g.spray_right_lon;
+			msg.spray_right_lat=fixed_target_return_p2g.spray_right_lat;
+			msg.spray_right_alt=fixed_target_return_p2g.spray_right_alt;
+
+			mavlink_msg_fixed_target_return_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamYawSpCalculatedM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamYawSpCalculatedM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "YAW_SP_CALCULATED_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_YAW_SP_CALCULATED_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamYawSpCalculatedM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_yaw_sp_calculated_m2p_time > 0) ? MAVLINK_MSG_ID_YAW_SP_CALCULATED_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_yaw_sp_calculated_m2p_sub;
+	uint64_t _yaw_sp_calculated_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamYawSpCalculatedM2P(MavlinkStreamYawSpCalculatedM2P &);
+	MavlinkStreamYawSpCalculatedM2P& operator = (const MavlinkStreamYawSpCalculatedM2P &);
+
+protected:
+	explicit MavlinkStreamYawSpCalculatedM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_yaw_sp_calculated_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(yaw_sp_calculated_m2p))),
+		_yaw_sp_calculated_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct yaw_sp_calculated_m2p_s yaw_sp_calculated_m2p;
+
+		bool updated = _yaw_sp_calculated_m2p_sub->update(&_yaw_sp_calculated_m2p_time, &yaw_sp_calculated_m2p);
+
+		if (updated) {
+
+			mavlink_yaw_sp_calculated_m2p_t msg;
+
+			msg.timestamp=yaw_sp_calculated_m2p.timestamp;
+			msg.yaw_sp=yaw_sp_calculated_m2p.yaw_sp;
+
+			mavlink_msg_yaw_sp_calculated_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamYawSpCalculatedP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamYawSpCalculatedP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "YAW_SP_CALCULATED_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_YAW_SP_CALCULATED_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamYawSpCalculatedP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_yaw_sp_calculated_p2g_time > 0) ? MAVLINK_MSG_ID_YAW_SP_CALCULATED_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_yaw_sp_calculated_p2g_sub;
+	uint64_t _yaw_sp_calculated_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamYawSpCalculatedP2G(MavlinkStreamYawSpCalculatedP2G &);
+	MavlinkStreamYawSpCalculatedP2G& operator = (const MavlinkStreamYawSpCalculatedP2G &);
+
+protected:
+	explicit MavlinkStreamYawSpCalculatedP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_yaw_sp_calculated_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(yaw_sp_calculated_p2g))),
+		_yaw_sp_calculated_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct yaw_sp_calculated_m2p_s yaw_sp_calculated_p2g;
+
+		bool updated = _yaw_sp_calculated_p2g_sub->update(&_yaw_sp_calculated_p2g_time, &yaw_sp_calculated_p2g);
+
+		if (updated) {
+
+			mavlink_yaw_sp_calculated_p2g_t msg;
+
+			msg.timestamp=yaw_sp_calculated_p2g.timestamp;
+			msg.yaw_sp=yaw_sp_calculated_p2g.yaw_sp;
+
+			mavlink_msg_yaw_sp_calculated_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamTaskStatusChangeG2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamTaskStatusChangeG2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "TASK_STATUS_CHANGE_G2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_TASK_STATUS_CHANGE_G2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamTaskStatusChangeG2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_task_status_change_g2p_time > 0) ? MAVLINK_MSG_ID_TASK_STATUS_CHANGE_G2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_task_status_change_g2p_sub;
+	uint64_t _task_status_change_g2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamTaskStatusChangeG2P(MavlinkStreamTaskStatusChangeG2P &);
+	MavlinkStreamTaskStatusChangeG2P& operator = (const MavlinkStreamTaskStatusChangeG2P &);
+
+protected:
+	explicit MavlinkStreamTaskStatusChangeG2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_task_status_change_g2p_sub(_mavlink->add_orb_subscription(ORB_ID(task_status_change_g2p))),
+		_task_status_change_g2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct task_status_change_g2p_s task_status_change_g2p;
+
+		bool updated = _task_status_change_g2p_sub->update(&_task_status_change_g2p_time, &task_status_change_g2p);
+
+		if (updated) {
+
+			mavlink_task_status_change_g2p_t msg;
+
+			msg.num_odd_even=task_status_change_g2p.num_odd_even;
+			msg.task_status=task_status_change_g2p.task_status;
+			msg.loop_value=task_status_change_g2p.loop_value;
+
+			mavlink_msg_task_status_change_g2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamTaskStatusChangeP2M : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamTaskStatusChangeP2M::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "TASK_STATUS_CHANGE_P2M";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_TASK_STATUS_CHANGE_P2M;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamTaskStatusChangeP2M(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_task_status_change_p2m_time > 0) ? MAVLINK_MSG_ID_TASK_STATUS_CHANGE_P2M_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_task_status_change_p2m_sub;
+	uint64_t _task_status_change_p2m_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamTaskStatusChangeP2M(MavlinkStreamTaskStatusChangeP2M &);
+	MavlinkStreamTaskStatusChangeP2M& operator = (const MavlinkStreamTaskStatusChangeP2M &);
+
+protected:
+	explicit MavlinkStreamTaskStatusChangeP2M(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_task_status_change_p2m_sub(_mavlink->add_orb_subscription(ORB_ID(task_status_change_p2m))),
+		_task_status_change_p2m_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct task_status_change_p2m_s task_status_change_p2m;
+
+		bool updated = _task_status_change_p2m_sub->update(&_task_status_change_p2m_time, &task_status_change_p2m);
+
+		if (updated) {
+
+			mavlink_task_status_change_p2m_t msg;
+
+			msg.num_odd_even=task_status_change_p2m.num_odd_even;
+			msg.task_status=task_status_change_p2m.task_status;
+			msg.loop_value=task_status_change_p2m.loop_value;
+
+			mavlink_msg_task_status_change_p2m_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamTaskStatusMonitorM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamTaskStatusMonitorM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "TASK_STATUS_MONITOR_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_TASK_STATUS_MONITOR_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamTaskStatusMonitorM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_task_status_monitor_m2p_time > 0) ? MAVLINK_MSG_ID_TASK_STATUS_MONITOR_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_task_status_monitor_m2p_sub;
+	uint64_t _task_status_monitor_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamTaskStatusMonitorM2P(MavlinkStreamTaskStatusMonitorM2P &);
+	MavlinkStreamTaskStatusMonitorM2P& operator = (const MavlinkStreamTaskStatusMonitorM2P &);
+
+protected:
+	explicit MavlinkStreamTaskStatusMonitorM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_task_status_monitor_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(task_status_monitor_m2p))),
+		_task_status_monitor_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct task_status_monitor_m2p_s task_status_monitor_m2p;
+
+		bool updated = _task_status_monitor_m2p_sub->update(&_task_status_monitor_m2p_time, &task_status_monitor_m2p);
+
+		if (updated) {
+
+			mavlink_task_status_monitor_m2p_t msg;
+
+			msg.timestamp=task_status_monitor_m2p.timestamp;
+			msg.num_odd_even=task_status_monitor_m2p.num_odd_even;
+			msg.task_status=task_status_monitor_m2p.task_status;
+			msg.loop_value=task_status_monitor_m2p.loop_value;
+			msg.target_lon=task_status_monitor_m2p.target_lon;
+			msg.target_lat=task_status_monitor_m2p.target_lat;
+			msg.target_alt=task_status_monitor_m2p.target_alt;
+
+			mavlink_msg_task_status_monitor_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamTaskStatusMonitorP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamTaskStatusMonitorP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "TASK_STATUS_MONITOR_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_TASK_STATUS_MONITOR_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamTaskStatusMonitorP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_task_status_monitor_p2g_time > 0) ? MAVLINK_MSG_ID_TASK_STATUS_MONITOR_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_task_status_monitor_p2g_sub;
+	uint64_t _task_status_monitor_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamTaskStatusMonitorP2G(MavlinkStreamTaskStatusMonitorP2G &);
+	MavlinkStreamTaskStatusMonitorP2G& operator = (const MavlinkStreamTaskStatusMonitorP2G &);
+
+protected:
+	explicit MavlinkStreamTaskStatusMonitorP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_task_status_monitor_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(task_status_monitor_p2g))),
+		_task_status_monitor_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct task_status_monitor_p2g_s task_status_monitor_p2g;
+
+		bool updated = _task_status_monitor_p2g_sub->update(&_task_status_monitor_p2g_time, &task_status_monitor_p2g);
+
+		if (updated) {
+
+			mavlink_task_status_monitor_p2g_t msg;
+
+			msg.timestamp=task_status_monitor_p2g.timestamp;
+			msg.num_odd_even=task_status_monitor_p2g.num_odd_even;
+			msg.task_status=task_status_monitor_p2g.task_status;
+			msg.loop_value=task_status_monitor_p2g.loop_value;
+			msg.target_lon=task_status_monitor_p2g.target_lon;
+			msg.target_lat=task_status_monitor_p2g.target_lat;
+			msg.target_alt=task_status_monitor_p2g.target_alt;
+
+			mavlink_msg_task_status_monitor_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamVisionNumScanM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVisionNumScanM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VISION_NUM_SCAN_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VISION_NUM_SCAN_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVisionNumScanM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_vision_num_scan_m2p_time > 0) ? MAVLINK_MSG_ID_VISION_NUM_SCAN_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_vision_num_scan_m2p_sub;
+	uint64_t _vision_num_scan_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVisionNumScanM2P(MavlinkStreamVisionNumScanM2P &);
+	MavlinkStreamVisionNumScanM2P& operator = (const MavlinkStreamVisionNumScanM2P &);
+
+protected:
+	explicit MavlinkStreamVisionNumScanM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_vision_num_scan_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(vision_num_scan_m2p))),
+		_vision_num_scan_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vision_num_scan_m2p_s vision_num_scan_m2p;
+
+		bool updated = _vision_num_scan_m2p_sub->update(&_vision_num_scan_m2p_time, &vision_num_scan_m2p);
+
+		if (updated) {
+
+			mavlink_vision_num_scan_m2p_t msg;
+
+			msg.timestamp=vision_num_scan_m2p.timestamp;
+			msg.board_num=vision_num_scan_m2p.board_num;
+			msg.board_x=vision_num_scan_m2p.board_x;
+			msg.board_y=vision_num_scan_m2p.board_y;
+			msg.board_z=vision_num_scan_m2p.board_z;
+			msg.board_valid=vision_num_scan_m2p.board_valid;
+
+			mavlink_msg_vision_num_scan_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamVisionNumScanP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVisionNumScanP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VISION_NUM_SCAN_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VISION_NUM_SCAN_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVisionNumScanP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_vision_num_scan_p2g_time > 0) ? MAVLINK_MSG_ID_VISION_NUM_SCAN_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_vision_num_scan_p2g_sub;
+	uint64_t _vision_num_scan_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVisionNumScanP2G(MavlinkStreamVisionNumScanP2G &);
+	MavlinkStreamVisionNumScanP2G& operator = (const MavlinkStreamVisionNumScanP2G &);
+
+protected:
+	explicit MavlinkStreamVisionNumScanP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_vision_num_scan_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(vision_num_scan_p2g))),
+		_vision_num_scan_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vision_num_scan_p2g_s vision_num_scan_p2g;
+
+		bool updated = _vision_num_scan_p2g_sub->update(&_vision_num_scan_p2g_time, &vision_num_scan_p2g);
+
+		if (updated) {
+
+			mavlink_vision_num_scan_p2g_t msg;
+
+			msg.timestamp=vision_num_scan_p2g.timestamp;
+			msg.board_num=vision_num_scan_p2g.board_num;
+			msg.board_x=vision_num_scan_p2g.board_x;
+			msg.board_y=vision_num_scan_p2g.board_y;
+			msg.board_z=vision_num_scan_p2g.board_z;
+			msg.board_valid=vision_num_scan_p2g.board_valid;
+
+			mavlink_msg_vision_num_scan_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamVisionOneNumGetM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVisionOneNumGetM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VISION_ONE_NUM_GET_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VISION_ONE_NUM_GET_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVisionOneNumGetM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_vision_one_num_get_m2p_time > 0) ? MAVLINK_MSG_ID_VISION_ONE_NUM_GET_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_vision_one_num_get_m2p_sub;
+	uint64_t _vision_one_num_get_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVisionOneNumGetM2P(MavlinkStreamVisionOneNumGetM2P &);
+	MavlinkStreamVisionOneNumGetM2P& operator = (const MavlinkStreamVisionOneNumGetM2P &);
+
+protected:
+	explicit MavlinkStreamVisionOneNumGetM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_vision_one_num_get_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(vision_one_num_get_m2p))),
+		_vision_one_num_get_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vision_one_num_get_m2p_s vision_one_num_get_m2p;
+
+		bool updated = _vision_one_num_get_m2p_sub->update(&_vision_one_num_get_m2p_time, &vision_one_num_get_m2p);
+
+		if (updated) {
+
+			mavlink_vision_one_num_get_m2p_t msg;
+
+			msg.timestamp=vision_one_num_get_m2p.timestamp;
+			msg.loop_value=vision_one_num_get_m2p.loop_value;
+			msg.num=vision_one_num_get_m2p.num;
+
+			mavlink_msg_vision_one_num_get_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamVisionOneNumGetP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVisionOneNumGetP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VISION_ONE_NUM_GET_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VISION_ONE_NUM_GET_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVisionOneNumGetP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_vision_one_num_get_p2g_time > 0) ? MAVLINK_MSG_ID_VISION_ONE_NUM_GET_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_vision_one_num_get_p2g_sub;
+	uint64_t _vision_one_num_get_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVisionOneNumGetP2G(MavlinkStreamVisionOneNumGetP2G &);
+	MavlinkStreamVisionOneNumGetP2G& operator = (const MavlinkStreamVisionOneNumGetP2G &);
+
+protected:
+	explicit MavlinkStreamVisionOneNumGetP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_vision_one_num_get_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(vision_one_num_get_p2g))),
+		_vision_one_num_get_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vision_one_num_get_p2g_s vision_one_num_get_p2g;
+
+		bool updated = _vision_one_num_get_p2g_sub->update(&_vision_one_num_get_p2g_time, &vision_one_num_get_p2g);
+
+		if (updated) {
+
+			mavlink_vision_one_num_get_p2g_t msg;
+
+			msg.timestamp=vision_one_num_get_p2g.timestamp;
+			msg.loop_value=vision_one_num_get_p2g.loop_value;
+			msg.num=vision_one_num_get_p2g.num;
+
+			mavlink_msg_vision_one_num_get_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+class MavlinkStreamObstaclePositionM2P : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamObstaclePositionM2P::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "OBSTACLE_POSITION_M2P";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_OBSTACLE_POSITION_M2P;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamObstaclePositionM2P(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_obstacle_position_m2p_time > 0) ? MAVLINK_MSG_ID_OBSTACLE_POSITION_M2P_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_obstacle_position_m2p_sub;
+	uint64_t _obstacle_position_m2p_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamObstaclePositionM2P(MavlinkStreamObstaclePositionM2P &);
+	MavlinkStreamObstaclePositionM2P& operator = (const MavlinkStreamObstaclePositionM2P &);
+
+protected:
+	explicit MavlinkStreamObstaclePositionM2P(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_obstacle_position_m2p_sub(_mavlink->add_orb_subscription(ORB_ID(obstacle_position_m2p))),
+		_obstacle_position_m2p_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct obstacle_position_m2p_s obstacle_position_m2p;
+
+		bool updated = _obstacle_position_m2p_sub->update(&_obstacle_position_m2p_time, &obstacle_position_m2p);
+
+		if (updated) {
+
+			mavlink_obstacle_position_m2p_t msg;
+
+			msg.timestamp=obstacle_position_m2p.timestamp;
+			msg.obstacle_x=obstacle_position_m2p.obstacle_x;
+			msg.obstacle_y=obstacle_position_m2p.obstacle_y;
+			msg.obstacle_z=obstacle_position_m2p.obstacle_z;
+			msg.obstacle_valid=obstacle_position_m2p.obstacle_valid;
+
+			mavlink_msg_obstacle_position_m2p_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+class MavlinkStreamObstaclePositionP2G : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamObstaclePositionP2G::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "OBSTACLE_POSITION_P2G";
+	}
+
+	static uint8_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_OBSTACLE_POSITION_P2G;
+	}
+
+    uint8_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamObstaclePositionP2G(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_obstacle_position_p2g_time > 0) ? MAVLINK_MSG_ID_OBSTACLE_POSITION_P2G_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_obstacle_position_p2g_sub;
+	uint64_t _obstacle_position_p2g_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamObstaclePositionP2G(MavlinkStreamObstaclePositionP2G &);
+	MavlinkStreamObstaclePositionP2G& operator = (const MavlinkStreamObstaclePositionP2G &);
+
+protected:
+	explicit MavlinkStreamObstaclePositionP2G(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_obstacle_position_p2g_sub(_mavlink->add_orb_subscription(ORB_ID(obstacle_position_p2g))),
+		_obstacle_position_p2g_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct obstacle_position_p2g_s obstacle_position_p2g;
+
+		bool updated = _obstacle_position_p2g_sub->update(&_obstacle_position_p2g_time, &obstacle_position_p2g);
+
+		if (updated) {
+
+			mavlink_obstacle_position_p2g_t msg;
+
+			msg.timestamp=obstacle_position_p2g.timestamp;
+			msg.obstacle_x=obstacle_position_p2g.obstacle_x;
+			msg.obstacle_y=obstacle_position_p2g.obstacle_y;
+			msg.obstacle_z=obstacle_position_p2g.obstacle_z;
+			msg.obstacle_valid=obstacle_position_p2g.obstacle_valid;
+
+			mavlink_msg_obstacle_position_p2g_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
+/************************************************/
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -3271,5 +4404,22 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
 	new StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
 	new StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
+	/********** 16 custom mavlink messages ***********/
+	new StreamListItem(&MavlinkStreamFixedTargetPositionG2P::new_instance, &MavlinkStreamFixedTargetPositionG2P::get_name_static, &MavlinkStreamFixedTargetPositionG2P::get_id_static),
+	new StreamListItem(&MavlinkStreamFixedTargetPositionP2M::new_instance, &MavlinkStreamFixedTargetPositionP2M::get_name_static, &MavlinkStreamFixedTargetPositionP2M::get_id_static),
+	new StreamListItem(&MavlinkStreamFixedTargetReturnM2P::new_instance, &MavlinkStreamFixedTargetReturnM2P::get_name_static, &MavlinkStreamFixedTargetReturnM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamFixedTargetReturnP2G::new_instance, &MavlinkStreamFixedTargetReturnP2G::get_name_static, &MavlinkStreamFixedTargetReturnP2G::get_id_static),
+	new StreamListItem(&MavlinkStreamYawSpCalculatedM2P::new_instance, &MavlinkStreamYawSpCalculatedM2P::get_name_static, &MavlinkStreamYawSpCalculatedM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamYawSpCalculatedP2G::new_instance, &MavlinkStreamYawSpCalculatedP2G::get_name_static, &MavlinkStreamYawSpCalculatedP2G::get_id_static),
+	new StreamListItem(&MavlinkStreamTaskStatusChangeG2P::new_instance, &MavlinkStreamTaskStatusChangeG2P::get_name_static, &MavlinkStreamTaskStatusChangeG2P::get_id_static),
+	new StreamListItem(&MavlinkStreamTaskStatusChangeP2M::new_instance, &MavlinkStreamTaskStatusChangeP2M::get_name_static, &MavlinkStreamTaskStatusChangeP2M::get_id_static),
+	new StreamListItem(&MavlinkStreamTaskStatusMonitorM2P::new_instance, &MavlinkStreamTaskStatusMonitorM2P::get_name_static, &MavlinkStreamTaskStatusMonitorM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamTaskStatusMonitorP2G::new_instance, &MavlinkStreamTaskStatusMonitorP2G::get_name_static, &MavlinkStreamTaskStatusMonitorP2G::get_id_static),
+	new StreamListItem(&MavlinkStreamVisionNumScanM2P::new_instance, &MavlinkStreamVisionNumScanM2P::get_name_static, &MavlinkStreamVisionNumScanM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamVisionNumScanP2G::new_instance, &MavlinkStreamVisionNumScanP2G::get_name_static, &MavlinkStreamVisionNumScanP2G::get_id_static),
+	new StreamListItem(&MavlinkStreamVisionOneNumGetM2P::new_instance, &MavlinkStreamVisionOneNumGetM2P::get_name_static, &MavlinkStreamVisionOneNumGetM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamVisionOneNumGetP2G::new_instance, &MavlinkStreamVisionOneNumGetP2G::get_name_static, &MavlinkStreamVisionOneNumGetP2G::get_id_static),
+	new StreamListItem(&MavlinkStreamObstaclePositionM2P::new_instance, &MavlinkStreamObstaclePositionM2P::get_name_static, &MavlinkStreamObstaclePositionM2P::get_id_static),
+	new StreamListItem(&MavlinkStreamObstaclePositionP2G::new_instance, &MavlinkStreamObstaclePositionP2G::get_name_static, &MavlinkStreamObstaclePositionP2G::get_id_static),
 	nullptr
 };
