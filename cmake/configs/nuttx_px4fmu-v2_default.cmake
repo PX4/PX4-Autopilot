@@ -99,7 +99,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
-	modules/ekf2
+	# modules/ekf2
 
 	#
 	# Vehicle Control
@@ -182,6 +182,9 @@ set(config_module_list
 	
 	# User modules
 	modules/servo_control
+
+	# An example
+	modules/example_lz
 )
 
 set(config_extra_builtin_cmds
