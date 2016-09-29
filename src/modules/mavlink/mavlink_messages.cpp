@@ -107,6 +107,7 @@
 #include <uORB/topics/vision_one_num_get_p2g.h>
 #include <uORB/topics/obstacle_position_m2p.h>
 #include <uORB/topics/obstacle_position_p2g.h>
+/*************************************************************/
 
 
 static uint16_t cm_uint16_from_m_float(float m);
