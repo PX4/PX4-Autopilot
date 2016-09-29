@@ -1612,6 +1612,8 @@ int commander_thread_main(int argc, char *argv[])
 	bool main_state_changed = false;
 	bool failsafe_old = false;
 
+	bool have_taken_off_since_arming = false;
+
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
@@ -1686,8 +1688,6 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
-			auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000);
 
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
@@ -2049,6 +2049,7 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 				} else {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
+					have_taken_off_since_arming = true;
 				}
 			}
 
@@ -2062,6 +2063,17 @@ int commander_thread_main(int argc, char *argv[])
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
+
+
+
+		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
+		hrt_abstime timeout_time = disarm_when_landed * 1000000;
+
+		if (!have_taken_off_since_arming) {
+			timeout_time *= 5;
+		}
+
+		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
 
 		// Check for auto-disarm
 		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
@@ -2913,6 +2925,11 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		status_changed = false;
+
+		if (!armed.armed) {
+			/* Reset the flag if disarmed. */
+			have_taken_off_since_arming = false;
+		}
 
 
 		/* publish internal state for logging purposes */
