@@ -164,8 +164,10 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
 
 /**
  * Yaw P gain
+ * 偏航的比例增益
  *
  * Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+ * 偏航比例增益，例如，以 弧度/s 为单位的期望角速度
  *
  * @unit 1/s
  * @min 0.0

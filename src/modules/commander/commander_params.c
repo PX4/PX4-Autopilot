@@ -35,6 +35,7 @@
  * @file commander_params.c
  *
  * Parameters defined by the sensors task.
+ * 由传感器任务定义的参数
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
