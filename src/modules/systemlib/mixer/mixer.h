@@ -185,11 +185,7 @@ public:
 	virtual void			groups_required(uint32_t &groups) = 0;
 
 	/**
-	 * @brief      Update slew rate parameter. This tells the multicopter mixer
-	 *             the maximum allowed change of the output values per cycle.
-	 *             The value is only valid for one cycle, in order to have continuous
-	 *             slew rate limiting this function needs to be called before every call
-	 *             to mix().
+	 * @brief      Empty method, only implemented for MultirotorMixer and MixerGroup class.
 	 *
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
@@ -326,7 +322,7 @@ public:
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
 	/**
-	 * @brief      Update slew rate parameter. This tells the multicopter mixer
+	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
 	 *             the maximum allowed change of the output values per cycle.
 	 *             The value is only valid for one cycle, in order to have continuous
 	 *             slew rate limiting this function needs to be called before every call
