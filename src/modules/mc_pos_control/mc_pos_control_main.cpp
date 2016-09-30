@@ -182,12 +182,18 @@ private:
 		param_t z_vel_max_up;
 		param_t z_vel_max_down;
 		param_t z_ff;
-		param_t xy_p;
-		param_t xy_i;
-		param_t xy_d;
-		param_t xy_vel_p;
-		param_t xy_vel_i;
-		param_t xy_vel_d;
+		param_t x_p;
+		param_t x_i;
+		param_t x_d;
+		param_t y_p;
+		param_t y_i;
+		param_t y_d;
+		param_t x_vel_p;
+		param_t x_vel_i;
+		param_t x_vel_d;
+		param_t y_vel_p;
+		param_t y_vel_i;
+		param_t y_vel_d;
 		param_t xy_vel_max;
 		param_t xy_vel_cruise;
 		param_t xy_ff;
@@ -206,6 +212,7 @@ private:
 		param_t acc_hor_max;
 		param_t alt_mode;
 		param_t opt_recover;
+		param_t MC_TESTESTEST;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -230,6 +237,7 @@ private:
 		float acc_hor_max;
 		float vel_max_up;
 		float vel_max_down;
+		float MC_TESTESTEST;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -467,6 +475,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
+	_params_handles.MC_TESTESTEST = param_find("MC_TESTESTEST");
 
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
@@ -476,12 +485,19 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_i		= param_find("MPC_XY_I");
-	_params_handles.xy_d		= param_find("MPC_XY_D");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
+	_params_handles.x_p			= param_find("MPC_X_P");
+	_params_handles.x_i			= param_find("MPC_X_I");
+	_params_handles.x_d			= param_find("MPC_X_D");
+	_params_handles.x_p			= param_find("MPC_Y_P");
+	_params_handles.x_i			= param_find("MPC_Y_I");
+	_params_handles.x_d			= param_find("MPC_Y_D");
+	_params_handles.x_vel_p	= param_find("MPC_X_VEL_P");
+	_params_handles.x_vel_i	= param_find("MPC_X_VEL_I");
+	_params_handles.x_vel_d	= param_find("MPC_X_VEL_D");
+	_params_handles.y_vel_p	= param_find("MPC_Y_VEL_P");
+	_params_handles.y_vel_i	= param_find("MPC_Y_VEL_I");
+	_params_handles.y_vel_d	= param_find("MPC_Y_VEL_D");
+
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
 	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
@@ -560,39 +576,51 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		float v;
 		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);
+
+		param_get(_params_handles.MC_TESTESTEST, &v);
+		_params.MC_TESTESTEST = v;
+		param_get(_params_handles.x_p, &v);
 		_params.pos_p(0) = v;
-		_params.pos_p(1) = v;
-		param_get(_params_handles.xy_i, &v);
-		_params.pos_i(0) = v;
-		_params.pos_i(1) = v;
-		param_get(_params_handles.xy_d, &v);
-		_params.pos_d(0) = v;
-		_params.pos_d(1) = v;
-		param_get(_params_handles.xy_p, &v);
-		_params.pos_p(0) = v;
+		param_get(_params_handles.y_p, &v);
 		_params.pos_p(1) = v;
 		param_get(_params_handles.z_p, &v);
 		_params.pos_p(2) = v;
+
+		param_get(_params_handles.x_i, &v);
+		_params.pos_i(0) = v;
+		param_get(_params_handles.y_i, &v);
+		_params.pos_i(1) = v;
 		param_get(_params_handles.z_i, &v);
 		_params.pos_i(2) = v;
+
+		param_get(_params_handles.x_d, &v);
+		_params.pos_d(0) = v;
+		param_get(_params_handles.y_d, &v);
+		_params.pos_d(1) = v;
 		param_get(_params_handles.z_d, &v);
 		_params.pos_d(2) = v;
-		param_get(_params_handles.xy_vel_p, &v);
+
+		param_get(_params_handles.x_vel_p, &v);
 		_params.vel_p(0) = v;
+		param_get(_params_handles.y_vel_p, &v);
 		_params.vel_p(1) = v;
 		param_get(_params_handles.z_vel_p, &v);
 		_params.vel_p(2) = v;
-		param_get(_params_handles.xy_vel_i, &v);
+
+		param_get(_params_handles.x_vel_i, &v);
 		_params.vel_i(0) = v;
+		param_get(_params_handles.y_vel_i, &v);
 		_params.vel_i(1) = v;
 		param_get(_params_handles.z_vel_i, &v);
 		_params.vel_i(2) = v;
-		param_get(_params_handles.xy_vel_d, &v);
+
+		param_get(_params_handles.x_vel_d, &v);
 		_params.vel_d(0) = v;
+		param_get(_params_handles.x_vel_d, &v);
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
+
 		param_get(_params_handles.xy_vel_max, &v);
 		_params.vel_max(0) = v;
 		_params.vel_max(1) = v;
