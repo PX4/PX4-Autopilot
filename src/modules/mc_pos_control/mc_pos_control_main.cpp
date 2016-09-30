@@ -212,7 +212,6 @@ private:
 		param_t acc_hor_max;
 		param_t alt_mode;
 		param_t opt_recover;
-		param_t MC_TESTESTEST;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -237,7 +236,6 @@ private:
 		float acc_hor_max;
 		float vel_max_up;
 		float vel_max_down;
-		float MC_TESTESTEST;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -475,7 +473,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
-	_params_handles.MC_TESTESTEST = param_find("MC_TESTESTEST");
 
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
@@ -577,8 +574,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		float v;
 		uint32_t v_i;
 
-		param_get(_params_handles.MC_TESTESTEST, &v);
-		_params.MC_TESTESTEST = v;
 		param_get(_params_handles.x_p, &v);
 		_params.pos_p(0) = v;
 		param_get(_params_handles.y_p, &v);
