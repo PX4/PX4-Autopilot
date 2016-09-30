@@ -3744,7 +3744,7 @@ protected:
 
 			mavlink_task_status_change_g2p_t msg;
 
-			msg.num_odd_even=task_status_change_g2p.num_odd_even;
+			msg.spray_duration=task_status_change_g2p.spray_duration;
 			msg.task_status=task_status_change_g2p.task_status;
 			msg.loop_value=task_status_change_g2p.loop_value;
 
@@ -3809,7 +3809,7 @@ protected:
 
 			mavlink_task_status_change_p2m_t msg;
 
-			msg.num_odd_even=task_status_change_p2m.num_odd_even;
+			msg.spray_duration=task_status_change_p2m.spray_duration;
 			msg.task_status=task_status_change_p2m.task_status;
 			msg.loop_value=task_status_change_p2m.loop_value;
 
@@ -3876,7 +3876,7 @@ protected:
 			mavlink_task_status_monitor_m2p_t msg;
 
 			msg.timestamp=task_status_monitor_m2p.timestamp;
-			msg.num_odd_even=task_status_monitor_m2p.num_odd_even;
+			msg.spray_duration=task_status_monitor_m2p.spray_duration;
 			msg.task_status=task_status_monitor_m2p.task_status;
 			msg.loop_value=task_status_monitor_m2p.loop_value;
 			msg.target_lon=task_status_monitor_m2p.target_lon;
@@ -3945,7 +3945,7 @@ protected:
 			mavlink_task_status_monitor_p2g_t msg;
 
 			msg.timestamp=task_status_monitor_p2g.timestamp;
-			msg.num_odd_even=task_status_monitor_p2g.num_odd_even;
+			msg.spray_duration=task_status_monitor_p2g.spray_duration;
 			msg.task_status=task_status_monitor_p2g.task_status;
 			msg.loop_value=task_status_monitor_p2g.loop_value;
 			msg.target_lon=task_status_monitor_p2g.target_lon;

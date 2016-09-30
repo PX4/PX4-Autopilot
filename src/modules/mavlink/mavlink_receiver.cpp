@@ -2262,7 +2262,7 @@ MavlinkReceiver::handle_message_yaw_sp_calculated_m2p(mavlink_message_t *msg)
 	struct yaw_sp_calculated_m2p_s f;
 	memset(&f, 0, sizeof(f));
 
-	f.timestamp=yaw_sp.timestamp;
+	f.timestamp=hrt_absolute_time();
 	f.yaw_sp=yaw_sp.yaw_sp;
 
 	if (_yaw_sp_calculated_m2p_pub == nullptr) {
@@ -2280,7 +2280,7 @@ MavlinkReceiver::handle_message_yaw_sp_calculated_p2g(mavlink_message_t *msg)
 	struct yaw_sp_calculated_p2g_s f;
 	memset(&f, 0, sizeof(f));
 
-	f.timestamp=yaw_sp.timestamp;
+	f.timestamp=hrt_absolute_time();
 	f.yaw_sp=yaw_sp.yaw_sp;
 
 	if (_yaw_sp_calculated_p2g_pub == nullptr) {
@@ -2300,7 +2300,7 @@ MavlinkReceiver::handle_message_task_status_change_g2p(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_change.num_odd_even;
+	f.spray_duration=task_status_change.spray_duration;
 	f.task_status=task_status_change.task_status;
 	f.loop_value=task_status_change.loop_value;
 
@@ -2320,7 +2320,7 @@ MavlinkReceiver::handle_message_task_status_change_p2m(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_change.num_odd_even;
+	f.spray_duration=task_status_change.spray_duration;
 	f.task_status=task_status_change.task_status;
 	f.loop_value=task_status_change.loop_value;
 
@@ -2341,7 +2341,7 @@ MavlinkReceiver::handle_message_task_status_monitor_m2p(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_monitor.num_odd_even;
+	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
 	f.target_lon=task_status_monitor.target_lon;
@@ -2364,7 +2364,7 @@ MavlinkReceiver::handle_message_task_status_monitor_p2g(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_monitor.num_odd_even;
+	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
 	f.target_lon=task_status_monitor.target_lon;
@@ -2471,7 +2471,7 @@ MavlinkReceiver::handle_message_obstacle_position_m2p(mavlink_message_t *msg)
 	struct obstacle_position_m2p_s f;
 	memset(&f, 0, sizeof(f));
 
-	f.timestamp=obstacle_position.timestamp;
+	f.timestamp=hrt_absolute_time();
 	f.obstacle_x=obstacle_position.obstacle_x;
 	f.obstacle_y=obstacle_position.obstacle_y;
 	f.obstacle_z=obstacle_position.obstacle_z;
@@ -2492,7 +2492,7 @@ MavlinkReceiver::handle_message_obstacle_position_p2g(mavlink_message_t *msg)
 	struct obstacle_position_p2g_s f;
 	memset(&f, 0, sizeof(f));
 
-	f.timestamp=obstacle_position.timestamp;
+	f.timestamp=hrt_absolute_time();
 	f.obstacle_x=obstacle_position.obstacle_x;
 	f.obstacle_y=obstacle_position.obstacle_y;
 	f.obstacle_z=obstacle_position.obstacle_z;

@@ -185,6 +185,7 @@ set(config_module_list
 
 	# An example
 	modules/example_lz
+	modules/uavgp_commucation
 )
 
 set(config_extra_builtin_cmds
