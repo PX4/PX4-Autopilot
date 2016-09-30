@@ -47,17 +47,12 @@
 #include <lib/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <px4_defines.h>
 
 #include <dataman/dataman.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 int MavlinkMissionManager::_dataman_id = 0;
 bool MavlinkMissionManager::_dataman_init = false;
@@ -178,7 +173,7 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 			orb_publish(ORB_ID(offboard_mission), _offboard_mission_pub, &mission);
 		}
 
-		return OK;
+		return PX4_OK;
 
 	} else {
 		warnx("WPM: ERROR: can't save mission state");
@@ -187,7 +182,7 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
 		}
 
-		return ERROR;
+		return PX4_ERROR;
 	}
 }
 
@@ -507,7 +502,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count) {
-				if (update_active_mission(_dataman_id, _count, wpc.seq) == OK) {
+				if (update_active_mission(_dataman_id, _count, wpc.seq) == PX4_OK) {
 					if (_verbose) { warnx("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq); }
 
 				} else {
@@ -792,7 +787,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 		int ret = parse_mavlink_mission_item(&wp, &mission_item);
 
-		if (ret != OK) {
+		if (ret != PX4_OK) {
 			if (_verbose) { warnx("WPM: MISSION_ITEM ERROR: seq %u invalid item", wp.seq); }
 
 			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy");
@@ -831,7 +826,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			_state = MAVLINK_WPM_STATE_IDLE;
 
-			if (update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq) == OK) {
+			if (update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq) == PX4_OK) {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
 
 			} else {
@@ -860,7 +855,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			/* don't touch mission items storage itself, but only items count in mission state */
 			_time_last_recv = hrt_absolute_time();
 
-			if (update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0) == OK) {
+			if (update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0) == PX4_OK) {
 				if (_verbose) { warnx("WPM: CLEAR_ALL OK"); }
 
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
@@ -1050,7 +1045,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		default:
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 	} else {
@@ -1122,11 +1117,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		default:
-			return ERROR;
+			return PX4_ERROR;
 		}
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 

@@ -35,11 +35,10 @@ px4_add_module(
 	MAIN ardrone_interface
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ardrone_interface.c
 		ardrone_motor_control.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

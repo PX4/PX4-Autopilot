@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	STACK_MAIN 5700
 	STACK_MAX 13000
 	SRCS
@@ -49,4 +49,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

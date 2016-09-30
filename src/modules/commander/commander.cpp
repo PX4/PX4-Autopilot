@@ -65,6 +65,7 @@
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
 #include <navigator/navigation.h>
+#include <px4_defines.h>
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -106,12 +107,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -628,7 +623,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	// For HIL platforms, require that simulated sensors are connected
 	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
 		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
-		mavlink_and_console_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
+		mavlink_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
 
@@ -1050,7 +1045,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_and_console_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
+				mavlink_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
@@ -1063,7 +1058,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_and_console_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
+				mavlink_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
@@ -1319,6 +1314,11 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.offboard_control_signal_found_once = false;
 	status_flags.rc_signal_found_once = false;
 
+	/* assume we don't have a valid GPS & baro on startup */
+	status_flags.gps_failure = true;
+	status_flags.barometer_failure = true;
+	status_flags.ever_had_barometer_data = false;
+
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
@@ -1347,7 +1347,7 @@ int commander_thread_main(int argc, char *argv[])
 	if (status_pub == nullptr) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
-		px4_task_exit(ERROR);
+		px4_task_exit(PX4_ERROR);
 	}
 
 	/* Initialize armed with all false */
@@ -1838,7 +1838,10 @@ int commander_thread_main(int argc, char *argv[])
 				if (status_flags.barometer_failure) {
 					status_flags.barometer_failure = false;
 					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "baro healthy");
+					if (status_flags.ever_had_barometer_data) {
+						mavlink_log_critical(&mavlink_log_pub, "baro healthy");
+					}
+					status_flags.ever_had_barometer_data = true;
 				}
 
 			} else {
@@ -2115,30 +2118,30 @@ int commander_thread_main(int argc, char *argv[])
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_and_console_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+						mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
 
 					} else {
 						if (low_bat_action == 1) {
 							// let us send the critical message even if already in RTL
 							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
-								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
 
 							} else {
-								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 							}
 
 						} else if (low_bat_action == 2) {
 							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
-								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
 
 							} else {
-								mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
 							}
 
 						} else {
-							mavlink_and_console_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
+							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
 						}
 					}
 
@@ -2386,12 +2389,12 @@ int commander_thread_main(int argc, char *argv[])
 			static bool flight_termination_printed = false;
 
 			if (!flight_termination_printed) {
-				mavlink_and_console_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
+				mavlink_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
 				flight_termination_printed = true;
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				mavlink_and_console_log_critical(&mavlink_log_pub, "Flight termination active");
+				mavlink_log_critical(&mavlink_log_pub, "Flight termination active");
 			}
 		}
 
@@ -2641,7 +2644,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status.data_link_lost) {
 				if (armed.armed) {
-					mavlink_and_console_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
+					mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
 				}
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
@@ -2731,7 +2734,7 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					mavlink_and_console_log_critical(&mavlink_log_pub, "DL and GPS lost: flight termination");
+					mavlink_log_critical(&mavlink_log_pub, "DL and GPS lost: flight termination");
 					flight_termination_printed = true;
 				}
 
@@ -3649,7 +3652,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive(true);
+		tune_positive(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
@@ -3721,7 +3724,7 @@ void *commander_low_prio_loop(void *arg)
 					int ret = param_save_default();
 
 					if (ret != OK) {
-						mavlink_and_console_log_critical(&mavlink_log_pub, "settings auto save error");
+						mavlink_log_critical(&mavlink_log_pub, "settings auto save error");
 					} else {
 						PX4_DEBUG("commander: settings saved.");
 					}
@@ -3780,7 +3783,7 @@ void *commander_low_prio_loop(void *arg)
 
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-					int calib_ret = ERROR;
+					int calib_ret = PX4_ERROR;
 
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status,

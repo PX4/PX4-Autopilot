@@ -47,6 +47,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -107,12 +108,6 @@
 				     PCA9685_PWMMAX <--> PCA9685_MAXSERVODEG
 				     */
 #define PCA9685_SCALE ((PCA9685_PWMMAX - PCA9685_PWMCENTER)/(M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG)) // scales from rad to PWM
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 class PCA9685 : public device::I2C
 {
@@ -421,7 +416,7 @@ PCA9685::setPin(uint8_t num, uint16_t val, bool invert)
 		}
 	}
 
-	return ERROR;
+	return PX4_ERROR;
 }
 
 int

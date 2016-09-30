@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN navigator
 	STACK_MAIN 1300
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		navigator_main.cpp
 		navigator_mode.cpp
@@ -55,4 +54,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

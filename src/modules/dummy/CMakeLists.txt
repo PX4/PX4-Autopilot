@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE modules__dummy
 	MAIN tone_alarm
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		tone_alarm.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

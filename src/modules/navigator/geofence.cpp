@@ -49,19 +49,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
 #include "navigator.h"
 
 #define GEOFENCE_RANGE_WARNING_LIMIT 5000000
-
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 
 Geofence::Geofence(Navigator *navigator) :
 	SuperBlock(NULL, "GF"),
@@ -147,7 +141,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
 					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max vertical distance by %.1f m",
 									         (double)(dist_z - max_vertical_distance));
 						_last_vertical_range_warning = hrt_absolute_time();
@@ -158,7 +152,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
 					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max horizontal distance by %.1f m",
 									         (double)(dist_xy - max_horizontal_distance));
 						_last_horizontal_range_warning = hrt_absolute_time();
@@ -323,7 +317,7 @@ Geofence::loadFromFile(const char *filename)
 	int			pointCounter = 0;
 	bool		gotVertical = false;
 	const char commentChar = '#';
-	int rc = ERROR;
+	int rc = PX4_ERROR;
 
 	/* Make sure no data is left in the datamanager */
 	clearDm();
@@ -332,7 +326,7 @@ Geofence::loadFromFile(const char *filename)
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
 	if (fp == NULL) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* create geofence points from valid lines and store in DM */
@@ -408,7 +402,7 @@ Geofence::loadFromFile(const char *filename)
 		_vertices_count = pointCounter;
 		warnx("Geofence: imported successfully");
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported");
-		rc = OK;
+		rc = PX4_OK;
 
 	} else {
 		warnx("Geofence: import error");
@@ -423,5 +417,5 @@ error:
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
-	return OK;
+	return PX4_OK;
 }

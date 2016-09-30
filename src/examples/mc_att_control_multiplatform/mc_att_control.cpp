@@ -51,17 +51,6 @@
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
 
-namespace mc_att_control
-{
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
-}
-
 MulticopterAttitudeControlMultiplatform::MulticopterAttitudeControlMultiplatform() :
 	MulticopterAttitudeControlBase(),
 	_actuators_0_circuit_breaker_enabled(false),

@@ -525,12 +525,6 @@ private:
 namespace l1_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 FixedwingPositionControl	*g_control = nullptr;
 }
 
@@ -2553,7 +2547,7 @@ FixedwingPositionControl::start()
 	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   1400,
+					   1700,
 					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 					   nullptr);
 

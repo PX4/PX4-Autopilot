@@ -2079,7 +2079,7 @@ MavlinkReceiver::receive_thread(void *arg)
 	{
 		char thread_name[24];
 		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-		px4_prctl(PR_SET_NAME, thread_name, getpid());
+		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
 	}
 
 	const int timeout = 500;

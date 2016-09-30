@@ -1088,7 +1088,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if (*mission_index_ptr != (int)mission->count) {
-				mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr,
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr,
 								 (int)mission->count);
 			}
 
@@ -1103,7 +1103,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
 			return false;
 		}
 
@@ -1301,7 +1301,7 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 			}
 
 		} else {
-			mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: could not read mission");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: could not read mission");
 
 			/* initialize mission state in dataman */
 			mission.dataman_id = 0;

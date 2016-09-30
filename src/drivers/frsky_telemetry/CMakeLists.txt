@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN frsky_telemetry
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		frsky_data.c
 		sPort_data.c

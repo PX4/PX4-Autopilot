@@ -187,12 +187,6 @@ enum LPS25H_BUS {
 	LPS25H_BUS_SPI
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -817,12 +811,6 @@ LPS25H::print_info()
  */
 namespace lps25h
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 /*
   list of supported bus configurations

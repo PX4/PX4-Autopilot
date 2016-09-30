@@ -210,7 +210,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
-						mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
+						mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
 						valid_transition = false;
 					}
@@ -221,7 +221,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						// Fail transition if power is not good
 						if (!status_flags->condition_power_input_valid) {
 
-							mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
+							mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
 							feedback_provided = true;
 							valid_transition = false;
 						}
@@ -231,18 +231,18 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (avionics_power_rail_voltage < 4.5f) {
-								mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
+								mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
 												 (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 
 							} else if (avionics_power_rail_voltage < 4.9f) {
-								mavlink_and_console_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt",
+								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt",
 												 (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 
 							} else if (avionics_power_rail_voltage > 5.4f) {
-								mavlink_and_console_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt",
+								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt",
 												 (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
@@ -268,17 +268,17 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 				if (status_flags->condition_system_sensors_initialized) {
-					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
+					mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
 
 				} else {
-					mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
+					mavlink_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
 				}
 
 				feedback_provided = true;
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 				   status_flags->condition_system_sensors_initialized) {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
+				mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 
 			} else {
@@ -296,7 +296,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 				if (status_flags->condition_system_hotplug_timeout) {
 					if (!status_flags->condition_system_prearm_error_reported) {
-						mavlink_and_console_log_critical(mavlink_log_pub,
+						mavlink_log_critical(mavlink_log_pub,
 										 "Not ready to fly: Sensors not set up correctly");
 						status_flags->condition_system_prearm_error_reported = true;
 					}
@@ -333,7 +333,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state],
+			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state],
 							 state_names[new_arming_state]);
 		}
 	}
@@ -461,7 +461,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
 			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_and_console_log_critical(mavlink_log_pub, "Not switching off HIL (safety)");
+			mavlink_log_critical(mavlink_log_pub, "Not switching off HIL (safety)");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -535,7 +535,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					closedir(d);
 
 					ret = TRANSITION_CHANGED;
-					mavlink_and_console_log_critical(mavlink_log_pub, "Switched to ON hil state");
+					mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
 
 				} else {
 					/* failed opening dir */
@@ -600,11 +600,11 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				}
 
 				ret = TRANSITION_CHANGED;
-				mavlink_and_console_log_critical(mavlink_log_pub, "Switched to ON hil state");
+				mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
 #endif
 
 			} else {
-				mavlink_and_console_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
+				mavlink_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
 			}
 
@@ -1106,7 +1106,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
 		}
 	}
 
@@ -1114,7 +1114,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_and_console_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
 		}
 	}
 
