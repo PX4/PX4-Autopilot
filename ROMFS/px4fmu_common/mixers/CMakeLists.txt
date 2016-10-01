@@ -82,6 +82,7 @@ set(mixer_file_names
 	vtol_quad_x.main.mix
 	wingwing.main.mix
 	X5.main.mix
+	mount_legs.aux.mix
 )
 
 # Get absolute paths
