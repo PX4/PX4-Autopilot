@@ -29,10 +29,6 @@ void BlockLocalPositionEstimator::flowInit()
 					     "quality %d std %d",
 					     int(_flowQStats.getMean()(0)),
 					     int(_flowQStats.getStdDev()(0)));
-		// set flow x, y as estimate x, y at beginning of optical
-		// flow tracking
-		_flowX = _x(X_x);
-		_flowY = _x(X_y);
 		_flowInitialized = true;
 		_flowFault = FAULT_NONE;
 	}
@@ -46,6 +42,11 @@ void BlockLocalPositionEstimator::flowDeinit()
 
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
+	// check for sane pitch/roll
+	if (_sub_att.get().roll > 0.5f || _sub_att.get().pitch > 0.5f) {
+		return -1;
+	}
+
 	// check for agl
 	if (agl() < flow_min_agl) {
 		return -1;
@@ -65,33 +66,25 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 
 	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
 
-	// check for global accuracy
-	if (_gpsInitialized) {
-		double  lat = _sub_gps.get().lat * 1.0e-7;
-		double  lon = _sub_gps.get().lon * 1.0e-7;
-		float px = 0;
-		float py = 0;
-		map_projection_project(&_map_ref, lat, lon, &px, &py);
-		Vector2f delta(px - _flowX, py - _flowY);
-
-		if (delta.norm() > 3) {
-			mavlink_and_console_log_info(&mavlink_log_pub,
-						     "[lpe] flow too far from GPS, resetting position");
-			_flowX = px;
-			_flowY = py;
-			return -1;
-		}
-	}
-
 	// optical flow in x, y axis
 	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral;
 	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral;
+	float dt_flow = _sub_flow.get().integration_timespan / 1.0e6f;
+
+	if (dt_flow > 0.5f || dt_flow < 1.0e-6f) {
+		return -1;
+	}
 
 	// angular rotation in x, y axis
-	float gyro_x_rad = _flow_gyro_x_high_pass.update(
-				   _sub_flow.get().gyro_x_rate_integral);
-	float gyro_y_rad = _flow_gyro_y_high_pass.update(
-				   _sub_flow.get().gyro_y_rate_integral);
+	float gyro_x_rad = 0;
+	float gyro_y_rad = 0;
+
+	if (_flow_gyro_comp.get()) {
+		gyro_x_rad = _flow_gyro_x_high_pass.update(
+				     _sub_flow.get().gyro_x_rate_integral);
+		gyro_y_rad = _flow_gyro_y_high_pass.update(
+				     _sub_flow.get().gyro_y_rate_integral);
+	}
 
 	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
 	//double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
@@ -107,18 +100,14 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	Matrix3f R_nb(_sub_att.get().R);
 	Vector3f delta_n = R_nb * delta_b;
 
-	// flow integration
-	_flowX += delta_n(0);
-	_flowY += delta_n(1);
-
-	// measurement
-	y(Y_flow_x) = _flowX;
-	y(Y_flow_y) = _flowY;
-
-	_flowQStats.update(Scalarf(_sub_flow.get().quality));
-
 	// imporant to timestamp flow even if distance is bad
 	_time_last_flow = _timeStamp;
+
+	// measurement
+	y(Y_flow_vx) = delta_n(0) / dt_flow;
+	y(Y_flow_vy) = delta_n(1) / dt_flow;
+
+	_flowQStats.update(Scalarf(_sub_flow.get().quality));
 
 	return OK;
 }
@@ -133,15 +122,20 @@ void BlockLocalPositionEstimator::flowCorrect()
 	// flow measurement matrix and noise matrix
 	Matrix<float, n_y_flow, n_x> C;
 	C.setZero();
-	C(Y_flow_x, X_x) = 1;
-	C(Y_flow_y, X_y) = 1;
+	C(Y_flow_vx, X_vx) = 1;
+	C(Y_flow_vy, X_vy) = 1;
 
 	SquareMatrix<float, n_y_flow> R;
 	R.setZero();
 	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
-	float flow_xy_stddev = _flow_xy_stddev.get() + _flow_xy_d_stddev.get() * d ;
-	R(Y_flow_x, Y_flow_x) = flow_xy_stddev * flow_xy_stddev;
-	R(Y_flow_y, Y_flow_y) = R(Y_flow_x, Y_flow_x);
+	float rot_rate_norm = sqrtf(_sub_att.get().rollspeed * _sub_att.get().rollspeed
+				    + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
+				    + _sub_att.get().yawspeed * _sub_att.get().yawspeed);
+	float flow_vxy_stddev = _flow_vxy_stddev.get()
+				+ _flow_vxy_d_stddev.get() * d
+				+ _flow_vxy_r_stddev.get() * rot_rate_norm;
+	R(Y_flow_vx, Y_flow_vx) = flow_vxy_stddev * flow_vxy_stddev;
+	R(Y_flow_vy, Y_flow_vy) = R(Y_flow_vx, Y_flow_vx);
 
 	// residual
 	Vector<float, 2> r = y - C * _x;
@@ -176,11 +170,6 @@ void BlockLocalPositionEstimator::flowCorrect()
 		_x += dx;
 		_P -= K * C * _P;
 
-	} else {
-		// reset flow integral to current estimate of position
-		// if a fault occurred
-		_flowX = _x(X_x);
-		_flowY = _x(X_y);
 	}
 
 }

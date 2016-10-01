@@ -2,6 +2,13 @@
 
 // 16 is max name length
 
+/**
+ * Publish AGL as Z
+ *
+ * @group Local Position Estimator
+ * @boolean
+ */
+PARAM_DEFINE_FLOAT(LPE_PUB_AGL_Z, 0);
 
 /**
  * Optical flow z offset from center
@@ -15,7 +22,18 @@
 PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
 
 /**
- * Optical flow xy standard deviation.
+ * Optical flow gyro compensation
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min -1
+ * @max 1
+ * @decimal 3
+ */
+PARAM_DEFINE_INT32(LPE_FLW_GYRO_CMP, 1);
+
+/**
+ * Optical flow xy velocity standard deviation.
  *
  * @group Local Position Estimator
  * @unit m
@@ -23,10 +41,10 @@ PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
  * @max 1
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
+PARAM_DEFINE_FLOAT(LPE_FLW_VXY, 0.04f);
 
 /**
- * Optical flow xy standard deviation linear factor on distance
+ * Optical flow xy velocity standard deviation linear factor on distance
  *
  * @group Local Position Estimator
  * @unit m / m
@@ -34,7 +52,18 @@ PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
  * @max 1
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_XY_D, 0.01f);
+PARAM_DEFINE_FLOAT(LPE_FLW_VXY_D, 0.04f);
+
+/**
+ * Optical flow xy velocity standard deviation linear factor on rotation rate
+ *
+ * @group Local Position Estimator
+ * @unit m / m
+ * @min 0.01
+ * @max 1
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_VXY_R, 1.0f);
 
 /**
  * Optical flow minimum quality threshold
@@ -44,7 +73,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_XY_D, 0.01f);
  * @max 255
  * @decimal 0
  */
-PARAM_DEFINE_INT32(LPE_FLW_QMIN, 75);
+PARAM_DEFINE_INT32(LPE_FLW_QMIN, 150);
 
 /**
  * Sonar z standard deviation.
@@ -225,7 +254,7 @@ PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
  * @max 1
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.5f);
+PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.1f);
 
 /**
  * Vision z standard deviation.
@@ -328,7 +357,7 @@ PARAM_DEFINE_FLOAT(LPE_T_MAX_GRADE, 1.0f);
  * @max 2
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
 
 /**
  * Local origin latitude for nav w/o GPS
@@ -364,15 +393,15 @@ PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
 PARAM_DEFINE_FLOAT(LPE_X_LP, 5.0f);
 
 /**
- * Required xy standard deviation to publish position
+ * Required velocity xy standard deviation to publish position
  *
  * @group Local Position Estimator
- * @unit m
- * @min 0.3
- * @max 5.0
- * @decimal 1
+ * @unit m/s
+ * @min 0.01
+ * @max 1.0
+ * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_XY_PUB, 1.0f);
+PARAM_DEFINE_FLOAT(LPE_VXY_PUB, 0.1f);
 
 /**
  * Required z standard deviation to publish altitude/ terrain

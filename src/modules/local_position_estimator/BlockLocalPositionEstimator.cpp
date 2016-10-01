@@ -57,7 +57,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_xy_pub_thresh(this, "XY_PUB"),
+	_pub_agl_z(this, "PUB_AGL_Z"),
+	_vxy_pub_thresh(this, "VXY_PUB"),
 	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
@@ -78,9 +79,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_vision_z_stddev(this, "VIS_Z"),
 	_vision_on(this, "VIS_ON"),
 	_mocap_p_stddev(this, "VIC_P"),
+	_flow_gyro_comp(this, "FLW_GYRO_CMP"),
 	_flow_z_offset(this, "FLW_OFF_Z"),
-	_flow_xy_stddev(this, "FLW_XY"),
-	_flow_xy_d_stddev(this, "FLW_XY_D"),
+	_flow_vxy_stddev(this, "FLW_VXY"),
+	_flow_vxy_d_stddev(this, "FLW_VXY_D"),
+	_flow_vxy_r_stddev(this, "FLW_VXY_R"),
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
@@ -147,12 +150,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_altOriginInitialized(false),
 	_baroAltOrigin(0),
 	_gpsAltOrigin(0),
-	_visionOrigin(),
-	_mocapOrigin(),
-
-	// flow integration
-	_flowX(0),
-	_flowY(0),
 
 	// status
 	_validXY(false),
@@ -266,10 +263,6 @@ void BlockLocalPositionEstimator::update()
 	// 	_x(X_y) = 0;
 	// 	// reset Z or not? _x(X_z) = 0;
 
-	// 	// reset flow integral
-	// 	_flowX = 0;
-	// 	_flowY = 0;
-
 	// 	// we aren't moving, all velocities are zero
 	// 	_x(X_vx) = 0;
 	// 	_x(X_vy) = 0;
@@ -305,17 +298,23 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is xy valid?
-	bool xy_stddev_ok = sqrtf(math::max(_P(X_x, X_x), _P(X_y, X_y))) < _xy_pub_thresh.get();
+	bool vxy_stddev_ok = false;
+
+	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
+		vxy_stddev_ok = true;
+	}
 
 	if (_validXY) {
 		// if valid and gps has timed out, set to not valid
-		if (!xy_stddev_ok && !_gpsInitialized) {
+		if (!vxy_stddev_ok && !_gpsInitialized) {
 			_validXY = false;
 		}
 
 	} else {
-		if (xy_stddev_ok) {
-			_validXY = true;
+		if (vxy_stddev_ok) {
+			if (_flowInitialized || _gpsInitialized || _visionInitialized || _mocapInitialized) {
+				_validXY = true;
+			}
 		}
 	}
 
@@ -380,6 +379,7 @@ void BlockLocalPositionEstimator::update()
 		// don't want it to take too long
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit x, x(%d) not finite", i);
 			break;
 		}
 	}
@@ -684,7 +684,14 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().v_z_valid = _validZ;
 		_pub_lpos.get().x = xLP(X_x); 	// north
 		_pub_lpos.get().y = xLP(X_y);  	// east
-		_pub_lpos.get().z = xLP(X_z); 	// down
+
+		if (_pub_agl_z.get()) {
+			_pub_lpos.get().z = -_aglLowPass.getState(); // agl
+
+		} else {
+			_pub_lpos.get().z = xLP(X_z); 	// down
+		}
+
 		_pub_lpos.get().vx = xLP(X_vx); // north
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
