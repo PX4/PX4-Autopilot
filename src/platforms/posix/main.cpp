@@ -88,107 +88,21 @@ namespace px4
 void init_once(void);
 }
 
-extern "C" {
-	static void _SigIntHandler(int sig_num);
-	static void _SigFpeHandler(int sig_num);
-}
+static void sig_int_handler(int sig_num);
+static void sig_fpe_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
+static int create_symlinks(const std::string &data_path);
+static int create_symlinks(const std::string &data_path);
 static void run_startup_bash_script(const char *commands_file);
 static void wait_to_exit();
 static bool is_already_running();
 static void print_usage();
+static bool dir_exists(const std::string &path);
+static bool file_exists(const std::string &name);
+static std::string pwd();
 
-static inline bool fileExists(const std::string &name)
-{
-	struct stat buffer;
-	return (stat(name.c_str(), &buffer) == 0);
-}
-
-static inline bool dirExists(const std::string &path)
-{
-	struct stat info;
-
-	if (stat(path.c_str(), &info) != 0) {
-		return false;
-
-	} else if (info.st_mode & S_IFDIR) {
-		return true;
-
-	} else {
-		return false;
-	}
-}
-
-static inline void touch(const std::string &name)
-{
-	std::fstream fs;
-	fs.open(name, std::ios::out);
-	fs.close();
-}
-
-static int mkpath(const char *path, mode_t mode);
-
-static int do_mkdir(const char *path, mode_t mode)
-{
-	struct stat             st;
-	int             status = 0;
-
-	if (stat(path, &st) != 0) {
-		/* Directory does not exist. EEXIST for race condition */
-		if (mkdir(path, mode) != 0 && errno != EEXIST) {
-			status = -1;
-		}
-
-	} else if (!S_ISDIR(st.st_mode)) {
-		errno = ENOTDIR;
-		status = -1;
-	}
-
-	return (status);
-}
-
-/**
-** mkpath - ensure all directories in path exist
-** Algorithm takes the pessimistic view and works top-down to ensure
-** each directory in path exists, rather than optimistically creating
-** the last element and working backwards.
-*/
-static int mkpath(const char *path, mode_t mode)
-{
-	char           *pp;
-	char           *sp;
-	int             status;
-	char           *copypath = strdup(path);
-
-	status = 0;
-	pp = copypath;
-
-	while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
-		if (sp != pp) {
-			/* Neither root nor double slash in path */
-			*sp = '\0';
-			status = do_mkdir(copypath, mode);
-			*sp = '/';
-		}
-
-		pp = sp + 1;
-	}
-
-	if (status == 0) {
-		status = do_mkdir(path, mode);
-	}
-
-	free(copypath);
-	return (status);
-}
-
-static std::string pwd()
-{
-	char temp[PATH_MAX];
-	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
-}
 
 #ifdef __PX4_SITL_MAIN_OVERRIDE
 int SITL_MAIN(int argc, char **argv);
@@ -201,10 +115,8 @@ int main(int argc, char **argv)
 	bool is_client = false;
 	bool pxh_off = false;
 
-	/* Symlinks point to all commands that can be used as a client
-	 * with a 'px4-' prefix. */
-
-	const char prefix[] = "px4-";
+	/* Symlinks point to all commands that can be used as a client with a prefix. */
+	const char prefix[] = PX4_BASH_PREFIX;
 
 	if (strstr(argv[0], prefix)) {
 		is_client = true;
@@ -237,14 +149,12 @@ int main(int argc, char **argv)
 	} else {
 		/* Server/daemon apps need to parse the command line arguments. */
 
-	int index = 1;
-	std::string  commands_file = "";
-	int positional_arg_count = 0;
-	std::string data_path = "";
-	std::string node_name = "";
+		std::string  commands_file = "";
+		int positional_arg_count = 0;
+		std::string data_path = "";
+		std::string node_name = "";
 
-	// parse arguments
-	while (index < argc) {
+		// parse arguments
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
 
@@ -255,108 +165,73 @@ int main(int argc, char **argv)
 				} else if (strcmp(argv[i], "-d") == 0) {
 					pxh_off = true;
 
+				} else if (!strncmp(argv[i], "__", 2)) {
+					PX4_DEBUG("ros argument");
+
+					// ros arguments
+					if (!strncmp(argv[i], "__name:=", 8)) {
+						std::string name_arg = argv[i];
+						node_name = name_arg.substr(8);
+						PX4_INFO("node name: %s", node_name.c_str());
+					}
+
 				} else {
-					PX4_ERR("Unknown/unhandled parameter: %s", argv[i]);
+					printf("Unknown/unhandled parameter: %s\n", argv[i]);
 					print_usage();
 					return 1;
 				}
 
-			} else if (!strncmp(argv[index], "__", 2)) {
-				PX4_DEBUG("ros argument");
+			} else if (!strncmp(argv[i], "__", 2)) {
+				//printf("ros argument\n");
 
 				// ros arguments
-				if (!strncmp(argv[index], "__name:=", 8)) {
-					std::string name_arg = argv[index];
+				if (!strncmp(argv[i], "__name:=", 8)) {
+					std::string name_arg = argv[i];
 					node_name = name_arg.substr(8);
 					PX4_INFO("node name: %s", node_name.c_str());
 				}
 
 			} else {
-				PX4_DEBUG("positional argument");
+				//printf("positional argument\n");
 
 				positional_arg_count += 1;
 
 				if (positional_arg_count == 1) {
-					data_path = argv[index];
+					data_path = argv[i];
 
 				} else if (positional_arg_count == 2) {
-					commands_file = argv[index];
+					commands_file = argv[i];
 				}
 			}
-		}
 
-		++index;
-	}
+			if (positional_arg_count != 2 && positional_arg_count != 1) {
+				PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
+				print_usage();
+				return -1;
+			}
 
-	if (positional_arg_count != 2 && positional_arg_count != 1) {
-		PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
-		print_usage();
-		return -1;
-	}
+			if (positional_arg_count == 1) {
+				data_path = argv[i];
 
-	bool symlinks_needed = true;
-
-	if (positional_arg_count == 1) { //data path is optional
-		commands_file = data_path;
-		symlinks_needed = false;
-
-	} else {
-		PX4_INFO("data path: %s", data_path.c_str());
-	}
-
-	PX4_INFO("commands file: %s", commands_file.c_str());
-
-	if (commands_file.empty()) {
-		PX4_ERR("Error commands file not specified");
-		return -1;
-	}
-
-	if (!fileExists(commands_file)) {
-		PX4_ERR("Error opening commands file, does not exist: %s", commands_file.c_str());
-		return -1;
-	}
-
-	// create sym-links
-	if (symlinks_needed) {
-		std::vector<std::string> path_sym_links;
-		path_sym_links.push_back("ROMFS");
-		path_sym_links.push_back("posix-configs");
-		path_sym_links.push_back("test_data");
-
-		for (int i = 0; i < path_sym_links.size(); i++) {
-			std::string path_sym_link = path_sym_links[i];
-			PX4_DEBUG("path sym link: %s", path_sym_link.c_str());;
-			std::string src_path = data_path + "/" + path_sym_link;
-			std::string dest_path =  pwd() + "/" +  path_sym_link;
-
-			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-
-			if (dirExists(path_sym_link)) { continue; }
-
-			// create sym-links
-			int ret = symlink(src_path.c_str(), dest_path.c_str());
-
-			if (ret != 0) {
-				PX4_ERR("Error creating symlink %s -> %s",
-					src_path.c_str(), dest_path.c_str());
-				return ret;
-
-			} else {
-				PX4_DEBUG("Successfully created symlink %s -> %s",
-					  src_path.c_str(), dest_path.c_str());
+			} else if (positional_arg_count == 2) {
+				commands_file = argv[i];
 			}
 		}
-	}
 
-	// setup rootfs
-	const std::string eeprom_path = "./rootfs/eeprom/";
-	const std::string microsd_path = "./rootfs/fs/microsd/";
+		bool symlinks_needed = false;
 
-	if (!fileExists(eeprom_path + "parameters")) {
-		PX4_INFO("creating new parameters file");
-		mkpath(eeprom_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-		touch(eeprom_path + "parameters");
+		// data path is optional
+		if (positional_arg_count == 1) {
+			commands_file = data_path;
+			symlinks_needed = false;
 
+		} else {
+			PX4_INFO("data path: %s", data_path.c_str());
+		}
+
+		if (!file_exists(commands_file)) {
+			PX4_ERR("Error opening startup file, does not exist: %s", commands_file.c_str());
+			return -1;
 		}
 
 		if (is_already_running()) {
@@ -370,11 +245,20 @@ int main(int argc, char **argv)
 		register_sig_handler();
 		set_cpu_scaling();
 
-	if (!fileExists(microsd_path + "dataman")) {
-		PX4_INFO("creating new dataman file");
-		mkpath(microsd_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-		touch(microsd_path + "dataman");
-	}
+		PX4_INFO("startup file: %s", commands_file.c_str());
+
+		if (commands_file.size() < 1) {
+			PX4_ERR("Error startup file not specified");
+			return -1;
+		}
+
+		if (symlinks_needed) {
+			int ret = create_symlinks(data_path);
+
+			if (ret != PX4_OK) {
+				return ret;
+			}
+		}
 
 		DriverFramework::Framework::initialize();
 
@@ -404,20 +288,54 @@ int main(int argc, char **argv)
 		std::string shutdown_cmd("shutdown");
 		px4_daemon::Pxh::process_line(shutdown_cmd, true);
 
-		return OK;
 	}
+
+	return PX4_OK;
 }
 
-static void register_sig_handler()
+int create_symlinks(const std::string &data_path)
+{
+	std::vector<std::string> path_sym_links;
+	path_sym_links.push_back("rootfs");
+
+	for (int i = 0; i < path_sym_links.size(); i++) {
+		std::string path_sym_link = path_sym_links[i];
+		PX4_DEBUG("path sym link: %s", path_sym_link.c_str());;
+		std::string src_path = data_path + "/" + path_sym_link;
+		std::string dest_path =  pwd() + "/" +  path_sym_link;
+
+		PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+
+		if (dir_exists(path_sym_link)) {
+			continue;
+		}
+
+		// create sym-links
+		int ret = symlink(src_path.c_str(), dest_path.c_str());
+
+		if (ret != 0) {
+			PX4_ERR("Error creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+			return ret;
+
+		} else {
+			PX4_DEBUG("Successfully created symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+		}
+	}
+
+	return PX4_OK;
+}
+
+
+void register_sig_handler()
 {
 	struct sigaction sig_int;
 	memset(&sig_int, 0, sizeof(struct sigaction));
-	sig_int.sa_handler = _SigIntHandler;
+	sig_int.sa_handler = sig_int_handler;
 	sig_int.sa_flags = 0;// not SA_RESTART!;
 
 	struct sigaction sig_fpe;
 	memset(&sig_fpe, 0, sizeof(struct sigaction));
-	sig_int.sa_handler = _SigFpeHandler;
+	sig_int.sa_handler = sig_fpe_handler;
 	sig_int.sa_flags = 0;// not SA_RESTART!;
 
 	// We want to ignore if a PIPE has been closed.
@@ -431,7 +349,7 @@ static void register_sig_handler()
 	sigaction(SIGPIPE, &sig_pipe, NULL);
 }
 
-static void _SigIntHandler(int sig_num)
+void sig_int_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nExiting...\n");
@@ -440,15 +358,17 @@ static void _SigIntHandler(int sig_num)
 	_exit_requested = true;
 }
 
-static void _SigFpeHandler(int sig_num)
+void sig_fpe_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nfloating point exception\n");
 	PX4_BACKTRACE();
 	fflush(stdout);
+	px4_daemon::Pxh::stop();
+	_exit_requested = true;
 }
 
-static void set_cpu_scaling()
+void set_cpu_scaling()
 {
 #ifdef __PX4_POSIX_EAGLE
 	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
@@ -463,7 +383,7 @@ static void set_cpu_scaling()
 #endif
 }
 
-static void run_startup_bash_script(const char *commands_file)
+void run_startup_bash_script(const char *commands_file)
 {
 	std::string bash_command("bash ");
 
@@ -484,23 +404,24 @@ static void run_startup_bash_script(const char *commands_file)
 	PX4_INFO("Startup script empty");
 }
 
-static void wait_to_exit()
+void wait_to_exit()
 {
 	while (!_exit_requested) {
 		usleep(100000);
 	}
 }
 
-static void print_usage()
+void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-c|-d] [data_directory] startup_file\n");
+	printf("    px4 [-h|-d] [rootfs_directory] startup_file\n");
 	printf("\n");
-	printf("    <startup_file> bash start script to be used as startup\n");
-	printf("    <data_directory> directory where ROMFS and posix-configs are located (if not given, CWD is used)");
-	printf("        -h           help/usage information\n");
-	printf("        -d           daemon mode, don't start pxh shell\n");
+	printf("    <startup_file>     bash start script to be used as startup\n");
+	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
+	printf("                       (if not given, CWD is used)\n");
+	printf("        -h             help/usage information\n");
+	printf("        -d             daemon mode, don't start pxh shell\n");
 	printf("\n");
 	printf("Usage for client: \n");
 	printf("\n");
@@ -508,7 +429,7 @@ static void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-static bool is_already_running()
+bool is_already_running()
 {
 	struct flock fl;
 	int fd = open(LOCK_FILE_PATH, O_RDWR | O_CREAT, 0666);
@@ -539,4 +460,29 @@ bool px4_exit_requested(void)
 	return _exit_requested;
 }
 
-/* vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
+bool file_exists(const std::string &name)
+{
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
+
+bool dir_exists(const std::string &path)
+{
+	struct stat info;
+
+	if (stat(path.c_str(), &info) != 0) {
+		return false;
+
+	} else if (info.st_mode & S_IFDIR) {
+		return true;
+
+	} else {
+		return false;
+	}
+}
+
+std::string pwd()
+{
+	char temp[PATH_MAX];
+	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
+}

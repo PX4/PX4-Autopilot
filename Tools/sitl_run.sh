@@ -23,8 +23,8 @@ echo src_path: $src_path
 echo build_path: $build_path
 
 working_dir=`pwd`
-sitl_bin=$build_path/src/firmware/posix/px4
-rootfs=$build_path/tmp/rootfs
+sitl_bin=$build_path/bin/px4
+rootfs=$build_path/rootfs
 
 # To disable user input
 if [[ -n "$NO_PXH" ]]; then
@@ -55,7 +55,7 @@ fi
 
 if [ "$#" -lt 7 ]
 then
-	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
+	echo usage: sitl_run.sh sitl_bin rcS_dir debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -125,7 +125,7 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $no_pxh $src_path etc/init/${rc_script}"
+sitl_command="$sitl_bin $no_pxh $rootfs $rootfs/${rcS_dir}/rcS"
 
 echo SITL COMMAND: $sitl_command
 
@@ -135,6 +135,8 @@ export PATH="$build_path/bin":$PATH
 
 export SIM_MODEL=${model}
 export SIM_PROGRAM=${program}
+
+pushd $rootfs
 
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
@@ -162,8 +164,10 @@ then
 	echo "######################################################################"
 	read
 else
-	px4 etc/init/${rc_script}
+	$sitl_command
 fi
+
+popd
 
 if [ "$program" == "jmavsim" ]
 then
