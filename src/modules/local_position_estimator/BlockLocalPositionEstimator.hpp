@@ -126,7 +126,7 @@ public:
 	enum {U_ax = 0, U_ay, U_az, n_u};
 	enum {Y_baro_z = 0, n_y_baro};
 	enum {Y_lidar_z = 0, n_y_lidar};
-	enum {Y_flow_x = 0, Y_flow_y, n_y_flow};
+	enum {Y_flow_vx = 0, Y_flow_vy, n_y_flow};
 	enum {Y_sonar_z = 0, n_y_sonar};
 	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
@@ -244,7 +244,8 @@ private:
 	struct map_projection_reference_s _map_ref;
 
 	// general parameters
-	BlockParamFloat  _xy_pub_thresh;
+	BlockParamInt  _pub_agl_z;
+	BlockParamFloat  _vxy_pub_thresh;
 	BlockParamFloat  _z_pub_thresh;
 
 	// sonar parameters
@@ -281,9 +282,11 @@ private:
 	BlockParamFloat  _mocap_p_stddev;
 
 	// flow parameters
+	BlockParamInt  _flow_gyro_comp;
 	BlockParamFloat  _flow_z_offset;
-	BlockParamFloat  _flow_xy_stddev;
-	BlockParamFloat  _flow_xy_d_stddev;
+	BlockParamFloat  _flow_vxy_stddev;
+	BlockParamFloat  _flow_vxy_d_stddev;
+	BlockParamFloat  _flow_vxy_r_stddev;
 	//BlockParamFloat  _flow_board_x_offs;
 	//BlockParamFloat  _flow_board_y_offs;
 	BlockParamInt    _flow_min_q;
@@ -351,12 +354,6 @@ private:
 	bool _altOriginInitialized;
 	float _baroAltOrigin;
 	float _gpsAltOrigin;
-	Vector3f _visionOrigin;
-	Vector3f _mocapOrigin;
-
-	// flow integration
-	float _flowX;
-	float _flowY;
 
 	// status
 	bool _validXY;
