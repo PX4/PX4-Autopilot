@@ -409,6 +409,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			if ((err != 0) || (bytesAvailable < buf_length)) {
 				usleep(GPS_WAIT_BEFORE_READ * 1000);
 			}
+
 #else
 			usleep(GPS_WAIT_BEFORE_READ * 1000);
 #endif
