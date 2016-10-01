@@ -10,9 +10,9 @@
 
 static orb_advert_t orb_log_message_pub = NULL;
 
-__EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "INFO", "DEBUG", "WARN", "ERROR", "PANIC" };
+__EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
 __EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
-{ PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
+{ PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
 
 
 void px4_log_initialize(void)
@@ -53,20 +53,17 @@ void px4_backtrace()
 #endif
 }
 
-//TODO: remove again
-#define __px4_log_level_current 0
-
 
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
-#ifdef __PX4_POSIX
 
+#ifdef __PX4_POSIX
 	char *buffer;
 	unsigned max_length;
 	bool is_atty = false;
 
 	if (get_stdout_pipe_buffer(&buffer, &max_length, &is_atty) == 0) {
-		if (level <= __px4_log_level_current) {
+		if (level >= _PX4_LOG_LEVEL_INFO) {
 
 			unsigned pos = 0;
 
@@ -95,7 +92,7 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 	} else {
 #endif
 
-		if (level <= __px4_log_level_current) {
+		if (level >= _PX4_LOG_LEVEL_INFO) {
 			PX4_LOG_COLOR_START
 			printf(__px4__log_level_fmt __px4__log_level_arg(level));
 			PX4_LOG_COLOR_MODULE
@@ -113,6 +110,7 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 	}
 
 #endif
+
 	/* publish an orb log message */
 	if (level >= _PX4_LOG_LEVEL_WARN && orb_log_message_pub) { //only publish important messages
 
@@ -121,8 +119,8 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 		log_message.timestamp = hrt_absolute_time();
 
 		const uint8_t log_level_table[] = {
-			6, /* _PX4_LOG_LEVEL_ALWAYS */
 			7, /* _PX4_LOG_LEVEL_DEBUG */
+			6, /* _PX4_LOG_LEVEL_INFO */
 			4, /* _PX4_LOG_LEVEL_WARN */
 			3, /* _PX4_LOG_LEVEL_ERROR */
 			0  /* _PX4_LOG_LEVEL_PANIC */
