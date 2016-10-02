@@ -168,6 +168,7 @@ int listener_main(int argc, char *argv[]) {
 		topic->print();
 	} else {
 		PX4_ERR("topic does not exist yet");
+		delete topic;
 		return 0;
 	}
 
@@ -180,6 +181,7 @@ int listener_main(int argc, char *argv[]) {
 			ret = read(0, &c, 1);
 
 			if (ret) {
+				delete topic;
 				return 1;
 			}
 
@@ -188,6 +190,7 @@ int listener_main(int argc, char *argv[]) {
 			case 0x1b: // esc
 			case 'c':
 			case 'q':
+				delete topic;
 				return 0;
 			}
 		}
@@ -200,5 +203,6 @@ int listener_main(int argc, char *argv[]) {
 		usleep(10000);
 	}
 
+	delete topic;
 	return 0;
 }
