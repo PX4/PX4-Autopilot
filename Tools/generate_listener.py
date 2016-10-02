@@ -79,6 +79,7 @@ echo_topics += ("\t\tsub = orb_subscribe(ORB_ID(%s));\n" % messages[0])
 echo_topics += ("\t\tID = ORB_ID(%s);\n" % messages[0])
 echo_topics += ("\t\tstruct %s_s container;\n" % messages[0])
 echo_topics += ("\t\tmemset(&container, 0, sizeof(container));\n")
+
 for index,m in enumerate(messages[1:]):
 	echo_topics += ("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {\n" % m)
 	echo_topics += ("\t\tsub = orb_subscribe(ORB_ID(%s));\n" % m)
@@ -94,50 +95,50 @@ for index,m in enumerate(messages[1:]):
 	echo_topics += ("\t\t\tif (updated) {\n")
 	echo_topics += ("\t\t\tstart_time = hrt_absolute_time();\n")
 	echo_topics += ("\t\t\ti++;\n")
-	echo_topics += ("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);\n" % m)
+	echo_topics += ("\t\t\tPX4_INFO_RAW(\"\\nTOPIC: %s #%%d\\n\", i);\n" % m)
 	echo_topics += ("\t\t\torb_copy(ID,sub,&container);\n")
-	echo_topics += ("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);\n")
+	echo_topics += ("\t\t\tPX4_INFO_RAW(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);\n")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
-			echo_topics += ("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%8.4f\\n\",(double)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "float_array":
-			echo_topics += ("\t\t\tprintf(\"%s: \");\n" % item[1])
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: \");\n" % item[1])
 			echo_topics += ("\t\t\tfor (int j = 0; j < %d; j++) {\n" % item[2])
-			echo_topics += ("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);\n" % item[1])
+			echo_topics += ("\t\t\t\tPX4_INFO_RAW(\"%%8.4f \",(double)container.%s[j]);\n" % item[1])
 			echo_topics += ("\t\t\t}\n")
-			echo_topics += ("\t\t\tprintf(\"\\n\");\n")
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"\\n\");\n")
 		elif item[0] == "double":
-			echo_topics += ("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%8.4f\\n\",(double)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "double_array":
-			echo_topics += ("\t\t\tprintf(\"%s: \");\n" % item[1])
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: \");\n" % item[1])
 			echo_topics += ("\t\t\tfor (int j = 0; j < %d; j++) {\n" % item[2])
-			echo_topics += ("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);\n" % item[1])
+			echo_topics += ("\t\t\t\tPX4_INFO_RAW(\"%%8.4f \",(double)container.%s[j]);\n" % item[1])
 			echo_topics += ("\t\t\t}\n")
-			echo_topics += ("\t\t\tprintf(\"\\n\");\n")
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"\\n\");\n")
 		elif item[0] == "uint64":
-			echo_topics += ("\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n\",container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%\" PRIu64 \"\\n\",container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "uint64_array":
-			echo_topics += ("\t\t\tprintf(\"%s: \");\n" % item[1])
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: \");\n" % item[1])
 			echo_topics += ("\t\t\tfor (int j = 0; j < %d; j++) {\n" % item[2])
-			echo_topics += ("\t\t\t\tprintf(\"%%\" PRIu64 \"\",container.%s[j]);\n" % item[1])
+			echo_topics += ("\t\t\t\tPX4_INFO_RAW(\"%%\" PRIu64 \"\",container.%s[j]);\n" % item[1])
 			echo_topics += ("\t\t\t}\n")
-			echo_topics += ("\t\t\tprintf(\"\\n\");\n")
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"\\n\");\n")
 		elif item[0] == "int64":
-			echo_topics += ("\t\t\tprintf(\"%s: %%\" PRId64 \"\\n\",container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%\" PRId64 \"\\n\",container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "int32":
-			echo_topics += ("\t\t\tprintf(\"%s: %%d\\n\",container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%d\\n\",container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "uint32":
-			echo_topics += ("\t\t\tprintf(\"%s: %%u\\n\",container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%u\\n\",container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "int16":
-			echo_topics += ("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%d\\n\",(int)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "uint16":
-			echo_topics += ("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%u\\n\",(unsigned)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "int8":
-			echo_topics += ("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%d\\n\",(int)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "uint8":
-			echo_topics += ("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%u\\n\",(unsigned)container.%s);\n" % (item[1], item[1]))
 		elif item[0] == "bool":
-			echo_topics += ("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");\n" % (item[1], item[1]))
+			echo_topics += ("\t\t\tPX4_INFO_RAW(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");\n" % (item[1], item[1]))
 	echo_topics += ("\t\t\t} else {\n")
 	echo_topics += ("\t\t\t\tif (check_timeout(start_time)) {\n")
 	echo_topics += ("\t\t\t\t\tbreak;\n")
@@ -145,7 +146,7 @@ for index,m in enumerate(messages[1:]):
 	echo_topics += ("\t\t\t}\n")
 	echo_topics += ("\t\t}\n")
 echo_topics += ("\t} else {\n")
-echo_topics += ("\t\t printf(\" Topic did not match any known topics\\n\");\n")
+echo_topics += ("\t\t PX4_INFO_RAW(\" Topic did not match any known topics\\n\");\n")
 echo_topics += ("\t}\n")
 
 with open("/home/julianoes/src/Firmware/src/systemcmds/topic_listener/topic_listener.cpp.in", "r") as f:
