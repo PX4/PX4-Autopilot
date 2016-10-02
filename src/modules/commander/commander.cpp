@@ -1641,7 +1641,6 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(param_changed_sub, &updated);
 
 		if (updated || param_init_forced) {
-			param_init_forced = false;
 
 			/* parameters changed */
 			struct parameter_update_s param_changed;
@@ -1689,6 +1688,15 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 
+			// If we update parameters the first time
+			// make sure the hysteresis time gets set.
+			// After that it will be set in the main state
+			// machine based on the arming state.
+			if (param_init_forced) {
+				auto_disarm_hysteresis.set_hysteresis_time_from(false,
+									(hrt_abstime)disarm_when_landed * 1000000);
+			}
+
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
@@ -1713,6 +1721,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
+
+			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
 			if (updated && autosave_params != 0 && param_changed.saved == false) {
