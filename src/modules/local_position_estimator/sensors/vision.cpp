@@ -76,9 +76,16 @@ void BlockLocalPositionEstimator::visionCorrect()
 	R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 	R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
 
+	// vision delayed x
+	uint8_t i_hist = 0;
+
+	if (getDelayPeriods(_vision_delay.get(), &i_hist)  < 0) { return; }
+
+	Vector<float, n_x> x0 = _xDelay.get(i_hist);
+
 	// residual
 	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>((C * _P * C.transpose()) + R);
-	Matrix<float, n_y_vision, 1> r = y - C * _x;
+	Matrix<float, n_y_vision, 1> r = y - C * x0;
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
