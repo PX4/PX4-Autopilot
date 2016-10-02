@@ -73,6 +73,7 @@ __END_DECLS
 #define PX4_ERR(...)	ROS_ERROR(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_INFO(...) 	ROS_INFO(__VA_ARGS__)
+#define PX4_INFO_RAW(...) 	printf(__VA_ARGS__)
 #define PX4_DEBUG(...)	ROS_DEBUG(__VA_ARGS__)
 #define PX4_BACKTRACE()
 
@@ -82,6 +83,7 @@ __END_DECLS
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
 #define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_INFO_RAW(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
 #define PX4_BACKTRACE()
 
 #if defined(TRACE_BUILD)
@@ -140,6 +142,7 @@ __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern void px4_backtrace(void);
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+__EXPORT void px4_log_raw(int level, const char *fmt, ...);
 
 __END_DECLS
 
@@ -259,6 +262,22 @@ __END_DECLS
 	do { \
 		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
 	} while(0)
+
+/****************************************************************************
+ * __px4_log_raw:
+ * Convert a message in the form:
+ * 	PX4_INFO("val is %d", val);
+ * to
+ * 	printf("val is %d", val);
+ *
+ * This can be used for simple printfs with all the formatting control.
+ ****************************************************************************/
+#define __px4_log_raw(level, fmt, ...) \
+	do { \
+		px4_log_raw(level, fmt, ##__VA_ARGS__); \
+	} while(0)
+
+
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
@@ -398,6 +417,7 @@ __END_DECLS
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
 #define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#define PX4_INFO_RAW(FMT, ...) 	__px4_log_raw(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
 
 #if defined(TRACE_BUILD)
 /****************************************************************************

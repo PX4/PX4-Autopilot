@@ -140,3 +140,49 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 	}
 }
+
+__EXPORT void px4_log_raw(int level, const char *fmt, ...)
+{
+
+#ifdef __PX4_POSIX
+	char *buffer;
+	unsigned max_length;
+	bool is_atty = false;
+
+	if (get_stdout_pipe_buffer(&buffer, &max_length, &is_atty) == 0) {
+		if (level >= _PX4_LOG_LEVEL_INFO) {
+
+			unsigned pos = 0;
+
+			va_list argptr;
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
+
+			va_start(argptr, fmt);
+			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
+			va_end(argptr);
+
+			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
+
+			// +1 for the terminating 0 char.
+			send_stdout_pipe_buffer(pos + 1);
+		}
+
+	} else {
+#endif
+
+		if (level >= _PX4_LOG_LEVEL_INFO) {
+			PX4_LOG_COLOR_START
+			PX4_LOG_COLOR_MESSAGE
+			va_list argptr;
+			va_start(argptr, fmt);
+			vprintf(fmt, argptr);
+			va_end(argptr);
+			PX4_LOG_COLOR_END
+		}
+
+#ifdef __PX4_POSIX
+	}
+
+#endif
+}
