@@ -52,7 +52,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <memory>
 
 ${include_topics}
 
@@ -151,7 +150,6 @@ int listener_main(int argc, char *argv[]) {
 	(void)infinite_output;
 	(void)num_msgs;
 
-	std::unique_ptr<Topic *> test;
 	Topic *topic = make_topic(argv[1]);
 
 	if (topic == nullptr) {
