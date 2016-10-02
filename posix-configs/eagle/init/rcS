@@ -204,7 +204,7 @@ qshell mc_att_control start
 
 if param compare SYS_LOGGER 0
 then
-	sdlog2 start -r 100 -a -b 9 -t
+	sdlog2 start -r 100 -e -t -a -b 200
 else
 	logger start -b 12 -t
 fi
