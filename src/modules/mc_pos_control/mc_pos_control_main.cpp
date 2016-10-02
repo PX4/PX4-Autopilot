@@ -485,9 +485,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.x_p			= param_find("MPC_X_P");
 	_params_handles.x_i			= param_find("MPC_X_I");
 	_params_handles.x_d			= param_find("MPC_X_D");
-	_params_handles.x_p			= param_find("MPC_Y_P");
-	_params_handles.x_i			= param_find("MPC_Y_I");
-	_params_handles.x_d			= param_find("MPC_Y_D");
+	_params_handles.y_p			= param_find("MPC_Y_P");
+	_params_handles.y_i			= param_find("MPC_Y_I");
+	_params_handles.y_d			= param_find("MPC_Y_D");
 	_params_handles.x_vel_p	= param_find("MPC_X_VEL_P");
 	_params_handles.x_vel_i	= param_find("MPC_X_VEL_I");
 	_params_handles.x_vel_d	= param_find("MPC_X_VEL_D");
@@ -1518,10 +1518,10 @@ MulticopterPositionControl::task_main()
 						vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
 					}
 
-					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
-							(double)_params.pos_i(0),(double)_params.pos_d(0));
-					warnx("y: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(1),(double)_params.pos_p(1),
-												(double)_params.pos_i(1),(double)_params.pos_d(1));
+//					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
+//							(double)_params.pos_i(0),(double)_params.pos_d(0));
+//					warnx("y: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(1),(double)_params.pos_p(1),
+//												(double)_params.pos_i(1),(double)_params.pos_d(1));
 				}
 
 				// guard against any bad velocity values
@@ -1570,8 +1570,8 @@ MulticopterPositionControl::task_main()
 					if(abs(_vel_sp(2) < _params.vel_max(2))){
 						vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
 					}
-					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
-												(double)_params.pos_i(2),(double)_params.pos_d(2));
+//					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
+//												(double)_params.pos_i(2),(double)_params.pos_d(2));
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
