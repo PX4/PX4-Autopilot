@@ -48,7 +48,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/fixed_target_position_p2m.h>
-//#include <uORB/topics/mavros_test_msg.h>	!!!
+#include <uORB/topics/task_status_change_p2m.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -142,14 +142,33 @@ int mavlink_msg_send_thread_main(int argc, char *argv[])
 
 	//
 	thread_running = true;
-	struct fixed_target_position_p2m_s topic_data;
-	memset(&topic_data , 0, sizeof(topic_data));
-	orb_advert_t fixed_target_position_p2m_pub = orb_advertise(ORB_ID(fixed_target_position_p2m), &topic_data);
+	struct fixed_target_position_p2m_s fixed_target_position_p2m_data;
+	memset(&fixed_target_position_p2m_data , 0, sizeof(fixed_target_position_p2m_data));
+	orb_advert_t fixed_target_position_p2m_pub = orb_advertise(ORB_ID(fixed_target_position_p2m), &fixed_target_position_p2m_data);
+
+	struct task_status_change_p2m_s task_status_change_p2m_data;
+	memset(&task_status_change_p2m_data , 0, sizeof(task_status_change_p2m_data));
+	orb_advert_t task_status_change_p2m_pub = orb_advertise(ORB_ID(task_status_change_p2m), &task_status_change_p2m_data);
+
 	while (!thread_should_exit) {
-		topic_data.home_lat = 1.0;
-		topic_data.home_lon = 2.0;
-		topic_data.home_alt = 3.0f;
-		orb_publish(ORB_ID(fixed_target_position_p2m), fixed_target_position_p2m_pub, &topic_data);
+		fixed_target_position_p2m_data.home_lat = 1.0f;
+		fixed_target_position_p2m_data.home_lon = 2.0f;
+		fixed_target_position_p2m_data.home_alt = 3.0f;
+		orb_publish(ORB_ID(fixed_target_position_p2m), fixed_target_position_p2m_pub, &fixed_target_position_p2m_data);
+		PX4_WARN("publishing fixed_target_position_p2m: %5.3f %5.3f %5.3f",
+				fixed_target_position_p2m_data.home_lat,
+				fixed_target_position_p2m_data.home_lon,
+				fixed_target_position_p2m_data.home_alt);
+
+		task_status_change_p2m_data.num_odd_even = 1;
+		task_status_change_p2m_data.task_status = 1;
+		task_status_change_p2m_data.loop_value = 1;
+		orb_publish(ORB_ID(task_status_change_p2m), task_status_change_p2m_pub, &task_status_change_p2m_data);
+		PX4_WARN("publishing task_status_change_p2m: %d %d %d",
+				task_status_change_p2m_data.num_odd_even,
+				task_status_change_p2m_data.task_status,
+				task_status_change_p2m_data.loop_value);
+
 		sleep(2);
 	}
 

@@ -186,7 +186,7 @@ set(config_module_list
 	# An example
 	modules/example_lz
 	# huanglilong
-#	modules/mavlink_msg_receive_test
+	modules/mavlink_msg_receive_test
     modules/mavlink_msg_send_test
 )
 

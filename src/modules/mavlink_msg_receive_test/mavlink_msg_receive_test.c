@@ -50,14 +50,16 @@
 
 #include <uORB/uORB.h>
 
-//#include <uORB/topics/fixed_target_position.h>
-#include <uORB/topics/obstacle_position.h>
-#include <uORB/topics/fixed_target_return.h>
-#include <uORB/topics/yaw_sp_calculated.h>
-#include <uORB/topics/task_status_change.h>
-#include <uORB/topics/task_status_monitor.h>
-#include <uORB/topics/vision_num_scan.h>
-#include <uORB/topics/vision_one_num_get.h>
+#include <uORB/topics/fixed_target_return_m2p.h>
+#include <uORB/topics/obstacle_position_m2p.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
+#include <uORB/topics/vision_num_scan_m2p.h>
+#include <uORB/topics/vision_one_num_get_m2p.h>
+#include <uORB/topics/yaw_sp_calculated_m2p.h>
+//#include <uORB/topics/task_status_change.h>
+//#include <uORB/topics/task_status_monitor.h>
+//#include <uORB/topics/vision_num_scan.h>
+//#include <uORB/topics/vision_one_num_get.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -152,29 +154,41 @@ int mavlink_msg_receive_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* subscribe to sensor_combined topic */
-//	int fixed_target_position_sub_fd = orb_subscribe(ORB_ID(fixed_target_position));
-	int obstacle_position_sub_fd = orb_subscribe(ORB_ID(obstacle_position));
-	int task_status_change_sub_fd = orb_subscribe(ORB_ID(task_status_change));
-	int task_status_monitor_sub_fd = orb_subscribe(ORB_ID(task_status_monitor));
-	int vision_one_num_get_sub_fd = orb_subscribe(ORB_ID(vision_one_num_get));
-	int vision_num_scan_sub_fd = orb_subscribe(ORB_ID(vision_num_scan));
-	int yaw_sp_calculated_sub_fd = orb_subscribe(ORB_ID(yaw_sp_calculated));
-	//orb_set_interval(motor_sub_fd, 1000);
+////	int fixed_target_position_sub_fd = orb_subscribe(ORB_ID(fixed_target_position));
+//	int obstacle_position_sub_fd = orb_subscribe(ORB_ID(obstacle_position));
+//	int task_status_change_sub_fd = orb_subscribe(ORB_ID(task_status_change));
+//	int task_status_monitor_sub_fd = orb_subscribe(ORB_ID(task_status_monitor));
+//	int vision_one_num_get_sub_fd = orb_subscribe(ORB_ID(vision_one_num_get));
+//	int vision_num_scan_sub_fd = orb_subscribe(ORB_ID(vision_num_scan));
+//	int yaw_sp_calculated_sub_fd = orb_subscribe(ORB_ID(yaw_sp_calculated));
+//	//orb_set_interval(motor_sub_fd, 1000);
+	int fixed_target_return_m2p_sub_fd = orb_subscribe(ORB_ID(fixed_target_return_m2p));
+	int obstacle_position_m2p_sub_fd = orb_subscribe(ORB_ID(obstacle_position_m2p));
+	int task_status_monitor_m2p_sub_fd = orb_subscribe(ORB_ID(task_status_monitor_m2p));
+	int vision_num_scan_m2p_sub_fd = orb_subscribe(ORB_ID(vision_num_scan_m2p));
+	int vision_one_num_get_m2p_sub_fd = orb_subscribe(ORB_ID(vision_one_num_get_m2p));
+	int yaw_sp_calculated_m2p_sub_fd = orb_subscribe(ORB_ID(yaw_sp_calculated_m2p));
 
 //	px4_pollfd_struct_t fds[1];
-//	fds[0].fd     = topic_sub_fd;
+//	fds[0].fd     = fixed_target_return_m2p_sub_fd;
 //	fds[0].events = POLLIN;
 
 	px4_pollfd_struct_t fds[] = {
-//				{.fd = fixed_target_position_sub_fd, .events = POLLIN},
-				{.fd = obstacle_position_sub_fd, .events = POLLIN},
-				{.fd = task_status_change_sub_fd, .events = POLLIN},
-				{.fd = task_status_monitor_sub_fd, .events = POLLIN},
-				{.fd = vision_num_scan_sub_fd, .events = POLLIN},
-				{.fd = vision_one_num_get_sub_fd, .events = POLLIN},
-				{.fd = yaw_sp_calculated_sub_fd, .events = POLLIN},
+				{.fd = fixed_target_return_m2p_sub_fd, .events = POLLIN},
+				{.fd = obstacle_position_m2p_sub_fd, .events = POLLIN},
+				{.fd = task_status_monitor_m2p_sub_fd, .events = POLLIN},
+				{.fd = vision_num_scan_m2p_sub_fd, .events = POLLIN},
+				{.fd = vision_one_num_get_m2p_sub_fd, .events = POLLIN},
+				{.fd = yaw_sp_calculated_m2p_sub_fd, .events = POLLIN},
 
 		};
+
+	struct fixed_target_return_m2p_s fixed_target_return_m2p_data;
+	struct obstacle_position_m2p_s obstacle_position_m2p_data;
+	struct task_status_monitor_m2p_s task_status_monitor_m2p_data;
+	struct vision_num_scan_m2p_s vision_num_scan_m2p_data;
+	struct vision_one_num_get_m2p_s vision_one_num_get_m2p_data;
+	struct yaw_sp_calculated_m2p_s yaw_sp_calculated_m2p_data;
 
 	while (!thread_should_exit) {
 		int poll_ret = px4_poll(fds, 6, 500);
@@ -186,58 +200,50 @@ int mavlink_msg_receive_thread_main(int argc, char *argv[])
 		{
 			continue;
 		}
-//		if (fds[0].revents & POLLIN) {
-//			struct fixed_target_position_s fixed_target_position_data;
-//			orb_copy(ORB_ID(fixed_target_position), fixed_target_position_sub_fd, &fixed_target_position_data);
-//			PX4_WARN("fixed_target_position: \t%8.4f\t%8.4f\t%8.4f",
-//				 (double)fixed_target_position_data.home_lat,
-//				 (double)fixed_target_position_data.home_lon,
-//				 (double)fixed_target_position_data.home_alt);
-//		}
 		if (fds[0].revents & POLLIN) {
-			struct obstacle_position_s obstacle_position_data;
-			orb_copy(ORB_ID(obstacle_position), obstacle_position_sub_fd, &obstacle_position_data);
-			PX4_WARN("obstacle_position: \t%8.4f\t%8.4f\t%8.4f",
-				 (double)obstacle_position_data.obstacle_x,
-				 (double)obstacle_position_data.obstacle_y,
-				 (double)obstacle_position_data.obstacle_z);
+			orb_copy(ORB_ID(fixed_target_return_m2p), fixed_target_return_m2p_sub_fd, &fixed_target_return_m2p_data);
+			PX4_WARN("fixed_target_return_m2p: %5.3f %5.3f %5.3f",
+				(double)fixed_target_return_m2p_data.home_lat,
+				(double)fixed_target_return_m2p_data.home_lon,
+				(double)fixed_target_return_m2p_data.home_alt);
 		}
 		if (fds[1].revents & POLLIN) {
-			struct task_status_change_s task_status_change_data;
-			orb_copy(ORB_ID(task_status_change), task_status_change_sub_fd, &task_status_change_data);
-			PX4_WARN("task_status_change: \t%d\t%d\t%d",
-				 (double)task_status_change_data.num_odd_even,
-				 (double)task_status_change_data.task_status,
-				 (double)task_status_change_data.loop_value);
+			orb_copy(ORB_ID(obstacle_position_m2p), obstacle_position_m2p_sub_fd, &obstacle_position_m2p_data);
+			PX4_WARN("obstacle_position_m2p_data: %5.3f %5.3f %5.3f %d",
+				(double)obstacle_position_m2p_data.obstacle_x,
+				(double)obstacle_position_m2p_data.obstacle_y,
+				(double)obstacle_position_m2p_data.obstacle_z,
+				obstacle_position_m2p_data.obstacle_valid);
 		}
 		if (fds[2].revents & POLLIN) {
-			struct task_status_monitor_s task_status_monitor_data;
-			orb_copy(ORB_ID(task_status_monitor), task_status_monitor_sub_fd, &task_status_monitor_data);
-			PX4_WARN("task_status_monitor: \t%d\t%d\t%d",
-				 (double)task_status_monitor_data.num_odd_even,
-				 (double)task_status_monitor_data.task_status,
-				 (double)task_status_monitor_data.loop_value);
+			orb_copy(ORB_ID(task_status_monitor_m2p), task_status_monitor_m2p_sub_fd, &task_status_monitor_m2p_data);
+			PX4_WARN("task_status_monitor_m2p: %d %d %d %5.3f %5.3f %5.3f",
+				task_status_monitor_m2p_data.num_odd_even,
+				task_status_monitor_m2p_data.task_status,
+				task_status_monitor_m2p_data.loop_value,
+				(double)task_status_monitor_m2p_data.target_lat,
+				(double)task_status_monitor_m2p_data.target_lon,
+				(double)task_status_monitor_m2p_data.target_alt);
 		}
 		if (fds[3].revents & POLLIN) {
-			struct vision_num_scan_s vision_num_scan_data;
-			orb_copy(ORB_ID(vision_num_scan), vision_num_scan_sub_fd, &vision_num_scan_data);
-			PX4_WARN("vision_num_scan: \t%d\t%8.4f\t%8.4f",
-				 (double)vision_num_scan_data.board_num,
-				 (double)vision_num_scan_data.board_x,
-				 (double)vision_num_scan_data.board_y);
+			orb_copy(ORB_ID(vision_num_scan_m2p), vision_num_scan_m2p_sub_fd, &vision_num_scan_m2p_data);
+			PX4_WARN("vision_num_scan_m2p: %d %5.3f %5.3f %5.3f %d",
+				vision_num_scan_m2p_data.board_num,
+				(double)vision_num_scan_m2p_data.board_x,
+				(double)vision_num_scan_m2p_data.board_y,
+				(double)vision_num_scan_m2p_data.board_z,
+				vision_num_scan_m2p_data.board_valid);
 		}
 		if (fds[4].revents & POLLIN) {
-			struct vision_one_num_get_s vision_one_num_get_data;
-			orb_copy(ORB_ID(vision_one_num_get), vision_one_num_get_sub_fd, &vision_one_num_get_data);
-			PX4_WARN("vision_one_num_get: \t%d\t%d",
-				 (double)vision_one_num_get_data.loop_value,
-				 (double)vision_one_num_get_data.num);
+			orb_copy(ORB_ID(vision_one_num_get_m2p), vision_one_num_get_m2p_sub_fd, &vision_one_num_get_m2p_data);
+			PX4_WARN("vision_one_num_get_m2p: %d %d",
+				vision_one_num_get_m2p_data.loop_value,
+				vision_one_num_get_m2p_data.num);
 		}
 		if (fds[5].revents & POLLIN) {
-			struct yaw_sp_calculated_s yaw_sp_calculated_data;
-			orb_copy(ORB_ID(yaw_sp_calculated), yaw_sp_calculated_sub_fd, &yaw_sp_calculated_data);
-			PX4_WARN("yaw_sp_calculated: \t%8.4f",
-				 (double)yaw_sp_calculated_data.yaw_sp);
+			orb_copy(ORB_ID(yaw_sp_calculated_m2p), yaw_sp_calculated_m2p_sub_fd, &yaw_sp_calculated_m2p_data);
+			PX4_WARN("yaw_sp_calculated_m2p: %5.3f",
+				(double)(yaw_sp_calculated_m2p_data.yaw_sp));
 		}
 
 	}
