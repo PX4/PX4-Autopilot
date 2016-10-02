@@ -10,11 +10,11 @@ uorb start
 param load
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ $PX4_ESTIMATOR == "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" == "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
-elif [ $PX4_ESTIMATOR == "lpe" ]; then
+elif [ "$PX4_ESTIMATOR" == "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
-elif [ $PX4_ESTIMATOR == "inav" ]; then
+elif [ "$PX4_ESTIMATOR" == "inav" ]; then
 	param set SYS_MC_EST_GROUP 0
 else
 	# Default is LPE
@@ -22,9 +22,9 @@ else
 fi
 
 # Use environment variable PX4_LOGGER to choose logger.
-if [ $PX4_LOGGER == "sdlog2" ]; then
+if [ "$PX4_LOGGER" == "sdlog2" ]; then
 	param set SYS_LOGGER 0
-elif [ $PX4_LOGGER == "logger" ]; then
+elif [ "$PX4_LOGGER" == "logger" ]; then
 	param set SYS_LOGGER 1
 else
 	# Default is still sdlog2
@@ -32,11 +32,11 @@ else
 fi
 
 # Use the variable set by sitl_run.sh to choose the model settings.
-if [ $SIM_MODEL == "iris" ]; then
+if [ "$SIM_MODEL" == "iris" ]; then
 	param set MAV_TYPE 2
 	param set SYS_AUTOSTART 10016
 
-elif [ $SIM_MODEL == "typhoon_h480" ]; then
+elif [ "$SIM_MODEL" == "typhoon_h480" ]; then
 	param set MAV_TYPE 2
 	param set SYS_AUTOSTART 6001
 else
