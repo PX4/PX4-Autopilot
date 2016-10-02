@@ -186,7 +186,6 @@ then
 		if ver hwcmp MINDPX_V2
 		then
 			param set INAV_LIDAR_ERR 0.8
-			param save
 		fi
 	fi
 
@@ -224,7 +223,6 @@ then
 	if [ $AUTOCNF == yes ]
 	then
 		param set SYS_AUTOCONFIG 0
-		param save
 	fi
 	unset AUTOCNF
 
