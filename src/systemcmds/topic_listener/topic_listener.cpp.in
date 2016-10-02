@@ -45,12 +45,14 @@
 #include <px4_app.h>
 #include <px4_config.h>
 #include <px4_log.h>
+#include <px4_posix.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <memory>
 
 ${include_topics}
 
@@ -62,31 +64,141 @@ ${include_topics}
 #define PRId64 "lld"
 #endif
 
-static bool check_timeout(const hrt_abstime& time)
-{
-	if (hrt_elapsed_time(&time) > 2*1000*1000) {
-		printf("Waited for 2 seconds without a message. Giving up.\n");
-		return true;
-	}
-	return false;
-}
 
+class Topic
+{
+public:
+	Topic(orb_id_t id) :
+		_id(id),
+		_sub(-1),
+		_times_printed(0)
+	{
+		subscribe();
+	}
+
+	virtual ~Topic()
+	{
+		unsubscribe();
+	}
+
+	int get_fd()
+	{
+		return _sub;
+	}
+
+	unsigned times_printed()
+	{
+		return _times_printed;
+	}
+
+	bool exists() {
+		return (orb_exists(_id, 0) == 0);
+	}
+
+	virtual bool update() = 0;
+
+	void print()
+	{
+		print_specific();
+		++_times_printed;
+	}
+	virtual void print_specific() = 0;
+
+protected:
+	void subscribe()
+	{
+		_sub = orb_subscribe(_id);
+	}
+
+	void unsubscribe()
+	{
+		orb_unsubscribe(_sub);
+	}
+
+	orb_id_t _id;
+	int _sub;
+private:
+	unsigned _times_printed;
+};
+
+
+${topic_classes}
+
+static Topic *make_topic(const char *name)
+{
+	Topic *topic = nullptr;
+${factory}
+	return topic;
+}
 
 
 extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 
 int listener_main(int argc, char *argv[]) {
-	int sub = -1;
-	orb_id_t ID;
 	if(argc < 2) {
-		printf("need at least two arguments: topic name. [optional number of messages to print]\n");
+		PX4_WARN("need at least two arguments: topic name. [optional number of messages to print]");
 		return 1;
 	}
 
-	unsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;
+	bool infinite_output = true;
+	unsigned num_msgs = 0;
 
-${echo_topics}
+	if (argc > 2) {
+		num_msgs = atoi(argv[2]);
+		infinite_output = false;
+	}
 
-	orb_unsubscribe(sub);
+	(void)infinite_output;
+	(void)num_msgs;
+
+	std::unique_ptr<Topic *> test;
+	Topic *topic = make_topic(argv[1]);
+
+	if (topic == nullptr) {
+		PX4_ERR("Topic \"%s\" not found", argv[1]);
+		return 1;
+	}
+
+	struct pollfd fds;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
+
+	// Print it once if available
+	if (topic->exists()) {
+		topic->update();
+		topic->print();
+	} else {
+		PX4_ERR("topic does not exist yet");
+		return 0;
+	}
+
+	while (infinite_output || topic->times_printed() < num_msgs) {
+
+		int ret = ::poll(&fds, 1, 0);
+
+		if (ret > 0 ) {
+			char c;
+			ret = read(0, &c, 1);
+
+			if (ret) {
+				return 1;
+			}
+
+			switch (c) {
+			case 0x03: // ctrl-c
+			case 0x1b: // esc
+			case 'c':
+			case 'q':
+				return 0;
+			}
+		}
+
+		if (topic->update()) {
+			topic->print();
+		}
+		// rate limit this to 100 Hz max
+		usleep(10000);
+	}
+
 	return 0;
 }
