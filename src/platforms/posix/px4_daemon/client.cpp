@@ -97,13 +97,6 @@ Client::generate_uuid()
 int
 Client::process_args(const int argc, const char **argv)
 {
-	// Should be called with at least one command to forward to the server.
-	if (argc < 2) {
-		PX4_ERR("Not enough arguments.");
-		return -1;
-	}
-
-
 	// Prepare return pipe first to avoid a race.
 	int ret = _prepare_recv_pipe();
 
