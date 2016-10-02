@@ -261,13 +261,14 @@ HelicopterMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	float pitch_cmd = get_control(0, 1);
 
 	outputs[0] = throttle;
+
 	for (unsigned i = 0; i < _mixer_info.control_count; i++) {
-		outputs[i+1] = collective_pitch
-				+ cosf(_mixer_info.servos[i].angle) * pitch_cmd * _mixer_info.servos[i].arm_length
-				- sinf(_mixer_info.servos[i].angle) * roll_cmd * _mixer_info.servos[i].arm_length;
-		outputs[i+1] *= _mixer_info.servos[i].scale;
-		outputs[i+1] += _mixer_info.servos[i].offset;
-		outputs[i+1] = constrain(outputs[i+1], _mixer_info.servos[i].min_output, _mixer_info.servos[i].max_output);
+		outputs[i + 1] = collective_pitch
+				 + cosf(_mixer_info.servos[i].angle) * pitch_cmd * _mixer_info.servos[i].arm_length
+				 - sinf(_mixer_info.servos[i].angle) * roll_cmd * _mixer_info.servos[i].arm_length;
+		outputs[i + 1] *= _mixer_info.servos[i].scale;
+		outputs[i + 1] += _mixer_info.servos[i].offset;
+		outputs[i + 1] = constrain(outputs[i + 1], _mixer_info.servos[i].min_output, _mixer_info.servos[i].max_output);
 	}
 
 	return _mixer_info.control_count + 1;

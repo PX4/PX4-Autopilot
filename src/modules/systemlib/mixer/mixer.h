@@ -612,7 +612,7 @@ struct mixer_heli_s {
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
  * for swash plate tilting and throttle- and pitch curves.
  */
-	class __EXPORT HelicopterMixer : public Mixer
+class __EXPORT HelicopterMixer : public Mixer
 {
 public:
 	/**
