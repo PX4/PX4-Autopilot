@@ -166,6 +166,7 @@ int listener_main(int argc, char *argv[]) {
 	// Print it once if available
 	if (topic->exists()) {
 		topic->update();
+		PX4_INFO("Topic: %s (%d)", argv[1], topic->times_printed());
 		topic->print();
 	} else {
 		PX4_ERR("topic does not exist yet");
@@ -194,6 +195,7 @@ int listener_main(int argc, char *argv[]) {
 		}
 
 		if (topic->update()) {
+			PX4_INFO("Topic: %s (%d)", argv[1], topic->times_printed());
 			topic->print();
 		}
 		// rate limit this to 100 Hz max

@@ -32,7 +32,7 @@
 ############################################################################
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_listener.py ${PX4_SOURCE_DIR} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_listener.py ${PX4_SOURCE_DIR} topic_listener.cpp
                 DEPENDS msg_gen
                 )
 
