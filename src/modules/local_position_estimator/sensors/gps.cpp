@@ -166,24 +166,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	R(4, 4) = var_vxy;
 	R(5, 5) = var_vz;
 
-	// get delayed x and P
-	float t_delay = 0;
-	int i_hist = 0;
+	// get delayed x
+	uint8_t i_hist = 0;
 
-	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
-		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
-
-		if (t_delay > _gps_delay.get()) {
-			break;
-		}
-	}
-
-	// if you are 3 steps past the delay you wanted, this
-	// data is probably too old to use
-	if (t_delay > GPS_DELAY_MAX) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps delayed data too old: %8.4f", double(t_delay));
-		return;
-	}
+	if (getDelayPeriods(_gps_delay.get(), &i_hist)  < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 

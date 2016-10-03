@@ -246,6 +246,17 @@ PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
 
 /**
+ * Vision delay compensaton
+ *
+ * @group Local Position Estimator
+ * @unit sec
+ * @min 0
+ * @max 0.1
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_VIS_DELAY, 0.1f);
+
+/**
  * Vision xy standard deviation.
  *
  * @group Local Position Estimator

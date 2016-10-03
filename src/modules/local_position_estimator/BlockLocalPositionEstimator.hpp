@@ -33,10 +33,10 @@
 using namespace matrix;
 using namespace control;
 
-static const float GPS_DELAY_MAX = 0.5f; // seconds
+static const float DELAY_MAX = 0.5f; // seconds
 static const float HIST_STEP = 0.05f; // 20 hz
 static const float BIAS_MAX = 1e-1f;
-static const size_t HIST_LEN = 10; // GPS_DELAY_MAX / HIST_STEP;
+static const size_t HIST_LEN = 10; // DELAY_MAX / HIST_STEP;
 static const size_t N_DIST_SUBS = 4;
 
 enum fault_t {
@@ -207,6 +207,7 @@ private:
 	void correctionLogic(Vector<float, n_x> &dx);
 	void covPropagationLogic(Matrix<float, n_x, n_x> &dP);
 	void detectDistanceSensors();
+	int getDelayPeriods(float delay, uint8_t *periods);
 
 	// publications
 	void publishLocalPos();
@@ -276,6 +277,7 @@ private:
 	// vision parameters
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
+	BlockParamFloat  _vision_delay;
 	BlockParamInt   _vision_on;
 
 	// mocap parameters

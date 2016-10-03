@@ -77,6 +77,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_epv_max(this, "EPV_MAX"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
+	_vision_delay(this, "VIS_DELAY"),
 	_vision_on(this, "VIS_ON"),
 	_mocap_p_stddev(this, "VIC_P"),
 	_flow_gyro_comp(this, "FLW_GYRO_CMP"),
@@ -912,4 +913,27 @@ void BlockLocalPositionEstimator::predict()
 
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
+}
+
+int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
+{
+	float t_delay = 0;
+	uint8_t i_hist = 0;
+
+	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
+		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
+
+		if (t_delay > delay) {
+			break;
+		}
+	}
+
+	*periods = i_hist;
+
+	if (t_delay > DELAY_MAX) {
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] delayed data too old: %8.4f", double(t_delay));
+		return -1;
+	}
+
+	return OK;
 }
