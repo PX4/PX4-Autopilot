@@ -691,7 +691,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 	default:
 		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n1000000\n",
-		      baud);
+			baud);
 		return -EINVAL;
 	}
 
@@ -2454,6 +2454,22 @@ Mavlink::display_status()
 	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
 	printf("\trate mult: %.3f\n", (double)_rate_mult);
 	printf("\taccepting commands: %s\n", (accepting_commands()) ? "YES" : "NO");
+	printf("\tMAVLink version: %i\n", _protocol_version);
+
+	printf("\ttransport protocol: ");
+	switch (_protocol) {
+	case UDP:
+		printf("UDP (%i)\n", _network_port);
+		break;
+
+	case TCP:
+		printf("TCP\n");
+		break;
+
+	case SERIAL:
+		printf("serial (%s @%i)\n", _device_name, _baudrate);
+		break;
+	}
 }
 
 int
