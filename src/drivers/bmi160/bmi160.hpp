@@ -238,8 +238,7 @@
 
 #define BMI160_ONE_G                       9.80665f
 
-#define BMI160_LOW_BUS_SPEED				1000*1000
-#define BMI160_HIGH_BUS_SPEED				11*1000*1000
+#define BMI160_BUS_SPEED				10*1000*1000
 
 #define BMI160_TIMER_REDUCTION				200
 
@@ -387,7 +386,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed = BMI160_LOW_BUS_SPEED);
+	uint8_t			read_reg(unsigned reg);
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
