@@ -1365,7 +1365,7 @@ BMI160::print_info()
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < BMI160_NUM_CHECKED_REGISTERS; i++) {
-	        uint8_t v = read_reg(_checked_registers[i]);
+		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
 			::printf("reg %02x:%02x should be %02x\n",
