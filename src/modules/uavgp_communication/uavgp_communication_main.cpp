@@ -1,6 +1,6 @@
 /**
- * @file uavgp_commucation_main.cpp
- * For UAVGP2016 commucation
+ * @file uavgp_communication_main.cpp
+ * For UAVGP2016 communication
  * GCS->Pix->Mavros
  * or
  * Mavros->Pix->GCS
@@ -38,14 +38,14 @@
 #include <uORB/topics/obstacle_position_m2p.h>
 #include <uORB/topics/obstacle_position_p2g.h>
 
-static bool thread_should_exit = false;		/**< uavgp_commucation exit flag */
-static bool thread_running = false;			/**< uavgp_commucation status flag */
-static int  uavgp_commucation_task;				/**< Handle of uavgp_commucation task / thread */
+static bool thread_should_exit = false;		/**< uavgp_communication exit flag */
+static bool thread_running = false;			/**< uavgp_communication status flag */
+static int  uavgp_communication_task;				/**< Handle of uavgp_communication task / thread */
 
 // 线程管理程序
-extern "C" __EXPORT int uavgp_commucation_main(int argc, char *argv[]);
+extern "C" __EXPORT int uavgp_communication_main(int argc, char *argv[]);
 // 用户线程, 执行用户代码
-int uavgp_commucation_thread_main(int argc, char *argv[]);
+int uavgp_communication_thread_main(int argc, char *argv[]);
 static void usage(const char *reason);
 static void
 usage(const char *reason)
@@ -54,27 +54,27 @@ usage(const char *reason)
 }
 
 // 线程管理程序
-int uavgp_commucation_main(int argc, char *argv[])
+int uavgp_communication_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-			warnx("usage: uavgp_commucation {start|stop|status}");
+			warnx("usage: uavgp_communication {start|stop|status}");
 			return 1;
 		}
 
 	if (!strcmp(argv[1], "start")) {   //shell启动命令
 		if (thread_running) {		   // 如果线程已经启动了
-			warnx("uavgp_commucation already running\n");
+			warnx("uavgp_communication already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 		thread_should_exit = false;		// 将线程状态位设置为false
-		uavgp_commucation_task = px4_task_spawn_cmd("uavgp_commucation",  // 线程名
+		uavgp_communication_task = px4_task_spawn_cmd("uavgp_communication",  // 线程名
 										SCHED_DEFAULT,					  // 调度模式
 										SCHED_PRIORITY_DEFAULT,			  // 优先级
 										1200,							  // 堆栈大小
-										uavgp_commucation_thread_main,	  // 线程入口
+										uavgp_communication_thread_main,	  // 线程入口
 										nullptr);
-		if (uavgp_commucation_task < 0) {
+		if (uavgp_communication_task < 0) {
 				warn("task start failed");
 				return -errno;
 			}
@@ -96,7 +96,7 @@ int uavgp_commucation_main(int argc, char *argv[])
 	exit(1);
 }
 // 线程主体
-int uavgp_commucation_thread_main(int argc, char *argv[])
+int uavgp_communication_thread_main(int argc, char *argv[])
 {
 	thread_running=true;
 

@@ -190,7 +190,7 @@ set(config_module_list
 	modules/mavlink_msg_receive_test
     modules/mavlink_msg_send_test
 
-	modules/uavgp_commucation
+	modules/uavgp_communication
 
 )
 
