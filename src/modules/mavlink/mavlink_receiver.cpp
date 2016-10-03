@@ -119,6 +119,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_pos_sp_triplet_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
+	_vision_speed_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
@@ -209,6 +210,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
+		break;
+
+	case MAVLINK_MSG_ID_VISION_SPEED_ESTIMATE:
+		handle_message_vision_speed_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -995,6 +1000,33 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
 	}
 }
+
+void
+MavlinkReceiver::handle_message_vision_speed_estimate(mavlink_message_t *msg)
+{
+	mavlink_vision_speed_estimate_t spd;
+	mavlink_msg_vision_speed_estimate_decode(msg, &spd);
+
+	struct vision_speed_estimate_s vision_speed = {};
+
+	// Use the component ID to identify the vision sensor
+	vision_speed.id = msg->compid;
+
+	vision_speed.timestamp = sync_stamp(spd.usec);
+	vision_speed.timestamp_received = hrt_absolute_time();
+	vision_speed.x = spd.x;
+	vision_speed.y = spd.y;
+	vision_speed.z = spd.z;
+
+	if (_vision_speed_pub == nullptr) {
+		_vision_speed_pub = orb_advertise(ORB_ID(vision_speed_estimate), &vision_speed);
+
+	} else {
+		orb_publish(ORB_ID(vision_speed_estimate), _vision_speed_pub, &vision_speed);
+	}
+}
+
+
 
 void
 MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)

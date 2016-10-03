@@ -45,6 +45,7 @@ px4_add_module(
 		sensors/gps.cpp
 		sensors/baro.cpp
 		sensors/vision.cpp
+		sensors/vision_velocity.cpp
 		sensors/mocap.cpp
 	DEPENDS
 		platforms__common

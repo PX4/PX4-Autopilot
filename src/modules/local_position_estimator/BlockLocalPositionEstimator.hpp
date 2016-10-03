@@ -21,6 +21,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vision_speed_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 
 // uORB Publications
@@ -52,6 +53,7 @@ enum sensor_t {
 	SENSOR_FLOW,
 	SENSOR_SONAR,
 	SENSOR_VISION,
+	SENSOR_VISION_VELOCITY,
 	SENSOR_MOCAP
 };
 
@@ -130,6 +132,7 @@ public:
 	enum {Y_sonar_z = 0, n_y_sonar};
 	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
+	enum {Y_vision_vel_vx = 0, Y_vision_vel_vy, Y_vision_vel_vz, n_y_vision_vel};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM, n_poll};
 
@@ -193,6 +196,12 @@ private:
 	void visionInit();
 	void visionCheckTimeout();
 
+	// vision velocity
+	int  visionVelocityMeasure(Vector<float, n_y_vision_vel> &y);
+	void visionVelocityCorrect();
+	void visionVelocityInit();
+	void visionVelocityCheckTimeout();
+
 	// mocap
 	int  mocapMeasure(Vector<float, n_y_mocap> &y);
 	void mocapCorrect();
@@ -225,7 +234,8 @@ private:
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
+	uORB::Subscription<vision_position_estimate_s> _sub_vision;
+	uORB::Subscription<vision_speed_estimate_s> _sub_vision_speed;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
@@ -277,6 +287,8 @@ private:
 	// vision parameters
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
+	BlockParamFloat  _vision_vxy_stddev;
+	BlockParamFloat  _vision_vz_stddev;
 	BlockParamFloat  _vision_delay;
 	BlockParamInt   _vision_on;
 
@@ -314,6 +326,7 @@ private:
 	BlockStats<float, n_y_lidar> _lidarStats;
 	BlockStats<float, 1> _flowQStats;
 	BlockStats<float, n_y_vision> _visionStats;
+	BlockStats<float, n_y_vision_vel> _visionVelocityStats;
 	BlockStats<float, n_y_mocap> _mocapStats;
 	BlockStats<double, n_y_gps> _gpsStats;
 
@@ -339,6 +352,7 @@ private:
 	uint64_t _time_last_sonar;
 	uint64_t _time_init_sonar;
 	uint64_t _time_last_vision_p;
+	uint64_t _time_last_vision_vel;
 	uint64_t _time_last_mocap;
 
 	// initialization flags
@@ -349,6 +363,7 @@ private:
 	bool _sonarInitialized;
 	bool _flowInitialized;
 	bool _visionInitialized;
+	bool _visionVelocityInitialized;
 	bool _mocapInitialized;
 
 	// reference altitudes
@@ -373,6 +388,7 @@ private:
 	fault_t _flowFault;
 	fault_t _sonarFault;
 	fault_t _visionFault;
+	fault_t _visionVelocityFault;
 	fault_t _mocapFault;
 
 	// performance counters
