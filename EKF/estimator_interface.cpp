@@ -241,9 +241,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 		rangeSample range_sample_new = {};
 		range_sample_new.rng = *data;
 		rng = *data;
-		range_sample_new.time_us -= _params.range_delay_ms * 1000;
-
-		range_sample_new.time_us = time_usec;
+		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
 		_time_last_range = time_usec;
 
 		_range_buffer.push(range_sample_new);
