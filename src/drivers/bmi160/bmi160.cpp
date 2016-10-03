@@ -1040,7 +1040,7 @@ BMI160::set_gyro_range(unsigned max_dps)
 	} else if (max_dps <= 2000) {
 		max_gyro_dps = 2000;
 		lsb_per_dps = 16.4;
-		setbits |= BMI_GYRO_RANGE_1000_DPS;
+		setbits |= BMI_GYRO_RANGE_2000_DPS;
 
 	} else {
 		return -EINVAL;
