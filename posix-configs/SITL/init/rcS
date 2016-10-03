@@ -33,12 +33,10 @@ fi
 
 # Use the variable set by sitl_run.sh to choose the model settings.
 if [ "$SIM_MODEL" == "iris" ]; then
-	param set MAV_TYPE 2
 	param set SYS_AUTOSTART 10016
 
 elif [ "$SIM_MODEL" == "typhoon_h480" ]; then
-	param set MAV_TYPE 2
-	param set SYS_AUTOSTART 6001
+	param set SYS_AUTOSTART 6011
 else
 	echo "Unknown model"
 	exit -1
@@ -134,15 +132,11 @@ mc_att_control start
 #       infrastructure already available on NuttX.
 if param compare SYS_AUTOSTART 10016
 then
-	pwm_out_sim mode_pwm
-	mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
+	source etc/init/10016_iris
 
-elif param compare SYS_AUTOSTART 6001
+elif param compare SYS_AUTOSTART 6011
 then
-	pwm_out_sim mode_pwm16
-	mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
-	mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
-	vmount start
+	source etc/init/6011_typhoon_h480
 fi
 
 

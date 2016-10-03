@@ -1,0 +1,11 @@
+#!nsh
+#
+# @name 3DR Iris Quadrotor SITL
+#
+# @type Quadrotor Wide
+#
+# @maintainer Anton Babushkin <julian@oes.ch>
+#
+
+pwm_out_sim mode_pwm
+mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix

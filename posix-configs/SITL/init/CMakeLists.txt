@@ -33,6 +33,8 @@
 
 set(posix_init_file_names
 	rcS
+	6011_typhoon_h480
+	10016_iris
 )
 
 # Get absolute paths
