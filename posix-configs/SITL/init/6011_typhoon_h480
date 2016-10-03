@@ -13,6 +13,3 @@ pwm_out_sim mode_pwm16
 mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
 mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
 vmount start
-
-pwm_out_sim mode_pwm
-mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
