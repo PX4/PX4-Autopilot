@@ -674,6 +674,23 @@ void BlockLocalPositionEstimator::publishLocalPos()
 {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	// publish local position
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
@@ -711,8 +728,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		// so that if terrain estimation fails there isn't a
 		// sudden altitude jump
 		_pub_lpos.get().dist_bottom_valid = _validZ;
-		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_lpos.get().eph = eph;
+		_pub_lpos.get().epv = epv;
 		_pub_lpos.update();
 	}
 }
@@ -759,6 +776,23 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
 	float alt = -xLP(X_z) + _altOrigin;
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
 	    PX4_ISFINITE(xLP(X_vz))) {
@@ -771,8 +805,8 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
 		_pub_gpos.get().yaw = _sub_att.get().yaw;
-		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_gpos.get().eph = eph;
+		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
