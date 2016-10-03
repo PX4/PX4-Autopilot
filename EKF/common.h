@@ -348,7 +348,7 @@ struct parameters {
 		ev_pos_body = {};
 
 		// output complementary filter tuning time constants
-		vel_Tau = 0.5f;
+		vel_Tau = 0.25f;
 		pos_Tau = 0.25f;
 
 	}

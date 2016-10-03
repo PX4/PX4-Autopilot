@@ -674,6 +674,13 @@ void Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *orig
 	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
 }
 
+// return an array containing the output predictor angular, velocity and position tracking
+// error magnitudes (rad), (m/s), (m)
+void Ekf::get_output_tracking_error(float error[3])
+{
+	memcpy(error, _output_tracking_error, 3 * sizeof(float));
+}
+
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 {

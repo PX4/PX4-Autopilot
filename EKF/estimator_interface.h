@@ -88,8 +88,10 @@ public:
 
 	virtual void get_covariances(float *covariances) = 0;
 
-	// get the ekf WGS-84 origin position and height and the system time it was last set
+	// gets the variances for the NED velocity states
 	virtual void get_vel_var(Vector3f &vel_var) = 0;
+
+	// gets the variances for the NED position states
 	virtual void get_pos_var(Vector3f &pos_var) = 0;
 
 	// gets the innovation variance of the flow measurement
@@ -103,6 +105,10 @@ public:
 
 	// gets the innovation of the HAGL measurement
 	virtual void get_hagl_innov(float *flow_innov_var) = 0;
+
+	// return an array containing the output predictor angular, velocity and position tracking
+	// error magnitudes (rad), (m/s), (m)
+	virtual void get_output_tracking_error(float error[3]) = 0;
 
 	// get the ekf WGS-84 origin positoin and height and the system time it was last set
 	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;

@@ -130,6 +130,8 @@ Ekf::Ekf():
 	_last_known_posNE.setZero();
 	_imu_down_sampled = {};
 	_q_down_sampled.setZero();
+	_vel_err_integ.setZero();
+	_pos_err_integ.setZero();
 	_mag_filt_state = {};
 	_delVel_sum = {};
 	_flow_gyro_bias = {};
@@ -629,21 +631,24 @@ void Ekf::calculateOutputStates()
 		// that will cause the INS to track the EKF quaternions
 		_delta_angle_corr = delta_ang_error * att_gain;
 
-		// calculate a position correction that will be applied to the output state history
-		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
-		Vector3f pos_delta = (_state.pos - _output_sample_delayed.pos) * pos_gain;
+		// calculate velocity and position tracking errors
+		Vector3f vel_err = (_state.vel - _output_sample_delayed.vel);
+		Vector3f pos_err = (_state.pos - _output_sample_delayed.pos);
+
+		// collect magnitude tracking error for diagnostics
+		_output_tracking_error[0] = delta_ang_error.norm();
+		_output_tracking_error[1] = vel_err.norm();
+		_output_tracking_error[2] = pos_err.norm();
 
 		// calculate a velocity correction that will be applied to the output state history
-		Vector3f vel_delta;
-		if (_params.pos_Tau <= 0.0f) {
-			// this method will cause the velocity to be kinematically consistent with
-			// the position corretions rather than tracking the EKF states
-			vel_delta = pos_delta * (1.0f / time_delay);
-		} else {
-			// this method makes the velocity track the EKF states with the specified time constant
-			float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
-			vel_delta = (_state.vel - _output_sample_delayed.vel) * vel_gain;
-		}
+		float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
+		_vel_err_integ += vel_err;
+		Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
+
+		// calculate a position correction that will be applied to the output state history
+		float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
+		_pos_err_integ += pos_err;
+		Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
 
 		// loop through the output filter state history and apply the corrections to the velocity and position states
 		// this method is too expensive to use for the attitude states due to the quaternion operations required
@@ -655,10 +660,10 @@ void Ekf::calculateOutputStates()
 			output_states = _output_buffer.get_from_index(index);
 
 			// a constant  velocity correction is applied
-			output_states.vel += vel_delta;
+			output_states.vel += vel_correction;
 
 			// a constant position correction is applied
-			output_states.pos += pos_delta;
+			output_states.pos += pos_correction;
 
 			// push the updated data to the buffer
 			_output_buffer.push_to_index(index,output_states);
