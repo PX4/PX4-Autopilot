@@ -47,9 +47,9 @@ bool Ekf::initHagl()
 	// get most recent range measurement from buffer
 	rangeSample latest_measurement = _range_buffer.get_newest();
 
-	if ((_time_last_imu - latest_measurement.time_us) < 2e5) {
+	if ((_time_last_imu - latest_measurement.time_us) < 2e5 && _R_to_earth(2,2) > 0.7071f) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
-		_terrain_vpos = _state.pos(2) + latest_measurement.rng;
+		_terrain_vpos = _state.pos(2) + latest_measurement.rng * _R_to_earth(2, 2);
 		// initialise state variance to variance of measurement
 		_terrain_var = sq(_params.range_noise);
 		// success
