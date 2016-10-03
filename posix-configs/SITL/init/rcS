@@ -99,7 +99,6 @@ accelsim start
 barosim start
 adcsim start
 gpssim start
-pwm_out_sim mode_pwm
 sleep 1
 sensors start
 commander start
@@ -135,12 +134,15 @@ mc_att_control start
 #       infrastructure already available on NuttX.
 if param compare SYS_AUTOSTART 10016
 then
+	pwm_out_sim mode_pwm
 	mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
 
 elif param compare SYS_AUTOSTART 6001
 then
+	pwm_out_sim mode_pwm16
 	mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
 	mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
+	vmount start
 fi
 
 
