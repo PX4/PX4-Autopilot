@@ -182,14 +182,13 @@ set(config_module_list
 	
 	# User modules
 	modules/servo_control
-
-	# An example
-	modules/example_lz
-
+	
 	# huanglilong
 	modules/mavlink_msg_receive_test
-    modules/mavlink_msg_send_test
+    	modules/mavlink_msg_send_test
 
+	# liuzhong
+	modules/example_lz
 	modules/uavgp_communication
 
 )

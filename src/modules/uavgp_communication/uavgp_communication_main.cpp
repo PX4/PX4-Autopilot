@@ -71,7 +71,7 @@ int uavgp_communication_main(int argc, char *argv[])
 		uavgp_communication_task = px4_task_spawn_cmd("uavgp_communication",  // 线程名
 										SCHED_DEFAULT,					  // 调度模式
 										SCHED_PRIORITY_DEFAULT,			  // 优先级
-										1200,							  // 堆栈大小
+										1500,							  // 堆栈大小
 										uavgp_communication_thread_main,	  // 线程入口
 										nullptr);
 		if (uavgp_communication_task < 0) {
@@ -217,6 +217,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			fixed_target_position_pub.spray_right_alt=fixed_target_position_sub.spray_right_alt;
 			if (_fixed_target_position_pub == nullptr) {
 				_fixed_target_position_pub = orb_advertise(ORB_ID(fixed_target_position_p2m), &fixed_target_position_pub);
+				orb_publish(ORB_ID(fixed_target_position_p2m), _fixed_target_position_pub, &fixed_target_position_pub);
 			} else {
 				orb_publish(ORB_ID(fixed_target_position_p2m), _fixed_target_position_pub, &fixed_target_position_pub);
 			}
@@ -241,6 +242,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			fixed_target_return_pub.spray_right_alt=fixed_target_return_sub.spray_right_alt;
 			if (_fixed_target_return_pub == nullptr) {
 				_fixed_target_return_pub = orb_advertise(ORB_ID(fixed_target_return_p2g), &fixed_target_return_pub);
+				orb_publish(ORB_ID(fixed_target_return_p2g), _fixed_target_return_pub, &fixed_target_return_pub);
 			} else {
 				orb_publish(ORB_ID(fixed_target_return_p2g), _fixed_target_return_pub, &fixed_target_return_pub);
 			}
@@ -254,6 +256,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			yaw_sp_calculated_pub.yaw_sp=yaw_sp_calculated_sub.yaw_sp;
 			if (_yaw_sp_calculated_pub == nullptr) {
 				_yaw_sp_calculated_pub = orb_advertise(ORB_ID(yaw_sp_calculated_p2g), &yaw_sp_calculated_pub);
+				orb_publish(ORB_ID(yaw_sp_calculated_p2g), _yaw_sp_calculated_pub, &yaw_sp_calculated_pub);
 			} else {
 				orb_publish(ORB_ID(yaw_sp_calculated_p2g), _yaw_sp_calculated_pub, &yaw_sp_calculated_pub);
 			}
@@ -268,6 +271,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			task_status_change_pub.loop_value=task_status_change_sub.loop_value;
 			if (_task_status_change_pub == nullptr) {
 				_task_status_change_pub = orb_advertise(ORB_ID(task_status_change_p2m), &task_status_change_pub);
+				orb_publish(ORB_ID(task_status_change_p2m), _task_status_change_pub, &task_status_change_pub);
 			} else {
 				orb_publish(ORB_ID(task_status_change_p2m), _task_status_change_pub, &task_status_change_pub);
 			}
@@ -286,6 +290,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			task_status_monitor_pub.target_alt=task_status_monitor_sub.target_alt;
 			if (_task_status_monitor_pub == nullptr) {
 				_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_monitor_pub);
+				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_monitor_pub);
 			} else {
 				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_monitor_pub);
 			}
@@ -303,6 +308,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			vision_num_scan_pub.board_valid=vision_num_scan_sub.board_valid;
 			if (_vision_num_scan_pub == nullptr) {
 				_vision_num_scan_pub = orb_advertise(ORB_ID(vision_num_scan_p2g), &vision_num_scan_pub);
+				orb_publish(ORB_ID(vision_num_scan_p2g), _vision_num_scan_pub, &vision_num_scan_pub);
 			} else {
 				orb_publish(ORB_ID(vision_num_scan_p2g), _vision_num_scan_pub, &vision_num_scan_pub);
 			}
@@ -317,6 +323,7 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			vision_one_num_get_pub.num=vision_one_num_get_sub.num;
 			if (_vision_one_num_get_pub == nullptr) {
 				_vision_one_num_get_pub = orb_advertise(ORB_ID(vision_one_num_get_p2g), &vision_one_num_get_pub);
+				orb_publish(ORB_ID(vision_one_num_get_p2g), _vision_one_num_get_pub, &vision_one_num_get_pub);
 			} else {
 				orb_publish(ORB_ID(vision_one_num_get_p2g), _vision_one_num_get_pub, &vision_one_num_get_pub);
 			}
@@ -333,10 +340,12 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			obstacle_position_pub.obstacle_valid=obstacle_position_sub.obstacle_valid;
 			if (_obstacle_position_pub == nullptr) {
 				_obstacle_position_pub = orb_advertise(ORB_ID(obstacle_position_p2g), &obstacle_position_pub);
+				orb_publish(ORB_ID(obstacle_position_p2g), _obstacle_position_pub, &obstacle_position_pub);
 			} else {
 				orb_publish(ORB_ID(obstacle_position_p2g), _obstacle_position_pub, &obstacle_position_pub);
 			}
 		}
+		usleep(50000); //延时50ms，防止一直检测
 	}
 
 	thread_running=false;
