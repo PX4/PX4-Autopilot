@@ -156,16 +156,16 @@ int mavlink_msg_send_thread_main(int argc, char *argv[])
 		fixed_target_position_p2m_data.home_alt = 3.0f;
 		orb_publish(ORB_ID(fixed_target_position_p2m), fixed_target_position_p2m_pub, &fixed_target_position_p2m_data);
 		PX4_WARN("publishing fixed_target_position_p2m: %5.3f %5.3f %5.3f",
-				fixed_target_position_p2m_data.home_lat,
-				fixed_target_position_p2m_data.home_lon,
-				fixed_target_position_p2m_data.home_alt);
+				(double)fixed_target_position_p2m_data.home_lat,
+				(double)fixed_target_position_p2m_data.home_lon,
+				(double)fixed_target_position_p2m_data.home_alt);
 
-		task_status_change_p2m_data.num_odd_even = 1;
+		task_status_change_p2m_data.spray_duration = 1;
 		task_status_change_p2m_data.task_status = 1;
 		task_status_change_p2m_data.loop_value = 1;
 		orb_publish(ORB_ID(task_status_change_p2m), task_status_change_p2m_pub, &task_status_change_p2m_data);
-		PX4_WARN("publishing task_status_change_p2m: %d %d %d",
-				task_status_change_p2m_data.num_odd_even,
+		PX4_WARN("publishing task_status_change_p2m: %5.3f %d %d",
+				(double)task_status_change_p2m_data.spray_duration,
 				task_status_change_p2m_data.task_status,
 				task_status_change_p2m_data.loop_value);
 

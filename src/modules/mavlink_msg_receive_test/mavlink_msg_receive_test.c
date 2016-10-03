@@ -217,8 +217,8 @@ int mavlink_msg_receive_thread_main(int argc, char *argv[])
 		}
 		if (fds[2].revents & POLLIN) {
 			orb_copy(ORB_ID(task_status_monitor_m2p), task_status_monitor_m2p_sub_fd, &task_status_monitor_m2p_data);
-			PX4_WARN("task_status_monitor_m2p: %d %d %d %5.3f %5.3f %5.3f",
-				task_status_monitor_m2p_data.num_odd_even,
+			PX4_WARN("task_status_monitor_m2p: %5.3f %d %d %5.3f %5.3f %5.3f",
+				(double)task_status_monitor_m2p_data.spray_duration,
 				task_status_monitor_m2p_data.task_status,
 				task_status_monitor_m2p_data.loop_value,
 				(double)task_status_monitor_m2p_data.target_lat,

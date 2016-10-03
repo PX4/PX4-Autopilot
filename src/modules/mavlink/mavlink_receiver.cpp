@@ -2300,7 +2300,7 @@ MavlinkReceiver::handle_message_task_status_change_g2p(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_change.num_odd_even;
+	f.spray_duration=task_status_change.spray_duration;
 	f.task_status=task_status_change.task_status;
 	f.loop_value=task_status_change.loop_value;
 
@@ -2320,7 +2320,7 @@ MavlinkReceiver::handle_message_task_status_change_p2m(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_change.num_odd_even;
+	f.spray_duration=task_status_change.spray_duration;
 	f.task_status=task_status_change.task_status;
 	f.loop_value=task_status_change.loop_value;
 
@@ -2341,7 +2341,7 @@ MavlinkReceiver::handle_message_task_status_monitor_m2p(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_monitor.num_odd_even;
+	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
 	f.target_lon=task_status_monitor.target_lon;
@@ -2364,7 +2364,7 @@ MavlinkReceiver::handle_message_task_status_monitor_p2g(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.num_odd_even=task_status_monitor.num_odd_even;
+	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
 	f.target_lon=task_status_monitor.target_lon;

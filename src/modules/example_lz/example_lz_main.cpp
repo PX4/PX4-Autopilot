@@ -175,7 +175,7 @@ int example_lz_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(task_status_change_g2p), _task_status_change_sub, &task_status_sub);
 			// 变量赋值
 			task_status_pub.timestamp=hrt_absolute_time();
-			task_status_pub.num_odd_even=task_status_sub.num_odd_even;
+			task_status_pub.spray_duration=task_status_sub.spray_duration;
 			task_status_pub.task_status=task_status_sub.task_status; //实际任务状态
 			task_status_pub.loop_value=task_status_sub.loop_value; //数字编号
 			task_status_pub.target_lon=position_sub.home_lon;
