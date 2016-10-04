@@ -103,7 +103,8 @@ public:
 class GPS
 {
 public:
-	GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num);
+	GPS(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps, bool enable_sat_info,
+	    int gps_num);
 	virtual ~GPS();
 
 	virtual int			init();
@@ -123,7 +124,9 @@ private:
 	bool				_healthy;					///< flag to signal if the GPS is ok
 	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
+	bool        _mode_auto;
 	gps_driver_mode_t		_mode;						///< current mode
+	gps_driver_interface_t  _interface;   ///< interface
 	GPSHelper			*_helper;					///< instance of GPS parser
 	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
@@ -241,11 +244,13 @@ volatile bool is_gps1_advertised = false; ///< for the second gps we want to mak
 }
 
 
-GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num) :
+GPS::GPS(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps,
+	 bool enable_sat_info, int gps_num) :
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
-	_mode(GPS_DRIVER_MODE_UBX),
+	_mode(mode),
+	_interface(interface),
 	_helper(nullptr),
 	_sat_info(nullptr),
 	_report_gps_pos_pub{nullptr},
@@ -263,7 +268,7 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 	_dump_from_device(nullptr)
 {
 	/* store port name */
-	strncpy(_port, uart_path, sizeof(_port));
+	strncpy(_port, path, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
@@ -274,6 +279,10 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num
 		_sat_info = new GPS_Sat_Info();
 		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
+	}
+
+	if (mode == GPS_DRIVER_MODE_NONE) {
+		_mode_auto = true;
 	}
 }
 
@@ -374,7 +383,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
 	handleInjectDataTopic();
 
-#ifndef __PX4_QURT
+#if !defined(__PX4_QURT)
 
 	/* For non QURT, use the usual polling. */
 
@@ -700,8 +709,11 @@ GPS::task_main()
 			}
 
 			switch (_mode) {
+			case GPS_DRIVER_MODE_NONE:
+				_mode = GPS_DRIVER_MODE_UBX;
+
 			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -807,25 +819,26 @@ GPS::task_main()
 				}
 			}
 
-			/* select next mode */
-			switch (_mode) {
-			case GPS_DRIVER_MODE_UBX:
-				_mode = GPS_DRIVER_MODE_MTK;
-				break;
+			if (_mode_auto) {
+				switch (_mode) {
+				case GPS_DRIVER_MODE_UBX:
+					_mode = GPS_DRIVER_MODE_MTK;
+					break;
 
-			case GPS_DRIVER_MODE_MTK:
-				_mode = GPS_DRIVER_MODE_ASHTECH;
-				break;
+				case GPS_DRIVER_MODE_MTK:
+					_mode = GPS_DRIVER_MODE_ASHTECH;
+					break;
 
-			case GPS_DRIVER_MODE_ASHTECH:
-				_mode = GPS_DRIVER_MODE_UBX;
-				break;
+				case GPS_DRIVER_MODE_ASHTECH:
+					_mode = GPS_DRIVER_MODE_UBX;
+					break;
 
-			default:
-				break;
+				default:
+					break;
+				}
 			}
-		}
 
+		}
 	}
 
 	PX4_INFO("exiting");
@@ -947,7 +960,8 @@ namespace gps
 {
 
 
-void	start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num);
+void	start(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps,
+	      bool enable_sat_info, int gps_num);
 void	stop();
 void	test();
 void	reset();
@@ -957,7 +971,8 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
+start(const char *path, gps_driver_mode_t mode, gps_driver_interface_t interface, bool fake_gps, bool enable_sat_info,
+      int gps_num)
 {
 	if (g_dev[gps_num - 1] != nullptr) {
 		PX4_WARN("GPS %i already started", gps_num);
@@ -965,7 +980,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info, int gps_num)
 	}
 
 	/* create the driver */
-	g_dev[gps_num - 1] = new GPS(uart_path, fake_gps, enable_sat_info, gps_num);
+	g_dev[gps_num - 1] = new GPS(path, mode, interface, fake_gps, enable_sat_info, gps_num);
 
 	if (!g_dev[gps_num - 1] || OK != g_dev[gps_num - 1]->init()) {
 		if (g_dev[gps_num - 1] != nullptr) {
@@ -1046,6 +1061,8 @@ gps_main(int argc, char *argv[])
 	const char *device_name2 = nullptr;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
+	gps_driver_interface_t interface = GPS_DRIVER_UART;
+	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
 
 	if (argc < 2) {
 		goto out;
@@ -1080,6 +1097,43 @@ gps_main(int argc, char *argv[])
 			}
 		}
 
+		/* Detect interface option */
+		for (int i = 2; i < argc; i++) {
+			if (!strcmp(argv[i], "-i")) {
+
+				int interface_arg = i + 1;
+
+				if (interface_arg < argc) {
+					if (!strcmp(argv[interface_arg], "spi")) {
+						interface = GPS_DRIVER_SPI;
+
+					} else if (!strcmp(argv[interface_arg], "uart")) {
+						interface = GPS_DRIVER_UART;
+					}
+				}
+			}
+		}
+
+		/* Detect mode/protocol option */
+		for (int i = 2; i < argc; i++) {
+			if (!strcmp(argv[i], "-p")) {
+
+				int mode_arg = i + 1;
+
+				if (mode_arg < argc) {
+					if (!strcmp(argv[mode_arg], "ubx")) {
+						mode = GPS_DRIVER_MODE_UBX;
+
+					} else if (!strcmp(argv[mode_arg], "mtk")) {
+						mode = GPS_DRIVER_MODE_MTK;
+
+					} else if (!strcmp(argv[mode_arg], "ash")) {
+						mode = GPS_DRIVER_MODE_ASHTECH;
+					}
+				}
+			}
+		}
+
 		/* Allow to use a second gps device */
 		for (int i = 2; i < argc; i++) {
 			if (!strcmp(argv[i], "-dualgps")) {
@@ -1092,10 +1146,10 @@ gps_main(int argc, char *argv[])
 			}
 		}
 
-		gps::start(device_name, fake_gps, enable_sat_info, 1);
+		gps::start(device_name, mode, interface, fake_gps, enable_sat_info, 1);
 
 		if (device_name2) {
-			gps::start(device_name2, fake_gps, enable_sat_info, 2);
+			gps::start(device_name2, mode, interface, fake_gps, enable_sat_info, 2);
 		}
 
 	}
