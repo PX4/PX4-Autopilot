@@ -51,6 +51,8 @@
 #include "apps.h"
 #include "DriverFramework.hpp"
 
+#define MAX_ARGS 8 // max number of whitespace separated args after app name
+
 using namespace std;
 
 extern void init_app_map(map<string, px4_main_t> &apps);
@@ -76,9 +78,15 @@ static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs
 	//replaces app.find with iterator code to avoid null pointer exception
 	for (map<string, px4_main_t>::iterator it = apps.begin(); it != apps.end(); ++it)
 		if (it->first == command) {
-			const char *arg[2 + 1];
+			// one for command name, one for null terminator
+			const char *arg[MAX_ARGS + 2];
 
 			unsigned int i = 0;
+
+			if (appargs.size() > MAX_ARGS + 1) {
+				PX4_ERR("%d too many arguments in run_cmd", appargs.size() - (MAX_ARGS + 1));
+				return;
+			}
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
@@ -202,7 +210,7 @@ const char *get_commands()
 	PX4_ERR("Could not open %s\n", COMMANDS_ADSP_FILE);
 
 	static const char *commands =
-		"uorb start\n"
+		"uorb start\nqshell start\n"
 		;
 
 	return commands;
