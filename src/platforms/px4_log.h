@@ -417,7 +417,12 @@ __END_DECLS
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
 #define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+
+#ifdef __NUTTX
+#define PX4_INFO_RAW		printf
+#else
 #define PX4_INFO_RAW(FMT, ...) 	__px4_log_raw(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#endif
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
