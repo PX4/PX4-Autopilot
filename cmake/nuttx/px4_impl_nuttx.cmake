@@ -434,7 +434,7 @@ function(px4_os_add_flags)
 		)
 	set(added_definitions
 		-D__PX4_NUTTX
-		-D__DF_NUTTX
+		-D__DF_NUTTX # Define for DriverFramework
 		)
 	set(added_c_flags
 		-nodefaultlibs
