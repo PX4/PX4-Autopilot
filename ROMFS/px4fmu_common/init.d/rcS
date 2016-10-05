@@ -145,6 +145,10 @@ then
 	set FMU_MODE pwm
 	set AUX_MODE pwm
 	set MAVLINK_F default
+	set LNK_BDR 57600
+	set LNK_RATE 1200
+	set LNK_TTY "/dev/ttyS1"
+	set COMP_TTY "/dev/ttyS2"
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
@@ -483,22 +487,65 @@ then
 		fi
 	fi
 
+	if param compare MAV_LNK_BDR 57600
+	then
+		set LNK_BDR 57600
+		set LNK_RATE 1200
+	fi
+	if param compare MAV_LNK_BDR 115200
+	then
+		set LNK_BDR 115200
+		set LNK_RATE 2400
+	fi
+	if param compare MAV_LNK_BDR 230400
+	then
+		set LNK_BDR 230400
+		set LNK_RATE 4800
+	fi
+	if param compare MAV_LNK_BDR 460800
+	then
+		set LNK_BDR 460800
+		set LNK_RATE 9600
+	fi
+	if param compare MAV_LNK_BDR 921600
+	then
+		set LNK_BDR 921600
+		set LNK_RATE 19200
+	fi
+
+	if param compare MAV_LNK_TTY 0
+	then
+		set LNK_TTY "/dev/ttyS0"
+	fi
+	if param compare MAV_LNK_TTY 1
+	then
+		set LNK_TTY "/dev/ttyS1"
+	fi
+	if param compare MAV_LNK_TTY 2
+	then
+		set LNK_TTY "/dev/ttyS2"
+	fi
+	if param compare MAV_LNK_TTY 3
+	then
+		set LNK_TTY "/dev/ttyS3"
+	fi
+
 	if [ $MAVLINK_F == default ]
 	then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			set MAVLINK_F "-r 1200 -d /dev/ttyS0"
+			set MAVLINK_F "-r $LNK_RATE -b $LNK_BDR -d /dev/ttyS0"
 
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			set MAVLINK_F "-r 1200"
+			set MAVLINK_F "-r $LNK_RATE -b $LNK_BDR -d $LNK_TTY"
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
+				set MAVLINK_F "-r $LNK_RATE -b $LNK_BDR -d $LNK_TTY"
 				# Start MAVLink on Wifi (ESP8266 port)
 				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
@@ -521,6 +568,23 @@ then
 	#
 	# MAVLink onboard / TELEM2
 	#
+	if param compare SYS_COMP_TTY 0
+	then
+		set COMP_TTY "/dev/ttyS0"
+	fi
+	if param compare SYS_COMP_TTY 1
+	then
+		set COMP_TTY "/dev/ttyS1"
+	fi
+	if param compare SYS_COMP_TTY 2
+	then
+		set COMP_TTY "/dev/ttyS2"
+	fi
+	if param compare SYS_COMP_TTY 3
+	then
+		set COMP_TTY "/dev/ttyS3"
+	fi
+
 	if ver hwcmp PX4FMU_V1
 	then
 	else
@@ -528,7 +592,7 @@ then
 		# but this works for now
 		if param compare SYS_COMPANION 10
 		then
-			frsky_telemetry start -d /dev/ttyS2
+			frsky_telemetry start -d $COMP_TTY
 		fi
 		if param compare SYS_COMPANION 20
 		then
@@ -537,27 +601,31 @@ then
 		fi
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 80000 -x
+			mavlink start -d $COMP_TTY -b 921600 -m onboard -r 80000 -x
+		fi
+		# config option for wifi on second port
+		if param compare SYS_COMPANION 1921600
+		then
+			mavlink start -d $COMP_TTY -b 921600 -m config -r 19200
 		fi
 		if param compare SYS_COMPANION 57600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 5000 -x
+			mavlink start -d $COMP_TTY -b 57600 -m onboard -r 5000 -x
 		fi
+		# OSD (prefix 1)
 		if param compare SYS_COMPANION 157600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
+			mavlink start -d $COMP_TTY -b 57600 -m osd -r 1000
 		fi
+		# magic (prefix 2)
 		if param compare SYS_COMPANION 257600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
+			mavlink start -d $COMP_TTY -b 57600 -m magic -r 5000 -x
 		fi
+		# config (prefix 3)
 		if param compare SYS_COMPANION 357600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
-		fi
-		if param compare SYS_COMPANION 1921600
-		then
-			mavlink start -d /dev/ttyS2 -b 921600 -r 20000
+			mavlink start -d $COMP_TTY -b 57600 -m config -r 1200
 		fi
 		# Sensors on the PWM interface bank
 		# clear pins 5 and 6
