@@ -3310,18 +3310,18 @@ protected:
 
 			mavlink_fixed_target_position_g2p_t msg;
 
-			msg.home_lon=fixed_target_position_g2p.home_lon;
-			msg.home_lat=fixed_target_position_g2p.home_lat;
-			msg.home_alt=fixed_target_position_g2p.home_alt;
-			msg.observe_lon=fixed_target_position_g2p.observe_lon;
-			msg.observe_lat=fixed_target_position_g2p.observe_lat;
-			msg.observe_alt=fixed_target_position_g2p.observe_alt;
-			msg.spray_left_lon=fixed_target_position_g2p.spray_left_lon;
-			msg.spray_left_lat=fixed_target_position_g2p.spray_left_lat;
-			msg.spray_left_alt=fixed_target_position_g2p.spray_left_alt;
-			msg.spray_right_lon=fixed_target_position_g2p.spray_right_lon;
-			msg.spray_right_lat=fixed_target_position_g2p.spray_right_lat;
-			msg.spray_right_alt=fixed_target_position_g2p.spray_right_alt;
+			msg.home_x=fixed_target_position_g2p.home_x;
+			msg.home_y=fixed_target_position_g2p.home_y;
+			msg.home_z=fixed_target_position_g2p.home_z;
+			msg.observe_x=fixed_target_position_g2p.observe_x;
+			msg.observe_y=fixed_target_position_g2p.observe_y;
+			msg.observe_z=fixed_target_position_g2p.observe_z;
+			msg.spray_left_x=fixed_target_position_g2p.spray_left_x;
+			msg.spray_left_y=fixed_target_position_g2p.spray_left_y;
+			msg.spray_left_z=fixed_target_position_g2p.spray_left_z;
+			msg.spray_right_x=fixed_target_position_g2p.spray_right_x;
+			msg.spray_right_y=fixed_target_position_g2p.spray_right_y;
+			msg.spray_right_z=fixed_target_position_g2p.spray_right_z;
 
 			mavlink_msg_fixed_target_position_g2p_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3389,18 +3389,18 @@ protected:
 
 			mavlink_fixed_target_position_p2m_t msg;
 
-			msg.home_lon=fixed_target_position_p2m.home_lon;
-			msg.home_lat=fixed_target_position_p2m.home_lat;
-			msg.home_alt=fixed_target_position_p2m.home_alt;
-			msg.observe_lon=fixed_target_position_p2m.observe_lon;
-			msg.observe_lat=fixed_target_position_p2m.observe_lat;
-			msg.observe_alt=fixed_target_position_p2m.observe_alt;
-			msg.spray_left_lon=fixed_target_position_p2m.spray_left_lon;
-			msg.spray_left_lat=fixed_target_position_p2m.spray_left_lat;
-			msg.spray_left_alt=fixed_target_position_p2m.spray_left_alt;
-			msg.spray_right_lon=fixed_target_position_p2m.spray_right_lon;
-			msg.spray_right_lat=fixed_target_position_p2m.spray_right_lat;
-			msg.spray_right_alt=fixed_target_position_p2m.spray_right_alt;
+			msg.home_x=fixed_target_position_p2m.home_x;
+			msg.home_y=fixed_target_position_p2m.home_y;
+			msg.home_z=fixed_target_position_p2m.home_z;
+			msg.observe_x=fixed_target_position_p2m.observe_x;
+			msg.observe_y=fixed_target_position_p2m.observe_y;
+			msg.observe_z=fixed_target_position_p2m.observe_z;
+			msg.spray_left_x=fixed_target_position_p2m.spray_left_x;
+			msg.spray_left_y=fixed_target_position_p2m.spray_left_y;
+			msg.spray_left_z=fixed_target_position_p2m.spray_left_z;
+			msg.spray_right_x=fixed_target_position_p2m.spray_right_x;
+			msg.spray_right_y=fixed_target_position_p2m.spray_right_y;
+			msg.spray_right_z=fixed_target_position_p2m.spray_right_z;
 
 			mavlink_msg_fixed_target_position_p2m_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3465,18 +3465,18 @@ protected:
 			mavlink_fixed_target_return_m2p_t msg;
 
 			msg.timestamp=fixed_target_return_m2p.timestamp;
-			msg.home_lon=fixed_target_return_m2p.home_lon;
-			msg.home_lat=fixed_target_return_m2p.home_lat;
-			msg.home_alt=fixed_target_return_m2p.home_alt;
-			msg.observe_lon=fixed_target_return_m2p.observe_lon;
-			msg.observe_lat=fixed_target_return_m2p.observe_lat;
-			msg.observe_alt=fixed_target_return_m2p.observe_alt;
-			msg.spray_left_lon=fixed_target_return_m2p.spray_left_lon;
-			msg.spray_left_lat=fixed_target_return_m2p.spray_left_lat;
-			msg.spray_left_alt=fixed_target_return_m2p.spray_left_alt;
-			msg.spray_right_lon=fixed_target_return_m2p.spray_right_lon;
-			msg.spray_right_lat=fixed_target_return_m2p.spray_right_lat;
-			msg.spray_right_alt=fixed_target_return_m2p.spray_right_alt;
+			msg.home_x=fixed_target_return_m2p.home_x;
+			msg.home_y=fixed_target_return_m2p.home_y;
+			msg.home_z=fixed_target_return_m2p.home_z;
+			msg.observe_x=fixed_target_return_m2p.observe_x;
+			msg.observe_y=fixed_target_return_m2p.observe_y;
+			msg.observe_z=fixed_target_return_m2p.observe_z;
+			msg.spray_left_x=fixed_target_return_m2p.spray_left_x;
+			msg.spray_left_y=fixed_target_return_m2p.spray_left_y;
+			msg.spray_left_z=fixed_target_return_m2p.spray_left_z;
+			msg.spray_right_x=fixed_target_return_m2p.spray_right_x;
+			msg.spray_right_y=fixed_target_return_m2p.spray_right_y;
+			msg.spray_right_z=fixed_target_return_m2p.spray_right_z;
 
 			mavlink_msg_fixed_target_return_m2p_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3540,18 +3540,18 @@ protected:
 			mavlink_fixed_target_return_p2g_t msg;
 
 			msg.timestamp=fixed_target_return_p2g.timestamp;
-			msg.home_lon=fixed_target_return_p2g.home_lon;
-			msg.home_lat=fixed_target_return_p2g.home_lat;
-			msg.home_alt=fixed_target_return_p2g.home_alt;
-			msg.observe_lon=fixed_target_return_p2g.observe_lon;
-			msg.observe_lat=fixed_target_return_p2g.observe_lat;
-			msg.observe_alt=fixed_target_return_p2g.observe_alt;
-			msg.spray_left_lon=fixed_target_return_p2g.spray_left_lon;
-			msg.spray_left_lat=fixed_target_return_p2g.spray_left_lat;
-			msg.spray_left_alt=fixed_target_return_p2g.spray_left_alt;
-			msg.spray_right_lon=fixed_target_return_p2g.spray_right_lon;
-			msg.spray_right_lat=fixed_target_return_p2g.spray_right_lat;
-			msg.spray_right_alt=fixed_target_return_p2g.spray_right_alt;
+			msg.home_x=fixed_target_return_p2g.home_x;
+			msg.home_y=fixed_target_return_p2g.home_y;
+			msg.home_z=fixed_target_return_p2g.home_z;
+			msg.observe_x=fixed_target_return_p2g.observe_x;
+			msg.observe_y=fixed_target_return_p2g.observe_y;
+			msg.observe_z=fixed_target_return_p2g.observe_z;
+			msg.spray_left_x=fixed_target_return_p2g.spray_left_x;
+			msg.spray_left_y=fixed_target_return_p2g.spray_left_y;
+			msg.spray_left_z=fixed_target_return_p2g.spray_left_z;
+			msg.spray_right_x=fixed_target_return_p2g.spray_right_x;
+			msg.spray_right_y=fixed_target_return_p2g.spray_right_y;
+			msg.spray_right_z=fixed_target_return_p2g.spray_right_z;
 
 			mavlink_msg_fixed_target_return_p2g_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3879,9 +3879,9 @@ protected:
 			msg.spray_duration=task_status_monitor_m2p.spray_duration;
 			msg.task_status=task_status_monitor_m2p.task_status;
 			msg.loop_value=task_status_monitor_m2p.loop_value;
-			msg.target_lon=task_status_monitor_m2p.target_lon;
-			msg.target_lat=task_status_monitor_m2p.target_lat;
-			msg.target_alt=task_status_monitor_m2p.target_alt;
+			msg.target_x=task_status_monitor_m2p.target_x;
+			msg.target_y=task_status_monitor_m2p.target_y;
+			msg.target_z=task_status_monitor_m2p.target_z;
 
 			mavlink_msg_task_status_monitor_m2p_send_struct(_mavlink->get_channel(), &msg);
 		}
@@ -3948,9 +3948,9 @@ protected:
 			msg.spray_duration=task_status_monitor_p2g.spray_duration;
 			msg.task_status=task_status_monitor_p2g.task_status;
 			msg.loop_value=task_status_monitor_p2g.loop_value;
-			msg.target_lon=task_status_monitor_p2g.target_lon;
-			msg.target_lat=task_status_monitor_p2g.target_lat;
-			msg.target_alt=task_status_monitor_p2g.target_alt;
+			msg.target_x=task_status_monitor_p2g.target_x;
+			msg.target_y=task_status_monitor_p2g.target_y;
+			msg.target_z=task_status_monitor_p2g.target_z;
 
 			mavlink_msg_task_status_monitor_p2g_send_struct(_mavlink->get_channel(), &msg);
 		}

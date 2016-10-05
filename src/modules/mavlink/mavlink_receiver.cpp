@@ -2145,18 +2145,18 @@ MavlinkReceiver::handle_message_fixed_target_position_g2p(mavlink_message_t *msg
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.home_lon=one_position.home_lon;
-	f.home_lat=one_position.home_lat;
-	f.home_alt=one_position.home_alt;
-	f.observe_lon=one_position.observe_lon;
-	f.observe_lat=one_position.observe_lat;
-	f.observe_alt=one_position.observe_alt;
-	f.spray_left_lon=one_position.spray_left_lon;
-	f.spray_left_lat=one_position.spray_left_lat;
-	f.spray_left_alt=one_position.spray_left_alt;
-	f.spray_right_lon=one_position.spray_right_lon;
-	f.spray_right_lat=one_position.spray_right_lat;
-	f.spray_right_alt=one_position.spray_right_alt;
+	f.home_x=one_position.home_x;
+	f.home_y=one_position.home_y;
+	f.home_z=one_position.home_z;
+	f.observe_x=one_position.observe_x;
+	f.observe_y=one_position.observe_y;
+	f.observe_z=one_position.observe_z;
+	f.spray_left_x=one_position.spray_left_x;
+	f.spray_left_y=one_position.spray_left_y;
+	f.spray_left_z=one_position.spray_left_z;
+	f.spray_right_x=one_position.spray_right_x;
+	f.spray_right_y=one_position.spray_right_y;
+	f.spray_right_z=one_position.spray_right_z;
 
 	if (_fixed_target_position_g2p_pub == nullptr) {
 		_fixed_target_position_g2p_pub = orb_advertise(ORB_ID(fixed_target_position_g2p), &f);
@@ -2174,18 +2174,18 @@ MavlinkReceiver::handle_message_fixed_target_position_p2m(mavlink_message_t *msg
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.home_lon=one_position.home_lon;
-	f.home_lat=one_position.home_lat;
-	f.home_alt=one_position.home_alt;
-	f.observe_lon=one_position.observe_lon;
-	f.observe_lat=one_position.observe_lat;
-	f.observe_alt=one_position.observe_alt;
-	f.spray_left_lon=one_position.spray_left_lon;
-	f.spray_left_lat=one_position.spray_left_lat;
-	f.spray_left_alt=one_position.spray_left_alt;
-	f.spray_right_lon=one_position.spray_right_lon;
-	f.spray_right_lat=one_position.spray_right_lat;
-	f.spray_right_alt=one_position.spray_right_alt;
+	f.home_x=one_position.home_x;
+	f.home_y=one_position.home_y;
+	f.home_z=one_position.home_z;
+	f.observe_x=one_position.observe_x;
+	f.observe_y=one_position.observe_y;
+	f.observe_z=one_position.observe_z;
+	f.spray_left_x=one_position.spray_left_x;
+	f.spray_left_y=one_position.spray_left_y;
+	f.spray_left_z=one_position.spray_left_z;
+	f.spray_right_x=one_position.spray_right_x;
+	f.spray_right_y=one_position.spray_right_y;
+	f.spray_right_z=one_position.spray_right_z;
 
 	if (_fixed_target_position_p2m_pub == nullptr) {
 		_fixed_target_position_p2m_pub = orb_advertise(ORB_ID(fixed_target_position_p2m), &f);
@@ -2204,18 +2204,18 @@ MavlinkReceiver::handle_message_fixed_target_return_m2p(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.home_lon=one_position.home_lon;
-	f.home_lat=one_position.home_lat;
-	f.home_alt=one_position.home_alt;
-	f.observe_lon=one_position.observe_lon;
-	f.observe_lat=one_position.observe_lat;
-	f.observe_alt=one_position.observe_alt;
-	f.spray_left_lon=one_position.spray_left_lon;
-	f.spray_left_lat=one_position.spray_left_lat;
-	f.spray_left_alt=one_position.spray_left_alt;
-	f.spray_right_lon=one_position.spray_right_lon;
-	f.spray_right_lat=one_position.spray_right_lat;
-	f.spray_right_alt=one_position.spray_right_alt;
+	f.home_x=one_position.home_x;
+	f.home_y=one_position.home_y;
+	f.home_z=one_position.home_z;
+	f.observe_x=one_position.observe_x;
+	f.observe_y=one_position.observe_y;
+	f.observe_z=one_position.observe_z;
+	f.spray_left_x=one_position.spray_left_x;
+	f.spray_left_y=one_position.spray_left_y;
+	f.spray_left_z=one_position.spray_left_z;
+	f.spray_right_x=one_position.spray_right_x;
+	f.spray_right_y=one_position.spray_right_y;
+	f.spray_right_z=one_position.spray_right_z;
 
 	if (_fixed_target_return_m2p_pub == nullptr) {
 		_fixed_target_return_m2p_pub = orb_advertise(ORB_ID(fixed_target_return_m2p), &f);
@@ -2233,18 +2233,18 @@ MavlinkReceiver::handle_message_fixed_target_return_p2g(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp=hrt_absolute_time();
-	f.home_lon=one_position.home_lon;
-	f.home_lat=one_position.home_lat;
-	f.home_alt=one_position.home_alt;
-	f.observe_lon=one_position.observe_lon;
-	f.observe_lat=one_position.observe_lat;
-	f.observe_alt=one_position.observe_alt;
-	f.spray_left_lon=one_position.spray_left_lon;
-	f.spray_left_lat=one_position.spray_left_lat;
-	f.spray_left_alt=one_position.spray_left_alt;
-	f.spray_right_lon=one_position.spray_right_lon;
-	f.spray_right_lat=one_position.spray_right_lat;
-	f.spray_right_alt=one_position.spray_right_alt;
+	f.home_x=one_position.home_x;
+	f.home_y=one_position.home_y;
+	f.home_z=one_position.home_z;
+	f.observe_x=one_position.observe_x;
+	f.observe_y=one_position.observe_y;
+	f.observe_z=one_position.observe_z;
+	f.spray_left_x=one_position.spray_left_x;
+	f.spray_left_y=one_position.spray_left_y;
+	f.spray_left_z=one_position.spray_left_z;
+	f.spray_right_x=one_position.spray_right_x;
+	f.spray_right_y=one_position.spray_right_y;
+	f.spray_right_z=one_position.spray_right_z;
 
 	if (_fixed_target_return_p2g_pub == nullptr) {
 		_fixed_target_return_p2g_pub = orb_advertise(ORB_ID(fixed_target_return_p2g), &f);
@@ -2344,9 +2344,9 @@ MavlinkReceiver::handle_message_task_status_monitor_m2p(mavlink_message_t *msg)
 	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
-	f.target_lon=task_status_monitor.target_lon;
-	f.target_lat=task_status_monitor.target_lat;
-	f.target_alt=task_status_monitor.target_alt;
+	f.target_x=task_status_monitor.target_x;
+	f.target_y=task_status_monitor.target_y;
+	f.target_z=task_status_monitor.target_z;
 
 	if (_task_status_monitor_m2p_pub == nullptr) {
 		_task_status_monitor_m2p_pub = orb_advertise(ORB_ID(task_status_monitor_m2p), &f);
@@ -2367,9 +2367,9 @@ MavlinkReceiver::handle_message_task_status_monitor_p2g(mavlink_message_t *msg)
 	f.spray_duration=task_status_monitor.spray_duration;
 	f.task_status=task_status_monitor.task_status;
 	f.loop_value=task_status_monitor.loop_value;
-	f.target_lon=task_status_monitor.target_lon;
-	f.target_lat=task_status_monitor.target_lat;
-	f.target_alt=task_status_monitor.target_alt;
+	f.target_x=task_status_monitor.target_x;
+	f.target_y=task_status_monitor.target_y;
+	f.target_z=task_status_monitor.target_z;
 
 	if (_task_status_monitor_p2g_pub == nullptr) {
 		_task_status_monitor_p2g_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &f);
