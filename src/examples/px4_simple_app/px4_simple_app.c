@@ -50,8 +50,9 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/servo_control.h>
+#include <uORB/topics/vehicle_local_position.h>
 
-#define PUB_SERVO
+#define PUB_POS
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
@@ -159,5 +160,10 @@ while(1){
 
 
 	return 0;
+#endif
+
+#ifdef PUB_POS
+return 0;
+
 #endif
 }

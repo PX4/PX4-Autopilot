@@ -755,6 +755,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 float
 MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
+//req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
 {
 	if (ctl > dz) {
 		return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
@@ -769,6 +770,7 @@ MulticopterPositionControl::scale_control(float ctl, float end, float dz, float 
 
 float
 MulticopterPositionControl::throttle_curve(float ctl, float ctr)
+//thr_val = throttle_curve(_manual.z, _params.thr_hover);
 {
 	/* piecewise linear mapping: 0:ctr -> 0:0.5
 	 * and ctr:1 -> 0.5:1 */
@@ -840,6 +842,7 @@ MulticopterPositionControl::reset_alt_sp()
 	}
 }
 
+/*scale as designed range -bdai<3 Oct 2016>*/
 void
 MulticopterPositionControl::limit_pos_sp_offset()
 {
@@ -901,7 +904,7 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_cruise); // in NED and scaled to actual velocity
+			_params.vel_cruise); // req_vel_sp_scaled is in NED and scaled to actual velocity
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
@@ -1020,6 +1023,7 @@ MulticopterPositionControl::control_offboard(float dt)
 bool
 MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
 		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
+//bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 {
 	/* project center of sphere on line */
 	/* normalized AB */
@@ -1511,13 +1515,6 @@ MulticopterPositionControl::task_main()
 					_vel_sp(0) = pos_err(0) * _params.pos_p(0) + _pos_err_d(0) * _params.pos_d(0) +  vel_int(0);
 					_vel_sp(1) = pos_err(1) * _params.pos_p(1) + _pos_err_d(1) * _params.pos_d(1) +  vel_int(1);
 
-					if(abs(_vel_sp(0) < _params.vel_max(0))){
-						vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
-					}
-					if(abs(_vel_sp(1) < _params.vel_max(1))){
-						vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
-					}
-
 //					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
 //							(double)_params.pos_i(0),(double)_params.pos_d(0));
 //					warnx("y: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(1),(double)_params.pos_p(1),
@@ -1567,9 +1564,6 @@ MulticopterPositionControl::task_main()
 				if (_run_alt_control) {
 //					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 					_vel_sp(02) = pos_err(2) * _params.pos_p(2) + _pos_err_d(2) * _params.pos_d(2) +  vel_int(2);
-					if(abs(_vel_sp(2) < _params.vel_max(2))){
-						vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
-					}
 //					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
 //												(double)_params.pos_i(2),(double)_params.pos_d(2));
 				}
@@ -1582,15 +1576,22 @@ MulticopterPositionControl::task_main()
 					/* note assumes vel_max(0) == vel_max(1) */
 					_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
 					_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
+				} else {
+					vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
+					vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
 				}
 
 				/* make sure velocity setpoint is saturated in z*/
 				if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
 					_vel_sp(2) = -1.0f * _params.vel_max_up;
+				} else {
+					vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
 				}
 
 				if (_vel_sp(2) >  _params.vel_max_down) {
 					_vel_sp(2) = _params.vel_max_down;
+				} else {
+					vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
 				}
 
 				if (!_control_mode.flag_control_position_enabled) {
@@ -1733,6 +1734,7 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
+					/*how it works? -bdai<4 Oct 2016>*/
 					// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
 					// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
 					if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
