@@ -249,6 +249,8 @@ public:
 	// Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
 	virtual void get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl) = 0;
 
+	// return a bitmask integer that describes which state estimates can be used for flight control
+	virtual void get_ekf_soln_status(uint16_t *status) = 0;
 
 protected:
 
