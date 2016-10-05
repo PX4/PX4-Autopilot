@@ -45,5 +45,23 @@ uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 12 - true if fusion of the North position has encountered a numerical error
 # 13 - true if fusion of the East position has encountered a numerical error
 # 14 - true if fusion of the Down position has encountered a numerical error
-float32 pos_horiz_accuracy
-float32 pos_vert_accuracy
+float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
+float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
+uint16 innovation_check_flags # Bitmask to indicate pass/fail status of innovation consistency checks
+# 0 - true if velocity observations have been rejected
+# 1 - true if horizontal position observations have been rejected
+# 2 - true if true if vertical position observations have been rejected
+# 3 - true if the X magnetometer observation has been rejected
+# 4 - true if the Y magnetometer observation has been rejected
+# 5 - true if the Z magnetometer observation has been rejected
+# 6 - true if the yaw observation has been rejected
+# 7 - true if the airspeed observation has been rejected
+# 8 - true if the height above ground observation has been rejected
+# 9 - true if the X optical flow observation has been rejected
+# 10 - true if the Y optical flow observation has been rejected
+float32 mag_test_ratio # ratio of the largest magnetometer innovation component to the innovation test limit
+float32 vel_test_ratio # ratio of the largest velocity innovation component to the innovation test limit
+float32 pos_test_ratio # ratio of the largest horizontal position innovation component to the innovation test limit
+float32 hgt_test_ratio # ratio of the vertical position innovation to the innovation test limit
+float32 tas_test_ratio # ratio of the true airspeed innovation to the innovation test limit
+float32 hagl_test_ratio # ratio of the height above ground innovation to the innovation test limit
