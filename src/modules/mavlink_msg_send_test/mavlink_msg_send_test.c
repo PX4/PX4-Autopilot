@@ -151,14 +151,14 @@ int mavlink_msg_send_thread_main(int argc, char *argv[])
 	orb_advert_t task_status_change_p2m_pub = orb_advertise(ORB_ID(task_status_change_p2m), &task_status_change_p2m_data);
 
 	while (!thread_should_exit) {
-		fixed_target_position_p2m_data.home_lat = 1.0f;
-		fixed_target_position_p2m_data.home_lon = 2.0f;
-		fixed_target_position_p2m_data.home_alt = 3.0f;
+		fixed_target_position_p2m_data.home_x = 1.0f;
+		fixed_target_position_p2m_data.home_y = 2.0f;
+		fixed_target_position_p2m_data.home_z = 3.0f;
 		orb_publish(ORB_ID(fixed_target_position_p2m), fixed_target_position_p2m_pub, &fixed_target_position_p2m_data);
 		PX4_WARN("publishing fixed_target_position_p2m: %5.3f %5.3f %5.3f",
-				(double)fixed_target_position_p2m_data.home_lat,
-				(double)fixed_target_position_p2m_data.home_lon,
-				(double)fixed_target_position_p2m_data.home_alt);
+				(double)fixed_target_position_p2m_data.home_x,
+				(double)fixed_target_position_p2m_data.home_y,
+				(double)fixed_target_position_p2m_data.home_z);
 
 		task_status_change_p2m_data.spray_duration = 1;
 		task_status_change_p2m_data.task_status = 1;

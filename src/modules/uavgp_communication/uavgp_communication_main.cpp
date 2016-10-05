@@ -203,18 +203,18 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 		if (updated_fixed_target_position)
 		{
 			orb_copy(ORB_ID(fixed_target_position_g2p), _fixed_target_position_sub, &fixed_target_position_sub);
-			fixed_target_position_pub.home_lon=fixed_target_position_sub.home_lon;
-			fixed_target_position_pub.home_lat=fixed_target_position_sub.home_lat;
-			fixed_target_position_pub.home_alt=fixed_target_position_sub.home_alt;
-			fixed_target_position_pub.observe_lon=fixed_target_position_sub.observe_lon;
-			fixed_target_position_pub.observe_lat=fixed_target_position_sub.observe_lat;
-			fixed_target_position_pub.observe_alt=fixed_target_position_sub.observe_alt;
-			fixed_target_position_pub.spray_left_lon=fixed_target_position_sub.spray_left_lon;
-			fixed_target_position_pub.spray_left_lat=fixed_target_position_sub.spray_left_lat;
-			fixed_target_position_pub.spray_left_alt=fixed_target_position_sub.spray_left_alt;
-			fixed_target_position_pub.spray_right_lon=fixed_target_position_sub.spray_right_lon;
-			fixed_target_position_pub.spray_right_lat=fixed_target_position_sub.spray_right_lat;
-			fixed_target_position_pub.spray_right_alt=fixed_target_position_sub.spray_right_alt;
+			fixed_target_position_pub.home_x=fixed_target_position_sub.home_x;
+			fixed_target_position_pub.home_y=fixed_target_position_sub.home_y;
+			fixed_target_position_pub.home_z=fixed_target_position_sub.home_z;
+			fixed_target_position_pub.observe_x=fixed_target_position_sub.observe_x;
+			fixed_target_position_pub.observe_y=fixed_target_position_sub.observe_y;
+			fixed_target_position_pub.observe_z=fixed_target_position_sub.observe_z;
+			fixed_target_position_pub.spray_left_x=fixed_target_position_sub.spray_left_x;
+			fixed_target_position_pub.spray_left_y=fixed_target_position_sub.spray_left_y;
+			fixed_target_position_pub.spray_left_z=fixed_target_position_sub.spray_left_z;
+			fixed_target_position_pub.spray_right_x=fixed_target_position_sub.spray_right_x;
+			fixed_target_position_pub.spray_right_y=fixed_target_position_sub.spray_right_y;
+			fixed_target_position_pub.spray_right_z=fixed_target_position_sub.spray_right_z;
 			if (_fixed_target_position_pub == nullptr) {
 				_fixed_target_position_pub = orb_advertise(ORB_ID(fixed_target_position_p2m), &fixed_target_position_pub);
 				orb_publish(ORB_ID(fixed_target_position_p2m), _fixed_target_position_pub, &fixed_target_position_pub);
@@ -228,18 +228,18 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 		{
 			orb_copy(ORB_ID(fixed_target_return_m2p), _fixed_target_return_sub, &fixed_target_return_sub);
 			fixed_target_return_pub.timestamp=hrt_absolute_time();
-			fixed_target_return_pub.home_lon=fixed_target_return_sub.home_lon;
-			fixed_target_return_pub.home_lat=fixed_target_return_sub.home_lat;
-			fixed_target_return_pub.home_alt=fixed_target_return_sub.home_alt;
-			fixed_target_return_pub.observe_lon=fixed_target_return_sub.observe_lon;
-			fixed_target_return_pub.observe_lat=fixed_target_return_sub.observe_lat;
-			fixed_target_return_pub.observe_alt=fixed_target_return_sub.observe_alt;
-			fixed_target_return_pub.spray_left_lon=fixed_target_return_sub.spray_left_lon;
-			fixed_target_return_pub.spray_left_lat=fixed_target_return_sub.spray_left_lat;
-			fixed_target_return_pub.spray_left_alt=fixed_target_return_sub.spray_left_alt;
-			fixed_target_return_pub.spray_right_lon=fixed_target_return_sub.spray_right_lon;
-			fixed_target_return_pub.spray_right_lat=fixed_target_return_sub.spray_right_lat;
-			fixed_target_return_pub.spray_right_alt=fixed_target_return_sub.spray_right_alt;
+			fixed_target_return_pub.home_x=fixed_target_return_sub.home_x;
+			fixed_target_return_pub.home_y=fixed_target_return_sub.home_y;
+			fixed_target_return_pub.home_z=fixed_target_return_sub.home_z;
+			fixed_target_return_pub.observe_x=fixed_target_return_sub.observe_x;
+			fixed_target_return_pub.observe_y=fixed_target_return_sub.observe_y;
+			fixed_target_return_pub.observe_z=fixed_target_return_sub.observe_z;
+			fixed_target_return_pub.spray_left_x=fixed_target_return_sub.spray_left_x;
+			fixed_target_return_pub.spray_left_y=fixed_target_return_sub.spray_left_y;
+			fixed_target_return_pub.spray_left_z=fixed_target_return_sub.spray_left_z;
+			fixed_target_return_pub.spray_right_x=fixed_target_return_sub.spray_right_x;
+			fixed_target_return_pub.spray_right_y=fixed_target_return_sub.spray_right_y;
+			fixed_target_return_pub.spray_right_z=fixed_target_return_sub.spray_right_z;
 			if (_fixed_target_return_pub == nullptr) {
 				_fixed_target_return_pub = orb_advertise(ORB_ID(fixed_target_return_p2g), &fixed_target_return_pub);
 				orb_publish(ORB_ID(fixed_target_return_p2g), _fixed_target_return_pub, &fixed_target_return_pub);
@@ -285,9 +285,9 @@ int uavgp_communication_thread_main(int argc, char *argv[])
 			task_status_monitor_pub.spray_duration=task_status_monitor_sub.spray_duration;
 			task_status_monitor_pub.task_status=task_status_monitor_sub.task_status;
 			task_status_monitor_pub.loop_value=task_status_monitor_sub.loop_value;
-			task_status_monitor_pub.target_lon=task_status_monitor_sub.target_lon;
-			task_status_monitor_pub.target_lat=task_status_monitor_sub.target_lat;
-			task_status_monitor_pub.target_alt=task_status_monitor_sub.target_alt;
+			task_status_monitor_pub.target_x=task_status_monitor_sub.target_x;
+			task_status_monitor_pub.target_y=task_status_monitor_sub.target_y;
+			task_status_monitor_pub.target_z=task_status_monitor_sub.target_z;
 			if (_task_status_monitor_pub == nullptr) {
 				_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_monitor_pub);
 				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_monitor_pub);

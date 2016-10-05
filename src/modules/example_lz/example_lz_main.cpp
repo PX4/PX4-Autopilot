@@ -143,18 +143,18 @@ int example_lz_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(fixed_target_position_g2p), _fixed_target_position_sub, &position_sub);
 			// 位置变量赋值
 			position_pub.timestamp=hrt_absolute_time();
-			position_pub.home_lon=position_sub.home_lon;
-			position_pub.home_lat=position_sub.home_lat;
-			position_pub.home_alt=position_sub.home_alt;
-			position_pub.observe_lon=position_sub.observe_lon;
-			position_pub.observe_lat=position_sub.observe_lat;
-			position_pub.observe_alt=position_sub.observe_alt;
-			position_pub.spray_left_lon=position_sub.spray_left_lon;
-			position_pub.spray_left_lat=position_sub.spray_left_lat;
-			position_pub.spray_left_alt=position_sub.spray_left_alt;
-			position_pub.spray_right_lon=position_sub.spray_right_lon;
-			position_pub.spray_right_lat=position_sub.spray_right_lat;
-			position_pub.spray_right_alt=position_sub.spray_right_alt;
+			position_pub.home_x=position_sub.home_x;
+			position_pub.home_y=position_sub.home_y;
+			position_pub.home_z=position_sub.home_z;
+			position_pub.observe_x=position_sub.observe_x;
+			position_pub.observe_y=position_sub.observe_y;
+			position_pub.observe_z=position_sub.observe_z;
+			position_pub.spray_left_x=position_sub.spray_left_x;
+			position_pub.spray_left_y=position_sub.spray_left_y;
+			position_pub.spray_left_z=position_sub.spray_left_z;
+			position_pub.spray_right_x=position_sub.spray_right_x;
+			position_pub.spray_right_y=position_sub.spray_right_y;
+			position_pub.spray_right_z=position_sub.spray_right_z;
 			// 发布主题，返回上述位置信息
 			_fixed_target_return_pub = orb_advertise(ORB_ID(fixed_target_return_p2g), &position_pub);
 			orb_publish(ORB_ID(fixed_target_return_p2g), _fixed_target_return_pub, &position_pub);
@@ -178,9 +178,9 @@ int example_lz_thread_main(int argc, char *argv[])
 			task_status_pub.spray_duration=task_status_sub.spray_duration;
 			task_status_pub.task_status=task_status_sub.task_status; //实际任务状态
 			task_status_pub.loop_value=task_status_sub.loop_value; //数字编号
-			task_status_pub.target_lon=position_sub.home_lon;
-			task_status_pub.target_lat=position_sub.home_lat+0.000001;
-			task_status_pub.target_alt=position_sub.home_alt+1;
+			task_status_pub.target_x=position_sub.home_x+3;
+			task_status_pub.target_y=position_sub.home_y+2;
+			task_status_pub.target_z=position_sub.home_z-1;
 			// 发布主题，返回任务状态监视信息
 			_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_pub);
 			orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_pub);
@@ -236,25 +236,30 @@ int example_lz_thread_main(int argc, char *argv[])
 				_vision_one_num_get_pub = orb_advertise(ORB_ID(vision_one_num_get_p2g), &one_num_pub);
 				orb_publish(ORB_ID(vision_one_num_get_p2g), _vision_one_num_get_pub, &one_num_pub);
 				usleep(1000000);
-				// 进行旋喷
+				// 进行微调
 				task_status_pub.task_status=12;
 				_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_pub);
 				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_pub);
 				usleep(1000000);
-				// 完成
+				// 进行旋喷
 				task_status_pub.task_status=13;
 				_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_pub);
 				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_pub);
+				usleep(1000000);
+				// 完成
+				task_status_pub.task_status=14;
+				_task_status_monitor_pub = orb_advertise(ORB_ID(task_status_monitor_p2g), &task_status_pub);
+				orb_publish(ORB_ID(task_status_monitor_p2g), _task_status_monitor_pub, &task_status_pub);
 			}
-			if(task_status_sub.task_status==13) //喷绘“完成”
+			if(task_status_sub.task_status==14) //喷绘“完成”
 			{
 				// 作为喷绘完成的标志
 			}
-			if(task_status_sub.task_status==14) //“返航”
+			if(task_status_sub.task_status==15) //“返航”
 			{
 				// 任务完成后，返航
 			}
-			if(task_status_sub.task_status==15) //“降落”
+			if(task_status_sub.task_status==16) //“降落”
 			{
 				// 降落在当前经纬位置下
 			}

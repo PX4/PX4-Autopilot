@@ -203,9 +203,9 @@ int mavlink_msg_receive_thread_main(int argc, char *argv[])
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(fixed_target_return_m2p), fixed_target_return_m2p_sub_fd, &fixed_target_return_m2p_data);
 			PX4_WARN("fixed_target_return_m2p: %5.3f %5.3f %5.3f",
-				(double)fixed_target_return_m2p_data.home_lat,
-				(double)fixed_target_return_m2p_data.home_lon,
-				(double)fixed_target_return_m2p_data.home_alt);
+				(double)fixed_target_return_m2p_data.home_x,
+				(double)fixed_target_return_m2p_data.home_y,
+				(double)fixed_target_return_m2p_data.home_z);
 		}
 		if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(obstacle_position_m2p), obstacle_position_m2p_sub_fd, &obstacle_position_m2p_data);
@@ -221,9 +221,9 @@ int mavlink_msg_receive_thread_main(int argc, char *argv[])
 				(double)task_status_monitor_m2p_data.spray_duration,
 				task_status_monitor_m2p_data.task_status,
 				task_status_monitor_m2p_data.loop_value,
-				(double)task_status_monitor_m2p_data.target_lat,
-				(double)task_status_monitor_m2p_data.target_lon,
-				(double)task_status_monitor_m2p_data.target_alt);
+				(double)task_status_monitor_m2p_data.target_x,
+				(double)task_status_monitor_m2p_data.target_y,
+				(double)task_status_monitor_m2p_data.target_z);
 		}
 		if (fds[3].revents & POLLIN) {
 			orb_copy(ORB_ID(vision_num_scan_m2p), vision_num_scan_m2p_sub_fd, &vision_num_scan_m2p_data);
