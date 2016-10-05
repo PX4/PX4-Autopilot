@@ -1,0 +1,6 @@
+#!nsh
+
+# Start user defined apps
+
+#start servo control apps, used to control injector
+servo_control start

@@ -47,7 +47,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/servo_control.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
 #include <uORB/topics/actuator_controls.h>
 
 extern "C" __EXPORT int servo_control_main(int argc, char *argv[]);
@@ -89,6 +89,11 @@ private:
 
 	int 	_servo_sub;
 	orb_advert_t _actuator_2_pub;
+	struct {
+		float duration;
+		bool tretch;
+		bool isready;
+	} _servo;
 
 };
 
@@ -98,7 +103,7 @@ ServoControl::ServoControl():
 		_servo_sub(-1),
 		_actuator_2_pub(nullptr)
 {
-
+	memset(&_servo, 0, sizeof(_servo));
 }
 
 ServoControl::~ServoControl()
@@ -131,7 +136,7 @@ ServoControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("mc_att_control",
+	_control_task = px4_task_spawn_cmd("servo_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_DEFAULT - 5,
 					   1500,
@@ -155,17 +160,17 @@ ServoControl::task_main_trampoline(int argc, char *argv[])
 void
 ServoControl::task_main()
 {
-	_servo_sub = orb_subscribe(ORB_ID(servo_control));
+	int task_status_sub = orb_subscribe(ORB_ID(task_status_monitor_m2p));
 	struct pollfd fds[1];
-	fds[0].fd = _servo_sub;
+	fds[0].fd = task_status_sub;
 	fds[0].events = POLLIN;
 
-	struct servo_control_s	servo;
+	struct task_status_monitor_m2p_s task_status;
 	struct actuator_controls_s actuators_2;
 
 	/*initialized -bdai<23 Sep 2016>*/
 	actuators_2.control[4] = 1;
-	actuators_2.control[5] = 0.2;
+	actuators_2.control[5] = 0.25;
 	_actuator_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators_2);
 
 	while (!_task_should_exit){
@@ -183,26 +188,39 @@ ServoControl::task_main()
 			continue;
 		}
 
-		orb_copy(ORB_ID(servo_control), _servo_sub, &servo);
-		if (servo.tretch){
+		orb_copy(ORB_ID(task_status_monitor_m2p), task_status_sub, &task_status);
+
+		_servo.tretch = false;
+		_servo.isready = false;
+
+		switch (task_status.task_status){
+			case 12: _servo.tretch = true; break;
+			case 13:
+				_servo.tretch = true;
+				_servo.isready = true;
+				break;
+			default:break;
+		}
+
+		_servo.duration = task_status.spray_duration;
+
+
+		if (_servo.tretch) {
 			actuators_2.control[4] = -1; /*tretch out -bdai<23 Sep 2016>*/
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
-			usleep(600000);
 
-		} else{
+			if (_servo.duration > 0 && _servo.isready){
+				actuators_2.control[5] = 0.5;	/*start injection -bdai<23 Sep 2016>*/
+				orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
+				sleep(_servo.duration);
+			}
+
+			actuators_2.control[5] = 0.25;	/*stop injection -bdai<23 Sep 2016>*/
+			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
+		} else {
 			actuators_2.control[4] = 1;
+			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
 		}
-
-		if (servo.duration > 0){
-			actuators_2.control[5] = 0.7;	/*start injection -bdai<23 Sep 2016>*/
-		} else{
-			actuators_2.control[5] = 0.2;
-		}
-		orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
-
-		sleep(servo.duration);
-		actuators_2.control[5] = 0.2;	/*stop injection -bdai<23 Sep 2016>*/
-		orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
 	}
 }
 

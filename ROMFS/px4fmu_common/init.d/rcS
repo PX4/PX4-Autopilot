@@ -885,6 +885,9 @@ then
 		echo "WARN  [init] No autostart ID found"
 	fi
 
+	# Start user addons without sd card
+	sh /etc/init.d/rc.user_apps
+
 	# Start any custom addons
 	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]

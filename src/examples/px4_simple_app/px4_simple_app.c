@@ -45,14 +45,15 @@
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/servo_control.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-#define PUB_POS
+#define PUB_SERVO
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
@@ -129,20 +130,20 @@ int px4_simple_app_main(int argc, char *argv[])
 #endif
 #ifdef PUB_SERVO
 while(1){
-	struct servo_control_s servo;
-	servo.tretch = true;
-	servo.duration = 1;
-	orb_advert_t servo_pub = orb_advertise(ORB_ID(servo_control), &servo);
+	struct task_status_monitor_m2p_s task_status;
+	task_status.timestamp = hrt_absolute_time();
+	task_status.task_status = 12;
+
+	orb_advert_t task_status_pub = orb_advertise(ORB_ID(task_status_monitor_m2p), &task_status);
 	sleep(2);
 
-	servo.tretch = true;
-	servo.duration = 1;
-	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+	task_status.task_status = 13;
+	task_status.spray_duration = 1;
+	orb_publish(ORB_ID(task_status_monitor_m2p), task_status_pub, &task_status);
 	sleep(2);
 
-	servo.tretch = false;
-	servo.duration = 0;
-	orb_publish(ORB_ID(servo_control), servo_pub, &servo);
+	task_status.task_status = 1;
+	orb_publish(ORB_ID(task_status_monitor_m2p), task_status_pub, &task_status);
 	sleep(2);
 	warnx("Mission over one time");
 }
