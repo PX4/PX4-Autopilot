@@ -1713,6 +1713,8 @@ protected:
 			est_msg.pos_vert_ratio = est.hgt_test_ratio;
 			est_msg.hagl_ratio = est.hagl_test_ratio;
 			est_msg.tas_ratio = est.tas_test_ratio;
+			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
+			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
 
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
