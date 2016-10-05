@@ -696,6 +696,29 @@ void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 	memcpy(dead_reckoning, &temp3, sizeof(bool));
 }
 
+// get EKF innovation consistency check status information comprising of:
+// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
+// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
+// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
+// Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
+void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl)
+{
+	// return the integer bitmask containing the consistency check pass/fail satus
+	*status = _innov_check_fail_status.value;
+	// return the largest magnetometer innovation test ratio
+	*mag = sqrtf(math::max(_yaw_test_ratio,math::max(math::max(_mag_test_ratio[0],_mag_test_ratio[1]),_mag_test_ratio[2])));
+	// return the largest NED velocity innovation test ratio
+	*vel = sqrtf(math::max(math::max(_vel_pos_test_ratio[0],_vel_pos_test_ratio[1]),_vel_pos_test_ratio[2]));
+	// return the largest NE position innovation test ratio
+	*pos = sqrtf(math::max(_vel_pos_test_ratio[3],_vel_pos_test_ratio[4]));
+	// return the vertical position innovation test ratio
+	*hgt = sqrtf(_vel_pos_test_ratio[5]);
+	// return the airspeed fusion innovation test ratio
+	*tas = sqrtf(_tas_test_ratio);
+	// return the terrain height innovation test ratio
+	*hagl = sqrt(_terr_test_ratio);
+}
+
 // fuse measurement
 void Ekf::fuse(float *K, float innovation)
 {

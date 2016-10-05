@@ -44,6 +44,7 @@
 #include "RingBuffer.h"
 #include "geo.h"
 #include "common.h"
+#include "mathlib.h"
 
 using namespace estimator;
 class EstimatorInterface
@@ -241,11 +242,13 @@ public:
 	// return the amount the quaternion has changed in the last reset and the number of reset events
 	virtual void get_quat_reset(float delta_quat[4], uint8_t *counter) = 0;
 
-	// get EKF innovation consistency check status
-	virtual void get_innovation_test_status(uint16_t *val)
-	{
-		*val = _innov_check_fail_status.value;
-	}
+	// get EKF innovation consistency check status information comprising of:
+	// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
+	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
+	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
+	// Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
+	virtual void get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl) = 0;
+
 
 protected:
 
@@ -291,6 +294,7 @@ protected:
 	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 	float _tas_test_ratio;		// tas innovation consistency check ratio
+	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status;
 
 	// data buffer instances
