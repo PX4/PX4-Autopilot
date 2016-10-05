@@ -685,15 +685,27 @@ void Ekf::get_output_tracking_error(float error[3])
 void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 {
 	// report absolute accuracy taking into account the uncertainty in location of the origin
-	// TODO we a need a way to allow for baro drift error
-	float temp1 = sqrtf(P[7][7] + P[8][8] + sq(_gps_origin_eph));
-	float temp2 = sqrtf(P[9][9] + sq(_gps_origin_epv));
-	memcpy(ekf_eph, &temp1, sizeof(float));
-	memcpy(ekf_epv, &temp2, sizeof(float));
+	// If not aiding, return 0 for horizontal position estimate as no estimate is available
+	// TODO - allow for baro drift in vertical position error
+	float hpos_err;
+	float vpos_err;
+	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	if (vel_pos_aiding && _NED_origin_initialised) {
+		hpos_err = sqrtf(P[7][7] + P[8][8] + sq(_gps_origin_eph));
+		vpos_err = sqrtf(P[9][9] + sq(_gps_origin_epv));
 
-	// report dead reckoning if it is more than a second since we fused in GPS
-	bool temp3 = (_time_last_imu - _time_last_pos_fuse > 1e6);
-	memcpy(dead_reckoning, &temp3, sizeof(bool));
+	} else {
+		hpos_err = 0.0f;
+		vpos_err = 0.0f;
+
+	}
+
+	// report dead reckoning if it is more than a second since we fused in position measurements
+	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6) && vel_pos_aiding;
+
+	memcpy(ekf_eph, &hpos_err, sizeof(float));
+	memcpy(ekf_epv, &vpos_err, sizeof(float));
+	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
 }
 
 // get EKF innovation consistency check status information comprising of:
