@@ -77,6 +77,25 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
+/*************************************************************/
+#include <uORB/topics/fixed_target_position_g2p.h>
+#include <uORB/topics/fixed_target_position_p2m.h>
+#include <uORB/topics/fixed_target_return_m2p.h>
+#include <uORB/topics/fixed_target_return_p2g.h>
+#include <uORB/topics/yaw_sp_calculated_m2p.h>
+#include <uORB/topics/yaw_sp_calculated_p2g.h>
+#include <uORB/topics/task_status_change_g2p.h>
+#include <uORB/topics/task_status_change_p2m.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
+#include <uORB/topics/task_status_monitor_p2g.h>
+#include <uORB/topics/vision_num_scan_m2p.h>
+#include <uORB/topics/vision_num_scan_p2g.h>
+#include <uORB/topics/vision_one_num_get_m2p.h>
+#include <uORB/topics/vision_one_num_get_p2g.h>
+#include <uORB/topics/obstacle_position_m2p.h>
+#include <uORB/topics/obstacle_position_p2g.h>
+/*************************************************************/
+
 
 #include "mavlink_ftp.h"
 
@@ -144,6 +163,24 @@ private:
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
+	/*************************************************************/
+	void handle_message_fixed_target_position_g2p(mavlink_message_t *msg);
+	void handle_message_fixed_target_position_p2m(mavlink_message_t *msg);
+	void handle_message_fixed_target_return_m2p(mavlink_message_t *msg);
+	void handle_message_fixed_target_return_p2g(mavlink_message_t *msg);
+	void handle_message_yaw_sp_calculated_m2p(mavlink_message_t *msg);
+	void handle_message_yaw_sp_calculated_p2g(mavlink_message_t *msg);
+	void handle_message_task_status_change_g2p(mavlink_message_t *msg);
+	void handle_message_task_status_change_p2m(mavlink_message_t *msg);
+	void handle_message_task_status_monitor_m2p(mavlink_message_t *msg);
+	void handle_message_task_status_monitor_p2g(mavlink_message_t *msg);
+	void handle_message_vision_num_scan_m2p(mavlink_message_t *msg);
+	void handle_message_vision_num_scan_p2g(mavlink_message_t *msg);
+	void handle_message_vision_one_num_get_m2p(mavlink_message_t *msg);
+	void handle_message_vision_one_num_get_p2g(mavlink_message_t *msg);
+	void handle_message_obstacle_position_m2p(mavlink_message_t *msg);
+	void handle_message_obstacle_position_p2g(mavlink_message_t *msg);
+	/*************************************************************/
 
 	void *receive_thread(void *arg);
 
@@ -220,6 +257,24 @@ private:
 	orb_advert_t _transponder_report_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
+	/*************************************************************/
+	orb_advert_t _fixed_target_position_g2p_pub;
+	orb_advert_t _fixed_target_position_p2m_pub;
+	orb_advert_t _fixed_target_return_m2p_pub;
+	orb_advert_t _fixed_target_return_p2g_pub;
+	orb_advert_t _yaw_sp_calculated_m2p_pub;
+	orb_advert_t _yaw_sp_calculated_p2g_pub;
+	orb_advert_t _task_status_change_g2p_pub;
+	orb_advert_t _task_status_change_p2m_pub;
+	orb_advert_t _task_status_monitor_m2p_pub;
+	orb_advert_t _task_status_monitor_p2g_pub;
+	orb_advert_t _vision_num_scan_m2p_pub;
+	orb_advert_t _vision_num_scan_p2g_pub;
+	orb_advert_t _vision_one_num_get_m2p_pub;
+	orb_advert_t _vision_one_num_get_p2g_pub;
+	orb_advert_t _obstacle_position_m2p_pub;
+	orb_advert_t _obstacle_position_p2g_pub;
+	/*************************************************************/
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;

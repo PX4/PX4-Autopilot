@@ -104,8 +104,8 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_pos_control_l1
-	modules/fw_att_control
+	# modules/fw_pos_control_l1
+	# modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -182,6 +182,15 @@ set(config_module_list
 	
 	# User modules
 	modules/servo_control
+	
+	# huanglilong
+	modules/mavlink_msg_receive_test
+    	modules/mavlink_msg_send_test
+
+	# liuzhong
+	modules/example_lz
+	modules/uavgp_communication
+
 )
 
 set(config_extra_builtin_cmds

@@ -119,6 +119,24 @@ set(msg_file_names
 	vision_position_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	
+	###################################
+	fixed_target_position_g2p.msg
+	fixed_target_position_p2m.msg
+	fixed_target_return_m2p.msg
+	fixed_target_return_p2g.msg
+	yaw_sp_calculated_m2p.msg
+	yaw_sp_calculated_p2g.msg
+	task_status_change_g2p.msg
+	task_status_change_p2m.msg
+	task_status_monitor_m2p.msg
+	task_status_monitor_p2g.msg
+	vision_num_scan_m2p.msg
+	vision_num_scan_p2g.msg
+	vision_one_num_get_m2p.msg
+	vision_one_num_get_p2g.msg
+	obstacle_position_m2p.msg
+	obstacle_position_p2g.msg
 	)
 
 # Get absolute paths
