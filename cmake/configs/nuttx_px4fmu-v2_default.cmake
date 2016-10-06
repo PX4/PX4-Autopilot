@@ -37,7 +37,7 @@ set(config_module_list
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
-	drivers/frsky_telemetry
+	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
