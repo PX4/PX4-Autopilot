@@ -199,17 +199,19 @@
 /* no GPIO driver on the SITL configuration */
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
-	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
-	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) && \
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL) && \
-	!defined(CONFIG_ARCH_BOARD_TAP_V1) && !defined(CONFIG_ARCH_BOARD_ASC_V1) && \
-	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE) && \
-	!defined(CONFIG_ARCH_BOARD_TAP_V1) && \
-	!defined(CONFIG_ARCH_BOARD_ASC_V1) && \
-	!defined(CONFIG_ARCH_BOARD_TAP_V1) && \
-    !defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
+#if	!defined(CONFIG_ARCH_BOARD_AEROCORE)             && \
+	!defined(CONFIG_ARCH_BOARD_ASC_V1)               && \
+	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)            && \
+	!defined(CONFIG_ARCH_BOARD_MINDPX_V2)            && \
+	!defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1)            && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V2)            && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4)            && \
+	!defined(CONFIG_ARCH_BOARD_PX4IO_V1)             && \
+	!defined(CONFIG_ARCH_BOARD_PX4IO_V2)             && \
+	!defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)   && \
+	!defined(CONFIG_ARCH_BOARD_SITL)                 && \
+	!defined(CONFIG_ARCH_BOARD_TAP_V1)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
 /*
