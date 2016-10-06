@@ -42,7 +42,7 @@ CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += system/readline
 
 ifeq ($(CONFIG_CAN),y)
-#CONFIGURED_APPS += examples/can
+CONFIGURED_APPS += examples/can
 endif
 
 #ifeq ($(CONFIG_USBDEV),y)
