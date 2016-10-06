@@ -179,8 +179,7 @@ PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
 /**
  * Force VTOL mode takeoff and land
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
