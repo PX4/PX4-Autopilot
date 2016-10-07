@@ -40,6 +40,7 @@ px4_add_module(
 	SRCS
 		logger.cpp
 		log_writer.cpp
+		log_writer_file.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB
