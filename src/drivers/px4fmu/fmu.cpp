@@ -195,7 +195,7 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	uint8_t _rcs_buf[SBUS_BUFFER_SIZE * 2];
+	uint8_t _rcs_buf[SBUS_BUFFER_SIZE];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -1281,7 +1281,11 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
+<<<<<<< f7f406c45de427793c5475eee52f8d318de5b2ee
 	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], sizeof(_rcs_buf) / sizeof(_rcs_buf[0]));
+=======
+	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
+>>>>>>> Increased SBUS buffer size for more reliable SBUS and DSM parsing
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
