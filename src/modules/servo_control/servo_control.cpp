@@ -92,8 +92,10 @@ private:
 	struct {
 		float duration;
 		bool tretch;
+		bool isspraying;
 		bool isready;
 	} _servo;
+	int _pre_status;
 
 };
 
@@ -101,7 +103,8 @@ ServoControl::ServoControl():
 		_task_should_exit(false),
 		_control_task(-1),
 		_servo_sub(-1),
-		_actuator_2_pub(nullptr)
+		_actuator_2_pub(nullptr),
+		_pre_status(0)
 {
 	memset(&_servo, 0, sizeof(_servo));
 }
@@ -167,10 +170,11 @@ ServoControl::task_main()
 
 	struct task_status_monitor_m2p_s task_status;
 	struct actuator_controls_s actuators_2;
+	hrt_abstime spray_finish_time = 0;
 
 	/*initialized -bdai<23 Sep 2016>*/
 	actuators_2.control[4] = 1;
-	actuators_2.control[5] = 0.25;
+	actuators_2.control[5] = 0.20;
 	_actuator_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators_2);
 
 	while (!_task_should_exit){
@@ -189,38 +193,39 @@ ServoControl::task_main()
 		}
 
 		orb_copy(ORB_ID(task_status_monitor_m2p), task_status_sub, &task_status);
-
-		_servo.tretch = false;
-		_servo.isready = false;
-
-		switch (task_status.task_status){
-			case 12: _servo.tretch = true; break;
-			case 13:
-				_servo.tretch = true;
-				_servo.isready = true;
-				break;
-			default:break;
-		}
-
 		_servo.duration = task_status.spray_duration;
 
+		if (task_status.task_status == 12) {
+			_servo.tretch = true;
+			_servo.isready = false;
+			spray_finish_time = 0;
+		} else if (task_status.task_status == 13) {
+			_servo.tretch = true;
+			_servo.isready = true;
+			if (_pre_status != 13) {
+				spray_finish_time = (hrt_abstime)_servo.duration*1e6 + hrt_absolute_time();
+			}
+		} else {
+			_servo.tretch = false;
+			_servo.isready = false;
+			spray_finish_time = 0;
+		}
+
+		_pre_status = task_status.task_status;
 
 		if (_servo.tretch) {
 			actuators_2.control[4] = -1; /*tretch out -bdai<23 Sep 2016>*/
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
-
-			if (_servo.duration > 0 && _servo.isready){
-				actuators_2.control[5] = 0.5;	/*start injection -bdai<23 Sep 2016>*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
-				sleep(_servo.duration);
-			}
-
-			actuators_2.control[5] = 0.25;	/*stop injection -bdai<23 Sep 2016>*/
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
 		} else {
 			actuators_2.control[4] = 1;
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
 		}
+
+		if (_servo.isready && hrt_absolute_time() < spray_finish_time){
+			actuators_2.control[5] = 0.55;	/*start injection -bdai<23 Sep 2016>*/
+		} else {
+			actuators_2.control[5] = 0.2;	/*stop injection -bdai<23 Sep 2016>*/
+		}
+		orb_publish(ORB_ID(actuator_controls_2), _actuator_2_pub, &actuators_2);
+
 	}
 }
 
