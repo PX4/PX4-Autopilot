@@ -108,7 +108,7 @@ void LogWriterFile::stop_log()
 	notify();
 }
 
-int LogWriterFile::thread_start(pthread_t &thread)
+int LogWriterFile::thread_start()
 {
 	pthread_attr_t thr_attr;
 	pthread_attr_init(&thr_attr);
@@ -120,7 +120,7 @@ int LogWriterFile::thread_start(pthread_t &thread)
 
 	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1024));
 
-	int ret = pthread_create(&thread, &thr_attr, &LogWriterFile::run_helper, this);
+	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
 
 	return ret;
@@ -131,6 +131,16 @@ void LogWriterFile::thread_stop()
 	// this will terminate the main loop of the writer thread
 	_exit_thread = true;
 	_should_run = false;
+
+	notify();
+
+	// wait for thread to complete
+	int ret = pthread_join(_thread, NULL);
+
+	if (ret) {
+		PX4_WARN("join failed: %d", ret);
+	}
+
 }
 
 void *LogWriterFile::run_helper(void *context)

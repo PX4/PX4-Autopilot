@@ -635,16 +635,7 @@ void Logger::run()
 
 
 	if (!_writer.init()) {
-		PX4_ERR("init of writer failed (alloc failed)");
-		return;
-	}
-
-	pthread_t writer_thread;
-
-	int ret = _writer.thread_start(writer_thread);
-
-	if (ret) {
-		PX4_ERR("failed to create writer thread (%i)", ret);
+		PX4_ERR("writer init failed");
 		return;
 	}
 
@@ -813,15 +804,6 @@ void Logger::run()
 
 	// stop the writer thread
 	_writer.thread_stop();
-
-	_writer.notify();
-
-	// wait for thread to complete
-	ret = pthread_join(writer_thread, NULL);
-
-	if (ret) {
-		PX4_WARN("join failed: %d", ret);
-	}
 
 	//unsubscribe
 	for (LoggerSubscription &sub : _subscriptions) {
