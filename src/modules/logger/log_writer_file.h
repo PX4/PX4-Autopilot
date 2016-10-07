@@ -58,10 +58,9 @@ public:
 
 	/**
 	 * start the thread
-	 * @param thread will be set to the created thread on success
 	 * @return 0 on success, error number otherwise (@see pthread_create)
 	 */
-	int thread_start(pthread_t &thread);
+	int thread_start();
 
 	void thread_stop();
 
@@ -144,6 +143,7 @@ private:
 	pthread_cond_t		_cv;
 	perf_counter_t _perf_write;
 	perf_counter_t _perf_fsync;
+	pthread_t _thread = 0;
 };
 
 }

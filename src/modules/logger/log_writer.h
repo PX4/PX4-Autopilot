@@ -60,13 +60,7 @@ public:
 
 	Backend backend() const { return _backend; }
 
-	/**
-	 * start the thread
-	 * @param thread will be set to the created thread on success
-	 * @return 0 on success, error number otherwise (@see pthread_create)
-	 */
-	int thread_start(pthread_t &thread);
-
+	/** stop all running threads and wait for them to exit */
 	void thread_stop();
 
 	void start_log_file(const char *filename);

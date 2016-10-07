@@ -54,8 +54,17 @@ bool LogWriter::init()
 {
 	if (_log_writer_file) {
 		if (!_log_writer_file->init()) {
+			PX4_ERR("alloc failed");
 			return false;
 		}
+
+		int ret = _log_writer_file->thread_start();
+
+		if (ret) {
+			PX4_ERR("failed to create writer thread (%i)", ret);
+			return false;
+		}
+
 	}
 
 	return true;
@@ -100,15 +109,6 @@ void LogWriter::stop_log_file()
 	if (_log_writer_file) {
 		_log_writer_file->stop_log();
 	}
-}
-
-int LogWriter::thread_start(pthread_t &thread)
-{
-	if (_log_writer_file) {
-		return _log_writer_file->thread_start(thread);
-	}
-
-	return 0;
 }
 
 void LogWriter::thread_stop()
