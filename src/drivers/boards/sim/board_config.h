@@ -1,5 +1,3 @@
-#define UDID_START		0x1FFF7A10
-
 /*
  * I2C busses
  */
