@@ -9,7 +9,7 @@
 # 1. Redistributions of source code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditionsrc/modules/uavcanesc/nshterm/nshterm.c<<s and the following disclaimer in
+#    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
 # 3. Neither the name PX4 nor the names of its contributors may be
@@ -154,7 +154,6 @@ NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGE
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
-
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
