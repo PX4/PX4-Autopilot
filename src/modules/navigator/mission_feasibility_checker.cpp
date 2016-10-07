@@ -250,6 +250,8 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
 			missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
 			missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
+			missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
+			missionitem.nav_cmd != NAV_CMD_ROI &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 
