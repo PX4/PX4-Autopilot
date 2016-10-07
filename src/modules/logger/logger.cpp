@@ -83,7 +83,6 @@ using namespace px4::logger;
 
 static Logger *logger_ptr = nullptr;
 static int logger_task = -1;
-static pthread_t writer_thread;
 
 /* This is used to schedule work for the logger (periodic scan for updated topics) */
 static void timer_callback(void *arg)
@@ -638,6 +637,7 @@ void Logger::run()
 		PX4_ERR("init of writer failed (alloc failed)");
 		return;
 	}
+	pthread_t writer_thread;
 
 	int ret = _writer.thread_start(writer_thread);
 
