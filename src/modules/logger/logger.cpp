@@ -215,7 +215,7 @@ int Logger::start(char *const *argv)
 
 void Logger::status()
 {
-	if (!_enabled) {
+	if (!_writer.is_started()) {
 		PX4_INFO("Running, but not logging");
 
 	} else {
@@ -225,7 +225,7 @@ void Logger::status()
 }
 void Logger::print_statistics()
 {
-	if (!_enabled) {
+	if (!_writer.is_started()) {
 		return;
 	}
 
@@ -637,6 +637,7 @@ void Logger::run()
 		PX4_ERR("init of writer failed (alloc failed)");
 		return;
 	}
+
 	pthread_t writer_thread;
 
 	int ret = _writer.thread_start(writer_thread);
@@ -693,7 +694,7 @@ void Logger::run()
 			}
 		}
 
-		if (_enabled) {
+		if (_writer.is_started()) {
 
 			bool data_written = false;
 
@@ -1048,7 +1049,7 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 void Logger::start_log()
 {
-	if (_enabled) {
+	if (_writer.is_started()) {
 		return;
 	}
 
@@ -1072,17 +1073,15 @@ void Logger::start_log()
 	write_parameters();
 	write_all_add_logged_msg();
 	_writer.notify();
-	_enabled = true;
 	_start_time = hrt_absolute_time();
 }
 
 void Logger::stop_log()
 {
-	if (!_enabled) {
+	if (!_writer.is_started()) {
 		return;
 	}
 
-	_enabled = false;
 	_writer.stop_log();
 }
 
