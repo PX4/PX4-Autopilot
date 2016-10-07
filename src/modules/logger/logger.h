@@ -81,7 +81,7 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(size_t buffer_size, uint32_t log_interval, bool log_on_start,
+	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp);
 
 	~Logger();
@@ -152,9 +152,9 @@ private:
 	 */
 	int check_free_space();
 
-	void start_log();
+	void start_log_file();
 
-	void stop_log();
+	void stop_log_file();
 
 	/**
 	 * write the file header with file magic and timestamp.

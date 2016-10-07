@@ -219,7 +219,6 @@ void Logger::status()
 		PX4_INFO("Running, but not logging");
 
 	} else {
-		PX4_INFO("Running");
 		print_statistics();
 	}
 }
@@ -229,14 +228,16 @@ void Logger::print_statistics()
 		return;
 	}
 
-	float kibibytes = _writer.get_total_written() / 1024.0f;
+	PX4_INFO("File Logging Running");
+
+	float kibibytes = _writer.get_total_written_file() / 1024.0f;
 	float mebibytes = kibibytes / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
 
 	PX4_INFO("Log file: %s/%s", _log_dir, _log_file_name);
 	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
 	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
-		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size());
+		 _write_dropouts, (double)_max_dropout_duration, _high_water, _writer.get_buffer_size_file());
 	_high_water = 0;
 	_write_dropouts = 0;
 	_max_dropout_duration = 0.f;
@@ -308,7 +309,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-	logger_ptr = new Logger(log_buffer_size, log_interval, log_on_start,
+	logger_ptr = new Logger(LogWriter::BackendFile, log_buffer_size, log_interval, log_on_start,
 				log_until_shutdown, log_name_timestamp);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
@@ -335,13 +336,13 @@ void Logger::run_trampoline(int argc, char *argv[])
 }
 
 
-Logger::Logger(size_t buffer_size, uint32_t log_interval, bool log_on_start,
+Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
 	       bool log_until_shutdown, bool log_name_timestamp) :
 	_arm_override(false),
 	_log_on_start(log_on_start),
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
-	_writer(buffer_size),
+	_writer(backend, buffer_size),
 	_log_interval(log_interval)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
@@ -657,7 +658,7 @@ void Logger::run()
 	// we start logging immediately
 	// the case where we wait with logging until vehicle is armed is handled below
 	if (_log_on_start) {
-		start_log();
+		start_log_file();
 	}
 
 	/* init the update timer */
@@ -681,7 +682,7 @@ void Logger::run()
 				_was_armed = armed;
 
 				if (armed) {
-					start_log();
+					start_log_file();
 
 #ifdef DBGPRINT
 					timer_start = hrt_absolute_time();
@@ -689,7 +690,7 @@ void Logger::run()
 #endif /* DBGPRINT */
 
 				} else {
-					stop_log();
+					stop_log_file();
 				}
 			}
 		}
@@ -765,8 +766,8 @@ void Logger::run()
 				}
 			}
 
-			if (!_dropout_start && _writer.get_buffer_fill_count() > _high_water) {
-				_high_water = _writer.get_buffer_fill_count();
+			if (!_dropout_start && _writer.get_buffer_fill_count_file() > _high_water) {
+				_high_water = _writer.get_buffer_fill_count_file();
 			}
 
 			/* release the log buffer */
@@ -1047,13 +1048,13 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 	return gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
-void Logger::start_log()
+void Logger::start_log_file()
 {
-	if (_writer.is_started()) {
+	if (_writer.is_started_file() || (_writer.backend() & LogWriter::BackendFile) == 0) {
 		return;
 	}
 
-	PX4_INFO("start log");
+	PX4_INFO("start file log");
 
 	char file_name[LOG_DIR_LEN] = "";
 
@@ -1066,7 +1067,7 @@ void Logger::start_log()
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
 	_next_topic_id = 0;
 
-	_writer.start_log(file_name);
+	_writer.start_log_file(file_name);
 	write_header();
 	write_version();
 	write_formats();
@@ -1076,13 +1077,9 @@ void Logger::start_log()
 	_start_time = hrt_absolute_time();
 }
 
-void Logger::stop_log()
+void Logger::stop_log_file()
 {
-	if (!_writer.is_started()) {
-		return;
-	}
-
-	_writer.stop_log();
+	_writer.stop_log_file();
 }
 
 bool Logger::write_wait(void *ptr, size_t size)
