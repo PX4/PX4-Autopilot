@@ -82,7 +82,7 @@ class Logger
 {
 public:
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
-	       bool log_until_shutdown, bool log_name_timestamp);
+	       bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
 
 	~Logger();
 
