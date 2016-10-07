@@ -106,6 +106,8 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_SET_ROI:
+		case NAV_CMD_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 			return true;
 
@@ -404,6 +406,8 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+		item->nav_cmd == NAV_CMD_DO_SET_ROI ||
+		item->nav_cmd == NAV_CMD_ROI ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 
