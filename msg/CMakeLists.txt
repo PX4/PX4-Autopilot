@@ -119,6 +119,8 @@ set(msg_file_names
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	
+	pid_err.msg
+	
 	###################################
 	fixed_target_position_g2p.msg
 	fixed_target_position_p2m.msg

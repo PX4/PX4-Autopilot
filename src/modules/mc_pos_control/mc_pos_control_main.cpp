@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/pid_err.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -142,6 +143,7 @@ private:
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
+	orb_advert_t	_pid_err_sub;
 
 	orb_id_t _attitude_setpoint_id;
 
@@ -156,6 +158,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+	struct pid_err_s _pid_err;
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -392,6 +395,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
+	_pid_err_sub(nullptr),
 	_attitude_setpoint_id(0),
 	_vehicle_status{},
 	_vehicle_land_detected{},
@@ -937,6 +941,8 @@ MulticopterPositionControl::control_manual(float dt)
 			_vel_sp(0) = req_vel_sp_scaled(0);
 			_vel_sp(1) = req_vel_sp_scaled(1);
 		}
+	} else {
+		_run_pos_control = false;
 	}
 
 	/* vertical axis */
@@ -962,6 +968,8 @@ MulticopterPositionControl::control_manual(float dt)
 			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
 			_vel_sp(2) = req_vel_sp_scaled(2);
 		}
+	} else {
+		_run_alt_control = false;
 	}
 }
 
@@ -1291,15 +1299,37 @@ MulticopterPositionControl::task_main()
 	bool reset_yaw_sp = true;
 	bool was_armed = false;
 
+	bool reset_int_pxy = true;
+	bool reset_int_pz = true;
+
 	hrt_abstime t_prev = 0;
 
-	math::Vector<3> vel_int;
-	vel_int.zero();
+	math::Vector<3> pos_err;
+	pos_err.zero();
 
+	math::Vector<3> pos_err_p;
+	pos_err_p.zero();
+
+	math::Vector<3> pos_err_i;
+	pos_err_i.zero();
+
+	math::Vector<3> pos_err_d;
+	pos_err_d.zero();
+
+	math::Vector<3> vel_err;
+	vel_err.zero();
+
+	math::Vector<3> vel_err_p;
+	vel_err_p.zero();
+
+	math::Vector<3> vel_err_i;
+	vel_err_i.zero();
+
+	math::Vector<3> vel_err_d;
+	vel_err_d.zero();
 
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
-
 
 	math::Matrix<3, 3> R;
 	R.identity();
@@ -1425,6 +1455,10 @@ MulticopterPositionControl::task_main()
 			 * can disable this and run velocity controllers directly in this cycle */
 			_run_pos_control = true;
 			_run_alt_control = true;
+			reset_int_pxy = true;
+			reset_int_pz = true;
+			pos_err_p.zero();
+			pos_err_d.zero();
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
@@ -1506,14 +1540,21 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* position error */
-				math::Vector<3> pos_err = _pos_sp - _pos;
+				pos_err = _pos_sp - _pos;
 
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
 //					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 //					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(0);
-					_vel_sp(0) = pos_err(0) * _params.pos_p(0) + _pos_err_d(0) * _params.pos_d(0) +  vel_int(0);
-					_vel_sp(1) = pos_err(1) * _params.pos_p(1) + _pos_err_d(1) * _params.pos_d(1) +  vel_int(1);
+
+					pos_err_p(0) = pos_err(0) * _params.pos_p(0);
+					pos_err_d(0) = _pos_err_d(0) * _params.pos_d(0);
+					pos_err_p(1) = pos_err(1) * _params.pos_p(1);
+					pos_err_d(1) = _pos_err_d(1) * _params.pos_d(1);
+
+					_vel_sp(0) = pos_err_p(0) + pos_err_i(0) + pos_err_d(0);
+					_vel_sp(1) = pos_err_p(1) + pos_err_i(1) + pos_err_d(1);
+					reset_int_pxy = false;
 
 //					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
 //							(double)_params.pos_i(0),(double)_params.pos_d(0));
@@ -1563,7 +1604,10 @@ MulticopterPositionControl::task_main()
 
 				if (_run_alt_control) {
 //					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
-					_vel_sp(02) = pos_err(2) * _params.pos_p(2) + _pos_err_d(2) * _params.pos_d(2) +  vel_int(2);
+					pos_err_p(2) = pos_err(2) * _params.pos_p(2);
+					pos_err_d(2) = _pos_err_d(2) * _params.pos_d(2);
+					_vel_sp(2) = pos_err_p(2) +  pos_err_i(2) + pos_err_d(2);
+					reset_int_pz = false;
 //					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
 //												(double)_params.pos_i(2),(double)_params.pos_d(2));
 				}
@@ -1576,22 +1620,30 @@ MulticopterPositionControl::task_main()
 					/* note assumes vel_max(0) == vel_max(1) */
 					_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
 					_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
-				} else {
-					vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
-					vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
+				} else if(_run_pos_control){
+					pos_err_i(0) += pos_err(0) * _params.pos_i(0) * dt;
+					pos_err_i(1) += pos_err(1) * _params.pos_i(1) * dt;
+				}
+
+				if(reset_int_pxy){
+					pos_err_i(0) = 0;
+					pos_err_i(1) = 0;
 				}
 
 				/* make sure velocity setpoint is saturated in z*/
 				if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
 					_vel_sp(2) = -1.0f * _params.vel_max_up;
-				} else {
-					vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
+				} else if(_run_alt_control){
+					pos_err_i(2) += pos_err(2) * _params.pos_i(2) * dt;
+				}
+				if (reset_int_pz){
+					pos_err_i(2) = 0;
 				}
 
 				if (_vel_sp(2) >  _params.vel_max_down) {
 					_vel_sp(2) = _params.vel_max_down;
-				} else {
-					vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
+				} else if(_run_alt_control){
+					pos_err_i(2) += pos_err(2) * _params.pos_i(2) * dt;
 				}
 
 				if (!_control_mode.flag_control_position_enabled) {
@@ -1732,7 +1784,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* velocity error */
-					math::Vector<3> vel_err = _vel_sp - _vel;
+					vel_err = _vel_sp - _vel;
 
 					/*how it works? -bdai<4 Oct 2016>*/
 					// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
@@ -1763,7 +1815,10 @@ MulticopterPositionControl::task_main()
 						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 					} else {
-						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+						vel_err_p = vel_err.emult(_params.vel_p);
+						vel_err_d = _vel_err_d.emult(_params.vel_d);
+						vel_err_i = thrust_int;
+						thrust_sp = vel_err_p + vel_err_i + vel_err_d;
 					}
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -2038,6 +2093,7 @@ MulticopterPositionControl::task_main()
 				} else {
 					reset_int_z = true;
 				}
+
 			}
 
 			/* fill local position, velocity and thrust setpoint */
@@ -2057,6 +2113,45 @@ MulticopterPositionControl::task_main()
 			} else {
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 			}
+
+			_pid_err.x = pos_err(0);
+			_pid_err.x_p = pos_err_p(0);
+			_pid_err.x_i = pos_err_i(0);
+			_pid_err.x_d = pos_err_d(0);
+
+			_pid_err.vx = vel_err(0);
+			_pid_err.vx_p = vel_err_p(0);
+			_pid_err.vx_i = vel_err_i(0);
+			_pid_err.vx_d = vel_err_d(0);
+
+			_pid_err.y = pos_err(1);
+			_pid_err.y_p = pos_err_p(1);
+			_pid_err.y_i = pos_err_i(1);
+			_pid_err.y_d = pos_err_d(1);
+
+			_pid_err.vy = vel_err(1);
+			_pid_err.vy_p = vel_err_p(1);
+			_pid_err.vy_i = vel_err_i(1);
+			_pid_err.vy_d = vel_err_d(1);
+
+			_pid_err.z = pos_err(2);
+			_pid_err.z_p = pos_err_p(2);
+			_pid_err.z_i = pos_err_i(2);
+			_pid_err.z_d = pos_err_d(2);
+
+			_pid_err.vz = vel_err(2);
+			_pid_err.vz_p = vel_err_p(2);
+			_pid_err.vz_i = vel_err_i(2);
+			_pid_err.vz_d = vel_err_d(2);
+
+			/* publish pid error */
+			if (_pid_err_sub != nullptr) {
+				orb_publish(ORB_ID(pid_err), _pid_err_sub, &_pid_err);
+
+			} else {
+				_pid_err_sub = orb_advertise(ORB_ID(pid_err), &_pid_err);
+			}
+
 
 		} else {
 			/* position controller disabled, reset setpoints */

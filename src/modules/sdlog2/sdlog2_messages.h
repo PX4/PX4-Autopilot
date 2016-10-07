@@ -625,6 +625,21 @@ struct log_LOAD_s {
 	float cpu_load;
 };
 
+/* --- PID ERROR, POS OUTPUT AND ATT OUTPUT--- */
+#define LOG_ERRX_MSG 62
+#define LOG_ERRY_MSG 63
+#define LOG_ERRZ_MSG 64
+struct log_ERRX_s {
+	float p;	/*position error -bdai<7 Oct 2016>*/
+	float p_p;
+	float p_i;
+	float p_d;
+	float v;
+	float v_p;
+	float v_i;
+	float v_d;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -714,6 +729,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL6, "Qff", "Tasp,inAsp,trAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
+	LOG_FORMAT(ERRX, "ffffffff",  "p,p_p,p_i,p_d,v,v_p,v_i,v_d"),
+	LOG_FORMAT_S(ERRY, ERRX, "ffffffff",  "p,p_p,p_i,p_d,v,v_p,v_i,v_d"),
+	LOG_FORMAT_S(ERRZ, ERRX, "ffffffff",  "p,p_p,p_i,p_d,v,v_p,v_i,v_d"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
