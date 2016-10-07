@@ -184,12 +184,14 @@ void Logger::usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x -m <mode> -q <size>\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
 		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
 		 "\t-f\tLog until shutdown (implies -e)\n"
-		 "\t-t\tUse date/time for naming log directories and files");
+		 "\t-t\tUse date/time for naming log directories and files\n"
+		 "\t-m\tMode: one of 'file', 'mavlink', 'all' (default=file)\n"
+		 "\t-q\tuORB queue size for mavlink mode");
 }
 
 int Logger::start(char *const *argv)
@@ -215,20 +217,29 @@ int Logger::start(char *const *argv)
 
 void Logger::status()
 {
-	if (!_writer.is_started()) {
-		PX4_INFO("Running, but not logging");
+	bool has_started_backends = false;
 
-	} else {
+	if (_writer.is_started(LogWriter::BackendFile)) {
+		PX4_INFO("File Logging Running");
 		print_statistics();
+		has_started_backends = true;
+	}
+
+	if (_writer.is_started(LogWriter::BackendMavlink)) {
+		PX4_INFO("Mavlink Logging Running");
+		has_started_backends = true;
+	}
+
+	if (!has_started_backends) {
+		PX4_INFO("Running, but not logging");
 	}
 }
+
 void Logger::print_statistics()
 {
-	if (!_writer.is_started()) {
+	if (!_writer.is_started(LogWriter::BackendFile)) { //currently only statistics for file logging
 		return;
 	}
-
-	PX4_INFO("File Logging Running");
 
 	float kibibytes = _writer.get_total_written_file() / 1024.0f;
 	float mebibytes = kibibytes / 1024.0f;
@@ -251,12 +262,14 @@ void Logger::run_trampoline(int argc, char *argv[])
 	bool log_until_shutdown = false;
 	bool error_flag = false;
 	bool log_name_timestamp = false;
+	unsigned int queue_size = 5;
+	LogWriter::Backend backend = LogWriter::BackendFile;
 
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:etf", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, NULL, 10);
@@ -293,6 +306,32 @@ void Logger::run_trampoline(int argc, char *argv[])
 			log_until_shutdown = true;
 			break;
 
+		case 'm':
+			if (!strcmp(myoptarg, "file")) {
+				backend = LogWriter::BackendFile;
+
+			} else if (!strcmp(myoptarg, "mavlink")) {
+				backend = LogWriter::BackendMavlink;
+
+			} else if (!strcmp(myoptarg, "all")) {
+				backend = LogWriter::BackendAll;
+
+			} else {
+				PX4_ERR("unknown mode: %s", myoptarg);
+				error_flag = true;
+			}
+
+			break;
+
+		case 'q':
+			queue_size = strtoul(myoptarg, NULL, 10);
+
+			if (queue_size == 0) {
+				queue_size = 1;
+			}
+
+			break;
+
 		case '?':
 			error_flag = true;
 			break;
@@ -309,8 +348,8 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-	logger_ptr = new Logger(LogWriter::BackendFile, log_buffer_size, log_interval, log_on_start,
-				log_until_shutdown, log_name_timestamp);
+	logger_ptr = new Logger(backend, log_buffer_size, log_interval, log_on_start,
+				log_until_shutdown, log_name_timestamp, queue_size);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -337,12 +376,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
-	       bool log_until_shutdown, bool log_name_timestamp) :
+	       bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size) :
 	_arm_override(false),
 	_log_on_start(log_on_start),
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
-	_writer(backend, buffer_size),
+	_writer(backend, buffer_size, queue_size),
 	_log_interval(log_interval)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
@@ -1032,7 +1071,7 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 void Logger::start_log_file()
 {
-	if (_writer.is_started_file() || (_writer.backend() & LogWriter::BackendFile) == 0) {
+	if (_writer.is_started(LogWriter::BackendFile) || (_writer.backend() & LogWriter::BackendFile) == 0) {
 		return;
 	}
 

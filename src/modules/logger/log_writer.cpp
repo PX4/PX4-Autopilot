@@ -38,7 +38,7 @@ namespace px4
 namespace logger
 {
 
-LogWriter::LogWriter(Backend backend, size_t file_buffer_size)
+LogWriter::LogWriter(Backend backend, size_t file_buffer_size, unsigned int queue_size)
 	: _backend(backend)
 {
 	if (backend & BackendFile) {
@@ -88,9 +88,9 @@ bool LogWriter::is_started() const
 	return ret;
 }
 
-bool LogWriter::is_started_file() const
+bool LogWriter::is_started(Backend backend) const
 {
-	if (_log_writer_file) {
+	if (backend == BackendFile && _log_writer_file) {
 		return _log_writer_file->is_started();
 	}
 

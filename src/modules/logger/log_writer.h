@@ -51,9 +51,10 @@ public:
 	/** bitfield to specify a backend */
 	typedef uint8_t Backend;
 	static constexpr Backend BackendFile = 1 << 0;
-	static constexpr Backend BackendAll = BackendFile;
+	static constexpr Backend BackendMavlink = 1 << 1;
+	static constexpr Backend BackendAll = BackendFile | BackendMavlink;
 
-	LogWriter(Backend backend, size_t file_buffer_size);
+	LogWriter(Backend backend, size_t file_buffer_size, unsigned int queue_size);
 	~LogWriter();
 
 	bool init();
@@ -68,14 +69,14 @@ public:
 	void stop_log_file();
 
 	/**
-	 * whether logging is currently active or not.
+	 * whether logging is currently active or not (any of the selected backends).
 	 */
 	bool is_started() const;
 
 	/**
-	 * whether file logging is currently active or not.
+	 * whether logging is currently active or not for a specific backend.
 	 */
-	bool is_started_file() const;
+	bool is_started(Backend backend) const;
 
 	/**
 	 * Write data to be logged. The caller must call lock() before calling this.
