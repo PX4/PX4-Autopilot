@@ -46,11 +46,10 @@ px4_add_module(
 	MAIN listener
 	STACK_MAIN 1800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		topic_listener.cpp
 	DEPENDS
 		platforms__common
 		generate_topic_listener
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -47,9 +47,6 @@ endif()
 px4_add_module(
 	MODULE platforms__posix__px4_layer
 	COMPILE_FLAGS
-		-Os
-		-Wno-attributes
-		-Wno-packed
 	SRCS
 		px4_posix_impl.cpp
 		px4_posix_tasks.cpp

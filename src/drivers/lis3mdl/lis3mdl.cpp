@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -114,12 +115,6 @@ enum LIS3MDL_BUS {
 	LIS3MDL_BUS_I2C_EXTERNAL,
 	LIS3MDL_BUS_SPI
 };
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -406,7 +401,7 @@ LIS3MDL::~LIS3MDL()
 int
 LIS3MDL::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	ret = CDev::init();
 
@@ -1179,7 +1174,7 @@ out:
 		if (check_scale()) {
 			/* failed */
 			warnx("FAILED: SCALE");
-			ret = ERROR;
+			ret = PX4_ERROR;
 		}
 
 	}
@@ -1324,12 +1319,6 @@ LIS3MDL::print_info()
  */
 namespace lis3mdl
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 /*
   list of supported bus configurations

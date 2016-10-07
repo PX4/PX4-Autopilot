@@ -34,11 +34,10 @@ px4_add_module(
 	MODULE drivers__snapdragon_rc_pwm
 	MAIN snapdragon_rc_pwm
 	COMPILE_FLAGS
-		-Os
 		-DMAVLINK_COMM_NUM_BUFFERS=1
 	SRCS
 		snapdragon_rc_pwm.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

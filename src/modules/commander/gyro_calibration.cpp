@@ -43,6 +43,7 @@
 #include "commander_helper.h"
 
 #include <px4_posix.h>
+#include <px4_defines.h>
 #include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -57,12 +58,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mcu_version.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 static const char *sensor_name = "gyro";
 
@@ -151,7 +146,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 
 int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 {
-	int			res = OK;
+	int			res = PX4_OK;
 	gyro_worker_data_t	worker_data = {};
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
@@ -178,9 +173,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		worker_data.gyro_sensor_sub[s] = -1;
 		(void)sprintf(str, "CAL_GYRO%u_ID", s);
 		res = param_set_no_notification(param_find(str), &(worker_data.device_id[s]));
-		if (res != OK) {
+		if (res != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, "[cal] Unable to reset CAL_GYRO%u_ID", s);
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 		// Reset all offsets to 0 and scales to 1
@@ -193,40 +188,40 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale_zero);
 			px4_close(fd);
 
-			if (res != OK) {
+			if (res != PX4_OK) {
 				calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, s);
-				return ERROR;
+				return PX4_ERROR;
 			}
 		}
 #else
 		(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
 		res = param_set(param_find(str), &gyro_scale_zero.x_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
 		res = param_set(param_find(str), &gyro_scale_zero.y_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
 		res = param_set(param_find(str), &gyro_scale_zero.z_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_XSCALE", s);
 		res = param_set(param_find(str), &gyro_scale_zero.x_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_YSCALE", s);
 		res = param_set(param_find(str), &gyro_scale_zero.y_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", s);
 		res = param_set(param_find(str), &gyro_scale_zero.z_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 #endif
@@ -263,7 +258,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	unsigned try_count = 0;
 	unsigned max_tries = 20;
-	res = ERROR;
+	res = PX4_ERROR;
 
 	do {
 		// Calibrate gyro and ensure user didn't move
@@ -271,11 +266,11 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (cal_return == calibrate_return_cancelled) {
 			// Cancel message already sent, we are done here
-			res = ERROR;
+			res = PX4_ERROR;
 			break;
 
 		} else if (cal_return == calibrate_return_error) {
-			res = ERROR;
+			res = PX4_ERROR;
 
 		} else {
 			/* check offsets */
@@ -294,19 +289,19 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			    fabsf(zdiff) > maxoff) {
 
 				calibration_log_critical(mavlink_log_pub, "[cal] motion, retrying..");
-				res = ERROR;
+				res = PX4_ERROR;
 
 			} else {
-				res = OK;
+				res = PX4_OK;
 			}
 		}
 		try_count++;
 
-	} while (res == ERROR && try_count <= max_tries);
+	} while (res == PX4_ERROR && try_count <= max_tries);
 
 	if (try_count >= max_tries) {
 		calibration_log_critical(mavlink_log_pub, "[cal] ERROR: Motion during calibration");
-		res = ERROR;
+		res = PX4_ERROR;
 	}
 
 	calibrate_cancel_unsubscribe(cancel_sub);
@@ -315,26 +310,26 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		px4_close(worker_data.gyro_sensor_sub[s]);
 	}
 
-	if (res == OK) {
+	if (res == PX4_OK) {
 
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		failed = failed || (OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
+		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
 		for (unsigned s = 0; s < max_gyros; s++) {
 			if (worker_data.device_id[s] != 0) {
 				char str[30];
 
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
-				failed |= (OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].x_offset)));
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].x_offset)));
 				(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
-				failed |= (OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].y_offset)));
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].y_offset)));
 				(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
-				failed |= (OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].z_offset)));
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].z_offset)));
 
 				(void)sprintf(str, "CAL_GYRO%u_ID", s);
-				failed |= (OK != param_set_no_notification(param_find(str), &(worker_data.device_id[s])));
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[s])));
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 				/* apply new scaling and offsets */
@@ -349,7 +344,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&worker_data.gyro_scale[s]);
 				px4_close(fd);
 
-				if (res != OK) {
+				if (res != PX4_OK) {
 					calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, 1);
 				}
 #endif
@@ -358,7 +353,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (failed) {
 			calibration_log_critical(mavlink_log_pub, "[cal] ERROR: failed to set offset params");
-			res = ERROR;
+			res = PX4_ERROR;
 		}
 	}
 
@@ -369,11 +364,11 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	/* store last 32bit number - not unique, but unique in a given set */
 	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
 
-	if (res == OK) {
+	if (res == PX4_OK) {
 		/* auto-save to EEPROM */
 		res = param_save_default();
 
-		if (res != OK) {
+		if (res != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
 		}
 	}
@@ -381,7 +376,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	/* if there is a any preflight-check system response, let the barrage of messages through */
 	usleep(200000);
 
-	if (res == OK) {
+	if (res == PX4_OK) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 	} else {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);

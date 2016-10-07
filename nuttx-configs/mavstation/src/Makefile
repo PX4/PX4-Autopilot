@@ -53,6 +53,8 @@ ifeq ($(WINTOOL),y)
   		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
 else
   CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
 endif
 
 all: libboard$(LIBEXT)

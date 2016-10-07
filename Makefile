@@ -114,6 +114,12 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+# additional config parameters passed to cmake
+CMAKE_ARGS :=
+ifdef EXTERNAL_MODULES_LOCATION
+	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
+endif
+
 SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # Functions
@@ -122,7 +128,7 @@ SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) $(CMAKE_ARGS) || (cd .. && rm -rf $(BUILD_DIR)); fi
 +@echo "PX4 CONFIG: $(BUILD_DIR)"
 +@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
@@ -295,14 +301,14 @@ package_firmware:
 
 clean:
 	@rm -rf build_*/
-	@$(MAKE) -C NuttX/nuttx clean
+	-@$(MAKE) -C NuttX/nuttx clean
 
 submodulesclean:
 	@git submodule sync --recursive
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean
+distclean: submodulesclean clean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.

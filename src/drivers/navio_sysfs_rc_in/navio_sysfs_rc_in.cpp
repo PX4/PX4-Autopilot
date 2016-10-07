@@ -107,12 +107,11 @@ private:
 int RcInput::navio_rc_init()
 {
 	int i;
-	char *buf;
+	char buf[64];
 
 	for (i = 0; i < _channels; ++i) {
-		::asprintf(&buf, "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
+		::snprintf(buf, sizeof(buf), "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
 		int fd = ::open(buf, O_RDONLY);
-		::free(buf);
 
 		if (fd < 0) {
 			PX4_WARN("error: open %d failed", i);

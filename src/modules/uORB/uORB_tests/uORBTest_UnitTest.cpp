@@ -39,6 +39,21 @@
 #include <errno.h>
 #include <poll.h>
 
+ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
+ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");
+
+ORB_DEFINE(orb_test_medium, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium_queue, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+ORB_DEFINE(orb_test_medium_queue_poll, struct orb_test_medium, sizeof(orb_test_medium),
+	   "ORB_TEST_MEDIUM_MULTI:int val;hrt_abstime time;char[64] junk;");
+
+ORB_DEFINE(orb_test_large, struct orb_test_large, sizeof(orb_test_large),
+	   "ORB_TEST_LARGE:int val;hrt_abstime time;char[512] junk;");
+
 uORBTest::UnitTest &uORBTest::UnitTest::instance()
 {
 	static uORBTest::UnitTest t;

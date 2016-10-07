@@ -254,13 +254,15 @@ Syslink::task_main()
 	param_t _param_radio_addr1 = param_find("SLNK_RADIO_ADDR1");
 	param_t _param_radio_addr2 = param_find("SLNK_RADIO_ADDR2");
 
-	uint32_t channel, rate;
+	uint32_t channel, rate, addr1, addr2;
 	uint64_t addr = 0;
 
 	param_get(_param_radio_channel, &channel);
 	param_get(_param_radio_rate, &rate);
-	param_get(_param_radio_addr1, &addr + 4);
-	param_get(_param_radio_addr2, &addr);
+	param_get(_param_radio_addr1, &addr1);
+	param_get(_param_radio_addr2, &addr2);
+
+	memcpy(&addr, &addr2, 4); memcpy(((char *)&addr) + 4, &addr1, 4);
 
 	_bridge = new SyslinkBridge(this);
 	_bridge->init();
@@ -291,10 +293,8 @@ Syslink::task_main()
 
 	px4_arch_configgpio(GPIO_NRF_TXEN);
 
-	set_datarate(rate);
-	usleep(1000);
 	set_channel(channel);
-	usleep(1000);
+	set_datarate(rate);
 	set_address(addr);
 
 

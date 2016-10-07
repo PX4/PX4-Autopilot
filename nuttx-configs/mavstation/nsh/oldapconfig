@@ -43,6 +43,9 @@ CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += reboot
 
 CONFIGURED_APPS += drivers/boards/mavstation
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
+endif
 
 #ifeq ($(CONFIG_USBDEV),y)
 #ifeq ($(CONFIG_CDCACM),y)

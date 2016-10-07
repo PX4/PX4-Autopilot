@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__ll40ls
 	MAIN ll40ls
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ll40ls.cpp
 		LidarLite.cpp
@@ -43,4 +42,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

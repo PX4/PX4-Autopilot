@@ -66,7 +66,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_local_pos = _attc->get_local_pos();
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
-	_vehicle_status = _attc->get_vehicle_status();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
@@ -84,8 +83,6 @@ VtolType::~VtolType()
 */
 void VtolType::set_idle_mc()
 {
-	int ret;
-	unsigned servo_count;
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
@@ -93,7 +90,8 @@ void VtolType::set_idle_mc()
 		PX4_WARN("can't open %s", dev);
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	unsigned servo_count;
+	int ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
@@ -119,7 +117,6 @@ void VtolType::set_idle_mc()
 */
 void VtolType::set_idle_fw()
 {
-	int ret;
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
@@ -137,7 +134,7 @@ void VtolType::set_idle_fw()
 		pwm_values.channel_count++;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {
 		PX4_WARN("failed setting min values");

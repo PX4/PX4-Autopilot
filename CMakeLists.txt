@@ -146,6 +146,7 @@ set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 set(THREADS "4" CACHE STRING
 	"number of threads to use for external build processes")
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
+set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
 #=============================================================================
 # configuration
@@ -383,6 +384,24 @@ foreach(driver ${config_df_driver_list})
 	list(APPEND df_driver_libs df_${driver})
 	message("Adding DF driver: ${driver}")
 endforeach()
+
+#=============================================================================
+# external modules
+#
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	message(STATUS "External modules: ${EXTERNAL_MODULES_LOCATION}")
+	add_subdirectory("${EXTERNAL_MODULES_LOCATION}/src" external_modules_src)
+
+	set(config_module_list_external_expanded)
+	foreach(external_module ${config_module_list_external})
+		list(APPEND config_module_list_external_expanded
+			${EXTERNAL_MODULES_LOCATION}/src/${external_module})
+	endforeach()
+	set(config_module_list
+		${config_module_list}
+		${config_module_list_external_expanded}
+		)
+endif()
 
 #=============================================================================
 # subdirectories

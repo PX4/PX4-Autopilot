@@ -57,7 +57,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_xy_pub_thresh(this, "XY_PUB"),
+	_pub_agl_z(this, "PUB_AGL_Z"),
+	_vxy_pub_thresh(this, "VXY_PUB"),
 	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
@@ -76,11 +77,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_epv_max(this, "EPV_MAX"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
+	_vision_delay(this, "VIS_DELAY"),
 	_vision_on(this, "VIS_ON"),
 	_mocap_p_stddev(this, "VIC_P"),
+	_flow_gyro_comp(this, "FLW_GYRO_CMP"),
 	_flow_z_offset(this, "FLW_OFF_Z"),
-	_flow_xy_stddev(this, "FLW_XY"),
-	_flow_xy_d_stddev(this, "FLW_XY_D"),
+	_flow_vxy_stddev(this, "FLW_VXY"),
+	_flow_vxy_d_stddev(this, "FLW_VXY_D"),
+	_flow_vxy_r_stddev(this, "FLW_VXY_R"),
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
@@ -147,12 +151,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_altOriginInitialized(false),
 	_baroAltOrigin(0),
 	_gpsAltOrigin(0),
-	_visionOrigin(),
-	_mocapOrigin(),
-
-	// flow integration
-	_flowX(0),
-	_flowY(0),
 
 	// status
 	_validXY(false),
@@ -266,10 +264,6 @@ void BlockLocalPositionEstimator::update()
 	// 	_x(X_y) = 0;
 	// 	// reset Z or not? _x(X_z) = 0;
 
-	// 	// reset flow integral
-	// 	_flowX = 0;
-	// 	_flowY = 0;
-
 	// 	// we aren't moving, all velocities are zero
 	// 	_x(X_vx) = 0;
 	// 	_x(X_vy) = 0;
@@ -305,17 +299,23 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is xy valid?
-	bool xy_stddev_ok = sqrtf(math::max(_P(X_x, X_x), _P(X_y, X_y))) < _xy_pub_thresh.get();
+	bool vxy_stddev_ok = false;
+
+	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
+		vxy_stddev_ok = true;
+	}
 
 	if (_validXY) {
 		// if valid and gps has timed out, set to not valid
-		if (!xy_stddev_ok && !_gpsInitialized) {
+		if (!vxy_stddev_ok && !_gpsInitialized) {
 			_validXY = false;
 		}
 
 	} else {
-		if (xy_stddev_ok) {
-			_validXY = true;
+		if (vxy_stddev_ok) {
+			if (_flowInitialized || _gpsInitialized || _visionInitialized || _mocapInitialized) {
+				_validXY = true;
+			}
 		}
 	}
 
@@ -380,6 +380,7 @@ void BlockLocalPositionEstimator::update()
 		// don't want it to take too long
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit x, x(%d) not finite", i);
 			break;
 		}
 	}
@@ -673,6 +674,23 @@ void BlockLocalPositionEstimator::publishLocalPos()
 {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	// publish local position
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
@@ -684,7 +702,14 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().v_z_valid = _validZ;
 		_pub_lpos.get().x = xLP(X_x); 	// north
 		_pub_lpos.get().y = xLP(X_y);  	// east
-		_pub_lpos.get().z = xLP(X_z); 	// down
+
+		if (_pub_agl_z.get()) {
+			_pub_lpos.get().z = -_aglLowPass.getState(); // agl
+
+		} else {
+			_pub_lpos.get().z = xLP(X_z); 	// down
+		}
+
 		_pub_lpos.get().vx = xLP(X_vx); // north
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
@@ -703,8 +728,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		// so that if terrain estimation fails there isn't a
 		// sudden altitude jump
 		_pub_lpos.get().dist_bottom_valid = _validZ;
-		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_lpos.get().eph = eph;
+		_pub_lpos.get().epv = epv;
 		_pub_lpos.update();
 	}
 }
@@ -751,6 +776,23 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
 	float alt = -xLP(X_z) + _altOrigin;
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
 	    PX4_ISFINITE(xLP(X_vz))) {
@@ -763,8 +805,8 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
 		_pub_gpos.get().yaw = _sub_att.get().yaw;
-		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_gpos.get().eph = eph;
+		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
@@ -905,4 +947,27 @@ void BlockLocalPositionEstimator::predict()
 
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
+}
+
+int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
+{
+	float t_delay = 0;
+	uint8_t i_hist = 0;
+
+	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
+		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
+
+		if (t_delay > delay) {
+			break;
+		}
+	}
+
+	*periods = i_hist;
+
+	if (t_delay > DELAY_MAX) {
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] delayed data too old: %8.4f", double(t_delay));
+		return -1;
+	}
+
+	return OK;
 }

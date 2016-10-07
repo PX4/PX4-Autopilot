@@ -83,9 +83,6 @@ px4_add_module(
 	MODULE modules__systemlib
 	COMPILE_FLAGS
 		-Wno-sign-compare
-		-Wno-attributes
-		-Wno-packed
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

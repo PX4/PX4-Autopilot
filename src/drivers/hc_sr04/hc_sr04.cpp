@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <drivers/device/device.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -87,12 +88,6 @@
 
 #define SR04_CONVERSION_INTERVAL 	100000 /* 100ms for one sonar */
 
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -269,18 +264,18 @@ HC_SR04::~HC_SR04()
 int
 HC_SR04::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (CDev::init() != OK) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 	if (_reports == nullptr) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
@@ -738,12 +733,6 @@ HC_SR04::print_info()
  */
 namespace  hc_sr04
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 HC_SR04	*g_dev;
 

@@ -54,6 +54,8 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
+#include "tests_main.h"
+
 class MathlibTest : public UnitTest
 {
 public:
@@ -72,8 +74,6 @@ private:
 	bool testQuaternionfrom_euler();
 	bool testQuaternionRotate();
 };
-
-#include "tests.h"
 
 #define TEST_OP(_title, _op) { unsigned int n = 30000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
 

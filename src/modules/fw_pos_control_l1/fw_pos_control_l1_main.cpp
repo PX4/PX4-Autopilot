@@ -68,6 +68,7 @@
 #include <px4_posix.h>
 
 #include "landingslope.h"
+
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
@@ -84,7 +85,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/systemlib.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
@@ -98,7 +98,6 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -525,12 +524,6 @@ private:
 
 namespace l1_control
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 FixedwingPositionControl	*g_control = nullptr;
 }
@@ -2090,7 +2083,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
 		   !_runway_takeoff.runwayTakeoffEnabled()) {
@@ -2100,16 +2093,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = (_launchDetector.launchDetectionEnabled()) ? _launchDetector.getThrottlePreTakeoff() :
 				 _parameters.throttle_idle;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
 
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_OTHER) {
+	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
 
 	} else {
@@ -2140,7 +2133,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			    _land_noreturn_vertical);
 
 	// manual attitude control
-	use_tecs_pitch &=  !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
+	use_tecs_pitch &= !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
 
 	if (use_tecs_pitch) {
 		_att_sp.pitch_body = get_tecs_pitch();
@@ -2405,7 +2398,6 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		unsigned mode)
 {
-	bool run_tecs = true;
 	float dt = 0.01f; // prevent division with 0
 
 	if (_last_tecs_update > 0) {
@@ -2415,7 +2407,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	_last_tecs_update = hrt_absolute_time();
 
 	// do not run TECS if we are not in air
-	run_tecs &= !_vehicle_land_detected.landed;
+	bool run_tecs = !_vehicle_land_detected.landed;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
@@ -2444,9 +2436,8 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
 			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
-		}
 
-		else {
+		} else {
 			_was_in_transition = false;
 			_asp_after_transition = 0;
 		}
@@ -2476,7 +2467,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 	/* Using tecs library */
-	float pitch_for_tecs = _pitch;
+	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
 
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
@@ -2556,7 +2547,7 @@ FixedwingPositionControl::start()
 	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   1400,
+					   1700,
 					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 					   nullptr);
 
