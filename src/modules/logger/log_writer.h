@@ -66,6 +66,11 @@ public:
 	void stop_log();
 
 	/**
+	 * whether logging is currently active or not.
+	 */
+	bool is_started() const { return _should_run; }
+
+	/**
 	 * Write data to be logged. The caller must call lock() before calling this.
 	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
 	 * @return true on success, false if not enough space in the buffer left
