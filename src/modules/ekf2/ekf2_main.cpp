@@ -859,166 +859,168 @@ void Ekf2::task_main()
 			}
 		}
 
-			// publish estimator status
-			struct estimator_status_s status = {};
-			status.timestamp = hrt_absolute_time();
-			_ekf.get_state_delayed(status.states);
-			_ekf.get_covariances(status.covariances);
-			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-			_ekf.get_control_mode(&status.control_mode_flags);
-			_ekf.get_filter_fault_status(&status.filter_fault_flags);
-			_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-							&status.vel_test_ratio, &status.pos_test_ratio,
-							&status.hgt_test_ratio, &status.tas_test_ratio,
-							&status.hagl_test_ratio);
-			bool dead_reckoning;
-			_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
-			_ekf.get_ekf_soln_status(&status.solution_status_flags);
-			if (_estimator_status_pub == nullptr) {
-				_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+		// publish estimator status
+		struct estimator_status_s status = {};
+		status.timestamp = hrt_absolute_time();
+		_ekf.get_state_delayed(status.states);
+		_ekf.get_covariances(status.covariances);
+		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
+		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+						&status.vel_test_ratio, &status.pos_test_ratio,
+						&status.hgt_test_ratio, &status.tas_test_ratio,
+						&status.hagl_test_ratio);
+		bool dead_reckoning;
+		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
+		_ekf.get_ekf_soln_status(&status.solution_status_flags);
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		// Publish wind estimate
+		struct wind_estimate_s wind_estimate = {};
+		wind_estimate.timestamp = hrt_absolute_time();
+		wind_estimate.windspeed_north = status.states[22];
+		wind_estimate.windspeed_east = status.states[23];
+		wind_estimate.covariance_north = status.covariances[22];
+		wind_estimate.covariance_east = status.covariances[23];
+
+		if (_wind_pub == nullptr) {
+			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
+		} else {
+			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+		}
+
+		// publish estimator innovation data
+		struct ekf2_innovations_s innovations = {};
+		innovations.timestamp = hrt_absolute_time();
+		_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+		_ekf.get_mag_innov(&innovations.mag_innov[0]);
+		_ekf.get_heading_innov(&innovations.heading_innov);
+		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+		_ekf.get_flow_innov(&innovations.flow_innov[0]);
+		_ekf.get_hagl_innov(&innovations.hagl_innov);
+
+		_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
+		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
+		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
+		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+
+		if (_estimator_innovations_pub == nullptr) {
+			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+
+		} else {
+			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+		}
+
+		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
+		if ((_params->mag_declination_source & (1 << 1)) && !_prev_landed && vehicle_land_detected.landed) {
+			float decl_deg;
+			_ekf.copy_mag_decl_deg(&decl_deg);
+			_mag_declination_deg.set(decl_deg);
+		}
+
+		_prev_landed = vehicle_land_detected.landed;
+
+		// publish replay message if in replay mode
+		bool publish_replay_message = (bool)_param_record_replay_msg.get();
+
+		if (publish_replay_message) {
+			struct ekf2_replay_s replay = {};
+			replay.time_ref = now;
+			replay.gyro_integral_dt = sensors.gyro_integral_dt;
+			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
+			replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
+			replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
+			memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
+			memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
+			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
+			replay.baro_alt_meter = sensors.baro_alt_meter;
+
+			// only write gps data if we had a gps update.
+			if (gps_updated) {
+				replay.time_usec = gps.timestamp;
+				replay.time_usec_vel = gps.timestamp;
+				replay.lat = gps.lat;
+				replay.lon = gps.lon;
+				replay.alt = gps.alt;
+				replay.fix_type = gps.fix_type;
+				replay.nsats = gps.satellites_used;
+				replay.eph = gps.eph;
+				replay.epv = gps.epv;
+				replay.sacc = gps.s_variance_m_s;
+				replay.vel_m_s = gps.vel_m_s;
+				replay.vel_n_m_s = gps.vel_n_m_s;
+				replay.vel_e_m_s = gps.vel_e_m_s;
+				replay.vel_d_m_s = gps.vel_d_m_s;
+				replay.vel_ned_valid = gps.vel_ned_valid;
 
 			} else {
-				orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+				// this will tell the logging app not to bother logging any gps replay data
+				replay.time_usec = 0;
 			}
 
-			// Publish wind estimate
-			struct wind_estimate_s wind_estimate = {};
-			wind_estimate.timestamp = hrt_absolute_time();
-			wind_estimate.windspeed_north = status.states[22];
-			wind_estimate.windspeed_east = status.states[23];
-			wind_estimate.covariance_north = status.covariances[22];
-			wind_estimate.covariance_east = status.covariances[23];
-
-			if (_wind_pub == nullptr) {
-				_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+			if (optical_flow_updated) {
+				replay.flow_timestamp = optical_flow.timestamp;
+				replay.flow_pixel_integral[0] = optical_flow.pixel_flow_x_integral;
+				replay.flow_pixel_integral[1] = optical_flow.pixel_flow_y_integral;
+				replay.flow_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
+				replay.flow_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
+				replay.flow_time_integral = optical_flow.integration_timespan;
+				replay.flow_quality = optical_flow.quality;
 
 			} else {
-				orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				replay.flow_timestamp = 0;
 			}
 
-			// publish estimator innovation data
-			struct ekf2_innovations_s innovations = {};
-			innovations.timestamp = hrt_absolute_time();
-			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-			_ekf.get_mag_innov(&innovations.mag_innov[0]);
-			_ekf.get_heading_innov(&innovations.heading_innov);
-			_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-			_ekf.get_flow_innov(&innovations.flow_innov[0]);
-			_ekf.get_hagl_innov(&innovations.hagl_innov);
+			if (range_finder_updated) {
+				replay.rng_timestamp = range_finder.timestamp;
+				replay.range_to_ground = range_finder.current_distance;
 
-			_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-			_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-			_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-			_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-			_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-			_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
-
-			if (_estimator_innovations_pub == nullptr) {
-				_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 			} else {
-				orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+				replay.rng_timestamp = 0;
 			}
 
-			// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
-			if ((_params->mag_declination_source & (1 << 1)) && !_prev_landed && vehicle_land_detected.landed) {
-				float decl_deg;
-				_ekf.copy_mag_decl_deg(&decl_deg);
-				_mag_declination_deg.set(decl_deg);
+			if (airspeed_updated) {
+				replay.asp_timestamp = airspeed.timestamp;
+				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
+				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
+
+			} else {
+				replay.asp_timestamp = 0;
 			}
 
-			_prev_landed = vehicle_land_detected.landed;
+			if (vision_position_updated) {
+				replay.ev_timestamp = ev.timestamp;
+				replay.pos_ev[0] = ev.x;
+				replay.pos_ev[1] = ev.y;
+				replay.pos_ev[2] = ev.z;
+				replay.quat_ev[0] = ev.q[0];
+				replay.quat_ev[1] = ev.q[1];
+				replay.quat_ev[2] = ev.q[2];
+				replay.quat_ev[3] = ev.q[3];
+				replay.pos_err = ev.pos_err;
+				replay.ang_err = ev.ang_err;
 
-			// publish replay message if in replay mode
-			bool publish_replay_message = (bool)_param_record_replay_msg.get();
-
-			if (publish_replay_message) {
-				struct ekf2_replay_s replay = {};
-				replay.time_ref = now;
-				replay.gyro_integral_dt = sensors.gyro_integral_dt;
-				replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
-				replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
-				replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
-				memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
-				memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
-				memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
-				replay.baro_alt_meter = sensors.baro_alt_meter;
-
-				// only write gps data if we had a gps update.
-				if (gps_updated) {
-					replay.time_usec = gps.timestamp;
-					replay.time_usec_vel = gps.timestamp;
-					replay.lat = gps.lat;
-					replay.lon = gps.lon;
-					replay.alt = gps.alt;
-					replay.fix_type = gps.fix_type;
-					replay.nsats = gps.satellites_used;
-					replay.eph = gps.eph;
-					replay.epv = gps.epv;
-					replay.sacc = gps.s_variance_m_s;
-					replay.vel_m_s = gps.vel_m_s;
-					replay.vel_n_m_s = gps.vel_n_m_s;
-					replay.vel_e_m_s = gps.vel_e_m_s;
-					replay.vel_d_m_s = gps.vel_d_m_s;
-					replay.vel_ned_valid = gps.vel_ned_valid;
-
-				} else {
-					// this will tell the logging app not to bother logging any gps replay data
-					replay.time_usec = 0;
-				}
-
-				if (optical_flow_updated) {
-					replay.flow_timestamp = optical_flow.timestamp;
-					replay.flow_pixel_integral[0] = optical_flow.pixel_flow_x_integral;
-					replay.flow_pixel_integral[1] = optical_flow.pixel_flow_y_integral;
-					replay.flow_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
-					replay.flow_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
-					replay.flow_time_integral = optical_flow.integration_timespan;
-					replay.flow_quality = optical_flow.quality;
-
-				} else {
-					replay.flow_timestamp = 0;
-				}
-
-				if (range_finder_updated) {
-					replay.rng_timestamp = range_finder.timestamp;
-					replay.range_to_ground = range_finder.current_distance;
-
-				} else {
-					replay.rng_timestamp = 0;
-				}
-
-				if (airspeed_updated) {
-					replay.asp_timestamp = airspeed.timestamp;
-					replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
-					replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
-
-				} else {
-					replay.asp_timestamp = 0;
-				}
-
-				if (vision_position_updated) {
-					replay.ev_timestamp = ev.timestamp;
-					replay.pos_ev[0] = ev.x;
-					replay.pos_ev[1] = ev.y;
-					replay.pos_ev[2] = ev.z;
-					replay.quat_ev[0] = ev.q[0];
-					replay.quat_ev[1] = ev.q[1];
-					replay.quat_ev[2] = ev.q[2];
-					replay.quat_ev[3] = ev.q[3];
-					replay.pos_err = ev.pos_err;
-					replay.ang_err = ev.ang_err;
-
-				} else {
-					replay.ev_timestamp = 0;
-				}
-
-				if (_replay_pub == nullptr) {
-					_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
-
-				} else {
-					orb_publish(ORB_ID(ekf2_replay), _replay_pub, &replay);
-				}
+			} else {
+				replay.ev_timestamp = 0;
 			}
+
+			if (_replay_pub == nullptr) {
+				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
+
+			} else {
+				orb_publish(ORB_ID(ekf2_replay), _replay_pub, &replay);
+			}
+		}
 	}
 
 	delete ekf2::instance;
