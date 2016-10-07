@@ -16,6 +16,12 @@ which allows for easier debugging by printing out uORB messages.
 Usage: generate_listener src_dir output_file
 """
 
+# Ignore the biggest topics on NuttX to save flash
+ignore_on_nuttx_list = [
+    "hil_sensor",
+    "ekf2_replay"
+]
+
 
 def main():
     """Parse the msg files and write the listener using the template."""
@@ -209,6 +215,7 @@ def get_print_function_for_array(element):
 
     # Construct the ugly loop with all it needs.
     text = "\t\tPX4_INFO_RAW(\"{}: \");\n".format(element.var_name)
+    text = ""
     text += "\t\tfor (int j = 0; j < {}; ++j) {{\n".format(element.array_len)
     text += "\t\t\tPX4_INFO_RAW(\"{} \", {});\n".format(
         type_specifier_for_cpp_type[element.type_name],
@@ -247,13 +254,17 @@ def assemble_classes(msg_dict):
     # Go through all msgs and their elements.
     for msg, elements in msg_dict.items():
 
+        if msg in ignore_on_nuttx_list:
+            text += "#ifndef __PX4_NUTTX\n"
+
         text += "class Topic_{} : public Topic {{\n".format(msg)
         text += "public:\n"
         text += "\tTopic_{}(orb_id_t id)\n".format(msg)
         text += "\t\t: Topic(id),\n"
         text += "\t_container{}\n"
-        text += "{\n"
-        text += "}\n"
+        text += "\t{\n"
+        text += "\t\t_data = &_container;\n"
+        text += "\t}\n"
 
         print_function = ""
         print_function += "\t\tPX4_INFO_RAW(\"timestamp: %\" PRIu64 \"\\n\"," \
@@ -269,21 +280,24 @@ def assemble_classes(msg_dict):
         text += print_function
         text += "\t}\n"
 
-        text += "\tbool update() override"
-        text += "\t{\n"
-        text += "\t\tbool updated = false;\n"
-        text += "\t\torb_check(_sub, &updated);\n"
-        text += "\t\tif (updated) {\n"
-        text += "\t\t\torb_copy(_id, _sub, &_container);\n"
-        text += "\t\t\treturn true;\n"
-        text += "\t\t} else {\n"
-        text += "\t\t\treturn false;\n"
-        text += "\t\t}\n"
-        text += "\t}\n"
+        # text += "\tbool update() override"
+        # text += "\t{\n"
+        # text += "\t\tbool updated = false;\n"
+        # text += "\t\torb_check(_sub, &updated);\n"
+        # text += "\t\tif (updated) {\n"
+        # text += "\t\t\torb_copy(_id, _sub, (void *)&_container);\n"
+        # text += "\t\t\treturn true;\n"
+        # text += "\t\t} else {\n"
+        # text += "\t\t\treturn false;\n"
+        # text += "\t\t}\n"
+        # text += "\t}\n"
 
         text += "private:\n"
         text += "\tstruct {}_s _container;\n".format(msg)
         text += "};\n\n"
+
+        if msg in ignore_on_nuttx_list:
+            text += "#endif\n"
 
     return text
 
@@ -293,13 +307,25 @@ def assemble_factory(msg_dict):
     text = ""
 
     for index, msg in enumerate(msg_dict.keys()):
+
         # The first time is an "if", after that it's "else if"
         if index > 0:
             text += "\telse "
         else:
             text += "\t"
+
         text += "if (strncmp(name, \"{}\", 50) == 0) {{\n".format(msg)
+
+        if msg in ignore_on_nuttx_list:
+            text += "#ifdef __PX4_NUTTX\n"
+            text += "\t\tPX4_WARN(\"Topic not available on NuttX\");\n"
+            text += "#else\n"
+
         text += "\t\ttopic = new Topic_{}(ORB_ID({}));\n".format(msg, msg)
+
+        if msg in ignore_on_nuttx_list:
+            text += "#endif\n"
+
         text += "\t}\n"
 
     return text

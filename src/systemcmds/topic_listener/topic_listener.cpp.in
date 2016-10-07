@@ -69,6 +69,7 @@ class Topic
 public:
 	Topic(orb_id_t id) :
 		_id(id),
+		_data(nullptr),
 		_sub(-1),
 		_times_printed(0)
 	{
@@ -90,11 +91,22 @@ public:
 		return _times_printed;
 	}
 
-	bool exists() {
+	bool exists()
+	{
 		return (orb_exists(_id, 0) == 0);
 	}
 
-	virtual bool update() = 0;
+	bool update()
+	{
+		bool updated = false;
+		orb_check(_sub, &updated);
+		if (updated) {
+			orb_copy(_id, _sub, _data);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	void print()
 	{
@@ -115,8 +127,9 @@ protected:
 	}
 
 	orb_id_t _id;
-	int _sub;
+	void *_data; // data is set by the child class
 private:
+	int _sub;
 	unsigned _times_printed;
 };
 
