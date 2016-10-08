@@ -1487,6 +1487,8 @@ PX4FMU::cycle()
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
 		}
+	} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
+		_rc_scan_locked = false;
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
@@ -2121,7 +2123,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			dsm_bind(DSM_CMD_BIND_POWER_UP, 0);
 			usleep(72000);
 
+			irqstate_t flags = px4_enter_critical_section();
 			dsm_bind(DSM_CMD_BIND_SEND_PULSES, arg);
+			px4_leave_critical_section(flags);
 			usleep(50000);
 
 			dsm_bind(DSM_CMD_BIND_REINIT_UART, 0);
