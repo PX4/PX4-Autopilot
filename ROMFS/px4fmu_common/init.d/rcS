@@ -645,29 +645,8 @@ then
 		px4flow start &
 	fi
 
-
-	set DEBUG_MODE no
-
-	if [ $LOG_FILE == /dev/null ]
-	then
-		set DEBUG_MODE yes
-	fi
-
-
-	if ver hwcmp CRAZYFLIE
-	then
-		set DEBUG_MODE no
-	fi
-
-
-	# Start USB shell if no microSD present, MAVLink else
-	if [ $DEBUG_MODE == yes ]
-	then
-		# Try to get an USB console
-		nshterm /dev/ttyACM0 &
-	else
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
+	# Start MAVLink
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 
 	#
 	# Logging
