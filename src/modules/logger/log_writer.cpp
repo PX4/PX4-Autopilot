@@ -118,13 +118,20 @@ void LogWriter::thread_stop()
 	}
 }
 
-bool LogWriter::write(void *ptr, size_t size, uint64_t dropout_start)
+int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
 {
+	int ret_file = 0, ret_mavlink = 0;
+
 	if (_log_writer_file) {
-		return _log_writer_file->write(ptr, size, dropout_start);
+		ret_file = _log_writer_file->write_message(ptr, size, dropout_start);
 	}
 
-	return true;
+	// file backend errors takes precedence
+	if (ret_file != 0) {
+		return ret_file;
+	}
+
+	return ret_mavlink;
 }
 
 }

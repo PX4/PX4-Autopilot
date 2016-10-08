@@ -45,7 +45,7 @@ namespace logger
 {
 
 /**
- * @class LogWriter
+ * @class LogWriterFile
  * Writes logging data to a file
  */
 class LogWriterFile
@@ -68,17 +68,10 @@ public:
 
 	void stop_log();
 
-	/**
-	 * whether logging is currently active or not.
-	 */
 	bool is_started() const { return _should_run; }
 
-	/**
-	 * Write data to be logged. The caller must call lock() before calling this.
-	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
-	 * @return true on success, false if not enough space in the buffer left
-	 */
-	bool write(void *ptr, size_t size, uint64_t dropout_start = 0);
+	/** @see LogWriter::write_message() */
+	int write_message(void *ptr, size_t size, uint64_t dropout_start = 0);
 
 	void lock()
 	{
@@ -110,6 +103,16 @@ public:
 		return _count;
 	}
 
+	void set_need_reliable_transfer(bool need_reliable)
+	{
+		_need_reliable_transfer = need_reliable;
+	}
+
+	bool need_reliable_transfer() const
+	{
+		return _need_reliable_transfer;
+	}
+
 private:
 	static void *run_helper(void *);
 
@@ -121,6 +124,11 @@ private:
 	{
 		_count -= n;
 	}
+
+	/**
+	 * write w/o waiting/blocking
+	 */
+	int write(void *ptr, size_t size, uint64_t dropout_start);
 
 	/**
 	 * Write to the buffer but assuming there is enough space
@@ -139,6 +147,7 @@ private:
 	bool		_should_run = false;
 	bool		_running = false;
 	bool 		_exit_thread = false;
+	bool		_need_reliable_transfer = false;
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
 	perf_counter_t _perf_write;
