@@ -32,10 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file load_mon.cpp
+ * @file servo_control.cpp
  *
- * @author Jonathan Challinger <jonathan@3drobotics.com>
- * @author Julian Oes <julian@oes.ch
+ * @author bdai<bdai1412@gmail.com>
  */
 
 #include <px4_config.h>
