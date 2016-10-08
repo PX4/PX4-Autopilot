@@ -175,17 +175,11 @@ private:
 	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer);
 
 	/**
-	 * Write data to the logger. Waits if buffer is full until all data is written.
-	 * Must be called with _writer.lock() held.
-	 */
-	bool write_wait(void *ptr, size_t size);
-
-	/**
-	 * Write data to the logger and handle dropouts.
+	 * Write exactly one ulog message to the logger and handle dropouts.
 	 * Must be called with _writer.lock() held.
 	 * @return true if data written, false otherwise (on overflow)
 	 */
-	bool write(void *ptr, size_t size);
+	bool write_message(void *ptr, size_t size);
 
 	/**
 	 * Get the time for log file name

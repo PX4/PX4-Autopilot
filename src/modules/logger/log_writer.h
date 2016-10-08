@@ -79,11 +79,12 @@ public:
 	bool is_started(Backend backend) const;
 
 	/**
-	 * Write data to be logged. The caller must call lock() before calling this.
+	 * Write a single ulog message (including header). The caller must call lock() before calling this.
 	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
-	 * @return true on success, false if not enough space in the buffer left
+	 * @return 0 on success (or if no logging started),
+	 *         -1 if not enough space in the buffer left (file backend), -2 mavlink backend failed
 	 */
-	bool write(void *ptr, size_t size, uint64_t dropout_start = 0);
+	int write_message(void *ptr, size_t size, uint64_t dropout_start = 0);
 
 
 	/* file logging methods */
@@ -122,6 +123,21 @@ public:
 		if (_log_writer_file) { return _log_writer_file->get_buffer_fill_count(); }
 
 		return 0;
+	}
+
+	/**
+	 * Indicate to the underlying backend whether the following writes() need a reliable
+	 * transfer. Needed for header integrity.
+	 */
+	void set_need_reliable_transfer(bool need_reliable)
+	{
+		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
+	}
+
+	bool need_reliable_transfer() const
+	{
+		if (_log_writer_file) { return _log_writer_file->need_reliable_transfer(); }
+		return false;
 	}
 
 private:

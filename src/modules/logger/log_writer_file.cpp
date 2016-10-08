@@ -251,8 +251,29 @@ void LogWriterFile::run()
 	}
 }
 
-bool LogWriterFile::write(void *ptr, size_t size, uint64_t dropout_start)
+int LogWriterFile::write_message(void *ptr, size_t size, uint64_t dropout_start)
 {
+	if (_need_reliable_transfer) {
+		int ret;
+
+		while ((ret = write(ptr, size, dropout_start)) == -1) {
+			unlock();
+			notify();
+			usleep(3000);
+			lock();
+		}
+
+		return ret;
+	}
+
+	return write(ptr, size, dropout_start);
+}
+
+int LogWriterFile::write(void *ptr, size_t size, uint64_t dropout_start)
+{
+	if (!is_started()) {
+		return 0;
+	}
 
 	// Bytes available to write
 	size_t available = _buffer_size - _count;
@@ -264,7 +285,7 @@ bool LogWriterFile::write(void *ptr, size_t size, uint64_t dropout_start)
 
 	if (size + dropout_size > available) {
 		// buffer overflow
-		return false;
+		return -1;
 	}
 
 	if (dropout_start) {
@@ -275,7 +296,7 @@ bool LogWriterFile::write(void *ptr, size_t size, uint64_t dropout_start)
 	}
 
 	write_no_check(ptr, size);
-	return true;
+	return 0;
 }
 
 void LogWriterFile::write_no_check(void *ptr, size_t size)

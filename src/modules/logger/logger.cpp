@@ -761,7 +761,7 @@ void Logger::run()
 
 						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
 
-						if (write(_msg_buffer, msg_size)) {
+						if (write_message(_msg_buffer, msg_size)) {
 
 #ifdef DBGPRINT
 							total_bytes += msg_size;
@@ -792,7 +792,7 @@ void Logger::run()
 					memcpy(_msg_buffer + 4, &log_message_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
 					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
-					write(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
+					write_message(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
 				}
 			}
 
@@ -860,9 +860,9 @@ void Logger::run()
 	}
 }
 
-bool Logger::write(void *ptr, size_t size)
+bool Logger::write_message(void *ptr, size_t size)
 {
-	if (_writer.write(ptr, size, _dropout_start)) {
+	if (_writer.write_message(ptr, size, _dropout_start) != -1) {
 
 		if (_dropout_start) {
 			float dropout_duration = (float)(hrt_elapsed_time(&_dropout_start) / 1000) / 1.e3f;
@@ -1089,11 +1089,13 @@ void Logger::start_log_file()
 	_next_topic_id = 0;
 
 	_writer.start_log_file(file_name);
+	_writer.set_need_reliable_transfer(true);
 	write_header();
 	write_version();
 	write_formats();
 	write_parameters();
 	write_all_add_logged_msg();
+	_writer.set_need_reliable_transfer(false);
 	_writer.notify();
 	_start_time = hrt_absolute_time();
 }
@@ -1101,18 +1103,6 @@ void Logger::start_log_file()
 void Logger::stop_log_file()
 {
 	_writer.stop_log_file();
-}
-
-bool Logger::write_wait(void *ptr, size_t size)
-{
-	while (!_writer.write(ptr, size)) {
-		_writer.unlock();
-		_writer.notify();
-		usleep(_log_interval);
-		_writer.lock();
-	}
-
-	return true;
 }
 
 void Logger::write_formats()
@@ -1127,7 +1117,7 @@ void Logger::write_formats()
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-		write_wait(&msg, msg_size);
+		write_message(&msg, msg_size);
 	}
 
 	_writer.unlock();
@@ -1163,7 +1153,10 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
 	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-	write_wait(&msg, msg_size);
+	bool prev_reliable = _writer.need_reliable_transfer();
+	_writer.set_need_reliable_transfer(true);
+	write_message(&msg, msg_size);
+	_writer.set_need_reliable_transfer(prev_reliable);
 
 	++_next_topic_id;
 }
@@ -1188,7 +1181,7 @@ void Logger::write_info(const char *name, const char *value)
 
 		msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-		write_wait(buffer, msg_size);
+		write_message(buffer, msg_size);
 	}
 
 	_writer.unlock();
@@ -1210,7 +1203,7 @@ void Logger::write_info(const char *name, int32_t value)
 
 	msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-	write_wait(buffer, msg_size);
+	write_message(buffer, msg_size);
 
 	_writer.unlock();
 }
@@ -1228,7 +1221,7 @@ void Logger::write_header()
 	header.magic[7] = 0x00; //file version 0
 	header.timestamp = hrt_absolute_time();
 	_writer.lock();
-	write_wait(&header, sizeof(header));
+	write_message(&header, sizeof(header));
 	_writer.unlock();
 }
 
@@ -1299,7 +1292,7 @@ void Logger::write_parameters()
 
 			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-			write_wait(buffer, msg_size);
+			write_message(buffer, msg_size);
 		}
 	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
 
@@ -1358,7 +1351,7 @@ void Logger::write_changed_parameters()
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
 			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
-			write_wait(buffer, msg_size);
+			write_message(buffer, msg_size);
 		}
 	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
 
