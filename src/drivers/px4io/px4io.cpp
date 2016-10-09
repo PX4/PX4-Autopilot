@@ -1295,6 +1295,14 @@ PX4IO::task_main()
 					}
 				}
 
+				/* thrust to pwm modelling factor */
+				parm_handle = param_find("THR_MDL_FAC");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &param_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THR_MDL_FAC, FLOAT_TO_REG(param_val));
+				}
+
 				/* maximum motor pwm slew rate */
 				parm_handle = param_find("MOT_SLEW_MAX");
 
