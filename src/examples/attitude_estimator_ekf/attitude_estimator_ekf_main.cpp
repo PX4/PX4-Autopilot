@@ -613,7 +613,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					/* magnetic declination */
 					matrix::Dcmf Ro(&Rot_matrix[0]);
 					matrix::Dcmf R_declination(&R_decl.data[0][0]);
-					Ro = R_declination * Ro;
 					matrix::Quatf q = matrix::Quatf(R_declination * Ro);
 
 					memcpy(&att.q[0],&q._data[0],sizeof(att.q));
