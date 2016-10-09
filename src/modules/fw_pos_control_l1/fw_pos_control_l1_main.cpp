@@ -2296,7 +2296,8 @@ FixedwingPositionControl::task_main()
 				}
 
 				// adjust navigation waypoints in position control mode
-				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
+				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
+				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
 					_hdg_hold_prev_wp.lat += _global_pos.delta_lat_lon[0];
 					_hdg_hold_prev_wp.lon += _global_pos.delta_lat_lon[1];
 					_hdg_hold_curr_wp.lat += _global_pos.delta_lat_lon[0];

@@ -677,7 +677,8 @@ MulticopterPositionControl::poll_subscriptions()
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
 				_heading_reset_counter = _ctrl_state.quat_reset_counter;
-				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2], _ctrl_state.delta_q_reset[3]);
+				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
+							 _ctrl_state.delta_q_reset[3]);
 
 				// we only extract the heading change from the delta quaternion
 				math::Vector<3> delta_euler = delta_q.to_euler();

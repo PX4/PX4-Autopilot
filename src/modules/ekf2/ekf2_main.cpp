@@ -881,7 +881,8 @@ void Ekf2::task_main()
 				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
 				global_pos.lat = est_lat; // Latitude in degrees
 				global_pos.lon = est_lon; // Longitude in degrees
-				map_projection_reproject(&ekf_origin, lpos.x - lpos.delta_xy[0], lpos.y - lpos.delta_xy[1], &lat_pre_reset, &lon_pre_reset);
+				map_projection_reproject(&ekf_origin, lpos.x - lpos.delta_xy[0], lpos.y - lpos.delta_xy[1], &lat_pre_reset,
+							 &lon_pre_reset);
 				global_pos.delta_lat_lon[0] = est_lat - lat_pre_reset;
 				global_pos.delta_lat_lon[1] = est_lon - lon_pre_reset;
 				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
