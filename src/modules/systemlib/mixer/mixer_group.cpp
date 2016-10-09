@@ -141,6 +141,18 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 	return index;
 }
 
+void
+MixerGroup::set_thrust_factor(float val)
+{
+	Mixer	*mixer = _first;
+
+	while (mixer != nullptr) {
+		mixer->set_thrust_factor(val);
+		mixer = mixer->_next;
+	}
+
+}
+
 uint16_t
 MixerGroup::get_saturation_status()
 {
