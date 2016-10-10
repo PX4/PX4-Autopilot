@@ -206,6 +206,18 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
 
 /**
+ * Yaw I gain
+ *
+ * Yaw Intergration gain, i.e. desired angular speed in rad/s for error 1 rad.
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAW_I, 0f);
+
+/**
  * Yaw rate P gain
  *
  * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.

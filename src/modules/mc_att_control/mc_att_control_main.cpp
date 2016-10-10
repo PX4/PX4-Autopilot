@@ -80,6 +80,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
+
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
@@ -142,6 +144,8 @@ private:
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
 	int 	_motor_limits_sub;		/**< motor limits subscription */
 
+	int		_task_status_sub;	/*task_status monitor -bdai<10 Oct 2016>*/
+
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub;	/**< controller status publication */
@@ -161,6 +165,7 @@ private:
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 	struct multirotor_motor_limits_s	_motor_limits;		/**< motor limits */
 	struct mc_att_ctrl_status_s 		_controller_status; /**< controller status */
+	struct task_status_monitor_m2p_s	_task_status;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
@@ -170,6 +175,7 @@ private:
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float				_thrust_sp;		/**< thrust setpoint */
+	float				_yaw_err_i;		/*intergration of yaw error -bdai<10 Oct 2016>*/
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
@@ -188,6 +194,7 @@ private:
 		param_t tpa_breakpoint;
 		param_t tpa_slope;
 		param_t yaw_p;
+		param_t yaw_i;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
@@ -218,6 +225,7 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
 		float yaw_ff;						/**< yaw control feed-forward */
+		float yaw_i;	/*I of yaw controller -bdai<10 Oct 2016>*/
 
 		float tpa_breakpoint;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_slope;					/**< Throttle PID Attenuation slope */
@@ -293,6 +301,11 @@ private:
 	void		vehicle_motor_limits_poll();
 
 	/**
+	 * Check for vehicle task monitor status, from offboard.
+	 */
+	void		task_status_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -322,6 +335,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 	_vehicle_status_sub(-1),
+	_task_status_sub(-1),
 
 	/* publications */
 	_v_rates_sp_pub(nullptr),
@@ -356,6 +370,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rate_d.zero();
 	_params.rate_ff.zero();
 	_params.yaw_ff = 0.0f;
+	_params.yaw_i = 0.0f;
 	_params.roll_rate_max = 0.0f;
 	_params.pitch_rate_max = 0.0f;
 	_params.yaw_rate_max = 0.0f;
@@ -389,6 +404,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.tpa_breakpoint 	= 	param_find("MC_TPA_BREAK");
 	_params_handles.tpa_slope	 	= 	param_find("MC_TPA_SLOPE");
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
+	_params_handles.yaw_i			=	param_find("MC_YAW_I");
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
@@ -490,6 +506,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.tpa_slope = v;
 
 	/* yaw gains */
+	param_get(_params_handles.yaw_i, &v);
+	_params.yaw_i = v;
 	param_get(_params_handles.yaw_p, &v);
 	_params.att_p(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
@@ -656,6 +674,17 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	}
 }
 
+void
+MulticopterAttitudeControl::task_status_poll()
+{
+	bool updated;
+	orb_check(_task_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(task_status_monitor_m2p), _task_status_sub, &_task_status);
+	}
+}
+
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -739,6 +768,13 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
+	_rates_sp(2) = _rates_sp(2) + _yaw_err_i;
+
+	if(_task_status.task_status == 1 && _v_control_mode.flag_control_offboard_enabled) {
+		_yaw_err_i = 0;
+	} else {
+		_yaw_err_i = _yaw_err_i + _params.yaw_i * e_R(2);
+	}
 
 	/* limit rates */
 	for (int i = 0; i < 3; i++) {
@@ -888,6 +924,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_manual_poll();
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
+			task_status_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
