@@ -877,7 +877,7 @@ Mavlink::get_free_tx_buf()
 		return  1500;
 
 	} else {
-		// No FIONWRITE on Linux
+		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
 #if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
 		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
 #else
