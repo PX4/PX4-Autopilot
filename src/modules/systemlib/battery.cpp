@@ -48,6 +48,7 @@ Battery::Battery() :
 	_param_n_cells(this, "N_CELLS"),
 	_param_capacity(this, "CAPACITY"),
 	_param_v_load_drop(this, "V_LOAD_DROP"),
+	_param_r_internal(this, "R_INTERNAL"),
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
 	_voltage_filtered_v(-1.0f),
@@ -55,6 +56,7 @@ Battery::Battery() :
 	_remaining_voltage(1.0f),
 	_remaining_capacity(1.0f),
 	_remaining(1.0f),
+	_scale(1.0f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -72,16 +74,22 @@ Battery::reset(battery_status_s *battery_status)
 	memset(battery_status, 0, sizeof(*battery_status));
 	battery_status->current_a = -1.0f;
 	battery_status->remaining = 1.0f;
+	battery_status->scale = 1.0f;
 	battery_status->cell_count = _param_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
 	battery_status->connected = false;
 }
 
+// TODO: Distinguish between terminal battery voltage and real battery voltage
+
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
+
+	// what we should do is
+// TODO: Add in voltage_term_v
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
@@ -89,10 +97,12 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	sumDischarged(timestamp, current_a);
 	estimateRemaining(voltage_v, throttle_normalized, armed);
 	determineWarning();
+	computeScale();
 
 	if (_voltage_filtered_v > 2.1f) {
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
+		battery_status->scale = _scale;
 		battery_status->current_a = current_a;
 		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
@@ -210,5 +220,18 @@ Battery::determineWarning()
 
 	} else if (_remaining < _param_low_thr.get()) {
 		_warning = battery_status_s::BATTERY_WARNING_LOW;
+	}
+}
+
+void
+Battery::computeScale()
+{
+	_scale = (_param_v_full.get() * _param_n_cells.get()) / _voltage_filtered_v;
+
+	if (_scale > 1.3f) { // Allow at most 30% compensation
+		_scale = 1.3f;
+
+	} else if (!PX4_ISFINITE(_scale) || _scale < 1.0f) { // Shouldn't ever be more than the power at full battery
+		_scale = 1.0f;
 	}
 }

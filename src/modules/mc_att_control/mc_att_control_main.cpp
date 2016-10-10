@@ -80,6 +80,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/battery_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
@@ -141,6 +142,7 @@ private:
 	int		_armed_sub;				/**< arming status subscription */
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
 	int 	_motor_limits_sub;		/**< motor limits subscription */
+	int 	_battery_status_sub;	/**< battery status subscription */
 
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
@@ -161,6 +163,7 @@ private:
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 	struct multirotor_motor_limits_s	_motor_limits;		/**< motor limits */
 	struct mc_att_ctrl_status_s 		_controller_status; /**< controller status */
+	struct battery_status_s				_battery_status;	/**< battery status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
@@ -209,6 +212,8 @@ private:
 		param_t vtol_opt_recovery_enabled;
 		param_t vtol_wv_yaw_rate_scale;
 
+		param_t bat_scale_en;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -233,6 +238,8 @@ private:
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
 		bool vtol_opt_recovery_enabled;
 		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
+
+		int bat_scale_en;
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -291,6 +298,11 @@ private:
 	 * Check for vehicle motor limits status.
 	 */
 	void		vehicle_motor_limits_poll();
+
+	/**
+	 * Check for battery status updates.
+	 */
+	void		battery_status_poll();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -365,7 +377,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rattitude_thres = 1.0f;
 	_params.vtol_opt_recovery_enabled = false;
 	_params.vtol_wv_yaw_rate_scale = 1.0f;
-
+	_params.bat_scale_en = 0;
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -407,7 +419,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
 	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
-
+	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
 
 
 
@@ -538,6 +550,8 @@ MulticopterAttitudeControl::parameters_update()
 
 	param_get(_params_handles.vtol_wv_yaw_rate_scale, &_params.vtol_wv_yaw_rate_scale);
 
+	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
+
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;
@@ -653,6 +667,18 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &_motor_limits);
+	}
+}
+
+void
+MulticopterAttitudeControl::battery_status_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_battery_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(battery_status), _battery_status_sub, &_battery_status);
 	}
 }
 
@@ -834,6 +860,7 @@ MulticopterAttitudeControl::task_main()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
+	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	/* initialize parameters cache */
 	parameters_update();
@@ -888,6 +915,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_manual_poll();
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
+			battery_status_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
@@ -979,6 +1007,13 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[7] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
+
+				/* scale effort by battery status */
+				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
+					for (int i = 0; i < 4; i++) {
+						_actuators.control[i] *= _battery_status.scale;
+					}
+				}
 
 				_controller_status.roll_rate_integ = _rates_int(0);
 				_controller_status.pitch_rate_integ = _rates_int(1);
