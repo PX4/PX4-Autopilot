@@ -247,7 +247,11 @@ then
 	then
 	fi
 
-	if hmc5883 -R 4 start
+	if hmc5883 -I -R 4 start
+	then
+	fi
+
+	if hmc5883 -X start
 	then
 	fi
 fi

@@ -87,7 +87,8 @@
  * I2C3_SDL     PA8     COMPASS_I2C3_SCL          JP1-25,26
  *
  */
-#define PX4_I2C_BUS_ONBOARD    3
+#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_I2C_BUS_ONBOARD		3
 
 #define PX4_I2C_OBDEV_HMC5883	0x1E
 
