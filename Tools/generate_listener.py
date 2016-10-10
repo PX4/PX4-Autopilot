@@ -280,18 +280,6 @@ def assemble_classes(msg_dict):
         text += print_function
         text += "\t}\n"
 
-        # text += "\tbool update() override"
-        # text += "\t{\n"
-        # text += "\t\tbool updated = false;\n"
-        # text += "\t\torb_check(_sub, &updated);\n"
-        # text += "\t\tif (updated) {\n"
-        # text += "\t\t\torb_copy(_id, _sub, (void *)&_container);\n"
-        # text += "\t\t\treturn true;\n"
-        # text += "\t\t} else {\n"
-        # text += "\t\t\treturn false;\n"
-        # text += "\t\t}\n"
-        # text += "\t}\n"
-
         text += "private:\n"
         text += "\tstruct {}_s _container;\n".format(msg)
         text += "};\n\n"
