@@ -12,7 +12,7 @@ checkout:
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-nuttx-gcc4.9
+    - docker pull px4io/px4-dev-nuttx-gcc4.9:2016-10-09
 
 test:
   override:
