@@ -551,6 +551,14 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
 		fi
+		if param compare SYS_COMPANION 319200
+		then
+			mavlink start -d /dev/ttyS2 -b 19200 -r 1000
+		fi
+		if param compare SYS_COMPANION 338400
+		then
+			mavlink start -d /dev/ttyS2 -b 38400 -r 1000
+		fi
 		if param compare SYS_COMPANION 357600
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
