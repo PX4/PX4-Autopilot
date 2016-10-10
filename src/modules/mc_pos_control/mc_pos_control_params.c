@@ -259,6 +259,30 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
 
 /**
+ * Radius of position I and D controller enable in XY
+ *
+ * If radius of error is large than MPC_ID_RADIUS，use P controller，else use PID controller
+ *
+ * @min 0.1
+ * @max 2.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ID_RADIUS, 1f);
+
+/**
+ * Radius of position I and D controller enable in Z
+ *
+ * If radius of error is large than MPC_Z_ID_RADIUS，use P controller，else use PID controller
+ *
+ * @min 0.05
+ * @max 0.5
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_ID_RADIUS, 0.3f);
+
+/**
  * Proportional gain for horizontal position error
  *
  * @min 0.0
@@ -272,7 +296,7 @@ PARAM_DEFINE_FLOAT(MPC_X_P, 0.95f);
  * Intergral gain for horizontal position error
  *
  * @min 0.0
- * @max 0.2
+ * @max 0.8
  * @decimal 3
  * @group Multicopter Position Control
  */
@@ -302,7 +326,7 @@ PARAM_DEFINE_FLOAT(MPC_Y_P, 0.95f);
  * Intergral gain for horizontal position error
  *
  * @min 0.0
- * @max 0.2
+ * @max 0.8
  * @decimal 3
  * @group Multicopter Position Control
  */

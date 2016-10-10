@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/pid_err.h>
+#include <uORB/topics/task_status_monitor_m2p.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -139,6 +140,7 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int 	_task_status_sub;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -159,6 +161,7 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
 	struct pid_err_s _pid_err;
+	struct task_status_monitor_m2p_s _task_status;
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -215,6 +218,8 @@ private:
 		param_t acc_hor_max;
 		param_t alt_mode;
 		param_t opt_recover;
+		param_t id_enable_radius;	/*enable xy id controler radius -bdai<10 Oct 2016>*/
+		param_t zid_enable_radius;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -239,6 +244,9 @@ private:
 		float acc_hor_max;
 		float vel_max_up;
 		float vel_max_down;
+		float id_enable_radius;
+		float zid_enable_radius;
+
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -390,6 +398,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+	_task_status_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -408,6 +417,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_global_vel_sp{},
+	_task_status{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_pos_x_deriv(this, "POSD"),
@@ -432,7 +442,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
-	_takeoff_thrust_sp(0.0f),
+	_takeoff_thrust_sp(0.1f),
 	control_vel_enabled_prev(false)
 {
 	// Make the quaternion valid for control state
@@ -517,6 +527,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
+	_params_handles.id_enable_radius = param_find("MPC_ID_RADIUS");
+	_params_handles.zid_enable_radius = param_find("MPC_Z_ID_RADIUS");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -577,6 +589,12 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		float v;
 		uint32_t v_i;
+
+		param_get(_params_handles.id_enable_radius, &v);
+		_params.id_enable_radius = v;
+
+		param_get(_params_handles.zid_enable_radius, &v);
+		_params.zid_enable_radius = v;
 
 		param_get(_params_handles.x_p, &v);
 		_params.pos_p(0) = v;
@@ -754,6 +772,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	}
+
+	orb_check(_task_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(task_status_monitor_m2p), _task_status_sub, &_task_status);
 	}
 }
 
@@ -1283,7 +1307,7 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
-
+	_task_status_sub = orb_subscribe(ORB_ID(task_status_monitor_m2p));
 
 	parameters_update(true);
 
@@ -1552,9 +1576,16 @@ MulticopterPositionControl::task_main()
 					pos_err_p(1) = pos_err(1) * _params.pos_p(1);
 					pos_err_d(1) = _pos_err_d(1) * _params.pos_d(1);
 
+					if (sqrtf(pos_err(0)*pos_err(0) + pos_err(1)*pos_err(1)) > _params.id_enable_radius)
+					{
+						reset_int_pxy = true;
+						pos_err_d(0) = pos_err_d(1) = 0; /*set D as 0 -bdai<10 Oct 2016>*/
+					} else {
+						reset_int_pxy = false;
+					}
+
 					_vel_sp(0) = pos_err_p(0) + pos_err_i(0) + pos_err_d(0);
 					_vel_sp(1) = pos_err_p(1) + pos_err_i(1) + pos_err_d(1);
-					reset_int_pxy = false;
 
 //					warnx("x: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(0),(double)_params.pos_p(0),
 //							(double)_params.pos_i(0),(double)_params.pos_d(0));
@@ -1606,10 +1637,16 @@ MulticopterPositionControl::task_main()
 //					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 					pos_err_p(2) = pos_err(2) * _params.pos_p(2);
 					pos_err_d(2) = _pos_err_d(2) * _params.pos_d(2);
+
+					if (fabsf(pos_err(2)) > _params.zid_enable_radius)
+					{
+						reset_int_pz = true;
+						pos_err_d(2) = 0; /*set D as 0 -bdai<10 Oct 2016>*/
+					} else {
+						reset_int_pz = false;
+					}
+
 					_vel_sp(2) = pos_err_p(2) +  pos_err_i(2) + pos_err_d(2);
-					reset_int_pz = false;
-//					warnx("z: _vel_sp: %8.4f, PID:%8.4f\t%8.4f\t%8.4f",(double)_vel_sp(2),(double)_params.pos_p(2),
-//												(double)_params.pos_i(2),(double)_params.pos_d(2));
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
@@ -1636,14 +1673,14 @@ MulticopterPositionControl::task_main()
 				} else if(_run_alt_control){
 					pos_err_i(2) += pos_err(2) * _params.pos_i(2) * dt;
 				}
-				if (reset_int_pz){
-					pos_err_i(2) = 0;
-				}
-
 				if (_vel_sp(2) >  _params.vel_max_down) {
 					_vel_sp(2) = _params.vel_max_down;
 				} else if(_run_alt_control){
 					pos_err_i(2) += pos_err(2) * _params.pos_i(2) * dt;
+				}
+
+				if (reset_int_pz){
+					pos_err_i(2) = 0;
 				}
 
 				if (!_control_mode.flag_control_position_enabled) {
@@ -1677,6 +1714,8 @@ MulticopterPositionControl::task_main()
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 				    && _control_mode.flag_armed) {
 
+					warnx("in take off loop");
+
 					// check if we are not already in air.
 					// if yes then we don't need a jumped takeoff anymore
 					if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
@@ -1686,11 +1725,13 @@ MulticopterPositionControl::task_main()
 					if (!_takeoff_jumped) {
 						// ramp thrust setpoint up
 						if (_vel(2) > -(_params.tko_speed / 2.0f)) {
+							warnx("taking off mode");
 							_takeoff_thrust_sp += 0.5f * dt;
 							_vel_sp.zero();
 							_vel_prev.zero();
 
 						} else {
+							warnx("takeoff finished");
 							// copter has reached our takeoff speed. split the thrust setpoint up
 							// into an integral part and into a P part
 							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
@@ -1818,6 +1859,16 @@ MulticopterPositionControl::task_main()
 						vel_err_p = vel_err.emult(_params.vel_p);
 						vel_err_d = _vel_err_d.emult(_params.vel_d);
 						vel_err_i = thrust_int;
+//						warnx("ending up");
+
+						if (_task_status.task_status == 1 && _control_mode.flag_control_offboard_enabled) {
+							vel_err_p = vel_err*0.21; /*vel-pid_p = 0.23 -bdai<9 Oct 2016>*/
+							thrust_sp(0) = 0;
+							thrust_sp(1) = 0;
+							reset_int_xy = true;
+							vel_err_i(0) = vel_err_i(1) = 0;
+//							warnx("upping");
+						}
 						thrust_sp = vel_err_p + vel_err_i + vel_err_d;
 					}
 
