@@ -304,7 +304,7 @@ public:
 		Vector<N> res;
 
 		for (unsigned int i = 0; i < N; i++)
-			res.data[i] = 1 / (data[i] + FLT_EPSILON);
+			res.data[i] = 1 / data[i];
 
 		return res;
 	}
