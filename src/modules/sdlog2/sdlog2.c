@@ -1956,6 +1956,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.current_filtered = buf.battery.current_filtered_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				log_msg.body.log_BATT.remaining = buf.battery.remaining;
+				log_msg.body.log_BATT.scale = buf.battery.scale;
 				log_msg.body.log_BATT.warning = buf.battery.warning;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
