@@ -1487,6 +1487,7 @@ PX4FMU::cycle()
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
 		}
+
 	} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
 		_rc_scan_locked = false;
 	}
