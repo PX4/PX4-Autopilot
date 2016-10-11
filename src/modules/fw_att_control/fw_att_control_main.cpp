@@ -1043,6 +1043,10 @@ FixedwingAttitudeControl::task_main()
 					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
+					control_input.roll_rate_setpoint = math::constrain(control_input.roll_rate_setpoint, -1.5f, 1.5f);
+					control_input.pitch_rate_setpoint = math::constrain(control_input.pitch_rate_setpoint, -1.5f, 1.5f);
+					control_input.yaw_rate_setpoint = math::constrain(control_input.yaw_rate_setpoint, -1.5f, 1.5f);
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
 					_actuators.control[0] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
