@@ -290,7 +290,7 @@ Navigator::task_main()
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		warnx("Try to load geofence.txt");
+		PX4_INFO("Try to load geofence.txt");
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
@@ -342,13 +342,13 @@ Navigator::task_main()
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
 				global_pos_available_once = false;
-				PX4_WARN("navigator: global position timeout");
+				PX4_WARN("global position timeout");
 			}
 			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("nav: poll error %d, %d", pret, errno);
+			PX4_ERR("nav: poll error %d, %d", pret, errno);
 			usleep(10000);
 			continue;
 		} else {
@@ -493,7 +493,7 @@ Navigator::task_main()
 				rep->next.valid = false;
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
-				warnx("navigator: got pause/continue command");
+				PX4_INFO("got pause/continue command");
 			}
 		}
 
@@ -631,7 +631,7 @@ Navigator::task_main()
 
 		perf_end(_loop_perf);
 	}
-	warnx("exiting.");
+	PX4_INFO("exiting");
 
 	_navigator_task = -1;
 	return;
@@ -662,26 +662,26 @@ void
 Navigator::status()
 {
 	/* TODO: add this again */
-	// warnx("Global position is %svalid", _global_pos_valid ? "" : "in");
+	// PX4_INFO("Global position is %svalid", _global_pos_valid ? "" : "in");
 
 	// if (_global_pos.global_valid) {
-	// 	warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
-	// 	warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
+	// 	PX4_INFO("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
+	// 	PX4_INFO("Altitude %5.5f meters, altitude above home %5.5f meters",
 	// 	      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
-	// 	warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
+	// 	PX4_INFO("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
 	// 	      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
-	// 	warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
+	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
 	if (_geofence.valid()) {
-		warnx("Geofence is valid");
+		PX4_INFO("Geofence is valid");
 		/* TODO: needed? */
-//		warnx("Vertex longitude latitude");
+//		PX4_INFO("Vertex longitude latitude");
 //		for (unsigned i = 0; i < _fence.count; i++)
-//		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+//		PX4_INFO("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
 
 	} else {
-		warnx("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
+		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
 	}
 }
 
@@ -804,7 +804,7 @@ Navigator::abort_landing()
 
 static void usage()
 {
-	warnx("usage: navigator {start|stop|status|fence|fencefile}");
+	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -817,21 +817,21 @@ int navigator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (navigator::g_navigator != nullptr) {
-			warnx("already running");
+			PX4_WARN("already running");
 			return 1;
 		}
 
 		navigator::g_navigator = new Navigator;
 
 		if (navigator::g_navigator == nullptr) {
-			warnx("alloc failed");
+			PX4_ERR("alloc failed");
 			return 1;
 		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
 			navigator::g_navigator = nullptr;
-			warnx("start failed");
+			PX4_ERR("start failed");
 			return 1;
 		}
 
@@ -839,7 +839,7 @@ int navigator_main(int argc, char *argv[])
 	}
 
 	if (navigator::g_navigator == nullptr) {
-		warnx("not running");
+		PX4_INFO("not running");
 		return 1;
 	}
 
