@@ -153,6 +153,10 @@ void Ekf::controlExternalVisionFusion()
 					_output_buffer.push_to_index(i,output_states);
 				}
 
+				// apply the change in attitude quaternion to our newest quaternion estimate
+				// which was already taken out from the output buffer
+				_output_new.quat_nominal *= _state_reset_status.quat_change;
+
 				// capture the reset event
 				_state_reset_status.quat_counter++;
 

@@ -293,6 +293,16 @@ void Ekf::resetHeight()
 
 	}
 
+	// apply the change in height / height rate to our newest height / height rate estimate
+	// which have already been taken out from the output buffer
+	if (vert_pos_reset) {
+		_output_new.pos(2) += _state_reset_status.posD_change;
+	}
+
+	if (vert_vel_reset) {
+		_output_new.vel(2) += _state_reset_status.velD_change;
+	}
+
 }
 
 // align output filter states to match EKF states at the fusion time horizon
@@ -468,6 +478,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		output_states.quat_nominal *= _state_reset_status.quat_change;
 		_output_buffer.push_to_index(i,output_states);
 	}
+
+	// apply the change in attitude quaternion to our newest quaternion estimate
+	// which was already taken out from the output buffer
+	_output_new.quat_nominal *= _state_reset_status.quat_change;
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;
