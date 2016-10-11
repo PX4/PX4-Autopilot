@@ -981,6 +981,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_CHANGE_SPEED:
 		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_DIGICAM_CONTROL:
+		case MAV_CMD_IMAGE_START_CAPTURE:
+		case MAV_CMD_IMAGE_STOP_CAPTURE:
+		case MAV_CMD_VIDEO_START_CAPTURE:
+		case MAV_CMD_VIDEO_STOP_CAPTURE:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
@@ -1040,6 +1044,10 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CHANGE_SPEED:
 		case NAV_CMD_DO_SET_SERVO:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
