@@ -94,7 +94,7 @@ private:
 	void filterVoltage(float voltage_v);
 	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float throttle_normalized, bool armed);
+	void estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed);
 	void determineWarning();
 	void computeScale();
 
