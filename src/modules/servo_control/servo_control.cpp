@@ -202,7 +202,7 @@ ServoControl::task_main()
 			_servo.tretch = true;
 			_servo.isready = true;
 			if (_pre_status != 13) {
-				spray_finish_time = (hrt_abstime)_servo.duration*1e6 + hrt_absolute_time();
+				spray_finish_time = (hrt_abstime)((double)_servo.duration*1e6) + hrt_absolute_time();
 			}
 		} else {
 			_servo.tretch = false;
