@@ -362,6 +362,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_motor_limits, 0, sizeof(_motor_limits));
 	memset(&_controller_status, 0, sizeof(_controller_status));
+	memset(&_task_status, 0, sizeof(_task_status));
+
 	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
@@ -770,10 +772,11 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	_rates_sp = _params.att_p.emult(e_R);
 	_rates_sp(2) = _rates_sp(2) + _yaw_err_i;
 
-	if(_task_status.task_status == 1 && _v_control_mode.flag_control_offboard_enabled) {
-		_yaw_err_i = 0;
+	if(_v_control_mode.flag_control_offboard_enabled  && (_task_status.task_status != 0) &&
+			(_task_status.task_status != 1)){
+		_yaw_err_i = _yaw_err_i + _params.yaw_i * e_R(2)*dt;
 	} else {
-		_yaw_err_i = _yaw_err_i + _params.yaw_i * e_R(2);
+		_yaw_err_i = 0;
 	}
 
 	/* limit rates */
