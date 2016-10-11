@@ -75,6 +75,10 @@ struct LoggerSubscription {
 		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			fd[i] = -1;
 		}
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			msg_ids[i] = (uint16_t) - 1;
+		}
 	}
 };
 
@@ -232,7 +236,7 @@ private:
 	uint32_t					_log_interval;
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
-	uint16_t					_next_topic_id; ///< id of next subscribed topic
+	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
 	char						*_replay_file_name = nullptr;
 };
 

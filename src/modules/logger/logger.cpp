@@ -1086,7 +1086,6 @@ void Logger::start_log_file()
 
 	/* print logging path, important to find log file later */
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
-	_next_topic_id = 0;
 
 	_writer.start_log_file(file_name);
 	_writer.set_need_reliable_transfer(true);
@@ -1142,9 +1141,12 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 {
 	ulog_message_add_logged_s msg;
 
+	if (subscription.msg_ids[instance] == (uint16_t) - 1) {
+		subscription.msg_ids[instance] = _next_topic_id++;
+	}
+
+	msg.msg_id = subscription.msg_ids[instance];
 	msg.multi_id = instance;
-	subscription.msg_ids[instance] = _next_topic_id;
-	msg.msg_id = _next_topic_id;
 
 	int message_name_len = strlen(subscription.metadata->o_name);
 
@@ -1157,8 +1159,6 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 	_writer.set_need_reliable_transfer(true);
 	write_message(&msg, msg_size);
 	_writer.set_need_reliable_transfer(prev_reliable);
-
-	++_next_topic_id;
 }
 
 /* write info message */
