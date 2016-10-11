@@ -139,7 +139,10 @@ using namespace DriverFramework;
 
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
+#define SIGNAL_LOST_THRESHOLD_MS 1000
+
 /**
+
  * Sensor app start / stop handling function
  *
  * @ingroup apps
@@ -1955,15 +1958,14 @@ Sensors::rc_poll()
 {
 	static uint64_t rc_ts = hrt_absolute_time(); // timer for the last rc_update
 	bool rc_updated;
-	bool signal_lost;
+	bool signal_lost = false; //assume we have signal
 
 	orb_check(_rc_sub, &rc_updated);
 
 	if (rc_updated) {
 		rc_ts = hrt_absolute_time(); //reset timer
-		signal_lost = false;
 	} else {
-		uint64_t time_diff_us = ts - hrt_absolute_time();
+		uint64_t time_diff_us = rc_ts - hrt_absolute_time();
 		if (time_diff_us > SIGNAL_LOST_THRESHOLD_MS * 1000) {
 			signal_lost = true;
 		}
