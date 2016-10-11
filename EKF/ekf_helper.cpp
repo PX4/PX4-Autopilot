@@ -73,6 +73,10 @@ bool Ekf::resetVelocity()
 
 	}
 
+	// apply the change in velocity to our newest velocity estimate
+	// which was already taken out from the output buffer
+	_output_new.vel += velocity_change;
+
 	// capture the reset event
 	_state_reset_status.velNE_change(0) = velocity_change(0);
 	_state_reset_status.velNE_change(1) = velocity_change(1);
@@ -96,18 +100,15 @@ bool Ekf::resetPosition()
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.pos(0) = _gps_sample_delayed.pos(0);
 		_state.pos(1) = _gps_sample_delayed.pos(1);
-		return true;
 
 	} else if (_control_status.flags.opt_flow) {
 		_state.pos(0) = 0.0f;
 		_state.pos(1) = 0.0f;
-		return true;
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
 		_state.pos(0) = _ev_sample_delayed.posNED(0);
 		_state.pos(1) = _ev_sample_delayed.posNED(1);
-		return true;
 
 	} else {
 		return false;
@@ -125,6 +126,11 @@ bool Ekf::resetPosition()
 		output_states.pos(1) += posNE_change(1);
 		_output_buffer.push_to_index(index,output_states);
 	}
+
+	// apply the change in position to our newest position estimate
+	// which was already taken out from the output buffer
+	_output_new.pos(0) += posNE_change(0);
+	_output_new.pos(1) += posNE_change(1);
 
 	// capture the reset event
 	_state_reset_status.posNE_change = posNE_change;
