@@ -1964,8 +1964,10 @@ Sensors::rc_poll()
 
 	if (rc_updated) {
 		rc_ts = hrt_absolute_time(); //reset timer
+
 	} else {
 		uint64_t time_diff_us = rc_ts - hrt_absolute_time();
+
 		if (time_diff_us > SIGNAL_LOST_THRESHOLD_MS * 1000) {
 			signal_lost = true;
 		}
