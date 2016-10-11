@@ -81,21 +81,16 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->connected = false;
 }
 
-// TODO: Distinguish between terminal battery voltage and real battery voltage
-
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
-
-	// what we should do is
-// TODO: Add in voltage_term_v
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(voltage_v, throttle_normalized, armed);
+	estimateRemaining(voltage_v, current_a, throttle_normalized, armed);
 	determineWarning();
 	computeScale();
 
@@ -163,13 +158,22 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float throttle_normalized, bool armed)
+Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
-	// assume 10% voltage drop of the full drop range with motors idle
-	const float thr = (armed) ? ((fabsf(throttle_normalized) + 0.1f) / 1.1f) : 0.0f;
+	const float bat_r = _param_r_internal.get();
 
 	// remaining charge estimate based on voltage and internal resistance (drop under load)
-	const float bat_v_empty_dynamic = _param_v_empty.get() - (_param_v_load_drop.get() * thr);
+	float bat_v_empty_dynamic = _param_v_empty.get();
+
+	if (bat_r >= 0.0f) {
+		bat_v_empty_dynamic -= current_a * bat_r;
+
+	} else {
+		// assume 10% voltage drop of the full drop range with motors idle
+		const float thr = (armed) ? ((fabsf(throttle_normalized) + 0.1f) / 1.1f) : 0.0f;
+
+		bat_v_empty_dynamic -= _param_v_load_drop.get() * thr;
+	}
 
 	// the range from full to empty is the same for batteries under load and without load,
 	// since the voltage drop applies to both the full and empty state
@@ -226,7 +230,12 @@ Battery::determineWarning()
 void
 Battery::computeScale()
 {
-	_scale = (_param_v_full.get() * _param_n_cells.get()) / _voltage_filtered_v;
+	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
+
+	// reusing capacity calculation to get single cell voltage before drop
+	const float bat_v = _param_v_empty.get() + (voltage_range * _remaining_voltage);
+
+	_scale = _param_v_full.get() / bat_v;
 
 	if (_scale > 1.3f) { // Allow at most 30% compensation
 		_scale = 1.3f;
