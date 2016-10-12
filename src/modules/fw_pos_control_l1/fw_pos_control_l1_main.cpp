@@ -2299,10 +2299,22 @@ FixedwingPositionControl::task_main()
 				// adjust navigation waypoints in position control mode
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
 				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
+
+					// add position reset delta to previous waypoint coordinate
 					_hdg_hold_prev_wp.lat += _global_pos.delta_lat_lon[0];
+					_hdg_hold_prev_wp.lat = M_RAD_TO_DEG * asin(sin(_hdg_hold_prev_wp.lat * M_DEG_TO_RAD));
+
 					_hdg_hold_prev_wp.lon += _global_pos.delta_lat_lon[1];
+					_hdg_hold_prev_wp.lon = M_RAD_TO_DEG * matrix::wrap_pi(_hdg_hold_prev_wp.lon * M_DEG_TO_RAD);
+
+					// add position reset delta to current waypoint coordinate
 					_hdg_hold_curr_wp.lat += _global_pos.delta_lat_lon[0];
+					_hdg_hold_curr_wp.lat = M_RAD_TO_DEG * asin(sin(_hdg_hold_curr_wp.lat * M_DEG_TO_RAD));
+
 					_hdg_hold_curr_wp.lon += _global_pos.delta_lat_lon[1];
+					_hdg_hold_curr_wp.lon = M_RAD_TO_DEG * matrix::wrap_pi(_hdg_hold_curr_wp.lon * M_DEG_TO_RAD);
+
+					// update reset counter
 					_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 				}
 			}
