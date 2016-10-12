@@ -286,9 +286,7 @@ private:
 	// flow parameters
 	BlockParamInt  _flow_gyro_comp;
 	BlockParamFloat  _flow_z_offset;
-	BlockParamFloat  _flow_vxy_stddev;
-	BlockParamFloat  _flow_vxy_d_stddev;
-	BlockParamFloat  _flow_vxy_r_stddev;
+	BlockParamFloat  _flow_scale;
 	//BlockParamFloat  _flow_board_x_offs;
 	//BlockParamFloat  _flow_board_y_offs;
 	BlockParamInt    _flow_min_q;
