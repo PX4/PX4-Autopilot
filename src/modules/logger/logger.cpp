@@ -631,7 +631,10 @@ void Logger::run()
 
 		} else if (errno != EEXIST) {
 			PX4_ERR("failed creating log root dir: %s", LOG_ROOT);
-			return;
+
+			if ((_writer.backend() & ~LogWriter::BackendFile) == 0) {
+				return;
+			}
 		}
 
 		if (check_free_space() == 1) {
