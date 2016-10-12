@@ -155,6 +155,9 @@ void Ekf::fuseMag()
 		}
 	}
 
+	// we are no longer using heading fusion so set the reported test level to zero
+	_yaw_test_ratio = 0.0f;
+
 	// if any axis fails, abort the mag fusion
 	if (!healthy) {
 		return;
@@ -607,6 +610,9 @@ void Ekf::fuseHeading()
 
 	// innovation test ratio
 	_yaw_test_ratio = sq(_heading_innov) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
+
+	// we are no longer using 3-axis fusion so set the reported test levels to zero
+	memset(_mag_test_ratio, 0, sizeof(_mag_test_ratio));
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
