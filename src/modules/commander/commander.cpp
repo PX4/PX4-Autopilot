@@ -1314,8 +1314,7 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.offboard_control_signal_found_once = false;
 	status_flags.rc_signal_found_once = false;
 
-	/* assume we don't have a valid GPS & baro on startup */
-	status_flags.gps_failure = true;
+	/* assume we don't have a valid baro on startup */
 	status_flags.barometer_failure = true;
 	status_flags.ever_had_barometer_data = false;
 
@@ -1340,6 +1339,13 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.circuit_breaker_engaged_enginefailure_check = false;
 	status_flags.circuit_breaker_engaged_gpsfailure_check = false;
 	get_circuit_breaker_params();
+
+	// initialize gps failure to false if circuit breaker enabled
+	if (status_flags.circuit_breaker_engaged_gpsfailure_check) {
+		status_flags.gps_failure = false;
+	} else {
+		status_flags.gps_failure = true;
+	}
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -2816,6 +2822,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
 						       &internal_state,
+							   &mavlink_log_pub,
 						       (datalink_loss_enabled > 0),
 						       mission_result.finished,
 						       mission_result.stay_in_failsafe,
