@@ -41,6 +41,7 @@ px4_add_module(
 		logger.cpp
 		log_writer.cpp
 		log_writer_file.cpp
+		log_writer_mavlink.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB

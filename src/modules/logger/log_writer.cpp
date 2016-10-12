@@ -42,10 +42,18 @@ LogWriter::LogWriter(Backend backend, size_t file_buffer_size, unsigned int queu
 	: _backend(backend)
 {
 	if (backend & BackendFile) {
-		_log_writer_file = new LogWriterFile(file_buffer_size);
+		_log_writer_file_for_write = _log_writer_file = new LogWriterFile(file_buffer_size);
 
 		if (!_log_writer_file) {
 			PX4_ERR("LogWriterFile allocation failed");
+		}
+	}
+
+	if (backend & BackendMavlink) {
+		_log_writer_mavlink_for_write = _log_writer_mavlink = new LogWriterMavlink(queue_size);
+
+		if (!_log_writer_mavlink) {
+			PX4_ERR("LogWriterMavlink allocation failed");
 		}
 	}
 }
@@ -64,7 +72,13 @@ bool LogWriter::init()
 			PX4_ERR("failed to create writer thread (%i)", ret);
 			return false;
 		}
+	}
 
+	if (_log_writer_mavlink) {
+		if (!_log_writer_mavlink->init()) {
+			PX4_ERR("mavlink init failed");
+			return false;
+		}
 	}
 
 	return true;
@@ -74,6 +88,10 @@ LogWriter::~LogWriter()
 {
 	if (_log_writer_file) {
 		delete(_log_writer_file);
+	}
+
+	if (_log_writer_mavlink) {
+		delete(_log_writer_mavlink);
 	}
 }
 
@@ -85,6 +103,10 @@ bool LogWriter::is_started() const
 		ret = _log_writer_file->is_started();
 	}
 
+	if (_log_writer_mavlink) {
+		ret = ret || _log_writer_mavlink->is_started();
+	}
+
 	return ret;
 }
 
@@ -92,6 +114,10 @@ bool LogWriter::is_started(Backend backend) const
 {
 	if (backend == BackendFile && _log_writer_file) {
 		return _log_writer_file->is_started();
+	}
+
+	if (backend == BackendMavlink && _log_writer_mavlink) {
+		return _log_writer_mavlink->is_started();
 	}
 
 	return false;
@@ -111,6 +137,20 @@ void LogWriter::stop_log_file()
 	}
 }
 
+void LogWriter::start_log_mavlink()
+{
+	if (_log_writer_mavlink) {
+		_log_writer_mavlink->start_log();
+	}
+}
+
+void LogWriter::stop_log_mavlink()
+{
+	if (_log_writer_mavlink) {
+		_log_writer_mavlink->stop_log();
+	}
+}
+
 void LogWriter::thread_stop()
 {
 	if (_log_writer_file) {
@@ -122,8 +162,12 @@ int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
 {
 	int ret_file = 0, ret_mavlink = 0;
 
-	if (_log_writer_file) {
-		ret_file = _log_writer_file->write_message(ptr, size, dropout_start);
+	if (_log_writer_file_for_write) {
+		ret_file = _log_writer_file_for_write->write_message(ptr, size, dropout_start);
+	}
+
+	if (_log_writer_mavlink_for_write) {
+		ret_mavlink = _log_writer_mavlink_for_write->write_message(ptr, size);
 	}
 
 	// file backend errors takes precedence
@@ -132,6 +176,23 @@ int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
 	}
 
 	return ret_mavlink;
+}
+
+void LogWriter::select_write_backend(Backend backend)
+{
+	if (backend & BackendFile) {
+		_log_writer_file_for_write = _log_writer_file;
+
+	} else {
+		_log_writer_file_for_write = nullptr;
+	}
+
+	if (backend & BackendMavlink) {
+		_log_writer_mavlink_for_write = _log_writer_mavlink;
+
+	} else {
+		_log_writer_mavlink_for_write = nullptr;
+	}
 }
 
 }
