@@ -259,7 +259,8 @@ void Logger::run_trampoline(int argc, char *argv[])
 	bool log_until_shutdown = false;
 	bool error_flag = false;
 	bool log_name_timestamp = false;
-	unsigned int queue_size = 5;
+	unsigned int queue_size = 14; //TODO: we might be able to reduce this if mavlink polled on the topic and/or
+	// topic sizes get reduced
 	LogWriter::Backend backend = LogWriter::BackendFile;
 
 	int myoptind = 1;
