@@ -132,7 +132,7 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	}
 
-	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
+	if (sscanf(buf, "R: %7s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
 		debug("multirotor parse failed on '%s'", buf);
 		return nullptr;
 	}
