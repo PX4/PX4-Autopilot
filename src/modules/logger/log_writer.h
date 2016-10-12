@@ -34,6 +34,7 @@
 #pragma once
 
 #include "log_writer_file.h"
+#include "log_writer_mavlink.h"
 
 namespace px4
 {
@@ -68,6 +69,10 @@ public:
 
 	void stop_log_file();
 
+	void start_log_mavlink();
+
+	void stop_log_mavlink();
+
 	/**
 	 * whether logging is currently active or not (any of the selected backends).
 	 */
@@ -86,6 +91,13 @@ public:
 	 */
 	int write_message(void *ptr, size_t size, uint64_t dropout_start = 0);
 
+	/**
+	 * Select a backend, so that future calls to write_message() only write to the selected
+	 * backend, until unselect_write_backend() is called.
+	 * @param backend
+	 */
+	void select_write_backend(Backend backend);
+	void unselect_write_backend() { select_write_backend(BackendAll); }
 
 	/* file logging methods */
 
@@ -125,24 +137,36 @@ public:
 		return 0;
 	}
 
+
 	/**
-	 * Indicate to the underlying backend whether the following writes() need a reliable
+	 * Indicate to the underlying backend whether future write_message() calls need a reliable
 	 * transfer. Needed for header integrity.
 	 */
 	void set_need_reliable_transfer(bool need_reliable)
 	{
 		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
+
+		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable); }
 	}
 
 	bool need_reliable_transfer() const
 	{
 		if (_log_writer_file) { return _log_writer_file->need_reliable_transfer(); }
+
+		if (_log_writer_mavlink) { return _log_writer_mavlink->need_reliable_transfer(); }
+
 		return false;
 	}
 
 private:
 
 	LogWriterFile *_log_writer_file = nullptr;
+	LogWriterMavlink *_log_writer_mavlink = nullptr;
+
+	LogWriterFile *_log_writer_file_for_write =
+		nullptr; ///< pointer that is used for writing, to temporarily select write backends
+	LogWriterMavlink *_log_writer_mavlink_for_write = nullptr;
+
 	const Backend _backend;
 };
 
