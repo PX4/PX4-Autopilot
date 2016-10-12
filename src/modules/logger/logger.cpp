@@ -217,21 +217,15 @@ int Logger::start(char *const *argv)
 
 void Logger::status()
 {
-	bool has_started_backends = false;
+	PX4_INFO("Running in mode: %s", configured_backend_mode());
 
 	if (_writer.is_started(LogWriter::BackendFile)) {
 		PX4_INFO("File Logging Running");
 		print_statistics();
-		has_started_backends = true;
 	}
 
 	if (_writer.is_started(LogWriter::BackendMavlink)) {
 		PX4_INFO("Mavlink Logging Running");
-		has_started_backends = true;
-	}
-
-	if (!has_started_backends) {
-		PX4_INFO("Running, but not logging");
 	}
 }
 
@@ -241,9 +235,10 @@ void Logger::print_statistics()
 		return;
 	}
 
+	/* this is only for the file backend */
 	float kibibytes = _writer.get_total_written_file() / 1024.0f;
 	float mebibytes = kibibytes / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - _start_time)) / 1000000.0f;
+	float seconds = ((float)(hrt_absolute_time() - _start_time_file)) / 1000000.0f;
 
 	PX4_INFO("Log file: %s/%s", _log_dir, _log_file_name);
 	PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
@@ -607,26 +602,41 @@ int Logger::add_topics_from_file(const char *fname)
 	return ntopics;
 }
 
+const char *Logger::configured_backend_mode() const
+{
+	switch (_writer.backend()) {
+	case LogWriter::BackendFile: return "file";
+
+	case LogWriter::BackendMavlink: return "mavlink";
+
+	case LogWriter::BackendAll: return "all";
+
+	default: return "several";
+	}
+}
+
 void Logger::run()
 {
 #ifdef DBGPRINT
 	struct mallinfo alloc_info = {};
 #endif /* DBGPRINT */
 
-	PX4_INFO("logger started");
+	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
 
-	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
+	if (_writer.backend() & LogWriter::BackendFile) {
+		int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
-	if (mkdir_ret == 0) {
-		PX4_INFO("log root dir created: %s", LOG_ROOT);
+		if (mkdir_ret == 0) {
+			PX4_INFO("log root dir created: %s", LOG_ROOT);
 
-	} else if (errno != EEXIST) {
-		PX4_ERR("failed creating log root dir: %s", LOG_ROOT);
-		return;
-	}
+		} else if (errno != EEXIST) {
+			PX4_ERR("failed creating log root dir: %s", LOG_ROOT);
+			return;
+		}
 
-	if (check_free_space() == 1) {
-		return;
+		if (check_free_space() == 1) {
+			return;
+		}
 	}
 
 	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
@@ -1075,7 +1085,7 @@ void Logger::start_log_file()
 		return;
 	}
 
-	PX4_INFO("start file log");
+	PX4_INFO("Start file log");
 
 	char file_name[LOG_DIR_LEN] = "";
 
@@ -1096,7 +1106,8 @@ void Logger::start_log_file()
 	write_all_add_logged_msg();
 	_writer.set_need_reliable_transfer(false);
 	_writer.notify();
-	_start_time = hrt_absolute_time();
+
+	_start_time_file = hrt_absolute_time();
 }
 
 void Logger::stop_log_file()

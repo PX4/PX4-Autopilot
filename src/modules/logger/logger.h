@@ -160,6 +160,10 @@ private:
 
 	void stop_log_file();
 
+
+	/** get the configured backend as string */
+	const char *configured_backend_mode() const;
+
 	/**
 	 * write the file header with file magic and timestamp.
 	 */
@@ -222,7 +226,7 @@ private:
 
 
 	// statistics
-	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)
+	hrt_abstime					_start_time_file; ///< Time when logging started, file backend (not the logger thread)
 	hrt_abstime					_dropout_start = 0; ///< start of current dropout (0 = no dropout)
 	float						_max_dropout_duration = 0.f; ///< max duration of dropout [s]
 	size_t						_write_dropouts = 0; ///< failed buffer writes due to buffer overflow
