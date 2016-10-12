@@ -144,6 +144,7 @@ private:
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
+	void handle_message_logging_ack(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
