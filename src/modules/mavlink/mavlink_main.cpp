@@ -187,6 +187,8 @@ Mavlink::Mavlink() :
 	_mavlink_ftp(nullptr),
 	_mavlink_log_handler(nullptr),
 	_mavlink_shell(nullptr),
+	_mavlink_ulog(nullptr),
+	_mavlink_ulog_stop_requested(false),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
@@ -2150,10 +2152,12 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* send command ACK */
+		uint16_t current_command_ack = 0;
 		if (ack_sub->update(&ack_time, &command_ack)) {
 			mavlink_command_ack_t msg;
 			msg.result = command_ack.result;
 			msg.command = command_ack.command;
+			current_command_ack = command_ack.command;
 
 			mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 		}
@@ -2173,6 +2177,27 @@ Mavlink::task_main(int argc, char *argv[])
 			msg.device = SERIAL_CONTROL_DEV_SHELL;
 			msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
 			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+		}
+
+		/* check for ulog streaming messages */
+		if (_mavlink_ulog) {
+			if (_mavlink_ulog_stop_requested) {
+				_mavlink_ulog->stop();
+				_mavlink_ulog = nullptr;
+				_mavlink_ulog_stop_requested = false;
+			} else {
+				if (current_command_ack == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+					_mavlink_ulog->start_ack_received();
+				}
+				int ret = _mavlink_ulog->handle_update(get_channel());
+				if (ret < 0) { //abort the streaming on error
+					if (ret != -1) {
+						PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
+					}
+					_mavlink_ulog->stop();
+					_mavlink_ulog = nullptr;
+				}
+			}
 		}
 
 		/* check for requested subscriptions */
@@ -2360,6 +2385,8 @@ int Mavlink::start_helper(int argc, char *argv[])
 int
 Mavlink::start(int argc, char *argv[])
 {
+	MavlinkULog::initialize();
+
 	// Wait for the instance count to go up one
 	// before returning to the shell
 	int ic = Mavlink::instance_count();

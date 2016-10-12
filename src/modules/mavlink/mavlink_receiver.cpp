@@ -266,6 +266,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_serial_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_LOGGING_ACK:
+		handle_message_logging_ack(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -378,6 +382,16 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
+			}
+
+			if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+				// we already instanciate the streaming object, because at this point we know on which
+				// mavlink channel streaming was requested. But in fact it's possible that the logger is
+				// not even running. The main mavlink thread takes care of this by waiting for an ack
+				// from the logger.
+				_mavlink->try_start_ulog_streaming();
+			} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
+				_mavlink->request_stop_ulog_streaming();
 			}
 
 			struct vehicle_command_s vcmd;
@@ -1217,6 +1231,18 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		if ((serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_RESPOND) == 0) {
 			_mavlink->close_shell();
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_logging_ack(mavlink_message_t *msg)
+{
+	mavlink_logging_ack_t logging_ack;
+	mavlink_msg_logging_ack_decode(msg, &logging_ack);
+
+	MavlinkULog *ulog_streaming = _mavlink->get_ulog_streaming();
+	if (ulog_streaming) {
+		ulog_streaming->handle_ack(logging_ack);
 	}
 }
 
