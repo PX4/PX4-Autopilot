@@ -2293,6 +2293,7 @@ FixedwingPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
 					_hold_alt += _global_pos.delta_alt;
+					_alt_reset_counter = _global_pos.alt_reset_counter;
 				}
 
 				// adjust navigation waypoints in position control mode
