@@ -773,7 +773,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	_rates_sp(2) = _rates_sp(2) + _yaw_err_i;
 
 	if(_v_control_mode.flag_control_offboard_enabled  && (_task_status.task_status != 0) &&
-			(_task_status.task_status != 1)){
+			(_task_status.task_status != 1) && (_rates_sp(2) < 10.0f)){
 		_yaw_err_i = _yaw_err_i + _params.yaw_i * e_R(2)*dt;
 	} else {
 		_yaw_err_i = 0;
