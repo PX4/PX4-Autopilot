@@ -23,7 +23,7 @@ set(config_module_list
 	drivers/ms5611
 	drivers/mb12xx
 	drivers/sf0x
-	drivers/ll40ls
+	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
