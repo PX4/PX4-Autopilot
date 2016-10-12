@@ -200,6 +200,7 @@ private:
 	control::BlockParamFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
 	control::BlockParamFloat _eas_noise;			// measurement noise used for airspeed fusion (std m/s)
+	control::BlockParamFloat _beta_noise;			// syntetic sideslip noise (m/s)
 	control::BlockParamFloat _mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat _heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
@@ -261,6 +262,7 @@ private:
 	control::BlockParamFloat
 	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
 	// the minimum airspeed which will still be fused
+	control::BlockParamInt _fuseBeta; // 0 disables synthetic sideslip fusion, 1 activates it
 
 	// output predictor filter time constants
 	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
@@ -322,6 +324,7 @@ Ekf2::Ekf2():
 	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise),
 	_mag_noise(this, "EKF2_MAG_NOISE", false, &_params->mag_noise),
 	_eas_noise(this, "EKF2_EAS_NOISE", false, &_params->eas_noise),
+	_beta_noise(this, "EKF2_BETA_NOISE", false, &_params->beta_noise),
 	_mag_declination_deg(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg),
 	_heading_innov_gate(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate),
 	_mag_innov_gate(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate),
@@ -365,6 +368,7 @@ Ekf2::Ekf2():
 	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
 	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
 	_arspFusionThreshold(this, "EKF2_ARSP_THR", false),
+	_fuseBeta(this, "EKF2_FUSE_BETA",false),
 	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
 	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
@@ -568,6 +572,10 @@ void Ekf2::task_main()
 			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
+
+		// only fuse synthetic sideslip measurements if conditions are met
+		bool fuse_beta = !_vehicle_status.is_rotary_wing && _fuseBeta.get();
+		_ekf.set_fuse_beta_flag(fuse_beta);
 
 		if (optical_flow_updated) {
 			flow_message flow;
@@ -904,6 +912,7 @@ void Ekf2::task_main()
 		_ekf.get_mag_innov(&innovations.mag_innov[0]);
 		_ekf.get_heading_innov(&innovations.heading_innov);
 		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+		_ekf.get_beta_innov(&innovations.beta_innov);
 		_ekf.get_flow_innov(&innovations.flow_innov[0]);
 		_ekf.get_hagl_innov(&innovations.hagl_innov);
 
@@ -911,6 +920,7 @@ void Ekf2::task_main()
 		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
 		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
 		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+		_ekf.get_beta_innov_var(&innovations.beta_innov_var);
 		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
 		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
