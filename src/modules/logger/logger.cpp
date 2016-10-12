@@ -47,6 +47,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_includes.h>
@@ -655,6 +657,13 @@ void Logger::run()
 		add_default_topics();
 	}
 
+	int vehicle_command_sub = -1;
+	orb_advert_t vehicle_command_ack_pub = nullptr;
+
+	if (_writer.backend() & LogWriter::BackendMavlink) {
+		vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	}
+
 	//all topics added. Get required message buffer size
 	int max_msg_size = 0;
 
@@ -737,6 +746,39 @@ void Logger::run()
 				}
 			}
 		}
+
+		/* check for logging command from MAVLink */
+		if (vehicle_command_sub != -1) {
+			bool command_updated = false;
+			int ret = orb_check(vehicle_command_sub, &command_updated);
+
+			if (ret == 0 && command_updated) {
+				vehicle_command_s command;
+				orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &command);
+
+				if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+					if ((int)(command.param1 + 0.5f) != 0) {
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+								    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+
+					} else if (can_start_mavlink_log()) {
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+								    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+						start_log_mavlink();
+
+					} else {
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+								    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+					}
+
+				} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
+					stop_log_mavlink();
+					ack_vehicle_command(vehicle_command_ack_pub, command.command,
+							    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				}
+			}
+		}
+
 
 		if (_writer.is_started()) {
 
@@ -870,6 +912,14 @@ void Logger::run()
 	if (_mavlink_log_pub) {
 		orb_unadvertise(_mavlink_log_pub);
 		_mavlink_log_pub = nullptr;
+	}
+
+	if (vehicle_command_ack_pub) {
+		orb_unadvertise(vehicle_command_ack_pub);
+	}
+
+	if (vehicle_command_sub != -1) {
+		orb_unsubscribe(vehicle_command_sub);
 	}
 }
 
@@ -1101,6 +1151,7 @@ void Logger::start_log_file()
 	mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
 
 	_writer.start_log_file(file_name);
+	_writer.select_write_backend(LogWriter::BackendFile);
 	_writer.set_need_reliable_transfer(true);
 	write_header();
 	write_version();
@@ -1108,6 +1159,7 @@ void Logger::start_log_file()
 	write_parameters();
 	write_all_add_logged_msg();
 	_writer.set_need_reliable_transfer(false);
+	_writer.unselect_write_backend();
 	_writer.notify();
 
 	_start_time_file = hrt_absolute_time();
@@ -1116,6 +1168,33 @@ void Logger::start_log_file()
 void Logger::stop_log_file()
 {
 	_writer.stop_log_file();
+}
+
+void Logger::start_log_mavlink()
+{
+	if (!can_start_mavlink_log()) {
+		return;
+	}
+
+	PX4_INFO("Start mavlink log");
+
+	_writer.start_log_mavlink();
+	_writer.select_write_backend(LogWriter::BackendMavlink);
+	_writer.set_need_reliable_transfer(true);
+	write_header();
+	write_version();
+	write_formats();
+	write_parameters();
+	write_all_add_logged_msg();
+	_writer.set_need_reliable_transfer(false);
+	_writer.unselect_write_backend();
+	_writer.notify();
+}
+
+void Logger::stop_log_mavlink()
+{
+	PX4_INFO("Stop mavlink log");
+	_writer.stop_log_mavlink();
 }
 
 void Logger::write_formats()
@@ -1391,6 +1470,23 @@ int Logger::check_free_space()
 	}
 
 	return PX4_OK;
+}
+
+void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
+{
+	vehicle_command_ack_s vehicle_command_ack;
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = command;
+	vehicle_command_ack.result = result;
+
+	if (vehicle_command_ack_pub == nullptr) {
+		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
+					  vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
+	}
+
 }
 
 }

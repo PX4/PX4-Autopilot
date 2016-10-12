@@ -160,6 +160,15 @@ private:
 
 	void stop_log_file();
 
+	void start_log_mavlink();
+
+	void stop_log_mavlink();
+
+	/** check if mavlink logging can be started */
+	bool can_start_mavlink_log() const
+	{
+		return !_writer.is_started(LogWriter::BackendMavlink) && (_writer.backend() & LogWriter::BackendMavlink) != 0;
+	}
 
 	/** get the configured backend as string */
 	const char *configured_backend_mode() const;
@@ -205,6 +214,8 @@ private:
 	int add_topics_from_file(const char *fname);
 
 	void add_default_topics();
+
+	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
