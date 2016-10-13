@@ -11,6 +11,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -52,7 +53,8 @@ enum sensor_t {
 	SENSOR_FLOW,
 	SENSOR_SONAR,
 	SENSOR_VISION,
-	SENSOR_MOCAP
+	SENSOR_MOCAP,
+	SENSOR_LAND,
 };
 
 // change this to set when
@@ -113,11 +115,13 @@ class BlockLocalPositionEstimator : public control::SuperBlock
 //
 // 	gps: px, py, pz, vx, vy, vz (flow is in body x, y frame)
 //
-// 	lidar: px (actual measured d*cos(phi)*cos(theta))
+// 	lidar: pz (actual measured d*cos(phi)*cos(theta))
 //
 // 	vision: px, py, pz, vx, vy, vz
 //
 // 	mocap: px, py, pz
+//
+// 	land (detects when landed)): pz (always measures agl = 0)
 //
 public:
 
@@ -131,6 +135,7 @@ public:
 	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
+	enum {Y_land_z = 0, n_y_land};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM, n_poll};
 
 	BlockLocalPositionEstimator();
@@ -199,6 +204,12 @@ private:
 	void mocapInit();
 	void mocapCheckTimeout();
 
+	// land
+	int  landMeasure(Vector<float, n_y_land> &y);
+	void landCorrect();
+	void landInit();
+	void landCheckTimeout();
+
 	// timeouts
 	void checkTimeouts();
 
@@ -219,6 +230,7 @@ private:
 
 	// subscriptions
 	uORB::Subscription<actuator_armed_s> _sub_armed;
+	uORB::Subscription<vehicle_land_detected_s> _sub_land;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
@@ -291,6 +303,9 @@ private:
 	//BlockParamFloat  _flow_board_y_offs;
 	BlockParamInt    _flow_min_q;
 
+	// land parameters
+	BlockParamFloat  _land_z_stddev;
+
 	// process noise
 	BlockParamFloat  _pn_p_noise_density;
 	BlockParamFloat  _pn_v_noise_density;
@@ -314,6 +329,7 @@ private:
 	BlockStats<float, n_y_vision> _visionStats;
 	BlockStats<float, n_y_mocap> _mocapStats;
 	BlockStats<double, n_y_gps> _gpsStats;
+	uint16_t _landCount;
 
 	// low pass
 	BlockLowPassVector<float, n_x> _xLowPass;
@@ -338,6 +354,7 @@ private:
 	uint64_t _time_init_sonar;
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
+	uint64_t _time_last_land;
 
 	// initialization flags
 	bool _receivedGps;
@@ -348,6 +365,7 @@ private:
 	bool _flowInitialized;
 	bool _visionInitialized;
 	bool _mocapInitialized;
+	bool _landInitialized;
 
 	// reference altitudes
 	float _altOrigin;
@@ -372,6 +390,7 @@ private:
 	fault_t _sonarFault;
 	fault_t _visionFault;
 	fault_t _mocapFault;
+	fault_t _landFault;
 
 	// performance counters
 	perf_counter_t _loop_perf;

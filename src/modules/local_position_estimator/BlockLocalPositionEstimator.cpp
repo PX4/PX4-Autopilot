@@ -18,12 +18,14 @@ static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
 static const float P_MAX = 1.0e6f; // max allowed value in state covariance
+static const float LAND_RATE = 10.0f; // rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
+	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
@@ -86,6 +88,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
+	_land_z_stddev(this, "LAND_Z"),
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
@@ -133,6 +136,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_init_sonar(0),
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
+	_time_last_land(0),
 
 	// initialization flags
 	_receivedGps(false),
@@ -143,6 +147,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowInitialized(false),
 	_visionInitialized(false),
 	_mocapInitialized(false),
+	_landInitialized(false),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -167,6 +172,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarFault(FAULT_NONE),
 	_visionFault(FAULT_NONE),
 	_mocapFault(FAULT_NONE),
+	_landFault(FAULT_NONE),
 
 	// loop performance
 	_loop_perf(),
@@ -286,6 +292,11 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
+	bool landUpdated = (
+				   (_sub_land.get().landed ||
+				    ((!_sub_armed.get().armed) && (!_sub_land.get().freefall)))
+				   && (!(_lidarInitialized || _mocapInitialized || _visionInitialized || _sonarInitialized))
+				   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE));
 
 	// get new data
 	updateSubscriptions();
@@ -490,6 +501,15 @@ void BlockLocalPositionEstimator::update()
 
 		} else {
 			mocapCorrect();
+		}
+	}
+
+	if (landUpdated) {
+		if (!_landInitialized) {
+			landInit();
+
+		} else {
+			landCorrect();
 		}
 	}
 
