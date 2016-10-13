@@ -114,6 +114,10 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, orb_advert_t *mavlink_log_pub);
 
+
+void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
+		orb_advert_t *mavlink_log_pub, const char * reason);
+
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub,
 		   const bool data_link_loss_enabled, const bool mission_finished,
