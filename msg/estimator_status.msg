@@ -28,7 +28,10 @@ uint16 control_mode_flags	# Bitmask to indicate EKF logic state
 # 8 - true when wind velocity is being estimated
 # 9 - true when baro height is being fused as a primary height reference
 # 10 - true when range finder height is being fused as a primary height reference
-# 11 - true when range finder height is being fused as a primary height reference
+# 11 - true when GPS height is being fused as a primary height reference
+# 12 - true when local position data from external vision is being fused
+# 13 - true when yaw data from external vision measurements is being fused
+# 14 - true when height data from external vision measurements is being fused
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
 # 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
