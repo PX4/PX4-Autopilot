@@ -56,6 +56,7 @@ __BEGIN_DECLS
 #    include <stm32_tim.h>
 #    include <stm32_spi.h>
 #    include <stm32_i2c.h>
+
 #    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
 #    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
@@ -66,6 +67,32 @@ __BEGIN_DECLS
 #    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
+#endif
+
+#if defined(CONFIG_ARCH_CHIP_KINETIS)
+
+#    define STM32_SYSMEM_UID         0x40048054 // Fixme: using board crtrl
+#    define PX4_BBSRAM_SIZE          2048
+#    define PX4_BBSRAM_GETDESC_IOCTL 0
+#    define GPIO_OUTPUT_SET          GPIO_OUTPUT_ONE
+#    define GPIO_OUTPUT_CLEAR        GPIO_OUTPUT_ZER0
+
+#    include <chip.h>
+#    include <kinetis_spi.h>
+#    include <kinetis_i2c.h>
+
+/* bus_num is zero based on kinetis and must be translated from the legacy one based */
+
+#    define px4_spibus_initialize(port_1based)       kinetis_spibus_initialize(port_1based-1)
+
+#    define px4_i2cbus_initialize(bus_num_1based)    kinetis_i2cbus_initialize(bus_num_1based-1)
+#    define px4_i2cbus_uninitialize(pdev)            kinetis_i2cbus_uninitialize(pdev)
+
+#    define px4_arch_configgpio(pinset)             kinetis_pinconfig(pinset)
+#    define px4_arch_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               kinetis_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       kinetis_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  kinetis_gpiosetevent(pinset,r,f, e,fp)
 #  endif
 #include <arch/board/board.h>
 __END_DECLS
