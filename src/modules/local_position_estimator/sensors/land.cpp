@@ -46,7 +46,6 @@ void BlockLocalPositionEstimator::landCorrect()
 	Matrix<float, n_y_land, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
-	// TODO could add trig to make this an EKF correction
 	C(Y_land_z, X_z) = -1; // measured altitude, negative down dir.
 	C(Y_land_z, X_tz) = 1; // measured altitude, negative down dir.
 
