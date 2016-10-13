@@ -402,3 +402,14 @@ PARAM_DEFINE_FLOAT(LPE_VXY_PUB, 0.3f);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(LPE_Z_PUB, 1.0f);
+
+/**
+ * Land detector z standard deviation
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.001
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
