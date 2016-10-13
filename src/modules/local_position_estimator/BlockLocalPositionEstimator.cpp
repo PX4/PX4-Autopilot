@@ -35,7 +35,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
 	// vision 30 hz
-	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 30, 0, &getSubscriptions()),
+	_sub_vision(ORB_ID(vision_position_estimate), 1000 / 30, 0, &getSubscriptions()),
+	_sub_vision_speed(ORB_ID(vision_speed_estimate), 1000 / 30, 0, &getSubscriptions()),
 	// mocap 50 hz
 	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 50, 0, &getSubscriptions()),
 	// all distance sensors, 10 hz
@@ -77,6 +78,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_epv_max(this, "EPV_MAX"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
+	_vision_vxy_stddev(this, "VIS_VXY"),
+	_vision_vz_stddev(this, "VIS_VZ"),
 	_vision_delay(this, "VIS_DELAY"),
 	_vision_on(this, "VIS_ON"),
 	_mocap_p_stddev(this, "VIC_P"),
@@ -106,6 +109,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lidarStats(this, ""),
 	_flowQStats(this, ""),
 	_visionStats(this, ""),
+	_visionVelocityStats(this, ""),
 	_mocapStats(this, ""),
 	_gpsStats(this, ""),
 
@@ -132,6 +136,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_sonar(0),
 	_time_init_sonar(0),
 	_time_last_vision_p(0),
+	_time_last_vision_vel(0),
 	_time_last_mocap(0),
 
 	// initialization flags
@@ -142,6 +147,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarInitialized(false),
 	_flowInitialized(false),
 	_visionInitialized(false),
+	_visionVelocityInitialized(false),
 	_mocapInitialized(false),
 
 	// reference altitudes
@@ -166,6 +172,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowFault(FAULT_NONE),
 	_sonarFault(FAULT_NONE),
 	_visionFault(FAULT_NONE),
+	_visionVelocityFault(FAULT_NONE),
 	_mocapFault(FAULT_NONE),
 
 	// loop performance
@@ -174,7 +181,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_x(), _u(), _P()
+	_x(), _u(), _P(), _A(), _B(), _R(), _Q()
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -282,7 +289,8 @@ void BlockLocalPositionEstimator::update()
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
 	bool gpsUpdated = _gps_on.get() && _sub_gps.updated();
-	bool visionUpdated = _vision_on.get() && _sub_vision_pos.updated();
+	bool visionUpdated = _sub_vision.updated();
+	bool visionVelocityUpdated = _sub_vision_speed.updated();
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
@@ -475,12 +483,21 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (visionUpdated) {
+	if (_vision_on.get() && visionUpdated) {
 		if (!_visionInitialized) {
 			visionInit();
 
 		} else {
 			visionCorrect();
+		}
+	}
+
+	if (_vision_on.get() && visionVelocityUpdated) {
+		if (!_visionVelocityInitialized) {
+			visionVelocityInit();
+
+		} else {
+			visionVelocityCorrect();
 		}
 	}
 
@@ -558,6 +575,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	gpsCheckTimeout();
 	flowCheckTimeout();
 	visionCheckTimeout();
+	visionVelocityCheckTimeout();
 	mocapCheckTimeout();
 }
 
@@ -750,6 +768,7 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 		+ ((_flowFault > FAULT_NONE) << SENSOR_FLOW)
 		+ ((_sonarFault > FAULT_NONE) << SENSOR_SONAR)
 		+ ((_visionFault > FAULT_NONE) << SENSOR_VISION)
+		+ ((_visionVelocityFault > FAULT_NONE) << SENSOR_VISION_VELOCITY)
 		+ ((_mocapFault > FAULT_NONE) << SENSOR_MOCAP);
 	_pub_est_status.get().timeout_flags =
 		(_baroInitialized << SENSOR_BARO)
@@ -758,6 +777,7 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 		+ (_lidarInitialized << SENSOR_LIDAR)
 		+ (_sonarInitialized << SENSOR_SONAR)
 		+ (_visionInitialized << SENSOR_VISION)
+		+ (_visionVelocityInitialized << SENSOR_VISION_VELOCITY)
 		+ (_mocapInitialized << SENSOR_MOCAP);
 	_pub_est_status.get().pos_horiz_accuracy = _pub_gpos.get().eph;
 	_pub_est_status.get().pos_vert_accuracy = _pub_gpos.get().epv;

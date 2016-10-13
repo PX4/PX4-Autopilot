@@ -116,6 +116,7 @@ set(msg_file_names
 	vehicle_rates_setpoint.msg
 	vehicle_status.msg
 	vision_position_estimate.msg
+	vision_speed_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	vehicle_roi.msg

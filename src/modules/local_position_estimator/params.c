@@ -257,6 +257,28 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.1f);
 PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
 
 /**
+ * Vision velocity xy standard deviation.
+ *
+ * @group Local Position Estimator
+ * @unit m/s
+ * @min 0.01
+ * @max 1
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_VIS_VXY, 0.1f);
+
+/**
+ * Vision velocity z standard deviation.
+ *
+ * @group Local Position Estimator
+ * @unit m/s
+ * @min 0.01
+ * @max 2
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_VIS_VZ, 0.5f);
+
+/**
  * Vision correction
  *
  * @group Local Position Estimator
