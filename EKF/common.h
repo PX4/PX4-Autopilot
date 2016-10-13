@@ -437,7 +437,7 @@ union filter_control_status_u {
 		uint16_t wind        : 1; // 8 - true when wind velocity is being estimated
 		uint16_t baro_hgt    : 1; // 9 - true when baro height is being fused as a primary height reference
 		uint16_t rng_hgt     : 1; // 10 - true when range finder height is being fused as a primary height reference
-		uint16_t gps_hgt     : 1; // 11 - true when range finder height is being fused as a primary height reference
+		uint16_t gps_hgt     : 1; // 11 - true when GPS height is being fused as a primary height reference
 		uint16_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
 		uint16_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
 		uint16_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
