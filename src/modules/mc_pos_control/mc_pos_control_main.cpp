@@ -95,6 +95,7 @@
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
+#define SCAN_SPEED 1.5f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -1579,7 +1580,7 @@ MulticopterPositionControl::task_main()
 					if (sqrtf(pos_err(0)*pos_err(0) + pos_err(1)*pos_err(1)) > _params.id_enable_radius)
 					{
 						reset_int_pxy = true;
-						pos_err_d(0) = pos_err_d(1) = 0; /*set D as 0 -bdai<10 Oct 2016>*/
+						pos_err_d(0) = pos_err_d(1) = pos_err_d(2) = 0; /*set D as 0 -bdai<10 Oct 2016>*/
 					} else {
 						reset_int_pxy = false;
 					}
@@ -1660,6 +1661,13 @@ MulticopterPositionControl::task_main()
 				} else if(_run_pos_control){
 					pos_err_i(0) += pos_err(0) * _params.pos_i(0) * dt;
 					pos_err_i(1) += pos_err(1) * _params.pos_i(1) * dt;
+				}
+
+				if (_task_status.task_status >= 32 && _task_status.task_status <= 35
+						&& _control_mode.flag_control_offboard_enabled
+						&& vel_norm_xy > SCAN_SPEED) {
+					_vel_sp(0) = _vel_sp(0) * SCAN_SPEED / vel_norm_xy;
+					_vel_sp(1) = _vel_sp(1) * SCAN_SPEED / vel_norm_xy;
 				}
 
 				if(reset_int_pxy){
@@ -1867,6 +1875,7 @@ MulticopterPositionControl::task_main()
 							thrust_sp(1) = 0;
 							reset_int_xy = true;
 							vel_err_i(0) = vel_err_i(1) = 0;
+							vel_err_d(0) = vel_err_d(1) = vel_err_d(2) = 0;
 //							warnx("upping");
 						}
 						thrust_sp = vel_err_p + vel_err_i + vel_err_d;
