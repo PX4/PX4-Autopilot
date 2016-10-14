@@ -261,7 +261,7 @@ int navio_sysfs_rc_in_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 
-		if (rc_input == nullptr || rc_input->isRunning()) {
+		if (rc_input == nullptr || !rc_input->isRunning()) {
 			PX4_WARN("not running");
 			/* this is not an error */
 			return 0;
