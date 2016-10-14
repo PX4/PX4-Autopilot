@@ -711,13 +711,8 @@ void Ekf2::task_main()
 			}
 
 			// publish control state data
-			if (_control_state_pub == nullptr) {
-				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-			} else {
-				orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-			}
-
+			int ctrl_multi;
+			orb_publish_auto(ORB_ID(control_state), &_control_state_pub, &ctrl_state, &ctrl_multi, ORB_PRIO_HIGH);
 
 			// generate remaining vehicle attitude data
 			att.timestamp = hrt_absolute_time();
@@ -737,12 +732,8 @@ void Ekf2::task_main()
 			att.yawspeed = gyro_rad[2];
 
 			// publish vehicle attitude data
-			if (_att_pub == nullptr) {
-				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
-			}
+			int att_multi;
+			orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_multi, ORB_PRIO_HIGH);
 
 			// generate vehicle local position data
 			struct vehicle_local_position_s lpos = {};
@@ -793,12 +784,8 @@ void Ekf2::task_main()
 			lpos.epv = sqrt(pos_var(2));
 
 			// publish vehicle local position data
-			if (_lpos_pub == nullptr) {
-				_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
-			}
+			int vehicle_multi;
+			orb_publish_auto(ORB_ID(vehicle_local_position), &_lpos_pub, &lpos, &vehicle_multi, ORB_PRIO_HIGH);
 
 			// generate and publish global position data
 			struct vehicle_global_position_s global_pos = {};
@@ -837,12 +824,8 @@ void Ekf2::task_main()
 
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
-				if (_vehicle_global_position_pub == nullptr) {
-					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
-
-				} else {
-					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
-				}
+				int global_multi;
+				orb_publish_auto(ORB_ID(vehicle_global_position), &_vehicle_global_position_pub, &global_pos, &global_multi, ORB_PRIO_HIGH);
 			}
 
 		} else if (_replay_mode) {
@@ -875,12 +858,8 @@ void Ekf2::task_main()
 		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 
-		if (_estimator_status_pub == nullptr) {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-		} else {
-			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-		}
+		int stat_multi;
+		orb_publish_auto(ORB_ID(estimator_status), &_estimator_status_pub, &status, &stat_multi, ORB_PRIO_HIGH);
 
 		// Publish wind estimate
 		struct wind_estimate_s wind_estimate = {};
@@ -890,12 +869,8 @@ void Ekf2::task_main()
 		wind_estimate.covariance_north = status.covariances[22];
 		wind_estimate.covariance_east = status.covariances[23];
 
-		if (_wind_pub == nullptr) {
-			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
-
-		} else {
-			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-		}
+		int wind_multi;
+		orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &wind_multi, ORB_PRIO_HIGH);
 
 		// publish estimator innovation data
 		struct ekf2_innovations_s innovations = {};
