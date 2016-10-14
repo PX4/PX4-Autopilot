@@ -37,6 +37,6 @@
 #
 
 SRCS		 =	st24.c \
-				sumd.c
+				sumd.c srxl.c
 
 MAXOPTIMIZATION	 = -Os
