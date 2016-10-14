@@ -33,12 +33,12 @@
  *
  ****************************************************************************/
 
-/* The STM32F427 has 2048Kb of FLASH beginning at address 0x0800:0000 and
- * 256Kb of SRAM. SRAM is split up into three blocks:
+/* The STM32F469 has 2048Kb of FLASH beginning at address 0x0800:0000 and
+ * 384Kb of SRAM. SRAM is split up into three blocks:
  *
- * 1) 112Kb of SRAM beginning at address 0x2000:0000
- * 2)  16Kb of SRAM beginning at address 0x2001:c000
- * 3)  64Kb of SRAM beginning at address 0x2002:0000
+ * 1) 160Kb of SRAM beginning at address 0x2000:0000
+ * 2) 32Kb of SRAM beginning at address 0x2002:8000
+ * 3) 128Kb of SRAM beginning at address 0x2003:0000
  * 4)  64Kb of TCM SRAM beginning at address 0x1000:0000
  *
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
@@ -51,7 +51,7 @@
 MEMORY
 {
     flash (rx)   : ORIGIN = 0x08004000, LENGTH = 2032K
-    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 192K
+    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 320K
     ccsram (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
 }
 
