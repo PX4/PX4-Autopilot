@@ -8,6 +8,7 @@ SRCS		 = fmu.cpp \
 		  ../../lib/rc/dsm.c \
 		  ../../lib/rc/st24.c \
 		  ../../lib/rc/sumd.c \
+		  ../../lib/rc/srxl.c \
 		   px4fmu_params.c
 
 MODULE_STACKSIZE = 1200
