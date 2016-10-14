@@ -1276,6 +1276,9 @@ MulticopterPositionControl::task_main()
 		// set dt for control blocks
 		setDt(dt);
 
+		// zero the attitude setpoint topic to make sure that no old undesired data is in there
+		memset(&_att_sp, 0, sizeof(_att_sp));
+
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
