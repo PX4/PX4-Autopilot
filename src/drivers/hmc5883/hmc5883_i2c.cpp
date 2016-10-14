@@ -122,6 +122,9 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 		} else {
 			return 0;
 		}
+#else
+                return 1;
+#endif
 
 #else
 		return 1;
