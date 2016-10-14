@@ -1874,7 +1874,7 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-						math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
+						math::Vector<3> y_C(-sinf(_yaw), cosf(_yaw), 0.0f);
 
 						if (fabsf(body_z(2)) > SIGMA) {
 							/* desired body_x axis, orthogonal to body_z */
