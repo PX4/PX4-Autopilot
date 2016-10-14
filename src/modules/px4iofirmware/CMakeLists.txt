@@ -90,6 +90,7 @@ set(srcs
 	../../lib/rc/sumd.c
 	../../lib/rc/sbus.c
 	../../lib/rc/dsm.c
+	../../lib/rc/srxl.c
 	../../drivers/stm32/drv_hrt.c
 	../../drivers/stm32/drv_io_timer.c
 	../../drivers/stm32/drv_pwm_servo.c

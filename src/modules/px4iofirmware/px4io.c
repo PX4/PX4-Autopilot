@@ -238,6 +238,7 @@ control_IMU_heater(uint16_t duty_cycle)
 {
 	if (duty_cycle == 0) {
 		LED_BLUE(false);
+
 	} else {
 		uint8_t cycle = ((hrt_absolute_time() / 10000UL) % 100U);
 		LED_BLUE(!(cycle >= duty_cycle));
@@ -256,11 +257,11 @@ control_heartbeat_LED(void)
 {
 	uint32_t heartbeat_period_us = 250 * 1000UL;
 	static uint64_t last_heartbeat_time = 0;
-	
+
 	if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
 		heartbeat_period_us /= 4;
 	}
-	
+
 	if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
 		last_heartbeat_time = hrt_absolute_time();
 		heartbeat_blink();
@@ -431,6 +432,7 @@ user_start(int argc, char *argv[])
 
 		if (r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE] <= PX4IO_HEATER_MAX) {
 			control_IMU_heater(r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE]);
+
 		} else {
 			control_heartbeat_LED();
 		}
