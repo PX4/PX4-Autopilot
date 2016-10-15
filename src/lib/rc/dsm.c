@@ -46,6 +46,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <string.h>
 
 #include "dsm.h"
 #include <drivers/drv_hrt.h>
@@ -494,12 +495,20 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 		/* if the value is unrealistic, fail the parsing entirely */
 		if (values[i] < 600 || values[i] > 2400) {
 #ifdef DSM_DEBUG
-			printf("DSM: VALUE RANGE FAIL\n");
+			printf("DSM: VALUE RANGE FAIL %u %u\n", (unsigned)i, (unsigned)values[i]);
 #endif
 			dsm_chan_count = 0;
 			return false;
 		}
 	}
+
+#if 0
+	printf("%u: ", (unsigned)*num_values);
+	for (unsigned i = 0; i < *num_values; i++) {
+		printf("%u ", (unsigned)values[i]);
+	}
+	printf("\n");
+#endif
 
 	return true;
 }
@@ -575,12 +584,25 @@ bool
 dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, uint16_t max_channels)
 {
-
+	// persistent set of channel values in case caller has values array on stack
+	static uint16_t chan_values[20];
+	if (max_channels > 20) {
+		max_channels = 20;
+	}
+	
 	/* this is set by the decoding state machine and will default to false
 	 * once everything that was decodable has been decoded.
 	 */
 	bool decode_ret = false;
 
+#if 0
+	printf("%u %u: ", (unsigned)(now/1000), len);
+	for (uint8_t i=0; i<len; i++) {
+		printf("%02x ", (unsigned)frame[i]);
+	}
+	printf("\n");
+#endif
+	
 	/* keep decoding until we have consumed the buffer */
 	for (unsigned d = 0; d < len; d++) {
 
@@ -616,6 +638,9 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 
 			/* we are de-synced and only interested in the frame marker */
 			if ((now - dsm_last_rx_time) > 5000) {
+#ifdef DSM_DEBUG
+				printf("resync %u\n", dsm_partial_frame_count);
+#endif
 				dsm_decode_state = DSM_DECODE_STATE_SYNC;
 				dsm_partial_frame_count = 0;
 				dsm_chan_count = 0;
@@ -636,7 +661,7 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				 * Great, it looks like we might have a frame.  Go ahead and
 				 * decode it.
 				 */
-				decode_ret = dsm_decode(now, values, &dsm_chan_count, dsm_11_bit, max_channels);
+				decode_ret = dsm_decode(now, chan_values, &dsm_chan_count, dsm_11_bit, max_channels);
 
 				/* we consumed the partial frame, reset */
 				dsm_partial_frame_count = 0;
@@ -645,6 +670,13 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				if (decode_ret == false) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 					dsm_frame_drops++;
+#ifdef DSM_DEBUG
+					printf("drop ");
+					for (uint8_t i=0; i<DSM_FRAME_SIZE; i++) {
+						printf("%02x ", (unsigned)dsm_frame[i]);
+					}
+					printf("\n");
+#endif
 				}
 			}
 			break;
@@ -665,6 +697,7 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 
 	if (decode_ret) {
 		*num_values = dsm_chan_count;
+		memcpy(values, chan_values, dsm_chan_count*2);
 	}
 
 	dsm_last_rx_time = now;
