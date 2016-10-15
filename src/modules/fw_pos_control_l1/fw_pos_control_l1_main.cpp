@@ -2301,6 +2301,9 @@ FixedwingPositionControl::task_main()
 				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
 
 					// add position reset delta to previous waypoint coordinate
+					// wrap latitude value by applying an arcsinus to the sine of the latitude value
+					// this makes sure that latitude is always in the correct range of [-pi/2, pi/2]
+					// wrap longitude to the range [-pi, pi]
 					_hdg_hold_prev_wp.lat += _global_pos.delta_lat_lon[0];
 					_hdg_hold_prev_wp.lat = M_RAD_TO_DEG * asin(sin(_hdg_hold_prev_wp.lat * M_DEG_TO_RAD));
 
