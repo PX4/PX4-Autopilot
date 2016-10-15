@@ -77,6 +77,7 @@
 #include <lib/rc/dsm.h>
 #include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
+#include <lib/rc/srxl.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -160,12 +161,13 @@ private:
 	};
 	enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
 
-	char const *RC_SCAN_STRING[5] = {
+	char const *RC_SCAN_STRING[6] = {
 		"PPM",
 		"SBUS",
 		"DSM",
 		"SUMD",
-		"ST24"
+		"ST24",
+		"SRXL"
 	};
 
 	hrt_abstime _rc_scan_begin = 0;
@@ -191,7 +193,9 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	uint8_t _rcs_buf[SBUS_FRAME_SIZE];
+	// allow for RC frames up to 32 bytes. Reading more than the max improves the robustness of the
+	// frame detection for non-CRC protocols like SBUS and DSM
+	uint8_t _rcs_buf[32];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -1198,8 +1202,8 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 	// This block scans for a supported serial RC input and locks onto the first one found
-	// Scan for 100 msec, then switch protocol
-	constexpr hrt_abstime rc_scan_max = 100 * 1000;
+	// Scan for 200 msec, then switch protocol
+	constexpr hrt_abstime rc_scan_max = 200 * 1000;
 
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
@@ -1214,7 +1218,7 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
+	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], sizeof(_rcs_buf));
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
@@ -1228,7 +1232,7 @@ PX4FMU::cycle()
 			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			// parse new data
-			if (newBytes > 0) {
+			if (newBytes > 0 && newBytes <= SBUS_FRAME_SIZE) {
 				rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
 							&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
@@ -1237,37 +1241,6 @@ PX4FMU::cycle()
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
 					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
-					_rc_scan_locked = true;
-				}
-			}
-
-		} else {
-			// Scan the next protocol
-			set_rc_scan_state(RC_SCAN_DSM);
-		}
-
-		break;
-
-	case RC_SCAN_DSM:
-		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = _cycle_timestamp;
-//			// Configure serial port for DSM
-			dsm_config(_rcs_fd);
-			rc_io_invert(false);
-
-		} else if (_rc_scan_locked
-			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
-
-			if (newBytes > 0) {
-				// parse new data
-				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
-						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
-
-				if (rc_updated) {
-					// we have a new DSM frame. Publish it.
-					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
-						   false, false, frame_drops);
 					_rc_scan_locked = true;
 				}
 			}
@@ -1371,20 +1344,56 @@ PX4FMU::cycle()
 			if (newBytes > 0) {
 				// parse new data
 				rc_updated = false;
-
+                                uint8_t srxl_chan_count;
+				
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					rc_updated = (OK == srxl_decode(_cycle_timestamp, _rcs_buf[i],
-									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+									&srxl_chan_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
 
 				if (rc_updated) {
 					// we have a new SRXL frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL;
-					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+
+					fill_rc_in(srxl_chan_count, raw_rc_values, _cycle_timestamp,
 						   false, false, 0);
 					_rc_scan_locked = true;
 				}
+			}
+
+		} else {
+			// Scan the next protocol
+			set_rc_scan_state(RC_SCAN_DSM);
+		}
+
+		break;
+
+	case RC_SCAN_DSM:
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = _cycle_timestamp;
+			// Configure serial port for DSM
+			dsm_config(_rcs_fd);
+			rc_io_invert(false);
+
+		} else if (_rc_scan_locked
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+
+			rc_io_invert(false);
+
+			if (newBytes > 0 && newBytes <= 16) {
+				// parse new data
+				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
+						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+				if (rc_updated) {
+					// we have a new DSM frame. Publish it.
+					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+						   false, false, frame_drops);
+					_rc_scan_locked = true;
+				}
+				_rc_scan_locked = true;
 			}
 
 		} else {
@@ -1393,7 +1402,7 @@ PX4FMU::cycle()
 		}
 
 		break;
-
+                
 	case RC_SCAN_PPM:
 		// skip PPM if it's not supported
 #ifdef HRT_PPM_CHANNEL
