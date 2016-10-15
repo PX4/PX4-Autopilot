@@ -39,7 +39,6 @@
 # metadata fields and a zlib-compressed base64-encoded firmware image.
 #
 
-import sys
 import argparse
 import json
 import base64
