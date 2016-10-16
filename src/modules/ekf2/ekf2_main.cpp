@@ -889,6 +889,8 @@ void Ekf2::task_main()
 
 				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
 				_ekf.get_posD_reset(&global_pos.delta_alt, &global_pos.alt_reset_counter);
+				// global altitude has opposite sign of local down position
+				global_pos.delta_alt *= -1.0f;
 
 				global_pos.vel_n = velocity[0]; // Ground north velocity, m/s
 				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
