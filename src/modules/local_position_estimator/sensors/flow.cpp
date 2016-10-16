@@ -11,7 +11,7 @@ static const uint32_t 		REQ_FLOW_INIT_COUNT = 10;
 static const uint32_t 		FLOW_TIMEOUT = 1000000;	// 1 s
 
 // minimum flow altitude
-static const float flow_min_agl = 0.05;
+static const float flow_min_agl = 0.3;
 
 void BlockLocalPositionEstimator::flowInit()
 {
