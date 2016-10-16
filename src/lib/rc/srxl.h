@@ -27,6 +27,6 @@ __BEGIN_DECLS
  *
  * @return 0 for success (a decoded packet), 1 for no packet yet (accumulating), 2 for unknown packet, 4 for checksum error
  */
-__EXPORT int srxl_decode(uint64_t timestamp_us, uint8_t byte, uint8_t *num_values, uint16_t *values, uint16_t max_values);
+__EXPORT int srxl_decode(uint64_t timestamp_us, uint8_t byte, uint8_t *num_values, uint16_t *values, uint16_t max_values, bool *failsafe_state);
 
 __END_DECLS

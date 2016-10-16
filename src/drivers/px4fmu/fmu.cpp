@@ -1345,11 +1345,12 @@ PX4FMU::cycle()
 				// parse new data
 				rc_updated = false;
                                 uint8_t srxl_chan_count;
-				
+				bool failsafe_state;
+                                
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					rc_updated = (OK == srxl_decode(_cycle_timestamp, _rcs_buf[i],
-									&srxl_chan_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+									&srxl_chan_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &failsafe_state));
 				}
 
 				if (rc_updated) {
@@ -1357,7 +1358,7 @@ PX4FMU::cycle()
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL;
 
 					fill_rc_in(srxl_chan_count, raw_rc_values, _cycle_timestamp,
-						   false, false, 0);
+						   false, failsafe_state, 0);
 					_rc_scan_locked = true;
 				}
 			}

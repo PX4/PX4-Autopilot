@@ -158,13 +158,14 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	/* attempt to parse with SRXL lib */
 	uint8_t srxl_channel_count = 0;
 	hrt_abstime now = hrt_absolute_time();
+        bool failsafe_state;
 
 	*srxl_updated = false;
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
 		*srxl_updated |= (OK == srxl_decode(now, bytes[i],
-						    &srxl_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+						    &srxl_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &failsafe_state));
 	}
 
 	if (*srxl_updated) {
@@ -174,7 +175,11 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SRXL;
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+		if (failsafe_state) {
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+		}
 	}
 
 	return (*dsm_updated | *st24_updated | *sumd_updated | *srxl_updated);
