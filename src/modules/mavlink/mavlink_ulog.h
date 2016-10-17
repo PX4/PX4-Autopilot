@@ -68,7 +68,7 @@ public:
 	 * thread-safe
 	 * @return instance, or nullptr
 	 */
-	static MavlinkULog *try_start();
+	static MavlinkULog *try_start(uint8_t target_system, uint8_t target_component);
 
 	/**
 	 * stop the stream. It also deletes the singleton object, so make sure cleanup
@@ -91,7 +91,7 @@ public:
 
 private:
 
-	MavlinkULog();
+	MavlinkULog(uint8_t target_system, uint8_t target_component);
 
 	~MavlinkULog();
 
@@ -119,6 +119,9 @@ private:
 	hrt_abstime _last_sent_time = 0; ///< last time we sent a message that requires an ack
 	ulog_stream_s _ulog_data;
 	bool _waiting_for_initial_ack = false;
+	const uint8_t _target_system;
+	const uint8_t _target_component;
+
 
 	/* do not allow copying this class */
 	MavlinkULog(const MavlinkULog &) = delete;

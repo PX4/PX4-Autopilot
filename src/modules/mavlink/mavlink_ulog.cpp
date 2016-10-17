@@ -47,7 +47,8 @@ MavlinkULog *MavlinkULog::_instance = nullptr;
 sem_t MavlinkULog::_lock;
 
 
-MavlinkULog::MavlinkULog()
+MavlinkULog::MavlinkULog(uint8_t target_system, uint8_t target_component)
+	: _target_system(target_system), _target_component(target_component)
 {
 	_ulog_stream_sub = orb_subscribe(ORB_ID(ulog_stream));
 
@@ -107,6 +108,8 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 					msg.sequence = _ulog_data.sequence;
 					msg.length = _ulog_data.length;
 					msg.first_message_offset = _ulog_data.first_message_offset;
+					msg.target_system = _target_system;
+					msg.target_component = _target_component;
 					memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
 					mavlink_msg_logging_data_acked_send_struct(channel, &msg);
 				}
@@ -134,6 +137,8 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 			msg.sequence = _ulog_data.sequence;
 			msg.length = _ulog_data.length;
 			msg.first_message_offset = _ulog_data.first_message_offset;
+			msg.target_system = _target_system;
+			msg.target_component = _target_component;
 			memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
 			mavlink_msg_logging_data_acked_send_struct(channel, &msg);
 
@@ -142,6 +147,8 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 			msg.sequence = _ulog_data.sequence;
 			msg.length = _ulog_data.length;
 			msg.first_message_offset = _ulog_data.first_message_offset;
+			msg.target_system = _target_system;
+			msg.target_component = _target_component;
 			memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
 			mavlink_msg_logging_data_send_struct(channel, &msg);
 		}
@@ -160,13 +167,13 @@ void MavlinkULog::initialize()
 	_init = true;
 }
 
-MavlinkULog* MavlinkULog::try_start()
+MavlinkULog* MavlinkULog::try_start(uint8_t target_system, uint8_t target_component)
 {
 	MavlinkULog *ret = nullptr;
 	bool failed = false;
 	lock();
 	if (!_instance) {
-		ret = _instance = new MavlinkULog();
+		ret = _instance = new MavlinkULog(target_system, target_component);
 		if (!_instance) {
 			failed = true;
 		}

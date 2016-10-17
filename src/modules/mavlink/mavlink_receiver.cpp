@@ -389,7 +389,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 				// mavlink channel streaming was requested. But in fact it's possible that the logger is
 				// not even running. The main mavlink thread takes care of this by waiting for an ack
 				// from the logger.
-				_mavlink->try_start_ulog_streaming();
+				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
 			} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
 				_mavlink->request_stop_ulog_streaming();
 			}

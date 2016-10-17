@@ -12,5 +12,5 @@ uint8 first_message_offset   # offset into data where first message starts. This
                              # can be used for recovery, when a previous message got lost
 uint16 sequence              # allows determine drops
 uint8 flags                  # see FLAGS_*
-uint8[251] data              # ulog data
+uint8[249] data              # ulog data
 
