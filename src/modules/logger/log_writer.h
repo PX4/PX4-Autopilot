@@ -55,7 +55,7 @@ public:
 	static constexpr Backend BackendMavlink = 1 << 1;
 	static constexpr Backend BackendAll = BackendFile | BackendMavlink;
 
-	LogWriter(Backend backend, size_t file_buffer_size, unsigned int queue_size);
+	LogWriter(Backend configured_backend, size_t file_buffer_size, unsigned int queue_size);
 	~LogWriter();
 
 	bool init();
@@ -81,7 +81,7 @@ public:
 	/**
 	 * whether logging is currently active or not for a specific backend.
 	 */
-	bool is_started(Backend backend) const;
+	bool is_started(Backend query_backend) const;
 
 	/**
 	 * Write a single ulog message (including header). The caller must call lock() before calling this.
@@ -93,10 +93,10 @@ public:
 
 	/**
 	 * Select a backend, so that future calls to write_message() only write to the selected
-	 * backend, until unselect_write_backend() is called.
+	 * sel_backend, until unselect_write_backend() is called.
 	 * @param backend
 	 */
-	void select_write_backend(Backend backend);
+	void select_write_backend(Backend sel_backend);
 	void unselect_write_backend() { select_write_backend(BackendAll); }
 
 	/* file logging methods */
