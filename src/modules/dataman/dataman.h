@@ -107,17 +107,14 @@ typedef enum {
  * defined by adding the structure type to the union below
  */
 
-#pragma pack(push, 1)
 typedef union dataman_max_size_t {
 	struct mission_item_s    mission_item;
 	struct mission_s	      mission;
 	struct fence_vertex_s    vertex;
 } dataman_max_size_t;
-#pragma pack(pop)
 
 
 #define DM_MAX_DATA_SIZE sizeof(dataman_max_size_t)
-
 
 /** Retrieve from the data manager store */
 __EXPORT ssize_t
