@@ -1601,8 +1601,13 @@ Mavlink::update_rate_mult()
 		}
 	}
 
+	float mavlink_ulog_streaming_rate_inv = 1.0f;
+	if (_mavlink_ulog) {
+		mavlink_ulog_streaming_rate_inv = 1.f - _mavlink_ulog->current_data_rate();
+	}
+
 	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate - const_rate) / rate;
+	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
 
 	/* if we do not have flow control, limit to the set data rate */
 	if (!get_flow_control_enabled()) {
@@ -2480,6 +2485,10 @@ Mavlink::display_status()
 	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
 	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
 	printf("\trate mult: %.3f\n", (double)_rate_mult);
+	if (_mavlink_ulog) {
+		printf("\tULog rate: %.1f%% of max %.1f%%\n", (double)_mavlink_ulog->current_data_rate()*100.,
+				(double)_mavlink_ulog->maximum_data_rate()*100.);
+	}
 	printf("\taccepting commands: %s\n", (accepting_commands()) ? "YES" : "NO");
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
