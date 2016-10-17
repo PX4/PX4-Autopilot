@@ -267,6 +267,20 @@ public:
 		_detect_underspeed_enabled = enabled;
 	}
 
+	// in case of a height reset driven by the estimator we need
+	// to allow TECS to swallow the step in height and demanded height instantaneously
+	void handle_alt_step(float delta_alt, float altitude) {
+		// add height reset delta to all variables involved
+		// in filtering the demanded height
+		_hgt_dem_in_old += delta_alt;
+		_hgt_dem_prev += delta_alt;
+		_hgt_dem_adj_last += delta_alt;
+
+		// reset height states
+		_integ3_state = altitude;
+		_integ1_state = _integ2_state = 0.0f;
+	}
+
 private:
 
 	struct tecs_state _tecs_state;
