@@ -66,9 +66,13 @@ public:
 	/**
 	 * try to start a new stream. This fails if a stream is already running.
 	 * thread-safe
+	 * @param datarate maximum link data rate in B/s
+	 * @param max_rate_factor let ulog streaming use a maximum of max_rate_factor * datarate
+	 * @param target_system ID for mavlink message
+	 * @param target_component ID for mavlink message
 	 * @return instance, or nullptr
 	 */
-	static MavlinkULog *try_start(uint8_t target_system, uint8_t target_component);
+	static MavlinkULog *try_start(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
 
 	/**
 	 * stop the stream. It also deletes the singleton object, so make sure cleanup
@@ -89,9 +93,13 @@ public:
 	/** this is called when we got an vehicle_command_ack from the logger */
 	void start_ack_received();
 
+	float current_data_rate() const { return _current_rate_factor; }
+	float maximum_data_rate() const { return _max_rate_factor; }
+
+	int get_ulog_stream_fd() const { return _ulog_stream_sub; }
 private:
 
-	MavlinkULog(uint8_t target_system, uint8_t target_component);
+	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
 
 	~MavlinkULog();
 
@@ -110,6 +118,7 @@ private:
 	static sem_t _lock;
 	static bool _init;
 	static MavlinkULog *_instance;
+	static const float _rate_calculation_delta_t; ///< rate update interval
 
 	int _ulog_stream_sub = -1;
 	orb_advert_t _ulog_stream_ack_pub = nullptr;
@@ -122,6 +131,11 @@ private:
 	const uint8_t _target_system;
 	const uint8_t _target_component;
 
+	const float _max_rate_factor; ///< maximum rate percentage at which we're allowed to push data
+	const int _max_num_messages; ///< maximum number of messages we can send within _rate_calculation_delta_t
+	float _current_rate_factor; ///< currently used rate percentage
+	int _current_num_msgs = 0;  ///< number of messages sent within the current time interval
+	hrt_abstime _next_rate_check; ///< next timestamp at which to update the rate
 
 	/* do not allow copying this class */
 	MavlinkULog(const MavlinkULog &) = delete;
