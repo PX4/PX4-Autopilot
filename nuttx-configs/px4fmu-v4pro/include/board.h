@@ -409,6 +409,7 @@
  * SPI
  *
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
+ 
  */
 #define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
