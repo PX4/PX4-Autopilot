@@ -114,6 +114,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 1);
  *
  * @value 0 Disabled
  * @value 10 FrSky Telemetry
+ * @value 20 Crazyflie (Syslink)
  * @value 921600 Companion Link (921600 baud, 8N1)
  * @value 57600 Companion Link (57600 baud, 8N1)
  * @value 157600 OSD (57600 baud, 8N1)
