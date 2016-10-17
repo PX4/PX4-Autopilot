@@ -38,10 +38,10 @@ namespace px4
 namespace logger
 {
 
-LogWriter::LogWriter(Backend backend, size_t file_buffer_size, unsigned int queue_size)
-	: _backend(backend)
+LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size, unsigned int queue_size)
+	: _backend(configured_backend)
 {
-	if (backend & BackendFile) {
+	if (configured_backend & BackendFile) {
 		_log_writer_file_for_write = _log_writer_file = new LogWriterFile(file_buffer_size);
 
 		if (!_log_writer_file) {
@@ -49,7 +49,7 @@ LogWriter::LogWriter(Backend backend, size_t file_buffer_size, unsigned int queu
 		}
 	}
 
-	if (backend & BackendMavlink) {
+	if (configured_backend & BackendMavlink) {
 		_log_writer_mavlink_for_write = _log_writer_mavlink = new LogWriterMavlink(queue_size);
 
 		if (!_log_writer_mavlink) {
@@ -110,13 +110,13 @@ bool LogWriter::is_started() const
 	return ret;
 }
 
-bool LogWriter::is_started(Backend backend) const
+bool LogWriter::is_started(Backend query_backend) const
 {
-	if (backend == BackendFile && _log_writer_file) {
+	if (query_backend == BackendFile && _log_writer_file) {
 		return _log_writer_file->is_started();
 	}
 
-	if (backend == BackendMavlink && _log_writer_mavlink) {
+	if (query_backend == BackendMavlink && _log_writer_mavlink) {
 		return _log_writer_mavlink->is_started();
 	}
 
@@ -178,16 +178,16 @@ int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
 	return ret_mavlink;
 }
 
-void LogWriter::select_write_backend(Backend backend)
+void LogWriter::select_write_backend(Backend sel_backend)
 {
-	if (backend & BackendFile) {
+	if (sel_backend & BackendFile) {
 		_log_writer_file_for_write = _log_writer_file;
 
 	} else {
 		_log_writer_file_for_write = nullptr;
 	}
 
-	if (backend & BackendMavlink) {
+	if (sel_backend & BackendMavlink) {
 		_log_writer_mavlink_for_write = _log_writer_mavlink;
 
 	} else {
