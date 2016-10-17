@@ -2294,6 +2294,8 @@ FixedwingPositionControl::task_main()
 				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
 					_hold_alt += _global_pos.delta_alt;
 					_alt_reset_counter = _global_pos.alt_reset_counter;
+					// make TECS accept step in altitude and demanded altitude
+					_tecs.handle_alt_step(_global_pos.delta_alt, _global_pos.alt);
 				}
 
 				// adjust navigation waypoints in position control mode
