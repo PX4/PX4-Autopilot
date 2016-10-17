@@ -23,7 +23,10 @@ from argparse import ArgumentParser
 
 
 class MavlinkLogStreaming():
-    '''Streams log data via MAVLink'''
+    '''Streams log data via MAVLink.
+       Assumptions:
+       - the sender only sends one acked message at a time
+       - the data is in the ULog format '''
     def __init__(self, portname, baudrate, output_filename, debug=0):
         self.baudrate = 0
         self._debug = debug
@@ -42,6 +45,7 @@ class MavlinkLogStreaming():
         self.last_sequence = -1
         self.logging_started = False
         self.num_dropouts = 0
+        self.target_component = 1
 
     def debug(self, s, level=1):
         '''write some debug text'''
@@ -50,13 +54,13 @@ class MavlinkLogStreaming():
 
     def start_log(self):
         self.mav.mav.command_long_send(self.mav.target_system,
-                self.mav.target_component,
+                self.target_component,
                 mavutil.mavlink.MAV_CMD_LOGGING_START, 0,
                 0, 0, 0, 0, 0, 0, 0)
 
     def stop_log(self):
         self.mav.mav.command_long_send(self.mav.target_system,
-                self.mav.target_component,
+                self.target_component,
                 mavutil.mavlink.MAV_CMD_LOGGING_STOP, 0,
                 0, 0, 0, 0, 0, 0, 0)
 
@@ -112,7 +116,8 @@ class MavlinkLogStreaming():
                     self.num_dropouts += num_drops
 
                 if m.get_type() == 'LOGGING_DATA_ACKED':
-                    self.mav.mav.logging_ack_send(m.sequence)
+                    self.mav.mav.logging_ack_send(self.mav.target_system,
+                            self.target_component, m.sequence)
                 else:
                     if not self.got_header_section:
                         print('Header received in {:0.2f}s'.format(timer()-self.start_time))
