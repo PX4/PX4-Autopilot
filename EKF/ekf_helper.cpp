@@ -271,9 +271,15 @@ void Ekf::resetHeight()
 		_state_reset_status.velD_counter++;
 	}
 
-	// add the reset amount to the output observer states
-	_output_new.pos(2) += _state_reset_status.posD_change;
-	_output_new.vel(2) += _state_reset_status.velD_change;
+	// apply the change in height / height rate to our newest height / height rate estimate
+	// which have already been taken out from the output buffer
+	if (vert_pos_reset) {
+		_output_new.pos(2) += _state_reset_status.posD_change;
+	}
+
+	if (vert_vel_reset) {
+		_output_new.vel(2) += _state_reset_status.velD_change;
+	}
 
 	// add the reset amount to the output observer buffered data
 	outputSample output_states;
@@ -292,17 +298,6 @@ void Ekf::resetHeight()
 		_output_buffer.push_to_index(i,output_states);
 
 	}
-
-	// apply the change in height / height rate to our newest height / height rate estimate
-	// which have already been taken out from the output buffer
-	if (vert_pos_reset) {
-		_output_new.pos(2) += _state_reset_status.posD_change;
-	}
-
-	if (vert_vel_reset) {
-		_output_new.vel(2) += _state_reset_status.velD_change;
-	}
-
 }
 
 // align output filter states to match EKF states at the fusion time horizon
