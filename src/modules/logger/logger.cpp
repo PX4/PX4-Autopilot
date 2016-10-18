@@ -1259,21 +1259,21 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 void Logger::write_info(const char *name, const char *value)
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(ulog_message_info_header_s)];
-	ulog_message_info_header_s *msg = reinterpret_cast<ulog_message_info_header_s *>(buffer);
-	msg->msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
+	ulog_message_info_header_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
-	msg->key_len = snprintf(msg->key, sizeof(msg->key), "char[%zu] %s", vlen, name);
-	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%zu] %s", vlen, name);
+	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 	/* copy string value directly to buffer */
-	if (vlen < (sizeof(*msg) - msg_size)) {
+	if (vlen < (sizeof(msg) - msg_size)) {
 		memcpy(&buffer[msg_size], value, vlen);
 		msg_size += vlen;
 
-		msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 		write_message(buffer, msg_size);
 	}
@@ -1283,19 +1283,19 @@ void Logger::write_info(const char *name, const char *value)
 void Logger::write_info(const char *name, int32_t value)
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(ulog_message_info_header_s)];
-	ulog_message_info_header_s *msg = reinterpret_cast<ulog_message_info_header_s *>(buffer);
-	msg->msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
+	ulog_message_info_header_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	/* construct format key (type and name) */
-	msg->key_len = snprintf(msg->key, sizeof(msg->key), "int32_t %s", name);
-	size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "int32_t %s", name);
+	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 	/* copy string value directly to buffer */
 	memcpy(&buffer[msg_size], &value, sizeof(int32_t));
 	msg_size += sizeof(int32_t);
 
-	msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 	write_message(buffer, msg_size);
 
@@ -1340,10 +1340,10 @@ void Logger::write_version()
 void Logger::write_parameters()
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(ulog_message_parameter_header_s) + sizeof(param_value_u)];
-	ulog_message_parameter_header_s *msg = reinterpret_cast<ulog_message_parameter_header_s *>(buffer);
+	ulog_message_parameter_header_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 
-	msg->msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 	int param_idx = 0;
 	param_t param = 0;
 
@@ -1377,14 +1377,14 @@ void Logger::write_parameters()
 			}
 
 			/* format parameter key (type and name) */
-			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
-			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
+			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 			/* copy parameter value directly to buffer */
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
-			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_message(buffer, msg_size);
 		}
@@ -1397,10 +1397,10 @@ void Logger::write_parameters()
 void Logger::write_changed_parameters()
 {
 	_writer.lock();
-	uint8_t buffer[sizeof(ulog_message_parameter_header_s) + sizeof(param_value_u)];
-	ulog_message_parameter_header_s *msg = reinterpret_cast<ulog_message_parameter_header_s *>(buffer);
+	ulog_message_parameter_header_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 
-	msg->msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 	int param_idx = 0;
 	param_t param = 0;
 
@@ -1435,15 +1435,15 @@ void Logger::write_changed_parameters()
 			}
 
 			/* format parameter key (type and name) */
-			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
-			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
+			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 			/* copy parameter value directly to buffer */
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
 
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
-			msg->msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_message(buffer, msg_size);
 		}
