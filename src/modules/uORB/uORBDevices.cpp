@@ -912,9 +912,9 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				} else {
 					// add to the node map;.
 #ifdef __PX4_NUTTX
-					_node_map.insert(nodepath, node);
+					_node_map.insert(devpath, node);
 #else
-					_node_map[std::string(nodepath)] = node;
+					_node_map[std::string(devpath)] = node;
 #endif
 				}
 
