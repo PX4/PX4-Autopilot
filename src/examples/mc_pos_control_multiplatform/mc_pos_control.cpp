@@ -640,8 +640,10 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		    && _pos_sp_triplet->data().current.type == _pos_sp_triplet->data().current.SETPOINT_TYPE_IDLE) {
 			/* idle state, don't run controller and set zero thrust */
 			_R.identity();
-			memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-			_att_sp_msg.data().R_valid = true;
+			math::Quaternion qd;
+			qd.from_dcm(_R);
+			memcpy(&_att_sp_msg.data().q_d[0], qd.data, sizeof(_att_sp_msg.data().q_d));
+			_att_sp_msg.data().q_d_valid = true;
 
 			_att_sp_msg.data().roll_body = 0.0f;
 			_att_sp_msg.data().pitch_body = 0.0f;
@@ -930,12 +932,14 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 						_R(i, 2) = body_z(i);
 					}
 
-					/* copy rotation matrix to attitude setpoint topic */
-					memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-					_att_sp_msg.data().R_valid = true;
-
 					/* calculate euler angles, for logging only, must not be used for control */
 					math::Vector<3> eul = _R.to_euler();
+
+					math::Quaternion q;
+					q.from_dcm(_R);
+					memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+					_att_sp_msg.data().q_d_valid = true;
+
 					_att_sp_msg.data().roll_body = eul(0);
 					_att_sp_msg.data().pitch_body = eul(1);
 					/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
@@ -945,9 +949,10 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 						* force level attitude, don't change yaw */
 					_R.from_euler(0.0f, 0.0f, _att_sp_msg.data().yaw_body);
 
-					/* copy rotation matrix to attitude setpoint topic */
-					memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-					_att_sp_msg.data().R_valid = true;
+					math::Quaternion q;
+					q.from_dcm(_R);
+					memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+					_att_sp_msg.data().q_d_valid = true;
 
 					_att_sp_msg.data().roll_body = 0.0f;
 					_att_sp_msg.data().pitch_body = 0.0f;
@@ -1042,8 +1047,10 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		/* Construct attitude setpoint rotation matrix */
 		math::Matrix<3, 3> R_sp;
 		R_sp.from_euler(_att_sp_msg.data().roll_body, _att_sp_msg.data().pitch_body, _att_sp_msg.data().yaw_body);
-		_att_sp_msg.data().R_valid = true;
-		memcpy(&_att_sp_msg.data().R_body[0], R_sp.data, sizeof(_att_sp_msg.data().R_body));
+		math::Quaternion q;
+		q.from_dcm(R_sp);
+		memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+		_att_sp_msg.data().q_d_valid = true;
 		_att_sp_msg.data().timestamp = get_time_micros();
 
 	} else {

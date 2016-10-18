@@ -347,14 +347,9 @@ void Tailsitter::update_transition_state()
 	_v_att_sp->timestamp = hrt_absolute_time();
 	_v_att_sp->roll_body = 0.0f;
 	_v_att_sp->yaw_body = _yaw_transition;
-	_v_att_sp->R_valid = true;
-
-	math::Matrix<3, 3> R_sp;
-	R_sp.from_euler(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
-	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
 
 	math::Quaternion q_sp;
-	q_sp.from_dcm(R_sp);
+	q_sp.from_euler(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }
 

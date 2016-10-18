@@ -15,9 +15,6 @@ float32 yaw_body				# body angle in NED frame
 
 float32 yaw_sp_move_rate		# rad/s (commanded by user)
 
-float32[9] R_body				# Rotation matrix describing the setpoint as rotation from the current body frame
-bool R_valid					# Set to true if rotation matrix is valid
-
 # For quaternion-based attitude control
 float32[4] q_d					# Desired quaternion for quaternion control
 bool q_d_valid					# Set to true if quaternion vector is valid
