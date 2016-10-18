@@ -62,7 +62,7 @@ static char _device[32] = "/sys/class/pwm/pwmchip0";
 static int  _pwm_fd[NUM_PWM];
 
 static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "";
+static const char *MIXER_FILENAME = "/home/pi/ROMFS/px4fmu_common/mixers/simple.main.mix";
 
 // subscriptions
 int     _controls_sub;
@@ -84,7 +84,7 @@ int32_t _pwm_disarmed;
 int32_t _pwm_min;
 int32_t _pwm_max;
 
-MultirotorMixer *_mixer = nullptr;
+MixerGroup *_mixer_group = nullptr;
 
 void usage();
 
@@ -115,7 +115,6 @@ int mixer_control_callback(uintptr_t handle,
 			   float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
-
 	input = controls[control_group].control[control_index];
 
 	return 0;
@@ -124,8 +123,10 @@ int mixer_control_callback(uintptr_t handle,
 
 int initialize_mixer(const char *mixer_filename)
 {
-	char buf[2048];
+	char buf[4096];
+	memset(buf,' ',sizeof(buf));
 	unsigned buflen = sizeof(buf);
+	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
 
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
@@ -136,9 +137,9 @@ int initialize_mixer(const char *mixer_filename)
 		close(fd_load);
 
 		if (nRead > 0) {
-			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+			;
 
-			if (_mixer != nullptr) {
+			if (_mixer_group->load_from_buf(buf, buflen) == 0) {
 				PX4_INFO("Successfully initialized mixer from config file");
 				return 0;
 
@@ -161,15 +162,15 @@ int initialize_mixer(const char *mixer_filename)
 		float pitch_scale = 1;
 		float yaw_scale = 1;
 		float deadband = 0;
-
-		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					     MultirotorGeometry::QUAD_X,
-					     roll_scale, pitch_scale, yaw_scale, deadband);
+		MultirotorMixer *mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
+			     MultirotorGeometry::QUAD_X,
+			     roll_scale, pitch_scale, yaw_scale, deadband);
+		_mixer_group->add_mixer(mixer);
 
 		// TODO: temporary hack to make this compile
 		(void)_config_index[0];
 
-		if (_mixer == nullptr) {
+		if (_mixer_group->count() <= 0) {
 			PX4_ERR("Mixer initialization failed");
 			return -1;
 		}
@@ -274,7 +275,7 @@ void task_main(int argc, char *argv[])
 	}
 
 	// Subscribe for orb topics
-	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_3));
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	// Start disarmed
@@ -295,12 +296,9 @@ void task_main(int argc, char *argv[])
 	}
 
 	pwm_limit_init(&_pwm_limit);
-
 	// Main loop
 	while (!_task_should_exit) {
-
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
-
 		/* Timed out, do a periodic check for _task_should_exit. */
 		if (pret == 0) {
 			continue;
@@ -315,19 +313,16 @@ void task_main(int argc, char *argv[])
 		}
 
 		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
-
+			orb_copy(ORB_ID(actuator_controls_3), _controls_sub, &_controls);
 			_outputs.timestamp = _controls.timestamp;
-
 			/* do mixing */
-			_outputs.noutputs = _mixer->mix(_outputs.output,
-							0 /* not used */,
+			_outputs.noutputs = _mixer_group->mix(&_outputs.output[0],
+							_outputs.NUM_ACTUATOR_OUTPUTS,
 							NULL);
-
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = _outputs.noutputs;
-			     i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
+			     i < _outputs.NUM_ACTUATOR_OUTPUTS;
 			     i++) {
 				_outputs.output[i] = NAN;
 			}
