@@ -1,0 +1,146 @@
+diff --git NuttX/nuttx/include/cxx/clocale NuttX/nuttx/include/cxx/clocale
+deleted file mode 100644
+index c99e456..0000000
+--- NuttX/nuttx/include/cxx/clocale
++++ /dev/null
+@@ -1,54 +0,0 @@
+-//***************************************************************************
+-// include/cxx/clocale
+-//
+-//   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+-//   Author: Gregory Nutt <gnutt@nuttx.org>
+-//
+-// Redistribution and use in source and binary forms, with or without
+-// modification, are permitted provided that the following conditions
+-// are met:
+-//
+-// 1. Redistributions of source code must retain the above copyright
+-//    notice, this list of conditions and the following disclaimer.
+-// 2. Redistributions in binary form must reproduce the above copyright
+-//    notice, this list of conditions and the following disclaimer in
+-//    the documentation and/or other materials provided with the
+-//    distribution.
+-// 3. Neither the name NuttX nor the names of its contributors may be
+-//    used to endorse or promote products derived from this software
+-//    without specific prior written permission.
+-//
+-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+-// OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+-// AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+-// POSSIBILITY OF SUCH DAMAGE.
+-//
+-//***************************************************************************
+-
+-#ifndef __INCLUDE_CXX_CLOCALE
+-#define __INCLUDE_CXX_CLOCALE
+-
+-//***************************************************************************
+-// Included Files
+-//***************************************************************************
+-
+-#include <locale.h>
+-
+-//***************************************************************************
+-// Namespace
+-//***************************************************************************
+-
+-namespace std
+-{
+-  using ::setlocale;
+-}
+-
+-#endif // __INCLUDE_CXX_CLOCALE
+diff --git NuttX/nuttx/include/locale.h NuttX/nuttx/include/locale.h
+deleted file mode 100644
+index 2d61f8d..0000000
+--- NuttX/nuttx/include/locale.h
++++ /dev/null
+@@ -1,68 +0,0 @@
+-/****************************************************************************
+- * include/locale.h
+- *
+- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+- *   Author: Gregory Nutt <gnutt@nuttx.org>
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- *
+- * 1. Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- * 2. Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in
+- *    the documentation and/or other materials provided with the
+- *    distribution.
+- * 3. Neither the name NuttX nor the names of its contributors may be
+- *    used to endorse or promote products derived from this software
+- *    without specific prior written permission.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+- * POSSIBILITY OF SUCH DAMAGE.
+- *
+- ****************************************************************************/
+-
+-#ifndef __INCLUDE_LOCALE_H
+-#define __INCLUDE_LOCALE_H
+-
+-/****************************************************************************
+- * Included Files
+- ****************************************************************************/
+-
+-#include <nuttx/compiler.h>
+-
+-/****************************************************************************
+- * Type Definitions
+- ****************************************************************************/
+-
+-/****************************************************************************
+- * Public Function Prototypes
+- ****************************************************************************/
+-
+-#ifdef __cplusplus
+-#define EXTERN extern "C"
+-extern "C"
+-{
+-#else
+-#define EXTERN extern
+-#endif
+-
+-FAR char *setlocale(int category, FAR const char *locale);
+-
+-#undef EXTERN
+-#ifdef __cplusplus
+-}
+-#endif
+-
+-#endif /* __INCLUDE_LOCALE_H */
+diff --git NuttX/nuttx/libc/Makefile NuttX/nuttx/libc/Makefile
+index 4df2215..3b2e89a 100644
+--- NuttX/nuttx/libc/Makefile
++++ NuttX/nuttx/libc/Makefile
+@@ -67,7 +67,6 @@ include dirent/Make.defs
+ include fixedmath/Make.defs
+ include hex2bin/Make.defs
+ include libgen/Make.defs
+-include locale/Make.defs
+ include math/Make.defs
+ include misc/Make.defs
+ include net/Make.defs
