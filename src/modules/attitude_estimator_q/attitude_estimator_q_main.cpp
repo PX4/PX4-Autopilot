@@ -468,28 +468,11 @@ void AttitudeEstimatorQ::task_main()
 		struct vehicle_attitude_s att = {};
 		att.timestamp = sensors.timestamp;
 
-		att.roll = euler(0);
-		att.pitch = euler(1);
-		att.yaw = euler(2);
-
 		att.rollspeed = _rates(0);
 		att.pitchspeed = _rates(1);
 		att.yawspeed = _rates(2);
 
-		for (int i = 0; i < 3; i++) {
-			att.g_comp[i] = _accel(i) - _pos_acc(i);
-		}
-
-		/* copy offsets */
-		memcpy(&att.rate_offsets, _gyro_bias.data, sizeof(att.rate_offsets));
-
-		Matrix<3, 3> R = _q.to_dcm();
-
-		/* copy rotation matrix */
-		memcpy(&att.R[0], R.data, sizeof(att.R));
-		att.R_valid = true;
 		memcpy(&att.q[0], _q.data, sizeof(att.q));
-		att.q_valid = true;
 
 		/* the instance count is not used here */
 		int att_inst;

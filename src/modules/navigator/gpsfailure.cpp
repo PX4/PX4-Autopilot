@@ -102,9 +102,12 @@ GpsFailure::on_active()
 	case GPSF_STATE_LOITER: {
 		/* Position controller does not run in this mode:
 		 * navigator has to publish an attitude setpoint */
-		_navigator->get_att_sp()->roll_body = M_DEG_TO_RAD_F * _param_openlooploiter_roll.get();
-		_navigator->get_att_sp()->pitch_body = M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get();
+		matrix::Eulerf euler(M_DEG_TO_RAD_F * _param_openlooploiter_roll.get(),
+								M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get(),
+								0);
+		matrix::Quatf q(euler);
 		_navigator->get_att_sp()->thrust = _param_openlooploiter_thrust.get();
+		memcpy(_navigator->get_att_sp()->q_d.q_d[0],&q._data[0],sizeof(att.q));
 		_navigator->publish_att_sp();
 
 		/* Measure time */

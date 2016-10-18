@@ -605,34 +605,17 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					/* send out */
 					att.timestamp = raw.timestamp;
 
-					att.roll = euler[0];
-					att.pitch = euler[1];
-					att.yaw = euler[2] + mag_decl;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
 					att.yawspeed = x_aposteriori[2];
-					att.rollacc = x_aposteriori[3];
-					att.pitchacc = x_aposteriori[4];
-					att.yawacc = x_aposteriori[5];
-
-					att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
-					att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
-					att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
-
-					/* copy offsets */
-					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
 					/* magnetic declination */
+					matrix::Dcmf Ro(&Rot_matrix[0]);
+					matrix::Dcmf R_declination(&R_decl.data[0][0]);
+					matrix::Quatf q = matrix::Quatf(R_declination * Ro);
 
-					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
-					R = R_decl * R_body;
-					math::Quaternion q;
-					q.from_dcm(R);
-					/* copy rotation matrix */
-					memcpy(&att.R[0], &R.data[0][0], sizeof(att.R));
-					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
-					att.R_valid = true;
+					memcpy(&att.q[0],&q._data[0],sizeof(att.q));
 
 					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
 						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
@@ -640,7 +623,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 
 					} else {
-						warnx("ERR: NaN estimate!");
+						PX4_ERR("ERR: NaN estimate!");
 					}
 
 					perf_end(ekf_loop_perf);

@@ -46,6 +46,7 @@
 #include <px4_defines.h>
 #include <geo/geo.h>
 #include <math.h>
+#include <mathlib/mathlib.h>
 
 namespace vmount
 {
@@ -186,11 +187,11 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
 	}
 
-	float att[3] = { vehicle_attitude.roll, vehicle_attitude.pitch, vehicle_attitude.yaw };
+	matrix::Eulerf euler = matrix::Quatf(vehicle_attitude.q);
 
 	for (int i = 0; i < 3; ++i) {
 		if (_stabilize[i]) {
-			_angle_outputs[i] = _angle_setpoints[i] - att[i];
+			_angle_outputs[i] = _angle_setpoints[i] - euler(i);
 
 		} else {
 			_angle_outputs[i] = _angle_setpoints[i];

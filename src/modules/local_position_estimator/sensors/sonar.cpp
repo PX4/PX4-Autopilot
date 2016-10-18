@@ -67,8 +67,8 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_time_last_sonar = _timeStamp;
 	y.setZero();
 	y(0) = (d + _sonar_z_offset.get()) *
-	       cosf(_sub_att.get().roll) *
-	       cosf(_sub_att.get().pitch);
+	       cosf(_eul(0)) *
+	       cosf(_eul(1));
 	return OK;
 }
 

@@ -43,7 +43,7 @@ void BlockLocalPositionEstimator::flowDeinit()
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
 	// check for sane pitch/roll
-	if (_sub_att.get().roll > 0.5f || _sub_att.get().pitch > 0.5f) {
+	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
 		return -1;
 	}
 
@@ -64,7 +64,9 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 		return -1;
 	}
 
-	float d = agl() * cosf(_sub_att.get().roll) * cosf(_sub_att.get().pitch);
+	matrix::Eulerf euler = matrix::Quatf(_sub_att.get().q);
+
+	float d = agl() * cosf(euler.phi()) * cosf(euler.theta());
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter
@@ -98,8 +100,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 		0);
 
 	// rotation of flow from body to nav frame
-	Matrix3f R_nb(_sub_att.get().R);
-	Vector3f delta_n = R_nb * delta_b;
+	Vector3f delta_n = _R_att * delta_b;
 
 	// imporant to timestamp flow even if distance is bad
 	_time_last_flow = _timeStamp;

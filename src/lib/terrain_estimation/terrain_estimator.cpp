@@ -37,6 +37,7 @@
  */
 
 #include "terrain_estimator.h"
+#include <geo/geo.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 
@@ -65,16 +66,11 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 			       const struct sensor_combined_s *sensor,
 			       const struct distance_sensor_s *distance)
 {
-	if (attitude->R_valid) {
-		matrix::Matrix<float, 3, 3> R_att(attitude->R);
-		matrix::Vector<float, 3> a(sensor->accelerometer_m_s2);
-		matrix::Vector<float, 3> u;
-		u = R_att * a;
-		_u_z = u(2) + 9.81f; // compensate for gravity
-
-	} else {
-		_u_z = 0.0f;
-	}
+	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
+	matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+	matrix::Vector<float, 3> u;
+	u = R_att * a;
+	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity
 
 	// dynamics matrix
 	matrix::Matrix<float, n_x, n_x> A;
@@ -115,7 +111,8 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (distance->timestamp > _time_last_distance) {
-
+		matrix::Quatf q(attitude->q);
+		matrix::Eulerf euler(q);
 		float d = distance->current_distance;
 
 		matrix::Matrix<float, 1, n_x> C;
@@ -124,7 +121,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		float R = 0.009f;
 
 		matrix::Vector<float, 1> y;
-		y(0) = d * cosf(attitude->roll) * cosf(attitude->pitch);
+		y(0) = d * cosf(euler.phi()) * cosf(euler.theta());
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());

@@ -401,6 +401,10 @@ private:
 	Vector<float, n_x>  _x; // state vector
 	Vector<float, n_u>  _u; // input vector
 	Matrix<float, n_x, n_x>  _P; // state covariance matrix
+
+	matrix::Dcm<float> _R_att;
+	Vector3f _eul;
+
 	Matrix<float, n_x, n_x>  _A; // dynamics matrix
 	Matrix<float, n_x, n_u>  _B; // input matrix
 	Matrix<float, n_u, n_u>  _R; // input covariance
