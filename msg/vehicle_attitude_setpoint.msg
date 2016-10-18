@@ -21,8 +21,6 @@ bool R_valid					# Set to true if rotation matrix is valid
 # For quaternion-based attitude control
 float32[4] q_d					# Desired quaternion for quaternion control
 bool q_d_valid					# Set to true if quaternion vector is valid
-float32[4] q_e					# Attitude error in quaternion
-bool q_e_valid					# Set to true if quaternion error vector is valid
 
 float32 thrust					# Thrust in Newton the power system should generate
 
