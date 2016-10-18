@@ -447,29 +447,35 @@ void TECS::_update_pitch(void)
 	_SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * SKE_weighting);
 	_SEBdot_error = SEBdot_dem - (_SPEdot * SPE_weighting - _SKEdot * SKE_weighting);
 
+	// Calculate factor relating an error in specific energy to a desired delta pitch angle
+	float gainInv = _integ5_state * _timeConst * CONSTANTS_ONE_G;
+
 	// Calculate integrator state, constraining input if pitch limits are exceeded
 	float integ7_input = _SEB_error * _integGain;
 
 	if (_pitch_dem_unc > _PITCHmaxf) {
-		integ7_input = min(integ7_input, _PITCHmaxf - _pitch_dem_unc);
+		integ7_input = min(integ7_input, 0.0f);
+		// integ7_input = min(integ7_input, (_PITCHmaxf - _pitch_dem_unc) * gainInv / _DT);
 
 	} else if (_pitch_dem_unc < _PITCHminf) {
-		integ7_input = max(integ7_input, _PITCHminf - _pitch_dem_unc);
+		integ7_input = max(integ7_input, 0.0f);
+		// integ7_input = max(integ7_input, (_PITCHminf - _pitch_dem_unc) * gainInv / _DT);
 	}
 
 	_integ7_state = _integ7_state + integ7_input * _DT;
 
-	// Apply max and min values for integrator state that will allow for no more than
-	// 5deg of saturation. This allows for some pitch variation due to gusts before the
-	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
+	float temp = _SEB_error + _SEBdot_error * _ptchDamp + SEBdot_dem * _timeConst;
+
 	// During climbout/takeoff, bias the demanded pitch angle so that zero speed error produces a pitch angle
 	// demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
 	// integrator has to catch up before the nose can be raised to reduce speed during climbout.
-	float gainInv = _integ5_state * _timeConst * CONSTANTS_ONE_G;
-	float temp = _SEB_error + _SEBdot_error * _ptchDamp + SEBdot_dem * _timeConst;
 	if (_climbOutDem) {
 		temp += _PITCHminf * gainInv;
 	}
+
+	// Apply max and min values for integrator state that will allow for no more than
+	// 5deg of saturation. This allows for some pitch variation due to gusts before the
+	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
 	float integ7_err_min = (gainInv * (_PITCHminf - math::radians(5.0f))) - temp;
 	float integ7_err_max = (gainInv * (_PITCHmaxf + math::radians(5.0f))) - temp;
 	_integ7_state = constrain(_integ7_state, integ7_err_min, integ7_err_max);
