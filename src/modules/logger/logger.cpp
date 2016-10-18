@@ -204,7 +204,7 @@ int Logger::start(char *const *argv)
 	logger_task = px4_task_spawn_cmd("logger",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 3800,
+					 3600,
 					 (px4_main_t)&Logger::run_trampoline,
 					 (char *const *)argv);
 
