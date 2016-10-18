@@ -512,14 +512,16 @@ void Logger::add_default_topics()
 	add_topic("vehicle_attitude_groundtruth", 10);
 #endif
 
+	// Note: try to avoid setting the interval where possible, as it increases RAM usage
+
 	add_topic("vehicle_attitude", 10);
 	add_topic("actuator_outputs", 50);
-	add_topic("telemetry_status", 50);
+	add_topic("telemetry_status");
 	add_topic("vehicle_command");
-	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status");
 	add_topic("vtol_vehicle_status", 100);
 	add_topic("commander_state", 100);
-	add_topic("satellite_info", 1000);
+	add_topic("satellite_info");
 	add_topic("vehicle_attitude_setpoint", 20);
 	add_topic("vehicle_rates_setpoint", 10);
 	add_topic("actuator_controls", 20);
