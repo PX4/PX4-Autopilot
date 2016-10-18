@@ -841,7 +841,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
 	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+	math::Vector<3> eul = math::Quaternion(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]).to_euler();
+	R_yaw_sp.from_euler(0.0f, 0.0f, eul(2));
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
