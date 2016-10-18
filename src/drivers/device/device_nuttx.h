@@ -455,7 +455,7 @@ private:
 
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
-	unsigned	_open_count;		/**< number of successful opens */
+	uint16_t	_open_count;		/**< number of successful opens */
 
 	struct pollfd	*_pollset[_max_pollwaiters];
 
