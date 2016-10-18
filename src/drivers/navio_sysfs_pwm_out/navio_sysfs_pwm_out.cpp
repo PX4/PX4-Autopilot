@@ -190,7 +190,7 @@ int pwm_write_sysfs(char *path, int value)
 	n = ::snprintf(data, sizeof(data), "%u", value);
 
 	if (n > 0) {
-		::write(fd, data, n);
+		n = ::write(fd, data, n);	// This n is not used, but to avoid a compiler error.
 	}
 
 	::close(fd);
@@ -257,7 +257,7 @@ void send_outputs_pwm(const uint16_t *pwm)
 	//convert this to duty_cycle in ns
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
 		n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
-		::write(_pwm_fd[i], data, n);
+		n = ::write(_pwm_fd[i], data, n);	// This n is not used, but to avoid a compiler error.
 	}
 }
 
