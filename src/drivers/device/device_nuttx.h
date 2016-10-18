@@ -209,8 +209,7 @@ protected:
 	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	int		_irq;
-	bool		_irq_attached;
+	int		_irq; /**< if non-zero, it's a valid IRQ */
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
