@@ -1,6 +1,9 @@
 float32[32] states		# Internal filter states
 float32 n_states		# Number of states effectively used
-float32[3] vibe			# Vibration levels in X, Y and Z
+float32[3] vibe			# IMU vibration metrics in the following array locations
+# 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+# 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+# 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 uint8 nan_flags			# Bitmask to indicate NaN states
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
