@@ -57,4 +57,3 @@ typedef enum {
 	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_ASHTECH
 } gps_driver_mode_t;
-

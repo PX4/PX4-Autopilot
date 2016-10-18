@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__navio_sysfs_pwm_out
 	MAIN navio_sysfs_pwm_out
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		navio_sysfs_pwm_out.cpp
 	DEPENDS

@@ -186,7 +186,6 @@ then
 		if ver hwcmp MINDPX_V2
 		then
 			param set INAV_LIDAR_ERR 0.8
-			param save
 		fi
 	fi
 
@@ -224,7 +223,6 @@ then
 	if [ $AUTOCNF == yes ]
 	then
 		param set SYS_AUTOCONFIG 0
-		param save
 	fi
 	unset AUTOCNF
 
@@ -553,6 +551,14 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
 		fi
+		if param compare SYS_COMPANION 319200
+		then
+			mavlink start -d /dev/ttyS2 -b 19200 -r 1000
+		fi
+		if param compare SYS_COMPANION 338400
+		then
+			mavlink start -d /dev/ttyS2 -b 38400 -r 1000
+		fi
 		if param compare SYS_COMPANION 357600
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
@@ -647,29 +653,8 @@ then
 		px4flow start &
 	fi
 
-
-	set DEBUG_MODE no
-
-	if [ $LOG_FILE == /dev/null ]
-	then
-		set DEBUG_MODE yes
-	fi
-
-
-	if ver hwcmp CRAZYFLIE
-	then
-		set DEBUG_MODE no
-	fi
-
-
-	# Start USB shell if no microSD present, MAVLink else
-	if [ $DEBUG_MODE == yes ]
-	then
-		# Try to get an USB console
-		nshterm /dev/ttyACM0 &
-	else
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
+	# Start MAVLink
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 
 	#
 	# Logging

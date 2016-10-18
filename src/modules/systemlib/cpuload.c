@@ -142,12 +142,14 @@ void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
 	uint8_t both_found = 0;
 
 	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+		/* Check if task is initialized correctly */
+		if (system_load.tasks[i].tcb == NULL) {
+			continue;
+		}
+
 		/* Task ending its current scheduling run */
 		if (system_load.tasks[i].tcb->pid == pFromTcb->pid) {
-			//if (system_load.tasks[i].curr_start_time != 0)
-			{
-				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
-			}
+			system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
 			both_found++;
 
 		} else if (system_load.tasks[i].tcb->pid == pToTcb->pid) {

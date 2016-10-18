@@ -35,7 +35,7 @@
 #define __APPS_PX4_TESTS_H
 
 /**
- * @file tests.h
+ * @file tests_main.h
  * Tests declaration file.
  *
  */
@@ -50,26 +50,6 @@
  * Definitions
  ****************************************************************************/
 
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#    define msgflush()
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#    define msgflush() fflush(stdout)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#    define msgflush()
-#  else
-#    define message printf
-#    define msgflush() fflush(stdout)
-#  endif
-#endif
-
 __BEGIN_DECLS
 
 extern int	test_adc(int argc, char *argv[]);
@@ -77,6 +57,7 @@ extern int	test_autodeclination(int argc, char *argv[]);
 extern int	test_hysteresis(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_conv(int argc, char *argv[]);
+extern int	test_dataman(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
 extern int	test_file2(int argc, char *argv[]);
 extern int	test_float(int argc, char *argv[]);
@@ -112,6 +93,7 @@ extern int controllib_test_main(int argc, char *argv[]);
 extern int uorb_tests_main(int argc, char *argv[]);
 extern int rc_tests_main(int argc, char *argv[]);
 extern int sf0x_tests_main(int argc, char *argv[]);
+extern int mc_pos_control_tests_main(int argc, char *argv[]);
 
 
 __END_DECLS

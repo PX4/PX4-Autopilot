@@ -66,11 +66,11 @@ PARAM_DEFINE_INT32(SLNK_RADIO_RATE, 2);
  *
  * @group Syslink
  */
-PARAM_DEFINE_INT32(SLNK_RADIO_ADDR1, (uint32_t) 0xE7);
+PARAM_DEFINE_INT32(SLNK_RADIO_ADDR1, 231); // 0xE7
 
 /**
  * Operating address of the NRF51 (least significant 4 bytes)
  *
  * @group Syslink
  */
-PARAM_DEFINE_INT32(SLNK_RADIO_ADDR2, (uint32_t) 0xE7E7E7E7);
+PARAM_DEFINE_INT32(SLNK_RADIO_ADDR2, 3890735079); // 0xE7E7E7E7

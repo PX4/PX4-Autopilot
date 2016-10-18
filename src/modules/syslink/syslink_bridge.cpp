@@ -85,7 +85,7 @@ SyslinkBridge::poll_state(struct file *filp)
 		state |= POLLOUT;
 	}
 
-	return 0;
+	return state;
 }
 
 ssize_t

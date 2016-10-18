@@ -37,6 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_posix.h>
 
 #include <sys/types.h>
 
@@ -60,6 +61,8 @@
 #include "dataman/dataman.h"
 
 static px4_sem_t *sems;
+int test_dataman(int argc, char *argv[]);
+
 
 static int
 task_main(int argc, char *argv[])
@@ -91,7 +94,7 @@ task_main(int argc, char *argv[])
 		memset(buffer, my_id, sizeof(buffer));
 		buffer[1] = i;
 		unsigned hash = i ^ my_id;
-		unsigned len = (hash & 63) + 2;
+		unsigned len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
 		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
 		warnx("ret: %d", ret);
@@ -109,7 +112,9 @@ task_main(int argc, char *argv[])
 
 	for (unsigned i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
 		unsigned hash = i ^ my_id;
-		unsigned len2, len = (hash & 63) + 2;
+		unsigned len2;
+		unsigned len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
+		;
 
 		if ((len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, buffer, sizeof(buffer))) < 2) {
 			warnx("%d read failed length test, index %d", my_id, hash);
@@ -168,7 +173,7 @@ int test_dataman(int argc, char *argv[])
 		px4_sem_init(sems + i, 1, 0);
 
 		/* start the task */
-		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, av)) <= 0) {
+		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, (void *)av)) <= 0) {
 			warn("task start failed");
 		}
 	}

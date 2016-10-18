@@ -38,11 +38,9 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <px4_config.h>
-
-#include <sys/types.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -52,7 +50,7 @@
 // Not using Eigen at the moment
 #define TESTS_EIGEN_DISABLE
 
-#include "tests.h"
+#include "tests_main.h"
 
 /****************************************************************************
  * Private Function Prototypes
@@ -92,6 +90,7 @@ const struct {
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
+	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	//{"mavlink",		mavlink_tests_main,	0}, // TODO: fix mavlink_tests
 	{"sf0x",		sf0x_tests_main,	0},
 #ifndef __PX4_DARWIN
@@ -102,6 +101,7 @@ const struct {
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
+	//{"dataman",		test_dataman, 0}, // Enable for by hand testing
 	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},

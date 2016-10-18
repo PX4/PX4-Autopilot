@@ -124,7 +124,7 @@ Airspeed::~Airspeed()
 int
 Airspeed::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
