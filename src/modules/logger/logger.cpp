@@ -464,16 +464,12 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 	return fd;
 }
 
-bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer)
+bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe)
 {
 	bool updated = false;
 	int &handle = sub.fd[multi_instance];
 
-	// only try to subscribe to topic if this is the first time
-	// after that just check after a certain interval to avoid high cpu usage
-	if (handle < 0 && (sub.time_tried_subscribe == 0 ||
-			   hrt_elapsed_time(&sub.time_tried_subscribe) > TRY_SUBSCRIBE_INTERVAL)) {
-		sub.time_tried_subscribe = hrt_absolute_time();
+	if (handle < 0 && try_to_subscribe) {
 
 		if (OK == orb_exists(sub.metadata, multi_instance)) {
 			handle = orb_subscribe_multi(sub.metadata, multi_instance);
@@ -722,6 +718,9 @@ void Logger::run()
 	px4_sem_init(&timer_semaphore, 0, 0);
 	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
 
+	// check for new subscription data
+	hrt_abstime next_subscribe_check = 0;
+	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	while (!_task_should_exit) {
 
@@ -800,6 +799,8 @@ void Logger::run()
 			/* wait for lock on log buffer */
 			_writer.lock();
 
+			int sub_idx = 0;
+
 			for (LoggerSubscription &sub : _subscriptions) {
 				/* each message consists of a header followed by an orb data object
 				 */
@@ -809,7 +810,8 @@ void Logger::run()
 				 * and write a message to the log
 				 */
 				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub, instance, _msg_buffer + sizeof(ulog_message_data_header_s))) {
+					if (copy_if_updated_multi(sub, instance, _msg_buffer + sizeof(ulog_message_data_header_s),
+								  sub_idx == next_subscribe_topic_index)) {
 
 						uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
 						//write one byte after another (necessary because of alignment)
@@ -835,6 +837,8 @@ void Logger::run()
 						}
 					}
 				}
+
+				++sub_idx;
 			}
 
 			//check for new logging message(s)
@@ -871,6 +875,17 @@ void Logger::run()
 			/* notify the writer thread if data is available */
 			if (data_written) {
 				_writer.notify();
+			}
+
+			/* subscription update */
+			if (next_subscribe_topic_index != -1) {
+				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+					next_subscribe_topic_index = -1;
+					next_subscribe_check = hrt_absolute_time() + TRY_SUBSCRIBE_INTERVAL;
+				}
+
+			} else if (hrt_absolute_time() > next_subscribe_check) {
+				next_subscribe_topic_index = 0;
 			}
 
 #ifdef DBGPRINT
