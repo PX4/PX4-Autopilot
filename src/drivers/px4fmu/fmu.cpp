@@ -1358,18 +1358,21 @@ PX4FMU::cycle()
 
 			if (newBytes > 0) {
 				// parse new data
-				uint8_t st24_rssi, rx_count;
+				uint8_t st24_rssi, lost_count;
 
 				rc_updated = false;
 
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
-					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
+					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
 									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
 
-				if (rc_updated) {
+				// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
+				// The only way to detect RC loss is therefore to look at the lost_count.
+
+				if (rc_updated && lost_count == 0) {
 					// we have a new ST24 frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
 					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
