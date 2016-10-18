@@ -645,9 +645,10 @@ void Logger::run()
 		}
 	}
 
-	uORB::Subscription<vehicle_status_s> vehicle_status_sub(ORB_ID(vehicle_status));
+	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
-	uORB::Subscription<log_message_s> log_message_sub(ORB_ID(log_message), 20);
+	int log_message_sub = orb_subscribe(ORB_ID(log_message));
+	orb_set_interval(log_message_sub, 20);
 
 	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
 
@@ -666,7 +667,7 @@ void Logger::run()
 	}
 
 	//all topics added. Get required message buffer size
-	int max_msg_size = 0;
+	int max_msg_size = 0, ret;
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
@@ -725,10 +726,14 @@ void Logger::run()
 	while (!_task_should_exit) {
 
 		// Start/stop logging when system arm/disarm
-		if (vehicle_status_sub.check_updated()) {
-			vehicle_status_sub.update();
-			bool armed = (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
+		bool vehicle_status_updated;
+		ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
+
+		if (ret == 0 && vehicle_status_updated) {
+			vehicle_status_s vehicle_status;
+			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+				     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
 				     _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
@@ -751,7 +756,7 @@ void Logger::run()
 		/* check for logging command from MAVLink */
 		if (vehicle_command_sub != -1) {
 			bool command_updated = false;
-			int ret = orb_check(vehicle_command_sub, &command_updated);
+			ret = orb_check(vehicle_command_sub, &command_updated);
 
 			if (ret == 0 && command_updated) {
 				vehicle_command_s command;
@@ -833,9 +838,13 @@ void Logger::run()
 			}
 
 			//check for new logging message(s)
-			if (log_message_sub.check_updated()) {
-				log_message_sub.update();
-				const char *message = (const char *)log_message_sub.get().text;
+			bool log_message_updated = false;
+			ret = orb_check(log_message_sub, &log_message_updated);
+
+			if (ret == 0 && log_message_updated) {
+				log_message_s log_message;
+				orb_copy(ORB_ID(log_message), log_message_sub, &log_message);
+				const char *message = (const char *)log_message.text;
 				int message_len = strlen(message);
 
 				if (message_len > 0) {
@@ -844,8 +853,8 @@ void Logger::run()
 					_msg_buffer[0] = (uint8_t)write_msg_size;
 					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
 					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
-					_msg_buffer[3] = log_message_sub.get().severity + '0';
-					memcpy(_msg_buffer + 4, &log_message_sub.get().timestamp, sizeof(ulog_message_logging_s::timestamp));
+					_msg_buffer[3] = log_message.severity + '0';
+					memcpy(_msg_buffer + 4, &log_message.timestamp, sizeof(ulog_message_logging_s::timestamp));
 					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
 					write_message(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
