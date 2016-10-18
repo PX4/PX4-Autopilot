@@ -21,7 +21,6 @@ void BlockLocalPositionEstimator::mocapInit()
 
 	// if finished
 	if (_mocapStats.getCount() > REQ_MOCAP_INIT_COUNT) {
-		_mocapOrigin = _mocapStats.getMean();
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap position init: "
 					     "%5.2f, %5.2f, %5.2f m std %5.2f, %5.2f, %5.2f m",
 					     double(_mocapStats.getMean()(0)),
@@ -35,7 +34,7 @@ void BlockLocalPositionEstimator::mocapInit()
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
-			_altOrigin = _mocapOrigin(2);
+			_altOrigin = 0;
 		}
 	}
 }
@@ -57,9 +56,6 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	Vector<float, n_y_mocap> y;
 
 	if (mocapMeasure(y) != OK) { return; }
-
-	// make measurement relative to origin
-	y -= _mocapOrigin;
 
 	// mocap measurement matrix, measures position
 	Matrix<float, n_y_mocap, n_x> C;

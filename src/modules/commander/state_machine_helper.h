@@ -92,6 +92,7 @@ struct status_flags_s {
 	bool gps_failure;				// Set to true if a gps failure is detected
 	bool gps_failure_cmd;				// Set to true if a gps failure mode is commanded
 	bool barometer_failure;				// Set to true if a barometer failure is detected
+	bool ever_had_barometer_data;			// Set to true if ever had valid barometer data before
 };
 
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
@@ -113,7 +114,12 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, orb_advert_t *mavlink_log_pub);
 
+
+void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
+		orb_advert_t *mavlink_log_pub, const char * reason);
+
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
+		   orb_advert_t *mavlink_log_pub,
 		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed,
 		   const bool rc_loss_enabled, const int offb_loss_act, const int offb_loss_rc_act);

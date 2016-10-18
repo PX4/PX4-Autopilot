@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__rgbled_pwm
 	MAIN rgbled
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		rgbled_pwm.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

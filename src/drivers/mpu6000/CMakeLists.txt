@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 1400
 	COMPILE_FLAGS
 		-Weffc++
-		-Os
 	SRCS
 		mpu6000.cpp
 		mpu6000_i2c.cpp
@@ -44,4 +43,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

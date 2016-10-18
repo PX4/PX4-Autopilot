@@ -456,7 +456,7 @@ private:
 	void _update_pitch(void);
 
 	// Initialise states and variables
-	void _initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad);
+	void _initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad, float EAS2TAS);
 
 	// Calculate specific total energy rate limits
 	void _update_STE_rate_lim(void);

@@ -82,6 +82,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/adc_report.h>
@@ -134,6 +135,8 @@ public:
 
 	virtual int	init();
 
+	void dsm_bind_ioctl();
+
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
 
@@ -170,6 +173,7 @@ private:
 
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
+	hrt_abstime _time_last_mix = 0;
 
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -179,6 +183,7 @@ private:
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
 	struct work_s	_work;
+	int		_vehicle_cmd_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -190,7 +195,7 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	uint8_t _rcs_buf[SBUS_FRAME_SIZE];
+	uint8_t _rcs_buf[SBUS_BUFFER_SIZE * 2];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -220,6 +225,8 @@ private:
 	bool		_safety_off;
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
+
+	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 
 	static bool	arm_nothrottle()
 	{
@@ -328,7 +335,8 @@ PX4FMU::PX4FMU() :
 	_num_disarmed_set(0),
 	_safety_off(false),
 	_safety_disabled(false),
-	_to_safety(nullptr)
+	_to_safety(nullptr),
+	_mot_t_max(0.0f)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -914,7 +922,7 @@ PX4FMU::cycle()
 		// power radio on
 		RF_RADIO_POWER_CONTROL(true);
 #endif
-
+		_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 		// dsm_init sets some file static variables and returns a file descriptor
 		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
@@ -924,6 +932,7 @@ PX4FMU::cycle()
 		px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif
 #endif
+		param_find("MOT_SLEW_MAX");
 
 		_initialized = true;
 	}
@@ -1059,6 +1068,24 @@ PX4FMU::cycle()
 				break;
 			}
 
+			hrt_abstime now = hrt_absolute_time();
+			float dt = (now - _time_last_mix) / 1e6f;
+			_time_last_mix = now;
+
+			if (dt < 0.0001f) {
+				dt = 0.0001f;
+
+			} else if (dt > 0.02f) {
+				dt = 0.02f;
+			}
+
+			if (_mot_t_max > FLT_EPSILON) {
+				// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+				// factor 2 is needed because actuator ouputs are in the range [-1,1]
+				float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
+				_mixers->set_max_delta_out_once(delta_out_max);
+			}
+
 			/* do mixing */
 			float outputs[_max_actuators];
 			num_outputs = _mixers->mix(outputs, num_outputs, NULL);
@@ -1160,6 +1187,23 @@ PX4FMU::cycle()
 		}
 	}
 
+#ifdef RC_SERIAL_PORT
+	/* vehicle command */
+	orb_check(_vehicle_cmd_sub, &updated);
+
+	if (updated) {
+		struct vehicle_command_s cmd;
+		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &cmd);
+
+		// Check for a DSM pairing command
+		if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+			dsm_bind_ioctl((int)cmd.param2);
+		}
+
+	}
+
+#endif
+
 	orb_check(_param_sub, &updated);
 
 	if (updated) {
@@ -1169,15 +1213,22 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 		int32_t dsm_bind_val;
-		param_t dsm_bind_param;
+		param_t param_handle;
 
 		/* see if bind parameter has been set, and reset it to -1 */
-		param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+		param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
 
 		if (dsm_bind_val > -1) {
 			dsm_bind_ioctl(dsm_bind_val);
 			dsm_bind_val = -1;
-			param_set(dsm_bind_param, &dsm_bind_val);
+			param_set(param_handle, &dsm_bind_val);
+		}
+
+		// maximum motor slew rate parameter
+		param_handle = param_find("MOT_SLEW_MAX");
+
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &_mot_t_max);
 		}
 	}
 
@@ -1230,7 +1281,7 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
+	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], sizeof(_rcs_buf) / sizeof(_rcs_buf[0]));
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
@@ -1436,6 +1487,9 @@ PX4FMU::cycle()
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
 		}
+
+	} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
+		_rc_scan_locked = false;
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
@@ -2056,7 +2110,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		PX4_INFO("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2070,7 +2124,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			dsm_bind(DSM_CMD_BIND_POWER_UP, 0);
 			usleep(72000);
 
+			irqstate_t flags = px4_enter_critical_section();
 			dsm_bind(DSM_CMD_BIND_SEND_PULSES, arg);
+			px4_leave_critical_section(flags);
 			usleep(50000);
 
 			dsm_bind(DSM_CMD_BIND_REINIT_UART, 0);
@@ -2519,6 +2575,33 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 namespace
 {
 
+void
+bind_spektrum()
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (true) {
+		PX4_INFO("bind_Spektrum RX");
+
+		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+		if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
+			PX4_ERR("binding failed.");
+		}
+
+	} else {
+		PX4_WARN("system armed, bind request rejected");
+	}
+
+	close(fd);
+
+}
+
 enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
@@ -2953,6 +3036,11 @@ fmu_main(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
 
+	if (!strcmp(verb, "bind")) {
+		bind_spektrum();
+		exit(0);
+	}
+
 	/* does not operate on a FMU instance */
 	if (!strcmp(verb, "i2c")) {
 		if (argc > 3) {
@@ -3096,7 +3184,7 @@ fmu_main(int argc, char *argv[])
 	fprintf(stderr,
 		" , mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
-	fprintf(stderr, " mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>, bind\n");
 #endif
 	fprintf(stderr, "\n");
 	exit(1);

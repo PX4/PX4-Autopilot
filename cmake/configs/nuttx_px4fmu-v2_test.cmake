@@ -76,6 +76,7 @@ set(config_module_list
 	drivers/test_ppm
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/unit_test

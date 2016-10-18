@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file controllib.cpp
+ * @file controllib_test_main.cpp
  * Unit testing for controllib.
  *
  * @author James Goppert <james.goppert@gmail.com>

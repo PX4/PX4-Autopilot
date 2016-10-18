@@ -49,10 +49,12 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	}
 
 	// update stats
-	_lidarStats.update(Scalarf(d + _lidar_z_offset.get()));
+	_lidarStats.update(Scalarf(d));
 	_time_last_lidar = _timeStamp;
 	y.setZero();
-	y(0) = d;
+	y(0) = (d + _lidar_z_offset.get()) *
+	       cosf(_sub_att.get().roll) *
+	       cosf(_sub_att.get().pitch);
 	return OK;
 }
 
@@ -62,11 +64,6 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	Vector<float, n_y_lidar> y;
 
 	if (lidarMeasure(y) != OK) { return; }
-
-	// account for leaning
-	y(0) = y(0) *
-	       cosf(_sub_att.get().roll) *
-	       cosf(_sub_att.get().pitch);
 
 	// measurement matrix
 	Matrix<float, n_y_lidar, n_x> C;

@@ -88,7 +88,9 @@ FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
+ifndef NO_NINJA_BUILD
 NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+endif
 ifdef NINJA_BUILD
     PX4_CMAKE_GENERATOR ?= "Ninja"
     PX4_MAKE = ninja
@@ -112,6 +114,12 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+# additional config parameters passed to cmake
+CMAKE_ARGS :=
+ifdef EXTERNAL_MODULES_LOCATION
+	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
+endif
+
 SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # Functions
@@ -120,7 +128,7 @@ SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) $(CMAKE_ARGS) || (cd .. && rm -rf $(BUILD_DIR)); fi
 +@echo "PX4 CONFIG: $(BUILD_DIR)"
 +@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
@@ -157,6 +165,8 @@ $(ALL_CONFIG_TARGETS):
 $(NUTTX_CONFIG_TARGETS):
 	$(call cmake-build,nuttx_$@)
 
+all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
+
 posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
 
@@ -180,16 +190,16 @@ run_sitl_plane: _sitl_deprecation
 run_sitl_ros: _sitl_deprecation
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros
+.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros all_nuttx_targets
 
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL: uavcan_firmware check check_format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check check_px4fmu-v4_default tests extra_firmware
+.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check tests extra_firmware
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -197,39 +207,36 @@ ifeq ($(VECTORCONTROL),1)
 	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
 endif
 
-checks_defaults: \
-	check_px4fmu-v1_default \
+check_px4fmu-v4_default: uavcan_firmware
+check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
+	@echo
+ifeq ($(VECTORCONTROL),1)
+	@echo "Cleaning up vectorcontrol firmware"
+	@rm -rf vectorcontrol
+	@rm -rf ROMFS/px4fmu_common/uavcan
+endif
+
+# All default targets that don't require a special build environment (currently built on semaphore-ci)
+check: 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
-	check_px4fmu-v4_default \
+	check_px4fmu-v2_test \
+	check_px4fmu-v4_default_and_uavcan \
 	check_mindpx-v2_default \
-	check_tap-v1_default
-
-checks_bootloaders: \
-
-
-checks_tests: \
-	check_px4fmu-v2_test
-
-checks_alts: \
+	check_posix_sitl_default \
+	check_tap-v1_default \
 	check_asc-v1_default \
-	check_px4-stm32f4discovery_default
-
-checks_uavcan: \
-	check_px4fmu-v4_default_and_uavcan
-
-checks_sitls: \
-	check_posix_sitl_default
-
-checks_last: \
+	check_px4-stm32f4discovery_default \
+	check_crazyflie_default \
 	check_tests \
-	check_format \
+	check_format
 
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
+# quick_check builds a single nuttx and posix target, runs testing, and checks the style
 quick_check: check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
 	@./Tools/check_code_style_all.sh
+	@git diff --check
 
 format:
 	$(call colorecho,"Formatting with astyle")
@@ -241,15 +248,6 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
-check_px4fmu-v4_default: uavcan_firmware
-check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo
-ifeq ($(VECTORCONTROL),1)
-	@echo "Cleaning up vectorcontrol firmware"
-	@rm -rf vectorcontrol
-	@rm -rf ROMFS/px4fmu_common/uavcan
-endif
-
 unittest: posix_sitl_default
 	$(call cmake-build-other,unittest, ../unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
@@ -259,7 +257,7 @@ run_tests_posix: posix_sitl_default
 
 tests: check_unittest run_tests_posix
 
-# QGroundControl flashable firmware
+# QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
@@ -268,23 +266,19 @@ qgc_firmware: \
 	check_px4fmu-v4_default_and_uavcan \
 	check_format
 
-extra_firmware: \
-	check_px4-stm32f4discovery_default \
-	check_px4fmu-v2_test
-
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
 
 clean:
 	@rm -rf build_*/
-	@$(MAKE) -C NuttX/nuttx clean
+	-@$(MAKE) -C NuttX/nuttx clean
 
 submodulesclean:
 	@git submodule sync --recursive
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean
+distclean: submodulesclean clean
 	@git clean -ff -x -d -e ".project" -e ".cproject"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.

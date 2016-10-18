@@ -23,7 +23,7 @@ set(config_module_list
 	drivers/ms5611
 	drivers/mb12xx
 	drivers/sf0x
-	drivers/ll40ls
+	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
@@ -126,12 +126,12 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	# modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+	# examples/rover_steering_control
 
 	#
 	# Demo apps

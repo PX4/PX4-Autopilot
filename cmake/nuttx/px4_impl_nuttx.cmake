@@ -389,6 +389,10 @@ endfunction()
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
 #
+#	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
+#	these flags are added before any of the object files and static libraries.
+#	Add libraries in src/firmware/nuttx/CMakeLists.txt.
+#
 #	Example:
 #		px4_os_add_flags(
 #			C_FLAGS CMAKE_C_FLAGS

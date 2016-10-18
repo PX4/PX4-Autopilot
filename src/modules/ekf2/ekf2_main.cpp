@@ -867,6 +867,13 @@ void Ekf2::task_main()
 		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 		_ekf.get_control_mode(&status.control_mode_flags);
 		_ekf.get_filter_fault_status(&status.filter_fault_flags);
+		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+						&status.vel_test_ratio, &status.pos_test_ratio,
+						&status.hgt_test_ratio, &status.tas_test_ratio,
+						&status.hagl_test_ratio);
+		bool dead_reckoning;
+		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
+		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
@@ -906,6 +913,8 @@ void Ekf2::task_main()
 		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
 		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
 		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+
+		_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
 		if (_estimator_innovations_pub == nullptr) {
 			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);

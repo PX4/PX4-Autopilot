@@ -265,12 +265,6 @@ ETSAirspeed::cycle()
 namespace ets_airspeed
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
-
 ETSAirspeed	*g_dev;
 
 void	start(int i2c_bus);

@@ -231,6 +231,7 @@ endfunction()
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
+#			[ EXTERNAL ]
 #			)
 #
 #	Input:
@@ -244,6 +245,7 @@ endfunction()
 #		SRCS			: source files
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
+#		EXTERNAL		: flag to indicate that this module is out-of-tree
 #
 #	Output:
 #		Static library with name matching MODULE.
@@ -263,8 +265,13 @@ function(px4_add_module)
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
+		OPTIONS EXTERNAL
 		REQUIRED MODULE
 		ARGN ${ARGN})
+
+	if(EXTERNAL)
+		px4_mangle_name("${EXTERNAL_MODULES_LOCATION}/src/${MODULE}" MODULE)
+	endif()
 
 	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
@@ -492,7 +499,9 @@ function(px4_add_upload)
 		list(APPEND serial_ports
 			/dev/serial/by-id/usb-3D_Robotics*
 			/dev/serial/by-id/usb-The_Autopilot*
+			/dev/serial/by-id/usb-Bitcraze*
 			/dev/serial/by-id/pci-3D_Robotics*
+			/dev/serial/by-id/pci-Bitcraze*
 			)
 	elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
 		list(APPEND serial_ports
@@ -667,7 +676,9 @@ function(px4_add_common_flags)
 
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
 		message(STATUS "address sanitizer enabled")
-		set(max_optimization -Os)
+		if ("${OS}" STREQUAL "nuttx")
+			set(max_optimization -Os)
+		endif()
 
 		# Do not use optimization_flags (without _) as that is already used.
 		set(_optimization_flags
@@ -679,7 +690,11 @@ function(px4_add_common_flags)
 			-g3 -fsanitize=address
 			)
 	else()
-		set(max_optimization -Os)
+		if ("${OS}" STREQUAL "nuttx")
+			set(max_optimization -Os)
+		else()
+			set(max_optimization -O2)
+		endif()
 
 		if ("${OS}" STREQUAL "qurt")
 			set(PIC_FLAG -fPIC)
@@ -794,9 +809,14 @@ function(px4_add_common_flags)
 
 	string(TOUPPER ${BOARD} board_upper)
 	string(REPLACE "-" "_" board_config ${board_upper})
+	set (added_target_definitions)
+	if (NOT ${target_definitions})
+	    px4_prepend_string(OUT added_target_definitions STR "-D" LIST ${target_definitions})
+	endif()
 	set(added_definitions
 		-DCONFIG_ARCH_BOARD_${board_config}
 		-D__STDC_FORMAT_MACROS
+		${added_target_definitions}
 		)
 
 	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))

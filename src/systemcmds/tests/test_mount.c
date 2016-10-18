@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
 
 #include <sys/stat.h>
 #include <dirent.h>
@@ -53,7 +54,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 const int fsync_tries = 1;
 const int abort_tries = 10;
