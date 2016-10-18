@@ -43,7 +43,6 @@ px4_add_module(
 		output_mavlink.cpp
 		output_rc.cpp
 		vmount.cpp
-		vmount_params.c
 	DEPENDS
 		platforms__common
 	)
