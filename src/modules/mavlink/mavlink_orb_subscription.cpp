@@ -50,11 +50,11 @@
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
 	next(nullptr),
 	_topic(topic),
-	_instance(instance),
 	_fd(-1),
+	_instance(instance),
 	_published(false),
-	_last_pub_check(0),
-	_subscribe_from_beginning(false)
+	_subscribe_from_beginning(false),
+	_last_pub_check(0)
 {
 }
 
