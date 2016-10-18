@@ -73,6 +73,9 @@ EstimatorInterface::EstimatorInterface():
 	_pos_ref = {};
 	memset(_mag_test_ratio, 0, sizeof(_mag_test_ratio));
 	memset(_vel_pos_test_ratio, 0, sizeof(_vel_pos_test_ratio));
+	_delta_ang_prev.setZero();
+	_delta_vel_prev.setZero();
+	memset(_vibe_metrics, 0, sizeof(_vibe_metrics));
 }
 
 EstimatorInterface::~EstimatorInterface()
@@ -109,6 +112,20 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
 	imu_sample_new.time_us = time_usec;
 	_imu_ticks++;
+
+	// calculate a metric which indicates the amount of coning vibration
+	Vector3f temp = cross_product(imu_sample_new.delta_ang , _delta_ang_prev);
+	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.length();
+
+	// calculate a metric which indiates the amount of high frequency gyro vibration
+	temp = imu_sample_new.delta_ang - _delta_ang_prev;
+	_delta_ang_prev = imu_sample_new.delta_ang;
+	_vibe_metrics[1] = 0.99f * _vibe_metrics[1] + 0.01f * temp.length();
+
+	// calculate a metric which indicates the amount of high fequency accelerometer vibration
+	temp = imu_sample_new.delta_vel - _delta_vel_prev;
+	_delta_vel_prev = imu_sample_new.delta_vel;
+	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.length();
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
 	if (collect_imu(imu_sample_new)) {

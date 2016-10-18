@@ -696,6 +696,17 @@ void Ekf::get_output_tracking_error(float error[3])
 	memcpy(error, _output_tracking_error, 3 * sizeof(float));
 }
 
+/*
+Returns  following IMU vibration metrics in the following array locations
+0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+*/
+void Ekf::get_imu_vibe_metrics(float vibe[3])
+{
+	memcpy(vibe, _vibe_metrics, 3 * sizeof(float));
+}
+
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 {

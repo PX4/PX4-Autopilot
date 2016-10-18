@@ -111,6 +111,14 @@ public:
 	// error magnitudes (rad), (m/s), (m)
 	virtual void get_output_tracking_error(float error[3]) = 0;
 
+	/*
+	Returns  following IMU vibration metrics in the following array locations
+	0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+	*/
+	virtual void get_imu_vibe_metrics(float vibe[3]) = 0;
+
 	// get the ekf WGS-84 origin positoin and height and the system time it was last set
 	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
@@ -298,6 +306,14 @@ protected:
 	float _tas_test_ratio;		// tas innovation consistency check ratio
 	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status;
+
+	// IMU vibration monitoring
+	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
+	Vector3f _delta_vel_prev;	// delta velocity from the previous IMU measurement
+	float _vibe_metrics[3];		// IMU vibration metrics
+					// [0] Level of coning vibration in the IMU delta angles (rad^2)
+					// [1] high frequency vibraton level in the IMU delta angle data (rad)
+					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
 
 	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer;
