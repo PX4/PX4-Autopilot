@@ -228,6 +228,7 @@ private:
 	orb_advert_t		_to_safety;
 	bool		_oneshot_mode;
 	hrt_abstime	_oneshot_delay_till;
+	uint16_t	_ignore_safety_mask;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
@@ -2121,6 +2122,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_ONESHOT:
 		_oneshot_mode = arg ? true : false;
+		ret = OK;
+		break;
+
+	case PWM_SERVO_IGNORE_SAFETY:
+		_ignore_safety_mask = arg;
 		ret = OK;
 		break;
 
