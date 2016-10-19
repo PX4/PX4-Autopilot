@@ -312,6 +312,7 @@ private:
 		int rc_map_kill_sw;
 		int rc_map_trans_sw;
 		int rc_map_gear_sw;
+		int rc_map_sysid_sw;
 
 		int rc_map_flaps;
 
@@ -337,6 +338,7 @@ private:
 		float rc_killswitch_th;
 		float rc_trans_th;
 		float rc_gear_th;
+		float rc_sysid_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -348,6 +350,7 @@ private:
 		bool rc_killswitch_inv;
 		bool rc_trans_inv;
 		bool rc_gear_inv;
+		bool rc_sysid_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -359,6 +362,15 @@ private:
 		float baro_qnh;
 
 		float vibration_warning_threshold;
+
+		int sid_manoeuvre;
+		float sid_amplitude;
+		float sid_on_time;
+		float sid_trim_time_b;
+		float sid_trim_time_a;
+		float sid_start_freq;
+		float sid_stop_freq;
+		float sid_ramp_slope;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -388,6 +400,7 @@ private:
 		param_t rc_map_kill_sw;
 		param_t rc_map_trans_sw;
 		param_t rc_map_gear_sw;
+		param_t rc_map_sysid_sw;
 
 		param_t rc_map_flaps;
 
@@ -417,6 +430,7 @@ private:
 		param_t rc_killswitch_th;
 		param_t rc_trans_th;
 		param_t rc_gear_th;
+		param_t rc_sysid_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -432,6 +446,15 @@ private:
 		param_t baro_qnh;
 
 		param_t vibe_thresh; /**< vibration threshold */
+
+		param_t sid_manoeuvre;
+		param_t sid_amplitude;
+		param_t sid_on_time;
+		param_t sid_trim_time_b;
+		param_t sid_trim_time_a;
+		param_t sid_start_freq;
+		param_t sid_stop_freq;
+		param_t sid_ramp_slope;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -572,6 +595,11 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main();
+
+	/**
+	 * Check if we shall perform sysID manoeuvres
+	 */
+	void check_sysid_manoeuvre(manual_control_setpoint_s *manual);
 };
 
 namespace sensors
@@ -680,6 +708,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
 	_parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
 	_parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
+	_parameter_handles.rc_map_sysid_sw = param_find("RC_MAP_SYSID_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -710,6 +739,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 	_parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
 	_parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
+	_parameter_handles.rc_sysid_th = param_find("RC_SYSID_TH");
 
 
 	/* Differential pressure offset */
@@ -735,6 +765,16 @@ Sensors::Sensors() :
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
 	_parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
+
+	/* SysID Params */
+	_parameter_handles.sid_manoeuvre = param_find("SID_MANOEUVRE");
+	_parameter_handles.sid_amplitude = param_find("SID_AMPLITUDE");
+	_parameter_handles.sid_on_time = param_find("SID_ON_TIME");
+	_parameter_handles.sid_trim_time_b = param_find("SID_TRIM_TIME_B");
+	_parameter_handles.sid_trim_time_a = param_find("SID_TRIM_TIME_A");
+	_parameter_handles.sid_start_freq = param_find("SID_START_FREQ");
+	_parameter_handles.sid_stop_freq = param_find("SID_STOP_FREQ");
+	_parameter_handles.sid_ramp_slope = param_find("SID_RAMP_SLOPE");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -935,6 +975,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_sysid_sw, &(_parameters.rc_map_sysid_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
@@ -985,6 +1029,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_gear_th, &(_parameters.rc_gear_th));
 	_parameters.rc_gear_inv = (_parameters.rc_gear_th < 0);
 	_parameters.rc_gear_th = fabs(_parameters.rc_gear_th);
+	param_get(_parameter_handles.rc_sysid_th, &(_parameters.rc_sysid_th));
+	_parameters.rc_sysid_inv = (_parameters.rc_sysid_th < 0);
+	_parameters.rc_sysid_th = fabs(_parameters.rc_sysid_th);
 
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -1002,6 +1049,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION] = _parameters.rc_map_trans_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_GEAR] = _parameters.rc_map_gear_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_SYSIDSWITCH] = _parameters.rc_map_sysid_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -1106,6 +1154,15 @@ Sensors::parameters_update()
 					 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
 
 	_board_rotation = board_rotation_offset * _board_rotation;
+
+	param_get(_parameter_handles.sid_manoeuvre, &(_parameters.sid_manoeuvre));
+	param_get(_parameter_handles.sid_amplitude, &(_parameters.sid_amplitude));
+	param_get(_parameter_handles.sid_on_time, &(_parameters.sid_on_time));
+	param_get(_parameter_handles.sid_trim_time_b, &(_parameters.sid_trim_time_b));
+	param_get(_parameter_handles.sid_trim_time_a, &(_parameters.sid_trim_time_a));
+	param_get(_parameter_handles.sid_start_freq, &(_parameters.sid_start_freq));
+	param_get(_parameter_handles.sid_stop_freq, &(_parameters.sid_stop_freq));
+	param_get(_parameter_handles.sid_ramp_slope, &(_parameters.sid_ramp_slope));
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
@@ -2210,6 +2267,11 @@ Sensors::rc_poll()
 						   _parameters.rc_trans_th, _parameters.rc_trans_inv);
 			manual.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
 					     _parameters.rc_gear_th, _parameters.rc_gear_inv);
+			manual.sysid_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_SYSIDSWITCH, _parameters.rc_sysid_th,
+					      _parameters.rc_sysid_inv);
+
+			/* Check for sysID manoeuvres */
+			check_sysid_manoeuvre(&manual);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
@@ -2671,6 +2733,203 @@ Sensors::task_main()
 
 	_sensors_task = -1;
 	px4_task_exit(ret);
+}
+
+void
+Sensors::check_sysid_manoeuvre(manual_control_setpoint_s *manual)
+{
+	static bool is_doing_manoeuvre = false;
+	static uint64_t starting_time = 0;
+	static int _prev_sysid_sw_pos = manual_control_setpoint_s::SWITCH_POS_OFF;
+	static const float tau = 6.2832f;
+
+	if ((manual->sysid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	    && (manual->sysid_switch != _prev_sysid_sw_pos)) {
+		is_doing_manoeuvre = !is_doing_manoeuvre;
+		starting_time = hrt_absolute_time();
+		//warnx("pressed");
+	}
+
+	if (is_doing_manoeuvre) {
+		float dt = static_cast<float>(hrt_absolute_time() - starting_time) / 1e6f; //calculate dt in seconds
+		float actual_ramp_time = fabsf(_parameters.sid_amplitude) * _parameters.sid_ramp_slope;
+
+		if (dt > _parameters.sid_on_time + _parameters.sid_trim_time_b + _parameters.sid_trim_time_a + 2 * actual_ramp_time) {
+			is_doing_manoeuvre = false;
+
+		} else {
+			switch (_parameters.sid_manoeuvre) {
+			// step in roll
+			case 1:
+				if (dt < _parameters.sid_trim_time_b
+				    || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b + 2.0f * actual_ramp_time) {
+					manual->y = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + actual_ramp_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b) / actual_ramp_time;
+					manual->y = _parameters.sid_amplitude * progress;
+
+				} else if (dt >  _parameters.sid_trim_time_b + actual_ramp_time + _parameters.sid_on_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b - actual_ramp_time - _parameters.sid_on_time) / actual_ramp_time;
+					manual->y = _parameters.sid_amplitude * (1.0f - progress);
+
+				} else {
+					manual->y = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			// step in pitch
+			case 2:
+				if (dt < _parameters.sid_trim_time_b
+				    || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b + 2.0f * actual_ramp_time) {
+					manual->x = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + actual_ramp_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b) / actual_ramp_time;
+					manual->x = _parameters.sid_amplitude * progress;
+
+				} else if (dt >  _parameters.sid_trim_time_b + actual_ramp_time + _parameters.sid_on_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b - actual_ramp_time - _parameters.sid_on_time) / actual_ramp_time;
+					manual->x = _parameters.sid_amplitude * (1.0f - progress);
+
+				} else {
+					manual->x = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			// step in yaw
+			case 3:
+				if (dt < _parameters.sid_trim_time_b
+				    || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b + 2.0f * actual_ramp_time) {
+					manual->r = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + actual_ramp_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b) / actual_ramp_time;
+					manual->r = _parameters.sid_amplitude * progress;
+
+				} else if (dt >  _parameters.sid_trim_time_b + actual_ramp_time + _parameters.sid_on_time && actual_ramp_time > 0.1f) {
+					float progress = (dt - _parameters.sid_trim_time_b - actual_ramp_time - _parameters.sid_on_time) / actual_ramp_time;
+					manual->r = _parameters.sid_amplitude * (1.0f - progress);
+
+				} else {
+					manual->r = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			// Step in throttle
+			case 4:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->z = 0.5f;
+
+				} else {
+					manual->z = fabsf(_parameters.sid_amplitude); //Absolute value since throttle is 0->1
+				}
+
+				break;
+
+			// Chirp in roll
+			case 5:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->y = 0.0f;
+
+				} else {
+					float progress = (dt - _parameters.sid_trim_time_b) / _parameters.sid_on_time;
+					float current_freq = _parameters.sid_start_freq + (_parameters.sid_stop_freq - _parameters.sid_start_freq) * progress;
+					manual->y = _parameters.sid_amplitude * sinf(tau * current_freq * (dt - _parameters.sid_trim_time_b));
+					//warnx("setpoint: %.4f progress: %.4f current_freq %.4f dt: %.4f", (double)manual->y, (double)progress, (double)current_freq, (double)dt);
+				}
+
+				break;
+
+			// Chirp in pitch
+			case 6:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->x = 0.0f;
+
+				} else {
+					float progress = (dt - _parameters.sid_trim_time_b) / _parameters.sid_on_time;
+					float current_freq = _parameters.sid_start_freq + (_parameters.sid_stop_freq - _parameters.sid_start_freq) * progress;
+					manual->x = _parameters.sid_amplitude * (float)sin(tau * current_freq * (dt - _parameters.sid_trim_time_b));
+				}
+
+				break;
+
+			// Chirp in yaw
+			case 7:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->r = 0.0f;
+
+				} else {
+					float progress = (dt - _parameters.sid_trim_time_b) / _parameters.sid_on_time;
+					float current_freq = _parameters.sid_start_freq + (_parameters.sid_stop_freq - _parameters.sid_start_freq) * progress;
+					manual->r = _parameters.sid_amplitude * (float)sin(tau * current_freq * (dt - _parameters.sid_trim_time_b));
+				}
+
+				break;
+
+			// 2-1-1 in roll
+			case 8:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->y = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.5f) {
+					manual->y = _parameters.sid_amplitude;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.75f) {
+					manual->y = (-1.0f) * _parameters.sid_amplitude;
+
+				} else {
+					manual->y = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			// 2-1-1 in pitch
+			case 9:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->x = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.5f) {
+					manual->x = _parameters.sid_amplitude;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.75f) {
+					manual->x = (-1.0f) * _parameters.sid_amplitude;
+
+				} else {
+					manual->x = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			// 2-1-1 in yaw
+			case 10:
+				if (dt < _parameters.sid_trim_time_b || dt > _parameters.sid_on_time + _parameters.sid_trim_time_b) {
+					manual->r = 0.0f;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.5f) {
+					manual->r = _parameters.sid_amplitude;
+
+				} else if (dt < _parameters.sid_trim_time_b + _parameters.sid_on_time * 0.75f) {
+					manual->r = (-1.0f) * _parameters.sid_amplitude;
+
+				} else {
+					manual->r = _parameters.sid_amplitude;
+				}
+
+				break;
+
+			default:
+				is_doing_manoeuvre = false;
+				break;
+			}
+		}
+
+	}
+
+	_prev_sysid_sw_pos = manual->sysid_switch;
 }
 
 int
