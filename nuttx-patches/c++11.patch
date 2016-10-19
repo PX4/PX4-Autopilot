@@ -104,36 +104,3 @@ index 67716ab..a6c6cfe 100755
 +#endif
 +/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
  #endif // __INCLUDE_CXX_CWCHAR
-diff --git NuttX/nuttx/include/wchar.h NuttX/nuttx/include/wchar.h
-index 805521f..55af8a2 100644
---- NuttX/nuttx/include/wchar.h
-+++ NuttX/nuttx/include/wchar.h
-@@ -101,9 +101,25 @@ typedef int wint_t;
- /* wctype_t
-  *   A scalar type of a data object that can hold values which represent
-  *   locale-specific character classification.
-- *
-- *   Ddefined in wctype.h.  Should be defined here.
-- *
-+ */
-+
-+ /* N.B. The following definitions are enabled at this time to allow the PX4
-+ * development to continue until there is a SAFE  solution to foreign
-+ * (non-nuttx) header file inclusion. There is a potential of a binary
-+ * incompatibility and runtime errors, memory overwrites or corruption
-+ * VVVVVVVVVVVVVVVVVVVVVVVVVV Begin Warning VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-+ */
-+#ifndef _WCTYPE_T
-+#define _WCTYPE_T
-+# ifdef _AEABI_PORTABLE
-+typedef void *wctype_t;
-+# else
-+typedef int wctype_t;
-+# endif
-+#endif /* !_WCTYPE_T */
-+/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-+
-+ /*
-  * mbstate_t
-  *   An object type other than an array type that can hold the conversion
-  *   state information necessary to convert between sequences of (possibly
