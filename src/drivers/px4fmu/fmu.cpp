@@ -1281,11 +1281,7 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-<<<<<<< f7f406c45de427793c5475eee52f8d318de5b2ee
-	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], sizeof(_rcs_buf) / sizeof(_rcs_buf[0]));
-=======
 	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
->>>>>>> Increased SBUS buffer size for more reliable SBUS and DSM parsing
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
