@@ -121,6 +121,14 @@ public:
 	// error magnitudes (rad), (m/s), (m)
 	void get_output_tracking_error(float error[3]);
 
+	/*
+	Returns  following IMU vibration metrics in the following array locations
+	0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+	*/
+	void get_imu_vibe_metrics(float vibe[3]);
+
 	// return true if the global position estimate is valid
 	bool global_position_is_valid();
 
