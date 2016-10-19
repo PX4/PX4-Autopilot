@@ -1008,7 +1008,6 @@ Mission::do_abort_landing()
 	_mission_item.altitude = alt_sp;
 	_mission_item.yaw = NAN;
 	_mission_item.loiter_radius = _navigator->get_loiter_radius();
-	_mission_item.loiter_direction = 1;
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
