@@ -105,17 +105,19 @@ index 67716ab..a6c6cfe 100755
 +/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
  #endif // __INCLUDE_CXX_CWCHAR
 diff --git NuttX/nuttx/include/wchar.h NuttX/nuttx/include/wchar.h
-index 90e3d4f..f7dee97 100644
+index 805521f..55af8a2 100644
 --- NuttX/nuttx/include/wchar.h
 +++ NuttX/nuttx/include/wchar.h
-@@ -96,7 +96,25 @@ typedef int wint_t;
+@@ -101,9 +101,25 @@ typedef int wint_t;
  /* wctype_t
   *   A scalar type of a data object that can hold values which represent
   *   locale-specific character classification.
 - *
+- *   Ddefined in wctype.h.  Should be defined here.
+- *
 + */
 +
-+/* N.B. The following definitions are enabled at this time to allow the PX4
++ /* N.B. The following definitions are enabled at this time to allow the PX4
 + * development to continue until there is a SAFE  solution to foreign
 + * (non-nuttx) header file inclusion. There is a potential of a binary
 + * incompatibility and runtime errors, memory overwrites or corruption
@@ -131,30 +133,7 @@ index 90e3d4f..f7dee97 100644
 +#endif /* !_WCTYPE_T */
 +/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 +
-+/*
++ /*
   * mbstate_t
   *   An object type other than an array type that can hold the conversion
   *   state information necessary to convert between sequences of (possibly
-@@ -105,7 +123,13 @@ typedef int wint_t;
-  *   state, the results are unspecified.
-  */
- 
--#if 0 /* Not used */
-+/* N.B. The following definitions are enabled at this time to allow the PX4
-+ * development to continue until there is a SAFE  solution to foreign
-+ * (non-nuttx) header file inclusion. There is a potential of a binary
-+ * incompatibility and runtime errors, memory overwrites or corruption
-+ * VVVVVVVVVVVVVVVVVVVVVVVVVV Begin Warning VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-+ */
-+#if __cplusplus >= 201103L
- /* Commented out because this is dangerous.  This defines a type that would
-  * be internal to some wchar implementation.  NuttX does not implement the
-  * wchar functions.  Having this definition is a time bomb:  If this header
-@@ -128,6 +152,7 @@ struct mbstate_s
- 
- typedef struct mbstate_s mbstate_t;
- #endif
-+/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
- 
- /* FILE
-  *   As described in <stdio.h>.
