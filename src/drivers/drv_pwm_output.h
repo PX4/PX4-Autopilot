@@ -248,7 +248,6 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_IGNORE_SAFETY			_PX4_IOC(_PWM_SERVO_BASE, 32)
 
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
-/** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE			0
 #define PWM_SERVO_MODE_2PWM			1
 #define PWM_SERVO_MODE_2PWM2CAP			2
@@ -262,13 +261,13 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_6CAP		       10
 #define PWM_SERVO_MODE_10PWM		11
 #define PWM_SERVO_MODE_12PWM		12
-#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 32)
+#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 33)
 
 /** enable/disable oneshot mode */
-#define PWM_SERVO_SET_ONESHOT			_PX4_IOC(_PWM_SERVO_BASE, 33)
+#define PWM_SERVO_SET_ONESHOT			_PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /** fetch PX4IO status */
-#define PWM_IO_GET_STATUS			_PX4_IOC(_PWM_SERVO_BASE, 34)
+#define PWM_IO_GET_STATUS			_PX4_IOC(_PWM_SERVO_BASE, 35)
 
 
 /*
