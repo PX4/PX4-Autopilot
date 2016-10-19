@@ -168,108 +168,109 @@ private:
 
 	parameters *_params;	// pointer to ekf parameter struct (located in _ekf class instance)
 
-	control::BlockParamFloat _mag_delay_ms;
-	control::BlockParamFloat _baro_delay_ms;
-	control::BlockParamFloat _gps_delay_ms;
-	control::BlockParamFloat _flow_delay_ms;
-	control::BlockParamFloat _rng_delay_ms;
-	control::BlockParamFloat _airspeed_delay_ms;
-	control::BlockParamFloat _ev_delay_ms;
+	control::BlockParamExtFloat _mag_delay_ms;
+	control::BlockParamExtFloat _baro_delay_ms;
+	control::BlockParamExtFloat _gps_delay_ms;
+	control::BlockParamExtFloat _flow_delay_ms;
+	control::BlockParamExtFloat _rng_delay_ms;
+	control::BlockParamExtFloat _airspeed_delay_ms;
+	control::BlockParamExtFloat _ev_delay_ms;
 
-	control::BlockParamFloat _gyro_noise;
-	control::BlockParamFloat _accel_noise;
+	control::BlockParamExtFloat _gyro_noise;
+	control::BlockParamExtFloat _accel_noise;
 
 	// process noise
-	control::BlockParamFloat _gyro_bias_p_noise;
-	control::BlockParamFloat _accel_bias_p_noise;
-	control::BlockParamFloat _mage_p_noise;
-	control::BlockParamFloat _magb_p_noise;
-	control::BlockParamFloat _wind_vel_p_noise;
-	control::BlockParamFloat _terrain_p_noise;	// terrain offset state random walk (m/s)
-	control::BlockParamFloat _terrain_gradient;	// magnitude of terrain gradient (m/m)
+	control::BlockParamExtFloat _gyro_bias_p_noise;
+	control::BlockParamExtFloat _accel_bias_p_noise;
+	control::BlockParamExtFloat _mage_p_noise;
+	control::BlockParamExtFloat _magb_p_noise;
+	control::BlockParamExtFloat _wind_vel_p_noise;
+	control::BlockParamExtFloat _terrain_p_noise;	// terrain offset state random walk (m/s)
+	control::BlockParamExtFloat _terrain_gradient;	// magnitude of terrain gradient (m/m)
 
-	control::BlockParamFloat _gps_vel_noise;
-	control::BlockParamFloat _gps_pos_noise;
-	control::BlockParamFloat _pos_noaid_noise;
-	control::BlockParamFloat _baro_noise;
-	control::BlockParamFloat _baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
-	control::BlockParamFloat _posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
-	control::BlockParamFloat _vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
-	control::BlockParamFloat _tas_innov_gate;	   // innovation gate for tas innovation test (std dev)
+	control::BlockParamExtFloat _gps_vel_noise;
+	control::BlockParamExtFloat _gps_pos_noise;
+	control::BlockParamExtFloat _pos_noaid_noise;
+	control::BlockParamExtFloat _baro_noise;
+	control::BlockParamExtFloat _baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
+	control::BlockParamExtFloat
+	_posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
+	control::BlockParamExtFloat _vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
+	control::BlockParamExtFloat _tas_innov_gate;	   // innovation gate for tas innovation test (std dev)
 
-	control::BlockParamFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
-	control::BlockParamFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
-	control::BlockParamFloat _eas_noise;			// measurement noise used for airspeed fusion (std m/s)
-	control::BlockParamFloat _mag_declination_deg;	// magnetic declination in degrees
-	control::BlockParamFloat _heading_innov_gate;	// innovation gate for heading innovation test
-	control::BlockParamFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
-	control::BlockParamInt
+	control::BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
+	control::BlockParamExtFloat _mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
+	control::BlockParamExtFloat _eas_noise;			// measurement noise used for airspeed fusion (std m/s)
+	control::BlockParamExtFloat _mag_declination_deg;	// magnetic declination in degrees
+	control::BlockParamExtFloat _heading_innov_gate;	// innovation gate for heading innovation test
+	control::BlockParamExtFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
+	control::BlockParamExtInt
 	_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
-	control::BlockParamInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
+	control::BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 
-	control::BlockParamInt _gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
-	control::BlockParamFloat _requiredEph;         // maximum acceptable horiz position error (m)
-	control::BlockParamFloat _requiredEpv;         // maximum acceptable vert position error (m)
-	control::BlockParamFloat _requiredSacc;        // maximum acceptable speed error (m/s)
-	control::BlockParamInt _requiredNsats;         // minimum acceptable satellite count
-	control::BlockParamFloat _requiredGDoP;        // maximum acceptable geometric dilution of precision
-	control::BlockParamFloat _requiredHdrift;      // maximum acceptable horizontal drift speed (m/s)
-	control::BlockParamFloat _requiredVdrift;      // maximum acceptable vertical drift speed (m/s)
-	control::BlockParamInt _param_record_replay_msg; // indicates if we want to record ekf2 replay messages
+	control::BlockParamExtInt _gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
+	control::BlockParamExtFloat _requiredEph;         // maximum acceptable horiz position error (m)
+	control::BlockParamExtFloat _requiredEpv;         // maximum acceptable vert position error (m)
+	control::BlockParamExtFloat _requiredSacc;        // maximum acceptable speed error (m/s)
+	control::BlockParamExtInt _requiredNsats;         // minimum acceptable satellite count
+	control::BlockParamExtFloat _requiredGDoP;        // maximum acceptable geometric dilution of precision
+	control::BlockParamExtFloat _requiredHdrift;      // maximum acceptable horizontal drift speed (m/s)
+	control::BlockParamExtFloat _requiredVdrift;      // maximum acceptable vertical drift speed (m/s)
+	control::BlockParamExtInt _param_record_replay_msg; // indicates if we want to record ekf2 replay messages
 
 	// measurement source control
-	control::BlockParamInt
+	control::BlockParamExtInt
 	_fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
-	control::BlockParamInt _vdist_sensor_type;	// selects the primary source for height data
+	control::BlockParamExtInt _vdist_sensor_type;	// selects the primary source for height data
 
 	// range finder fusion
-	control::BlockParamFloat _range_noise;		// observation noise for range finder measurements (m)
-	control::BlockParamFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
-	control::BlockParamFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
+	control::BlockParamExtFloat _range_noise;		// observation noise for range finder measurements (m)
+	control::BlockParamExtFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
+	control::BlockParamExtFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 
 	// vision estimate fusion
-	control::BlockParamFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
-	control::BlockParamFloat _ev_ang_noise;		// default angular observation noise for exernal vision measurements (rad)
-	control::BlockParamFloat _ev_innov_gate;	// external vision position innovation consistency gate size (STD)
+	control::BlockParamExtFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
+	control::BlockParamExtFloat _ev_ang_noise;		// default angular observation noise for exernal vision measurements (rad)
+	control::BlockParamExtFloat _ev_innov_gate;	// external vision position innovation consistency gate size (STD)
 
 	// optical flow fusion
-	control::BlockParamFloat
+	control::BlockParamExtFloat
 	_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
-	control::BlockParamFloat
+	control::BlockParamExtFloat
 	_flow_noise_qual_min;	// worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-	control::BlockParamInt _flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
-	control::BlockParamFloat _flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
-	control::BlockParamFloat _flow_rate_max;	// maximum valid optical flow rate (rad/sec)
+	control::BlockParamExtInt _flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
+	control::BlockParamExtFloat _flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
+	control::BlockParamExtFloat _flow_rate_max;	// maximum valid optical flow rate (rad/sec)
 
 	// sensor positions in body frame
-	control::BlockParamFloat _imu_pos_x;	// X position of IMU in body frame (m)
-	control::BlockParamFloat _imu_pos_y;	// Y position of IMU in body frame (m)
-	control::BlockParamFloat _imu_pos_z;	// Z position of IMU in body frame (m)
-	control::BlockParamFloat _gps_pos_x;	// X position of GPS antenna in body frame (m)
-	control::BlockParamFloat _gps_pos_y;	// Y position of GPS antenna in body frame (m)
-	control::BlockParamFloat _gps_pos_z;	// Z position of GPS antenna in body frame (m)
-	control::BlockParamFloat _rng_pos_x;	// X position of range finder in body frame (m)
-	control::BlockParamFloat _rng_pos_y;	// Y position of range finder in body frame (m)
-	control::BlockParamFloat _rng_pos_z;	// Z position of range finder in body frame (m)
-	control::BlockParamFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
-	control::BlockParamFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
-	control::BlockParamFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
-	control::BlockParamFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
-	control::BlockParamFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
-	control::BlockParamFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
+	control::BlockParamExtFloat _imu_pos_x;	// X position of IMU in body frame (m)
+	control::BlockParamExtFloat _imu_pos_y;	// Y position of IMU in body frame (m)
+	control::BlockParamExtFloat _imu_pos_z;	// Z position of IMU in body frame (m)
+	control::BlockParamExtFloat _gps_pos_x;	// X position of GPS antenna in body frame (m)
+	control::BlockParamExtFloat _gps_pos_y;	// Y position of GPS antenna in body frame (m)
+	control::BlockParamExtFloat _gps_pos_z;	// Z position of GPS antenna in body frame (m)
+	control::BlockParamExtFloat _rng_pos_x;	// X position of range finder in body frame (m)
+	control::BlockParamExtFloat _rng_pos_y;	// Y position of range finder in body frame (m)
+	control::BlockParamExtFloat _rng_pos_z;	// Z position of range finder in body frame (m)
+	control::BlockParamExtFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
+	control::BlockParamExtFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
+	control::BlockParamExtFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+	control::BlockParamExtFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
+	control::BlockParamExtFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
+	control::BlockParamExtFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
 	// control of airspeed and sideslip fusion
 	control::BlockParamFloat
 	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
 	// the minimum airspeed which will still be fused
 
 	// output predictor filter time constants
-	control::BlockParamFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
-	control::BlockParamFloat _tau_pos;	// time constant used by the output position complementary filter (s)
+	control::BlockParamExtFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
+	control::BlockParamExtFloat _tau_pos;	// time constant used by the output position complementary filter (s)
 
 	// IMU switch on bias paameters
-	control::BlockParamFloat _gyr_bias_init;	// 1-sigma gyro bias uncertainty at switch-on (rad/sec)
-	control::BlockParamFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
-	control::BlockParamFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
+	control::BlockParamExtFloat _gyr_bias_init;	// 1-sigma gyro bias uncertainty at switch-on (rad/sec)
+	control::BlockParamExtFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
+	control::BlockParamExtFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
 
 	// airspeed mode parameter
 	control::BlockParamInt _airspeed_mode;
@@ -295,81 +296,81 @@ Ekf2::Ekf2():
 	_lp_yaw_rate(250.0f, 20.0f),
 	_ekf(),
 	_params(_ekf.getParamHandle()),
-	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, &_params->mag_delay_ms),
-	_baro_delay_ms(this, "EKF2_BARO_DELAY", false, &_params->baro_delay_ms),
-	_gps_delay_ms(this, "EKF2_GPS_DELAY", false, &_params->gps_delay_ms),
-	_flow_delay_ms(this, "EKF2_OF_DELAY", false, &_params->flow_delay_ms),
-	_rng_delay_ms(this, "EKF2_RNG_DELAY", false, &_params->range_delay_ms),
-	_airspeed_delay_ms(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms),
-	_ev_delay_ms(this, "EKF2_EV_DELAY", false, &_params->ev_delay_ms),
-	_gyro_noise(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise),
-	_accel_noise(this, "EKF2_ACC_NOISE", false, &_params->accel_noise),
-	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise),
-	_accel_bias_p_noise(this, "EKF2_ACC_B_NOISE", false, &_params->accel_bias_p_noise),
-	_mage_p_noise(this, "EKF2_MAG_E_NOISE", false, &_params->mage_p_noise),
-	_magb_p_noise(this, "EKF2_MAG_B_NOISE", false, &_params->magb_p_noise),
-	_wind_vel_p_noise(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise),
-	_terrain_p_noise(this, "EKF2_TERR_NOISE", false, &_params->terrain_p_noise),
-	_terrain_gradient(this, "EKF2_TERR_GRAD", false, &_params->terrain_gradient),
-	_gps_vel_noise(this, "EKF2_GPS_V_NOISE", false, &_params->gps_vel_noise),
-	_gps_pos_noise(this, "EKF2_GPS_P_NOISE", false, &_params->gps_pos_noise),
-	_pos_noaid_noise(this, "EKF2_NOAID_NOISE", false, &_params->pos_noaid_noise),
-	_baro_noise(this, "EKF2_BARO_NOISE", false, &_params->baro_noise),
-	_baro_innov_gate(this, "EKF2_BARO_GATE", false, &_params->baro_innov_gate),
-	_posNE_innov_gate(this, "EKF2_GPS_P_GATE", false, &_params->posNE_innov_gate),
-	_vel_innov_gate(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate),
-	_tas_innov_gate(this, "EKF2_TAS_GATE", false, &_params->tas_innov_gate),
-	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise),
-	_mag_noise(this, "EKF2_MAG_NOISE", false, &_params->mag_noise),
-	_eas_noise(this, "EKF2_EAS_NOISE", false, &_params->eas_noise),
-	_mag_declination_deg(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg),
-	_heading_innov_gate(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate),
-	_mag_innov_gate(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate),
-	_mag_decl_source(this, "EKF2_DECL_TYPE", false, &_params->mag_declination_source),
-	_mag_fuse_type(this, "EKF2_MAG_TYPE", false, &_params->mag_fusion_type),
-	_gps_check_mask(this, "EKF2_GPS_CHECK", false, &_params->gps_check_mask),
-	_requiredEph(this, "EKF2_REQ_EPH", false, &_params->req_hacc),
-	_requiredEpv(this, "EKF2_REQ_EPV", false, &_params->req_vacc),
-	_requiredSacc(this, "EKF2_REQ_SACC", false, &_params->req_sacc),
-	_requiredNsats(this, "EKF2_REQ_NSATS", false, &_params->req_nsats),
-	_requiredGDoP(this, "EKF2_REQ_GDOP", false, &_params->req_gdop),
-	_requiredHdrift(this, "EKF2_REQ_HDRIFT", false, &_params->req_hdrift),
-	_requiredVdrift(this, "EKF2_REQ_VDRIFT", false, &_params->req_vdrift),
-	_param_record_replay_msg(this, "EKF2_REC_RPL", false, &_publish_replay_mode),
-	_fusion_mode(this, "EKF2_AID_MASK", false, &_params->fusion_mode),
-	_vdist_sensor_type(this, "EKF2_HGT_MODE", false, &_params->vdist_sensor_type),
-	_range_noise(this, "EKF2_RNG_NOISE", false, &_params->range_noise),
-	_range_innov_gate(this, "EKF2_RNG_GATE", false, &_params->range_innov_gate),
-	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, &_params->rng_gnd_clearance),
-	_ev_pos_noise(this, "EKF2_EVP_NOISE", false, &_default_ev_pos_noise),
-	_ev_ang_noise(this, "EKF2_EVA_NOISE", false, &_default_ev_ang_noise),
-	_ev_innov_gate(this, "EKF2_EV_GATE", false, &_params->ev_innov_gate),
-	_flow_noise(this, "EKF2_OF_N_MIN", false, &_params->flow_noise),
-	_flow_noise_qual_min(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min),
-	_flow_qual_min(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min),
-	_flow_innov_gate(this, "EKF2_OF_GATE", false, &_params->flow_innov_gate),
-	_flow_rate_max(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max),
-	_imu_pos_x(this, "EKF2_IMU_POS_X", false, &_params->imu_pos_body(0)),
-	_imu_pos_y(this, "EKF2_IMU_POS_Y", false, &_params->imu_pos_body(1)),
-	_imu_pos_z(this, "EKF2_IMU_POS_Z", false, &_params->imu_pos_body(2)),
-	_gps_pos_x(this, "EKF2_GPS_POS_X", false, &_params->gps_pos_body(0)),
-	_gps_pos_y(this, "EKF2_GPS_POS_Y", false, &_params->gps_pos_body(1)),
-	_gps_pos_z(this, "EKF2_GPS_POS_Z", false, &_params->gps_pos_body(2)),
-	_rng_pos_x(this, "EKF2_RNG_POS_X", false, &_params->rng_pos_body(0)),
-	_rng_pos_y(this, "EKF2_RNG_POS_Y", false, &_params->rng_pos_body(1)),
-	_rng_pos_z(this, "EKF2_RNG_POS_Z", false, &_params->rng_pos_body(2)),
-	_flow_pos_x(this, "EKF2_OF_POS_X", false, &_params->flow_pos_body(0)),
-	_flow_pos_y(this, "EKF2_OF_POS_Y", false, &_params->flow_pos_body(1)),
-	_flow_pos_z(this, "EKF2_OF_POS_Z", false, &_params->flow_pos_body(2)),
-	_ev_pos_x(this, "EKF2_EV_POS_X", false, &_params->ev_pos_body(0)),
-	_ev_pos_y(this, "EKF2_EV_POS_Y", false, &_params->ev_pos_body(1)),
-	_ev_pos_z(this, "EKF2_EV_POS_Z", false, &_params->ev_pos_body(2)),
+	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
+	_baro_delay_ms(this, "EKF2_BARO_DELAY", false, _params->baro_delay_ms),
+	_gps_delay_ms(this, "EKF2_GPS_DELAY", false, _params->gps_delay_ms),
+	_flow_delay_ms(this, "EKF2_OF_DELAY", false, _params->flow_delay_ms),
+	_rng_delay_ms(this, "EKF2_RNG_DELAY", false, _params->range_delay_ms),
+	_airspeed_delay_ms(this, "EKF2_ASP_DELAY", false, _params->airspeed_delay_ms),
+	_ev_delay_ms(this, "EKF2_EV_DELAY", false, _params->ev_delay_ms),
+	_gyro_noise(this, "EKF2_GYR_NOISE", false, _params->gyro_noise),
+	_accel_noise(this, "EKF2_ACC_NOISE", false, _params->accel_noise),
+	_gyro_bias_p_noise(this, "EKF2_GYR_B_NOISE", false, _params->gyro_bias_p_noise),
+	_accel_bias_p_noise(this, "EKF2_ACC_B_NOISE", false, _params->accel_bias_p_noise),
+	_mage_p_noise(this, "EKF2_MAG_E_NOISE", false, _params->mage_p_noise),
+	_magb_p_noise(this, "EKF2_MAG_B_NOISE", false, _params->magb_p_noise),
+	_wind_vel_p_noise(this, "EKF2_WIND_NOISE", false, _params->wind_vel_p_noise),
+	_terrain_p_noise(this, "EKF2_TERR_NOISE", false, _params->terrain_p_noise),
+	_terrain_gradient(this, "EKF2_TERR_GRAD", false, _params->terrain_gradient),
+	_gps_vel_noise(this, "EKF2_GPS_V_NOISE", false, _params->gps_vel_noise),
+	_gps_pos_noise(this, "EKF2_GPS_P_NOISE", false, _params->gps_pos_noise),
+	_pos_noaid_noise(this, "EKF2_NOAID_NOISE", false, _params->pos_noaid_noise),
+	_baro_noise(this, "EKF2_BARO_NOISE", false, _params->baro_noise),
+	_baro_innov_gate(this, "EKF2_BARO_GATE", false, _params->baro_innov_gate),
+	_posNE_innov_gate(this, "EKF2_GPS_P_GATE", false, _params->posNE_innov_gate),
+	_vel_innov_gate(this, "EKF2_GPS_V_GATE", false, _params->vel_innov_gate),
+	_tas_innov_gate(this, "EKF2_TAS_GATE", false, _params->tas_innov_gate),
+	_mag_heading_noise(this, "EKF2_HEAD_NOISE", false, _params->mag_heading_noise),
+	_mag_noise(this, "EKF2_MAG_NOISE", false, _params->mag_noise),
+	_eas_noise(this, "EKF2_EAS_NOISE", false, _params->eas_noise),
+	_mag_declination_deg(this, "EKF2_MAG_DECL", false, _params->mag_declination_deg),
+	_heading_innov_gate(this, "EKF2_HDG_GATE", false, _params->heading_innov_gate),
+	_mag_innov_gate(this, "EKF2_MAG_GATE", false, _params->mag_innov_gate),
+	_mag_decl_source(this, "EKF2_DECL_TYPE", false, _params->mag_declination_source),
+	_mag_fuse_type(this, "EKF2_MAG_TYPE", false, _params->mag_fusion_type),
+	_gps_check_mask(this, "EKF2_GPS_CHECK", false, _params->gps_check_mask),
+	_requiredEph(this, "EKF2_REQ_EPH", false, _params->req_hacc),
+	_requiredEpv(this, "EKF2_REQ_EPV", false, _params->req_vacc),
+	_requiredSacc(this, "EKF2_REQ_SACC", false, _params->req_sacc),
+	_requiredNsats(this, "EKF2_REQ_NSATS", false, _params->req_nsats),
+	_requiredGDoP(this, "EKF2_REQ_GDOP", false, _params->req_gdop),
+	_requiredHdrift(this, "EKF2_REQ_HDRIFT", false, _params->req_hdrift),
+	_requiredVdrift(this, "EKF2_REQ_VDRIFT", false, _params->req_vdrift),
+	_param_record_replay_msg(this, "EKF2_REC_RPL", false, _publish_replay_mode),
+	_fusion_mode(this, "EKF2_AID_MASK", false, _params->fusion_mode),
+	_vdist_sensor_type(this, "EKF2_HGT_MODE", false, _params->vdist_sensor_type),
+	_range_noise(this, "EKF2_RNG_NOISE", false, _params->range_noise),
+	_range_innov_gate(this, "EKF2_RNG_GATE", false, _params->range_innov_gate),
+	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, _params->rng_gnd_clearance),
+	_ev_pos_noise(this, "EKF2_EVP_NOISE", false, _default_ev_pos_noise),
+	_ev_ang_noise(this, "EKF2_EVA_NOISE", false, _default_ev_ang_noise),
+	_ev_innov_gate(this, "EKF2_EV_GATE", false, _params->ev_innov_gate),
+	_flow_noise(this, "EKF2_OF_N_MIN", false, _params->flow_noise),
+	_flow_noise_qual_min(this, "EKF2_OF_N_MAX", false, _params->flow_noise_qual_min),
+	_flow_qual_min(this, "EKF2_OF_QMIN", false, _params->flow_qual_min),
+	_flow_innov_gate(this, "EKF2_OF_GATE", false, _params->flow_innov_gate),
+	_flow_rate_max(this, "EKF2_OF_RMAX", false, _params->flow_rate_max),
+	_imu_pos_x(this, "EKF2_IMU_POS_X", false, _params->imu_pos_body(0)),
+	_imu_pos_y(this, "EKF2_IMU_POS_Y", false, _params->imu_pos_body(1)),
+	_imu_pos_z(this, "EKF2_IMU_POS_Z", false, _params->imu_pos_body(2)),
+	_gps_pos_x(this, "EKF2_GPS_POS_X", false, _params->gps_pos_body(0)),
+	_gps_pos_y(this, "EKF2_GPS_POS_Y", false, _params->gps_pos_body(1)),
+	_gps_pos_z(this, "EKF2_GPS_POS_Z", false, _params->gps_pos_body(2)),
+	_rng_pos_x(this, "EKF2_RNG_POS_X", false, _params->rng_pos_body(0)),
+	_rng_pos_y(this, "EKF2_RNG_POS_Y", false, _params->rng_pos_body(1)),
+	_rng_pos_z(this, "EKF2_RNG_POS_Z", false, _params->rng_pos_body(2)),
+	_flow_pos_x(this, "EKF2_OF_POS_X", false, _params->flow_pos_body(0)),
+	_flow_pos_y(this, "EKF2_OF_POS_Y", false, _params->flow_pos_body(1)),
+	_flow_pos_z(this, "EKF2_OF_POS_Z", false, _params->flow_pos_body(2)),
+	_ev_pos_x(this, "EKF2_EV_POS_X", false, _params->ev_pos_body(0)),
+	_ev_pos_y(this, "EKF2_EV_POS_Y", false, _params->ev_pos_body(1)),
+	_ev_pos_z(this, "EKF2_EV_POS_Z", false, _params->ev_pos_body(2)),
 	_arspFusionThreshold(this, "EKF2_ARSP_THR", false),
-	_tau_vel(this, "EKF2_TAU_VEL", false, &_params->vel_Tau),
-	_tau_pos(this, "EKF2_TAU_POS", false, &_params->pos_Tau),
-	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, &_params->switch_on_gyro_bias),
-	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, &_params->switch_on_accel_bias),
-	_ang_err_init(this, "EKF2_ANGERR_INIT", false, &_params->initial_tilt_err),
+	_tau_vel(this, "EKF2_TAU_VEL", false, _params->vel_Tau),
+	_tau_pos(this, "EKF2_TAU_POS", false, _params->pos_Tau),
+	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, _params->switch_on_gyro_bias),
+	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, _params->switch_on_accel_bias),
+	_ang_err_init(this, "EKF2_ANGERR_INIT", false, _params->initial_tilt_err),
 	_airspeed_mode(this, "FW_ARSP_MODE", false)
 {
 
