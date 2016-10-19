@@ -207,7 +207,7 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 				&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -235,7 +235,7 @@ MissionBlock::is_mission_item_reached()
 								_navigator->get_global_position()->alt,
 								&dist_xy, &dist_z);
 
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
@@ -244,7 +244,7 @@ MissionBlock::is_mission_item_reached()
 				}
 
 			} else {
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					_waypoint_position_reached = true;
@@ -483,9 +483,9 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
 	sp->yaw = item->yaw;
-	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
+	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
 				_navigator->get_loiter_radius();
-	sp->loiter_direction = item->loiter_direction;
+	sp->loiter_direction = (item->loiter_radius > 0) ? 1 : -1;
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
 	sp->disable_mc_yaw_control = false;
@@ -573,7 +573,6 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		item->altitude_is_relative = false;
 		item->yaw = NAN;
 		item->loiter_radius = _navigator->get_loiter_radius();
-		item->loiter_direction = 1;
 		item->acceptance_radius = _navigator->get_acceptance_radius();
 		item->time_inside = 0.0f;
 		item->pitch_min = 0.0f;
@@ -609,7 +608,6 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 	item->altitude_is_relative = false;
 	item->yaw = yaw;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->pitch_min = 0.0f;
@@ -631,7 +629,6 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->time_inside = 0.0f;
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
@@ -673,7 +670,6 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->altitude = 0;
 	item->altitude_is_relative = false;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->pitch_min = 0.0f;
@@ -691,7 +687,6 @@ MissionBlock::set_current_position_item(struct mission_item_s *item)
 	item->altitude = _navigator->get_global_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->pitch_min = 0.0f;
@@ -709,7 +704,6 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->pitch_min = 0.0f;
