@@ -2302,22 +2302,8 @@ FixedwingPositionControl::task_main()
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
 				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
 
-					// add position reset delta to previous waypoint coordinate
-					// wrap latitude value by applying an arcsinus to the sine of the latitude value
-					// this makes sure that latitude is always in the correct range of [-pi/2, pi/2]
-					// wrap longitude to the range [-pi, pi]
-					_hdg_hold_prev_wp.lat += _global_pos.delta_lat_lon[0];
-					_hdg_hold_prev_wp.lat = M_RAD_TO_DEG * asin(sin(_hdg_hold_prev_wp.lat * M_DEG_TO_RAD));
-
-					_hdg_hold_prev_wp.lon += _global_pos.delta_lat_lon[1];
-					_hdg_hold_prev_wp.lon = M_RAD_TO_DEG * matrix::wrap_pi(_hdg_hold_prev_wp.lon * M_DEG_TO_RAD);
-
-					// add position reset delta to current waypoint coordinate
-					_hdg_hold_curr_wp.lat += _global_pos.delta_lat_lon[0];
-					_hdg_hold_curr_wp.lat = M_RAD_TO_DEG * asin(sin(_hdg_hold_curr_wp.lat * M_DEG_TO_RAD));
-
-					_hdg_hold_curr_wp.lon += _global_pos.delta_lat_lon[1];
-					_hdg_hold_curr_wp.lon = M_RAD_TO_DEG * matrix::wrap_pi(_hdg_hold_curr_wp.lon * M_DEG_TO_RAD);
+					// reset heading hold flag, which will re-initialise position control
+					_hdg_hold_enabled = false;
 
 					// update reset counter
 					_pos_reset_counter = _global_pos.lat_lon_reset_counter;
