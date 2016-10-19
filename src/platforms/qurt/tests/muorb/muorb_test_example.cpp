@@ -88,7 +88,7 @@ int MuorbTestExample::DefaultTest()
 
 	int i = 0;
 	pwm.error_count++;
-	sc.gyro_errcount[i]++;
+	/*sc.gyro_errcount[i]++;*/ // no member named 'gyro_errcount' in 'sensor_combined_s'
 
 	while (!appState.exitRequested() && i < 10) {
 
@@ -184,8 +184,8 @@ int MuorbTestExample::FileReadTest()
 	static const char TEST_FILE_PATH[] = "./test.txt";
 	FILE *fp;
 	char *line = NULL;
-	size_t len = 0;
-	ssize_t read;
+	/*size_t len = 0;
+	ssize_t read;*/
 
 	fp = fopen(TEST_FILE_PATH, "r");
 
