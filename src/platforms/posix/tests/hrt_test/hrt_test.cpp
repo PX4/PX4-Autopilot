@@ -39,11 +39,13 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include "px4_log.h"
 #include <px4_time.h>
 #include <drivers/drv_hrt.h>
 #include "hrt_test.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <cstring>
 
 px4::AppState HRTTest::appState;
 
