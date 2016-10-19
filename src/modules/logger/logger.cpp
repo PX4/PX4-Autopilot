@@ -192,7 +192,7 @@ void Logger::usage(const char *reason)
 		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
 		 "\t-f\tLog until shutdown (implies -e)\n"
 		 "\t-t\tUse date/time for naming log directories and files\n"
-		 "\t-m\tMode: one of 'file', 'mavlink', 'all' (default=file)\n"
+		 "\t-m\tMode: one of 'file', 'mavlink', 'all' (default=all)\n"
 		 "\t-q\tuORB queue size for mavlink mode");
 }
 
@@ -261,7 +261,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 	bool log_name_timestamp = false;
 	unsigned int queue_size = 14; //TODO: we might be able to reduce this if mavlink polled on the topic and/or
 	// topic sizes get reduced
-	LogWriter::Backend backend = LogWriter::BackendFile;
+	LogWriter::Backend backend = LogWriter::BackendAll;
 
 	int myoptind = 1;
 	int ch;
