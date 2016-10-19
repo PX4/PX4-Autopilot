@@ -105,17 +105,17 @@ private:
 
 	static void lock()
 	{
-		do {} while (sem_wait(&_lock) != 0);
+		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
 	static void unlock()
 	{
-		sem_post(&_lock);
+		px4_sem_post(&_lock);
 	}
 
 	void publish_ack(uint16_t sequence);
 
-	static sem_t _lock;
+	static px4_sem_t _lock;
 	static bool _init;
 	static MavlinkULog *_instance;
 	static const float _rate_calculation_delta_t; ///< rate update interval

@@ -45,7 +45,7 @@
 
 bool MavlinkULog::_init = false;
 MavlinkULog *MavlinkULog::_instance = nullptr;
-sem_t MavlinkULog::_lock;
+px4_sem_t MavlinkULog::_lock;
 const float MavlinkULog::_rate_calculation_delta_t = 0.1f;
 
 
@@ -185,7 +185,7 @@ void MavlinkULog::initialize()
 	if (_init) {
 		return;
 	}
-	sem_init(&_lock, 1, 1);
+	px4_sem_init(&_lock, 1, 1);
 	_init = true;
 }
 
