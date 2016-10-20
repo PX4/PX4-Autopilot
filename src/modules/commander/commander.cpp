@@ -78,6 +78,15 @@
 #include <systemlib/state_table.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/hysteresis/hysteresis.h>
+
+#include <sys/stat.h>
+#include <string.h>
+#include <math.h>
+#include <poll.h>
+#include <float.h>
+#include <matrix/math.hpp>
+
+#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -106,7 +115,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -1114,6 +1122,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
 	case vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
+	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
+	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 		/* ignore commands that handled in low prio loop */
 		break;
 
@@ -1160,7 +1170,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.y = localPosition.y;
 	home.z = localPosition.z;
 
-	home.yaw = attitude.yaw;
+	matrix::Eulerf euler = matrix::Quatf(attitude.q);
+	home.yaw = euler.psi();
 
 	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 

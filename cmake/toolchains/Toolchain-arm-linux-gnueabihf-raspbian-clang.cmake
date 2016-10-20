@@ -56,7 +56,7 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 endforeach()
 
 add_definitions(
-	-D __RPI
+	-D __DF_RPI
 	)
 
 # where is the target environment

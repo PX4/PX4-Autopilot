@@ -167,7 +167,7 @@ class uploader(object):
         MAX_DES_LENGTH  = 20
 
         REBOOT          = b'\x30'
-        
+
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
         BL_REV_MIN      = 2              # minimum supported bootloader protocol
         BL_REV_MAX      = 5              # maximum supported bootloader protocol
@@ -177,7 +177,7 @@ class uploader(object):
 
         PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
         READ_MULTI_MAX  = 252            # protocol max is 255
-        
+
         NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
         NSH_REBOOT_BL   = b"reboot -b\n"
         NSH_REBOOT      = b"reboot\n"
@@ -330,12 +330,12 @@ class uploader(object):
 
         # send a PROG_MULTI command to write a collection of bytes
         def __program_multi(self, data):
-                
+
                 if runningPython3 == True:
                     length = len(data).to_bytes(1, byteorder='big')
                 else:
                     length = chr(len(data))
-            
+
                 self.__send(uploader.PROG_MULTI)
                 self.__send(length)
                 self.__send(data)
@@ -344,12 +344,12 @@ class uploader(object):
 
         # verify multiple bytes in flash
         def __verify_multi(self, data):
-            
+
                 if runningPython3 == True:
                     length = len(data).to_bytes(1, byteorder='big')
                 else:
                     length = chr(len(data))
-                
+
                 self.__send(uploader.READ_MULTI)
                 self.__send(length)
                 self.__send(uploader.EOC)
@@ -412,12 +412,11 @@ class uploader(object):
         def __verify_v3(self, label, fw):
                 print("\n", end='')
                 self.__drawProgressBar(label, 1, 100)
-                expect_crc = fw.crc(self.fw_maxsize)                
+                expect_crc = fw.crc(self.fw_maxsize)
                 self.__send(uploader.GET_CRC
                             + uploader.EOC)
                 report_crc = self.__recv_int()
                 self.__getSync()
-                verifyProgress = 0
                 if report_crc != expect_crc:
                         print("Expected 0x%x" % expect_crc)
                         print("Got      0x%x" % report_crc)
@@ -495,7 +494,7 @@ class uploader(object):
                     except Exception:
                             # ignore bad character encodings
                             pass
-                
+
                 self.__erase("Erase  ")
                 self.__program("Program", fw)
 
@@ -510,7 +509,7 @@ class uploader(object):
                 print("\nRebooting.\n")
                 self.__reboot()
                 self.port.close()
-                
+
         def send_reboot(self):
                 try:
                     # try MAVLINK command first
@@ -526,9 +525,11 @@ class uploader(object):
                     self.port.flush()
                     self.port.baudrate = self.baudrate_bootloader
                 except:
-                    self.port.flush()
-                    self.port.baudrate = self.baudrate_bootloader
-                    return
+                    try:
+                        self.port.flush()
+                        self.port.baudrate = self.baudrate_bootloader
+                    except Exception:
+                        pass
 
 
 # Detect python version

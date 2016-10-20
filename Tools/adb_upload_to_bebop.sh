@@ -33,6 +33,10 @@ sleep 1
 adb shell mount -o remount,rw /
 adb shell touch /home/root/parameters
 
+${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-strip \
+  -R .comment -R .gnu.version \
+  ../build_posix_bebop_default/src/firmware/posix/px4
+
 ../Tools/adb_upload.sh $@
 
 echo "Disconnecting from bebop"

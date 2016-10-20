@@ -66,7 +66,6 @@
 #include <arch/board/board.h>
 
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/mc_virtual_attitude_setpoint.h>
@@ -1195,6 +1194,22 @@ void MulticopterPositionControl::control_auto(float dt)
 			_reset_alt_sp = true;
 		}
 
+		// During a mission or in loiter it's safe to retract the landing gear.
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
+		    !_vehicle_land_detected.landed) {
+			_att_sp.landing_gear = 1.0f;
+
+			// During takeoff and landing, we better put it down again.
+
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
+			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			_att_sp.landing_gear = -1.0f;
+
+		} else {
+			// For the rest of the setpoint types, just leave it as is.
+		}
+
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
 	}
@@ -1240,8 +1255,11 @@ MulticopterPositionControl::task_main()
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 
+	// Let's be safe and have the landing gear down by default
+	_att_sp.landing_gear = -1.0f;
 
-	math::Matrix<3, 3> R;
+
+	matrix::Dcmf R;
 	R.identity();
 
 	/* wakeup source */
@@ -1391,8 +1409,9 @@ MulticopterPositionControl::task_main()
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
 				R.identity();
-				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
-				_att_sp.R_valid = true;
+				matrix::Quatf qd = R;
+				memcpy(&_att_sp.q_d[0], qd.data(), sizeof(_att_sp.q_d));
+				_att_sp.q_d_valid = true;
 
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = 0.0f;
@@ -1419,8 +1438,6 @@ MulticopterPositionControl::task_main()
 				reset_int_xy = true;
 
 				R.identity();
-				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
-				_att_sp.R_valid = true;
 
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = 0.0f;
@@ -1651,14 +1668,16 @@ MulticopterPositionControl::task_main()
 					// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
 					if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
 
+						matrix::Dcmf Rb = matrix::Quatf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
+
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
-						_vel_sp(0) = _vel(0) + (-PX4_R(_att_sp.R_body, 0,
-									       2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
-						_vel_sp(1) = _vel(1) + (-PX4_R(_att_sp.R_body, 1,
-									       2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
-						_vel_sp(2) = _vel(2) + (-PX4_R(_att_sp.R_body, 2,
-									       2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
+						_vel_sp(0) = _vel(0) + (-Rb(0,
+									    2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
+						_vel_sp(1) = _vel(1) + (-Rb(1,
+									    2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
+						_vel_sp(2) = _vel(2) + (-Rb(2,
+									    2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
 						_vel_sp_prev(0) = _vel_sp(0);
 						_vel_sp_prev(1) = _vel_sp(1);
 						_vel_sp_prev(2) = _vel_sp(2);
@@ -1904,17 +1923,13 @@ MulticopterPositionControl::task_main()
 							R(i, 2) = body_z(i);
 						}
 
-						/* copy rotation matrix to attitude setpoint topic */
-						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
-						_att_sp.R_valid = true;
-
 						/* copy quaternion setpoint to attitude setpoint topic */
-						math::Quaternion q_sp;
-						q_sp.from_dcm(R);
-						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+						matrix::Quatf q_sp = R;
+						memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+						_att_sp.q_d_valid = true;
 
 						/* calculate euler angles, for logging only, must not be used for control */
-						math::Vector<3> euler = R.to_euler();
+						matrix::Eulerf euler = R;
 						_att_sp.roll_body = euler(0);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
@@ -1922,16 +1937,12 @@ MulticopterPositionControl::task_main()
 					} else if (!_control_mode.flag_control_manual_enabled) {
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
-						R.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-
-						/* copy rotation matrix to attitude setpoint topic */
-						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
-						_att_sp.R_valid = true;
+						R = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						math::Quaternion q_sp;
-						q_sp.from_dcm(R);
-						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+						matrix::Quatf q_sp = R;
+						memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+						_att_sp.q_d_valid = true;
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -2065,15 +2076,20 @@ MulticopterPositionControl::task_main()
 					_att_sp.roll_body = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 				}
 
-				math::Matrix<3, 3> R_sp;
-				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-
 				/* copy quaternion setpoint to attitude setpoint topic */
-				math::Quaternion q_sp;
-				q_sp.from_dcm(R_sp);
-				memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+				matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+				memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+				_att_sp.q_d_valid = true;
 			}
+
+			if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+			    !_vehicle_land_detected.landed) {
+				_att_sp.landing_gear = 1.0f;
+
+			} else if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				_att_sp.landing_gear = -1.0f;
+			}
+
 
 			_att_sp.timestamp = hrt_absolute_time();
 

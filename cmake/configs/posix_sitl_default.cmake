@@ -77,6 +77,7 @@ set(config_module_list
 	examples/mc_pos_control_multiplatform
 	examples/ekf_att_pos_estimator
 	examples/attitude_estimator_ekf
+	examples/fixedwing_control
 
 	#
 	# Testing
