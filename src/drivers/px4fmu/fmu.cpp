@@ -116,6 +116,7 @@ class PX4FMU : public device::CDev
 public:
 	enum Mode {
 		MODE_NONE,
+		MODE_1PWM,
 		MODE_2PWM,
 		MODE_2PWM2CAP,
 		MODE_3PWM,
@@ -529,6 +530,15 @@ PX4FMU::set_mode(Mode mode)
 	 * are presented on the output pins.
 	 */
 	switch (mode) {
+	case MODE_1PWM:
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x1;
+		_pwm_initialized = false;
+		break;
+
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
@@ -1041,6 +1051,10 @@ PX4FMU::cycle()
 			size_t num_outputs;
 
 			switch (_mode) {
+			case MODE_1PWM:
+				num_outputs = 1;
+				break;
+
 			case MODE_2PWM:
 			case MODE_2PWM2CAP:
 				num_outputs = 2;
@@ -1588,6 +1602,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
 	switch (_mode) {
+	case MODE_1PWM:
 	case MODE_2PWM:
 	case MODE_3PWM:
 	case MODE_4PWM:
@@ -2002,6 +2017,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			*(unsigned *)arg = 2;
 			break;
 
+		case MODE_1PWM:
+			*(unsigned *)arg = 1;
+			break;
+
 		default:
 			ret = -EINVAL;
 			break;
@@ -2020,6 +2039,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			switch (arg) {
 			case 0:
 				set_mode(MODE_NONE);
+				break;
+
+			case 1:
+				set_mode(MODE_1PWM);
 				break;
 
 			case 2:
@@ -2060,6 +2083,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			switch (arg) {
 			case PWM_SERVO_MODE_NONE:
 				ret = set_mode(MODE_NONE);
+				break;
+
+			case PWM_SERVO_MODE_1PWM:
+				ret = set_mode(MODE_1PWM);
 				break;
 
 			case PWM_SERVO_MODE_2PWM:
@@ -2616,6 +2643,7 @@ enum PortMode {
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
+	PORT_PWM1,
 	PORT_PWM3CAP1,
 	PORT_PWM2CAP2,
 	PORT_CAPTURE,
@@ -2639,6 +2667,12 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 	case PORT_FULL_PWM:
+
+	case PORT_PWM1:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_1PWM;
+		break;
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
@@ -3092,7 +3126,14 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(BOARD_HAS_PWM)
+
+	} else if (!strcmp(verb, "mode_pwm1")) {
+		new_mode = PORT_PWM1;
+
+
+#elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
