@@ -417,7 +417,6 @@ class uploader(object):
                             + uploader.EOC)
                 report_crc = self.__recv_int()
                 self.__getSync()
-                verifyProgress = 0
                 if report_crc != expect_crc:
                         print("Expected 0x%x" % expect_crc)
                         print("Got      0x%x" % report_crc)
