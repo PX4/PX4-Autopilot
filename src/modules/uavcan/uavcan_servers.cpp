@@ -64,11 +64,6 @@
 
 #include <v1.0/common/mavlink.h>
 
-//todo:The Inclusion of file_server_backend is killing
-// #include <sys/types.h> and leaving OK undefined
-# define OK 0
-
-
 
 /**
  * @file uavcan_servers.cpp
@@ -283,7 +278,7 @@ int UavcanServers::init()
 
 	/*  Start the Node   */
 
-	return OK;
+	return 0;
 }
 
 pthread_addr_t UavcanServers::run(pthread_addr_t)
