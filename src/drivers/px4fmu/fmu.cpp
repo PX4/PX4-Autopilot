@@ -2324,7 +2324,7 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	uint16_t widest_pulse = 0;
 
 	for (uint8_t i = 0; i < count; i++) {
-		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
+            if (values[i] != PWM_IGNORE_THIS_CHANNEL && (((1U<<i) & _pwm_mask))) {
 			if (_safety_off || ((1U<<i) & _ignore_safety_mask)) {
 				pwm_output_set(i, values[i]);
 			} else {
@@ -2336,6 +2336,11 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 			}
 		}
 	}
+	for (uint8_t i = count; i < _max_actuators; i++) {
+            if ((1U<<i) & _pwm_mask) {
+                pwm_output_set(i, 0);
+            }
+        }
 
 	if (_oneshot_mode) {
 		up_pwm_servo_trigger(_pwm_alt_rate_channels);
