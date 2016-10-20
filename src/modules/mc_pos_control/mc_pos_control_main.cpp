@@ -66,7 +66,6 @@
 #include <arch/board/board.h>
 
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/mc_virtual_attitude_setpoint.h>
@@ -1195,6 +1194,22 @@ void MulticopterPositionControl::control_auto(float dt)
 			_reset_alt_sp = true;
 		}
 
+		// During a mission or in loiter it's safe to retract the landing gear.
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
+		    !_vehicle_land_detected.landed) {
+			_att_sp.landing_gear = 1.0f;
+
+			// During takeoff and landing, we better put it down again.
+
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
+			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			_att_sp.landing_gear = -1.0f;
+
+		} else {
+			// For the rest of the setpoint types, just leave it as is.
+		}
+
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
 	}
@@ -1239,6 +1254,9 @@ MulticopterPositionControl::task_main()
 
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
+
+	// Let's be safe and have the landing gear down by default
+	_att_sp.landing_gear = -1.0f;
 
 
 	matrix::Dcmf R;
@@ -2063,6 +2081,15 @@ MulticopterPositionControl::task_main()
 				memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
 				_att_sp.q_d_valid = true;
 			}
+
+			if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+			    !_vehicle_land_detected.landed) {
+				_att_sp.landing_gear = 1.0f;
+
+			} else if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				_att_sp.landing_gear = -1.0f;
+			}
+
 
 			_att_sp.timestamp = hrt_absolute_time();
 
