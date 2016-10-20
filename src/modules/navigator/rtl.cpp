@@ -158,7 +158,6 @@ RTL::set_rtl_item()
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -199,7 +198,6 @@ RTL::set_rtl_item()
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -245,7 +243,6 @@ RTL::set_rtl_item()
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -269,7 +266,6 @@ RTL::set_rtl_item()
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = autoland;
 		_mission_item.origin = ORIGIN_ONBOARD;
 

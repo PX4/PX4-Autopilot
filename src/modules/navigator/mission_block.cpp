@@ -559,7 +559,6 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		item->loiter_radius = _navigator->get_loiter_radius();
 		item->acceptance_radius = _navigator->get_acceptance_radius();
 		item->time_inside = 0.0f;
-		item->pitch_min = 0.0f;
 		item->autocontinue = false;
 		item->origin = ORIGIN_ONBOARD;
 	}
@@ -594,7 +593,6 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -621,7 +619,6 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance,
 	item->altitude_is_relative = false;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->time_inside = 0.0f;
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
@@ -664,7 +661,6 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -681,7 +677,6 @@ MissionBlock::set_current_position_item(struct mission_item_s *item)
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -698,7 +693,6 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }

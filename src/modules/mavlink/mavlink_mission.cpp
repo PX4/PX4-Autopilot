@@ -900,6 +900,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
+		/* this field is shared with pitch_min in memory and
+		 * exclusive in the MAVLink spec. Set it to 0 first
+		 * and then set minimum pitch later only for the
+		 * corresponding item
+		 */
 		mission_item->time_inside = 0.0f;
 
 		switch (mavlink_mission_item->command) {
