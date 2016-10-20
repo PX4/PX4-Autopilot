@@ -187,6 +187,7 @@ private:
 	struct work_s	_work;
 	int		_armed_sub;
 	int		_param_sub;
+	int		_safety_sub;
 	struct rc_input_values	_rc_in;
 	orb_advert_t	_to_input_rc;
 	orb_advert_t	_outputs_pub;
@@ -225,7 +226,7 @@ private:
 	unsigned	_num_disarmed_set;
 	bool		_safety_off;
 	bool		_safety_disabled;
-	orb_advert_t		_to_safety;
+	orb_advert_t	_to_safety;
 	bool		_oneshot_mode;
 	hrt_abstime	_oneshot_delay_till;
 	uint16_t	_ignore_safety_mask;
@@ -391,6 +392,7 @@ PX4FMU::PX4FMU() :
 	_work{},
 	_armed_sub(-1),
 	_param_sub(-1),
+	_safety_sub(-1),
 	_rc_in{},
 	_to_input_rc(nullptr),
 	_outputs_pub(nullptr),
@@ -922,9 +924,8 @@ PX4FMU::update_pwm_out_state(void)
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
 	} else {
-		_pwm_initialized = false;
 		up_pwm_servo_deinit();
-		_pwm_initialized = true;
+		_pwm_initialized = false;
 	}
 
 	up_pwm_servo_arm(on);
@@ -955,6 +956,10 @@ PX4FMU::cycle()
 #endif
 
 		_initialized = true;
+	}
+
+	if (_safety_sub == -1) {
+		_safety_sub = orb_subscribe(ORB_ID(safety));
 	}
 
 	if (_groups_subscribed != _groups_required) {
@@ -1158,7 +1163,22 @@ PX4FMU::cycle()
 		}
 	}
 
+#else
+	// slave safety from IO
+	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
+		_last_safety_check = _cycle_timestamp;
+		bool updated = false;
+		orb_check(_safety_sub, &updated);
+		if (updated) {
+			static safety_s	_safety;			
+			orb_copy(ORB_ID(safety), _safety_sub, &_safety);
+			if (_safety.safety_switch_available) {
+				_safety_off = _safety.safety_off;
+			}
+		}
+	}
 #endif
+	
 	/* check arming state */
 	bool updated = false;
 	orb_check(_armed_sub, &updated);
@@ -1170,11 +1190,10 @@ PX4FMU::cycle()
 		_throttle_armed = _safety_off && _armed.armed && !_armed.lockdown;
 
 		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = _armed.armed || _num_disarmed_set > 0;
+		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _ignore_safety_mask != 0;
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
-
 			update_pwm_out_state();
 		}
 	}
@@ -2129,6 +2148,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_IGNORE_SAFETY:
 		_ignore_safety_mask = arg;
 		ret = OK;
+		if (_ignore_safety_mask & 0xFF) {
+			_pwm_on = true;
+		}
 		break;
 
 #if defined(RC_SERIAL_PORT) && defined(GPIO_SPEKTRUM_PWR_EN)
@@ -2293,7 +2315,11 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 
 	for (uint8_t i = 0; i < count; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
-			up_pwm_servo_set(i, values[i]);
+			if (_safety_off || ((1U<<i) & _ignore_safety_mask)) {
+				up_pwm_servo_set(i, values[i]);
+			} else {
+				up_pwm_servo_set(i, 0);				
+			}
 
 			if (values[i] > widest_pulse) {
 				widest_pulse = values[i];
@@ -2937,6 +2963,7 @@ PX4FMU::status(void)
 	       (unsigned)_pwm_alt_rate_channels,
 	       (unsigned)_pwm_default_rate,
 	       (unsigned)_pwm_alt_rate);
+	printf("ignore_safety: 0x%02x\n", (unsigned)_ignore_safety_mask);
 	printf("failsafe PWM ");
 
 	for (uint8_t i = 0; i < _max_actuators; i++) {
