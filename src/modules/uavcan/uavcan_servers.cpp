@@ -403,7 +403,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					 */
 					_param_index = 0;
 					_param_list_in_progress = true;
-					_param_list_node_id = get_next_active_node_id(1);
+					_param_list_node_id = get_next_active_node_id(0);
 					_param_list_all_nodes = true;
 
 					warnx("UAVCAN command bridge: starting global param list with node %hhu", _param_list_node_id);
@@ -491,7 +491,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 						req.parameter_name = "esc_index";
 						req.timeout_sec = _esc_enumeration_active ? 65535 : 0;
-						call_res = _enumeration_client.call(get_next_active_node_id(1), req);
+						call_res = _enumeration_client.call(get_next_active_node_id(0), req);
 						if (call_res < 0) {
 							warnx("UAVCAN ESC enumeration: couldn't send initial Begin request: %d", call_res);
 							beep(BeepFrequencyError);
@@ -864,7 +864,7 @@ void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::
 		//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 		req.parameter_name = "esc_index";
 		req.timeout_sec = 0;
-		int call_res = _enumeration_client.call(get_next_active_node_id(1), req);
+		int call_res = _enumeration_client.call(get_next_active_node_id(0), req);
 		if (call_res < 0) {
 			warnx("UAVCAN ESC enumeration: couldn't send Begin request to stop enumeration: %d", call_res);
 		} else {
