@@ -223,6 +223,7 @@ sizes:
 
 checks_defaults: \
 	check_auav-x21_default \
+	check_nxphlite-v1_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
@@ -234,7 +235,6 @@ checks_defaults: \
 	check_s2740vc-v1_default \
 	check_tap-v1_default \
 	check_crazyflie_default \
-	check_nxpflite-v1_default \
 
 checks_bootloaders: \
 	check_px4cannode-v1_bootloader \
