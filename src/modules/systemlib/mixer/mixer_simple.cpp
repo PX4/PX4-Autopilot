@@ -72,6 +72,12 @@ SimpleMixer::~SimpleMixer()
 	}
 }
 
+unsigned SimpleMixer::set_trim(float trim)
+{
+	_pinfo->output_scaler.offset = trim;
+	return 1;
+}
+
 int
 SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler)
 {

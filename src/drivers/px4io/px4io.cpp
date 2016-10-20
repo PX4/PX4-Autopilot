@@ -1204,6 +1204,30 @@ PX4IO::task_main()
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
+				// update trim values
+				struct pwm_output_values pwm_values;
+
+				memset(&pwm_values, 0, sizeof(pwm_values));
+				ret = io_reg_get(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, (uint16_t *)pwm_values.values, _max_actuators);
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					int32_t ival;
+
+					/* fetch the trim values from parameters */
+					sprintf(pname, "PWM_MAIN_TRIM%u", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+
+						param_get(param_h, &ival);
+						pwm_values.values[i] = ival;
+					}
+				}
+
+				/* copy values to registers in IO */
+				ret = io_reg_set(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm_values.values, _max_actuators);
+
 				float param_val;
 				param_t parm_handle;
 
