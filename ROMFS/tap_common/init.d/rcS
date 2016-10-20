@@ -331,9 +331,19 @@ unset OUTPUT_MODE
 #
 # Start the RC input driver
 #
-if fmu mode_rcin
+if fmu mode_pwm1
 then
 fi
+
+#
+# Use 400 Hz PWM output for landing gear (frequency also affects RGB LED)
+#
+pwm rate -c 1 -r 400
+
+#
+# Load the gear mixer onto fmu
+#
+mixer load /dev/px4fmu /etc/mixers/gear.mix
 
 #
 # Start the navigator
