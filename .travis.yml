@@ -3,6 +3,9 @@
 
 language: cpp
 
+git:
+  depth: 1000
+
 matrix:
   fast_finish: true
   include:
