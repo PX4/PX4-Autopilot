@@ -195,11 +195,11 @@ run_sitl_ros: _sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 .NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check check_px4fmu-v4_default tests extra_firmware
+.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check tests extra_firmware
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -258,10 +258,13 @@ checks_last: \
 	check_tests \
 	check_format \
 
+compiler_version:
+	-arm-none-eabi-gcc --version
+
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
+check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
