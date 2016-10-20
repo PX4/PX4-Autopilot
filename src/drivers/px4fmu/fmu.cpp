@@ -421,7 +421,8 @@ PX4FMU::PX4FMU() :
 	_safety_disabled(false),
 	_to_safety(nullptr),
 	_oneshot_mode(false),
-	_oneshot_delay_till(0)
+	_oneshot_delay_till(0),
+        _ignore_safety_mask(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
