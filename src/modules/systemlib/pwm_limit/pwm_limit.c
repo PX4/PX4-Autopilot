@@ -206,15 +206,15 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 				control_value = -1.0f * control_value;
 			}
 
-			if (trim_pwm[i] == 0) {
-				effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
+//			if (trim_pwm[i] == 0) {
+			effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
 
-			} else if (control_value < 0) {
-				effective_pwm[i] = control_value * (trim_pwm[i] - min_pwm[i]) + trim_pwm[i];
-
-			} else {
-				effective_pwm[i] = control_value * (max_pwm[i] - trim_pwm[i]) + trim_pwm[i];
-			}
+//			} else if (control_value < 0) {
+//				effective_pwm[i] = control_value * (trim_pwm[i] - min_pwm[i]) + trim_pwm[i];
+//
+//			} else {
+//				effective_pwm[i] = control_value * (max_pwm[i] - trim_pwm[i]) + trim_pwm[i];
+//			}
 
 			/* last line of defense against invalid inputs */
 			if (effective_pwm[i] < min_pwm[i]) {

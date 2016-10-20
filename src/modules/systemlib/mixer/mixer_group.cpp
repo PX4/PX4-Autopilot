@@ -113,6 +113,28 @@ MixerGroup::mix(float *outputs, unsigned space, uint16_t *status_reg)
 }
 
 unsigned
+MixerGroup::set_trims(uint16_t *values, unsigned n)
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+
+	while ((mixer != nullptr) && (index < n)) {
+		/* hardwired assumption that PWM output range is [1000, 2000] usec */
+		float offset = ((float)values[index] - 1500) / 500;
+
+		/* to be safe, clamp offset to range of [-100, 100] usec */
+		if (offset < -0.2f) { offset = -0.2f; }
+
+		if (offset >  0.2f) { offset =  0.2f; }
+
+		index += mixer->set_trim(offset);
+		mixer = mixer->_next;
+	}
+
+	return index;
+}
+
+unsigned
 MixerGroup::count()
 {
 	Mixer	*mixer = _first;

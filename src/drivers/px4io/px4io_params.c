@@ -131,6 +131,94 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
 PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
 
 /**
+ * Trim value for main output channel 1
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM1, 1500);
+
+/**
+ * Trim value for main output channel 2
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM2, 1500);
+
+/**
+ * Trim value for main output channel 3
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM3, 1500);
+
+/**
+ * Trim value for main output channel 4
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM4, 1500);
+
+/**
+ * Trim value for main output channel 5
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM5, 1500);
+
+/**
+ * Trim value for main output channel 6
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM6, 1500);
+
+/**
+ * Trim value for main output channel 7
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM7, 1500);
+
+/**
+ * Trim value for main output channel 8
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_TRIM8, 1500);
+
+/**
  * S.BUS out
  *
  * Set to 1 to enable S.BUS version 1 output instead of RSSI.

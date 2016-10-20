@@ -192,6 +192,7 @@ public:
 	 */
 	virtual void 			set_max_delta_out_once(float delta_out_max) {};
 
+	virtual unsigned set_trim(float trim) = 0;
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -333,6 +334,17 @@ public:
 	 */
 	virtual void 			set_max_delta_out_once(float delta_out_max);
 
+	/*
+	 * Invoke the set_offset method of each mixer in the group
+	 * for each value in page r_page_servo_control_trim
+	 */
+	unsigned set_trims(uint16_t *v, unsigned n);
+
+	unsigned set_trim(float trim)
+	{
+		return 0;
+	}
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
@@ -369,6 +381,12 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
+	virtual void 			set_offset(float trim) {};
+	unsigned set_trim(float trim)
+	{
+		return 0;
+	}
+
 };
 
 /**
@@ -444,6 +462,8 @@ public:
 	 * @return			Zero if the mixer makes sense, nonzero otherwise.
 	 */
 	int				check();
+
+	unsigned set_trim(float trim);
 
 protected:
 
@@ -550,6 +570,11 @@ public:
 	 *
 	 */
 	virtual void 			set_max_delta_out_once(float delta_out_max) {_delta_out_max = delta_out_max;}
+
+	unsigned set_trim(float trim)
+	{
+		return _rotor_count;
+	}
 
 private:
 	float				_roll_scale;
