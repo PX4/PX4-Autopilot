@@ -525,9 +525,11 @@ class uploader(object):
                     self.port.flush()
                     self.port.baudrate = self.baudrate_bootloader
                 except:
-                    self.port.flush()
-                    self.port.baudrate = self.baudrate_bootloader
-                    return
+                    try:
+                        self.port.flush()
+                        self.port.baudrate = self.baudrate_bootloader
+                    except Exception:
+                        pass
 
 
 # Detect python version
