@@ -219,6 +219,7 @@ private:
 	static actuator_armed_s	_armed;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
+	uint16_t	_output_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
 	uint16_t	_reverse_pwm_mask;
@@ -412,6 +413,7 @@ PX4FMU::PX4FMU() :
 	_poll_fds_num(0),
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
+	_output_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
 	_num_disarmed_set(0),
@@ -911,15 +913,24 @@ PX4FMU::pwm_output_set(unsigned i, unsigned value)
 {
 	if (_pwm_initialized) {
 		up_pwm_servo_set(i, value);
+		if (i < _max_actuators) {
+			_output_pwm[i] = value;
+		}
 	}
 }
 
 void
 PX4FMU::update_pwm_out_state(void)
 {
-	bool on = _pwm_on && _servos_armed;
+	/* update PWM status if armed or if disarmed PWM values are set */
+	bool pwm_on = _servos_armed && (_safety_off || (_num_disarmed_set > 0) || _ignore_safety_mask != 0);
 
-	if (on && !_pwm_initialized && _pwm_mask != 0) {
+	if (_pwm_on == pwm_on) {
+		return;
+	}
+	_pwm_on = pwm_on;
+
+	if (_pwm_on && !_pwm_initialized && _pwm_mask != 0) {
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
@@ -928,7 +939,7 @@ PX4FMU::update_pwm_out_state(void)
 		_pwm_initialized = false;
 	}
 
-	up_pwm_servo_arm(on);
+	up_pwm_servo_arm(_pwm_on);
 }
 
 void
@@ -1161,6 +1172,8 @@ PX4FMU::cycle()
 		} else {
 			_to_safety = orb_advertise(ORB_ID(safety), &safety);
 		}
+
+		update_pwm_out_state();
 	}
 
 #else
@@ -1176,6 +1189,7 @@ PX4FMU::cycle()
 				_safety_off = _safety.safety_off;
 			}
 		}
+		update_pwm_out_state();
 	}
 #endif
 	
@@ -1189,13 +1203,7 @@ PX4FMU::cycle()
 		/* update the armed status and check that we're not locked down */
 		_throttle_armed = _safety_off && _armed.armed && !_armed.lockdown;
 
-		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _ignore_safety_mask != 0;
-
-		if (_pwm_on != pwm_on) {
-			_pwm_on = pwm_on;
-			update_pwm_out_state();
-		}
+		update_pwm_out_state();
 	}
 
 	orb_check(_param_sub, &updated);
@@ -1630,11 +1638,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety switch off */
 		_safety_off = true;
+		update_pwm_out_state();
 		break;
 
 	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		/* force safety switch on */
 		_safety_off = false;
+		update_pwm_out_state();
 		break;
 
 	case PWM_SERVO_DISARM:
@@ -1890,7 +1900,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
-			up_pwm_servo_set(cmd - PWM_SERVO_SET(0), arg);
+			pwm_output_set(cmd - PWM_SERVO_SET(0), arg);
 
 		} else {
 			ret = -EINVAL;
@@ -2149,7 +2159,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		_ignore_safety_mask = arg;
 		ret = OK;
 		if (_ignore_safety_mask & 0xFF) {
-			_pwm_on = true;
+			update_pwm_out_state();
 		}
 		break;
 
@@ -2316,9 +2326,9 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	for (uint8_t i = 0; i < count; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
 			if (_safety_off || ((1U<<i) & _ignore_safety_mask)) {
-				up_pwm_servo_set(i, values[i]);
+				pwm_output_set(i, values[i]);
 			} else {
-				up_pwm_servo_set(i, 0);				
+				pwm_output_set(i, 0);
 			}
 
 			if (values[i] > widest_pulse) {
@@ -2963,20 +2973,26 @@ PX4FMU::status(void)
 	       (unsigned)_pwm_alt_rate_channels,
 	       (unsigned)_pwm_default_rate,
 	       (unsigned)_pwm_alt_rate);
-	printf("ignore_safety: 0x%02x\n", (unsigned)_ignore_safety_mask);
-	printf("failsafe PWM ");
+	printf("ignore_safety: 0x%02x pwm_init: %s\n",
+	       (unsigned)_ignore_safety_mask,
+	       _pwm_initialized?"YES":"NO");
 
+	printf("failsafe PWM ");
 	for (uint8_t i = 0; i < _max_actuators; i++) {
 		printf("%u ", _failsafe_pwm[i]);
 	}
-
 	printf("\n");
+	
 	printf("disarmed PWM ");
-
 	for (uint8_t i = 0; i < _max_actuators; i++) {
 		printf("%u ", _disarmed_pwm[i]);
 	}
+	printf("\n");
 
+	printf("output PWM ");
+	for (uint8_t i = 0; i < _max_actuators; i++) {
+		printf("%u ", _output_pwm[i]);
+	}
 	printf("\n");
 }
 
