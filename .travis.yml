@@ -11,7 +11,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=4.8 DOCKER_REPO="px4io/px4-dev-base:2016-10-09"
+      env: GCC_VER=4.9 DOCKER_REPO="px4io/px4-dev-base:2016-10-20"
       services:
         - docker
     - os: osx
@@ -77,7 +77,7 @@ after_success:
       && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
       && mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch/;
     fi
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "4.8" ]]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "4.9" ]]; then
       export PX4_S3_DEPLOY=1;
     fi
 
@@ -120,7 +120,7 @@ deploy:
       tags: true
       all_branches: true
       repo: PX4/Firmware
-      condition: $GCC_VER = 4.8
+      condition: $GCC_VER = 4.9
 
 notifications:
   webhooks:
