@@ -47,6 +47,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <systemlib/mixer/mixer.h>
+#include <systemlib/mixer/mixer_load.h>
 #include <systemlib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
@@ -62,10 +63,10 @@ static char _device[32] = "/sys/class/pwm/pwmchip0";
 static int  _pwm_fd[NUM_PWM];
 
 static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "/home/pi/ROMFS/px4fmu_common/mixers/simple.main.mix";
+static const char *MIXER_FILENAME = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
 
 // subscriptions
-int     _controls_sub;
+int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 int     _armed_sub;
 
 // publications
@@ -73,9 +74,18 @@ orb_advert_t    _outputs_pub = nullptr;
 orb_advert_t    _rc_pub = nullptr;
 
 // topic structures
-actuator_controls_s _controls;
+actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+orb_id_t 			_controls_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 actuator_outputs_s  _outputs;
 actuator_armed_s    _armed;
+
+// polling
+uint8_t _poll_fds_num = 0;
+px4_pollfd_struct_t _poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+
+// control groups related
+uint32_t	_groups_required = 0;
+uint32_t	_groups_subscribed = 0;
 
 pwm_limit_t     _pwm_limit;
 
@@ -102,6 +112,8 @@ void send_outputs_pwm(const uint16_t *pwm);
 
 void task_main_trampoline(int argc, char *argv[]);
 
+void subscribe();
+
 void task_main(int argc, char *argv[]);
 
 /* mixer initialization */
@@ -124,59 +136,48 @@ int mixer_control_callback(uintptr_t handle,
 int initialize_mixer(const char *mixer_filename)
 {
 	char buf[4096];
-	memset(buf,' ',sizeof(buf));
 	unsigned buflen = sizeof(buf);
+	memset(buf, '\0', buflen);
+
 	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
 
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
-	int fd_load = ::open(mixer_filename, O_RDONLY);
-
-	if (fd_load != -1) {
-		int nRead = ::read(fd_load, buf, buflen);
-		close(fd_load);
-
-		if (nRead > 0) {
-			;
-
-			if (_mixer_group->load_from_buf(buf, buflen) == 0) {
-				PX4_INFO("Successfully initialized mixer from config file");
-				return 0;
-
-			} else {
-				PX4_ERR("Unable to parse from mixer config file");
-				return -1;
-			}
+	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
+		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
+			PX4_INFO("Successfully initialized mixer from config file");
+			return 0;
 
 		} else {
-			PX4_WARN("Unable to read from mixer config file");
-			return -2;
+			PX4_ERR("Unable to parse from mixer config file");
 		}
 
 	} else {
-		PX4_WARN("No mixer config file found, using default mixer.");
-
-		/* Mixer file loading failed, fall back to default mixer configuration for
-		* QUAD_X airframe. */
-		float roll_scale = 1;
-		float pitch_scale = 1;
-		float yaw_scale = 1;
-		float deadband = 0;
-		MultirotorMixer *mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-			     MultirotorGeometry::QUAD_X,
-			     roll_scale, pitch_scale, yaw_scale, deadband);
-		_mixer_group->add_mixer(mixer);
-
-		// TODO: temporary hack to make this compile
-		(void)_config_index[0];
-
-		if (_mixer_group->count() <= 0) {
-			PX4_ERR("Mixer initialization failed");
-			return -1;
-		}
-
-		return 0;
+		PX4_ERR("Unable to load config file.");
 	}
+
+	PX4_WARN("Using default mixer.");
+
+	/* Mixer file loading failed, fall back to default mixer configuration for
+	* QUAD_X airframe. */
+	float roll_scale = 1;
+	float pitch_scale = 1;
+	float yaw_scale = 1;
+	float deadband = 0;
+	MultirotorMixer *mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
+			MultirotorGeometry::QUAD_X,
+			roll_scale, pitch_scale, yaw_scale, deadband);
+	_mixer_group->add_mixer(mixer);
+
+	// TODO: temporary hack to make this compile
+	(void)_config_index[0];
+
+	if (_mixer_group->count() <= 0) {
+		PX4_ERR("Mixer initialization failed");
+		return -1;
+	}
+
+	return 0;
 }
 
 int pwm_write_sysfs(char *path, int value)
@@ -263,7 +264,34 @@ void send_outputs_pwm(const uint16_t *pwm)
 	}
 }
 
+void subscribe()
+{
+	memset(_controls, 0, sizeof(_controls));
+	memset(_poll_fds, 0, sizeof(_poll_fds));
 
+	/* set up ORB topic names */
+	_controls_topics[0] = ORB_ID(actuator_controls_0);
+	_controls_topics[1] = ORB_ID(actuator_controls_1);
+	_controls_topics[2] = ORB_ID(actuator_controls_2);
+	_controls_topics[3] = ORB_ID(actuator_controls_3);
+
+	// Subscribe for orb topics
+	for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_groups_required & (1 << i)) {
+			PX4_DEBUG("subscribe to actuator_controls_%d", i);
+			_controls_subs[i] = orb_subscribe(_controls_topics[i]);
+		}
+
+		if (_controls_subs[i] > 0) {
+			_poll_fds[_poll_fds_num].fd = _controls_subs[i];
+			_poll_fds[_poll_fds_num].events = POLLIN;
+			_poll_fds_num++;
+		}
+
+		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	}
+}
 
 void task_main(int argc, char *argv[])
 {
@@ -274,31 +302,26 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
-	// Subscribe for orb topics
-	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_3));
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
-	// Start disarmed
-	_armed.armed = false;
-	_armed.prearmed = false;
-
-	// Set up poll topic
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd     = _controls_sub;
-	fds[0].events = POLLIN;
-	/* Don't limit poll intervall for now, 250 Hz should be fine. */
-	//orb_set_interval(_controls_sub, 10);
-
 	// Set up mixer
 	if (initialize_mixer(MIXER_FILENAME) < 0) {
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
 
+	_mixer_group->groups_required(_groups_required);
+	// subscribe and set up polling
+	subscribe();
+
+	// Start disarmed
+	_armed.armed = false;
+	_armed.prearmed = false;
+
 	pwm_limit_init(&_pwm_limit);
+
 	// Main loop
 	while (!_task_should_exit) {
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
+		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
+
 		/* Timed out, do a periodic check for _task_should_exit. */
 		if (pret == 0) {
 			continue;
@@ -308,17 +331,29 @@ void task_main(int argc, char *argv[])
 		if (pret < 0) {
 			PX4_WARN("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
-			usleep(100000);
+			usleep(10000);
 			continue;
 		}
 
-		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(actuator_controls_3), _controls_sub, &_controls);
-			_outputs.timestamp = _controls.timestamp;
+		/* get controls for required topics */
+		unsigned poll_id = 0;
+
+		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_controls_subs[i] > 0) {
+				if (_poll_fds[poll_id].revents & POLLIN) {
+					orb_copy(_controls_topics[i], _controls_subs[i], &_controls[i]);
+				}
+
+				poll_id++;
+			}
+		}
+
+		if (_mixer_group != nullptr) {
+			_outputs.timestamp = hrt_absolute_time();
 			/* do mixing */
-			_outputs.noutputs = _mixer_group->mix(&_outputs.output[0],
-							_outputs.NUM_ACTUATOR_OUTPUTS,
-							NULL);
+			_outputs.noutputs = _mixer_group->mix(_outputs.output,
+							      _outputs.NUM_ACTUATOR_OUTPUTS,
+							      NULL);
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = _outputs.noutputs;
@@ -377,7 +412,13 @@ void task_main(int argc, char *argv[])
 	}
 
 	pwm_deinitialize();
-	orb_unsubscribe(_controls_sub);
+
+	for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_controls_subs[i] > 0) {
+			::close(_controls_subs[i]);
+		}
+	}
+
 	orb_unsubscribe(_armed_sub);
 
 	_is_running = false;
