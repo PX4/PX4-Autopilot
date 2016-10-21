@@ -956,7 +956,26 @@ task_main(int argc, char *argv[])
 			}
 
 #else
+			// Read the mission state and check the hash
+			struct dataman_compat_s compat_state;
+			int ret = dm_read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
+
+			bool incompat = true;
+
+			if (ret == sizeof(compat_state)) {
+
+				if (compat_state.key == DM_COMPAT_KEY) {
+					incompat = false;
+				}
+
+			}
+
 			close(g_task_fd);
+
+			if (incompat) {
+				unlink(k_data_manager_device_path);
+			}
+
 #endif
 
 		}
@@ -975,6 +994,15 @@ task_main(int argc, char *argv[])
 			PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
 			px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 			return -1;
+		}
+
+		/* Write current compat info */
+		struct dataman_compat_s compat_state;
+		compat_state.key = DM_COMPAT_KEY;
+		int ret = dm_write(DM_KEY_COMPAT, 0, DM_PERSIST_POWER_ON_RESET, &compat_state, sizeof(compat_state));
+
+		if (ret != sizeof(compat_state)) {
+			PX4_ERR("Failed writing compat.");
 		}
 
 		fsync(g_task_fd);
