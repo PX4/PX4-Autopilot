@@ -75,8 +75,9 @@ px4_systemreset(bool to_bootloader)
 		*(uint32_t *)0x40002850 = 0xb007b007;
 		stm32_pwr_enablebkp(false);
 #endif
-		up_systemreset();
 	}
+
+	up_systemreset();
 
 	/* lock up here */
 	while (true);
