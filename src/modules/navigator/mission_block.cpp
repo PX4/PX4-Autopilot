@@ -171,9 +171,25 @@ MissionBlock::is_mission_item_reached()
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
+
+			/* We want to avoid the edge case where the acceptance radius is bigger or equal than
+			 * the altitude of the takeoff waypoint above home. Otherwise, we do not really follow
+			 * take-off procedures like leaving the landing gear down. */
+
+			float takeoff_alt = _mission_item.altitude_is_relative ?
+					    _mission_item.altitude :
+					    (_mission_item.altitude - _navigator->get_home_position()->alt);
+
+			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
+
+			/* It should be safe to juse use half of the takoeff_alt as an acceptance radius. */
+			if (takeoff_alt > 0 && takeoff_alt < altitude_acceptance_radius) {
+				altitude_acceptance_radius = takeoff_alt / 2.0f;
+			}
+
 			/* require only altitude for takeoff for multicopter */
 			if (_navigator->get_global_position()->alt >
-					altitude_amsl - _navigator->get_altitude_acceptance_radius()) {
+					altitude_amsl - altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
