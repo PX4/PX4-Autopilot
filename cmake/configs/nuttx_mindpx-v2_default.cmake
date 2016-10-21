@@ -15,8 +15,8 @@ set(config_module_list
 	drivers/led
 	drivers/px4fmu
 	drivers/boards/mindpx-v2
-	#drivers/rgbled
-	drivers/rgbled_pwm
+	drivers/rgbled
+	#drivers/rgbled_pwm
 	#drivers/mpu6000
 	#drivers/mpu6050
 	drivers/mpu6500
