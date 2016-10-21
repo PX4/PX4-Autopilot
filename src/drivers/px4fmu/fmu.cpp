@@ -2668,11 +2668,6 @@ fmu_new_mode(PortMode new_mode)
 
 	case PORT_FULL_PWM:
 
-	case PORT_PWM1:
-		/* select 2-pin PWM mode */
-		servo_mode = PX4FMU::MODE_1PWM;
-		break;
-
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
@@ -2683,6 +2678,11 @@ fmu_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
+		break;
+
+	case PORT_PWM1:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
