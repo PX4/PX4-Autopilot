@@ -486,7 +486,6 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
 				_navigator->get_loiter_radius();
 	sp->loiter_direction = (item->loiter_radius > 0) ? 1 : -1;
-	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
 	sp->disable_mc_yaw_control = false;
 	sp->cruising_speed = _navigator->get_cruising_speed();
@@ -498,6 +497,9 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+		// set pitch and ensure that the hold time is zero
+		sp->pitch_min = item->pitch_min;
+		sp->time_inside = 0.0f;
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
