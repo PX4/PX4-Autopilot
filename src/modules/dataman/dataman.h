@@ -109,7 +109,7 @@ struct dataman_compat_s {
 	uint32_t key;
 };
 
-#define DM_COMPAT_KEY ((sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
+#define DM_COMPAT_KEY (1 + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
 
 /** Maximum size in bytes of a single item instance is
  * defined by adding the structure type to the union below

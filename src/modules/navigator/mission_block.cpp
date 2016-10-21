@@ -499,7 +499,6 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	case NAV_CMD_TAKEOFF:
 		// set pitch and ensure that the hold time is zero
 		sp->pitch_min = item->pitch_min;
-		sp->time_inside = 0.0f;
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
