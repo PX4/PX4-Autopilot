@@ -54,7 +54,7 @@
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
 
 /* compatible to mavlink MAV_CMD */
-typedef enum {
+enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
 	NAV_CMD_WAYPOINT = 16,
 	NAV_CMD_LOITER_UNLIMITED = 17,
@@ -80,12 +80,12 @@ typedef enum {
 	NAV_CMD_VIDEO_STOP_CAPTURE=2501,
 	NAV_CMD_DO_VTOL_TRANSITION=3000,
 	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
-} NAV_CMD;
+};
 
-typedef enum {
+enum ORIGIN {
 	ORIGIN_MAVLINK = 0,
 	ORIGIN_ONBOARD
-} ORIGIN;
+};
 
 /**
  * @addtogroup topics
@@ -113,7 +113,7 @@ struct mission_item_s {
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	ORIGIN origin;		/**< where the waypoint has been generated		*/
+	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
