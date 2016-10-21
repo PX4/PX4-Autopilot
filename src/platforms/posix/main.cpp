@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include "apps.h"
 #include "px4_middleware.h"
+#include "px4_posix.h"
+#include "px4_log.h"
 #include "DriverFramework.hpp"
 #include <termios.h>
 #include <sys/stat.h>
@@ -191,6 +193,14 @@ static void print_prompt()
 
 static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
+	static apps_map_type apps;
+	static bool initialized = false;
+
+	if (!initialized) {
+		init_app_map(apps);
+		initialized = true;
+	}
+
 	// command is appargs[0]
 	string command = appargs[0];
 
@@ -217,7 +227,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 		}
 
 	} else if (command.compare("help") == 0) {
-		list_builtins();
+		list_builtins(apps);
 
 	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing

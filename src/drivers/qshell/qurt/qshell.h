@@ -41,11 +41,10 @@
 #pragma once
 
 #include <px4_app.h>
-#include <px4_defines.h>
-#include <map>
 #include <string>
 #include <vector>
 #include "uORB/topics/qshell_req.h"
+#include "apps.h"
 
 class QShell
 {
@@ -61,6 +60,6 @@ public:
 private:
 
 	struct qshell_req_s m_qshell_req;
-	std::map<std::string, px4_main_t> apps;
+	apps_map_type m_apps;
 
 };
