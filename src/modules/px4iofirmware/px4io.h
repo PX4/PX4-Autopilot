@@ -122,7 +122,11 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_trim_roll	r_page_setup[PX4IO_P_SETUP_TRIM_ROLL]
 #define r_setup_trim_pitch	r_page_setup[PX4IO_P_SETUP_TRIM_PITCH]
 #define r_setup_trim_yaw	r_page_setup[PX4IO_P_SETUP_TRIM_YAW]
+#define r_setup_scale_roll 	r_page_setup[PX4IO_P_SETUP_SCALE_ROLL]
+#define r_setup_scale_pitch	r_page_setup[PX4IO_P_SETUP_SCALE_PITCH]
+#define r_setup_scale_yaw	r_page_setup[PX4IO_P_SETUP_SCALE_YAW]
 #define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
+#define r_setup_slew_max	r_page_setup[PX4IO_P_SETUP_MOTOR_SLEW_MAX]
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -142,6 +146,7 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
+extern float dt;
 
 /*
  * PWM limit structure

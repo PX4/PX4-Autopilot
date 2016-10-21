@@ -47,6 +47,12 @@ extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 #define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
+#ifdef __PX4_NUTTX
+#define LOG_DIR_LEN 64
+#else
+#define LOG_DIR_LEN 256
+#endif
+
 namespace px4
 {
 namespace logger
@@ -69,14 +75,18 @@ struct LoggerSubscription {
 		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			fd[i] = -1;
 		}
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			msg_ids[i] = (uint16_t) - 1;
+		}
 	}
 };
 
 class Logger
 {
 public:
-	Logger(size_t buffer_size, unsigned log_interval, bool log_on_start,
-	       bool log_until_shutdown, bool log_name_timestamp);
+	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
+	       bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
 
 	~Logger();
 
@@ -85,7 +95,7 @@ public:
 	 * before starting the logger.
 	 * @param file_name file name of the used log replay file. Will be copied.
 	 */
-	static void setReplayFile(const char *file_name);
+	void setReplayFile(const char *file_name);
 
 	/**
 	 * Add a topic to be logged. This must be called before start_log()
@@ -146,9 +156,22 @@ private:
 	 */
 	int check_free_space();
 
-	void start_log();
+	void start_log_file();
 
-	void stop_log();
+	void stop_log_file();
+
+	void start_log_mavlink();
+
+	void stop_log_mavlink();
+
+	/** check if mavlink logging can be started */
+	bool can_start_mavlink_log() const
+	{
+		return !_writer.is_started(LogWriter::BackendMavlink) && (_writer.backend() & LogWriter::BackendMavlink) != 0;
+	}
+
+	/** get the configured backend as string */
+	const char *configured_backend_mode() const;
 
 	/**
 	 * write the file header with file magic and timestamp.
@@ -169,17 +192,11 @@ private:
 	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer);
 
 	/**
-	 * Write data to the logger. Waits if buffer is full until all data is written.
-	 * Must be called with _writer.lock() held.
-	 */
-	bool write_wait(void *ptr, size_t size);
-
-	/**
-	 * Write data to the logger and handle dropouts.
+	 * Write exactly one ulog message to the logger and handle dropouts.
 	 * Must be called with _writer.lock() held.
 	 * @return true if data written, false otherwise (on overflow)
 	 */
-	bool write(void *ptr, size_t size);
+	bool write_message(void *ptr, size_t size);
 
 	/**
 	 * Get the time for log file name
@@ -198,6 +215,8 @@ private:
 
 	void add_default_topics();
 
+	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -210,15 +229,15 @@ private:
 	uint8_t						*_msg_buffer = nullptr;
 	int						_msg_buffer_len = 0;
 	bool						_task_should_exit = true;
-	char 						_log_dir[64];
+	char 						_log_dir[LOG_DIR_LEN];
+	char 						_log_file_name[32];
 	bool						_has_log_dir = false;
-	bool						_enabled = false;
 	bool						_was_armed = false;
 	bool						_arm_override;
 
 
 	// statistics
-	hrt_abstime					_start_time; ///< Time when logging started (not the logger thread)
+	hrt_abstime					_start_time_file; ///< Time when logging started, file backend (not the logger thread)
 	hrt_abstime					_dropout_start = 0; ///< start of current dropout (0 = no dropout)
 	float						_max_dropout_duration = 0.f; ///< max duration of dropout [s]
 	size_t						_write_dropouts = 0; ///< failed buffer writes due to buffer overflow
@@ -232,9 +251,8 @@ private:
 	uint32_t					_log_interval;
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
-	uint16_t					_next_topic_id; ///< id of next subscribed topic
-
-	static char		*_replay_file_name;
+	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
+	char						*_replay_file_name = nullptr;
 };
 
 } //namespace logger

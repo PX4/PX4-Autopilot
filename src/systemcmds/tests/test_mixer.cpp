@@ -58,7 +58,7 @@
 
 #include <uORB/topics/actuator_controls.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
@@ -70,6 +70,12 @@ static float actuator_controls[output_max];
 static bool should_prearm = false;
 
 #define NAN_VALUE 0.0f/0.0f
+
+#ifdef __PX4_DARWIN
+#define MIXER_DIFFERENCE_THRESHOLD 30
+#else
+#define MIXER_DIFFERENCE_THRESHOLD 2
+#endif
 
 int test_mixer(int argc, char *argv[])
 {
@@ -85,22 +91,22 @@ int test_mixer(int argc, char *argv[])
 	uint16_t servo_predicted[output_max];
 	int16_t reverse_pwm_mask = 0;
 
-	PX4_INFO("testing mixer");
+	//PX4_INFO("testing mixer");
 
+#if !defined(CONFIG_ARCH_BOARD_SITL)
 	const char *filename = "/etc/mixers/IO_pass.mix";
+#else
+	const char *filename = "ROMFS/px4fmu_test/mixers/IO_pass.mix";
+#endif
 
-	if (argc > 1) {
-		filename = argv[1];
-	}
-
-	PX4_INFO("loading: %s", filename);
+	//PX4_INFO("loading: %s", filename);
 
 	char		buf[2048];
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	unsigned loaded = strlen(buf);
 
-	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	//fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
@@ -114,11 +120,7 @@ int test_mixer(int argc, char *argv[])
 	/* load at once test */
 	unsigned xx = loaded;
 	mixer_group.load_from_buf(&buf[0], xx);
-	PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
-
-	if (mixer_group.count() != 8) {
-		return 1;
-	}
+	//ASSERT_EQ(mixer_group.count(), 8);
 
 	unsigned empty_load = 2;
 	char empty_buf[2];
@@ -126,7 +128,9 @@ int test_mixer(int argc, char *argv[])
 	empty_buf[1] = '\0';
 	mixer_group.reset();
 	mixer_group.load_from_buf(&empty_buf[0], empty_load);
-	PX4_INFO("empty buffer load: loaded %u mixers, used: %u", mixer_group.count(), empty_load);
+	//PX4_INFO("empty buffer load: loaded %u mixers, used: %u", mixer_group.count(), empty_load);
+
+	//ASSERT_NE(empty_load, 0);
 
 	if (empty_load != 0) {
 		return 1;
@@ -140,7 +144,7 @@ int test_mixer(int argc, char *argv[])
 
 	unsigned transmitted = 0;
 
-	PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
+	//PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
 
 	while (transmitted < loaded) {
 
@@ -155,7 +159,7 @@ int test_mixer(int argc, char *argv[])
 		memcpy(&mixer_text[mixer_text_length], &buf[transmitted], text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		fprintf(stderr, "buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
+		//fprintf(stderr, "buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -163,7 +167,7 @@ int test_mixer(int argc, char *argv[])
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			fprintf(stderr, "used %u", mixer_text_length - resid);
+			//fprintf(stderr, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -176,7 +180,7 @@ int test_mixer(int argc, char *argv[])
 		transmitted += text_length;
 	}
 
-	PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
+	//PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
 
 	if (mixer_group.count() != 8) {
 		return 1;
@@ -198,7 +202,8 @@ int test_mixer(int argc, char *argv[])
 		r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
 	}
 
-	PX4_INFO("PRE-ARM TEST: DISABLING SAFETY");
+	//PX4_INFO("PRE-ARM TEST: DISABLING SAFETY");
+
 	/* mix */
 	should_prearm = true;
 	mixed = mixer_group.mix(&outputs[0], output_max, NULL);
@@ -209,7 +214,7 @@ int test_mixer(int argc, char *argv[])
 	//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 	for (unsigned i = 0; i < mixed; i++) {
 
-		fprintf(stderr, "pre-arm:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
+		//fprintf(stderr, "pre-arm:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
@@ -233,7 +238,7 @@ int test_mixer(int argc, char *argv[])
 		actuator_controls[i] = 0.1f;
 	}
 
-	PX4_INFO("ARMING TEST: STARTING RAMP");
+	//PX4_INFO("ARMING TEST: STARTING RAMP");
 	unsigned sleep_quantum_us = 10000;
 
 	hrt_abstime starttime = hrt_absolute_time();
@@ -250,7 +255,7 @@ int test_mixer(int argc, char *argv[])
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 		for (unsigned i = 0; i < mixed; i++) {
 
-			fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
+			//fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			/* check mixed outputs to be zero during init phase */
 			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
@@ -274,7 +279,7 @@ int test_mixer(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("ARMING TEST: NORMAL OPERATION");
+	//PX4_INFO("ARMING TEST: NORMAL OPERATION");
 
 	for (int j = -jmax; j <= jmax; j++) {
 
@@ -292,12 +297,12 @@ int test_mixer(int argc, char *argv[])
 			       r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
-		fprintf(stderr, "mixed %d outputs (max %d)", mixed, output_max);
+		//fprintf(stderr, "mixed %d outputs (max %d)", mixed, output_max);
 
 		for (unsigned i = 0; i < mixed; i++) {
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 
-			if (abs(servo_predicted[i] - r_page_servos[i]) > 2) {
+			if (abs(servo_predicted[i] - r_page_servos[i]) > MIXER_DIFFERENCE_THRESHOLD) {
 				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
 					(int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
@@ -306,7 +311,7 @@ int test_mixer(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("ARMING TEST: DISARMING");
+	//PX4_INFO("ARMING TEST: DISARMING");
 
 	starttime = hrt_absolute_time();
 	sleepcount = 0;
@@ -324,7 +329,7 @@ int test_mixer(int argc, char *argv[])
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 		for (unsigned i = 0; i < mixed; i++) {
 
-			fprintf(stderr, "disarmed:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
+			//fprintf(stderr, "disarmed:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			/* check mixed outputs to be zero during init phase */
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
@@ -337,14 +342,14 @@ int test_mixer(int argc, char *argv[])
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
-			printf(".");
-			fflush(stdout);
+			//printf(".");
+			//fflush(stdout);
 		}
 	}
 
-	printf("\n");
+	//printf("\n");
 
-	PX4_INFO("ARMING TEST: REARMING: STARTING RAMP");
+	//PX4_INFO("ARMING TEST: REARMING: STARTING RAMP");
 
 	starttime = hrt_absolute_time();
 	sleepcount = 0;
@@ -366,7 +371,7 @@ int test_mixer(int argc, char *argv[])
 
 			/* check ramp */
 
-			fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
+			//fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
 
 			if (hrt_elapsed_time(&starttime) < RAMP_TIME_US &&
 			    (r_page_servos[i] + 1 <= r_page_servo_disarmed[i] ||
@@ -388,46 +393,42 @@ int test_mixer(int argc, char *argv[])
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
-			printf(".");
-			fflush(stdout);
+			//	printf(".");
+			//	fflush(stdout);
 		}
 	}
 
-	printf("\n");
+	//printf("\n");
 
 	/* load multirotor at once test */
 	mixer_group.reset();
 
-	if (argc > 2) {
-		filename = argv[2];
-
-	} else {
-		filename = "/etc/mixers/quad_test.mix";
-	}
+#if !defined(CONFIG_ARCH_BOARD_SITL)
+	filename = "/etc/mixers/quad_test.mix";
+#else
+	filename = "ROMFS/px4fmu_test/mixers/quad_test.mix";
+#endif
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	loaded = strlen(buf);
 
-	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	//fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	unsigned mc_loaded = loaded;
 	mixer_group.load_from_buf(&buf[0], mc_loaded);
-	PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
+	//PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
 
 	if (mixer_group.count() != 5) {
 		PX4_ERR("FAIL: Quad test mixer load failed");
 		return 1;
 	}
 
-	PX4_INFO("SUCCESS: No errors in mixer test");
+	//PX4_INFO("SUCCESS: No errors in mixer test");
 	return 0;
 }
 
 static int
-mixer_callback(uintptr_t handle,
-	       uint8_t control_group,
-	       uint8_t control_index,
-	       float &control)
+mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control)
 {
 	if (control_group != 0) {
 		return -1;

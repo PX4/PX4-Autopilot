@@ -93,6 +93,9 @@ private:
 	/* Do a calculation of the CPU load and publish it. */
 	void _compute();
 
+	/* Calculate the memory usage */
+	float _ram_used();
+
 	bool _taskShouldExit;
 	bool _taskIsRunning;
 	struct work_s _work;
@@ -163,6 +166,7 @@ void LoadMon::_compute()
 
 	_cpuload.timestamp = hrt_absolute_time();
 	_cpuload.load = 1.0f - (float)interval_idletime / (float)LOAD_MON_INTERVAL_US;
+	_cpuload.ram_usage = _ram_used();
 
 	if (_cpuload_pub == nullptr) {
 		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &_cpuload);
@@ -172,7 +176,34 @@ void LoadMon::_compute()
 	}
 }
 
+float LoadMon::_ram_used()
+{
+#ifdef __PX4_NUTTX
+	struct mallinfo mem;
 
+#ifdef CONFIG_CAN_PASS_STRUCTS
+	mem = mallinfo();
+#else
+	(void)mallinfo(&mem);
+#endif
+
+	// mem.arena: total ram (bytes)
+	// mem.uordblks: used (bytes)
+	// mem.fordblks: free (bytes)
+	// mem.mxordblk: largest remaining block (bytes)
+
+	float load = (float)mem.uordblks / mem.arena;
+
+	// Check for corruption of the allocation counters
+	if ((mem.arena > CONFIG_DRAM_SIZE) || (mem.fordblks > CONFIG_DRAM_SIZE)) {
+		load = 1.0f;
+	}
+
+	return load;
+#else
+	return 0.0f;
+#endif
+}
 
 /**
  * Print the correct usage.

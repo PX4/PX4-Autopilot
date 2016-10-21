@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__batt_smbus
 	MAIN batt_smbus
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		batt_smbus.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -43,10 +43,10 @@ import subprocess
 # If the following lines were pasted into the shell after running decode_backtrace.py
 #
 # INFO  Backtrace: 10
-# INFO  ./mainapp(px4_backtrace+0x27) [0x42b212]
-# INFO  ./mainapp() [0x42d608]
-# INFO  ./mainapp() [0x42d57e]
-# INFO  ./mainapp() [0x4ba48d]
+# INFO  ./px4(px4_backtrace+0x27) [0x42b212]
+# INFO  ./px4() [0x42d608]
+# INFO  ./px4() [0x42d57e]
+# INFO  ./px4() [0x4ba48d]
 #
 # The output would be:
 #
@@ -63,7 +63,7 @@ def usage():
 	msg = """
 Usage: Tools/decode_backtrace.py <builddir>
 
-This will load the symbols for <builddir>/src/firmware/posix/mainapp
+This will load the symbols for <builddir>/src/firmware/posix/px4
 The user just needs to copy and paste the backtrace into the terminal
 where decode_backtrace.py is running.
 
@@ -75,7 +75,7 @@ func = []
 
 # Load the symbols from the binary
 def load_symbol_map():
-	output = subprocess.check_output(["nm", "-p", "-C", os.sys.argv[1]+"/src/firmware/posix/mainapp"])
+	output = subprocess.check_output(["nm", "-p", "-C", os.sys.argv[1]+"/src/firmware/posix/px4"])
 	data = output.split("\n")
 	data.sort()
 

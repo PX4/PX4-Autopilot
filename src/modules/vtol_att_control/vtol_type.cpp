@@ -66,7 +66,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_local_pos = _attc->get_local_pos();
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
-	_vehicle_status = _attc->get_vehicle_status();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
@@ -84,8 +83,6 @@ VtolType::~VtolType()
 */
 void VtolType::set_idle_mc()
 {
-	int ret;
-	unsigned servo_count;
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
@@ -93,7 +90,8 @@ void VtolType::set_idle_mc()
 		PX4_WARN("can't open %s", dev);
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	unsigned servo_count;
+	int ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
@@ -119,7 +117,6 @@ void VtolType::set_idle_mc()
 */
 void VtolType::set_idle_fw()
 {
-	int ret;
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
@@ -137,7 +134,7 @@ void VtolType::set_idle_fw()
 		pwm_values.channel_count++;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {
 		PX4_WARN("failed setting min values");
@@ -173,32 +170,35 @@ void VtolType::update_fw_state()
 		_tecs_running_ts = hrt_absolute_time();
 	}
 
-	// tecs didn't publish yet or the position controller didn't publish yet AFTER tecs
-	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
+	// TECS didn't publish yet or the position controller didn't publish yet AFTER tecs
+	// only wait on TECS we're in a mode where it is actually running
+	if ((!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts))
+	    && _v_control_mode->flag_control_altitude_enabled) {
+
 		waiting_on_tecs();
 	}
 
-	// quadchute
-	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
-		if (-(_local_pos->z) < _params->fw_min_alt) {
-			_attc->abort_front_transition();
-		}
-	}
-
+	check_quadchute_condition();
 }
 
 void VtolType::update_transition_state()
 {
-	// quadchute
-	if (_params->fw_min_alt > FLT_EPSILON && _armed->armed) {
-		if (-(_local_pos->z) < _params->fw_min_alt) {
-			_attc->abort_front_transition();
-		}
-	}
-
+	check_quadchute_condition();
 }
 
 bool VtolType::can_transition_on_ground()
 {
 	return !_armed->armed || _land_detected->landed;
+}
+
+void VtolType::check_quadchute_condition()
+{
+	// fixed-wing minimum altitude, armed, !landed
+	if (_params->fw_min_alt > FLT_EPSILON
+	    && _armed->armed && !_land_detected->landed) {
+
+		if (-(_local_pos->z) < _params->fw_min_alt) {
+			_attc->abort_front_transition("Minimum altitude");
+		}
+	}
 }

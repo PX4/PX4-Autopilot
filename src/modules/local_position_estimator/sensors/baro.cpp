@@ -21,7 +21,7 @@ void BlockLocalPositionEstimator::baroInit()
 
 	// if finished
 	if (_baroStats.getCount() > REQ_BARO_INIT_COUNT) {
-		_baroAltHome = _baroStats.getMean()(0);
+		_baroAltOrigin = _baroStats.getMean()(0);
 		mavlink_and_console_log_info(&mavlink_log_pub,
 					     "[lpe] baro init %d m std %d cm",
 					     (int)_baroStats.getMean()(0),
@@ -29,10 +29,9 @@ void BlockLocalPositionEstimator::baroInit()
 		_baroInitialized = true;
 		_baroFault = FAULT_NONE;
 
-		// only initialize alt home with baro if gps is disabled
-		if (!_altHomeInitialized && !_gps_on.get()) {
-			_altHomeInitialized = true;
-			_altHome = _baroAltHome;
+		if (!_altOriginInitialized) {
+			_altOriginInitialized = true;
+			_altOrigin = _baroAltOrigin;
 		}
 	}
 }
@@ -41,7 +40,7 @@ int BlockLocalPositionEstimator::baroMeasure(Vector<float, n_y_baro> &y)
 {
 	//measure
 	y.setZero();
-	y(0) = _sub_sensor.get().baro_alt_meter[0];
+	y(0) = _sub_sensor.get().baro_alt_meter;
 	_baroStats.update(y);
 	_time_last_baro = _timeStamp;
 	return OK;
@@ -54,8 +53,8 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	if (baroMeasure(y) != OK) { return; }
 
-	// subtract baro home alt
-	y -= _baroAltHome;
+	// subtract baro origin alt
+	y -= _baroAltOrigin;
 
 	// baro measurement matrix
 	Matrix<float, n_y_baro, n_x> C;
@@ -76,8 +75,11 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	if (beta > BETA_TABLE[n_y_baro]) {
 		if (_baroFault < FAULT_MINOR) {
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
-			//double(r(0)), double(beta));
+			if (beta > 2.0f * BETA_TABLE[n_y_baro]) {
+				mavlink_log_critical(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
+						     double(r(0)), double(beta));
+			}
+
 			_baroFault = FAULT_MINOR;
 		}
 
@@ -90,14 +92,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 	if (_baroFault < fault_lvl_disable) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-
-		if (!_canEstimateXY) {
-			dx(X_x) = 0;
-			dx(X_y) = 0;
-			dx(X_vx) = 0;
-			dx(X_vy) = 0;
-		}
-
+		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}

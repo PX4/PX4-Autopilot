@@ -63,6 +63,14 @@ class XMLOutput():
                         xml_value = ET.SubElement(xml_values, "value")
                         xml_value.attrib["code"] = code;
                         xml_value.text = param.GetEnumValue(code)
+
+                if len(param.GetBitmaskList()) > 0:
+                    xml_values = ET.SubElement(xml_param, "bitmask")
+                    for index in param.GetBitmaskList():
+                        xml_value = ET.SubElement(xml_values, "bit")
+                        xml_value.attrib["index"] = index;
+                        xml_value.text = param.GetBitmaskBit(index)
+
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
 

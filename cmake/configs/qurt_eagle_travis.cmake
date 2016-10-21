@@ -5,9 +5,9 @@ set(CONFIG_SHMEM "1")
 # Run a full link with build stubs to make sure qurt target isn't broken
 set(QURT_ENABLE_STUBS "1")
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
@@ -35,12 +35,12 @@ set(config_module_list
 	systemcmds/mixer
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
-	#modules/attitude_estimator_ekf
-	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
+	modules/local_position_estimator
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -56,7 +56,6 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-	modules/load_mon
 
 	#
 	# Libraries

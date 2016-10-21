@@ -79,7 +79,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_airspeed_sub(-1),
 	_battery_status_sub(-1),
 	_vehicle_cmd_sub(-1),
-	_vehicle_status_sub(-1),
 	_tecs_status_sub(-1),
 	_land_detected_sub(-1),
 
@@ -89,7 +88,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vtol_vehicle_status_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_v_att_sp_pub(nullptr),
-
+	_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
 	_abort_front_transition(false)
 
 {
@@ -104,7 +103,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	memset(&_vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	memset(&_actuators_out_0, 0, sizeof(_actuators_out_0));
 	memset(&_actuators_out_1, 0, sizeof(_actuators_out_1));
 	memset(&_actuators_mc_in, 0, sizeof(_actuators_mc_in));
@@ -114,7 +112,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_airspeed, 0, sizeof(_airspeed));
 	memset(&_batt_status, 0, sizeof(_batt_status));
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
-	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_tecs_status, 0, sizeof(_tecs_status));
 	memset(&_land_detected, 0, sizeof(_land_detected));
 
@@ -418,21 +415,6 @@ VtolAttitudeControl::vehicle_cmd_poll()
 }
 
 /**
-* Check for vehicle status updates.
-*/
-void
-VtolAttitudeControl::vehicle_status_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub , &_vehicle_status);
-	}
-}
-
-/**
 * Check for TECS status updates.
 */
 void
@@ -481,11 +463,15 @@ VtolAttitudeControl::handle_command()
 bool
 VtolAttitudeControl::is_fixed_wing_requested()
 {
-	bool to_fw = _manual_control_sp.aux1 > 0.0f;
+	bool to_fw = false;
 
-	// listen to transition commands if not in manual
-	if (!_v_control_mode.flag_control_manual_enabled) {
-		to_fw = _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
+	    _v_control_mode.flag_control_manual_enabled) {
+		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+
+	} else {
+		// listen to transition commands if not in manual or mode switch is not mapped
+		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	}
 
 	// handle abort request
@@ -507,10 +493,10 @@ VtolAttitudeControl::is_fixed_wing_requested()
  * Abort front transition
  */
 void
-VtolAttitudeControl::abort_front_transition()
+VtolAttitudeControl::abort_front_transition(const char *reason)
 {
 	if (!_abort_front_transition) {
-		mavlink_log_critical(&_mavlink_log_pub, "Transition timeout or FW min alt occured, aborting");
+		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
 		_abort_front_transition = true;
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
@@ -581,6 +567,7 @@ VtolAttitudeControl::parameters_update()
 */
 void VtolAttitudeControl::fill_mc_att_rates_sp()
 {
+	_v_rates_sp.timestamp 	= _mc_virtual_v_rates_sp.timestamp;
 	_v_rates_sp.roll 	= _mc_virtual_v_rates_sp.roll;
 	_v_rates_sp.pitch 	= _mc_virtual_v_rates_sp.pitch;
 	_v_rates_sp.yaw 	= _mc_virtual_v_rates_sp.yaw;
@@ -592,6 +579,7 @@ void VtolAttitudeControl::fill_mc_att_rates_sp()
 */
 void VtolAttitudeControl::fill_fw_att_rates_sp()
 {
+	_v_rates_sp.timestamp 	= _fw_virtual_v_rates_sp.timestamp;
 	_v_rates_sp.roll 	= _fw_virtual_v_rates_sp.roll;
 	_v_rates_sp.pitch 	= _fw_virtual_v_rates_sp.pitch;
 	_v_rates_sp.yaw 	= _fw_virtual_v_rates_sp.yaw;
@@ -636,7 +624,6 @@ void VtolAttitudeControl::task_main()
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
-	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
 	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
@@ -663,11 +650,12 @@ void VtolAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
+		_vtol_vehicle_status.timestamp = hrt_absolute_time();
+
 		if (_vtol_vehicle_status_pub != nullptr) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
 
 		} else {
-			_vtol_vehicle_status.timestamp = hrt_absolute_time();
 			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
 		}
 
@@ -715,7 +703,6 @@ void VtolAttitudeControl::task_main()
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
-		vehicle_status_poll();
 		tecs_status_poll();
 		land_detected_poll();
 
@@ -729,6 +716,12 @@ void VtolAttitudeControl::task_main()
 
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+			} else if (_vtol_type->get_mode() == TRANSITION_TO_MC) {
+				/* We want to make sure that a mode change (manual>auto) during the back transition
+				 * doesn't result in an unsafe state. This prevents the instant fall back to
+				 * fixed-wing on the switch from manual to auto */
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			}
 		}
 
@@ -762,10 +755,11 @@ void VtolAttitudeControl::task_main()
 				fill_fw_att_rates_sp();
 			}
 
-		} else if (_vtol_type->get_mode() == TRANSITION) {
+		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
 			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
+			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
 
 			bool got_new_data = false;
 
@@ -836,7 +830,7 @@ VtolAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
-					   1100,
+					   1200,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 					   nullptr);
 

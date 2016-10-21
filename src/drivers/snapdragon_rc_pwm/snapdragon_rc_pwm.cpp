@@ -234,7 +234,7 @@ void set_pwm_output(mavlink_actuator_control_target_t *actuator_controls)
 void send_rc_mavlink()
 {
 	mavlink_rc_channels_t rc_message;
-	rc_message.time_boot_ms = _rc.timestamp_publication / 1000;
+	rc_message.time_boot_ms = _rc.timestamp / 1000;
 	rc_message.chancount = _rc.channel_count;
 	rc_message.chan1_raw = (_rc.channel_count > 0) ? _rc.values[0] : UINT16_MAX;
 	rc_message.chan2_raw = (_rc.channel_count > 1) ? _rc.values[1] : UINT16_MAX;

@@ -273,18 +273,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 
 			for (unsigned i = 0; i < ndim; i++) {
 
-				float di = 0.0f;
-				switch (i) {
-					case 0:
-						di = sensor.accelerometer_m_s2[0];
-						break;
-					case 1:
-						di = sensor.accelerometer_m_s2[1];
-						break;
-					case 2:
-						di = sensor.accelerometer_m_s2[2];
-						break;
-				}
+				float di = sensor.accelerometer_m_s2[i];
 
 				float d = di - accel_ema[i];
 				accel_ema[i] += d * w;

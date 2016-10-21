@@ -109,4 +109,8 @@ struct accel_calibration_s {
 /** get the hardware low-pass filter cut-off in Hz*/
 #define ACCELIOCGHWLOWPASS	_ACCELIOC(11)
 
+/** determine if hardware is external or onboard */
+#define ACCELIOCGEXTERNAL	_ACCELIOC(12)
+
+
 #endif /* _DRV_ACCEL_H */

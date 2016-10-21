@@ -37,6 +37,17 @@
 
 #include <systemlib/err.h>
 
+#define ut_declare_test_c(test_function, test_class)	\
+	extern "C" {										\
+		int test_function(int argc, char *argv[])		\
+		{												\
+			test_class* test = new test_class();		\
+			bool success = test->run_tests();			\
+			test->print_results();						\
+			return success ? 0 : -1;					\
+		}												\
+	}
+
 /// @brief Base class to be used for unit tests.
 class __EXPORT UnitTest
 {
@@ -92,12 +103,52 @@ protected:
 		}								\
 	} while (0)
 
+/// @brief Used to assert a value within a unit test.
+#define ut_test(test) ut_assert("test", test)
+
+/// @brief To assert specifically to true.
+#define ut_assert_true(test)						\
+	do {									\
+		if (test != true) {							\
+			_print_assert("result not true", #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
+/// @brief To assert specifically to true.
+#define ut_assert_false(test)						\
+	do {									\
+		if (test != false) {							\
+			_print_assert("result not false", #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+
 /// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
 /// since it will give you better error reporting of the actual values being compared.
 #define ut_compare(message, v1, v2)								\
 	do {											\
 		int _v1 = v1;									\
 		int _v2 = v2;									\
+		if (_v1 != _v2) {								\
+			_print_compare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
+			return false;								\
+		} else {									\
+			_assertions++;								\
+		}										\
+	} while (0)
+
+/// @brief Used to compare two float values within a unit test. If possible use ut_compare_float instead of ut_assert
+/// since it will give you better error reporting of the actual values being compared.
+#define ut_compare_float(message, v1, v2, precision)						\
+	do {											\
+		int _p = pow(10, precision);							\
+		int _v1 = (int)(v1 * _p + 0.5f);						\
+		int _v2 = (int)(v2 * _p + 0.5f);						\
 		if (_v1 != _v2) {								\
 			_print_compare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
 			return false;								\

@@ -120,6 +120,10 @@ typedef param_t px4_param_t;
 #define PRId64 "lld"
 #endif
 
+#if !defined(offsetof)
+#  define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
+#endif
+
 /*
  * POSIX Specific defines
  */
@@ -162,6 +166,8 @@ __END_DECLS
 #define PX4_ROOTFSDIR
 #elif defined(__PX4_POSIX_EAGLE)
 #define PX4_ROOTFSDIR "/home/linaro"
+#elif defined(__PX4_POSIX_BEBOP)
+#define PX4_ROOTFSDIR "/home/root"
 #else
 #define PX4_ROOTFSDIR "rootfs"
 #endif

@@ -40,7 +40,6 @@
 
 #include <px4_config.h>
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <stdlib.h>

@@ -75,8 +75,10 @@ void motor_test(unsigned channel, float value)
 
 	} else {
 		/* advertise and publish */
-		_test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
+		_test_motor_pub = orb_advertise_queue(ORB_ID(test_motor), &_test_motor, 4);
 	}
+
+	printf("motor %d set to %.2f\n", channel, (double)value);
 }
 
 static void usage(const char *reason)
@@ -88,27 +90,25 @@ static void usage(const char *reason)
 	errx(1,
 	     "usage:\n"
 	     "motor_test\n"
-	     "    -m <channel>            Motor to test (0..7)\n"
-	     "    -p <power>              Power (0..100)\n");
+	     "    -m <channel>            Motor to test (0..7), all if -m not given\n"
+	     "    -p <power>              Power (0..100), 0 if -p not given\n"
+	     "motor_test stop             Stop all motors\n"
+	     "motor_test iterate          Iterate all motors starting and stopping one after the other\n");
 }
 
 int motor_test_main(int argc, char *argv[])
 {
-	unsigned long channel = 0;
+	int channel = -1; //default to all channels
 	unsigned long lval;
 	float value = 0.0f;
 	int ch;
-
-	if (argc != 5) {
-		usage("please specify motor and power");
-	}
 
 	while ((ch = getopt(argc, argv, "m:p:")) != EOF) {
 		switch (ch) {
 
 		case 'm':
 			/* Read in motor number */
-			channel = strtoul(optarg, NULL, 0);
+			channel = (int)strtoul(optarg, NULL, 0);
 			break;
 
 		case 'p':
@@ -127,9 +127,38 @@ int motor_test_main(int argc, char *argv[])
 		}
 	}
 
-	motor_test(channel, value);
+	bool run_test = true;
 
-	printf("motor %d set to %.2f\n", channel, (double)value);
+	if (argc > 1) {
+		if (strcmp("stop", argv[1]) == 0) {
+			channel = -1;
+			value = 0.f;
+
+		} else if (strcmp("iterate", argv[1]) == 0) {
+			value = 0.3f;
+
+			for (int i = 0; i < 8; ++i) {
+				motor_test(i, value);
+				usleep(500000);
+				motor_test(i, 0.f);
+				usleep(10000);
+			}
+
+			run_test = false;
+		}
+	}
+
+	if (run_test) {
+		if (channel == -1) {
+			for (int i = 0; i < 8; ++i) {
+				motor_test(i, value);
+				usleep(10000);
+			}
+
+		} else {
+			motor_test(channel, value);
+		}
+	}
 
 	exit(0);
 }

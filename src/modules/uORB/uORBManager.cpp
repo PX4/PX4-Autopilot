@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <px4_config.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "px4_config.h"
@@ -63,6 +64,57 @@ bool uORB::Manager::initialize()
 uORB::Manager::Manager()
 	: _comm_channel(nullptr)
 {
+	for (int i = 0; i < Flavor_count; ++i) {
+		_device_masters[i] = nullptr;
+	}
+
+#ifdef ORB_USE_PUBLISHER_RULES
+	const char *file_name = "./rootfs/orb_publisher.rules";
+	int ret = readPublisherRulesFromFile(file_name, _publisher_rule);
+
+	if (ret == PX4_OK) {
+		_has_publisher_rules = true;
+		PX4_INFO("Using orb rules from %s", file_name);
+
+	} else {
+		PX4_ERR("Failed to read publisher rules file %s (%s)", file_name, strerror(-ret));
+	}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
+}
+
+uORB::Manager::~Manager()
+{
+	for (int i = 0; i < Flavor_count; ++i) {
+		if (_device_masters[i]) {
+			delete _device_masters[i];
+		}
+	}
+}
+
+uORB::DeviceMaster *uORB::Manager::get_device_master(Flavor flavor)
+{
+	if (!_device_masters[flavor]) {
+		_device_masters[flavor] = new DeviceMaster(flavor);
+
+		if (_device_masters[flavor]) {
+			int ret = _device_masters[flavor]->init();
+
+			if (ret != PX4_OK) {
+				PX4_ERR("Initialization of DeviceMaster failed (%i)", ret);
+				errno = -ret;
+				delete _device_masters[flavor];
+				_device_masters[flavor] = nullptr;
+			}
+
+		} else {
+			PX4_ERR("Failed to allocate DeviceMaster");
+			errno = ENOMEM;
+		}
+	}
+
+	return _device_masters[flavor];
 }
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
@@ -96,6 +148,30 @@ orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 		int priority, unsigned int queue_size)
 {
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	// check publisher rule
+	if (_has_publisher_rules) {
+		const char *prog_name = px4_get_taskname();
+
+		if (strcmp(_publisher_rule.module_name, prog_name) == 0) {
+			if (_publisher_rule.ignore_other_topics) {
+				if (!findTopic(_publisher_rule, meta->o_name)) {
+					PX4_DEBUG("not allowing %s to publish topic %s", prog_name, meta->o_name);
+					return (orb_advert_t)_Instance;
+				}
+			}
+
+		} else {
+			if (findTopic(_publisher_rule, meta->o_name)) {
+				PX4_DEBUG("not allowing %s to publish topic %s", prog_name, meta->o_name);
+				return (orb_advert_t)_Instance;
+			}
+		}
+	}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
 	int result, fd;
 	orb_advert_t advertiser;
 
@@ -140,6 +216,14 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 
 int uORB::Manager::orb_unadvertise(orb_advert_t handle)
 {
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	if (handle == _Instance) {
+		return PX4_OK; //pretend success
+	}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
 	return uORB::DeviceNode::unadvertise(handle);
 }
 
@@ -161,6 +245,14 @@ int uORB::Manager::orb_unsubscribe(int fd)
 
 int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
 {
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	if (handle == _Instance) {
+		return PX4_OK; //pretend success
+	}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
 	return uORB::DeviceNode::publish(meta, handle, data);
 }
 
@@ -358,10 +450,10 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 	_remote_subscriber_topics.insert(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		// get the node name.
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		if (node == nullptr) {
 			PX4_DEBUG("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
@@ -390,9 +482,10 @@ int16_t uORB::Manager::process_remove_subscription(
 	_remote_subscriber_topics.erase(messageName);
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {
@@ -419,9 +512,10 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 	int16_t rc = -1;
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
+	DeviceMaster *device_master = get_device_master(PUBSUB);
 
-	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+	if (ret == OK && device_master) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 		// get the node name.
 		if (node == nullptr) {
@@ -446,3 +540,143 @@ bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 	return (_remote_subscriber_topics.find(messageName) != _remote_subscriber_topics.end());
 #endif
 }
+
+
+#ifdef ORB_USE_PUBLISHER_RULES
+
+bool uORB::Manager::startsWith(const char *pre, const char *str)
+{
+	size_t lenpre = strlen(pre),
+	       lenstr = strlen(str);
+	return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
+}
+
+bool uORB::Manager::findTopic(const PublisherRule &rule, const char *topic_name)
+{
+	const char **topics_ptr = rule.topics;
+
+	while (*topics_ptr) {
+		if (strcmp(*topics_ptr, topic_name) == 0) {
+			return true;
+		}
+
+		++topics_ptr;
+	}
+
+	return false;
+}
+
+void uORB::Manager::strTrim(const char **str)
+{
+	while (**str == ' ' || **str == '\t') { ++(*str); }
+}
+
+int uORB::Manager::readPublisherRulesFromFile(const char *file_name, PublisherRule &rule)
+{
+	FILE *fp;
+	static const int line_len = 1024;
+	int ret = PX4_OK;
+	char *line = new char[line_len];
+
+	if (!line) {
+		return -ENOMEM;
+	}
+
+	fp = fopen(file_name, "r");
+
+	if (fp == NULL) {
+		delete[](line);
+		return -errno;
+	}
+
+	const char *restrict_topics_str = "restrict_topics:";
+	const char *module_str = "module:";
+	const char *ignore_others = "ignore_others:";
+
+	rule.ignore_other_topics = false;
+	rule.module_name = nullptr;
+	rule.topics = nullptr;
+
+	while (fgets(line, line_len, fp) && ret == PX4_OK) {
+
+		if (strlen(line) < 2 || line[0] == '#') {
+			continue;
+		}
+
+		if (startsWith(restrict_topics_str, line)) {
+			//read topics list
+			char *start = line + strlen(restrict_topics_str);
+			strTrim((const char **)&start);
+			char *topics = strdup(start);
+			int topic_len = 0, num_topics = 0;
+
+			for (int i = 0; topics[i]; ++i) {
+				if (topics[i] == ',' || topics[i] == '\n') {
+					if (topic_len > 0) {
+						topics[i] = 0;
+						++num_topics;
+					}
+
+					topic_len = 0;
+
+				} else {
+					++topic_len;
+				}
+			}
+
+			if (num_topics > 0) {
+				rule.topics = new const char *[num_topics + 1];
+				int topic = 0;
+				strTrim((const char **)&topics);
+				rule.topics[topic++] = topics;
+
+				while (topic < num_topics) {
+					if (*topics == 0) {
+						++topics;
+						strTrim((const char **)&topics);
+						rule.topics[topic++] = topics;
+
+					} else {
+						++topics;
+					}
+				}
+
+				rule.topics[num_topics] = nullptr;
+			}
+
+		} else if (startsWith(module_str, line)) {
+			//read module name
+			char *start = line + strlen(module_str);
+			strTrim((const char **)&start);
+			int len = strlen(start);
+
+			if (len > 0 && start[len - 1] == '\n') {
+				start[len - 1] = 0;
+			}
+
+			rule.module_name = strdup(start);
+
+		} else if (startsWith(ignore_others, line)) {
+			const char *start = line + strlen(ignore_others);
+			strTrim(&start);
+
+			if (startsWith("true", start)) {
+				rule.ignore_other_topics = true;
+			}
+
+		} else {
+			PX4_ERR("orb rules file: wrong format: %s", line);
+			ret = -EINVAL;
+		}
+	}
+
+	if (ret == PX4_OK && (!rule.module_name || !rule.topics)) {
+		PX4_ERR("Wrong format in orb publisher rules file");
+		ret = -EINVAL;
+	}
+
+	delete[](line);
+	fclose(fp);
+	return ret;
+}
+#endif /* ORB_USE_PUBLISHER_RULES */

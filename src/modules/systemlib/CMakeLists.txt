@@ -32,7 +32,7 @@
 ############################################################################
 
 # for generated files
-include_directories(${CMAKE_BINARY_DIR}/src/modules/param)
+include_directories(${PX4_BINARY_DIR}/src/modules/param)
 
 set(SRCS
 	perf_counter.c
@@ -49,6 +49,7 @@ set(SRCS
 	bson/tinybson.c
 	circuit_breaker.cpp
 	battery.cpp
+	hysteresis/hysteresis.cpp
 	)
 
 if(${OS} STREQUAL "nuttx")
@@ -56,6 +57,8 @@ if(${OS} STREQUAL "nuttx")
 		err.c
 		printload.c
 		param/param.c
+		flashparams/flashparams.c
+		flashparams/flashfs.c
 		up_cxxinitialize.c
 		)
 elseif ("${CONFIG_SHMEM}" STREQUAL "1")
@@ -80,7 +83,6 @@ px4_add_module(
 	MODULE modules__systemlib
 	COMPILE_FLAGS
 		-Wno-sign-compare
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

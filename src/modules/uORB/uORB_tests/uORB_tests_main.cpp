@@ -44,7 +44,7 @@ extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
 
 static void usage()
 {
-	PX4_INFO("Usage: uorb_test 'latency_test'");
+	PX4_INFO("Usage: uorb_tests [latency_test]");
 }
 
 int

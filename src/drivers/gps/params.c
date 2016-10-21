@@ -34,10 +34,8 @@
 /**
  * Dump GPS communication to a file.
  *
- * If this is set to 1, all GPS communication data will be written to a
- * file. Two files will be created, for reading and writing. All
- * communication from startup until device disarm will be dumped.
- *
+ * If this is set to 1, all GPS communication data will be published via uORB,
+ * and written to the log file as gps_dump message.
  * @min 0
  * @max 1
  * @value 0 Disable

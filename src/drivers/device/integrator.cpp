@@ -41,6 +41,7 @@
  */
 
 #include "integrator.h"
+#include <drivers/drv_hrt.h>
 
 Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),

@@ -35,11 +35,10 @@ px4_add_module(
 	MODULE drivers__bmp280
 	MAIN bmp280
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		bmp280_spi.cpp
 		bmp280.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

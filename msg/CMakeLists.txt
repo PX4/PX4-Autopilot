@@ -49,7 +49,6 @@ set(msg_file_names
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_replay.msg
-	encoders.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -61,10 +60,12 @@ set(msg_file_names
 	fw_virtual_attitude_setpoint.msg
 	fw_virtual_rates_setpoint.msg
 	geofence_result.msg
+	gps_dump.msg
 	gps_inject_data.msg
 	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
 	mc_att_ctrl_status.msg
@@ -100,6 +101,8 @@ set(msg_file_names
 	transponder_report.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
+	ulog_stream.msg
+	ulog_stream_ack.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command_ack.msg
@@ -117,6 +120,7 @@ set(msg_file_names
 	vision_position_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	vehicle_roi.msg
 	)
 
 # Get absolute paths

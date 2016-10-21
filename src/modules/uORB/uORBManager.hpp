@@ -78,6 +78,14 @@ public:
 		return _Instance;
 	}
 
+	/**
+	 * Get the DeviceMaster for a given Flavor. If it does not exist,
+	 * it will be created and initialized.
+	 * Note: the first call to this is not thread-safe.
+	 * @return nullptr if initialization failed (and errno will be set)
+	 */
+	uORB::DeviceMaster *get_device_master(Flavor flavor);
+
 	// ==== uORB interface methods ====
 	/**
 	 * Advertise as the publisher of a topic.
@@ -287,7 +295,8 @@ public:
 	int  orb_stat(int handle, uint64_t *time) ;
 
 	/**
-	 * Check if a topic has already been created.
+	 * Check if a topic has already been created (a publisher or a subscriber exists with
+	 * the given instance).
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
@@ -399,8 +408,11 @@ private: // data members
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;
 
+	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
+
 private: //class methods
 	Manager();
+	~Manager();
 
 	/**
 	   * Interface to process a received AddSubscription from remote.
@@ -445,6 +457,46 @@ private: //class methods
 	 */
 	virtual int16_t process_received_message(const char *messageName,
 			int32_t length, uint8_t *data);
+
+
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	struct PublisherRule {
+		const char **topics; //null-terminated list of topic names
+		const char *module_name; //only this module is allowed to publish one of the topics
+		bool ignore_other_topics;
+	};
+
+	/**
+	 * test if str starts with pre
+	 */
+	bool startsWith(const char *pre, const char *str);
+
+	/**
+	 * find a topic in a rule
+	 */
+	bool findTopic(const PublisherRule &rule, const char *topic_name);
+
+	/**
+	 * trim whitespace from the beginning of a string
+	 */
+	void strTrim(const char **str);
+
+	/**
+	 * Read publisher rules from a file. It has the format:
+	 *
+	 * restrict_topics: <topic1>, <topic2>, <topic3>
+	 * module: <module_name>
+	 * [ignore_others:true]
+	 *
+	 * @return 0 on success, <0 otherwise
+	 */
+	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
+
+	PublisherRule _publisher_rule;
+	bool _has_publisher_rules = false;
+
+#endif /* ORB_USE_PUBLISHER_RULES */
 
 };
 

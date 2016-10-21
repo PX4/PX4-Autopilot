@@ -198,7 +198,7 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
  * Throttle limit value before flare
  *
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
- * before arcraft will flare.
+ * before aircraft will flare.
  *
  * @unit norm
  * @min 0.0

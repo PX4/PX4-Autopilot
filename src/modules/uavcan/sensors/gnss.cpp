@@ -40,6 +40,7 @@
  */
 
 #include "gnss.hpp"
+#include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 
@@ -104,12 +105,10 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	 * to use an independent time source (based on hardware TIM5) instead of HRT.
 	 * The proper solution is to be developed.
 	 */
-	report.timestamp_position = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
 	report.lat = msg.latitude_deg_1e8 / 10;
 	report.lon = msg.longitude_deg_1e8 / 10;
 	report.alt = msg.height_msl_mm;
-
-	report.timestamp_variance = report.timestamp_position;
 
 
 	// Check if the msg contains valid covariance information
@@ -163,7 +162,6 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	report.fix_type = msg.status;
 
-	report.timestamp_velocity = report.timestamp_position;
 	report.vel_n_m_s = msg.ned_velocity[0];
 	report.vel_e_m_s = msg.ned_velocity[1];
 	report.vel_d_m_s = msg.ned_velocity[2];
@@ -172,10 +170,15 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
 	report.vel_ned_valid = true;
 
-	report.timestamp_time = report.timestamp_position;
+	report.timestamp_time_relative = 0;
 	report.time_utc_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
 
 	report.satellites_used = msg.sats_used;
+
+	// Using PDOP for HDOP and VDOP
+	// Relevant discussion: https://github.com/PX4/Firmware/issues/5153
+	report.hdop = msg.pdop;
+	report.vdop = msg.pdop;
 
 	if (_report_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);

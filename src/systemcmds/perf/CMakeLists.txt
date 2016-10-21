@@ -35,10 +35,9 @@ px4_add_module(
 	MAIN perf
 	STACK_MAIN 1800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		perf.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

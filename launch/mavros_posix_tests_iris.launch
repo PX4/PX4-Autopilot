@@ -4,11 +4,14 @@
     <arg name="ns" default="/"/>
     <arg name="headless" default="true"/>
     <arg name="gui" default="false"/>
+    <arg name="est" default="lpe"/>
 
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
         <arg name="ns" value="$(arg ns)"/>
         <arg name="headless" value="$(arg headless)"/>
         <arg name="gui" value="$(arg gui)"/>
+        <arg name="vehicle" value="iris"/>
+        <arg name="est" value="$(arg est)"/>
     </include>
 
     <group ns="$(arg ns)">

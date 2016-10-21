@@ -49,7 +49,7 @@
 #include <stdlib.h>
 #include <px4_getopt.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #define FLAG_FSYNC 1
 #define FLAG_LSEEK 2

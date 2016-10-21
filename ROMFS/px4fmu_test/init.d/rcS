@@ -111,87 +111,22 @@ fi
 
 sh /etc/init.d/rc.sensors
 
-# Check for flow sensor
-if px4flow start
-then
-fi
-
-if ll40ls start
-then
-fi
+ver all
 
 #
 # Run unit tests at board boot, reporting failure as needed.
 # Add new unit tests using the same pattern as below.
 #
 
-echo
-echo "--------------------------------------------------------------------------------"
-echo "[mavlink_tests]             STARTING TEST"
-if mavlink_tests
-then
-	echo "[mavlink_tests]             PASS"
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
-	echo "[mavlink_tests]             FAILED"
-fi
-echo "--------------------------------------------------------------------------------"
-echo
-echo "--------------------------------------------------------------------------------"
-echo "[commander_tests]             STARTING TEST"
-if commander_tests
-then
-	echo "[commander_tests]             PASS"
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
-	echo "[commander_tests]             FAILED"
-fi
-echo "--------------------------------------------------------------------------------"
-echo
-echo "--------------------------------------------------------------------------------"
-echo "[controllib_test]             STARTING TEST"
-if controllib_test
-then
-	echo "[controllib_test]             PASS"
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} controllib_tests"
-	echo "[controllib_test]             FAILED"
-fi
-echo "--------------------------------------------------------------------------------"
-echo
-echo "--------------------------------------------------------------------------------"
-echo "[uorb_tests]             STARTING TEST"
-if uorb_tests
-then
-	echo "[uorb_tests]             PASS"
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
-	echo "[uorb_tests]             FAILED"
-fi
-echo "--------------------------------------------------------------------------------"
-
 if tests all
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} system_tests"
-fi
-
-if [ $unit_test_failure == 0 ]
 then
 	echo
 	echo "All Unit Tests PASSED"
 	rgbled rgb 20 255 20
 else
 	echo
-	echo "Some Unit Tests FAILED:${unit_test_failure_list}"
+	echo "Some Unit Tests FAILED"
 	rgbled rgb 255 20 20
 fi
-
-ver all
 
 free

@@ -1,0 +1,28 @@
+#!nsh
+#
+# Standard startup script for TAP v1 onboard sensor drivers.
+#
+
+if adc start
+then
+fi
+
+if ms5611 -T 5607 -I start
+then
+fi
+
+# External I2C bus
+if hmc5883 -C -T -X start
+then
+fi
+
+# Internal I2C bus
+if mpu6000 -I -T 6000 start
+then
+fi
+
+# Wait 50 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
+usleep 50000
+if sensors start
+then
+fi

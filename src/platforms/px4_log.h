@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include <systemlib/visibility.h>
+
 #define _PX4_LOG_LEVEL_ALWAYS		0
 #define _PX4_LOG_LEVEL_DEBUG		1
 #define _PX4_LOG_LEVEL_WARN		2
@@ -50,6 +52,14 @@ static inline void do_nothing(int level, ...)
 	(void)level;
 }
 
+__BEGIN_DECLS
+
+/**
+ * initialize the orb logging. Logging to console still works without or before calling this.
+ */
+__EXPORT extern void px4_log_initialize(void);
+
+__END_DECLS
 
 /****************************************************************************
  * __px4_log_omit:
@@ -118,7 +128,6 @@ static inline void do_nothing(int level, ...)
 
 #else
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdint.h>
 #include <sys/cdefs.h>
@@ -128,31 +137,28 @@ static inline void do_nothing(int level, ...)
 #include <px4_defines.h>
 
 __BEGIN_DECLS
-__EXPORT extern uint64_t hrt_absolute_time(void);
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
-__EXPORT extern int __px4_log_level_current;
 __EXPORT extern void px4_backtrace(void);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+
 __END_DECLS
 
 #define PX4_BACKTRACE() px4_backtrace()
-
-// __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
-#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
  *
  * To write to a specific stream for each message type, open the streams and
  * set __px4__log_startline to something like:
- * 	if (level <= __px4_log_level_current) printf(_px4_fd[level],
+ * 	printf(_px4_fd[level],
  *
  * Additional behavior can be added using "{\" for __px4__log_startline and
  * "}" for __px4__log_endline and any other required setup or teardown steps
  ****************************************************************************/
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
-#define __px4__log_printline(level, ...)    if (level <= __px4_log_level_current) printf(__VA_ARGS__)
+#define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
 
 
 #ifndef MODULE_NAME
@@ -166,6 +172,7 @@ __END_DECLS
 #define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,(unsigned int)pthread_self()
 #define __px4__log_modulename_fmt	"%-10s "
+#define __px4__log_modulename_pfmt	"[%s] "
 #define __px4__log_modulename_arg	,"[" MODULE_NAME "]"
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
@@ -246,42 +253,14 @@ __END_DECLS
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s [%-10s] val is %d\n", __px4_log_level_str[3],
+ * 	printf("%-5s [%s] val is %d\n", __px4_log_level_str[3],
  *		MODULENAME, val);
  ****************************************************************************/
 
-/* It turns out the macro below uses a lot more flash space than a static
- * inline function. */
-#if 0
-#define __px4_log_modulename(level, FMT, ...) \
-	__px4__log_printline(level,\
-			     __px4__log_level_fmt\
-			     __px4__log_modulename_fmt\
-			     FMT\
-			     __px4__log_end_fmt\
-			     __px4__log_level_arg(level)\
-			     __px4__log_modulename_arg\
-			     , ##__VA_ARGS__\
-			    )
-#endif
-
-static inline void __px4_log_modulename(int level, const char *fmt, ...)
-{
-	if (level <= __px4_log_level_current) {
-		PX4_LOG_COLOR_START
-		printf(__px4__log_level_fmt __px4__log_level_arg(level));
-		PX4_LOG_COLOR_MODULE
-		printf(__px4__log_modulename_fmt __px4__log_modulename_arg);
-		PX4_LOG_COLOR_MESSAGE
-		va_list argptr;
-		va_start(argptr, fmt);
-		vprintf(fmt, argptr);
-		va_end(argptr);
-		PX4_LOG_COLOR_END
-		printf("\n");
-	}
-}
-
+#define __px4_log_modulename(level, fmt, ...) \
+	do { \
+		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
+	} while(0)
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:

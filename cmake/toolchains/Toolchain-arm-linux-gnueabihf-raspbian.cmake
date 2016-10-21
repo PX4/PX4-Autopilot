@@ -71,7 +71,7 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 endforeach()
 
 add_definitions(
-	-D __RPI2
+	-D __DF_RPI
 	)
 
 set(LINKER_FLAGS "-Wl,-gc-sections")

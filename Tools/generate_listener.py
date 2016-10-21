@@ -3,6 +3,7 @@
 import glob
 import os
 import sys
+import re
 
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
 
@@ -21,37 +22,39 @@ for index,m in enumerate(raw_messages):
 		temp_list = []
 		f = open(m,'r')
 		for line in f.readlines():
-			if ('float32[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("float_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif ('float64[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("double_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif ('uint64[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("uint64_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif(line.split(' ')[0] == "float32"):
-				temp_list.append(("float",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "float64"):
-				temp_list.append(("double",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint64") and len(line.split('=')) == 1:
-				temp_list.append(("uint64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint32") and len(line.split('=')) == 1:
-				temp_list.append(("uint32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint16") and len(line.split('=')) == 1:
-				temp_list.append(("uint16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int64") and len(line.split('=')) == 1:
-				temp_list.append(("int64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int32") and len(line.split('=')) == 1:
-				temp_list.append(("int32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int16") and len(line.split('=')) == 1:
-				temp_list.append(("int16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "bool") and len(line.split('=')) == 1:
-				temp_list.append(("bool",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "uint8") and len(line.split('=')) == 1:
-				temp_list.append(("uint8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "int8") and len(line.split('=')) == 1:
-				temp_list.append(("int8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			items = re.split('\s+', line.strip())
+
+			if ('float32[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("float_array",items[1],num_floats))
+			elif ('float64[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("double_array",items[1],num_floats))
+			elif ('uint64[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("uint64_array",items[1],num_floats))
+			elif(items[0] == "float32"):
+				temp_list.append(("float",items[1]))
+			elif(items[0] == "float64"):
+				temp_list.append(("double",items[1]))
+			elif(items[0] == "uint64") and len(line.split('=')) == 1:
+				temp_list.append(("uint64",items[1]))
+			elif(items[0] == "uint32") and len(line.split('=')) == 1:
+				temp_list.append(("uint32",items[1]))
+			elif(items[0] == "uint16") and len(line.split('=')) == 1:
+				temp_list.append(("uint16",items[1]))
+			elif(items[0] == "int64") and len(line.split('=')) == 1:
+				temp_list.append(("int64",items[1]))
+			elif(items[0] == "int32") and len(line.split('=')) == 1:
+				temp_list.append(("int32",items[1]))
+			elif(items[0] == "int16") and len(line.split('=')) == 1:
+				temp_list.append(("int16",items[1]))
+			elif (items[0] == "bool") and len(line.split('=')) == 1:
+				temp_list.append(("bool",items[1]))
+			elif (items[0] == "uint8") and len(line.split('=')) == 1:
+				temp_list.append(("uint8",items[1]))
+			elif (items[0] == "int8") and len(line.split('=')) == 1:
+				temp_list.append(("int8",items[1]))
 
 		f.close()
 		(m_head, m_tail) = os.path.split(m)
@@ -115,7 +118,6 @@ print("""
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #ifndef PRIu64

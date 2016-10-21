@@ -10,9 +10,17 @@ set(CONFIG_SHMEM "1")
 
 set(config_generate_parameters_scope ALL)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
+# Get $QC_SOC_TARGET from environment if existing.
+if (DEFINED ENV{QC_SOC_TARGET})
+	set(QC_SOC_TARGET $ENV{QC_SOC_TARGET})
+else()
+	set(QC_SOC_TARGET "APQ8074")
+endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+include(toolchain/Toolchain-qurt)
+include(qurt_flags)
+include_directories(${HEXAGON_SDK_INCLUDES})
 
 add_definitions(
    -D__USING_SNAPDRAGON_LEGACY_DRIVER
@@ -35,11 +43,11 @@ set(config_module_list
 	systemcmds/param
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
-	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
+	modules/local_position_estimator
 	modules/ekf2
 
 	#
@@ -57,7 +65,6 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/land_detector
-	modules/load_mon
 
 	#
 	# PX4 drivers

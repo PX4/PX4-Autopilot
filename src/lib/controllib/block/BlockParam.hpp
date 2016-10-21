@@ -78,6 +78,9 @@ class BlockParam : public BlockParamBase
 public:
 	BlockParam(Block *block, const char *name,
 		   bool parent_prefix = true, T *extern_address = NULL);
+	BlockParam(const BlockParam &) = delete;
+	BlockParam &operator=(const BlockParam &) = delete;
+
 	T get();
 	void commit();
 	void set(T val);

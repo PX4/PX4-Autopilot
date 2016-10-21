@@ -1,10 +1,17 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 
 set(config_generate_parameters_scope ALL)
+
+# Get $QC_SOC_TARGET from environment if existing.
+if (DEFINED ENV{QC_SOC_TARGET})
+	set(QC_SOC_TARGET $ENV{QC_SOC_TARGET})
+else()
+	set(QC_SOC_TARGET "APQ8074")
+endif()
 
 set(CONFIG_SHMEM "1")
 
@@ -31,8 +38,10 @@ set(config_module_list
 
 	modules/mavlink
 
-	modules/attitude_estimator_ekf
-	modules/ekf_att_pos_estimator
+	modules/attitude_estimator_q
+	modules/position_estimator_inav
+	modules/local_position_estimator
+	modules/ekf2
 
 	modules/mc_pos_control
 	modules/mc_att_control
@@ -49,7 +58,6 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 	modules/navigator
-	modules/load_mon
 
 	lib/controllib
 	lib/mathlib

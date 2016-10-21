@@ -20,9 +20,9 @@ then
 	param set MC_ROLLRATE_I 0.1
 	param set MC_ROLLRATE_D 0.0055
 	param set MC_PITCH_P 8.0
-	param set MC_PITCHRATE_P 0.24
+	param set MC_PITCHRATE_P 0.19
 	param set MC_PITCHRATE_I 0.1
-	param set MC_PITCHRATE_D 0.0065
+	param set MC_PITCHRATE_D 0.0055
 	param set MC_YAW_P 4.0
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
@@ -33,6 +33,9 @@ then
 	param set MC_YAWRATE_MAX 400.0
 	param set MC_ACRO_R_MAX 360.0
 	param set MC_ACRO_P_MAX 360.0
+	param set MC_TPA_BREAK 0.5
+	param set MC_TPA_SLOPE 1.0
+	
 
 	param set PWM_MIN 1075
 

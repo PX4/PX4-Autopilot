@@ -62,43 +62,49 @@
 #include <drivers/drv_led.h>
 #include <drivers/drv_rgbled.h>
 
-#include <v1.0/common/mavlink.h> // For MAV_TYPE
-
 #include "commander_helper.h"
 #include "DevMgr.hpp"
 
 using namespace DriverFramework;
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+#define VEHICLE_TYPE_QUADROTOR 2
+#define VEHICLE_TYPE_COAXIAL 3
+#define VEHICLE_TYPE_HELICOPTER 4
+#define VEHICLE_TYPE_HEXAROTOR 13
+#define VEHICLE_TYPE_OCTOROTOR 14
+#define VEHICLE_TYPE_TRICOPTER 15
+#define VEHICLE_TYPE_VTOL_DUOROTOR 19
+#define VEHICLE_TYPE_VTOL_QUADROTOR 20
+#define VEHICLE_TYPE_VTOL_TILTROTOR 21
+#define VEHICLE_TYPE_VTOL_RESERVED2 22
+#define VEHICLE_TYPE_VTOL_RESERVED3 23
+#define VEHICLE_TYPE_VTOL_RESERVED4 24
+#define VEHICLE_TYPE_VTOL_RESERVED5 25
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks
 
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
-	return ((current_status->system_type == MAV_TYPE_QUADROTOR) ||
-		(current_status->system_type == MAV_TYPE_HEXAROTOR) ||
-		(current_status->system_type == MAV_TYPE_OCTOROTOR) ||
-		(current_status->system_type == MAV_TYPE_TRICOPTER));
+	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_TRICOPTER));
 }
 
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
-	return is_multirotor(current_status) || (current_status->system_type == MAV_TYPE_HELICOPTER)
-		   || (current_status->system_type == MAV_TYPE_COAXIAL);
+	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
+		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
 bool is_vtol(const struct vehicle_status_s * current_status) {
-	return (current_status->system_type == MAV_TYPE_VTOL_DUOROTOR ||
-		current_status->system_type == MAV_TYPE_VTOL_QUADROTOR ||
-		current_status->system_type == MAV_TYPE_VTOL_TILTROTOR ||
-		current_status->system_type == MAV_TYPE_VTOL_RESERVED2 ||
-		current_status->system_type == MAV_TYPE_VTOL_RESERVED3 ||
-		current_status->system_type == MAV_TYPE_VTOL_RESERVED4 ||
-		current_status->system_type == MAV_TYPE_VTOL_RESERVED5);
+	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED2 ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
@@ -124,7 +130,7 @@ int buzzer_init()
 
 	if (!h_buzzer.isValid()) {
 		PX4_WARN("Buzzer: px4_open fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;
@@ -255,12 +261,13 @@ int led_init()
 {
 	blink_msg_end = 0;
 
+#ifndef CONFIG_ARCH_BOARD_RPI
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
 	if (!h_leds.isValid()) {
 		PX4_WARN("LED: getHandle fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
@@ -272,11 +279,12 @@ int led_init()
 	/* we consider the amber led mandatory */
 	if (h_leds.ioctl(LED_ON, LED_AMBER)) {
 		PX4_WARN("Amber LED: ioctl fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* switch amber off */
 	led_off(LED_AMBER);
+#endif
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	DevHandle h;
@@ -291,7 +299,9 @@ int led_init()
 
 void led_deinit()
 {
+#ifndef CONFIG_ARCH_BOARD_RPI
 	DevMgr::releaseHandle(h_leds);
+#endif
 	DevMgr::releaseHandle(h_rgbleds);
 }
 

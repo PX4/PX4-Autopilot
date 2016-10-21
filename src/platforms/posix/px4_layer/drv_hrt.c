@@ -45,7 +45,6 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <errno.h>
 #include "hrt_work.h"
@@ -94,14 +93,9 @@ static void hrt_unlock(void)
 	px4_sem_post(&_hrt_lock);
 }
 
-#if (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_APPLE_LEGACY)
 #include <time.h>
 #include <sys/time.h>
-#define CLOCK_REALTIME 0
-
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC 1
-#endif
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
@@ -124,7 +118,7 @@ int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 	return 0;
 }
 
-#elif defined(__QURT)
+#elif defined(__PX4_QURT)
 
 #include "dspal_time.h"
 

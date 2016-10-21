@@ -106,6 +106,7 @@ Navigator::Navigator() :
 	_global_pos_sub(-1),
 	_local_pos_sub(-1),
 	_gps_pos_sub(-1),
+	_sensor_combined_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_land_detected_sub(-1),
@@ -159,11 +160,15 @@ Navigator::Navigator() :
 	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 	_param_datalinkloss_act(this, "DLL_ACT"),
 	_param_rcloss_act(this, "RCL_ACT"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
-	_mission_cruising_speed(-1.0f)
+	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
+	_mission_cruising_speed(-1.0f),
+	_mission_throttle(-1.0f)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -301,7 +306,7 @@ Navigator::task_main()
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		warnx("Try to load geofence.txt");
+		PX4_INFO("Try to load geofence.txt");
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
@@ -338,13 +343,11 @@ Navigator::task_main()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2] = {};
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _vehicle_command_sub;
-	fds[1].events = POLLIN;
 
 	bool global_pos_available_once = false;
 
@@ -356,18 +359,27 @@ Navigator::task_main()
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
-				PX4_WARN("no GPS - navigator timed out");
 				global_pos_available_once = false;
+				PX4_WARN("global position timeout");
 			}
-			continue;
+			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("nav: poll error %d, %d", pret, errno);
+			PX4_ERR("nav: poll error %d, %d", pret, errno);
+			usleep(10000);
 			continue;
-		}
+		} else {
 
-		global_pos_available_once = true;
+			if (fds[0].revents & POLLIN) {
+				/* success, global pos is available */
+				global_position_update();
+				if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+					have_geofence_position_data = true;
+				}
+				global_pos_available_once = true;
+			}
+		}
 
 		perf_begin(_loop_perf);
 
@@ -458,8 +470,9 @@ Navigator::task_main()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = cmd.param5 / (double)1e7;
-					rep->current.lon = cmd.param6 / (double)1e7;
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
@@ -487,8 +500,16 @@ Navigator::task_main()
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.yaw = cmd.param4;
-				rep->current.lat = cmd.param5 / (double)1e7;
-				rep->current.lon = cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+				} else {
+					// If one of them is non-finite, reset both
+					rep->current.lat = NAN;
+					rep->current.lon = NAN;
+				}
+
 				rep->current.alt = cmd.param7;
 
 				rep->previous.valid = true;
@@ -496,15 +517,7 @@ Navigator::task_main()
 				rep->next.valid = false;
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
-				warnx("navigator: got pause/continue command");
-			}
-		}
-
-		/* global position updated */
-		if (fds[0].revents & POLLIN) {
-			global_position_update();
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-				have_geofence_position_data = true;
+				PX4_INFO("got pause/continue command");
 			}
 		}
 
@@ -513,7 +526,7 @@ Navigator::task_main()
 		if (have_geofence_position_data &&
 			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, home_position_valid());
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -539,25 +552,9 @@ Navigator::task_main()
 
 		/* Do stuff according to navigation state set by commander */
 		switch (_vstatus.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-			case vehicle_status_s::NAVIGATION_STATE_ACRO:
-			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = nullptr;
-				_can_loiter_at_sp = false;
-				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				if (_fw_pos_ctrl_status.abort_landing) {
-					// pos controller aborted landing, requests loiter
-					// above landing waypoint
-					_navigation_mode = &_loiter;
-					_pos_sp_triplet_published_invalid_once = false;
-				} else {
-					_pos_sp_triplet_published_invalid_once = false;
-					_navigation_mode = &_mission;
-				}
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_mission;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
@@ -620,7 +617,15 @@ Navigator::task_main()
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_follow_target;
 				break;
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+			case vehicle_status_s::NAVIGATION_STATE_STAB:
 			default:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -641,6 +646,7 @@ Navigator::task_main()
 		}
 
 		if (_pos_sp_triplet_updated) {
+			_pos_sp_triplet.timestamp = hrt_absolute_time();
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
 		}
@@ -652,7 +658,7 @@ Navigator::task_main()
 
 		perf_end(_loop_perf);
 	}
-	warnx("exiting.");
+	PX4_INFO("exiting");
 
 	_navigator_task = -1;
 	return;
@@ -683,26 +689,26 @@ void
 Navigator::status()
 {
 	/* TODO: add this again */
-	// warnx("Global position is %svalid", _global_pos_valid ? "" : "in");
+	// PX4_INFO("Global position is %svalid", _global_pos_valid ? "" : "in");
 
 	// if (_global_pos.global_valid) {
-	// 	warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
-	// 	warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
+	// 	PX4_INFO("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
+	// 	PX4_INFO("Altitude %5.5f meters, altitude above home %5.5f meters",
 	// 	      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
-	// 	warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
+	// 	PX4_INFO("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
 	// 	      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
-	// 	warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
+	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
 	if (_geofence.valid()) {
-		warnx("Geofence is valid");
+		PX4_INFO("Geofence is valid");
 		/* TODO: needed? */
-//		warnx("Vertex longitude latitude");
+//		PX4_INFO("Vertex longitude latitude");
 //		for (unsigned i = 0; i < _fence.count; i++)
-//		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+//		PX4_INFO("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
 
 	} else {
-		warnx("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
+		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
 	}
 	
 	_tracker.dump_recent_path();
@@ -742,6 +748,18 @@ Navigator::get_acceptance_radius()
 }
 
 float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!this->get_vstatus()->is_rotary_wing) {
+		return _param_fw_alt_acceptance_radius.get();
+	} else {
+		return _param_mc_alt_acceptance_radius.get();
+	}
+}
+
+
+
+float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
@@ -751,6 +769,17 @@ Navigator::get_cruising_speed()
 		return _param_cruising_speed_hover.get();
 	} else {
 		return _param_cruising_speed_plane.get();
+	}
+}
+
+float
+Navigator::get_cruising_throttle()
+{
+	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
+	if (_mission_throttle > 0.0f) {
+		return _mission_throttle;
+	} else {
+		return _param_cruising_throttle_plane.get();
 	}
 }
 
@@ -772,20 +801,40 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	return radius;
 }
 
-void Navigator::add_fence_point(int argc, char *argv[])
+void
+Navigator::add_fence_point(int argc, char *argv[])
 {
 	_geofence.addPoint(argc, argv);
 }
 
-void Navigator::load_fence_from_file(const char *filename)
+void
+Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
 }
 
+bool
+Navigator::abort_landing()
+{
+	bool should_abort = false;
+
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
+		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+
+			if (get_position_setpoint_triplet()->current.valid
+			&& get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+				should_abort = _fw_pos_ctrl_status.abort_landing;
+			}
+		}
+	}
+
+	return should_abort;
+}
 
 static void usage()
 {
-	warnx("usage: navigator {start|stop|status|fence|fencefile}");
+	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -798,21 +847,21 @@ int navigator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (navigator::g_navigator != nullptr) {
-			warnx("already running");
+			PX4_WARN("already running");
 			return 1;
 		}
 
 		navigator::g_navigator = new Navigator;
 
 		if (navigator::g_navigator == nullptr) {
-			warnx("alloc failed");
+			PX4_ERR("alloc failed");
 			return 1;
 		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
 			navigator::g_navigator = nullptr;
-			warnx("start failed");
+			PX4_ERR("start failed");
 			return 1;
 		}
 
@@ -820,7 +869,7 @@ int navigator_main(int argc, char *argv[])
 	}
 
 	if (navigator::g_navigator == nullptr) {
-		warnx("not running");
+		PX4_INFO("not running");
 		return 1;
 	}
 
@@ -857,7 +906,6 @@ Navigator::publish_mission_result()
 	}
 
 	/* reset some of the flags */
-	_mission_result.seq_reached = false;
 	_mission_result.seq_current = 0;
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;

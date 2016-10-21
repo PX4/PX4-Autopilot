@@ -36,12 +36,14 @@ px4_add_module(
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2200
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		logger.cpp
 		log_writer.cpp
+		log_writer_file.cpp
+		log_writer_mavlink.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

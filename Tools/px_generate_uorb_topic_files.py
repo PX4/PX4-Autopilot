@@ -47,6 +47,7 @@ import sys
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(px4_tools_dir + "/genmsg/src")
 sys.path.append(px4_tools_dir + "/gencpp/src")
+px4_msg_dir = os.path.join(px4_tools_dir,"../msg")
 
 try:
         import em
@@ -78,7 +79,7 @@ __email__ = "thomasgubler@gmail.com"
 TEMPLATE_FILE = ['msg.h.template', 'msg.cpp.template']
 TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
 OUTPUT_FILE_EXT = ['.h', '.cpp']
-INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
+INCL_DEFAULT = ['std_msgs:./msg/std_msgs','px4:%s'%(px4_msg_dir)]
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
 
@@ -146,6 +147,11 @@ def generate_by_template(output_file, template_file, em_globals):
         Invokes empy intepreter to geneate output_file by the
         given template_file and predefined em_globals dict
         """
+        # check if folder exists:
+        folder_name = os.path.dirname(output_file)
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+            
         ofile = open(output_file, 'w')
         # todo, reuse interpreter
         interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
@@ -171,7 +177,7 @@ def convert_dir(format_idx, inputdir, outputdir, templatedir):
                 if os.path.isfile(fni):
                     it = os.path.getmtime(fni)
                     if it > maxinputtime:
-                        maxinputtime = it;
+                        maxinputtime = it
 
         # Find the most recent modification time in output dir
         maxouttime = 0
@@ -181,7 +187,7 @@ def convert_dir(format_idx, inputdir, outputdir, templatedir):
                     if os.path.isfile(fni):
                         it = os.path.getmtime(fni)
                         if it > maxouttime:
-                            maxouttime = it;
+                            maxouttime = it
 
         # Do not generate if nothing changed on the input
         if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
@@ -253,11 +259,27 @@ def convert_dir_save(format_idx, inputdir, outputdir, templatedir, temporarydir,
 
 def generate_topics_list_file(msgdir, outputdir, templatedir):
         # generate cpp file with topics list
-        tl_globals = {"msgs" : get_msgs_list(msgdir)}
+        msgs = get_msgs_list(msgdir)
+        multi_topics = []
+        for msg in msgs:
+            msg_filename = os.path.join(msgdir, msg)
+            multi_topics.extend(get_multi_topics(msg_filename))
+        tl_globals = {"msgs" : msgs, "multi_topics" : multi_topics}
         tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
         tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
         generate_by_template(tl_out_file, tl_template_file, tl_globals)
-
+        
+def generate_topics_list_file_from_files(files, outputdir, templatedir):
+        # generate cpp file with topics list
+        filenames = [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]
+        multi_topics = []
+        for msg_filename in files:
+            multi_topics.extend(get_multi_topics(msg_filename))
+        tl_globals = {"msgs" : filenames, "multi_topics" : multi_topics}
+        tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
+        tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
+        generate_by_template(tl_out_file, tl_template_file, tl_globals)
+        
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
             description='Convert msg files to uorb headers/sources')
@@ -290,12 +312,12 @@ if __name__ == "__main__":
         else:
             print('Error: either --headers or --sources must be specified')
             exit(-1)
-
         if args.file is not None:
             for f in args.file:
-                generate_output_from_file(generate_idx, f, args.outputdir, args.templatedir, INCL_DEFAULT)
+                generate_output_from_file(generate_idx, f, args.temporarydir, args.templatedir, INCL_DEFAULT)
             if generate_idx == 1:
-                generate_topics_list_file(args.dir, args.outputdir, args.templatedir)
+                generate_topics_list_file_from_files(args.file, args.outputdir, args.templatedir)
+            copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)
         elif args.dir is not None:
             convert_dir_save(
                     generate_idx,

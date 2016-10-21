@@ -41,7 +41,6 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <px4_time.h>

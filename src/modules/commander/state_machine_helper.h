@@ -76,11 +76,13 @@ struct status_flags_s {
 	bool circuit_breaker_engaged_airspd_check;
 	bool circuit_breaker_engaged_enginefailure_check;
 	bool circuit_breaker_engaged_gpsfailure_check;
-	bool cb_usb;
+	bool circuit_breaker_flight_termination_disabled;
+	bool circuit_breaker_engaged_usb_check;
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
 	bool offboard_control_signal_weak;
 	bool offboard_control_set_by_command;		// true if the offboard mode was set by a mavlink command and should not be overridden by RC
+	bool offboard_control_loss_timeout;		// true if offboard is lost for a certain amount of time
 	bool rc_signal_found_once;
 	bool rc_signal_lost_cmd;			// true if RC lost mode is commanded
 	bool rc_input_blocked;				// set if RC input should be ignored temporarily
@@ -90,6 +92,7 @@ struct status_flags_s {
 	bool gps_failure;				// Set to true if a gps failure is detected
 	bool gps_failure_cmd;				// Set to true if a gps failure mode is commanded
 	bool barometer_failure;				// Set to true if a barometer failure is detected
+	bool ever_had_barometer_data;			// Set to true if ever had valid barometer data before
 };
 
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
@@ -102,7 +105,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    bool fRunPreArmChecks,
 					    orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
 					    status_flags_s *status_flags,
-					    float avionics_power_rail_voltage);
+					    float avionics_power_rail_voltage,
+					    bool can_arm_without_gps);
 
 transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
@@ -110,11 +114,16 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, orb_advert_t *mavlink_log_pub);
 
+
+void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
+		orb_advert_t *mavlink_log_pub, const char * reason);
+
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
+		   orb_advert_t *mavlink_log_pub,
 		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed,
-		   const bool rc_loss_enabled);
+		   const bool rc_loss_enabled, const int offb_loss_act, const int offb_loss_rc_act);
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags, battery_status_s *battery);
+int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags, battery_status_s *battery, bool can_arm_without_gps);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

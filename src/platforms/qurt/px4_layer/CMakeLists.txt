@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
 include_directories(${HEXAGON_8074_INCLUDES})
@@ -56,7 +56,6 @@ endif()
 px4_add_module(
 	MODULE platforms__qurt__px4_layer
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		${QURT_LAYER_SRCS}
 		${CONFIG_SRC}

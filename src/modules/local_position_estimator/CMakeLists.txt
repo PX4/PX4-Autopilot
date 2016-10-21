@@ -33,9 +33,9 @@
 px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	STACK_MAIN 5700
-	STACK_MAX 10000
+	STACK_MAX 13000
 	SRCS
 		local_position_estimator_main.cpp
 		BlockLocalPositionEstimator.cpp
@@ -46,7 +46,8 @@ px4_add_module(
 		sensors/baro.cpp
 		sensors/vision.cpp
 		sensors/mocap.cpp
+		sensors/land.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

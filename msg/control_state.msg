@@ -1,4 +1,8 @@
 # This is similar to the mavlink message CONTROL_SYSTEM_STATE, but for onboard use */
+uint8 AIRSPD_MODE_MEAS = 0	# airspeed is measured airspeed from sensor
+uint8 AIRSPD_MODE_EST = 1	# airspeed is estimated by body velocity
+uint8 AIRSPD_MODE_DISABLED = 2	# airspeed is disabled
+
 float32 x_acc			# X acceleration in body frame
 float32 y_acc			# Y acceleration in body frame
 float32 z_acc			# Z acceleration in body frame

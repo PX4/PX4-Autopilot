@@ -39,12 +39,12 @@ NOTE: This is only necessary if you are not using the instructions above.
 
 1. Launch PX4 from the SITL build directory "`./Firmware/Build/posix_sitl.build/`" using the command below.  The optional `<startup_file>` can be used to cause a set of commands to be entered into the PX4 shell at startup.  
 ```
-> ./mainapp <startup_file> 
+> ./px4 <startup_file> 
 ```
 
 There is a sample startup script at `posix_configs/SITL/init/rcS`. 
 ```
-> ./mainapp ../../posix-configs/SITL/init/rcS
+> ./px4 ../../posix-configs/SITL/init/rcS
 ```
 
 Without the `<startup_file>`, the commands can be entered at the shell prompt one at a time.  An example startup file is given below.  This example shows that the "mavlink" module has selected port 14556 for its socket server (as shown in the SITL diagram) and will listen for connections on this port.
@@ -105,5 +105,5 @@ param set RC_MAP_POSCTL_SW 7
 param set RC_MAP_RETURN_SW 8
 param set MC_PITCHRATE_P 0.05
 param set MC_ROLLRATE_P 0.05
-mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
+mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_x.main.mix
 ```

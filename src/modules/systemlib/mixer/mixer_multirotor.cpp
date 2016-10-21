@@ -51,6 +51,7 @@
 #include <math.h>
 
 #include <px4iofirmware/protocol.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "mixer.h"
 
@@ -89,14 +90,20 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_delta_out_max(0.0f),
 	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
-	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry])
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
+	_outputs_prev(new float[_rotor_count])
 {
+	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
 }
 
 MultirotorMixer::~MultirotorMixer()
 {
+	if (_outputs_prev != nullptr) {
+		delete[] _outputs_prev;
+	}
 }
 
 MultirotorMixer *
@@ -125,7 +132,7 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	}
 
-	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
+	if (sscanf(buf, "R: %7s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
 		debug("multirotor parse failed on '%s'", buf);
 		return nullptr;
 	}
@@ -170,6 +177,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	} else if (!strcmp(geomname, "6c")) {
 		geometry = MultirotorGeometry::HEX_COX;
+
+	} else if (!strcmp(geomname, "6t")) {
+		geometry = MultirotorGeometry::HEX_T;
 
 	} else if (!strcmp(geomname, "8+")) {
 		geometry = MultirotorGeometry::OCTA_PLUS;
@@ -363,7 +373,25 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			     thrust + boost;
 
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
+
+		// slew rate limiting
+		if (_delta_out_max > 0.0f) {
+			float delta_out = outputs[i] - _outputs_prev[i];
+
+			if (delta_out > _delta_out_max) {
+				outputs[i] = _outputs_prev[i] + _delta_out_max;
+
+			} else if (delta_out < -_delta_out_max) {
+				outputs[i] = _outputs_prev[i] - _delta_out_max;
+			}
+		}
+
+		_outputs_prev[i] = outputs[i];
+
 	}
+
+	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
+	_delta_out_max = 0.0f;
 
 	return _rotor_count;
 }

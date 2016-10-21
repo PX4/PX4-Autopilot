@@ -46,6 +46,19 @@
 #include <unistd.h>
 #include <mathlib/mathlib.h>
 
+Landingslope::Landingslope() :
+	_landing_slope_angle_rad(0.0f),
+	_flare_relative_alt(0.0f),
+	_motor_lim_relative_alt(0.0f),
+	_H1_virt(0.0f),
+	_H0(0.0f),
+	_d1(0.0f),
+	_flare_constant(0.0f),
+	_flare_length(0.0f),
+	_horizontal_slope_displacement(0.0f)
+{
+}
+
 void Landingslope::update(float landing_slope_angle_rad_new,
 			  float flare_relative_alt_new,
 			  float motor_lim_relative_alt_new,
@@ -69,7 +82,7 @@ void Landingslope::calculateSlopeValues()
 	_horizontal_slope_displacement = (_flare_length - _d1);
 }
 
-float  Landingslope::getLandingSlopeRelativeAltitude(float wp_landing_distance)
+float Landingslope::getLandingSlopeRelativeAltitude(float wp_landing_distance)
 {
 	return Landingslope::getLandingSlopeRelativeAltitude(wp_landing_distance, _horizontal_slope_displacement,
 			_landing_slope_angle_rad);

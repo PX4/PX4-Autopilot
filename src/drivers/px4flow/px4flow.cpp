@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -89,12 +90,6 @@
 
 #define PX4FLOW_MAX_DISTANCE 5.0f
 #define PX4FLOW_MIN_DISTANCE 0.3f
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -226,7 +221,7 @@ PX4FLOW::~PX4FLOW()
 int
 PX4FLOW::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -245,11 +240,16 @@ PX4FLOW::init()
 	/* get a publish handle on the range finder topic */
 	struct distance_sensor_s ds_report = {};
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		}
+
+	} else {
+		DEVICE_LOG("not primary range device, not advertising");
 	}
 
 	ret = OK;
@@ -657,12 +657,6 @@ PX4FLOW::print_info()
  */
 namespace px4flow
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 PX4FLOW	*g_dev = nullptr;
 bool start_in_progress = false;

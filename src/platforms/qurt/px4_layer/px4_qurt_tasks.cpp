@@ -202,7 +202,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	fixed_stacksize = (fixed_stacksize < (size_t)stack_size) ? (size_t)stack_size : fixed_stacksize;
 
 	PX4_DEBUG("setting the thread[%s] stack size to[%d]", name, fixed_stacksize);
-	pthread_attr_setstacksize(&attr, fixed_stacksize);
+	pthread_attr_setstacksize(&attr, PX4_STACK_ADJUSTED(fixed_stacksize));
 
 	PX4_DEBUG("stack address after pthread_attr_setstacksize: 0x%X", attr.stackaddr);
 	param.sched_priority = priority;
@@ -326,7 +326,7 @@ void px4_show_tasks()
 
 }
 
-unsigned long px4_getpid()
+px4_task_t px4_getpid()
 {
 	pthread_t pid = pthread_self();
 //
@@ -340,10 +340,6 @@ unsigned long px4_getpid()
 		}
 	}
 
-#ifndef __PX4_QURT
-	// XXX This doesn't seem to be working on QURT
-	PX4_ERR("px4_getpid() called from unknown thread context!");
-#endif
 	return ~0;
 }
 
@@ -386,7 +382,7 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 	return 0;
 }
 
-int px4_prctl(int option, const char *arg2, unsigned pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv;
 

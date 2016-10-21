@@ -73,6 +73,8 @@ public:
 
 	unsigned get_size();
 
+	unsigned get_size_avg();
+
 	void handle_message(const mavlink_message_t *msg);
 
 private:
@@ -80,7 +82,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
-	MavlinkParametersManager& operator = (const MavlinkParametersManager &);
+	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);

@@ -660,6 +660,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	{
+		std::int32_t idle_throttle_when_armed = 0;
+		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &idle_throttle_when_armed);
+		_esc_controller.enable_idle_throttle_when_armed(idle_throttle_when_armed > 0);
+	}
+
 	ret = _hardpoint_controller.init();
 
 	if (ret < 0) {
@@ -1221,10 +1227,13 @@ UavcanNode::print_info()
 		printf("Addr\tV\tA\tTemp\tSetpt\tRPM\tErr\n");
 
 		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+			const float temp_celsius = (esc.esc[i].esc_temperature > 0) ?
+				(esc.esc[i].esc_temperature - 273.15F) : 0.0F;
+
 			printf("%d\t",    esc.esc[i].esc_address);
 			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
 			printf("%3.2f\t", (double)esc.esc[i].esc_current);
-			printf("%3.2f\t", (double)esc.esc[i].esc_temperature);
+			printf("%3.2f\t", (double)temp_celsius);
 			printf("%3.2f\t", (double)esc.esc[i].esc_setpoint);
 			printf("%d\t",    esc.esc[i].esc_rpm);
 			printf("%d",      esc.esc[i].esc_errorcount);

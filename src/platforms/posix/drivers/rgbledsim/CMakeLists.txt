@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE platforms__posix__drivers__rgbledsim
 	MAIN rgbledsim
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		rgbled.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

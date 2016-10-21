@@ -456,7 +456,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 	}
 
 	/* sync file */
-	BSON_FSYNC(encoder->fd);
+	if (encoder->fd > -1) {
+		BSON_FSYNC(encoder->fd);
+	}
 
 	return 0;
 }

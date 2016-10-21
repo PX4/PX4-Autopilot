@@ -1,0 +1,43 @@
+#!nsh
+
+set VEHICLE_TYPE vtol
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 6.0
+	param set MC_PITCH_P 6.0
+	param set MC_YAW_P 4
+
+	#
+	# Default parameters for mission and position handling
+	#
+	param set NAV_ACC_RAD 3
+	param set MPC_TKO_SPEED 1.0
+	param set MPC_LAND_SPEED 0.7
+	param set MPC_Z_VEL_MAX 1.5
+	param set MPC_XY_VEL_MAX 4.0
+	param set MIS_YAW_TMT 10
+	param set MPC_ACC_HOR_MAX 2.0
+	param set RTL_LAND_DELAY 0
+fi
+
+# set environment variables (!= parameters)
+set PWM_RATE 400
+# tell the mixer to use parameters for these instead
+set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX
+
+# Transitional support: ensure suitable PWM min/max param values
+if param compare PWM_MIN 1000
+then
+	param set PWM_MIN 1075
+fi
+if param compare PWM_MAX 2000
+then
+	param set PWM_MAX 1950
+fi
+if param compare PWM_DISARMED 0
+then
+	param set PWM_DISARMED 900
+fi

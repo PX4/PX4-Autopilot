@@ -38,6 +38,7 @@
 
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_defines.h>
 
 #include "rc_calibration.h"
 #include "commander_helper.h"
@@ -50,12 +51,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -66,7 +61,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (!changed) {
 		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
@@ -79,18 +74,26 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	float yaw_trim_active;
 	param_get(param_find("TRIM_YAW"), &yaw_trim_active);
 
+	/* get manual control scale values */
+	float roll_scale;
+	param_get(param_find("FW_MAN_R_SC"), &roll_scale);
+	float pitch_scale;
+	param_get(param_find("FW_MAN_P_SC"), &pitch_scale);
+	float yaw_scale;
+	param_get(param_find("FW_MAN_Y_SC"), &yaw_scale);
+
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
 	*/
-	float p = sp.y + roll_trim_active;
+	float p = sp.y * roll_scale + roll_trim_active;
 	int p1r = param_set(param_find("TRIM_ROLL"), &p);
 	/*
 	 we explicitly swap sign here because the trim is added to the actuator controls
 	 which are moving in an inverse sense to manual pitch inputs
 	*/
-	p = -sp.x + pitch_trim_active;
+	p = -sp.x * pitch_scale + pitch_trim_active;
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
-	p = sp.r + yaw_trim_active;
+	p = sp.r * yaw_scale + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
 	/* store to permanent storage */
@@ -100,10 +103,10 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
 		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	mavlink_log_info(mavlink_log_pub, "trim cal done");
 	px4_close(sub_man);
-	return OK;
+	return PX4_OK;
 }
