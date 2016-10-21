@@ -78,26 +78,93 @@ const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
 
-void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index)
+void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsigned index)
 {
-	actuator_msg.time_usec = hrt_absolute_time();
+	msg.time_usec = hrt_absolute_time();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	for (unsigned i = 0; i < MAVLINK_MSG_HIL_ACTUATOR_CONTROLS_FIELD_CONTROLS_LEN; i++) {
-		// scale PWM out 900..2100 us to -1..1 */
-		actuator_msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+	/* scale outputs depending on system type */
+	if (_system_type == MAV_TYPE_QUADROTOR ||
+	    _system_type == MAV_TYPE_HEXAROTOR ||
+	    _system_type == MAV_TYPE_OCTOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
 
-		if (!PX4_ISFINITE(actuator_msg.controls[i])) {
-			actuator_msg.controls[i] = -1.0f;
+		/* multirotors: set number of rotor outputs depending on type */
+
+		unsigned n;
+
+		switch (_system_type) {
+		case MAV_TYPE_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_HEXAROTOR:
+			n = 6;
+			break;
+
+		case MAV_TYPE_VTOL_DUOROTOR:
+			n = 2;
+			break;
+
+		case MAV_TYPE_VTOL_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_VTOL_RESERVED2:
+			n = 8;
+			break;
+
+		default:
+			n = 8;
+			break;
+		}
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i < n) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				}
+
+			} else {
+				/* send 0 when disarmed and for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
+		}
+
+	} else {
+		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i != 3) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+				}
+
+			} else {
+				/* set 0 for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
 		}
 	}
 
-	actuator_msg.mode = mode_flag_custom;
-	actuator_msg.mode |= (armed) ? mode_flag_armed : 0;
-	actuator_msg.flags = 0;
+	msg.mode = mode_flag_custom;
+	msg.mode |= (armed) ? mode_flag_armed : 0;
+	msg.flags = 0;
 }
 
 void Simulator::send_controls()

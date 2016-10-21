@@ -241,7 +241,8 @@ private:
 		_flow_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
-		_initialized(false)
+		_initialized(false),
+		_system_type(0)
 #ifndef __PX4_QURT
 		,
 		_rc_channels_pub(nullptr),
@@ -257,6 +258,11 @@ private:
 		_vehicle_status{}
 #endif
 	{
+		// We need to know the type for the correct mapping from
+		// actuator controls to the hil actuator message.
+		param_t param_system_type = param_find("MAV_TYPE");
+		param_get(param_system_type, &_system_type);
+
 		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
 		{
 			_actuator_outputs_sub[i] = -1;
@@ -298,6 +304,9 @@ private:
 
 	// Lib used to do the battery calculations.
 	Battery _battery;
+
+	// For param MAV_TYPE
+	int32_t _system_type;
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
