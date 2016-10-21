@@ -39,6 +39,7 @@
 #ifndef _DATAMANAGER_H
 #define _DATAMANAGER_H
 
+#include <string.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
@@ -56,6 +57,7 @@ typedef enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
 	DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
 	DM_KEY_MISSION_STATE,		/* Persistent mission state */
+	DM_KEY_COMPAT,
 	DM_KEY_NUM_KEYS			/* Total number of item types defined */
 } dm_item_t;
 
@@ -103,14 +105,21 @@ typedef enum {
 	DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
 } dm_reset_reason;
 
+struct dataman_compat_s {
+	uint32_t key;
+};
+
+#define DM_COMPAT_KEY ((sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
+
 /** Maximum size in bytes of a single item instance is
  * defined by adding the structure type to the union below
  */
 
 typedef union dataman_max_size_t {
-	struct mission_item_s    mission_item;
-	struct mission_s	      mission;
-	struct fence_vertex_s    vertex;
+	struct mission_item_s		mission_item;
+	struct mission_s			mission;
+	struct fence_vertex_s		vertex;
+	struct dataman_compat_s		compat;
 } dataman_max_size_t;
 
 
