@@ -87,7 +87,7 @@ bool MissionFeasibilityChecker::checkMissionFeasible(orb_advert_t *mavlink_log_p
 
 	// check if all mission item commands are supported
 	failed = failed || !checkMissionItemValidity(dm_current, nMissionItems, condition_landed);
-	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence);
+	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence, home_alt);
 	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
 
 	if (isRotarywing) {
@@ -149,7 +149,7 @@ bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_curre
 	return resLanding;
 }
 
-bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
+bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt)
 {
 	/* Check if all mission items are inside the geofence (if we have a valid geofence) */
 	if (geofence.valid()) {
@@ -162,10 +162,15 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 				return false;
 			}
 
-			if (MissionBlock::item_contains_position(&missionitem) &&
-				!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
+			// Geofence function checks against home altitude amsl
+			missionitem.altitude = missionitem.altitude_is_relative
+				      ? missionitem.altitude + home_alt
+			              : missionitem.altitude;
 
-				mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i);
+			if (MissionBlock::item_contains_position(&missionitem) &&
+				!geofence.inside(missionitem)) {
+
+				mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i + 1);
 				return false;
 			}
 		}

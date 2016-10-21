@@ -88,6 +88,8 @@ public:
 		    const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
 		    const struct home_position_s home_pos, bool home_position_set);
 
+	bool inside(const struct mission_item_s &mission_item);
+
 	bool inside_polygon(double lat, double lon, float altitude);
 
 	int clearDm();
