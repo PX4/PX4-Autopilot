@@ -9,7 +9,7 @@ add_definitions("-DPX4_BASH_PREFIX=\"${PX4_BASH_PREFIX}\"")
 
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
 )
 
 px4_posix_generate_alias(
