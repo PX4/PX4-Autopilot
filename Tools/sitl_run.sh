@@ -5,7 +5,7 @@ set -e
 echo args: $@
 
 sitl_bin=$1
-rcS_dir=$2
+rcS_path=$2
 debugger=$3
 program=$4
 model=$5
@@ -15,7 +15,7 @@ build_path=$7
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo rcS_dir: $rcS_dir
+echo rcS_path: $rcS_path
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -23,7 +23,6 @@ echo src_path: $src_path
 echo build_path: $build_path
 
 working_dir=`pwd`
-sitl_bin=$build_path/bin/px4
 rootfs=$build_path/rootfs
 
 # To disable user input
@@ -55,7 +54,7 @@ fi
 
 if [ "$#" -lt 7 ]
 then
-	echo usage: sitl_run.sh sitl_bin rcS_dir debugger program model src_path build_path
+	echo usage: sitl_run.sh sitl_bin rcS_path debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -125,7 +124,7 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sitl_bin $no_pxh $rootfs $rootfs/${rcS_dir}/rcS"
+sitl_command="$sitl_bin $no_pxh $rootfs $rootfs/${rcS_path}"
 
 echo SITL COMMAND: $sitl_command
 

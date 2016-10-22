@@ -33,6 +33,7 @@
 
 set(posix_init_file_names
 	rcS
+	rcS_tests
 	6011_typhoon_h480
 	10016_iris
 )
