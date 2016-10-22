@@ -46,6 +46,7 @@
 #include <string>
 #include <termios.h>
 
+#include "apps.h"
 #include "history.h"
 
 namespace px4_daemon
@@ -85,6 +86,7 @@ private:
 	History _history;
 	struct termios _orig_term;
 
+	static apps_map_type _apps;
 	static Pxh *_instance;
 };
 

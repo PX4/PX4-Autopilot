@@ -53,6 +53,9 @@ namespace px4_daemon
 
 Pxh *Pxh::_instance = nullptr;
 
+apps_map_type Pxh::_apps = {};
+
+
 Pxh::Pxh()
 {
 	_instance = this;
@@ -69,6 +72,10 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		return 0;
 	}
 
+	if (_apps.size() == 0) {
+		init_app_map(_apps);
+	}
+
 	std::stringstream line_stream(line);
 	std::string word;
 	std::vector<std::string> words;
@@ -80,7 +87,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 	const std::string &command(words.front());
 
-	if (apps.find(command) != apps.end()) {
+	if (_apps.find(command) != _apps.end()) {
 
 		// Note that argv[argc] always needs to be a nullptr.
 		// Therefore add one more entry.
@@ -93,7 +100,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		// Explicitly set this nullptr.
 		arg[words.size()] = nullptr;
 
-		int retval = apps[command](words.size(), (char **)arg);
+		int retval = _apps[command](words.size(), (char **)arg);
 
 		if (retval) {
 			if (!silently_fail) {
@@ -104,7 +111,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		return retval;
 
 	} else if (command.compare("help") == 0) {
-		list_builtins();
+		list_builtins(_apps);
 		return 0;
 
 	} else if (command.length() == 0 || command[0] == '#') {
