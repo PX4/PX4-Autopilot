@@ -941,22 +941,6 @@ task_main(int argc, char *argv[])
 		g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
 
 		if (g_task_fd >= 0) {
-
-#ifndef __PX4_POSIX
-			// XXX on Mac OS and Linux the file is not a multiple of the sector sizes
-			// this might need further inspection.
-
-			/* File exists, check its size */
-			int file_size = lseek(g_task_fd, 0, SEEK_END);
-
-			if ((file_size % k_sector_size) != 0) {
-				PX4_WARN("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
-				PX4_WARN("Size: %u, sector size: %d", file_size, k_sector_size);
-				close(g_task_fd);
-				unlink(k_data_manager_device_path);
-			}
-
-#else
 			// Read the mission state and check the hash
 			struct dataman_compat_s compat_state;
 			int ret = g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
@@ -974,9 +958,6 @@ task_main(int argc, char *argv[])
 			if (incompat) {
 				unlink(k_data_manager_device_path);
 			}
-
-#endif
-
 		}
 
 		/* Open or create the data manager file */
