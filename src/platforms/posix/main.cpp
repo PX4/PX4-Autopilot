@@ -424,9 +424,9 @@ void print_usage()
 	printf("\n");
 	printf("    px4 [-h|-d] [rootfs_directory] startup_file\n");
 	printf("\n");
-	printf("    <startup_file>     bash start script to be used as startup\n");
 	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
 	printf("                       (if not given, CWD is used)\n");
+	printf("    <startup_file>     bash start script to be used as startup\n");
 	printf("        -h             help/usage information\n");
 	printf("        -d             daemon mode, don't start pxh shell\n");
 	printf("\n");
