@@ -93,9 +93,9 @@ static void sig_fpe_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
-static int create_symlinks(const std::string &data_path);
-static int create_symlinks(const std::string &data_path);
-static void run_startup_bash_script(const char *commands_file);
+static int create_symlinks_if_needed(const std::string &data_path);
+static int create_dirs();
+static int run_startup_bash_script(const char *commands_file);
 static void wait_to_exit();
 static bool is_already_running();
 static void print_usage();
@@ -138,11 +138,16 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
+		if (is_already_running()) {
+			PX4_ERR("PX4 daemon already running");
+			return -1;
+		}
+
 		/* Server/daemon apps need to parse the command line arguments. */
 
-		std::string  commands_file = "";
 		int positional_arg_count = 0;
 		std::string data_path = "";
+		std::string commands_file = "";
 		std::string node_name = "";
 
 		// parse arguments
@@ -156,16 +161,6 @@ int main(int argc, char **argv)
 				} else if (strcmp(argv[i], "-d") == 0) {
 					pxh_off = true;
 
-				} else if (!strncmp(argv[i], "__", 2)) {
-					PX4_DEBUG("ros argument");
-
-					// ros arguments
-					if (!strncmp(argv[i], "__name:=", 8)) {
-						std::string name_arg = argv[i];
-						node_name = name_arg.substr(8);
-						PX4_INFO("node name: %s", node_name.c_str());
-					}
-
 				} else {
 					printf("Unknown/unhandled parameter: %s\n", argv[i]);
 					print_usage();
@@ -173,8 +168,8 @@ int main(int argc, char **argv)
 				}
 
 			} else if (!strncmp(argv[i], "__", 2)) {
-				//printf("ros argument\n");
 
+				// FIXME: what is this?
 				// ros arguments
 				if (!strncmp(argv[i], "__name:=", 8)) {
 					std::string name_arg = argv[i];
@@ -188,9 +183,10 @@ int main(int argc, char **argv)
 				positional_arg_count += 1;
 
 				if (positional_arg_count == 1) {
-					data_path = argv[i];
+					commands_file = argv[i];
 
 				} else if (positional_arg_count == 2) {
+					data_path = commands_file;
 					commands_file = argv[i];
 				}
 			}
@@ -200,24 +196,6 @@ int main(int argc, char **argv)
 				print_usage();
 				return -1;
 			}
-
-			if (positional_arg_count == 1) {
-				data_path = argv[i];
-
-			} else if (positional_arg_count == 2) {
-				commands_file = argv[i];
-			}
-		}
-
-		bool symlinks_needed = false;
-
-		// data path is optional
-		if (positional_arg_count == 1) {
-			commands_file = data_path;
-			symlinks_needed = false;
-
-		} else {
-			PX4_INFO("data path: %s", data_path.c_str());
 		}
 
 		if (!file_exists(commands_file)) {
@@ -225,30 +203,24 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		if (is_already_running()) {
-			PX4_ERR("PX4 daemon already running");
-			return -1;
-		}
-
-		px4_daemon::Server server;
-		server.start();
+		PX4_INFO("startup file: %s", commands_file.c_str());
 
 		register_sig_handler();
 		set_cpu_scaling();
 
-		PX4_INFO("startup file: %s", commands_file.c_str());
+		px4_daemon::Server server;
+		server.start();
 
-		if (commands_file.size() < 1) {
-			PX4_ERR("Error startup file not specified");
-			return -1;
+		int ret = create_symlinks_if_needed(data_path);
+
+		if (ret != PX4_OK) {
+			return ret;
 		}
 
-		if (symlinks_needed) {
-			int ret = create_symlinks(data_path);
+		ret = create_dirs();
 
-			if (ret != PX4_OK) {
-				return ret;
-			}
+		if (ret != PX4_OK) {
+			return ret;
 		}
 
 		DriverFramework::Framework::initialize();
@@ -256,7 +228,7 @@ int main(int argc, char **argv)
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
-		run_startup_bash_script(commands_file.c_str());
+		ret = run_startup_bash_script(commands_file.c_str());
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -276,28 +248,38 @@ int main(int argc, char **argv)
 		px4_daemon::Pxh::process_line(muorb_stop_cmd, true);
 #endif
 
-		std::string shutdown_cmd("shutdown");
-		px4_daemon::Pxh::process_line(shutdown_cmd, true);
+		std::string cmd("shutdown");
+		px4_daemon::Pxh::process_line(cmd, true);
 
 	}
 
 	return PX4_OK;
 }
 
-int create_symlinks(const std::string &data_path)
+int create_symlinks_if_needed(const std::string &data_path)
 {
+	std::string current_path = pwd();
+
+	if (data_path.compare(current_path) == 0) {
+		// We are already running in the data path, so no need to symlink
+		PX4_INFO("no symlinks needed");
+		return PX4_OK;
+	}
+
 	std::vector<std::string> path_sym_links;
-	path_sym_links.push_back("rootfs");
+	path_sym_links.push_back("etc");
+	path_sym_links.push_back("test_data");
 
-	for (int i = 0; i < path_sym_links.size(); i++) {
-		std::string path_sym_link = path_sym_links[i];
-		PX4_DEBUG("path sym link: %s", path_sym_link.c_str());;
-		std::string src_path = data_path + "/" + path_sym_link;
-		std::string dest_path =  pwd() + "/" +  path_sym_link;
+	for (auto it = path_sym_links.begin(); it != path_sym_links.end(); ++it) {
 
-		PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+		PX4_DEBUG("path sym link: %s", it->c_str());;
 
-		if (dir_exists(path_sym_link)) {
+		std::string src_path = data_path + "/" + *it;
+		std::string dest_path = current_path + "/" + *it;
+
+		PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+
+		if (dir_exists(*it)) {
 			continue;
 		}
 
@@ -310,6 +292,37 @@ int create_symlinks(const std::string &data_path)
 
 		} else {
 			PX4_DEBUG("Successfully created symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+		}
+	}
+
+	return PX4_OK;
+}
+
+int create_dirs()
+{
+	std::string current_path = pwd();
+
+	std::vector<std::string> dirs;
+	dirs.push_back("log");
+
+	for (int i = 0; i < dirs.size(); i++) {
+		std::string dir = dirs[i];
+		PX4_DEBUG("mkdir: %s", dir.c_str());;
+		std::string dir_path = current_path + "/" + dir;
+
+		if (dir_exists(dir_path)) {
+			continue;
+		}
+
+		// create dirs
+		int ret = mkdir(dir_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (ret != OK) {
+			PX4_WARN("failed creating new dir: %s", dir_path);
+			return ret;
+
+		} else {
+			PX4_DEBUG("Successfully created dir %s", dir_path);
 		}
 	}
 
@@ -374,7 +387,7 @@ void set_cpu_scaling()
 #endif
 }
 
-void run_startup_bash_script(const char *commands_file)
+int run_startup_bash_script(const char *commands_file)
 {
 	std::string bash_command("bash ");
 
@@ -391,8 +404,11 @@ void run_startup_bash_script(const char *commands_file)
 		} else {
 			PX4_WARN("Startup script returned with return value: %d", ret);
 		}
+	} else {
+		PX4_INFO("Startup script empty");
 	}
-	PX4_INFO("Startup script empty");
+
+	return ret;
 }
 
 void wait_to_exit()
