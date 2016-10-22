@@ -36,6 +36,7 @@ set(config_module_list
 	drivers/boards/sitl
 	drivers/qshell/posix
 
+	systemcmds/shutdown
 	systemcmds/param
 	systemcmds/led_control
 	systemcmds/mixer

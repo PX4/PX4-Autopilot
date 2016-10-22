@@ -14,7 +14,6 @@ extern void px4_show_devices(void);
 
 extern "C" {
 ${builtin_apps_decl_string}
-static int shutdown_main(int argc, char *argv[]);
 static int list_tasks_main(int argc, char *argv[]);
 static int list_files_main(int argc, char *argv[]);
 static int list_devices_main(int argc, char *argv[]);
@@ -27,7 +26,6 @@ static map<string,px4_main_t> app_map(void)
         static map<string,px4_main_t> apps;
 
 ${builtin_apps_string}
-	apps["shutdown"] = shutdown_main;
 	apps["list_tasks"] = list_tasks_main;
 	apps["list_files"] = list_files_main;
 	apps["list_devices"] = list_devices_main;
@@ -44,12 +42,6 @@ static void list_builtins(void)
 	printf("Builtin Commands:\n");
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
 		printf("\t%s", it->first.c_str());
-}
-
-static int shutdown_main(int argc, char *argv[])
-{
-	printf("Shutting down\n");
-	exit(0);
 }
 
 static int list_tasks_main(int argc, char *argv[])

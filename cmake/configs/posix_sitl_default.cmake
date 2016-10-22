@@ -40,6 +40,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
+	systemcmds/shutdown
 	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
