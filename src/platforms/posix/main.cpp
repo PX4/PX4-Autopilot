@@ -318,11 +318,11 @@ int create_dirs()
 		int ret = mkdir(dir_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (ret != OK) {
-			PX4_WARN("failed creating new dir: %s", dir_path);
+			PX4_WARN("failed creating new dir: %s", dir_path.c_str());
 			return ret;
 
 		} else {
-			PX4_DEBUG("Successfully created dir %s", dir_path);
+			PX4_DEBUG("Successfully created dir %s", dir_path.c_str());
 		}
 	}
 
