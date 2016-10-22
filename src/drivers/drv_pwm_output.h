@@ -44,6 +44,9 @@
 #pragma once
 
 #include <px4_defines.h>
+
+#include "uORB/topics/output_pwm.h"
+
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -61,7 +64,6 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
-#include <uORB/topics/output_pwm.h>
 #define pwm_output_values output_pwm_s
 
 #ifndef PWM_OUTPUT_MAX_CHANNELS

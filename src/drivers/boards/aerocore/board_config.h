@@ -47,9 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -188,6 +185,8 @@ __BEGIN_DECLS
 		{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0}, \
 		{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,      0}, \
 		{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0}, }
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types
