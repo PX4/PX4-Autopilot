@@ -1567,7 +1567,7 @@ MulticopterPositionControl::task_main()
 					if (!_takeoff_jumped) {
 						// ramp thrust setpoint up
 						if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-							_takeoff_thrust_sp += 1.0f * dt;
+							_takeoff_thrust_sp += 0.5f * dt;
 							_vel_sp.zero();
 							_vel_prev.zero();
 
