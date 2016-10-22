@@ -108,9 +108,16 @@ __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
-__EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
+
+#if __PX4_QURT
+// No fsync on Snapdragon, so let's do nothing instead.
+#define px4_fsync(fd)	do { (void)fd; } while (false)
+#else
+// For the rest, just use plain fsync.
+#define px4_fsync	fsync
+#endif
 
 __EXPORT void		px4_enable_sim_lockstep(void);
 __EXPORT void		px4_sim_start_delay(void);

@@ -384,11 +384,6 @@ extern "C" {
 		return (count) ? count : ret;
 	}
 
-	int px4_fsync(int fd)
-	{
-		return 0;
-	}
-
 	int px4_access(const char *pathname, int mode)
 	{
 		if (mode != F_OK) {
