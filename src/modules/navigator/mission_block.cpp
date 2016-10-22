@@ -182,7 +182,7 @@ MissionBlock::is_mission_item_reached()
 
 			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
 
-			/* It should be safe to juse use half of the takoeff_alt as an acceptance radius. */
+			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
 			if (takeoff_alt > 0 && takeoff_alt < altitude_acceptance_radius) {
 				altitude_acceptance_radius = takeoff_alt / 2.0f;
 			}
