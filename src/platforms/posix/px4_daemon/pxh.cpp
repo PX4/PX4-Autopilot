@@ -135,7 +135,7 @@ void Pxh::run_pxh()
 
 	_setup_term();
 
-	string mystr = "";
+	std::string mystr = "";
 
 	_print_prompt();
 
