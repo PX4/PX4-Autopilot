@@ -94,7 +94,7 @@ def main():
             help='Mavlink port name: serial: DEVICE[,BAUD], udp: IP:PORT, tcp: tcp:IP:PORT. Eg: \
 /dev/ttyUSB0 or 0.0.0.0:14550. Auto-detect serial if not given.')
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int,
-                      help="Mavlink port baud rate (default=115200)", default=115200)
+                      help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
 
