@@ -71,7 +71,7 @@ void qurt_external_hook(void)
 {
 }
 
-static void run_cmd(apps_map_type &apps, const vector<string> &appargs)
+static void run_cmd(apps_map_type &apps, const std::vector<std::string> &appargs)
 {
 	// command is appargs[0]
 	std::string command = appargs[0];
@@ -120,7 +120,7 @@ void eat_whitespace(const char *&b, int &i)
 
 static void process_commands(apps_map_type &apps, const char *cmds)
 {
-	vector<std::string> appargs;
+	std::vector<std::string> appargs;
 	int i = 0;
 	const char *b = cmds;
 	char arg[256];
