@@ -108,10 +108,13 @@ typedef enum {
 } dm_reset_reason;
 
 struct dataman_compat_s {
-	uint32_t key;
+	uint64_t key;
 };
 
-#define DM_COMPAT_KEY (1 + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
+/* increment this define whenever a binary incompatible change is performed */
+#define DM_COMPAT_VERSION	1
+
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
 
 /** Maximum size in bytes of a single item instance is
  * defined by adding the structure type to the union below
