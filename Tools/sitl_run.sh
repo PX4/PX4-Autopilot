@@ -163,7 +163,7 @@ then
 	echo "######################################################################"
 	read
 else
-	$sitl_command
+	eval $sitl_command
 fi
 
 popd
