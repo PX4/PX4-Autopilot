@@ -209,6 +209,7 @@ bool MixerTest::loadAllTest()
 		case DTYPE_FILE:
 #else
 		case DT_REG:
+			const char *filename = "./etc/mixers/IO_pass.mix";
 #endif
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
@@ -588,7 +589,37 @@ bool MixerTest::mixerTest()
 		}
 	}
 
+<<<<<<< HEAD
 	return true;
+=======
+	//printf("\n");
+
+	/* load multirotor at once test */
+	mixer_group.reset();
+
+#if !defined(CONFIG_ARCH_BOARD_SITL)
+	filename = "/etc/mixers/quad_x.main.mix";
+#else
+	filename = "./etc/mixers/quad_x.main.mix";
+#endif
+
+	load_mixer_file(filename, &buf[0], sizeof(buf));
+	loaded = strlen(buf);
+
+	//fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+
+	unsigned mc_loaded = loaded;
+	mixer_group.load_from_buf(&buf[0], mc_loaded);
+	//PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
+
+	if (mixer_group.count() != 3) {
+		PX4_ERR("FAIL: Quad test mixer load failed");
+		return 1;
+	}
+
+	//PX4_INFO("SUCCESS: No errors in mixer test");
+	return 0;
+>>>>>>> tests: fix paths for SITL tests
 }
 
 static int
