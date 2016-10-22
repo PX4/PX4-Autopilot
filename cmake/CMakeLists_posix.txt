@@ -25,6 +25,7 @@ set(UPLOAD_NAME upload)
 
 add_subdirectory(posix-configs/SITL/init)
 add_subdirectory(ROMFS/px4fmu_common/mixers)
+add_subdirectory(test_data)
 
 
 if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
