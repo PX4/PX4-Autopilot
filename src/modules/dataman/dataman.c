@@ -163,7 +163,8 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX,
-	DM_KEY_MISSION_STATE_MAX
+	DM_KEY_MISSION_STATE_MAX,
+	DM_KEY_COMPAT_MAX
 };
 
 /* Table of offset for index 0 of each item type */
@@ -958,16 +959,14 @@ task_main(int argc, char *argv[])
 #else
 			// Read the mission state and check the hash
 			struct dataman_compat_s compat_state;
-			int ret = dm_read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
+			int ret = g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
 
 			bool incompat = true;
 
 			if (ret == sizeof(compat_state)) {
-
 				if (compat_state.key == DM_COMPAT_KEY) {
 					incompat = false;
 				}
-
 			}
 
 			close(g_task_fd);
@@ -999,10 +998,10 @@ task_main(int argc, char *argv[])
 		/* Write current compat info */
 		struct dataman_compat_s compat_state;
 		compat_state.key = DM_COMPAT_KEY;
-		int ret = dm_write(DM_KEY_COMPAT, 0, DM_PERSIST_POWER_ON_RESET, &compat_state, sizeof(compat_state));
+		int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, DM_PERSIST_POWER_ON_RESET, &compat_state, sizeof(compat_state));
 
 		if (ret != sizeof(compat_state)) {
-			PX4_ERR("Failed writing compat.");
+			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
 		fsync(g_task_fd);
