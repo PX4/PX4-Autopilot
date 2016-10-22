@@ -45,7 +45,6 @@
 
 #pragma once
 #include <platforms/px4_defines.h>
-__BEGIN_DECLS
 
 #include "geo_lookup/geo_mag_declination.h"
 
@@ -78,6 +77,8 @@ struct globallocal_converter_reference_s {
 	float alt;
 	bool init_done;
 };
+
+__BEGIN_DECLS
 
 /**
  * Checks if global projection was initialized
