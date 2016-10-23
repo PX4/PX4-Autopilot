@@ -519,7 +519,7 @@ Mission::set_mission_items()
 			_mission_item.altitude = takeoff_alt;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0;
+			_mission_item.time_inside = 0.0f;
 		}
 
 		/* if we just did a takeoff navigate to the actual waypoint now */
@@ -548,6 +548,7 @@ Mission::set_mission_items()
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 				/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 				_mission_item.yaw = NAN;
+				_mission_item.time_inside = 0.0f;
 			}
 
 		}
@@ -581,7 +582,7 @@ Mission::set_mission_items()
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0;
+			_mission_item.time_inside = 0.0f;
 		}
 
 		/* transition to MC */
@@ -620,7 +621,7 @@ Mission::set_mission_items()
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0;
+			_mission_item.time_inside = 0.0f;
 		}
 
 		/* we just moved to the landing waypoint, now descend */
@@ -687,9 +688,7 @@ Mission::set_mission_items()
 		set_current_offboard_mission_item();
 	}
 
-	// TODO: report onboard mission item somehow
-
-	if (_mission_item.autocontinue && _mission_item.time_inside <= 0.001f) {
+	if (_mission_item.autocontinue && Navigator::get_time_inside(_mission_item) < FLT_EPSILON) {
 		/* try to process next mission item */
 
 		if (has_next_position_item) {
@@ -806,7 +805,7 @@ Mission::set_align_mission_item(struct mission_item_s *mission_item, struct miss
 	copy_positon_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
 	mission_item->altitude_is_relative = false;
 	mission_item->autocontinue = true;
-	mission_item->time_inside = 0;
+	mission_item->time_inside = 0.0f;
 	mission_item->yaw = get_bearing_to_next_waypoint(
 				    _navigator->get_global_position()->lat,
 				    _navigator->get_global_position()->lon,
@@ -854,7 +853,7 @@ Mission::heading_sp_update()
 	}
 
 	/* set yaw angle for the waypoint if a loiter time has been specified */
-	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
+	if (_waypoint_position_reached && Navigator::get_time_inside(_mission_item) > FLT_EPSILON) {
 		// XXX: should actually be param4 from mission item
 		// at the moment it will just keep the heading it has
 		//_mission_item.yaw = _on_arrival_yaw;
