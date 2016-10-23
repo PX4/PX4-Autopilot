@@ -1279,8 +1279,8 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 	// This block scans for a supported serial RC input and locks onto the first one found
-	// Scan for 100 msec, then switch protocol
-	constexpr hrt_abstime rc_scan_max = 100 * 1000;
+	// Scan for 300 msec, then switch protocol
+	constexpr hrt_abstime rc_scan_max = 300 * 1000;
 
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
