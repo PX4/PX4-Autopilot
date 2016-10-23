@@ -73,10 +73,6 @@ private:
 static px4_dev_t *devmap[PX4_MAX_DEV];
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 
-/*
- * The standard NuttX operation dispatch table can't call C++ member functions
- * directly, so we have to bounce them through this dispatch table.
- */
 
 VDev::VDev(const char *name,
 	   const char *devname) :

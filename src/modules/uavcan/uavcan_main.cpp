@@ -45,6 +45,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <array>
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -84,6 +85,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_hardpoint_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
+	_node_status_monitor(_node),
 	_master_timer(_node),
 	_setget_response(0)
 
@@ -806,7 +808,7 @@ int UavcanNode::run()
 	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
 	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
-
+	_node_status_monitor.start();
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 
@@ -1252,6 +1254,18 @@ UavcanNode::print_info()
 		printf("\n");
 		br = br->getSibling();
 	}
+
+	// Printing all nodes that are online
+	std::printf("Online nodes (Node ID, Health, Mode):\n");
+	_node_status_monitor.forEachNode([](uavcan::NodeID nid, uavcan::NodeStatusMonitor::NodeStatus ns) {
+		static constexpr std::array<const char*, 4> HEALTH {
+			"OK", "WARN", "ERR", "CRIT"
+		};
+		static constexpr std::array<const char*, 8> MODES {
+			"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"
+		};
+		std::printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH.at(ns.health), MODES.at(ns.mode));
+	});
 
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
