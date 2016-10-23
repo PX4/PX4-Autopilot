@@ -150,6 +150,8 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
+	void update_pwm_trims();
+
 private:
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
@@ -754,6 +756,28 @@ PX4FMU::update_pwm_rev_mask()
 			_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
 		}
 	}
+}
+
+void
+PX4FMU::update_pwm_trims()
+{
+	struct pwm_output_values pwm;
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		char pname[16];
+		int32_t ival;
+
+		/* fill the struct from parameters */
+		sprintf(pname, "PWM_AUX_TRIM%d", i + 1);
+		param_t param_h = param_find(pname);
+
+		if (param_h != PARAM_INVALID) {
+			param_get(param_h, &ival);
+			pwm.values[i] = ival;
+		}
+	}
+
+	/* copy the trim values to the mixer offsets */
+	_mixers->set_trims(pwm.values, _max_actuators);
 }
 
 void
@@ -1892,21 +1916,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 			}
 
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* allow 0 - turns the trim option off */
-					_trim_pwm[i] = 0;
-
-				} else if (pwm->values[i] < PWM_LOWEST_MAX) {
-					_trim_pwm[i] = PWM_LOWEST_MAX;
-
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_trim_pwm[i] = PWM_HIGHEST_MAX;
-
-				} else {
-					_trim_pwm[i] = pwm->values[i];
-				}
-			}
+			/* copy the trim values to the mixer offsets */
+			_mixers->set_trims(pwm->values, pwm->channel_count);
 
 			break;
 		}
