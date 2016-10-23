@@ -61,7 +61,6 @@ namespace logger
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
 	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
-	uint64_t time_tried_subscribe;	// captures the time at which we checked last time if this instance existed
 	const orb_metadata *metadata = nullptr;
 
 	LoggerSubscription() {}
@@ -70,7 +69,6 @@ struct LoggerSubscription {
 		metadata(metadata_)
 	{
 		fd[0] = fd_;
-		time_tried_subscribe = 0;
 
 		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			fd[i] = -1;
@@ -189,7 +187,7 @@ private:
 
 	void write_changed_parameters();
 
-	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer);
+	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe);
 
 	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
@@ -228,9 +226,9 @@ private:
 
 	uint8_t						*_msg_buffer = nullptr;
 	int						_msg_buffer_len = 0;
-	bool						_task_should_exit = true;
 	char 						_log_dir[LOG_DIR_LEN];
 	char 						_log_file_name[32];
+	bool						_task_should_exit = true;
 	bool						_has_log_dir = false;
 	bool						_was_armed = false;
 	bool						_arm_override;

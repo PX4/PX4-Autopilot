@@ -95,11 +95,11 @@ public:
 
 private:
 	const orb_id_t _topic;		///< topic metadata
-	const int _instance;		///< get topic instance
 	int _fd;			///< subscription handle
+	const uint8_t _instance;		///< get topic instance
 	bool _published;		///< topic was ever published
-	hrt_abstime _last_pub_check;	///< when we checked last
 	bool _subscribe_from_beginning; ///< we need to subscribe from the beginning, e.g. for vehicle_command_acks
+	hrt_abstime _last_pub_check;	///< when we checked last
 
 	/* do not allow copying this class */
 	MavlinkOrbSubscription(const MavlinkOrbSubscription &);

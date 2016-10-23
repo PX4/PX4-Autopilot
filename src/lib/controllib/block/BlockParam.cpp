@@ -82,10 +82,9 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 
 template <class T>
 BlockParam<T>::BlockParam(Block *block, const char *name,
-			  bool parent_prefix, T *extern_address) :
+			  bool parent_prefix) :
 	BlockParamBase(block, name, parent_prefix),
-	_val(),
-	_extern_address(extern_address)
+	_val()
 {
 	update();
 }
@@ -97,10 +96,6 @@ template <class T>
 void BlockParam<T>::set(T val)
 {
 	_val = val;
-
-	if (_extern_address != NULL) {
-		*_extern_address = val;
-	}
 }
 
 template <class T>
@@ -108,10 +103,6 @@ void BlockParam<T>::update()
 {
 	if (_handle != PARAM_INVALID) {
 		param_get(_handle, &_val);
-
-		if (_extern_address != NULL) {
-			*_extern_address = _val;
-		}
 	}
 }
 
@@ -126,5 +117,37 @@ BlockParam<T>::~BlockParam() {};
 
 template class __EXPORT BlockParam<float>;
 template class __EXPORT BlockParam<int>;
+
+
+template <class T>
+BlockParamExt<T>::BlockParamExt(Block *block, const char *name,
+				bool parent_prefix, T &extern_val) :
+	BlockParam<T>(block, name, parent_prefix),
+	_extern_val(extern_val)
+{
+	update();
+}
+
+template <class T>
+void BlockParamExt<T>::set(T val)
+{
+	this->_val = val;
+	_extern_val = val;
+}
+
+template <class T>
+void BlockParamExt<T>::update()
+{
+	if (this->_handle != PARAM_INVALID) {
+		param_get(this->_handle, &this->_val);
+		_extern_val = this->_val;
+	}
+}
+
+template <class T>
+BlockParamExt<T>::~BlockParamExt() {};
+
+template class __EXPORT BlockParamExt<float>;
+template class __EXPORT BlockParamExt<int>;
 
 } // namespace control
