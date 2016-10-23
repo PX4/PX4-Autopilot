@@ -13,9 +13,9 @@ px4_posix_generate_builtin_commands(
 )
 
 px4_posix_generate_alias(
-	OUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/alias.sh
+	OUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/alias.sh"
 	MODULE_LIST ${module_libraries}
-	PREFIX ${PX4_BASH_PREFIX}
+	PREFIX "${PX4_BASH_PREFIX}"
 )
 
 # Define build target
