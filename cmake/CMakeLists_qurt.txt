@@ -22,7 +22,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
                 ${FASTRPC_DSP_INCLUDES}
                 )
 	add_executable(px4
-		${PX4_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
+		${PX4_BINARY_DIR}/src/platforms/qurt/px4muorb_skel.c
 		${PX4_BINARY_DIR}/apps.cpp)
 
 	target_link_libraries(px4

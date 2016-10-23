@@ -194,7 +194,7 @@ endfunction()
 #
 #	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
 #	these flags are added before any of the object files and static libraries.
-#	Add libraries in src/firmware/posix/CMakeLists.txt.
+#	Add libraries in cmake/CMakeLists_posix.txt.
 #
 #	Example:
 #		px4_os_add_flags(

@@ -202,7 +202,7 @@ function(px4_nuttx_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		foreach(property MAIN STACK_MAIN PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY)
 			get_target_property(${property} ${module} ${property})
 		endforeach()
 		if (MAIN)
@@ -489,7 +489,7 @@ endfunction()
 #
 #	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
 #	these flags are added before any of the object files and static libraries.
-#	Add libraries in src/firmware/nuttx/CMakeLists.txt.
+#	Add libraries in cmake/CMakeLists_nuttx.txt.
 #
 #	Example:
 #		px4_os_add_flags(

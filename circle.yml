@@ -23,3 +23,10 @@ test:
     - mkdir -p $CIRCLE_ARTIFACTS && cp -R coverage-html $CIRCLE_ARTIFACTS
     # only post to coveralls if not a fork PR
     - if [ -z ${CIRCLE_PR_USERNAME}]; then cpp-coveralls -l coverage.info; fi
+    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc_next:2016-10-20 /bin/bash -c "make quick_check"
+
+general:
+  artifacts:
+    - "build_px4fmu-v2_default/parameters.xml"
+    - "build_px4fmu-v2_default/airframes.xml"
+    - "build_.*/*.px4"

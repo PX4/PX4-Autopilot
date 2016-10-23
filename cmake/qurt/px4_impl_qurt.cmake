@@ -84,7 +84,7 @@ function(px4_qurt_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		foreach(property MAIN STACK_MAIN PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY)
 			get_target_property(${property} ${module} ${property})
 		endforeach()
 		if (MAIN)
@@ -131,7 +131,7 @@ endfunction()
 #
 #	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
 #	these flags are added before any of the object files and static libraries.
-#	Add libraries in src/firmware/qurt/CMakeLists.txt.
+#	Add libraries in cmake/CMakeLists_qurt.txt.
 #
 #	Example:
 #		px4_os_add_flags(
@@ -164,9 +164,9 @@ function(px4_os_add_flags)
 
         set(DSPAL_ROOT src/lib/DriverFramework/dspal)
         set(added_include_dirs
-                ${DSPAL_ROOT}/include 
-                ${DSPAL_ROOT}/sys 
-                ${DSPAL_ROOT}/sys/sys 
+                ${DSPAL_ROOT}/include
+                ${DSPAL_ROOT}/sys
+                ${DSPAL_ROOT}/sys/sys
                 ${DSPAL_ROOT}/mpu_spi/inc
                 ${DSPAL_ROOT}/uart_esc/inc
                 src/platforms/qurt/include

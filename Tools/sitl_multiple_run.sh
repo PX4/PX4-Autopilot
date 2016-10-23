@@ -43,7 +43,7 @@ while [ $n -le $sitl_num ]; do
 
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
-	sudo -b -u $user ../src/firmware/posix/px4 -d "$src_path" rcS >out.log 2>err.log
+	sudo -b -u $user ../bin/px4 -d "$src_path" rcS >out.log 2>err.log
 	popd &>/dev/null
 
 	n=$(($n + 1))
