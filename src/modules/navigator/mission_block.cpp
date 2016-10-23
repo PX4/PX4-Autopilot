@@ -325,7 +325,8 @@ MissionBlock::is_mission_item_reached()
 		}
 
 		/* check if the MAV was long enough inside the waypoint orbit */
-		if (now - _time_first_inside_orbit >= (hrt_abstime)_mission_item.time_inside * 1e6f) {
+		if ((Navigator::get_time_inside(_mission_item) < FLT_EPSILON) ||
+			(now - _time_first_inside_orbit >= (hrt_abstime)(Navigator::get_time_inside(_mission_item) * 1e6f))) {
 
 			// exit xtrack location
 			if (_mission_item.loiter_exit_xtrack &&
