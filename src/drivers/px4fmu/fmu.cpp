@@ -926,6 +926,11 @@ PX4FMU::update_pwm_out_state(void)
 	/* update PWM status if armed or if disarmed PWM values are set */
 	bool pwm_on = _servos_armed && (_safety_off || (_num_disarmed_set > 0) || _ignore_safety_mask != 0);
 
+        // cope with setting of _pwm_initialized=false in set_mode
+	if (pwm_on && _pwm_on && !_pwm_initialized && _pwm_mask != 0) {
+            _pwm_on = false;
+        }
+        
 	if (_pwm_on == pwm_on) {
 		return;
 	}
