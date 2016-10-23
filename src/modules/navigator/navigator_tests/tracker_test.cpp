@@ -561,7 +561,8 @@ bool TrackerTest::run_tests(void) {
 	ut_run_test(fly_and_leave_return_path_test);
 	ut_run_test(fly_and_change_home_test);
 
-	ut_run_test(performance_test);
+    // These tests have nothing to do with correctness, but we can use them to asses performance of the tracker.
+	//ut_run_test(performance_test);
 
     return (_tests_failed == 0);
 }
