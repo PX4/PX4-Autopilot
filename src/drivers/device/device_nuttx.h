@@ -159,9 +159,9 @@ public:
 	};
 
 protected:
+	union DeviceId	_device_id;             /**< device identifier information */
 	const char	*_name;			/**< driver name */
 	bool		_debug_enabled;		/**< if true, debug messages are printed */
-	union DeviceId	_device_id;             /**< device identifier information */
 
 	/**
 	 * Constructor
@@ -453,9 +453,9 @@ protected:
 private:
 	static const unsigned _max_pollwaiters = 8;
 
-	const char	*_devname;		/**< device node name */
-	bool		_registered;		/**< true if device name was registered */
 	uint16_t	_open_count;		/**< number of successful opens */
+	bool		_registered;		/**< true if device name was registered */
+	const char	*_devname;		/**< device node name */
 
 	struct pollfd	*_pollset[_max_pollwaiters];
 

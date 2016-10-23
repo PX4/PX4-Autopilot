@@ -96,9 +96,9 @@ CDev::CDev(const char *name,
 	// protected
 	_pub_blocked(false),
 	// private
-	_devname(devname),
+	_open_count(0),
 	_registered(false),
-	_open_count(0)
+	_devname(devname)
 {
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		_pollset[i] = nullptr;
