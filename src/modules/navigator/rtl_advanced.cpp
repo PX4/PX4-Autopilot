@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
-#include <algorithm>
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>

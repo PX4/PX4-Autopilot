@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
-#include <algorithm>
+#include <lib/mathlib/math/Limits.hpp>
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
@@ -114,11 +114,9 @@ void RCRecover::update_mission_item()
 			_mission_item.altitude_is_relative = false;
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.loiter_direction = 1;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
-			_mission_item.pitch_min = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 			
@@ -139,11 +137,9 @@ void RCRecover::update_mission_item()
 		_mission_item.altitude_is_relative = false;
 		_mission_item.yaw = _navigator->get_global_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autortl ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = std::max(_param_rtl_delay.get(), .0f);
-		_mission_item.pitch_min = 0.0f;
+		_mission_item.time_inside = math::max(_param_rtl_delay.get(), .0f);
 		_mission_item.autocontinue = autortl;
 		_mission_item.origin = ORIGIN_ONBOARD;
 

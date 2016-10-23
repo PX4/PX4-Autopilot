@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
-#include <algorithm>
+#include <lib/mathlib/math/Limits.hpp>
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
@@ -257,8 +257,7 @@ void RTLBasic::set_mission_item() {
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = std::max(_param_land_delay.get(), .0f);
-		_mission_item.pitch_min = 0.0f;
+		_mission_item.time_inside = math::max(_param_land_delay.get(), .0f);
 		_mission_item.autocontinue = autoland;
 		_mission_item.origin = ORIGIN_ONBOARD;
 

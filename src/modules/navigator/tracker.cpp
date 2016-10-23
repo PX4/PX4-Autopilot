@@ -1,9 +1,19 @@
 
 #include <limits.h>     // CHAR_BIT
-#include <algorithm>    // std::min
+#include <lib/mathlib/math/Limits.hpp>  // std::min, max
+#include <cstdlib>      // std::abs
+#include <cmath>        // std::abs
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include "tracker.h"
+
+
+template<class T> void swap(T& a, T& b)
+{
+    T temp(a);
+    a = b;
+    b = temp;
+}
 
 
 float Tracker::fast_sqrt(int val, bool fallback_to_infinity) {
@@ -44,7 +54,7 @@ Tracker::ipos_t Tracker::get_point_to_line_delta(ipos_t point, ipos_t line_delta
 
     // Constrain coefficient to beginning or end of line
     int max_coefficient = MAX_COEFFICIENT;
-    coef = std::max(0, std::min(max_coefficient, coef));
+    coef = math::max(0, math::min(max_coefficient, coef));
 
     //ipos_t result = -apply_coef(line_delta, coef) - point;
     //TRACKER_DBG("projecting (%d %d %d) to (delta %d %d %d end %d %d %d) gives coef %d, which gives (%d %d %d)", point.x, point.y, point.z,
@@ -151,8 +161,8 @@ Tracker::ipos_t Tracker::get_line_to_line_delta(ipos_t delta1, ipos_t end1, ipos
     //    end2_to_line1.x, end2_to_line1.y, end2_to_line1.z);
 
     // Of all the point-to-line deltas, return the smallest one.
-    int best_to_line1 = std::min(dot(start2_to_line1), dot(end2_to_line1));
-    int best_to_line2 = std::min(dot(start1_to_line2), dot(end1_to_line2));
+    int best_to_line1 = math::min(dot(start2_to_line1), dot(end2_to_line1));
+    int best_to_line2 = math::min(dot(start1_to_line2), dot(end1_to_line2));
 
     if (best_to_line1 < best_to_line2) {
         if (dot(start2_to_line1) <= best_to_line1) {
@@ -197,16 +207,16 @@ inline bool Tracker::fits_into_far_delta(ipos_t vec) {
 
 
 bool Tracker::push_delta(size_t &index, ipos_t delta, bool jump, size_t max_space, delta_item_t *buffer) {
-    int max_val = std::max(std::max(delta.x, delta.y), delta.z);
-    int min_val = std::min(std::min(delta.x, delta.y), delta.z);
+    int max_val = math::max(math::max(delta.x, delta.y), delta.z);
+    int min_val = math::min(math::min(delta.x, delta.y), delta.z);
 
     // If the delta is too large for a single compact delta item, we split it into multiple items
     int split_count = 1;
     if (max_val > COMPACT_DELTA_MAX || min_val < COMPACT_DELTA_MIN)
-        split_count = (int)ceil(std::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
+        split_count = (int)ceil(math::max((float)max_val / (float)COMPACT_DELTA_MAX, (float)min_val / (float)COMPACT_DELTA_MIN));
 
     int far_delta_size = FAR_DELTA_SIZE;
-    split_count = jump ? far_delta_size : std::min(split_count, far_delta_size);
+    split_count = jump ? far_delta_size : math::min(split_count, far_delta_size);
 
     if (max_space < split_count)
         return false;
@@ -271,7 +281,7 @@ int Tracker::get_granularity_at(ipos_t pos) {
     // The graph precision is lowered every second time the memory pressure increases
     int p = (memory_pressure >> 1) + 1;
 
-    int margin = std::max(((p - 1) >> 1) + 1, log_dist * p);
+    int margin = math::max(((p - 1) >> 1) + 1, log_dist * p);
     //                    \___ regime 1 ___/  \ regime 2 /
 
     // Regime 1: the margin close to home shall increase every second time we reduce precision
@@ -562,8 +572,8 @@ void Tracker::remove_nodes(size_t lower_bound, size_t upper_bound) {
 
 bool Tracker::check_similarity(size_t index1, int coef1, size_t index2, int coef2, float max_distance) {
     if (index1 > index2) {
-        std::swap(index1, index2);
-        std::swap(coef1, coef2);
+        swap(index1, index2);
+        swap(coef1, coef2);
     }
 
     if (index1 == index2 && coef1 == coef2)
@@ -659,7 +669,7 @@ bool Tracker::is_line(ipos_t start_pos, size_t start_index, ipos_t end_pos, size
     ipos_t pos = end_pos;
 
     // The efficiency gain of prefetching the granularity seems to outweigh the corner-cases there the granularity along the line should be finer than on both ends.
-    int granularity = std::min(get_granularity_at(start_pos), get_granularity_at(end_pos));
+    int granularity = math::min(get_granularity_at(start_pos), get_granularity_at(end_pos));
 
     // Intuitively, it seems that walking backward allows us to break earlier than walking forward.
 
@@ -906,8 +916,8 @@ void Tracker::consolidate_graph(const char *reason) {
 float Tracker::measure_distance(size_t index1, int coef1, size_t index2, int coef2) {
     // make sure position 1 is before position 2
     if (index1 > index2 || (index1 == index2 && coef1 < coef2)) {
-        std::swap(index1, index2);
-        std::swap(coef1, coef2);
+        swap(index1, index2);
+        swap(coef1, coef2);
     }
     
 
@@ -1449,7 +1459,7 @@ void Tracker::rewrite_graph() {
 
 
             // Flush rewrite cache to rewrite area (as much as possible)
-            size_t copy_count = std::min(cache_size, next_rewrite_index - graph_next_write + 1);
+            size_t copy_count = math::min(cache_size, next_rewrite_index - graph_next_write + 1);
             for (size_t i = 0; i < copy_count; i++) {
                 if (!next_rewrite_index) {
                     GRAPH_ERR("rewrite area exceeded graph buffer size");

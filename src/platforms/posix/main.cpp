@@ -76,6 +76,7 @@ static bool _ExitFlag = false;
 static struct termios orig_term;
 
 extern "C" {
+	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
 	{
 		cout.flush();
@@ -84,6 +85,7 @@ extern "C" {
 		_ExitFlag = true;
 	}
 
+	void _SigFpeHandler(int sig_num);
 	void _SigFpeHandler(int sig_num)
 	{
 		cout.flush();
@@ -92,6 +94,7 @@ extern "C" {
 		cout.flush();
 	}
 	
+	void _SigSegvHandler(int sig_num);
 	void _SigSegvHandler(int sig_num)
 	{
 		cout.flush();

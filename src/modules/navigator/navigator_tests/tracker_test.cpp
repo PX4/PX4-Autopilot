@@ -9,8 +9,8 @@
 #include "../tracker.h"
 #include <unit_test/unit_test.h>
 #include <cstring>      // std::strcat
-#include <algorithm>    // std::min, std::max
-#include <climits>    // INT_MAX
+#include <climits>      // INT_MAX
+#include <lib/mathlib/math/Limits.hpp>  // std::min, max
 
 
 #define DEFINE_TEST(testName, ...) \
@@ -408,9 +408,9 @@ bool TrackerTest::fly_and_leave_return_path_test(void) {
 
         // Fly to the specified index (todo: when the tracker's delta limit gets fixed, we can directly jump to the destination).
         while (x != dest_x || y != dest_y || z != dest_z) {
-            x += std::min(15, std::max(-16, dest_x - x));
-            y += std::min(15, std::max(-16, dest_y - y));
-            z += std::min(15, std::max(-16, dest_z - z));
+            x += math::min(15, math::max(-16, dest_x - x));
+            y += math::min(15, math::max(-16, dest_y - y));
+            z += math::min(15, math::max(-16, dest_z - z));
             _tracker.update(x, y, z);
         }
 
