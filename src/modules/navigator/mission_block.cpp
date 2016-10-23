@@ -618,25 +618,17 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 }
 
 void
-MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
+MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
-	/* use current position and use return altitude as clearance */
+	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->altitude = _navigator->get_global_position()->alt;
 
-	if (min_clearance > 0.0f) {
-		item->altitude += min_clearance;
-
-		/* we must takeoff to a point further above ground than the acceptance radius */
-		if (_navigator->get_acceptance_radius() > min_clearance) {
-			item->altitude += _navigator->get_acceptance_radius();
-		}
-	}
-
+	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
+
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;
