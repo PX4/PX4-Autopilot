@@ -99,8 +99,39 @@ Takeoff::on_active()
 void
 Takeoff::set_takeoff_position()
 {
+	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+
+	float abs_altitude = 0.0f;
+
+	const float min_abs_altitude = _navigator->get_home_position()->alt + _param_min_alt.get();
+
+	// Use altitude if it has been set.
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+		abs_altitude = rep->current.alt;
+
+		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
+		if (abs_altitude < min_abs_altitude) {
+			abs_altitude = min_abs_altitude;
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+					     "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+		}
+	} else {
+		// Use home + minimum clearance but only notify.
+		abs_altitude = min_abs_altitude;
+		mavlink_log_info(_navigator->get_mavlink_log_pub(),
+				 "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+	}
+
+
+	if (abs_altitude < _navigator->get_global_position()->alt) {
+		// If the suggestion is lower than our current alt, let's not go down.
+		abs_altitude = _navigator->get_global_position()->alt;
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+				     "Already higher than takeoff altitude");
+	}
+
 	// set current mission item to takeoff
-	set_takeoff_item(&_mission_item, _param_min_alt.get());
+	set_takeoff_item(&_mission_item, abs_altitude);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
@@ -114,12 +145,7 @@ Takeoff::set_takeoff_position()
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
-	// check if a specific target altitude has been set
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 	if (rep->current.valid) {
-		if (PX4_ISFINITE(rep->current.alt)) {
-			pos_sp_triplet->current.alt = rep->current.alt;
-		}
 
 		// Go on and check which changes had been requested
 		if (PX4_ISFINITE(rep->current.yaw)) {
