@@ -107,3 +107,70 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+
+/**
+ * Trim value for FMU PWM output channel 1
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM1, 1500);
+
+/**
+ * Trim value for FMU PWM output channel 2
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM2, 1500);
+
+/**
+ * Trim value for FMU PWM output channel 3
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM3, 1500);
+
+/**
+ * Trim value for FMU PWM output channel 4
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM4, 1500);
+
+/**
+ * Trim value for FMU PWM output channel 5
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM5, 1500);
+
+/**
+ * Trim value for FMU PWM output channel 6
+ *
+ * Set to neutral period in usec
+ *
+ * @min 1400
+ * @max 1600
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_TRIM6, 1500);
+
