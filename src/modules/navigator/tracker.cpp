@@ -1,5 +1,7 @@
 
 #include <limits.h>     // CHAR_BIT
+
+#include <cmath>        // std::isinf
 #include <algorithm>    // std::min
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
@@ -973,7 +975,7 @@ bool Tracker::walk_to_node(size_t &index, int &coef, float &distance, bool forwa
     index = best_index;
     coef = best_coef;
     
-    return !isinf(distance);
+    return !std::isinf(distance);
 }
 
 
@@ -1026,7 +1028,7 @@ float Tracker::get_node_distance(size_t index, unsigned int coef, int &direction
     unsigned int old_coef = coef;
     bool go_forward;
     float distance = apply_node_delta(index, coef, NULL, go_forward);
-    direction = (index == old_index && coef == old_coef && !isinf(distance)) ? go_forward ? 1 : -1 : 0;
+    direction = (index == old_index && coef == old_coef && !std::isinf(distance)) ? go_forward ? 1 : -1 : 0;
     return distance;
 }
 
@@ -1181,7 +1183,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
         float forward_dist;
         size_t forward_node_index = context.current_index;
         int forward_node_coef = context.current_coef;
-        if ((isinf(dist_through_node) || go_forward) && walk_to_node(forward_node_index, forward_node_coef, forward_dist = 0, true, graph_next_write - 1))
+        if ((std::isinf(dist_through_node) || go_forward) && walk_to_node(forward_node_index, forward_node_coef, forward_dist = 0, true, graph_next_write - 1))
             forward_dist += get_node_distance(forward_node_index, forward_node_coef, direction);
         else
             forward_dist = INFINITY;
@@ -1192,7 +1194,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
         float backward_dist;
         size_t backward_node_index = context.current_index;
         int backward_node_coef = context.current_coef;
-        if ((isinf(dist_through_node) || !go_forward) && walk_to_node(backward_node_index, backward_node_coef, backward_dist = 0, false, 0))
+        if ((std::isinf(dist_through_node) || !go_forward) && walk_to_node(backward_node_index, backward_node_coef, backward_dist = 0, false, 0))
             backward_dist += get_node_distance(backward_node_index, backward_node_coef, direction);
         else
             backward_dist = INFINITY;
@@ -1202,7 +1204,7 @@ bool Tracker::calc_return_path(path_finding_context_t &context, bool &progress) 
         TRACKER_DBG("distance from %zu-%.2f is %f forward (to %zu-%.2f) and %f backward (to %zu-%.2f)", context.current_index, (double)coef_to_float(context.current_coef), (double)forward_dist, forward_node_index, (double)coef_to_float(forward_node_coef), (double)backward_dist, backward_node_index, (double)coef_to_float(backward_node_coef));
 
         // Abort if we don't know what to do
-        if (isinf(backward_dist) && forward_dist >= FLT_MAX) {
+        if (std::isinf(backward_dist) && forward_dist >= FLT_MAX) {
             PX4_WARN("Could not find any path home from %zu-%.2f.", context.current_index, (double)coef_to_float(context.current_coef));
             return false;
         }

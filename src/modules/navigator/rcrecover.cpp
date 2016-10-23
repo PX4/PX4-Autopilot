@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
+#include <cmath> // workaround for erroneous dependency in <algorithm>
 #include <algorithm>
 
 #include <systemlib/mavlink_log.h>
