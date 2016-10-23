@@ -32,10 +32,10 @@ else
 fi
 
 # Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$SIM_MODEL" == "iris" ]; then
+if [ "$PX4_SIM_MODEL" == "iris" ]; then
 	param set SYS_AUTOSTART 10016
 
-elif [ "$SIM_MODEL" == "typhoon_h480" ]; then
+elif [ "$PX4_SIM_MODEL" == "typhoon_h480" ]; then
 	param set SYS_AUTOSTART 6011
 else
 	echo "Unknown model"

@@ -132,8 +132,7 @@ echo SITL COMMAND: $sitl_command
 # installed PX4 commands.
 export PATH="$build_path/bin":$PATH
 
-export SIM_MODEL=${model}
-export SIM_PROGRAM=${program}
+export PX4_SIM_MODEL=${model}
 
 pushd $rootfs
 
