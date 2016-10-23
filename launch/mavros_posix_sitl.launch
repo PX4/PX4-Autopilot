@@ -14,7 +14,8 @@
     <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
 
-    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/rcS"/>
+    <arg name="rootfs" default="$(find px4)/build_posix_sitl_default/rootfs"/>
 
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>

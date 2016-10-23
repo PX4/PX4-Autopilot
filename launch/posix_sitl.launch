@@ -11,7 +11,8 @@
     <arg name="vehicle" default="iris"/>
     <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
-    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/rcS"/>
+    <arg name="rootfs" default="$(find px4)/build_posix_sitl_default/rootfs"/>
 
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
@@ -22,8 +23,7 @@
     <arg name="paused" default="false"/>
 
     <node name="sitl" pkg="px4" type="px4" output="screen"
-        args="$(find px4) $(arg rcS)">
-    </node>
+	    args="$(arg rootfs) $(arg rcS) -d" />
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="headless" value="$(arg headless)"/>
@@ -34,10 +34,12 @@
         <arg name="paused" value="$(arg paused)" />
     </include>
 
+    <!--
     <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
-        args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
+	args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>-->
 
-
+    <!-- This will set the environment variable needed to select iris in the startup. -->
+    <machine name="px4" env-loader="iris_env.sh" address="none" />
 </launch>
 
 <!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->
