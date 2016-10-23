@@ -93,7 +93,7 @@ static void sig_fpe_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
-static int create_symlinks_if_needed(const std::string &data_path);
+static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
 static int run_startup_bash_script(const char *commands_file);
 static void wait_to_exit();
@@ -256,13 +256,20 @@ int main(int argc, char **argv)
 	return PX4_OK;
 }
 
-int create_symlinks_if_needed(const std::string &data_path)
+int create_symlinks_if_needed(std::string &data_path)
 {
 	std::string current_path = pwd();
 
+	if (data_path.size() == 0) {
+		// No data path given, we'll just try to use the current working dir.
+		data_path = current_path;
+		PX4_INFO("assuming working directory is rootfs, no symlinks needed.");
+		return PX4_OK;
+	}
+
 	if (data_path.compare(current_path) == 0) {
 		// We are already running in the data path, so no need to symlink
-		PX4_INFO("no symlinks needed");
+		PX4_INFO("working directory seems to be rootfs, no symlinks needed");
 		return PX4_OK;
 	}
 
@@ -277,11 +284,11 @@ int create_symlinks_if_needed(const std::string &data_path)
 		std::string src_path = data_path + "/" + *it;
 		std::string dest_path = current_path + "/" + *it;
 
-		PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-
-		if (dir_exists(*it)) {
+		if (dir_exists(dest_path.c_str())) {
 			continue;
 		}
+
+		PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
 		// create sym-links
 		int ret = symlink(src_path.c_str(), dest_path.c_str());
