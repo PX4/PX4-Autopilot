@@ -761,23 +761,30 @@ PX4FMU::update_pwm_rev_mask()
 void
 PX4FMU::update_pwm_trims()
 {
-	struct pwm_output_values pwm;
-	for (unsigned i = 0; i < _max_actuators; i++) {
-		char pname[16];
-		int32_t ival;
+	if (_mixers == nullptr) {
+		PX4_WARN("no mixers defined");
+	} else {
 
-		/* fill the struct from parameters */
-		sprintf(pname, "PWM_AUX_TRIM%d", i + 1);
-		param_t param_h = param_find(pname);
+		uint16_t values[_max_actuators] = {};
 
-		if (param_h != PARAM_INVALID) {
-			param_get(param_h, &ival);
-			pwm.values[i] = ival;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			char pname[16];
+			int32_t ival;
+
+			/* fill the struct from parameters */
+			sprintf(pname, "PWM_AUX_TRIM%d", i + 1);
+			param_t param_h = param_find(pname);
+
+			if (param_h != PARAM_INVALID) {
+				param_get(param_h, &ival);
+				values[i] = ival;
+				PX4_INFO("aux trim %d %d", i, values[i]);
+			}
 		}
-	}
 
-	/* copy the trim values to the mixer offsets */
-	_mixers->set_trims(pwm.values, _max_actuators);
+		/* copy the trim values to the mixer offsets */
+		_mixers->set_trims(values, _max_actuators);
+	}
 }
 
 void
@@ -951,6 +958,7 @@ PX4FMU::cycle()
 		pwm_limit_init(&_pwm_limit);
 
 		update_pwm_rev_mask();
+		update_pwm_trims();
 
 #ifdef RC_SERIAL_PORT
 
@@ -968,7 +976,14 @@ PX4FMU::cycle()
 		px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif
 #endif
+
 		param_find("MOT_SLEW_MAX");
+
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			char pname[16];
+			sprintf(pname, "PWM_AUX_TRIM%d", i + 1);
+			param_find(pname);
+		}
 
 		_initialized = true;
 	}
@@ -1140,6 +1155,7 @@ PX4FMU::cycle()
 			uint16_t pwm_limited[_max_actuators];
 
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
+			// TODO: remove trim_pwm parameter
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
 				       _trim_pwm, _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
@@ -1251,6 +1267,7 @@ PX4FMU::cycle()
 		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
 
 		update_pwm_rev_mask();
+		update_pwm_trims();
 
 		int32_t dsm_bind_val;
 		param_t param_handle;
