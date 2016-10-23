@@ -37,6 +37,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -70,12 +71,6 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
@@ -647,7 +642,7 @@ LSM303D::~LSM303D()
 int
 LSM303D::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
@@ -2060,7 +2055,7 @@ test()
 
 	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
 
-	if (ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
+	if (PX4_ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
 		warnx("accel antialias filter bandwidth: fail");
 
 	} else {

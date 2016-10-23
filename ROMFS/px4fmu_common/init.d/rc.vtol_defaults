@@ -8,12 +8,6 @@ then
 	param set MC_PITCH_P 6.0
 	param set MC_YAW_P 4
 
-	param set PE_VELNE_NOISE 0.5
-	param set PE_VELD_NOISE 0.3
-	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.25
-	param set PE_ABIAS_PNOISE 0.0001
-
 	#
 	# Default parameters for mission and position handling
 	#

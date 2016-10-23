@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE lib__tailsitter_recovery
 	STACK_MAIN 400
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		tailsitter_recovery.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

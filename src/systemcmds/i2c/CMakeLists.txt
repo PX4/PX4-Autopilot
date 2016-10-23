@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE systemcmds__i2c
 	MAIN i2c
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		i2c.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

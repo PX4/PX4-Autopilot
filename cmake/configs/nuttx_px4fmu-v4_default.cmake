@@ -40,7 +40,7 @@ set(config_module_list
 	drivers/mkblctrl
 	drivers/px4flow
 	drivers/oreoled
-	drivers/gimbal
+	drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
@@ -78,6 +78,7 @@ set(config_module_list
 	drivers/test_ppm
 	modules/commander/commander_tests
 	modules/navigator/navigator_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/unit_test
@@ -205,10 +206,12 @@ add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
 	MAIN "sercon"
-	STACK_MAIN "2048")
+	STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
 	MAIN "serdis"
-	STACK_MAIN "2048")
+	STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")

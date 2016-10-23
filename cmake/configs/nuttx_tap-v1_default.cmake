@@ -2,6 +2,8 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
+set(target_definitions MEMORY_CONSTRAINED_SYSTEM)
+
 set(config_module_list
 	#
 	# Board support modules
@@ -22,6 +24,7 @@ set(config_module_list
 	drivers/airspeed
 	drivers/meas_airspeed
 	modules/sensors
+	drivers/vmount
 	drivers/camera_trigger
 
 	#

@@ -48,7 +48,7 @@ set(config_module_list
 	#drivers/mkblctrl
 	drivers/px4flow
 	#drivers/oreoled
-	drivers/gimbal
+	drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
@@ -80,6 +80,7 @@ set(config_module_list
 	drivers/sf0x/sf0x_tests
 	drivers/test_ppm
 	modules/commander/commander_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/unit_test

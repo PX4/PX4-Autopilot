@@ -136,4 +136,3 @@
 #define SENSORIOCCALTEST	_SENSORIOC(7)
 
 #endif /* _DRV_SENSOR_H */
-

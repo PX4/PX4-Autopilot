@@ -7,6 +7,7 @@ set(config_module_list
 	drivers/device
 	drivers/gps
 	drivers/pwm_out_sim
+	drivers/vmount
 
 	platforms/common
 	platforms/posix/drivers/accelsim
@@ -76,6 +77,7 @@ set(config_module_list
 	examples/mc_pos_control_multiplatform
 	examples/ekf_att_pos_estimator
 	examples/attitude_estimator_ekf
+	examples/fixedwing_control
 
 	#
 	# Testing
@@ -84,6 +86,7 @@ set(config_module_list
 	lib/rc/rc_tests
 	modules/commander/commander_tests
 	modules/navigator/navigator_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/controllib_test
 	#modules/mavlink/mavlink_tests #TODO: fix mavlink_tests
 	modules/unit_test
@@ -97,9 +100,12 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
+# Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
+# for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
+# which are based on posix_sitl_default.
 set(config_sitl_rcS_dir
 	posix-configs/SITL/init/lpe
-	CACHE FILEPATH "init script dir for sitl"
+	CACHE INTERNAL "init script dir for sitl"
 	)
 
 set(config_sitl_viewer

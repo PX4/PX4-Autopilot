@@ -36,13 +36,15 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++
-		-Os
 	SRCS
 		mpu9250.cpp
+		mpu9250_i2c.cpp
+		mpu9250_spi.cpp
 		main.cpp
 		gyro.cpp
 		mag.cpp
+		mag_i2c.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

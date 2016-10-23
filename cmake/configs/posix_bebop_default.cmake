@@ -3,9 +3,9 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf-raspbian.cmake)
 
 add_definitions(
-  -D__PX4_POSIX_BEBOP
-  -D__LINUX
-  -D__BEBOP
+	-D__PX4_POSIX_BEBOP
+	-D__DF_LINUX # Define needed DriverFramework
+	-D__DF_BEBOP # Define needed DriverFramework
 	)
 
 set(CMAKE_PROGRAM_PATH
@@ -25,6 +25,7 @@ set(config_module_list
 	platforms/posix/drivers/df_ms5607_wrapper
 	platforms/posix/drivers/df_mpu6050_wrapper
 	platforms/posix/drivers/df_ak8963_wrapper
+	platforms/posix/drivers/df_bebop_bus_wrapper
 
 	#
 	# System commands
@@ -101,4 +102,5 @@ set(config_df_driver_list
 	ms5607
 	mpu6050
 	ak8963
+	bebop_bus
 )

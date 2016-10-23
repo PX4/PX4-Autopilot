@@ -35,10 +35,10 @@ px4_add_module(
 	MAIN mc_att_control
 	STACK_MAIN 1200
 	STACK_MAX 3500
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		mc_att_control_main.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

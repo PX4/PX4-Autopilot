@@ -103,10 +103,9 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 }
 
 
-int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
+int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count, uint16_t *channels,
 		uint16_t max_chan_count)
 {
-
 	int ret = 1;
 
 	switch (_decode_state) {
@@ -175,8 +174,9 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			case ST24_PACKET_TYPE_CHANNELDATA12: {
 					ChannelData12 *d = (ChannelData12 *)_rxpacket.st24_data;
 
-					*rssi = d->rssi;
-					*rx_count = d->packet_count;
+					// Scale from 0..255 to 100%.
+					*rssi = d->rssi * (100.0f / 255.0f);
+					*lost_count = d->lost_count;
 
 					/* this can lead to rounding of the strides */
 					*channel_count = (max_chan_count < 12) ? max_chan_count : 12;
@@ -203,8 +203,9 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			case ST24_PACKET_TYPE_CHANNELDATA24: {
 					ChannelData24 *d = (ChannelData24 *)&_rxpacket.st24_data;
 
-					*rssi = d->rssi;
-					*rx_count = d->packet_count;
+					// Scale from 0..255 to 100%.
+					*rssi = d->rssi * (100.0f / 255.0f);
+					*lost_count = d->lost_count;
 
 					/* this can lead to rounding of the strides */
 					*channel_count = (max_chan_count < 24) ? max_chan_count : 24;

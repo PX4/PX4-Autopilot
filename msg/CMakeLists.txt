@@ -101,6 +101,8 @@ set(msg_file_names
 	transponder_report.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
+	ulog_stream.msg
+	ulog_stream_ack.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command_ack.msg
@@ -118,6 +120,7 @@ set(msg_file_names
 	vision_position_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	vehicle_roi.msg
 	)
 
 # Get absolute paths

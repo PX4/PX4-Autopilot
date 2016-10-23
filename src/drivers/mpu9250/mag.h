@@ -31,6 +31,41 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+
+/* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
+
+#define MPU9250_MAG_RANGE_GA        1.5e-3f;
+
+/* we are using the continuous fixed sampling rate of 100Hz */
+
+#define MPU9250_AK8963_SAMPLE_RATE 100
+
+/* ak8963 register address and bit definitions */
+
+#define AK8963_I2C_ADDR         0x0C
+#define AK8963_DEVICE_ID        0x48
+
+#define AK8963REG_WIA           0x00
+#define AK8963REG_ST1           0x02
+#define AK8963REG_HXL           0x03
+#define AK8963REG_ASAX          0x10
+#define AK8963REG_CNTL1         0x0A
+#define AK8963REG_CNTL2         0x0B
+
+#define AK8963_SINGLE_MEAS_MODE 0x01
+#define AK8963_CONTINUOUS_MODE1 0x02
+#define AK8963_CONTINUOUS_MODE2 0x06
+#define AK8963_POWERDOWN_MODE   0x00
+#define AK8963_SELFTEST_MODE    0x08
+#define AK8963_FUZE_MODE        0x0F
+#define AK8963_16BIT_ADC        0x10
+#define AK8963_14BIT_ADC        0x00
+#define AK8963_RESET            0x01
+
+
+
 class MPU9250;
 
 #pragma pack(push, 1)
@@ -43,13 +78,18 @@ struct ak8963_regs {
 };
 #pragma pack(pop)
 
+extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+
+typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
+
+
 /**
  * Helper class implementing the magnetometer driver node.
  */
 class MPU9250_mag : public device::CDev
 {
 public:
-	MPU9250_mag(MPU9250 *parent, const char *path);
+	MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path);
 	~MPU9250_mag();
 
 	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
@@ -67,9 +107,24 @@ public:
 	bool ak8963_read_adjustments(void);
 
 protected:
+	Device			*_interface;
+
 	friend class MPU9250;
 
-	void measure(struct ak8963_regs data);
+	/* Directly measure from the _interface if possible */
+	void measure();
+
+	/* Update the state with prefetched data (internally called by the regular measure() )*/
+	void _measure(struct ak8963_regs data);
+
+
+	uint8_t read_reg(unsigned reg);
+	void write_reg(unsigned reg, uint8_t value);
+
+
+	bool is_passthrough() { return _interface == nullptr; }
+
+
 	int self_test(void);
 
 private:

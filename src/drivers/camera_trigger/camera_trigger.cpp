@@ -395,7 +395,7 @@ CameraTrigger::test()
 	cmd.param5 = 1.0f;
 
 	orb_advert_t pub;
-	pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+	pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 	(void)orb_unadvertise(pub);
 }
 

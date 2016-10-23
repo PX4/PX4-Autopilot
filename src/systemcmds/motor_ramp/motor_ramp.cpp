@@ -119,6 +119,7 @@ usage(const char *reason)
 		 "Example:\n"
 		 "sdlog2 on\n"
 		 "mc_att_control stop\n"
+		 "fw_att_control stop\n"
 		 "motor_ramp sine 1100 0.5\n");
 }
 
@@ -359,7 +360,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_RAMP: {
 				if (_mode == RAMP) {
-					output += dt / _ramp_time;
+					output += 1000.0f * dt / (_max_pwm - _min_pwm) / _ramp_time;
 
 				} else if (_mode == SINE) {
 					// sine outpout with period T = _ramp_time and magnitude between [0,1]
@@ -383,8 +384,9 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			}
 
 		case RAMP_WAIT: {
-				if (timer > 1.0f) {
+				if (timer > 0.5f) {
 					_thread_should_exit = true;
+					PX4_WARN("stopping");
 					break;
 				}
 

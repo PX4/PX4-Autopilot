@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		commander.cpp
 		state_machine_helper.cpp
@@ -53,4 +52,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -45,6 +45,7 @@
 #include <px4_time.h>
 #include <px4_tasks.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -265,6 +266,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_serial_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_LOGGING_ACK:
+		handle_message_logging_ack(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -349,7 +354,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	if (target_ok) {
 		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
+		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 			/* This is the link shutdown command, terminate mavlink */
 			warnx("terminated by remote");
 			fflush(stdout);
@@ -377,6 +382,16 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
+			}
+
+			if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+				// we already instanciate the streaming object, because at this point we know on which
+				// mavlink channel streaming was requested. But in fact it's possible that the logger is
+				// not even running. The main mavlink thread takes care of this by waiting for an ack
+				// from the logger.
+				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+			} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
+				_mavlink->request_stop_ulog_streaming();
 			}
 
 			struct vehicle_command_s vcmd;
@@ -412,7 +427,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.confirmation =  cmd_mavlink.confirmation;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -432,7 +447,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	if (target_ok) {
 		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
+		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 			/* This is the link shutdown command, terminate mavlink */
 			warnx("terminated by remote");
 			fflush(stdout);
@@ -488,7 +503,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.source_component = msg->compid;
 
 			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -636,7 +651,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.confirmation = 1;
 
 	if (_cmd_pub == nullptr) {
-		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
@@ -787,6 +802,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				} else {
 					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
 					struct position_setpoint_triplet_s pos_sp_triplet = {};
+					pos_sp_triplet.timestamp = hrt_absolute_time();
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
@@ -1077,8 +1093,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
 						mavlink_quaternion_to_euler(set_attitude_target.q,
 									    &_att_sp.roll_body, &_att_sp.pitch_body, &_att_sp.yaw_body);
-						mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])_att_sp.R_body);
-						_att_sp.R_valid = true;
 						_att_sp.yaw_sp_move_rate = 0.0;
 						memcpy(_att_sp.q_d, set_attitude_target.q, sizeof(_att_sp.q_d));
 						_att_sp.q_d_valid = true;
@@ -1220,6 +1234,18 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	}
 }
 
+void
+MavlinkReceiver::handle_message_logging_ack(mavlink_message_t *msg)
+{
+	mavlink_logging_ack_t logging_ack;
+	mavlink_msg_logging_ack_decode(msg, &logging_ack);
+
+	MavlinkULog *ulog_streaming = _mavlink->get_ulog_streaming();
+	if (ulog_streaming) {
+		ulog_streaming->handle_ack(logging_ack);
+	}
+}
+
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
@@ -1276,9 +1302,9 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 
 	struct rc_input_values rc = {};
 
-	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp = hrt_absolute_time();
 
-	rc.timestamp_last_signal = rc.timestamp_publication;
+	rc.timestamp_last_signal = rc.timestamp;
 
 	rc.channel_count = 8;
 
@@ -1335,8 +1361,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	if (_mavlink->get_manual_input_mode_generation()) {
 
 		struct rc_input_values rc = {};
-		rc.timestamp_publication = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp_publication;
+		rc.timestamp = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp;
 
 		rc.channel_count = 8;
 		rc.rc_failsafe = false;
@@ -1918,18 +1944,12 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		math::Vector<3> euler = C_nb.to_euler();
 
 		hil_attitude.timestamp = timestamp;
-		memcpy(hil_attitude.R, C_nb.data, sizeof(hil_attitude.R));
-		hil_attitude.R_valid = true;
 
 		hil_attitude.q[0] = q(0);
 		hil_attitude.q[1] = q(1);
 		hil_attitude.q[2] = q(2);
 		hil_attitude.q[3] = q(3);
-		hil_attitude.q_valid = true;
 
-		hil_attitude.roll = euler(0);
-		hil_attitude.pitch = euler(1);
-		hil_attitude.yaw = euler(2);
 		hil_attitude.rollspeed = hil_state.rollspeed;
 		hil_attitude.pitchspeed = hil_state.pitchspeed;
 		hil_attitude.yawspeed = hil_state.yawspeed;
@@ -1946,7 +1966,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		struct vehicle_global_position_s hil_global_pos;
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
-
+		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
 		hil_global_pos.timestamp = timestamp;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
@@ -1954,7 +1974,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
-		hil_global_pos.yaw = hil_attitude.yaw;
+		hil_global_pos.yaw = euler.psi();
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
@@ -1995,7 +2015,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vx = hil_state.vx / 100.0f;
 		hil_local_pos.vy = hil_state.vy / 100.0f;
 		hil_local_pos.vz = hil_state.vz / 100.0f;
-		hil_local_pos.yaw = hil_attitude.yaw;
+		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+		hil_local_pos.yaw = euler.psi();
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 
@@ -2077,7 +2098,7 @@ MavlinkReceiver::receive_thread(void *arg)
 	{
 		char thread_name[24];
 		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-		px4_prctl(PR_SET_NAME, thread_name, getpid());
+		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
 	}
 
 	const int timeout = 500;
@@ -2246,7 +2267,7 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2100);
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2100));
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);

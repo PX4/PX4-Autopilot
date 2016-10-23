@@ -67,12 +67,6 @@
 
 using namespace DriverFramework;
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #define VEHICLE_TYPE_QUADROTOR 2
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
@@ -136,7 +130,7 @@ int buzzer_init()
 
 	if (!h_buzzer.isValid()) {
 		PX4_WARN("Buzzer: px4_open fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;
@@ -273,7 +267,7 @@ int led_init()
 
 	if (!h_leds.isValid()) {
 		PX4_WARN("LED: getHandle fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
@@ -285,7 +279,7 @@ int led_init()
 	/* we consider the amber led mandatory */
 	if (h_leds.ioctl(LED_ON, LED_AMBER)) {
 		PX4_WARN("Amber LED: ioctl fail\n");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* switch amber off */

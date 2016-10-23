@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include "apps.h"
 #include "px4_middleware.h"
+#include "px4_posix.h"
+#include "px4_log.h"
 #include "DriverFramework.hpp"
 #include <termios.h>
 #include <sys/stat.h>
@@ -199,6 +201,14 @@ static void print_prompt()
 
 static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
+	static apps_map_type apps;
+	static bool initialized = false;
+
+	if (!initialized) {
+		init_app_map(apps);
+		initialized = true;
+	}
+
 	// command is appargs[0]
 	string command = appargs[0];
 
@@ -225,7 +235,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 		}
 
 	} else if (command.compare("help") == 0) {
-		list_builtins();
+		list_builtins(apps);
 
 	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
@@ -239,11 +249,11 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 static void usage()
 {
 
-	cout << "./px4 [-d] data_directory startup_config [-h]" << endl;
+	cout << "./px4 [-d] [data_directory] startup_config [-h]" << endl;
 	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
 	     endl;
 	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << endl;
-	cout << "<data_directory> - directory where romfs and posix-configs are located" << endl;
+	cout << "<data_directory> - directory where ROMFS and posix-configs are located (if not given, CWD is used)" << endl;
 	cout << "<startup_config> - config file for starting/stopping px4 modules" << endl;
 	cout << "   -h            - help/usage information" << endl;
 }
@@ -357,22 +367,32 @@ int main(int argc, char **argv)
 
 			if (positional_arg_count == 1) {
 				data_path = argv[index];
-				cout << "data path: " << data_path << endl;
 
 			} else if (positional_arg_count == 2) {
 				commands_file = argv[index];
-				cout << "commands file: " << commands_file << endl;
 			}
 		}
 
 		++index;
 	}
 
-	if (positional_arg_count != 2) {
-		PX4_ERR("Error expected 2 position arguments, got %d", positional_arg_count);
+	if (positional_arg_count != 2 && positional_arg_count != 1) {
+		PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
 		usage();
 		return -1;
 	}
+
+	bool symlinks_needed = true;
+
+	if (positional_arg_count == 1) { //data path is optional
+		commands_file = data_path;
+		symlinks_needed = false;
+
+	} else {
+		cout << "data path: " << data_path << endl;
+	}
+
+	cout << "commands file: " << commands_file << endl;
 
 	if (commands_file.size() < 1) {
 		PX4_ERR("Error commands file not specified");
@@ -385,32 +405,34 @@ int main(int argc, char **argv)
 	}
 
 	// create sym-links
-	vector<string> path_sym_links;
-	path_sym_links.push_back("ROMFS");
-	path_sym_links.push_back("posix-configs");
-	path_sym_links.push_back("test_data");
+	if (symlinks_needed) {
+		vector<string> path_sym_links;
+		path_sym_links.push_back("ROMFS");
+		path_sym_links.push_back("posix-configs");
+		path_sym_links.push_back("test_data");
 
-	for (int i = 0; i < path_sym_links.size(); i++) {
-		string path_sym_link = path_sym_links[i];
-		//cout << "path sym link: " << path_sym_link << endl;
-		string src_path = data_path + "/" + path_sym_link;
-		string dest_path =  pwd() + "/" +  path_sym_link;
+		for (int i = 0; i < path_sym_links.size(); i++) {
+			string path_sym_link = path_sym_links[i];
+			//cout << "path sym link: " << path_sym_link << endl;
+			string src_path = data_path + "/" + path_sym_link;
+			string dest_path =  pwd() + "/" +  path_sym_link;
 
-		PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-		if (dirExists(path_sym_link)) { continue; }
+			if (dirExists(path_sym_link)) { continue; }
 
-		// create sym-links
-		int ret = symlink(src_path.c_str(), dest_path.c_str());
+			// create sym-links
+			int ret = symlink(src_path.c_str(), dest_path.c_str());
 
-		if (ret != 0) {
-			PX4_ERR("Error creating symlink %s -> %s",
-				src_path.c_str(), dest_path.c_str());
-			return ret;
+			if (ret != 0) {
+				PX4_ERR("Error creating symlink %s -> %s",
+					src_path.c_str(), dest_path.c_str());
+				return ret;
 
-		} else {
-			PX4_DEBUG("Successfully created symlink %s -> %s",
-				  src_path.c_str(), dest_path.c_str());
+			} else {
+				PX4_DEBUG("Successfully created symlink %s -> %s",
+					  src_path.c_str(), dest_path.c_str());
+			}
 		}
 	}
 

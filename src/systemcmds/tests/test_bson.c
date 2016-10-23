@@ -49,7 +49,7 @@
 #include <systemlib/err.h>
 #include <systemlib/bson/tinybson.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 static const bool sample_bool = true;
 static const int32_t sample_small_int = 123;

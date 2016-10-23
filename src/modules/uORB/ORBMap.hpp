@@ -144,6 +144,11 @@ public:
 		return _top;
 	}
 
+	bool empty() const
+	{
+		return !_top;
+	}
+
 private:
 	Node *_top;
 	Node *_end;

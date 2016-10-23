@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE modules__gpio_led
 	MAIN gpio_led
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		gpio_led.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

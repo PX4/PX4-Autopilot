@@ -34,11 +34,10 @@ px4_add_module(
 	MODULE modules__controllib_test
 	MAIN controllib_test
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		controllib_test_main.cpp
 	DEPENDS
 		platforms__common
 	)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

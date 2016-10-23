@@ -104,8 +104,14 @@ MissionBlock::is_mission_item_reached()
 			return false;
 
 		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_SET_ROI:
+		case NAV_CMD_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 			return true;
 
@@ -230,7 +236,7 @@ MissionBlock::is_mission_item_reached()
 					// set required yaw from bearing to the next mission item
 					if (_mission_item.force_heading) {
 						struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
-						
+
 						if (next_sp.valid) {
 							_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 											_navigator->get_global_position()->lon,
@@ -350,7 +356,21 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 	cmd->command = item->nav_cmd;
 
 	cmd->target_system = _navigator->get_vstatus()->system_id;
-	cmd->target_component = _navigator->get_vstatus()->component_id;
+
+	// The camera commands are not processed on the autopilot but will be
+	// sent to the mavlink links to other components.
+	switch (item->nav_cmd) {
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
+			cmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			break;
+		default:
+			cmd->target_component = _navigator->get_vstatus()->component_id;
+			break;
+	}
+
 	cmd->source_system = _navigator->get_vstatus()->system_id;
 	cmd->source_component = _navigator->get_vstatus()->component_id;
 	cmd->confirmation = false;
@@ -364,7 +384,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 	}
 
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		PX4_WARN("do_set_servo command");
+		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
 		memset(&actuators, 0, sizeof(actuators));
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
@@ -380,7 +400,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		}
 
 	} else {
-		PX4_WARN("forwarding command %d\n", item->nav_cmd);
+		PX4_INFO("forwarding command %d", item->nav_cmd);
 		struct vehicle_command_s cmd = {};
 		mission_item_to_vehicle_command(item, &cmd);
 		_action_start = hrt_absolute_time();
@@ -389,7 +409,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		}
 	}
 }
@@ -402,8 +422,14 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+		item->nav_cmd == NAV_CMD_DO_SET_ROI ||
+		item->nav_cmd == NAV_CMD_ROI ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 
@@ -616,7 +642,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		}
 	}
 

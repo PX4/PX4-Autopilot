@@ -73,6 +73,19 @@ __BEGIN_DECLS
  */
 //#define PWM_OUTPUT_MAX_CHANNELS	16
 
+#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
+
+/* PWM directly wired to transistor. Duty cycle directly corresponds to power */
+#define PWM_LOWEST_MIN 0
+#define PWM_MOTOR_OFF	0
+#define PWM_DEFAULT_MIN 0
+#define PWM_HIGHEST_MIN 0
+#define PWM_HIGHEST_MAX 255
+#define PWM_DEFAULT_MAX 255
+#define PWM_LOWEST_MAX 255
+
+#else
+
 /**
  * Lowest minimum PWM in us
  */
@@ -107,6 +120,8 @@ __BEGIN_DECLS
  * Lowest PWM allowed as the maximum PWM
  */
 #define PWM_LOWEST_MAX 200
+
+#endif
 
 /**
  * Do not output a channel with this value
@@ -246,16 +261,17 @@ struct pwm_output_rc_config {
 
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE			0
-#define PWM_SERVO_MODE_2PWM			1
-#define PWM_SERVO_MODE_2PWM2CAP			2
-#define PWM_SERVO_MODE_3PWM			3
-#define PWM_SERVO_MODE_3PWM1CAP			4
-#define PWM_SERVO_MODE_4PWM			5
-#define PWM_SERVO_MODE_6PWM			6
-#define PWM_SERVO_MODE_8PWM			7
-#define PWM_SERVO_MODE_4CAP			8
-#define PWM_SERVO_MODE_5CAP			9
-#define PWM_SERVO_MODE_6CAP		       10
+#define PWM_SERVO_MODE_1PWM			1
+#define PWM_SERVO_MODE_2PWM			2
+#define PWM_SERVO_MODE_2PWM2CAP			3
+#define PWM_SERVO_MODE_3PWM			4
+#define PWM_SERVO_MODE_3PWM1CAP			5
+#define PWM_SERVO_MODE_4PWM			6
+#define PWM_SERVO_MODE_6PWM			7
+#define PWM_SERVO_MODE_8PWM			8
+#define PWM_SERVO_MODE_4CAP			9
+#define PWM_SERVO_MODE_5CAP		       10
+#define PWM_SERVO_MODE_6CAP		       11
 #define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 32)
 
 /*

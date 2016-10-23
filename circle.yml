@@ -4,17 +4,23 @@ machine:
 
 checkout:
   post:
+    # workaround for known git bug where attempting to fetch a missing commit fails early on the first try
+    - git submodule update --init --recursive || true
     - git submodule sync --recursive
-    - git submodule update --init --recursive
+    - git submodule deinit -f .
+    - git submodule update --init --recursive --force
 
-## Customize dependencies
 dependencies:
-  cache_directories:
-    - "~/.ccache"
   pre:
-    - docker pull px4io/px4-dev-nuttx-gcc4.9
+    - docker pull px4io/px4-dev-nuttx-gcc_next:2016-10-20
 
 test:
   override:
-    - docker run --rm -v `pwd`:`pwd`:rw -w=`pwd` -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache --user=$UID -it px4io/px4-dev-nuttx-gcc4.9 /bin/bash -c "ccache -z; make px4fmu-v4_default; ccache -s"
+    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc_next:2016-10-20 /bin/bash -c "make quick_check"
+
+general:
+  artifacts:
+    - "build_px4fmu-v2_default/parameters.xml"
+    - "build_px4fmu-v2_default/airframes.xml"
+    - "build_.*/src/firmware/nuttx/.*.px4"
 

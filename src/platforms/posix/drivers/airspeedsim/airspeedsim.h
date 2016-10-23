@@ -39,8 +39,7 @@
  */
 
 #include <px4_config.h>
-
-//#include <drivers/device/i2c.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,10 +53,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-
-//#include <nuttx/arch.h>
-//#include <nuttx/wqueue.h>
-//#include <nuttx/clock.h>
 
 #include <px4_workqueue.h>
 #include <arch/board/board.h>
@@ -78,12 +73,6 @@
 
 /* Default I2C bus */
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
-
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.

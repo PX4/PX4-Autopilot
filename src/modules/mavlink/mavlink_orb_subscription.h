@@ -87,6 +87,9 @@ public:
 	 * If no data is available the buffer will be filled with zeros.
 	 */
 	bool is_published();
+
+	void subscribe_from_beginning(bool from_beginning);
+
 	orb_id_t get_topic() const;
 	int get_instance() const;
 
@@ -96,6 +99,7 @@ private:
 	int _fd;			///< subscription handle
 	bool _published;		///< topic was ever published
 	hrt_abstime _last_pub_check;	///< when we checked last
+	bool _subscribe_from_beginning; ///< we need to subscribe from the beginning, e.g. for vehicle_command_acks
 
 	/* do not allow copying this class */
 	MavlinkOrbSubscription(const MavlinkOrbSubscription &);

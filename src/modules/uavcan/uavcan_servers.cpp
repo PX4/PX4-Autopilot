@@ -171,7 +171,7 @@ int UavcanServers::start(uavcan::INode &main_node)
 
 	pthread_attr_init(&tattr);
 	(void)pthread_attr_getschedparam(&tattr, &param);
-	tattr.stacksize = StackSize;
+	tattr.stacksize = PX4_STACK_ADJUSTED(StackSize);
 	param.sched_priority = Priority;
 	if (pthread_attr_setschedparam(&tattr, &param)) {
 		warnx("setting sched params failed");

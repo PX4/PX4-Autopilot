@@ -38,6 +38,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -122,12 +123,6 @@ enum HMC5883_BUS {
 	HMC5883_BUS_I2C_EXTERNAL,
 	HMC5883_BUS_SPI
 };
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -416,7 +411,7 @@ HMC5883::~HMC5883()
 int
 HMC5883::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	ret = CDev::init();
 
@@ -898,6 +893,9 @@ HMC5883::collect()
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = _range_ga;
+	new_report.scaling = _range_scale;
+	new_report.device_id = _device_id.devid;
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
@@ -1233,7 +1231,7 @@ out:
 		if (check_scale()) {
 			/* failed */
 			warnx("FAILED: SCALE");
-			ret = ERROR;
+			ret = PX4_ERROR;
 		}
 
 	}
@@ -1435,12 +1433,6 @@ HMC5883::print_info()
  */
 namespace hmc5883
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 /*
   list of supported bus configurations
@@ -1786,6 +1778,11 @@ hmc5883_main(int argc, char *argv[])
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
 	bool temp_compensation = false;
+
+	if (argc < 2) {
+		hmc5883::usage();
+		exit(0);
+	}
 
 	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
 		switch (ch) {

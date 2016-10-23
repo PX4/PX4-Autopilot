@@ -86,12 +86,12 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	_thrust_sp = _v_att_sp->data().thrust;
 
 	/* construct attitude setpoint rotation matrix */
-	math::Matrix<3, 3> R_sp;
-	R_sp.set(_v_att_sp->data().R_body);
+	math::Quaternion q_sp(&_v_att_sp->data().q_d[0]);
+	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
 
 	/* rotation matrix for current state */
-	math::Matrix<3, 3> R;
-	R.set(_v_att->data().R);
+	math::Quaternion q(&_v_att->data().q[0]);
+	math::Matrix<3, 3> R = q.to_dcm();
 
 	/* all input data is ready, run controller itself */
 
@@ -145,11 +145,11 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	if (e_R_z_cos < 0.0f) {
 		/* for large thrust vector rotations use another rotation method:
 		 * calculate angle and axis for R -> R_sp rotation directly */
-		math::Quaternion q;
-		q.from_dcm(R.transposed() * R_sp);
-		math::Vector <3> e_R_d = q.imag();
+		math::Quaternion ql;
+		ql.from_dcm(R.transposed() * R_sp);
+		math::Vector <3> e_R_d = ql.imag();
 		e_R_d.normalize();
-		e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0));
+		e_R_d *= 2.0f * atan2f(e_R_d.length(), ql(0));
 
 		/* use fusion of Z axis based rotation and direct rotation */
 		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;

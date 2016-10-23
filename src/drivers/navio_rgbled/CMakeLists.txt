@@ -35,7 +35,7 @@ include_directories(../navio_gpio)
 px4_add_module(
 	MODULE drivers__navio_rgbled
 	MAIN navio_rgbled
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		navio_rgbled.cpp
 	DEPENDS

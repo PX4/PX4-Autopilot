@@ -278,18 +278,13 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 	DIR *dp = opendir(kSDRoot);
 
 	if (dp) {
-		struct dirent entry, *result = nullptr;
+		struct dirent *result = nullptr;
 
-		while (readdir_r(dp, &entry, &result) == 0) {
-			// no more entries?
-			if (!result) {
-				break;
-			}
-
-			if (entry.d_type == PX4LOG_REGULAR_FILE) {
-				if (!memcmp(entry.d_name, "msgs_", 5)) {
+		while ((result = readdir(dp))) {
+			if (result->d_type == PX4LOG_REGULAR_FILE) {
+				if (!memcmp(result->d_name, "msgs_", 5)) {
 					char msg_path[128];
-					snprintf(msg_path, sizeof(msg_path), "%s%s", kSDRoot, entry.d_name);
+					snprintf(msg_path, sizeof(msg_path), "%s%s", kSDRoot, result->d_name);
 
 					if (unlink(msg_path)) {
 						PX4LOG_WARN("MavlinkLogHandler::_log_request_erase Error deleting %s\n", msg_path);
@@ -510,20 +505,15 @@ LogListHelper::_init()
 	}
 
 	// Scan directory and collect log files
-	struct dirent entry, *result = nullptr;
+	struct dirent *result = nullptr;
 
-	while (readdir_r(dp, &entry, &result) == 0) {
-		// no more entries?
-		if (result == nullptr) {
-			break;
-		}
-
-		if (entry.d_type == PX4LOG_DIRECTORY) {
+	while ((result = readdir(dp))) {
+		if (result->d_type == PX4LOG_DIRECTORY) {
 			time_t tt = 0;
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", kLogRoot, entry.d_name);
+			snprintf(log_path, sizeof(log_path), "%s/%s", kLogRoot, result->d_name);
 
-			if (_get_session_date(log_path, entry.d_name, tt)) {
+			if (_get_session_date(log_path, result->d_name, tt)) {
 				_scan_logs(f, log_path, tt);
 			}
 		}
@@ -579,22 +569,17 @@ LogListHelper::_scan_logs(FILE *f, const char *dir, time_t &date)
 	DIR *dp = opendir(dir);
 
 	if (dp) {
-		struct dirent entry, *result = nullptr;
+		struct dirent *result = nullptr;
 
-		while (readdir_r(dp, &entry, &result) == 0) {
-			// no more entries?
-			if (result == nullptr) {
-				break;
-			}
-
-			if (entry.d_type == PX4LOG_REGULAR_FILE) {
+		while ((result = readdir(dp))) {
+			if (result->d_type == PX4LOG_REGULAR_FILE) {
 				time_t  ldate = date;
 				uint32_t size = 0;
 				char log_file_path[128];
-				snprintf(log_file_path, sizeof(log_file_path), "%s/%s", dir, entry.d_name);
+				snprintf(log_file_path, sizeof(log_file_path), "%s/%s", dir, result->d_name);
 
-				if (_get_log_time_size(log_file_path, entry.d_name, ldate, size)) {
-					//-- Write entry out to list file
+				if (_get_log_time_size(log_file_path, result->d_name, ldate, size)) {
+					//-- Write result->out to list file
 					fprintf(f, "%u %u %s\n", (unsigned)ldate, (unsigned)size, log_file_path);
 					log_count++;
 				}
@@ -652,17 +637,17 @@ LogListHelper::delete_all(const char *dir)
 		return;
 	}
 
-	struct dirent entry, *result = nullptr;
+	struct dirent *result = nullptr;
 
-	while (readdir_r(dp, &entry, &result) == 0) {
+	while ((result = readdir(dp))) {
 		// no more entries?
 		if (result == nullptr) {
 			break;
 		}
 
-		if (entry.d_type == PX4LOG_DIRECTORY && entry.d_name[0] != '.') {
+		if (result->d_type == PX4LOG_DIRECTORY && result->d_name[0] != '.') {
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", dir, entry.d_name);
+			snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
 			LogListHelper::delete_all(log_path);
 
 			if (rmdir(log_path)) {
@@ -670,9 +655,9 @@ LogListHelper::delete_all(const char *dir)
 			}
 		}
 
-		if (entry.d_type == PX4LOG_REGULAR_FILE) {
+		if (result->d_type == PX4LOG_REGULAR_FILE) {
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", dir, entry.d_name);
+			snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
 
 			if (unlink(log_path)) {
 				PX4LOG_WARN("MavlinkLogHandler::delete_all Error deleting %s\n", log_path);

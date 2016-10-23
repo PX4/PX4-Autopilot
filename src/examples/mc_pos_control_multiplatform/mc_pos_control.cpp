@@ -250,7 +250,8 @@ MulticopterPositionControlMultiplatform::reset_alt_sp()
 
 		//XXX hack until #1741 is in/ported
 		/* reset yaw sp */
-		_att_sp_msg.data().yaw_body = _att->data().yaw;
+		matrix::Eulerf euler = matrix::Quatf(_att->data().q);
+		_att_sp_msg.data().yaw_body = euler.psi();
 
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(&_mavlink_log_pub, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
@@ -582,6 +583,9 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 	static bool was_armed = false;
 	static uint64_t t_prev = 0;
 
+	matrix::Eulerf euler = matrix::Quatf(_att->data().q);
+	matrix::Dcmf R = matrix::Quatf(_att->data().q);
+
 	uint64_t t = get_time_micros();
 	float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.005f;
 	t_prev = t;
@@ -636,12 +640,14 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		    && _pos_sp_triplet->data().current.type == _pos_sp_triplet->data().current.SETPOINT_TYPE_IDLE) {
 			/* idle state, don't run controller and set zero thrust */
 			_R.identity();
-			memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-			_att_sp_msg.data().R_valid = true;
+			math::Quaternion qd;
+			qd.from_dcm(_R);
+			memcpy(&_att_sp_msg.data().q_d[0], qd.data, sizeof(_att_sp_msg.data().q_d));
+			_att_sp_msg.data().q_d_valid = true;
 
 			_att_sp_msg.data().roll_body = 0.0f;
 			_att_sp_msg.data().pitch_body = 0.0f;
-			_att_sp_msg.data().yaw_body = _att->data().yaw;
+			_att_sp_msg.data().yaw_body = euler.psi();
 			_att_sp_msg.data().thrust = 0.0f;
 
 			_att_sp_msg.data().timestamp = get_time_micros();
@@ -815,11 +821,11 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 					/* thrust compensation for altitude only control mode */
 					float att_comp;
 
-					if (PX4_R(_att->data().R, 2, 2) > TILT_COS_MAX) {
-						att_comp = 1.0f / PX4_R(_att->data().R, 2, 2);
+					if (R(2, 2) > TILT_COS_MAX) {
+						att_comp = 1.0f / R(2, 2);
 
-					} else if (PX4_R(_att->data().R, 2, 2) > 0.0f) {
-						att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * PX4_R(_att->data().R, 2, 2) + 1.0f;
+					} else if (R(2, 2) > 0.0f) {
+						att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * R(2, 2) + 1.0f;
 						saturation_z = true;
 
 					} else {
@@ -926,14 +932,15 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 						_R(i, 2) = body_z(i);
 					}
 
-					/* copy rotation matrix to attitude setpoint topic */
-					memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-					_att_sp_msg.data().R_valid = true;
+					math::Quaternion q;
+					q.from_dcm(_R);
+					memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+					_att_sp_msg.data().q_d_valid = true;
 
 					/* calculate euler angles, for logging only, must not be used for control */
-					math::Vector<3> euler = _R.to_euler();
-					_att_sp_msg.data().roll_body = euler(0);
-					_att_sp_msg.data().pitch_body = euler(1);
+					math::Vector<3> eul = _R.to_euler();
+					_att_sp_msg.data().roll_body = eul(0);
+					_att_sp_msg.data().pitch_body = eul(1);
 					/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
 
 				} else if (!_control_mode->data().flag_control_manual_enabled) {
@@ -941,9 +948,10 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 						* force level attitude, don't change yaw */
 					_R.from_euler(0.0f, 0.0f, _att_sp_msg.data().yaw_body);
 
-					/* copy rotation matrix to attitude setpoint topic */
-					memcpy(&_att_sp_msg.data().R_body[0], _R.data, sizeof(_att_sp_msg.data().R_body));
-					_att_sp_msg.data().R_valid = true;
+					math::Quaternion q;
+					q.from_dcm(_R);
+					memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+					_att_sp_msg.data().q_d_valid = true;
 
 					_att_sp_msg.data().roll_body = 0.0f;
 					_att_sp_msg.data().pitch_body = 0.0f;
@@ -1005,7 +1013,7 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		/* reset yaw setpoint to current position if needed */
 		if (reset_yaw_sp) {
 			reset_yaw_sp = false;
-			_att_sp_msg.data().yaw_body = _att->data().yaw;
+			_att_sp_msg.data().yaw_body = euler.psi();
 		}
 
 		/* do not move yaw while arming */
@@ -1014,13 +1022,13 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 
 			_att_sp_msg.data().yaw_sp_move_rate = _manual_control_sp->data().r * _params.man_yaw_max;
 			_att_sp_msg.data().yaw_body = _wrap_pi(_att_sp_msg.data().yaw_body + _att_sp_msg.data().yaw_sp_move_rate * dt);
-			float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - _att->data().yaw);
+			float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - euler.psi());
 
 			if (yaw_offs < - YAW_OFFSET_MAX) {
-				_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw - YAW_OFFSET_MAX);
+				_att_sp_msg.data().yaw_body = _wrap_pi(euler.psi() - YAW_OFFSET_MAX);
 
 			} else if (yaw_offs > YAW_OFFSET_MAX) {
-				_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw + YAW_OFFSET_MAX);
+				_att_sp_msg.data().yaw_body = _wrap_pi(euler.psi() + YAW_OFFSET_MAX);
 			}
 		}
 
@@ -1038,8 +1046,10 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 		/* Construct attitude setpoint rotation matrix */
 		math::Matrix<3, 3> R_sp;
 		R_sp.from_euler(_att_sp_msg.data().roll_body, _att_sp_msg.data().pitch_body, _att_sp_msg.data().yaw_body);
-		_att_sp_msg.data().R_valid = true;
-		memcpy(&_att_sp_msg.data().R_body[0], R_sp.data, sizeof(_att_sp_msg.data().R_body));
+		math::Quaternion q;
+		q.from_dcm(R_sp);
+		memcpy(_att_sp_msg.data().q_d, q.data, sizeof(_att_sp_msg.data().q_d));
+		_att_sp_msg.data().q_d_valid = true;
 		_att_sp_msg.data().timestamp = get_time_micros();
 
 	} else {

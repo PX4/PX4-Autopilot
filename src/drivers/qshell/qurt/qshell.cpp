@@ -41,7 +41,6 @@
 #include "qshell.h"
 
 #include <px4_log.h>
-#include <px4_tasks.h>
 #include <px4_time.h>
 #include <px4_posix.h>
 #include <px4_middleware.h>
@@ -61,17 +60,13 @@
 #include <drivers/drv_hrt.h>
 #include "DriverFramework.hpp"
 
-extern void init_app_map(std::map<std::string, px4_main_t> &apps);
-extern void list_builtins(std::map<std::string, px4_main_t> &apps);
-
-using std::map;
-using std::string;
+#define MAX_ARGS 8 // max number of whitespace separated args after app name
 
 px4::AppState QShell::appState;
 
 QShell::QShell()
 {
-	init_app_map(apps);
+	init_app_map(m_apps);
 }
 
 int QShell::main()
@@ -148,16 +143,22 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 	std::string command = appargs[0];
 
 	if (command.compare("help") == 0) {
-		list_builtins(apps);
+		list_builtins(m_apps);
 		return 0;
 	}
 
 	//replaces app.find with iterator code to avoid null pointer exception
-	for (map<string, px4_main_t>::iterator it = apps.begin(); it != apps.end(); ++it) {
+	for (apps_map_type::iterator it = m_apps.begin(); it != m_apps.end(); ++it) {
 		if (it->first == command) {
-			const char *arg[2 + 1];
+			// one for command name, one for null terminator
+			const char *arg[MAX_ARGS + 2];
 
 			unsigned int i = 0;
+
+			if (appargs.size() > MAX_ARGS + 1) {
+				PX4_ERR("%d too many arguments in run_cmd", appargs.size() - (MAX_ARGS + 1));
+				return 1;
+			}
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
@@ -168,11 +169,11 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 			arg[i] = (char *)0;
 
 			//PX4_DEBUG_PRINTF(i);
-			if (apps[command] == NULL) {
+			if (m_apps[command] == NULL) {
 				PX4_ERR("Null function !!\n");
 
 			} else {
-				return apps[command](i, (char **)arg);
+				return m_apps[command](i, (char **)arg);
 			}
 
 		}

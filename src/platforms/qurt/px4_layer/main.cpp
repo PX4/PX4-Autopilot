@@ -51,10 +51,10 @@
 #include "apps.h"
 #include "DriverFramework.hpp"
 
+#define MAX_ARGS 8 // max number of whitespace separated args after app name
+
 using namespace std;
 
-extern void init_app_map(map<string, px4_main_t> &apps);
-extern void list_builtins(map<string, px4_main_t> &apps);
 static px4_task_t g_dspal_task = -1;
 
 __BEGIN_DECLS
@@ -68,17 +68,23 @@ void qurt_external_hook(void)
 {
 }
 
-static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs)
+static void run_cmd(apps_map_type &apps, const vector<string> &appargs)
 {
 	// command is appargs[0]
 	string command = appargs[0];
 
 	//replaces app.find with iterator code to avoid null pointer exception
-	for (map<string, px4_main_t>::iterator it = apps.begin(); it != apps.end(); ++it)
+	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it)
 		if (it->first == command) {
-			const char *arg[2 + 1];
+			// one for command name, one for null terminator
+			const char *arg[MAX_ARGS + 2];
 
 			unsigned int i = 0;
+
+			if (appargs.size() > MAX_ARGS + 1) {
+				PX4_ERR("%d too many arguments in run_cmd", appargs.size() - (MAX_ARGS + 1));
+				return;
+			}
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
@@ -109,7 +115,7 @@ void eat_whitespace(const char *&b, int &i)
 	i = 0;
 }
 
-static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
+static void process_commands(apps_map_type &apps, const char *cmds)
 {
 	vector<string> appargs;
 	int i = 0;
@@ -202,7 +208,7 @@ const char *get_commands()
 	PX4_ERR("Could not open %s\n", COMMANDS_ADSP_FILE);
 
 	static const char *commands =
-		"uorb start\n"
+		"uorb start\nqshell start\n"
 		;
 
 	return commands;
@@ -212,7 +218,7 @@ const char *get_commands()
 int dspal_entry(int argc, char *argv[])
 {
 	PX4_INFO("In dspal_entry");
-	map<string, px4_main_t> apps;
+	apps_map_type apps;
 	init_app_map(apps);
 	DriverFramework::Framework::initialize();
 	px4::init_once();

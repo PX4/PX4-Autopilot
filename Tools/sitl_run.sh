@@ -5,7 +5,7 @@ set -e
 echo args: $@
 
 sitl_bin=$1
-label=$2
+rcS_dir=$2
 debugger=$3
 program=$4
 model=$5
@@ -15,7 +15,7 @@ build_path=$7
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo label: $label
+echo rcS_dir: $rcS_dir
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -24,6 +24,7 @@ echo build_path: $build_path
 
 working_dir=`pwd`
 sitl_bin=$build_path/src/firmware/posix/px4
+rootfs=$build_path/tmp/rootfs
 
 if [ "$chroot" == "1" ]
 then
@@ -40,9 +41,9 @@ then
 	model="iris"
 fi
 
-if [ "$#" -lt 5 ]
+if [ "$#" -lt 7 ]
 then
-	echo usage: sitl_run.sh rc_script debugger program model devel_path
+	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -64,10 +65,7 @@ SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
-	cd $src_path/Tools/jMAVSim
-	ant create_run_jar copy_res
-	cd out/production
-	java -Djava.ext.dirs= -jar jmavsim_run.jar -udp 127.0.0.1:14560 &
+	$src_path/Tools/jmavsim_run.sh &
 	SIM_PID=`echo $!`
 	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
@@ -98,6 +96,7 @@ then
 	# Check if we need to creat a param file to allow user to change parameters
 	if ! [ -f "$rootfs/replay_params.txt" ]
 		then
+		mkdir -p $rootfs
 		touch $rootfs/replay_params.txt
 	fi
 fi
@@ -112,7 +111,7 @@ fi
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${label}/${model}"
+sitl_command="$sudo_enabled $sitl_bin $chroot_enabled $src_path $src_path/${rcS_dir}/${model}"
 
 echo SITL COMMAND: $sitl_command
 
@@ -135,6 +134,7 @@ fi
 
 if [ "$program" == "jmavsim" ]
 then
+	pkill -9 -P $SIM_PID
 	kill -9 $SIM_PID
 elif [ "$program" == "gazebo" ]
 then

@@ -83,12 +83,6 @@ enum MS5611_BUS {
 	MS5611_BUS_SPI_EXTERNAL
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -806,7 +800,7 @@ MS5611::collect()
 		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
-		if (!(_pub_blocked)) {
+		if (!(_pub_blocked) && _baro_topic != nullptr) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}
