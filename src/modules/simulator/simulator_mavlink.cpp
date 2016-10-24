@@ -345,7 +345,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// always publish ground truth attitude message
 			int hilstate_multi_pos;
-			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hilstate_multi_pos, ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hilstate_multi_pos,
+					 ORB_PRIO_HIGH);
 		}
 
 		break;
