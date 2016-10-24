@@ -46,6 +46,8 @@
 #include <stdio.h>
 #include <cmath>
 
+#include "Vector.hpp"	// Vector and eigen_matrix_instance
+
 #include "matrix/math.hpp"
 #include <platforms/px4_defines.h>
 

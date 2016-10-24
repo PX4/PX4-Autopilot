@@ -37,6 +37,7 @@
 
 #include <sched.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 struct system_load_taskinfo_s {
 	uint64_t total_runtime;			///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load

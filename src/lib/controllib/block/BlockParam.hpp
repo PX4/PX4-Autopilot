@@ -43,6 +43,7 @@
 
 #include "Block.hpp"
 #include <containers/List.hpp>
+#include <cstddef>	// NULL
 
 namespace control
 {
