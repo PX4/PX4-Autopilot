@@ -54,7 +54,6 @@
 #include <poll.h>
 #include <termios.h>
 #include <time.h>
-#include <math.h> /* isinf / isnan checks */
 
 #ifdef __PX4_POSIX
 #include <net/if.h>

@@ -58,6 +58,7 @@
 #include <termios.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_baro.h>
+#include <math.h>	// NAN
 
 #include "sPort_data.h"
 #include "frsky_data.h"
