@@ -66,7 +66,7 @@ list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
 #		MODULE_LIST	: list of modules
 #
 #	Output:
-#		OUT	: generated builtin_commands.c src
+#		OUT	: stem of generated apps.cpp/apps.h ("apps")
 #
 #	Example:
 #		px4_posix_generate_builtin_commands(
@@ -97,12 +97,14 @@ function(px4_posix_generate_builtin_commands)
 			set(builtin_apps_string
 				"${builtin_apps_string}\tapps[\"${MAIN}\"] = ${MAIN}_main;\n")
 			set(builtin_apps_decl_string
-				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
+				"${builtin_apps_decl_string}int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/cmake/posix/apps.h_in
-		${OUT})
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in
+		${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in
+		${OUT}.h)
 endfunction()
 
 #=============================================================================
@@ -174,16 +176,6 @@ function(px4_os_add_flags)
                 mavlink/include/mavlink
                 )
 
-# This block sets added_exe_linker_flags.
-if ("${BOARD}" STREQUAL "bebop")
-	# Use the -pthread if the firmware is build for the parrot bebop.
-	# This resolves some linker errors in DriverFramework, when building
-	# a static target.
-	set(added_exe_linker_flags "-pthread")
-else()
-	set(added_exe_linker_flags)
-endif()
-
 # This block sets added_definitions and added_cxx_flags.
 if(UNIX AND APPLE)
         set(added_definitions
@@ -227,6 +219,8 @@ else()
 		)
 
 endif()
+
+set(added_exe_linker_flags)
 
 # This block sets added_c_flags (appends to others).
 if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")

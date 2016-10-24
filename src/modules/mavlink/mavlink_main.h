@@ -70,6 +70,7 @@
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
 #include "mavlink_shell.h"
+#include "mavlink_ulog.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -435,6 +436,16 @@ public:
 	/** close the Mavlink shell if it is open */
 	void			close_shell();
 
+	/** get ulog streaming if active, nullptr otherwise */
+	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
+	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component) {
+		if (_mavlink_ulog) { return; }
+		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
+	}
+	void			request_stop_ulog_streaming() {
+		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
+	}
+
 protected:
 	Mavlink			*next;
 
@@ -467,6 +478,8 @@ private:
 	MavlinkFTP			*_mavlink_ftp;
 	MavlinkLogHandler		*_mavlink_log_handler;
 	MavlinkShell			*_mavlink_shell;
+	MavlinkULog			*_mavlink_ulog;
+	volatile bool			_mavlink_ulog_stop_requested;
 
 	MAVLINK_MODE 		_mode;
 

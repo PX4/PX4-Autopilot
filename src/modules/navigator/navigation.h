@@ -45,7 +45,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define NUM_MISSIONS_SUPPORTED 256
+#if defined(MEMORY_CONSTRAINED_SYSTEM)
+#  define NUM_MISSIONS_SUPPORTED 50
+#else
+#  define NUM_MISSIONS_SUPPORTED 256
+#endif
 
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
 
@@ -70,6 +74,10 @@ enum NAV_CMD {
 	NAV_CMD_DO_MOUNT_CONFIGURE=204,
 	NAV_CMD_DO_MOUNT_CONTROL=205,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
+	NAV_CMD_IMAGE_START_CAPTURE=2000,
+	NAV_CMD_IMAGE_STOP_CAPTURE=2001,
+	NAV_CMD_VIDEO_START_CAPTURE=2500,
+	NAV_CMD_VIDEO_STOP_CAPTURE=2501,
 	NAV_CMD_DO_VTOL_TRANSITION=3000,
 	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
 };

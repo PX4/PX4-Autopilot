@@ -104,6 +104,10 @@ MissionBlock::is_mission_item_reached()
 			return false;
 
 		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
@@ -232,7 +236,7 @@ MissionBlock::is_mission_item_reached()
 					// set required yaw from bearing to the next mission item
 					if (_mission_item.force_heading) {
 						struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
-						
+
 						if (next_sp.valid) {
 							_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 											_navigator->get_global_position()->lon,
@@ -352,7 +356,21 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 	cmd->command = item->nav_cmd;
 
 	cmd->target_system = _navigator->get_vstatus()->system_id;
-	cmd->target_component = _navigator->get_vstatus()->component_id;
+
+	// The camera commands are not processed on the autopilot but will be
+	// sent to the mavlink links to other components.
+	switch (item->nav_cmd) {
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
+			cmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			break;
+		default:
+			cmd->target_component = _navigator->get_vstatus()->component_id;
+			break;
+	}
+
 	cmd->source_system = _navigator->get_vstatus()->system_id;
 	cmd->source_component = _navigator->get_vstatus()->component_id;
 	cmd->confirmation = false;
@@ -404,6 +422,10 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
 		item->nav_cmd == NAV_CMD_DO_SET_ROI ||

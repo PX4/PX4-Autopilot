@@ -18,12 +18,14 @@ static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
 static const float P_MAX = 1.0e6f; // max allowed value in state covariance
+static const float LAND_RATE = 10.0f; // rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
+	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
@@ -82,12 +84,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocap_p_stddev(this, "VIC_P"),
 	_flow_gyro_comp(this, "FLW_GYRO_CMP"),
 	_flow_z_offset(this, "FLW_OFF_Z"),
-	_flow_vxy_stddev(this, "FLW_VXY"),
-	_flow_vxy_d_stddev(this, "FLW_VXY_D"),
-	_flow_vxy_r_stddev(this, "FLW_VXY_R"),
+	_flow_scale(this, "FLW_SCALE"),
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
+	_land_z_stddev(this, "LAND_Z"),
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
@@ -135,6 +136,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_init_sonar(0),
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
+	_time_last_land(0),
 
 	// initialization flags
 	_receivedGps(false),
@@ -145,6 +147,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowInitialized(false),
 	_visionInitialized(false),
 	_mocapInitialized(false),
+	_landInitialized(false),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -169,6 +172,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarFault(FAULT_NONE),
 	_visionFault(FAULT_NONE),
 	_mocapFault(FAULT_NONE),
+	_landFault(FAULT_NONE),
 
 	// loop performance
 	_loop_perf(),
@@ -176,7 +180,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_x(), _u(), _P()
+	_x(), _u(), _P(), _R_att(), _eul()
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -288,6 +292,11 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
+	bool landUpdated = (
+				   (_sub_land.get().landed ||
+				    ((!_sub_armed.get().armed) && (!_sub_land.get().freefall)))
+				   && (!(_lidarInitialized || _mocapInitialized || _visionInitialized || _sonarInitialized))
+				   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE));
 
 	// get new data
 	updateSubscriptions();
@@ -492,6 +501,15 @@ void BlockLocalPositionEstimator::update()
 
 		} else {
 			mocapCorrect();
+		}
+	}
+
+	if (landUpdated) {
+		if (!_landInitialized) {
+			landInit();
+
+		} else {
+			landCorrect();
 		}
 	}
 
@@ -713,7 +731,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vx = xLP(X_vx); // north
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
-		_pub_lpos.get().yaw = _sub_att.get().yaw;
+
+		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _validXY;
 		_pub_lpos.get().z_global = _baroInitialized;
 		_pub_lpos.get().ref_timestamp = _timeStamp;
@@ -804,7 +823,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_n = xLP(X_vx);
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
-		_pub_gpos.get().yaw = _sub_att.get().yaw;
+		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
@@ -856,18 +875,17 @@ void BlockLocalPositionEstimator::updateSSStates()
 {
 	// derivative of velocity is accelerometer acceleration
 	// (in input matrix) - bias (in body frame)
-	Matrix3f R_att(_sub_att.get().R);
-	_A(X_vx, X_bx) = -R_att(0, 0);
-	_A(X_vx, X_by) = -R_att(0, 1);
-	_A(X_vx, X_bz) = -R_att(0, 2);
+	_A(X_vx, X_bx) = -_R_att(0, 0);
+	_A(X_vx, X_by) = -_R_att(0, 1);
+	_A(X_vx, X_bz) = -_R_att(0, 2);
 
-	_A(X_vy, X_bx) = -R_att(1, 0);
-	_A(X_vy, X_by) = -R_att(1, 1);
-	_A(X_vy, X_bz) = -R_att(1, 2);
+	_A(X_vy, X_bx) = -_R_att(1, 0);
+	_A(X_vy, X_by) = -_R_att(1, 1);
+	_A(X_vy, X_bz) = -_R_att(1, 2);
 
-	_A(X_vz, X_bx) = -R_att(2, 0);
-	_A(X_vz, X_by) = -R_att(2, 1);
-	_A(X_vz, X_bz) = -R_att(2, 2);
+	_A(X_vz, X_bx) = -_R_att(2, 0);
+	_A(X_vz, X_by) = -_R_att(2, 1);
+	_A(X_vz, X_bz) = -_R_att(2, 2);
 }
 
 void BlockLocalPositionEstimator::updateSSParams()
@@ -911,11 +929,13 @@ void BlockLocalPositionEstimator::predict()
 	// state or covariance
 	if (!_validXY && !_validZ) { return; }
 
-	if (integrate && _sub_att.get().R_valid) {
-		Matrix3f R_att(_sub_att.get().R);
+	if (integrate) {
+		matrix::Quaternion<float> q(&_sub_att.get().q[0]);
+		_eul = matrix::Euler<float>(q);
+		_R_att = matrix::Dcm<float>(q);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 		// note, bias is removed in dynamics function
-		_u = R_att * a;
+		_u = _R_att * a;
 		_u(U_az) += 9.81f; // add g
 
 	} else {

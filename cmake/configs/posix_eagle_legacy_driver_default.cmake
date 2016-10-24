@@ -6,6 +6,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexago
 
 set(config_generate_parameters_scope ALL)
 
+# Get $QC_SOC_TARGET from environment if existing.
+if (DEFINED ENV{QC_SOC_TARGET})
+	set(QC_SOC_TARGET $ENV{QC_SOC_TARGET})
+else()
+	set(QC_SOC_TARGET "APQ8074")
+endif()
+
 set(CONFIG_SHMEM "1")
 
 # This definition allows to differentiate if this just the usual POSIX build

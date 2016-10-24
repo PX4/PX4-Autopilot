@@ -22,6 +22,17 @@ PARAM_DEFINE_FLOAT(LPE_PUB_AGL_Z, 0);
 PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
 
 /**
+ * Optical flow scale
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.1
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
+
+/**
  * Optical flow gyro compensation
  *
  * @group Local Position Estimator
@@ -31,39 +42,6 @@ PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
  * @decimal 3
  */
 PARAM_DEFINE_INT32(LPE_FLW_GYRO_CMP, 1);
-
-/**
- * Optical flow xy velocity standard deviation.
- *
- * @group Local Position Estimator
- * @unit m
- * @min 0.01
- * @max 1
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(LPE_FLW_VXY, 0.04f);
-
-/**
- * Optical flow xy velocity standard deviation linear factor on distance
- *
- * @group Local Position Estimator
- * @unit m / m
- * @min 0.01
- * @max 1
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(LPE_FLW_VXY_D, 0.04f);
-
-/**
- * Optical flow xy velocity standard deviation linear factor on rotation rate
- *
- * @group Local Position Estimator
- * @unit m / m
- * @min 0.01
- * @max 1
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(LPE_FLW_VXY_R, 1.0f);
 
 /**
  * Optical flow minimum quality threshold
@@ -132,7 +110,7 @@ PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
  * @max 2
  * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.0015f);
+PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.012f);
 
 /**
  * Accelerometer z noise density
@@ -145,7 +123,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.0015f);
  * @max 2
  * @decimal 4
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0015f);
+PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.02f);
 
 /**
  * Barometric presssure altitude z standard deviation.
@@ -412,7 +390,7 @@ PARAM_DEFINE_FLOAT(LPE_X_LP, 5.0f);
  * @max 1.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_VXY_PUB, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_VXY_PUB, 0.3f);
 
 /**
  * Required z standard deviation to publish altitude/ terrain
@@ -424,3 +402,14 @@ PARAM_DEFINE_FLOAT(LPE_VXY_PUB, 0.1f);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(LPE_Z_PUB, 1.0f);
+
+/**
+ * Land detector z standard deviation
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.001
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);

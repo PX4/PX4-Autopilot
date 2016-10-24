@@ -30,7 +30,7 @@ else
 		# schematic and BOM, leading to sensor brownouts
 		# on boot. Original Pixracers following the
 		# open hardware design do not require this.
-		fmu sensor_reset 20
+		fmu sensor_reset 50
 	fi
 
 	if ms5611 -s start

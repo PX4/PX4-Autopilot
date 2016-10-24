@@ -687,8 +687,9 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub) {
 		}
 
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-		roll_mean += att.roll;
-		pitch_mean += att.pitch;
+		matrix::Eulerf euler = matrix::Quatf(att.q);
+		roll_mean += euler.phi();
+		pitch_mean += euler.theta();
 		counter++;
 	}
 

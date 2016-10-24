@@ -316,18 +316,11 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_attitude.timestamp = timestamp;
 
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Matrix<3, 3> C_nb = q.to_dcm();
-			math::Vector<3> euler = C_nb.to_euler();
 
 			hil_attitude.q[0] = q(0);
 			hil_attitude.q[1] = q(1);
 			hil_attitude.q[2] = q(2);
 			hil_attitude.q[3] = q(3);
-			hil_attitude.q_valid = true;
-
-			hil_attitude.roll = euler(0);
-			hil_attitude.pitch = euler(1);
-			hil_attitude.yaw = euler(2);
 
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;
@@ -616,6 +609,13 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	bool sim_delay = false;
 
 	const unsigned max_wait_ms = 6;
+
+	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
+	mavlink_command_long_t cmd_long = {};
+	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
+	cmd_long.param2 = 5e3;
+	send_mavlink_message(MAVLINK_MSG_ID_COMMAND_LONG, &cmd_long, 200);
 
 	// wait for new mavlink messages to arrive
 	while (true) {

@@ -78,6 +78,15 @@
 #include <systemlib/state_table.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/hysteresis/hysteresis.h>
+
+#include <sys/stat.h>
+#include <string.h>
+#include <math.h>
+#include <poll.h>
+#include <float.h>
+#include <matrix/math.hpp>
+
+#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -106,7 +115,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -1114,6 +1122,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
 	case vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
+	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
+	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 		/* ignore commands that handled in low prio loop */
 		break;
 
@@ -1160,7 +1170,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.y = localPosition.y;
 	home.z = localPosition.z;
 
-	home.yaw = attitude.yaw;
+	matrix::Eulerf euler = matrix::Quatf(attitude.q);
+	home.yaw = euler.psi();
 
 	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
@@ -1314,8 +1325,7 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.offboard_control_signal_found_once = false;
 	status_flags.rc_signal_found_once = false;
 
-	/* assume we don't have a valid GPS & baro on startup */
-	status_flags.gps_failure = true;
+	/* assume we don't have a valid baro on startup */
 	status_flags.barometer_failure = true;
 	status_flags.ever_had_barometer_data = false;
 
@@ -1340,6 +1350,13 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.circuit_breaker_engaged_enginefailure_check = false;
 	status_flags.circuit_breaker_engaged_gpsfailure_check = false;
 	get_circuit_breaker_params();
+
+	// initialize gps failure to false if circuit breaker enabled
+	if (status_flags.circuit_breaker_engaged_gpsfailure_check) {
+		status_flags.gps_failure = false;
+	} else {
+		status_flags.gps_failure = true;
+	}
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -1612,6 +1629,8 @@ int commander_thread_main(int argc, char *argv[])
 	bool main_state_changed = false;
 	bool failsafe_old = false;
 
+	bool have_taken_off_since_arming = false;
+
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
@@ -1639,7 +1658,6 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(param_changed_sub, &updated);
 
 		if (updated || param_init_forced) {
-			param_init_forced = false;
 
 			/* parameters changed */
 			struct parameter_update_s param_changed;
@@ -1686,8 +1704,15 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
-			auto_disarm_hysteresis.set_hysteresis_time_from(false,
+
+			// If we update parameters the first time
+			// make sure the hysteresis time gets set.
+			// After that it will be set in the main state
+			// machine based on the arming state.
+			if (param_init_forced) {
+				auto_disarm_hysteresis.set_hysteresis_time_from(false,
 									(hrt_abstime)disarm_when_landed * 1000000);
+			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
@@ -1713,6 +1738,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
+
+			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
 			if (updated && autosave_params != 0 && param_changed.saved == false) {
@@ -2049,6 +2076,7 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 				} else {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
+					have_taken_off_since_arming = true;
 				}
 			}
 
@@ -2062,6 +2090,17 @@ int commander_thread_main(int argc, char *argv[])
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
+
+
+
+		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
+		hrt_abstime timeout_time = disarm_when_landed * 1000000;
+
+		if (!have_taken_off_since_arming) {
+			timeout_time *= 5;
+		}
+
+		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
 
 		// Check for auto-disarm
 		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
@@ -2794,6 +2833,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
 						       &internal_state,
+							   &mavlink_log_pub,
 						       (datalink_loss_enabled > 0),
 						       mission_result.finished,
 						       mission_result.stay_in_failsafe,
@@ -2913,6 +2953,11 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		status_changed = false;
+
+		if (!armed.armed) {
+			/* Reset the flag if disarmed. */
+			have_taken_off_since_arming = false;
+		}
 
 
 		/* publish internal state for logging purposes */

@@ -2154,6 +2154,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_EST2.gps_check_fail_flags = buf.estimator_status.gps_check_fail_flags;
 				log_msg.body.log_EST2.control_mode_flags = buf.estimator_status.control_mode_flags;
 				log_msg.body.log_EST2.health_flags = buf.estimator_status.health_flags;
+				log_msg.body.log_EST2.innov_test_flags = buf.estimator_status.innovation_check_flags;
 				LOGBUFFER_WRITE_AND_COUNT(EST2);
 
 				log_msg.msg_type = LOG_EST3_MSG;
@@ -2170,6 +2171,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				for (unsigned i = 0; i < 6; i++) {
 					log_msg.body.log_INO1.s[i] = buf.innovations.vel_pos_innov[i];
 					log_msg.body.log_INO1.s[i + 6] = buf.innovations.vel_pos_innov_var[i];
+				}
+				for (unsigned i = 0; i < 3; i++) {
+					log_msg.body.log_INO1.s[i + 12] = buf.innovations.output_tracking_error[i];
 				}
 				LOGBUFFER_WRITE_AND_COUNT(EST4);
 
@@ -2261,19 +2265,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- ATTITUDE --- */
 		if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
 			log_msg.msg_type = LOG_ATT_MSG;
-			log_msg.body.log_ATT.q_w = buf.att.q[0];
-			log_msg.body.log_ATT.q_x = buf.att.q[1];
-			log_msg.body.log_ATT.q_y = buf.att.q[2];
-			log_msg.body.log_ATT.q_z = buf.att.q[3];
-			log_msg.body.log_ATT.roll = buf.att.roll;
-			log_msg.body.log_ATT.pitch = buf.att.pitch;
-			log_msg.body.log_ATT.yaw = buf.att.yaw;
+			float q0 = buf.att.q[0];
+			float q1 = buf.att.q[1];
+			float q2 = buf.att.q[2];
+			float q3 = buf.att.q[3];
+			log_msg.body.log_ATT.q_w = q0;
+			log_msg.body.log_ATT.q_x = q1;
+			log_msg.body.log_ATT.q_y = q2;
+			log_msg.body.log_ATT.q_z = q3;
+			log_msg.body.log_ATT.roll = atan2f(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2));
+			log_msg.body.log_ATT.pitch = asinf(2*(q0*q2 - q3*q1));
+			log_msg.body.log_ATT.yaw = atan2f(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
 			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
-			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
-			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
-			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 

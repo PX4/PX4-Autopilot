@@ -841,11 +841,11 @@ protected:
 
 		if (_att_sub->update(&_att_time, &att)) {
 			mavlink_attitude_t msg;
-
+			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.time_boot_ms = att.timestamp / 1000;
-			msg.roll = att.roll;
-			msg.pitch = att.pitch;
-			msg.yaw = att.yaw;
+			msg.roll = euler.phi();
+			msg.pitch = euler.theta();
+			msg.yaw = euler.psi();
 			msg.rollspeed = att.rollspeed;
 			msg.pitchspeed = att.pitchspeed;
 			msg.yawspeed = att.yawspeed;
@@ -1014,10 +1014,10 @@ protected:
 
 		if (updated) {
 			mavlink_vfr_hud_t msg;
-
+			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
-			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
+			msg.heading = _wrap_2pi(euler.psi()) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
 
 			if (_pos_time > 0) {
@@ -1707,6 +1707,15 @@ protected:
 			est_msg.time_usec = est.timestamp;
 			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
 			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+			est_msg.mag_ratio = est.mag_test_ratio;
+			est_msg.vel_ratio = est.vel_test_ratio;
+			est_msg.pos_horiz_ratio = est.pos_test_ratio;
+			est_msg.pos_vert_ratio = est.hgt_test_ratio;
+			est_msg.hagl_ratio = est.hagl_test_ratio;
+			est_msg.tas_ratio = est.tas_test_ratio;
+			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
+			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+			est_msg.flags = est.solution_status_flags;
 
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
@@ -2575,7 +2584,11 @@ protected:
 			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
-			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+			if (att_sp.q_d_valid) {
+				memcpy(&msg.q[0], &att_sp.q_d[0], sizeof(msg.q));
+			} else {
+				mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+			}
 
 			msg.body_roll_rate = att_rates_sp.roll;
 			msg.body_pitch_rate = att_rates_sp.pitch;

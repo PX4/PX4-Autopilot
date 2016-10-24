@@ -142,6 +142,21 @@ protected:
 		}										\
 	} while (0)
 
+/// @brief Used to compare two float values within a unit test. If possible use ut_compare_float instead of ut_assert
+/// since it will give you better error reporting of the actual values being compared.
+#define ut_compare_float(message, v1, v2, precision)						\
+	do {											\
+		int _p = pow(10, precision);							\
+		int _v1 = (int)(v1 * _p + 0.5f);						\
+		int _v2 = (int)(v2 * _p + 0.5f);						\
+		if (_v1 != _v2) {								\
+			_print_compare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
+			return false;								\
+		} else {									\
+			_assertions++;								\
+		}										\
+	} while (0)
+
 	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
 	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
 

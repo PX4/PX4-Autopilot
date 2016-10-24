@@ -82,6 +82,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/adc_report.h>
@@ -115,6 +116,7 @@ class PX4FMU : public device::CDev
 public:
 	enum Mode {
 		MODE_NONE,
+		MODE_1PWM,
 		MODE_2PWM,
 		MODE_2PWM2CAP,
 		MODE_3PWM,
@@ -133,6 +135,8 @@ public:
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	virtual int	init();
+
+	void dsm_bind_ioctl();
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
@@ -180,6 +184,7 @@ private:
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
 	struct work_s	_work;
+	int		_vehicle_cmd_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -191,7 +196,7 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	uint8_t _rcs_buf[SBUS_FRAME_SIZE];
+	uint8_t _rcs_buf[SBUS_BUFFER_SIZE];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -525,6 +530,15 @@ PX4FMU::set_mode(Mode mode)
 	 * are presented on the output pins.
 	 */
 	switch (mode) {
+	case MODE_1PWM:
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x1;
+		_pwm_initialized = false;
+		break;
+
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
@@ -918,7 +932,7 @@ PX4FMU::cycle()
 		// power radio on
 		RF_RADIO_POWER_CONTROL(true);
 #endif
-
+		_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 		// dsm_init sets some file static variables and returns a file descriptor
 		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
@@ -1037,6 +1051,10 @@ PX4FMU::cycle()
 			size_t num_outputs;
 
 			switch (_mode) {
+			case MODE_1PWM:
+				num_outputs = 1;
+				break;
+
 			case MODE_2PWM:
 			case MODE_2PWM2CAP:
 				num_outputs = 2;
@@ -1183,6 +1201,23 @@ PX4FMU::cycle()
 		}
 	}
 
+#ifdef RC_SERIAL_PORT
+	/* vehicle command */
+	orb_check(_vehicle_cmd_sub, &updated);
+
+	if (updated) {
+		struct vehicle_command_s cmd;
+		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &cmd);
+
+		// Check for a DSM pairing command
+		if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+			dsm_bind_ioctl((int)cmd.param2);
+		}
+
+	}
+
+#endif
+
 	orb_check(_param_sub, &updated);
 
 	if (updated) {
@@ -1260,7 +1295,7 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
+	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
@@ -1337,18 +1372,21 @@ PX4FMU::cycle()
 
 			if (newBytes > 0) {
 				// parse new data
-				uint8_t st24_rssi, rx_count;
+				uint8_t st24_rssi, lost_count;
 
 				rc_updated = false;
 
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
-					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
+					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
 									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
 
-				if (rc_updated) {
+				// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
+				// The only way to detect RC loss is therefore to look at the lost_count.
+
+				if (rc_updated && lost_count == 0) {
 					// we have a new ST24 frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
 					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
@@ -1466,6 +1504,9 @@ PX4FMU::cycle()
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
 		}
+
+	} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
+		_rc_scan_locked = false;
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
@@ -1561,6 +1602,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
 	switch (_mode) {
+	case MODE_1PWM:
 	case MODE_2PWM:
 	case MODE_3PWM:
 	case MODE_4PWM:
@@ -1975,6 +2017,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			*(unsigned *)arg = 2;
 			break;
 
+		case MODE_1PWM:
+			*(unsigned *)arg = 1;
+			break;
+
 		default:
 			ret = -EINVAL;
 			break;
@@ -1993,6 +2039,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			switch (arg) {
 			case 0:
 				set_mode(MODE_NONE);
+				break;
+
+			case 1:
+				set_mode(MODE_1PWM);
 				break;
 
 			case 2:
@@ -2033,6 +2083,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			switch (arg) {
 			case PWM_SERVO_MODE_NONE:
 				ret = set_mode(MODE_NONE);
+				break;
+
+			case PWM_SERVO_MODE_1PWM:
+				ret = set_mode(MODE_1PWM);
 				break;
 
 			case PWM_SERVO_MODE_2PWM:
@@ -2086,7 +2140,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		PX4_INFO("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2100,7 +2154,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			dsm_bind(DSM_CMD_BIND_POWER_UP, 0);
 			usleep(72000);
 
+			irqstate_t flags = px4_enter_critical_section();
 			dsm_bind(DSM_CMD_BIND_SEND_PULSES, arg);
+			px4_leave_critical_section(flags);
 			usleep(50000);
 
 			dsm_bind(DSM_CMD_BIND_REINIT_UART, 0);
@@ -2549,6 +2605,33 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 namespace
 {
 
+void
+bind_spektrum()
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (true) {
+		PX4_INFO("bind_Spektrum RX");
+
+		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+		if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
+			PX4_ERR("binding failed.");
+		}
+
+	} else {
+		PX4_WARN("system armed, bind request rejected");
+	}
+
+	close(fd);
+
+}
+
 enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
@@ -2560,6 +2643,7 @@ enum PortMode {
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
+	PORT_PWM1,
 	PORT_PWM3CAP1,
 	PORT_PWM2CAP2,
 	PORT_CAPTURE,
@@ -2583,6 +2667,7 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 	case PORT_FULL_PWM:
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
@@ -2593,6 +2678,11 @@ fmu_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
+		break;
+
+	case PORT_PWM1:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
@@ -2983,6 +3073,11 @@ fmu_main(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
 
+	if (!strcmp(verb, "bind")) {
+		bind_spektrum();
+		exit(0);
+	}
+
 	/* does not operate on a FMU instance */
 	if (!strcmp(verb, "i2c")) {
 		if (argc > 3) {
@@ -3031,7 +3126,14 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(BOARD_HAS_PWM)
+
+	} else if (!strcmp(verb, "mode_pwm1")) {
+		new_mode = PORT_PWM1;
+
+
+#elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
@@ -3126,7 +3228,7 @@ fmu_main(int argc, char *argv[])
 	fprintf(stderr,
 		" , mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
-	fprintf(stderr, " mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>, bind\n");
 #endif
 	fprintf(stderr, "\n");
 	exit(1);
