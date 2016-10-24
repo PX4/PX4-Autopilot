@@ -783,7 +783,8 @@ PX4FMU::update_pwm_trims()
 		}
 
 		/* copy the trim values to the mixer offsets */
-		_mixers->set_trims(values, _max_actuators);
+		unsigned n_out = _mixers->set_trims(values, _max_actuators);
+		PX4_INFO("set %d trims", n_out);
 	}
 }
 
@@ -2299,6 +2300,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
+					PX4_INFO("loaded mixers \n%s\n", buf);
 				}
 			}
 
