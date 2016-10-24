@@ -166,7 +166,7 @@ def main():
                         erase_last_n_chars(1)
                         cur_line = cur_line[:-1]
                         sys.stdout.write(ch)
-                elif ord(ch) == 033:
+                elif ord(ch) == 27:
                     ch = sys.stdin.read(1) # skip one
                     ch = sys.stdin.read(1)
                     if ch == 'A': # arrow up
