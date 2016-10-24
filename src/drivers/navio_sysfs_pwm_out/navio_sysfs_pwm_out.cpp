@@ -37,6 +37,7 @@
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <errno.h>
+#include <cmath>	// NAN
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
