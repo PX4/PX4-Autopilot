@@ -18,3 +18,5 @@ float32 terrain_alt		# Terrain altitude WGS84, (metres)
 bool terrain_alt_valid		# Terrain altitude estimate is valid
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
 float32 pressure_alt		# Pressure altitude AMSL, (metres)
+
+# TOPICS vehicle_global_position vehicle_global_position_groundtruth
