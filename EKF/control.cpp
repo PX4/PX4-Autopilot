@@ -363,23 +363,24 @@ void Ekf::controlGpsFusion()
 					_last_known_posNE(1) = _state.pos(1);
 					_state.vel.setZero();
 					ECL_WARN("EKF GPS fusion timout - stopping GPS aiding");
-			}
+			} else {
 
-			// We are relying on GPS aiding to constrain attitude drift so after 7 seconds without aiding we need to do something
-			bool do_reset = (_time_last_imu - _time_last_pos_fuse > _params.no_gps_timeout_max) && (_time_last_imu - _time_last_vel_fuse > _params.no_gps_timeout_max);
+				// We are relying on GPS aiding to constrain attitude drift so after 7 seconds without aiding we need to do something
+				bool do_reset = (_time_last_imu - _time_last_pos_fuse > _params.no_gps_timeout_max) && (_time_last_imu - _time_last_vel_fuse > _params.no_gps_timeout_max);
 
-			// Our position measurments have been rejected for more than 14 seconds
-			do_reset |= _time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max;
+				// Our position measurments have been rejected for more than 14 seconds
+				do_reset |= _time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max;
 
-			if (do_reset) {
-				// Reset states to the last GPS measurement
-				resetPosition();
-				resetVelocity();
-				ECL_WARN("EKF GPS fusion timout - resetting to GPS");
+				if (do_reset) {
+					// Reset states to the last GPS measurement
+					resetPosition();
+					resetVelocity();
+					ECL_WARN("EKF GPS fusion timout - resetting to GPS");
 
-				// Reset the timeout counters
-				_time_last_pos_fuse = _time_last_imu;
-				_time_last_vel_fuse = _time_last_imu;
+					// Reset the timeout counters
+					_time_last_pos_fuse = _time_last_imu;
+					_time_last_vel_fuse = _time_last_imu;
+				}
 			}
 
 		}
