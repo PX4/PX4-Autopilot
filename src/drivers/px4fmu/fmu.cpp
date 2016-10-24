@@ -3130,9 +3130,9 @@ fmu_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm1")) {
 		new_mode = PORT_PWM1;
+#endif
 
-
-#elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
