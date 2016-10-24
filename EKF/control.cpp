@@ -355,9 +355,7 @@ void Ekf::controlGpsFusion()
 
 		// handle the case when we are relying on GPS fusion and lose it
 		if (_control_status.flags.gps && !_control_status.flags.opt_flow) {
-			// We are relying on GPS aiding to constrain attitude drift so after 10 seconds without aiding we need to do something
-			if ((_time_last_imu - _time_last_pos_fuse > 10e6) && (_time_last_imu - _time_last_vel_fuse > 10e6)) {
-				if (_time_last_imu - _time_last_gps > 5e5) {
+			if (_time_last_imu - _time_last_gps > 5e5) {
 					// if we don't have gps then we need to switch to the non-aiding mode, zero the velocity states
 					// and set the synthetic GPS position to the current estimate
 					_control_status.flags.gps = false;
@@ -365,19 +363,25 @@ void Ekf::controlGpsFusion()
 					_last_known_posNE(1) = _state.pos(1);
 					_state.vel.setZero();
 					ECL_WARN("EKF GPS fusion timout - stopping GPS aiding");
-
-				} else {
-					// Reset states to the last GPS measurement
-					resetPosition();
-					resetVelocity();
-					ECL_WARN("EKF GPS fusion timout - resetting to GPS");
-
-					// Reset the timeout counters
-					_time_last_pos_fuse = _time_last_imu;
-					_time_last_vel_fuse = _time_last_imu;
-
-				}
 			}
+
+			// We are relying on GPS aiding to constrain attitude drift so after 7 seconds without aiding we need to do something
+			bool do_reset = (_time_last_imu - _time_last_pos_fuse > _params.no_gps_timeout_max) && (_time_last_imu - _time_last_vel_fuse > _params.no_gps_timeout_max);
+
+			// Our position measurments have been rejected for more than 14 seconds
+			do_reset |= _time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max;
+
+			if (do_reset) {
+				// Reset states to the last GPS measurement
+				resetPosition();
+				resetVelocity();
+				ECL_WARN("EKF GPS fusion timout - resetting to GPS");
+
+				// Reset the timeout counters
+				_time_last_pos_fuse = _time_last_imu;
+				_time_last_vel_fuse = _time_last_imu;
+			}
+
 		}
 
 		// Only use GPS data for position and velocity aiding if enabled

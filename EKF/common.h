@@ -261,6 +261,9 @@ struct parameters {
 	float vel_Tau;	// velocity state correction time constant (1/sec)
 	float pos_Tau;	// postion state correction time constant (1/sec)
 
+	unsigned no_gps_timeout_max;	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
+									// rejected
+
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
@@ -350,6 +353,8 @@ struct parameters {
 		// output complementary filter tuning time constants
 		vel_Tau = 0.25f;
 		pos_Tau = 0.25f;
+
+		no_gps_timeout_max = 7e6;	// maximum seven seconds of dead reckoning time for gps
 
 	}
 };
