@@ -52,6 +52,7 @@
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
+#include <stdbool.h>			// Needs to be included before v2.0/mavlink_types.h until https://github.com/ArduPilot/pymavlink/pull/22 makes it through.
 #include <v2.0/mavlink_types.h>
 #include <unistd.h>
 
