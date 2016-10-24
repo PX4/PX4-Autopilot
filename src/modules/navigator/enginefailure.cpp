@@ -113,10 +113,8 @@ EngineFailure::set_ef_item()
 		_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 

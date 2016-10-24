@@ -900,6 +900,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
+		/* this field is shared with pitch_min in memory and
+		 * exclusive in the MAVLink spec. Set it to 0 first
+		 * and then set minimum pitch later only for the
+		 * corresponding item
+		 */
 		mission_item->time_inside = 0.0f;
 
 		switch (mavlink_mission_item->command) {
@@ -912,16 +917,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_LOITER_UNLIM:
 			mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-			mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
-			mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 			break;
 
 		case MAV_CMD_NAV_LOITER_TIME:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			mission_item->time_inside = mavlink_mission_item->param1;
-			mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
-			mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
 			break;
 
@@ -940,8 +943,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_LOITER_TO_ALT:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TO_ALT;
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0) ? true : false;
-			mission_item->loiter_radius = fabsf(mavlink_mission_item->param2);
-			mission_item->loiter_direction = (mavlink_mission_item->param2 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+			mission_item->loiter_radius = mavlink_mission_item->param2;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
 			break;
 
@@ -1097,13 +1099,13 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case NAV_CMD_LOITER_UNLIMITED:
-			mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param3 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 			break;
 
 		case NAV_CMD_LOITER_TIME_LIMIT:
 			mavlink_mission_item->param1 = mission_item->time_inside;
-			mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param3 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
 			break;
 
@@ -1119,7 +1121,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case NAV_CMD_LOITER_TO_ALT:
 			mavlink_mission_item->param1 = mission_item->force_heading;
-			mavlink_mission_item->param2 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
+			mavlink_mission_item->param2 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
 			break;
 

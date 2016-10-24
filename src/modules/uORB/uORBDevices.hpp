@@ -186,7 +186,7 @@ public:
 	bool print_statistics(bool reset);
 
 	unsigned int get_queue_size() const { return _queue_size; }
-	int32_t subscriber_count() const { return _subscriber_count; }
+	int16_t subscriber_count() const { return _subscriber_count; }
 	uint32_t lost_message_count() const { return _lost_messages; }
 	unsigned int published_message_count() const { return _generation; }
 	const struct orb_metadata *get_meta() const { return _meta; }
@@ -221,21 +221,20 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	const int   _priority;  /**< priority of topic */
+	const uint8_t   _priority;  /**< priority of the topic */
 	bool _published;  /**< has ever data been published */
-	unsigned int _queue_size; /**< maximum number of elements in the queue */
+	uint8_t _queue_size; /**< maximum number of elements in the queue */
+	int16_t _subscriber_count;
 
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 #ifdef __PX4_NUTTX
 	pid_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
-	bool    _IsRemoteSubscriberPresent;
 #else
 	px4_task_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
 #endif
-	int32_t _subscriber_count;
 
 	//statistics
 	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same

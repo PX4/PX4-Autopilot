@@ -94,24 +94,27 @@ def main():
             help='Mavlink port name: serial: DEVICE[,BAUD], udp: IP:PORT, tcp: tcp:IP:PORT. Eg: \
 /dev/ttyUSB0 or 0.0.0.0:14550. Auto-detect serial if not given.')
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int,
-                      help="Mavlink port baud rate (default=115200)", default=115200)
+                      help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
 
     if args.port == None:
-        serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',
-            "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*'])
+        if sys.platform == "darwin":
+            args.port = "/dev/tty.usbmodem1"
+        else:
+            serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',
+                "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*'])
 
-        if len(serial_list) == 0:
-            print("Error: no serial connection found")
-            return
+            if len(serial_list) == 0:
+                print("Error: no serial connection found")
+                return
 
-        if len(serial_list) > 1:
-            print('Auto-detected serial ports are:')
-            for port in serial_list:
-                print(" {:}".format(port))
-        print('Using port {:}'.format(serial_list[0]))
-        args.port = serial_list[0].device
+            if len(serial_list) > 1:
+                print('Auto-detected serial ports are:')
+                for port in serial_list:
+                    print(" {:}".format(port))
+            print('Using port {:}'.format(serial_list[0]))
+            args.port = serial_list[0].device
 
 
     print("Connecting to MAVLINK...")
@@ -163,7 +166,7 @@ def main():
                         erase_last_n_chars(1)
                         cur_line = cur_line[:-1]
                         sys.stdout.write(ch)
-                elif ord(ch) == 033:
+                elif ord(ch) == 27:
                     ch = sys.stdin.read(1) # skip one
                     ch = sys.stdin.read(1)
                     if ch == 'A': # arrow up

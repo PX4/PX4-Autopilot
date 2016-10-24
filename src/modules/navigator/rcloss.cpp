@@ -114,11 +114,9 @@ RCLoss::set_rcl_item()
 		_mission_item.altitude_is_relative = false;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = _param_loitertime.get() < 0.0f ? 0.0f : _param_loitertime.get();
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
