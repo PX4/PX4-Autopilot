@@ -208,8 +208,9 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 check_px4fmu-v4_default: uavcan_firmware
+
 check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo
+	@echo VECTORCONTROL=$VECTORCONTROL
 ifeq ($(VECTORCONTROL),1)
 	@echo "Cleaning up vectorcontrol firmware"
 	@rm -rf vectorcontrol
@@ -261,9 +262,9 @@ compiler_version:
 	-arm-none-eabi-gcc --version
 
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last
+check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last sizes
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default check_tests check_format sizes
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
