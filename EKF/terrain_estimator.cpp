@@ -135,10 +135,12 @@ bool Ekf::get_terrain_vert_pos(float *ret)
 {
 	memcpy(ret, &_terrain_vpos, sizeof(float));
 
-	// The height is useful if the uncertainty in terrain height is significantly smaller than than the estimated height above terrain
-	bool accuracy_useful = (sqrtf(_terrain_var) < 0.2f * fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance));
+	if (_terrain_initialised && (_time_last_imu - _time_last_hagl_fuse < 1e6)) {
+		return true;
 
-	return (_time_last_imu - _time_last_hagl_fuse < 1e6) || accuracy_useful;
+	} else {
+		return false;
+	}
 }
 
 void Ekf::get_hagl_innov(float *hagl_innov)
