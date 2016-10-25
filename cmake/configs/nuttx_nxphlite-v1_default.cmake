@@ -18,83 +18,83 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/nxphlite-v1
     drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/ll40ls
+##SPACE	drivers/mpu6000
+##SPACE	drivers/mpu9250
+##SPACE	drivers/hmc5883
+##SPACE	drivers/ms5611
+##SPACE	drivers/mb12xx
+##SPACE	drivers/srf02
+##SPACE	drivers/sf0x
+##SPACE	drivers/sf1xx
+##SPACE	drivers/ll40ls
 	drivers/trone
 	drivers/gps
-	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
-	drivers/blinkm
+##SPACE	drivers/pwm_out_sim
+##SPACE	drivers/hott
+##SPACE	drivers/hott/hott_telemetry
+##SPACE	drivers/hott/hott_sensors
+##SPACE	drivers/blinkm
 	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/meas_airspeed
+##SPACE	drivers/ets_airspeed
+##SPACE	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	drivers/mkblctrl
-	drivers/px4flow
-	drivers/oreoled
-	drivers/vmount
+##SPACE	drivers/mkblctrl
+##SPACE	drivers/px4flow
+##SPACE	drivers/oreoled
+##SPACE	drivers/vmount
 # NOT Portable YET drivers/pwm_input
 	drivers/camera_trigger
-	drivers/bst
-##TO FIT drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
-	drivers/bmp280
+##SPACE	drivers/bst
+##SPACE	drivers/snapdragon_rc_pwm
+##SPACE	drivers/lis3mdl
+##SPACE	drivers/bmp280
 #No External SPI drivers/bma180
 #No External SPI 	drivers/bmi160
-	drivers/tap_esc
+##SPACE	drivers/tap_esc
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+##SPACE	systemcmds/bl_update
 	systemcmds/mixer
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
+##SPACE	systemcmds/esc_calib
 ## Needs bbsrm 	systemcmds/hardfault_log
 	systemcmds/reboot
-	systemcmds/topic_listener
+##SPACE	systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
-	systemcmds/mtd
-	systemcmds/dumpfile
+##SPACE	systemcmds/mtd
+##SPACE	systemcmds/dumpfile
 	systemcmds/ver
-	systemcmds/sd_bench
-	systemcmds/motor_ramp
+##SPACE	systemcmds/sd_bench
+##SPACE	systemcmds/motor_ramp
 
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+##SPACE	drivers/sf0x/sf0x_tests
 ### NOT Portable YET drivers/test_ppm
-	modules/commander/commander_tests
-	modules/controllib_test
-	modules/mavlink/mavlink_tests
-	modules/unit_test
-	modules/uORB/uORB_tests
-	systemcmds/tests
+##SPACE	modules/commander/commander_tests
+##SPACE	modules/controllib_test
+##SPACE	modules/mavlink/mavlink_tests
+##SPACE	modules/unit_test
+##SPACE	modules/uORB/uORB_tests
+##SPACE	systemcmds/tests
 
 	#
 	# General system control
 	#
-	modules/commander
+##SPACE	modules/commander
 	modules/load_mon
-	modules/navigator
+##SPACE	modules/navigator
 	modules/mavlink
 	modules/gpio_led
-##	modules/uavcan
+##NO CAN YET	modules/uavcan
 	modules/land_detector
 
 	#
@@ -102,23 +102,23 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
-	modules/ekf2
-	modules/local_position_estimator
+##SPACE	modules/local_position_estimator
+##SPACE	modules/ekf2
 
 	#
 	# Vehicle Control
 	#
 	# modules/segway # XXX Needs GCC 4.7 fix
-	modules/fw_pos_control_l1
+##SPACE	modules/fw_pos_control_l1
 	modules/fw_att_control
-	modules/mc_att_control
+##SPACE modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control
+##SPACE modules/vtol_att_control
 
 	#
 	# Logging
 	#
-	modules/sdlog2
+#	modules/sdlog2
 	modules/logger
 
 	#
@@ -157,12 +157,12 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+##SPACE	modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+##SPACE	examples/rover_steering_control
 
 	#
 	# Demo apps
@@ -170,7 +170,7 @@ set(config_module_list
 	#examples/math_demo
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	examples/px4_simple_app
+##SPACE	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
@@ -188,7 +188,7 @@ set(config_module_list
 	#examples/hwtest
 
 	# EKF
-	examples/ekf_att_pos_estimator
+##SPACE	examples/ekf_att_pos_estimator
 )
 
 set(config_extra_builtin_cmds
@@ -197,8 +197,8 @@ set(config_extra_builtin_cmds
 	)
 
 set(config_extra_libs
-#	uavcan
-#	uavcan_stm32_driver
+##NO CAN YET	uavcan
+##NO CAN YET	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs
