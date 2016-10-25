@@ -353,30 +353,24 @@ void Ekf::controlGpsFusion()
 
 		}
 
-		// handle the case when we are relying on GPS fusion and lose it
+		// handle the case when we now have GPS, but have not been using it for an extended period
 		if (_control_status.flags.gps && !_control_status.flags.opt_flow) {
-			// We are relying on GPS aiding to constrain attitude drift so after 10 seconds without aiding we need to do something
-			if ((_time_last_imu - _time_last_pos_fuse > 10e6) && (_time_last_imu - _time_last_vel_fuse > 10e6)) {
-				if (_time_last_imu - _time_last_gps > 5e5) {
-					// if we don't have gps then we need to switch to the non-aiding mode, zero the velocity states
-					// and set the synthetic GPS position to the current estimate
-					_control_status.flags.gps = false;
-					_last_known_posNE(0) = _state.pos(0);
-					_last_known_posNE(1) = _state.pos(1);
-					_state.vel.setZero();
-					ECL_WARN("EKF GPS fusion timout - stopping GPS aiding");
+			// We are relying on GPS aiding to constrain attitude drift so after 7 seconds without aiding we need to do something
+			bool do_reset = (_time_last_imu - _time_last_pos_fuse > _params.no_gps_timeout_max) && (_time_last_imu - _time_last_vel_fuse > _params.no_gps_timeout_max);
 
-				} else {
-					// Reset states to the last GPS measurement
-					resetPosition();
-					resetVelocity();
-					ECL_WARN("EKF GPS fusion timout - resetting to GPS");
+			// Our position measurments have been rejected for more than 14 seconds
+			do_reset |= _time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max;
 
-					// Reset the timeout counters
-					_time_last_pos_fuse = _time_last_imu;
-					_time_last_vel_fuse = _time_last_imu;
+			if (do_reset) {
+				// Reset states to the last GPS measurement
+				resetPosition();
+				resetVelocity();
+				ECL_WARN("EKF GPS fusion timout - resetting to GPS");
 
-				}
+				// Reset the timeout counters
+				_time_last_pos_fuse = _time_last_imu;
+				_time_last_vel_fuse = _time_last_imu;
+
 			}
 		}
 
@@ -408,6 +402,19 @@ void Ekf::controlGpsFusion()
 			_control_status.flags.rng_hgt = false;
 			_control_status.flags.ev_hgt = false;
 			_fuse_height = true;
+
+		}
+	} else {
+		// handle the case where we do not have GPS and have not been using it for an extended period
+		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6)) {
+			// if we don't have a source of aiding to constrain attitude drift,
+			// then we need to switch to the non-aiding mode, zero the velocity states
+			// and set the synthetic GPS position to the current estimate
+			_control_status.flags.gps = false;
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+			ECL_WARN("EKF GPS fusion timout - stopping GPS aiding");
 
 		}
 	}
