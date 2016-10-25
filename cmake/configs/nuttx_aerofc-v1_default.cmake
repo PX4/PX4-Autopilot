@@ -17,6 +17,7 @@ set(config_module_list
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
+	drivers/ist8310
 	modules/sensors
 	# dummy tone alarm
 	modules/dummy
