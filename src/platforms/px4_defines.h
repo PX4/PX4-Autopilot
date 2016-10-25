@@ -95,13 +95,6 @@ typedef param_t px4_param_t;
 
 #define PX4_ROOTFSDIR
 
-/* XXX this is a hack to resolve conflicts with NuttX headers */
-#if !defined(__PX4_TESTS)
-#define isspace(c) \
-	((c) == ' '  || (c) == '\t' || (c) == '\n' || \
-	 (c) == '\r' || (c) == '\f' || c== '\v')
-#endif
-
 #define _PX4_IOC(x,y) _IOC(x,y)
 
 #define px4_statfs_buf_f_bavail_t int
