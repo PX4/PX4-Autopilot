@@ -80,4 +80,8 @@ distclean: clean
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 
+ifneq ($(BOARD_CONTEXT),y)
+context:
+endif
+
 -include Make.dep
