@@ -226,7 +226,6 @@ checks_defaults: \
 	check_px4fmu-v2_default \
 	check_px4fmu-v4_default \
 	check_mindpx-v2_default \
-	check_mavstation_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
 	check_s2740vc-v1_default \
