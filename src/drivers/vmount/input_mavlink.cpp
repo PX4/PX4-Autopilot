@@ -85,6 +85,15 @@ int InputMavlinkROI::initialize()
 		return -errno;
 	}
 
+	if (_manual_control) {
+		int ret = _manual_control->initialize();
+
+		if (ret) {
+			PX4_ERR("failed to initialize rc input");
+			return ret;
+		}
+	}
+
 	return 0;
 }
 
@@ -200,6 +209,15 @@ int InputMavlinkCmdMount::initialize()
 {
 	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
 		return -errno;
+	}
+
+	if (_manual_control) {
+		int ret = _manual_control->initialize();
+
+		if (ret) {
+			PX4_ERR("failed to initialize rc input");
+			return ret;
+		}
 	}
 
 	return 0;
