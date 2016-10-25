@@ -20,7 +20,7 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
-	drivers/mpu9250
+#TO FIT	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
@@ -35,10 +35,10 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-## TO FIT	drivers/blinkm
-## TO FIT	drivers/airspeed
-## TO FIT	drivers/ets_airspeed
-## TO FIT	drivers/meas_airspeed
+	drivers/blinkm
+	drivers/airspeed
+	drivers/ets_airspeed
+	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
@@ -54,13 +54,13 @@ set(config_module_list
 	#
 	# System commands
 	#
-## TO FIT	systemcmds/bl_update
-## TO FIT	systemcmds/config
-## TO FIT	systemcmds/dumpfile
+	systemcmds/bl_update
+	systemcmds/config
+	systemcmds/dumpfile
 	#systemcmds/esc_calib
-	systemcmds/hardfault_log
+#TO FIT	systemcmds/hardfault_log
 	systemcmds/mixer
-## TO FIT	systemcmds/motor_ramp
+	systemcmds/motor_ramp
 	systemcmds/mtd
 	systemcmds/nshterm
 	systemcmds/param
@@ -205,9 +205,11 @@ set(config_io_extra_libs
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon" STACK_MAIN "2048")
+	MAIN "sercon" STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis" STACK_MAIN "2048")
+	MAIN "serdis" STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")
