@@ -35,8 +35,8 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
+## TO FIT	drivers/blinkm
+## TO FIT	drivers/airspeed
 ## TO FIT	drivers/ets_airspeed
 ## TO FIT	drivers/meas_airspeed
 	drivers/frsky_telemetry
@@ -55,8 +55,8 @@ set(config_module_list
 	# System commands
 	#
 ## TO FIT	systemcmds/bl_update
-	systemcmds/config
-	systemcmds/dumpfile
+## TO FIT	systemcmds/config
+## TO FIT	systemcmds/dumpfile
 	#systemcmds/esc_calib
 	systemcmds/hardfault_log
 	systemcmds/mixer
