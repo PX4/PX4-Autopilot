@@ -2747,7 +2747,10 @@ Sensors::check_sysid_manoeuvre(manual_control_setpoint_s *manual)
 	    && (manual->sysid_switch != _prev_sysid_sw_pos)) {
 		is_doing_manoeuvre = !is_doing_manoeuvre;
 		starting_time = hrt_absolute_time();
-		//warnx("pressed");
+	}
+
+	if (!vcontrol_mode.flag_control_manual_enabled) {
+		is_doing_manoeuvre = false;
 	}
 
 	if (is_doing_manoeuvre) {
