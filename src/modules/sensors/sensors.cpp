@@ -2747,6 +2747,7 @@ Sensors::check_sysid_manoeuvre(manual_control_setpoint_s *manual)
 	    && (manual->sysid_switch != _prev_sysid_sw_pos)) {
 		is_doing_manoeuvre = !is_doing_manoeuvre;
 		starting_time = hrt_absolute_time();
+		mavlink_and_console_log_info(&_mavlink_log_pub, "sid manoeuvre: %i\n", static_cast<double>_parameters.sid_manoeuvre);
 	}
 
 	if (!vcontrol_mode.flag_control_manual_enabled) {
