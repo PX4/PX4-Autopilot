@@ -273,7 +273,8 @@ mixer_tick(void)
 	}
 
 	/* set arming */
-	bool needs_to_arm = (should_arm || should_arm_nothrottle || should_always_enable_pwm);
+    const uint16_t output_mask = r_page_setup[PX4IO_P_SETUP_IGNORE_SAFETY];
+	bool needs_to_arm = (should_arm || should_arm_nothrottle || should_always_enable_pwm || output_mask);
 
 	/* lockdown means to send a valid pulse which disables the outputs */
 	if (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) {
@@ -312,17 +313,17 @@ mixer_tick(void)
 		}
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
-					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
-                const uint16_t output_mask = r_page_setup[PX4IO_P_SETUP_IGNORE_SAFETY];
+                                      || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) ||
+                                      output_mask)) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			if ((1 << i) & output_mask) {
 				up_pwm_servo_set(i, r_page_servos[i]);
 			} else {
 				up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+                /* copy values into reporting register */
+                r_page_servos[i] = r_page_servo_disarmed[i];
 			}
-			/* copy values into reporting register */
-			r_page_servos[i] = r_page_servo_disarmed[i];
 		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
@@ -333,7 +334,7 @@ mixer_tick(void)
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
 			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_ACTUATOR_COUNT);
 		}
-	}
+    }
 }
 
 static int
