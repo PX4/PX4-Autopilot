@@ -130,7 +130,7 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 
 	if (system_load.initialized) {
 		for (i = 1; i < CONFIG_MAX_TASKS; i++) {
-			if (system_load.tasks[i].tcb->pid == tcb->pid) {
+			if (system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
 				/* mark slot as fee */
 				system_load.tasks[i].valid = false;
 				system_load.tasks[i].total_runtime = 0;
@@ -150,7 +150,7 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 	if (system_load.initialized) {
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			/* Task ending its current scheduling run */
-			if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == tcb->pid) {
+			if (system_load.tasks[i].valid && system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
 				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
 				break;
 			}
