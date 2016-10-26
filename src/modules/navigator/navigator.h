@@ -215,6 +215,8 @@ public:
 
 	bool		abort_landing();
 
+	static float		get_time_inside(struct mission_item_s& item) { return (item.nav_cmd == NAV_CMD_TAKEOFF) ? 0.0f : item.time_inside; }
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */

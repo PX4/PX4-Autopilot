@@ -1279,8 +1279,8 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 	// This block scans for a supported serial RC input and locks onto the first one found
-	// Scan for 100 msec, then switch protocol
-	constexpr hrt_abstime rc_scan_max = 100 * 1000;
+	// Scan for 300 msec, then switch protocol
+	constexpr hrt_abstime rc_scan_max = 300 * 1000;
 
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
@@ -2668,11 +2668,6 @@ fmu_new_mode(PortMode new_mode)
 
 	case PORT_FULL_PWM:
 
-	case PORT_PWM1:
-		/* select 2-pin PWM mode */
-		servo_mode = PX4FMU::MODE_1PWM;
-		break;
-
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
@@ -2683,6 +2678,11 @@ fmu_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
+		break;
+
+	case PORT_PWM1:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
@@ -3130,9 +3130,9 @@ fmu_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm1")) {
 		new_mode = PORT_PWM1;
+#endif
 
-
-#elif defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 
 	} else if (!strcmp(verb, "mode_pwm4")) {

@@ -39,6 +39,7 @@
 #ifndef _DATAMANAGER_H
 #define _DATAMANAGER_H
 
+#include <string.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
@@ -56,6 +57,7 @@ typedef enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
 	DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
 	DM_KEY_MISSION_STATE,		/* Persistent mission state */
+	DM_KEY_COMPAT,
 	DM_KEY_NUM_KEYS			/* Total number of item types defined */
 } dm_item_t;
 
@@ -72,7 +74,8 @@ enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = (NUM_MISSIONS_SUPPORTED / 10),
-	DM_KEY_MISSION_STATE_MAX = 1
+	DM_KEY_MISSION_STATE_MAX = 1,
+	DM_KEY_COMPAT_MAX = 1
 };
 #else
 /** The maximum number of instances for each item type */
@@ -86,7 +89,8 @@ enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
-	DM_KEY_MISSION_STATE_MAX = 1
+	DM_KEY_MISSION_STATE_MAX = 1,
+	DM_KEY_COMPAT_MAX = 1
 };
 #endif
 /** Data persistence levels */
@@ -103,14 +107,24 @@ typedef enum {
 	DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
 } dm_reset_reason;
 
+struct dataman_compat_s {
+	uint64_t key;
+};
+
+/* increment this define whenever a binary incompatible change is performed */
+#define DM_COMPAT_VERSION	1ULL
+
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
+
 /** Maximum size in bytes of a single item instance is
  * defined by adding the structure type to the union below
  */
 
 typedef union dataman_max_size_t {
-	struct mission_item_s    mission_item;
-	struct mission_s	      mission;
-	struct fence_vertex_s    vertex;
+	struct mission_item_s		mission_item;
+	struct mission_s			mission;
+	struct fence_vertex_s		vertex;
+	struct dataman_compat_s		compat;
 } dataman_max_size_t;
 
 
