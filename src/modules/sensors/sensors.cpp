@@ -261,6 +261,7 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
+	struct vehicle_control_mode_s vcontrol_mode;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
@@ -1480,7 +1481,6 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 void
 Sensors::vehicle_control_mode_poll()
 {
-	struct vehicle_control_mode_s vcontrol_mode;
 	bool vcontrol_mode_updated;
 
 	/* Check HIL state if vehicle control mode has changed */
@@ -2747,7 +2747,7 @@ Sensors::check_sysid_manoeuvre(manual_control_setpoint_s *manual)
 	    && (manual->sysid_switch != _prev_sysid_sw_pos)) {
 		is_doing_manoeuvre = !is_doing_manoeuvre;
 		starting_time = hrt_absolute_time();
-		mavlink_and_console_log_info(&_mavlink_log_pub, "sid manoeuvre: %i\n", static_cast<double>_parameters.sid_manoeuvre);
+		mavlink_and_console_log_info(&_mavlink_log_pub, "sid manoeuvre started");
 	}
 
 	if (!vcontrol_mode.flag_control_manual_enabled) {
