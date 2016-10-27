@@ -12,7 +12,6 @@ set(config_module_list
 	#
 	drivers/device
 	drivers/stm32
-	drivers/stm32/adc
 	drivers/led
 	drivers/px4fmu
 	drivers/boards/aerofc-v1
@@ -22,6 +21,7 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/gps
 	drivers/ist8310
+	drivers/aerofc_adc
 	modules/sensors
 	# dummy tone alarm
 	modules/dummy
