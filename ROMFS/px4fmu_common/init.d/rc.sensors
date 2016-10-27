@@ -52,8 +52,13 @@ else
 	fi
 fi
 
-if adc start
+if ver hwcmp AEROFC_V1
 then
+	# Aero FC uses separate driver
+else
+	if adc start
+	then
+	fi
 fi
 
 if ver hwcmp AUAV_X21
@@ -342,6 +347,10 @@ then
 
 	# Possible external compasses
 	if hmc5883 -X start
+	then
+	fi
+
+	if aerofc_adc start
 	then
 	fi
 fi
