@@ -763,6 +763,7 @@ PX4FMU::update_pwm_trims()
 {
 	if (_mixers == nullptr) {
 		PX4_WARN("no mixers defined");
+
 	} else {
 
 		uint16_t values[_max_actuators] = {};
