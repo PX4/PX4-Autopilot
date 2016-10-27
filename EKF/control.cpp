@@ -750,24 +750,30 @@ void Ekf::controlRangeFinderFusion()
 
 void Ekf::controlAirDataFusion()
 {
-	// control activation and initialisation/reset of wind states
+        // control activation and initialisation/reset of wind states required for airspeed fusion
 
-	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
-
-	// wind states are required to do airspeed fusion
-	if ((airspeed_timed_out && !_control_status.flags.fuse_beta) || _time_last_arsp_fuse == 0) {
-		// if the airspeed measurements have timed out for 10 seconds we declare the wind estimate to be invalid
+        // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+        bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
+        bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
+        if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out) {
+                // if the airspeed or sideslip measurements have timed out for 10 seconds we declare the wind estimate to be invalid
 		_control_status.flags.wind = false;
 
 	}
 
-	if (_tas_data_ready) {
-		// if we have airspeed data to fuse and winds states are inactive, then
-		// they need to be activated and the corresponding states and covariances reset
+	// Always try to fuse airspeed data if available and we are in flight
+	if (_tas_data_ready && _control_status.flags.in_air) {
+		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
+			// activate the wind states
 			_control_status.flags.wind = true;
+			// reset the timout timer to prevent repeated resets
+			_time_last_arsp_fuse = _time_last_imu;
+			_time_last_beta_fuse = _time_last_imu;
+			// reset the wind speed states and corresponding covariances
 			resetWindStates();
 			resetWindCovariance();
+
 		}
 
 		fuseAirspeed();
@@ -777,15 +783,34 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
+        // control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
+
+        // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+        bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
+        bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
+        if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out){
+                _control_status.flags.wind = false;
+
+        }
+
+	// Attempt synthetic sideslip fusion at the prescribed rate if we are in-flight and fusion has been enabled
 	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_us;
 	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air){
- 		fuseSideslip();
+		// If starting wind state estimation, reset the wind states and covariances before fusing any data
+		if (!_control_status.flags.wind) {
+			// activate the wind states
+			_control_status.flags.wind = true;
+			// reset the timout timers to prevent repeated resets
+			_time_last_beta_fuse = _time_last_imu;
+			_time_last_arsp_fuse = _time_last_imu;
+			// reset the wind speed states and corresponding covariances
+			resetWindStates();
+			resetWindCovariance();
+		}
+
+                fuseSideslip();
  	}
 
- 	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
- 	if(sideslip_timed_out && _control_status.flags.fuse_beta && _time_last_beta_fuse > 0.0f){
- 		_control_status.flags.wind = false;
- 	}
  	
 
 }

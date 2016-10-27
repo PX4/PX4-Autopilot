@@ -757,28 +757,39 @@ void Ekf::resetWindCovariance()
 	zeroRows(P,22,23);
 	zeroCols(P,22,23);
 
-	// calculate the wind speed and bearing
-	float spd = sqrtf(sq(_state.wind_vel(0))+sq(_state.wind_vel(1)));
-	float yaw = atan2f(_state.wind_vel(1),_state.wind_vel(0));
+	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < 5e5)) {
+		// Use airspeed and zer sideslip assumption to set initial covariance values for wind states
 
-	// calculate the uncertainty in wind speed and direction using the uncertainty in airspeed and sideslip angle
-	// used to calculate the initial wind speed
-	float R_spd = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
-	float R_yaw = sq(0.1745f);
+		// calculate the wind speed and bearing
+		float spd = sqrtf(sq(_state.wind_vel(0))+sq(_state.wind_vel(1)));
+		float yaw = atan2f(_state.wind_vel(1),_state.wind_vel(0));
 
-	// calculate the variance and covariance terms for the wind states
-	float cos_yaw = cosf(yaw);
-	float sin_yaw = sinf(yaw);
-	float cos_yaw_2 = sq(cos_yaw);
-	float sin_yaw_2 = sq(sin_yaw);
-	float sin_cos_yaw = sin_yaw*cos_yaw;
-	float spd_2 = sq(spd);
-	P[22][22] = R_yaw*spd_2*sin_yaw_2 + R_spd*cos_yaw_2;
-	P[22][23] = - R_yaw*sin_cos_yaw*spd_2 + R_spd*sin_cos_yaw;
-	P[23][22] = P[22][23];
-	P[23][23] = R_yaw*spd_2*cos_yaw_2 + R_spd*sin_yaw_2;
+		// calculate the uncertainty in wind speed and direction using the uncertainty in airspeed and sideslip angle
+		// used to calculate the initial wind speed
+		float R_spd = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
+		float R_yaw = sq(0.1745f);
 
-	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-	P[22][22] += P[4][4];
-	P[23][23] += P[5][5];
+		// calculate the variance and covariance terms for the wind states
+		float cos_yaw = cosf(yaw);
+		float sin_yaw = sinf(yaw);
+		float cos_yaw_2 = sq(cos_yaw);
+		float sin_yaw_2 = sq(sin_yaw);
+		float sin_cos_yaw = sin_yaw*cos_yaw;
+		float spd_2 = sq(spd);
+		P[22][22] = R_yaw*spd_2*sin_yaw_2 + R_spd*cos_yaw_2;
+		P[22][23] = - R_yaw*sin_cos_yaw*spd_2 + R_spd*sin_cos_yaw;
+		P[23][22] = P[22][23];
+		P[23][23] = R_yaw*spd_2*cos_yaw_2 + R_spd*sin_yaw_2;
+
+		// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
+		P[22][22] += P[4][4];
+		P[23][23] += P[5][5];
+
+	} else {
+		// without airspeed, start with a small initial uncertainty to improve the initial estimate
+		P[22][22] = sq(5.0f);
+		P[23][23] = sq(5.0f);
+
+	}
+
 }
