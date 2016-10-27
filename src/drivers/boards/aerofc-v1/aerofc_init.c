@@ -182,14 +182,26 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_BLUE);
 
 #if defined(FLASH_BASED_PARAMS)
+	/*
+	 * Bootloader:
+	 * start: 0x08000000, len: 16K, end: 0x08003E80
+	 *
+	 * FlashFS:
+	 * start: 0x08004000, len: 8K, end: 0x0800C000
+	 *
+	 * Firmware:
+	 * start: 0x0800C000, len: 976K, end: 0x080FA480
+	 *
+	 * First 1MB memory bank complete.
+	 * Second 1MB memory bank is reserved for future use.
+	 */
 	static sector_descriptor_t  sector_map[] = {
 		{1, 16 * 1024, 0x08004000},
 		{2, 16 * 1024, 0x08008000},
 		{0, 0, 0},
 	};
 
-	/* Initalizee the flashfs layer to use heap allocated memory */
-
+	/* Initialize the flashfs layer to use heap allocated memory */
 	result = parameter_flashfs_init(sector_map, NULL, 0);
 
 	if (result != OK) {
