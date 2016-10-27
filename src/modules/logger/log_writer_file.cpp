@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include <mathlib/mathlib.h>
+#include <px4_posix.h>
 
 namespace px4
 {

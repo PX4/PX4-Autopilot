@@ -163,7 +163,8 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX,
-	DM_KEY_MISSION_STATE_MAX
+	DM_KEY_MISSION_STATE_MAX,
+	DM_KEY_COMPAT_MAX
 };
 
 /* Table of offset for index 0 of each item type */
@@ -940,25 +941,23 @@ task_main(int argc, char *argv[])
 		g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
 
 		if (g_task_fd >= 0) {
+			// Read the mission state and check the hash
+			struct dataman_compat_s compat_state;
+			int ret = g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
 
-#ifndef __PX4_POSIX
-			// XXX on Mac OS and Linux the file is not a multiple of the sector sizes
-			// this might need further inspection.
+			bool incompat = true;
 
-			/* File exists, check its size */
-			int file_size = lseek(g_task_fd, 0, SEEK_END);
-
-			if ((file_size % k_sector_size) != 0) {
-				PX4_WARN("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
-				PX4_WARN("Size: %u, sector size: %d", file_size, k_sector_size);
-				close(g_task_fd);
-				unlink(k_data_manager_device_path);
+			if (ret == sizeof(compat_state)) {
+				if (compat_state.key == DM_COMPAT_KEY) {
+					incompat = false;
+				}
 			}
 
-#else
 			close(g_task_fd);
-#endif
 
+			if (incompat) {
+				unlink(k_data_manager_device_path);
+			}
 		}
 
 		/* Open or create the data manager file */
@@ -975,6 +974,15 @@ task_main(int argc, char *argv[])
 			PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
 			px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 			return -1;
+		}
+
+		/* Write current compat info */
+		struct dataman_compat_s compat_state;
+		compat_state.key = DM_COMPAT_KEY;
+		int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, DM_PERSIST_POWER_ON_RESET, &compat_state, sizeof(compat_state));
+
+		if (ret != sizeof(compat_state)) {
+			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
 		fsync(g_task_fd);

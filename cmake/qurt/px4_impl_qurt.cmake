@@ -67,7 +67,7 @@ list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/qurt)
 #		MODULE_LIST	: list of modules
 #
 #	Output:
-#		OUT	: generated builtin_commands.c src
+#		OUT	: stem of generated apps.cpp/apps.h ("apps").
 #
 #	Example:
 #		px4_qurt_generate_builtin_commands(
@@ -91,11 +91,14 @@ function(px4_qurt_generate_builtin_commands)
 			set(builtin_apps_string
 				"${builtin_apps_string}\tapps[\"${MAIN}\"] = ${MAIN}_main;\n")
 			set(builtin_apps_decl_string
-				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
+				"${builtin_apps_decl_string}int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in
+		${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in
+		${OUT}.h)
 endfunction()
 
 #=============================================================================

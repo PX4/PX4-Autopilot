@@ -1779,6 +1779,11 @@ hmc5883_main(int argc, char *argv[])
 	bool calibrate = false;
 	bool temp_compensation = false;
 
+	if (argc < 2) {
+		hmc5883::usage();
+		exit(0);
+	}
+
 	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
 		switch (ch) {
 		case 'R':
