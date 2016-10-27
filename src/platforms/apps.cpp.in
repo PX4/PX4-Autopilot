@@ -10,6 +10,18 @@
 
 #include <cstdlib>
 
+extern "C" {
+
+${builtin_apps_decl_string}
+int shutdown_main(int argc, char *argv[]);
+int list_tasks_main(int argc, char *argv[]);
+int list_files_main(int argc, char *argv[]);
+int list_devices_main(int argc, char *argv[]);
+int list_topics_main(int argc, char *argv[]);
+int sleep_main(int argc, char *argv[]);
+
+}
+
 extern void px4_show_devices(void);
 
 void init_app_map(apps_map_type &apps)
