@@ -367,6 +367,20 @@ then
 		set OUTPUT_MODE uavcan_esc
 	fi
 
+	# Sensors on the PWM interface bank
+	# clear pins 5 and 6
+	if param compare SENS_EN_LL40LS 1
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	fi
+	if param greater TRIG_MODE 0
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+		camera_trigger start
+	fi
+
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
@@ -567,20 +581,8 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -r 20000
 		fi
-		# Sensors on the PWM interface bank
-		# clear pins 5 and 6
-		if param compare SENS_EN_LL40LS 1
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-		fi
-		if param greater TRIG_MODE 0
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-			camera_trigger start
-		fi
 	fi
+
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
