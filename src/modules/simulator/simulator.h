@@ -56,8 +56,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 namespace simulator
 {
 
@@ -337,7 +337,7 @@ private:
 	void pollForMAVLinkMessages(bool publish, int udp_port);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
-	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
+	void send_mavlink_message(mavlink_message_t *msgbuf);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 	static void *sending_trampoline(void *);
