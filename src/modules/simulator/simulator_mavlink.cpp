@@ -177,8 +177,8 @@ void Simulator::send_controls()
 		mavlink_hil_actuator_controls_t msg = {};
 
 		pack_actuator_message(msg, i);
-        mavlink_msg_hil_actuator_controls_encode(0, 200, &mav_msg, &msg);
-        send_mavlink_message(&mav_msg);
+		mavlink_msg_hil_actuator_controls_encode(0, 200, &mav_msg, &msg);
+		send_mavlink_message(&mav_msg);
 	}
 }
 
@@ -405,15 +405,15 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 void Simulator::send_mavlink_message(mavlink_message_t *msgbuf)
 {
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-    unsigned packet_len = mavlink_msg_to_send_buffer(buf, msgbuf);
+	unsigned packet_len = mavlink_msg_to_send_buffer(buf, msgbuf);
 
-    ssize_t len = sendto(_fd, buf, packet_len, 0, (struct sockaddr *)&_srcaddr, _addrlen);
+	ssize_t len = sendto(_fd, buf, packet_len, 0, (struct sockaddr *)&_srcaddr, _addrlen);
 
-    if (len <= 0) {
-        PX4_WARN("Failed sending mavlink message");
-    }
+	if (len <= 0) {
+		PX4_WARN("Failed sending mavlink message");
+	}
 }
 
 void Simulator::poll_topics()
@@ -660,12 +660,12 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
 	mavlink_command_long_t cmd_long = {};
-    mavlink_message_t mav_msg;
+	mavlink_message_t mav_msg;
 	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
-    mavlink_msg_command_long_encode(0, 200, &mav_msg, &cmd_long);
-    send_mavlink_message(&mav_msg);
+	mavlink_msg_command_long_encode(0, 200, &mav_msg, &cmd_long);
+	send_mavlink_message(&mav_msg);
 
 	// wait for new mavlink messages to arrive
 	while (true) {
