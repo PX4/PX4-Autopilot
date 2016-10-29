@@ -239,18 +239,18 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 							// Check avionics rail voltages
 							if (avionics_power_rail_voltage < 4.5f) {
 								mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+										     (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 
 							} else if (avionics_power_rail_voltage < 4.9f) {
 								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+										     (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 
 							} else if (avionics_power_rail_voltage > 5.4f) {
 								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+										     (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
 						}
@@ -304,7 +304,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 				if (status_flags->condition_system_hotplug_timeout) {
 					if (!status_flags->condition_system_prearm_error_reported) {
 						mavlink_log_critical(mavlink_log_pub,
-										 "Not ready to fly: Sensors not set up correctly");
+								     "Not ready to fly: Sensors not set up correctly");
 						status_flags->condition_system_prearm_error_reported = true;
 					}
 				}
@@ -341,7 +341,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
 			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state],
-							 state_names[new_arming_state]);
+					     state_names[new_arming_state]);
 		}
 	}
 
@@ -637,11 +637,13 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
  * Enable failsafe and repot to user
  */
 void enable_failsafe(struct vehicle_status_s *status,
-		bool old_failsafe,
-		orb_advert_t *mavlink_log_pub, const char * reason) {
+		     bool old_failsafe,
+		     orb_advert_t *mavlink_log_pub, const char *reason)
+{
 	if (old_failsafe == false) {
 		mavlink_and_console_log_info(mavlink_log_pub, reason);
 	}
+
 	status->failsafe = true;
 }
 
@@ -884,6 +886,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 

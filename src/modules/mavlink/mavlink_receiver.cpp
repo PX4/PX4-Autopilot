@@ -391,6 +391,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 				// not even running. The main mavlink thread takes care of this by waiting for an ack
 				// from the logger.
 				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+
 			} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
 				_mavlink->request_stop_ulog_streaming();
 			}
@@ -749,6 +750,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
 		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
+		offboard_control_mode.ignore_alt_hold = (bool)(set_position_target_local_ned.type_mask & 0x4);
 		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
 		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
 		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
@@ -844,6 +846,14 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					} else {
 						pos_sp_triplet.current.velocity_valid = false;
+					}
+
+					if (!offboard_control_mode.ignore_alt_hold) {
+						pos_sp_triplet.current.alt_valid = true;
+						pos_sp_triplet.current.z = set_position_target_local_ned.z;
+
+					} else {
+						pos_sp_triplet.current.alt_valid = false;
 					}
 
 					/* set the local acceleration values if the setpoint type is 'local pos' and none
@@ -1242,6 +1252,7 @@ MavlinkReceiver::handle_message_logging_ack(mavlink_message_t *msg)
 	mavlink_msg_logging_ack_decode(msg, &logging_ack);
 
 	MavlinkULog *ulog_streaming = _mavlink->get_ulog_streaming();
+
 	if (ulog_streaming) {
 		ulog_streaming->handle_ack(logging_ack);
 	}
