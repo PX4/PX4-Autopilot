@@ -619,6 +619,16 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
+
+						// switch mavlink protocol version depending on what's on the other end
+
+						if (mavlink_get_channel_status(MAVLINK_COMM_0)->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1) {
+							mavlink_get_channel_status(MAVLINK_COMM_0)->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+
+						} else  {
+							mavlink_get_channel_status(MAVLINK_COMM_0)->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
+						}
+
 						// have a message, handle it
 						handle_message(&msg, publish);
 
