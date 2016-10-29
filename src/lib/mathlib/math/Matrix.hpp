@@ -44,7 +44,7 @@
 #define MATRIX_HPP
 
 #include <stdio.h>
-#include <math.h>
+#include <cmath>
 
 #include "matrix/math.hpp"
 #include <platforms/px4_defines.h>

@@ -44,6 +44,8 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
+#include <cmath>	// NAN
+
 /* commander module headers */
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"

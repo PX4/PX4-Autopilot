@@ -38,6 +38,7 @@
 #include <px4_posix.h>
 #include <errno.h>
 #include <termios.h>
+#include <cmath>	// NAN
 
 #include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
