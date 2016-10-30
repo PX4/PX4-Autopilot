@@ -724,19 +724,16 @@ MulticopterPositionControl::poll_subscriptions()
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_z_reset_counter != _local_pos.z_reset_counter) {
 				_pos_sp(2) += _local_pos.delta_z;
-				_z_reset_counter = _local_pos.z_reset_counter;
 			}
 
 			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
 				_pos_sp(0) += _local_pos.delta_xy[0];
 				_pos_sp(1) += _local_pos.delta_xy[1];
-				_xy_reset_counter = _local_pos.xy_reset_counter;
 			}
 
 			if (_vz_reset_counter != _local_pos.vz_reset_counter) {
 				_vel_sp(2) += _local_pos.delta_vz;
 				_vel_sp_prev(2) +=  _local_pos.delta_vz;
-				_vz_reset_counter = _local_pos.vz_reset_counter;
 			}
 
 			if (_vxy_reset_counter != _local_pos.vxy_reset_counter) {
@@ -744,9 +741,14 @@ MulticopterPositionControl::poll_subscriptions()
 				_vel_sp(1) += _local_pos.delta_vxy[1];
 				_vel_sp_prev(0) += _local_pos.delta_vxy[0];
 				_vel_sp_prev(1) += _local_pos.delta_vxy[1];
-				_vxy_reset_counter = _local_pos.vxy_reset_counter;
 			}
 		}
+
+		// update the reset counters in any case
+		_z_reset_counter = _local_pos.z_reset_counter;
+		_xy_reset_counter = _local_pos.xy_reset_counter;
+		_vz_reset_counter = _local_pos.vz_reset_counter;
+		_vxy_reset_counter = _local_pos.vxy_reset_counter;
 	}
 }
 
