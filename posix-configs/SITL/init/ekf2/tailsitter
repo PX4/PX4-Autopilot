@@ -52,7 +52,6 @@ pwm_out_sim mode_pwm
 sleep 1
 sensors start
 commander start
-land_detector start multicopter
 navigator start
 ekf2 start
 vtol_att_control start
@@ -73,5 +72,6 @@ mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 sdlog2 start -r 200 -e -t -a
+land_detector start multicopter
 mavlink boot_complete
 replay trystart
