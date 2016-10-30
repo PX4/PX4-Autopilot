@@ -31,7 +31,7 @@ void flip_sequence(
 	struct control_state_s &ctrl_state,
 	struct vehicle_attitude_setpoint_s &att_sp,
 	struct manual_control_setpoint_s &manual,
-	math::Matrix<3, 3> &R_sp,
+	matrix::Dcmf &R_sp,
 	float &rollRate, float &pitchRate, float &yawRate);
 
 #else
@@ -53,7 +53,7 @@ void prog_sequence(
 	struct control_state_s &ctrl_state,
 	struct vehicle_attitude_setpoint_s &att_sp,
 	struct manual_control_setpoint_s &manual,
-	math::Matrix<3, 3> &R_sp,
+	matrix::Dcmf &R_sp,
 	float &rollRate, float &pitchRate, float &yawRate);
 
 enum Seq_state {
