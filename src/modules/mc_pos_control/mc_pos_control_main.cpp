@@ -87,9 +87,9 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
+//#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
 #include "mc_sequencer.h"
-#endif
+//#endif
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -2127,25 +2127,22 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if no aiding velocity controller is active */
-			if (!_control_mode.flag_control_velocity_enabled) {
+			/* control throttle directly if no climb rate controller is active */
+			if (!_control_mode.flag_control_climb_rate_enabled) {
+				float thr_val = throttle_curve(_manual.z, _params.thr_hover);
+				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
 
-				/* control throttle directly if no climb rate controller is active */
-				if (!_control_mode.flag_control_climb_rate_enabled) {
-					float thr_val = throttle_curve(_manual.z, _params.thr_hover);
-					_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
-
-					/* enforce minimum throttle if not landed */
-					if (!_vehicle_land_detected.landed) {
-						_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
-					}
+				/* enforce minimum throttle if not landed */
+				if (!_vehicle_land_detected.landed) {
+					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
 			}
 
-#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
-				// attitude setpoint rotation matrix
-				math::Matrix<3, 3> R_sp;
+			if (!_control_mode.flag_control_velocity_enabled) {
+				_att_sp.roll_body = _manual.y * _params.man_roll_max;
+				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
+//#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
 				/* If ACRO attitude control mode */
 				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) {
 
@@ -2153,17 +2150,9 @@ MulticopterPositionControl::task_main()
 					float pitchRate = -_manual.x * _params.acro_pitchRate_max;
 					float yawRate = _manual.r * _params.acro_yawRate_max;
 
-					if (!_att_sp.R_valid) {
-						/* initialize to current orientation */
-						math::Quaternion q_sp(_ctrl_state.q);
-						R_sp = q_sp.to_dcm();
-						memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-						_att_sp.R_valid = true;
+					// attitude setpoint rotation matrix
+					matrix::Dcm<float> R_sp(matrix::Quatf(_att_sp.q_d));
 
-					} else {
-						/* copy current setpoint */
-						R_sp.set(_att_sp.R_body);
-					}
 
 					/* the control sequencer overrides manual inputs
 					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
@@ -2172,6 +2161,7 @@ MulticopterPositionControl::task_main()
 					flip_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
 #else
 					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
+
 #endif
 
 					/* limit setpoint lead angle */
@@ -2201,30 +2191,17 @@ MulticopterPositionControl::task_main()
 						dYaw = yawRate * dt;
 					}
 
-					math::Matrix<3, 3> R_xy;
-					R_xy.from_euler(dRoll, dPitch, 0.0f);
-
-					math::Matrix<3, 3> R_z;
-					R_z.from_euler(0.0f, 0.0f, dYaw);
+					matrix::Dcmf R_xy(matrix::Eulerf(dRoll, dPitch, 0.0f));
+					matrix::Dcmf R_z(matrix::Eulerf(0.0f, 0.0f, dYaw));
 
 					R_sp = R_z * R_sp;
-
 					R_sp = R_sp * R_xy;
+					R_sp.renormalize();
 
-					/* renormalize rows */
-					for (int row = 0; row < 3; row++) {
-						math::Vector<3> rvec(R_sp.data[row]);
-						R_sp.set_row(row, rvec.normalized());
-					}
-
-					// this block is not necessary for attitude control
-					{
-						memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-						math::Vector<3> eulerAngles = R_sp.to_euler();
-						_att_sp.roll_body = eulerAngles.data[0];
-						_att_sp.pitch_body = eulerAngles.data[1];
-						_att_sp.yaw_body = eulerAngles.data[2];
-					}
+					matrix::Eulerf eulerAngles(R_sp);
+					_att_sp.roll_body = eulerAngles.phi();
+					_att_sp.pitch_body = eulerAngles.theta();
+					_att_sp.yaw_body = eulerAngles.psi();
 
 				} else if (_params.opt_recover <= 0) {
 					/* not in ACRO mode and optimal recovery is not in use */
@@ -2280,63 +2257,8 @@ MulticopterPositionControl::task_main()
 
 
 			_att_sp.timestamp = hrt_absolute_time();
-#else
-
-				// attitude setpoint rotation matrix
-				math::Matrix<3, 3> R_sp;
-
-				if (_params.opt_recover <= 0) {
-					/* not in ACRO mode and optimal recovery is not in use */
-					_att_sp.roll_body = _manual.y * _params.man_roll_max;
-					_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-
-					// construct attitude setpoint rotation matrix. modify the setpoints for roll
-					// and pitch such that they reflect the user's intention even if a yaw error
-					// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
-					// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
-					// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
-					// heading of the vehicle.
-
-					// calculate our current yaw error
-					float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
-
-					// compute the vector obtained by rotating a z unit vector by the rotation
-					// given by the roll and pitch commands of the user
-					math::Vector<3> zB = {0, 0, 1};
-					math::Matrix<3, 3> R_sp_roll_pitch;
-					R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
-					math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
-
-
-					// transform the vector into a new frame which is rotated around the z axis
-					// by the current yaw error. this vector defines the desired tilt when we look
-					// into the direction of the desired heading
-					math::Matrix<3, 3> R_yaw_correction;
-					R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
-					z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
-
-					// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-					// to calculate the new desired roll and pitch angles
-					// R_tilt can be written as a function of the new desired roll and pitch
-					// angles. we get three equations and have to solve for 2 unknowns
-					float pitch_new = asinf(z_roll_pitch_sp(0));
-					float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
-
-					R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
-					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-				}
-
-				/* copy quaternion setpoint to attitude setpoint topic */
-				math::Quaternion q_sp;
-				q_sp.from_dcm(R_sp);
-				memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
-			}
-
-			_att_sp.timestamp = hrt_absolute_time();
-#endif
 
 		} else {
-
 			reset_yaw_sp = true;
 			_att_sp.yaw_sp_move_rate = 0.0f;
 		}
