@@ -179,16 +179,6 @@ then
 		set USE_IO no
 	fi
 
-
-	# should set to 0.8 for mindpx-v2 borad.
-	if param compare INAV_LIDAR_ERR 0.5
-	then
-		if ver hwcmp MINDPX_V2
-		then
-			param set INAV_LIDAR_ERR 0.8
-		fi
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
@@ -365,6 +355,20 @@ then
 	if param greater UAVCAN_ENABLE 2
 	then
 		set OUTPUT_MODE uavcan_esc
+	fi
+
+	# Sensors on the PWM interface bank
+	# clear pins 5 and 6
+	if param compare SENS_EN_LL40LS 1
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	fi
+	if param greater TRIG_MODE 0
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+		camera_trigger start
 	fi
 
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
@@ -567,20 +571,8 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -r 20000
 		fi
-		# Sensors on the PWM interface bank
-		# clear pins 5 and 6
-		if param compare SENS_EN_LL40LS 1
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-		fi
-		if param greater TRIG_MODE 0
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-			camera_trigger start
-		fi
 	fi
+
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
@@ -641,6 +633,11 @@ then
 		frsky_telemetry start -d /dev/ttyS6
 	fi
 
+	if ver hwcmp MINDPX_V2
+	then
+		frsky_telemetry start -d /dev/ttyS6
+	fi
+
 	if ver hwcmp PX4FMU_V2
 	then
 		# Check for flow sensor - as it is a background task, launch it last
@@ -655,7 +652,6 @@ then
 
 	if ver hwcmp MINDPX_V2
 	then
-		#mindxp also need flow
 		px4flow start &
 	fi
 

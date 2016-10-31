@@ -633,6 +633,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	// For HIL platforms, require that simulated sensors are connected
 	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
 		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+
 		mavlink_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
@@ -651,7 +652,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 					     can_arm_without_gps);
 
 	if (arming_res == TRANSITION_CHANGED) {
-		mavlink_log_info(mavlink_log_pub_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "ARMED" : "DISARMED", armedBy);
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -848,16 +849,19 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					}
 
 					// Refuse to arm if in manual with non-zero throttle
-					if ((status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL || status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
-						status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) && sp_man.z > 0.1f) {
+					if (cmd_arms
+						&& (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
+						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
+						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO)
+						&& (sp_man.z > 0.1f)) {
+
 						mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Manual throttle non-zero.");
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 						break;
 					}
-
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd_arms,&mavlink_log_pub,  "arm/disarm component command");
+				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
 					mavlink_log_critical(&mavlink_log_pub, "REJECTING component arm cmd");
@@ -1048,6 +1052,18 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
+			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+				mavlink_and_console_log_info(&mavlink_log_pub, "Returning to launch");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				mavlink_log_critical(&mavlink_log_pub, "Return to launch denied");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state)) {
@@ -1058,7 +1074,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				mavlink_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
-
 		}
 		break;
 
@@ -1068,10 +1083,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&mavlink_log_pub, "Landing denied, land manually.");
+				mavlink_log_critical(&mavlink_log_pub, "Landing denied, land manually");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
-
 		}
 		break;
 
