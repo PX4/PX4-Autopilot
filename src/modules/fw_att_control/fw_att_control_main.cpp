@@ -1045,7 +1045,8 @@ FixedwingAttitudeControl::task_main()
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
-					_actuators.control[0] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
+					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll :
+							_parameters.trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
@@ -1057,7 +1058,8 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float pitch_u = _pitch_ctrl.control_bodyrate(control_input);
-					_actuators.control[1] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
+					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch :
+							_parameters.trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
@@ -1089,10 +1091,11 @@ FixedwingAttitudeControl::task_main()
 						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					}
 
-					_actuators.control[2] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
+					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
+							_parameters.trim_yaw;
 
 					/* add in manual rudder control */
-					_actuators.control[2] += yaw_manual;
+					_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
 
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
@@ -1106,10 +1109,10 @@ FixedwingAttitudeControl::task_main()
 
 					/* throttle passed through if it is finite and if no engine failure was
 					 * detected */
-					_actuators.control[3] = (PX4_ISFINITE(throttle_sp) &&
-								 !(_vehicle_status.engine_failure ||
-								   _vehicle_status.engine_failure_cmd)) ?
-								throttle_sp : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
+							!(_vehicle_status.engine_failure ||
+							  _vehicle_status.engine_failure_cmd)) ?
+							throttle_sp : 0.0f;
 
 					if (!PX4_ISFINITE(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
