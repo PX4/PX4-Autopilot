@@ -215,7 +215,7 @@ static const struct seq_entry_s hover[] {
 
 static const struct seq_entry_s coord_turn[] {
 	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f},
-	{Seq_state::RATE, 0.8f, 0.0f, 0.0f, 0.5f, { -0.707f, 0.0f, 0.0f}, 30.0f},
+	{Seq_state::RATE, 0.8f, 0.0f, 0.0f, 0.785f, { -0.707f, 0.0f, 0.0f}, 26.0f},
 	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
 };
 static const struct sequence coord_turn_seq {
@@ -451,7 +451,7 @@ void prog_sequence(
 
 			// set target attitude
 			R_sp = matrix::Dcmf(matrix::Eulerf(seq_entry.target_euler[0], seq_entry.target_euler[1],
-							   seq_entry.target_euler[2]));
+							   att_sp.yaw_body)); //seq_entry.target_euler[2]));
 
 			q_end.from_euler(seq_entry.target_euler[0], seq_entry.target_euler[1],
 					 seq_entry.target_euler[2]);
