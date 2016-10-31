@@ -851,8 +851,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					// Refuse to arm if in manual with non-zero throttle
 					if (cmd_arms
 						&& (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
+						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO
 						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
-						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO)
+						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)
 						&& (sp_man.z > 0.1f)) {
 
 						mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Manual throttle non-zero.");
