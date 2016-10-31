@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -80,12 +81,6 @@
 #define SF1XX_BASEADDR 	0x66
 #define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -234,7 +229,7 @@ SF1XX::~SF1XX()
 int
 SF1XX::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 	int hw_model;
 	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
 
@@ -652,12 +647,6 @@ SF1XX::print_info()
  */
 namespace sf1xx
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 SF1XX	*g_dev;
 

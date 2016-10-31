@@ -53,9 +53,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 
-//#include <nuttx/spi.h>
-
-#include "tests.h"
+#include "tests_main.h"
 
 /****************************************************************************
  * Pre-processor Definitions

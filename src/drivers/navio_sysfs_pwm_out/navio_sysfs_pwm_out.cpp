@@ -37,6 +37,7 @@
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <errno.h>
+#include <cmath>	// NAN
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -181,19 +182,16 @@ int pwm_write_sysfs(char *path, int value)
 {
 	int fd = ::open(path, O_WRONLY | O_CLOEXEC);
 	int n;
-	char *data;
-
-	::free(path);
+	char data[16];
 
 	if (fd == -1) {
 		return -errno;
 	}
 
-	n = ::asprintf(&data, "%u", value);
+	n = ::snprintf(data, sizeof(data), "%u", value);
 
 	if (n > 0) {
-		::write(fd, data, n);
-		::free(data);
+		n = ::write(fd, data, n);	// This n is not used, but to avoid a compiler error.
 	}
 
 	::close(fd);
@@ -204,10 +202,10 @@ int pwm_write_sysfs(char *path, int value)
 int pwm_initialize(const char *device)
 {
 	int i;
-	char *path;
+	char path[128];
 
 	for (i = 0; i < NUM_PWM; ++i) {
-		::asprintf(&path, "%s/export", device);
+		::snprintf(path, sizeof(path), "%s/export", device);
 
 		if (pwm_write_sysfs(path, i) < 0) {
 			PX4_ERR("PWM export failed");
@@ -215,7 +213,7 @@ int pwm_initialize(const char *device)
 	}
 
 	for (i = 0; i < NUM_PWM; ++i) {
-		::asprintf(&path, "%s/pwm%u/enable", device, i);
+		::snprintf(path, sizeof(path), "%s/pwm%u/enable", device, i);
 
 		if (pwm_write_sysfs(path, 1) < 0) {
 			PX4_ERR("PWM enable failed");
@@ -223,7 +221,7 @@ int pwm_initialize(const char *device)
 	}
 
 	for (i = 0; i < NUM_PWM; ++i) {
-		::asprintf(&path, "%s/pwm%u/period", device, i);
+		::snprintf(path, sizeof(path), "%s/pwm%u/period", device, i);
 
 		if (pwm_write_sysfs(path, (int)1e9 / FREQUENCY_PWM)) {
 			PX4_ERR("PWM period failed");
@@ -231,9 +229,8 @@ int pwm_initialize(const char *device)
 	}
 
 	for (i = 0; i < NUM_PWM; ++i) {
-		::asprintf(&path, "%s/pwm%u/duty_cycle", device, i);
+		::snprintf(path, sizeof(path), "%s/pwm%u/duty_cycle", device, i);
 		_pwm_fd[i] = ::open(path, O_WRONLY | O_CLOEXEC);
-		::free(path);
 
 		if (_pwm_fd[i] == -1) {
 			PX4_ERR("PWM: Failed to open duty_cycle.");
@@ -256,12 +253,12 @@ void pwm_deinitialize()
 void send_outputs_pwm(const uint16_t *pwm)
 {
 	int n;
-	char *data;
+	char data[16];
 
 	//convert this to duty_cycle in ns
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
-		n = ::asprintf(&data, "%u", pwm[i] * 1000);
-		::write(_pwm_fd[i], data, n);
+		n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
+		n = ::write(_pwm_fd[i], data, n);	// This n is not used, but to avoid a compiler error.
 	}
 }
 
@@ -462,7 +459,7 @@ int navio_sysfs_pwm_out_main(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(navio_sysfs_pwm_out::_device, device, strlen(device));
+			strncpy(navio_sysfs_pwm_out::_device, device, sizeof(navio_sysfs_pwm_out::_device));
 			break;
 		}
 	}

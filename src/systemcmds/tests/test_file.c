@@ -53,7 +53,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 static int check_user_abort(int fd);
 

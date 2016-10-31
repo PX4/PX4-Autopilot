@@ -155,11 +155,9 @@ RTL::set_rtl_item()
 		_mission_item.altitude = climb_alt;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -197,11 +195,9 @@ RTL::set_rtl_item()
 			}
 		}
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -244,11 +240,9 @@ RTL::set_rtl_item()
 		}
 
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -269,18 +263,16 @@ RTL::set_rtl_item()
 		// don't change altitude
 		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
-		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = autoland;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
 
-		if (autoland && (_mission_item.time_inside > FLT_EPSILON)) {
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs", (double)_mission_item.time_inside);
+		if (autoland && (Navigator::get_time_inside(_mission_item) > FLT_EPSILON)) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs", (double)Navigator::get_time_inside(_mission_item));
 
 		} else {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loiter");

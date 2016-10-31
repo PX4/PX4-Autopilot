@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -73,12 +74,6 @@
 #include <lib/conversion/rotation.h>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 /* Orientation on board */
 #define SENSOR_BOARD_ROTATION_000_DEG	0
@@ -476,7 +471,7 @@ L3GD20::~L3GD20()
 int
 L3GD20::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
@@ -1049,18 +1044,6 @@ L3GD20::measure()
 	}
 
 	report.z_raw = raw_report.z;
-
-#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
-	int16_t tx = -report.y_raw;
-	int16_t ty = -report.x_raw;
-	int16_t tz = -report.z_raw;
-	report.x_raw = tx;
-	report.y_raw = ty;
-	report.z_raw = tz;
-#endif
-
-
-
 
 	report.temperature_raw = raw_report.temp;
 

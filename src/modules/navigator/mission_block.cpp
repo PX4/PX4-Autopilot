@@ -104,8 +104,14 @@ MissionBlock::is_mission_item_reached()
 			return false;
 
 		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_SET_ROI:
+		case NAV_CMD_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 			return true;
 
@@ -165,9 +171,25 @@ MissionBlock::is_mission_item_reached()
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
+
+			/* We want to avoid the edge case where the acceptance radius is bigger or equal than
+			 * the altitude of the takeoff waypoint above home. Otherwise, we do not really follow
+			 * take-off procedures like leaving the landing gear down. */
+
+			float takeoff_alt = _mission_item.altitude_is_relative ?
+					    _mission_item.altitude :
+					    (_mission_item.altitude - _navigator->get_home_position()->alt);
+
+			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
+
+			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
+			if (takeoff_alt > 0 && takeoff_alt < altitude_acceptance_radius) {
+				altitude_acceptance_radius = takeoff_alt / 2.0f;
+			}
+
 			/* require only altitude for takeoff for multicopter */
 			if (_navigator->get_global_position()->alt >
-					altitude_amsl - _navigator->get_altitude_acceptance_radius()) {
+					altitude_amsl - altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
@@ -185,7 +207,7 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 				&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -213,7 +235,7 @@ MissionBlock::is_mission_item_reached()
 								_navigator->get_global_position()->alt,
 								&dist_xy, &dist_z);
 
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
@@ -222,7 +244,7 @@ MissionBlock::is_mission_item_reached()
 				}
 
 			} else {
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)
+				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 					&& dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					_waypoint_position_reached = true;
@@ -230,7 +252,7 @@ MissionBlock::is_mission_item_reached()
 					// set required yaw from bearing to the next mission item
 					if (_mission_item.force_heading) {
 						struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
-						
+
 						if (next_sp.valid) {
 							_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 											_navigator->get_global_position()->lon,
@@ -303,7 +325,8 @@ MissionBlock::is_mission_item_reached()
 		}
 
 		/* check if the MAV was long enough inside the waypoint orbit */
-		if (now - _time_first_inside_orbit >= (hrt_abstime)_mission_item.time_inside * 1e6f) {
+		if ((Navigator::get_time_inside(_mission_item) < FLT_EPSILON) ||
+			(now - _time_first_inside_orbit >= (hrt_abstime)(Navigator::get_time_inside(_mission_item) * 1e6f))) {
 
 			// exit xtrack location
 			if (_mission_item.loiter_exit_xtrack &&
@@ -350,7 +373,21 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 	cmd->command = item->nav_cmd;
 
 	cmd->target_system = _navigator->get_vstatus()->system_id;
-	cmd->target_component = _navigator->get_vstatus()->component_id;
+
+	// The camera commands are not processed on the autopilot but will be
+	// sent to the mavlink links to other components.
+	switch (item->nav_cmd) {
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
+			cmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			break;
+		default:
+			cmd->target_component = _navigator->get_vstatus()->component_id;
+			break;
+	}
+
 	cmd->source_system = _navigator->get_vstatus()->system_id;
 	cmd->source_component = _navigator->get_vstatus()->component_id;
 	cmd->confirmation = false;
@@ -402,8 +439,14 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+		item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+		item->nav_cmd == NAV_CMD_DO_SET_ROI ||
+		item->nav_cmd == NAV_CMD_ROI ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 
@@ -441,10 +484,9 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
 	sp->yaw = item->yaw;
-	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
+	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
 				_navigator->get_loiter_radius();
-	sp->loiter_direction = item->loiter_direction;
-	sp->pitch_min = item->pitch_min;
+	sp->loiter_direction = (item->loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item->acceptance_radius;
 	sp->disable_mc_yaw_control = false;
 	sp->cruising_speed = _navigator->get_cruising_speed();
@@ -456,6 +498,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+		// set pitch and ensure that the hold time is zero
+		sp->pitch_min = item->pitch_min;
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
@@ -531,10 +575,8 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		item->altitude_is_relative = false;
 		item->yaw = NAN;
 		item->loiter_radius = _navigator->get_loiter_radius();
-		item->loiter_direction = 1;
 		item->acceptance_radius = _navigator->get_acceptance_radius();
 		item->time_inside = 0.0f;
-		item->pitch_min = 0.0f;
 		item->autocontinue = false;
 		item->origin = ORIGIN_ONBOARD;
 	}
@@ -567,38 +609,26 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 	item->altitude_is_relative = false;
 	item->yaw = yaw;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
 
 void
-MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
+MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
-	/* use current position and use return altitude as clearance */
+	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->altitude = _navigator->get_global_position()->alt;
 
-	if (min_clearance > 0.0f) {
-		item->altitude += min_clearance;
-
-		/* we must takeoff to a point further above ground than the acceptance radius */
-		if (_navigator->get_acceptance_radius() > min_clearance) {
-			item->altitude += _navigator->get_acceptance_radius();
-		}
-	}
-
+	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
+
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
-	item->time_inside = 0.0f;
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
@@ -639,10 +669,8 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->altitude = 0;
 	item->altitude_is_relative = false;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -657,10 +685,8 @@ MissionBlock::set_current_position_item(struct mission_item_s *item)
 	item->altitude = _navigator->get_global_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -675,10 +701,8 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
-	item->loiter_direction = 1;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
-	item->pitch_min = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }

@@ -35,8 +35,6 @@
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-__BEGIN_DECLS
-
 #include <sched.h>
 #include <stdint.h>
 
@@ -57,6 +55,8 @@ struct system_load_s {
 	int running_count;
 	int sleeping_count;
 };
+
+__BEGIN_DECLS
 
 __EXPORT extern struct system_load_s system_load;
 

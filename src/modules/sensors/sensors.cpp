@@ -306,6 +306,7 @@ private:
 		int rc_map_offboard_sw;
 		int rc_map_kill_sw;
 		int rc_map_trans_sw;
+		int rc_map_gear_sw;
 
 		int rc_map_flaps;
 
@@ -330,6 +331,7 @@ private:
 		float rc_offboard_th;
 		float rc_killswitch_th;
 		float rc_trans_th;
+		float rc_gear_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -340,6 +342,7 @@ private:
 		bool rc_offboard_inv;
 		bool rc_killswitch_inv;
 		bool rc_trans_inv;
+		bool rc_gear_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -379,6 +382,7 @@ private:
 		param_t rc_map_offboard_sw;
 		param_t rc_map_kill_sw;
 		param_t rc_map_trans_sw;
+		param_t rc_map_gear_sw;
 
 		param_t rc_map_flaps;
 
@@ -407,6 +411,7 @@ private:
 		param_t rc_offboard_th;
 		param_t rc_killswitch_th;
 		param_t rc_trans_th;
+		param_t rc_gear_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -656,6 +661,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
 	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
 	_parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
+	_parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -685,6 +691,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 	_parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
+	_parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
 
 
 	/* Differential pressure offset */
@@ -862,6 +869,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_gear_sw, &(_parameters.rc_map_gear_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
@@ -909,6 +920,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_trans_th, &(_parameters.rc_trans_th));
 	_parameters.rc_trans_inv = (_parameters.rc_trans_th < 0);
 	_parameters.rc_trans_th = fabs(_parameters.rc_trans_th);
+	param_get(_parameter_handles.rc_gear_th, &(_parameters.rc_gear_th));
+	_parameters.rc_gear_inv = (_parameters.rc_gear_th < 0);
+	_parameters.rc_gear_th = fabs(_parameters.rc_gear_th);
 
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -925,6 +939,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION] = _parameters.rc_map_trans_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_GEAR] = _parameters.rc_map_gear_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -2131,6 +2146,8 @@ Sensors::rc_poll()
 					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 			manual.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
 						   _parameters.rc_trans_th, _parameters.rc_trans_inv);
+			manual.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
+					     _parameters.rc_gear_th, _parameters.rc_gear_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
@@ -2185,14 +2202,14 @@ Sensors::check_failover(SensorData &sensor, const char *sensor_name)
 			PX4_INFO("%s sensor switch from #%i", sensor_name, sensor.voter.failover_index());
 
 		} else {
-			mavlink_and_console_log_emergency(&_mavlink_log_pub, "%s #%i failover :%s%s%s%s%s!",
-							  sensor_name,
-							  sensor.voter.failover_index(),
-							  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
+			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failover :%s%s%s%s%s!",
+					      sensor_name,
+					      sensor.voter.failover_index(),
+					      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
 		}
 
 		sensor.last_failover_count = sensor.voter.failover_count();
@@ -2217,10 +2234,10 @@ Sensors::check_vibration()
 
 		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000 * 1000) {
 			_vibration_warning = true;
-			mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-							 (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
-							 (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
-							 (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
+			mavlink_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+					     (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
+					     (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
+					     (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
 			ret = true;
 		}
 
@@ -2476,7 +2493,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   1500,
+					   1700,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

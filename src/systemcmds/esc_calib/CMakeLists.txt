@@ -35,10 +35,9 @@ px4_add_module(
 	MAIN esc_calib
 	STACK_MAIN 4096
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		esc_calib.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

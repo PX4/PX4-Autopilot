@@ -20,6 +20,7 @@ sercon
 
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
+set DATAMAN_OPT -r
 
 #
 # Try to mount the microSD card.
@@ -27,12 +28,14 @@ set LOG_FILE /fs/microsd/bootlog.txt
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	echo "microSD present"
+	unset DATAMAN_OPT
 else
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "microSD card formatted"
+			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
 			tone_alarm MNBG
@@ -141,7 +144,7 @@ gps start -d /dev/ttyS0
 
 # waypoint storage
 # REBOOTWORK this needs to start in parallel
-if dataman start
+if dataman start $DATAMAN_OPT
 then
 fi
 
@@ -328,9 +331,19 @@ unset OUTPUT_MODE
 #
 # Start the RC input driver
 #
-if fmu mode_rcin
+if fmu mode_pwm1
 then
 fi
+
+#
+# Use 400 Hz PWM output for landing gear (frequency also affects RGB LED)
+#
+pwm rate -c 1 -r 400
+
+#
+# Load the gear mixer onto fmu
+#
+mixer load /dev/px4fmu /etc/mixers/gear.mix
 
 #
 # Start the navigator

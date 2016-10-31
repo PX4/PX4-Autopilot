@@ -18,12 +18,14 @@ static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
 static const bool integrate = true; // use accel for integrating
 
 static const float P_MAX = 1.0e6f; // max allowed value in state covariance
+static const float LAND_RATE = 10.0f; // rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
+	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
@@ -57,7 +59,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_xy_pub_thresh(this, "XY_PUB"),
+	_pub_agl_z(this, "PUB_AGL_Z"),
+	_vxy_pub_thresh(this, "VXY_PUB"),
 	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
@@ -76,14 +79,16 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_epv_max(this, "EPV_MAX"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
+	_vision_delay(this, "VIS_DELAY"),
 	_vision_on(this, "VIS_ON"),
 	_mocap_p_stddev(this, "VIC_P"),
+	_flow_gyro_comp(this, "FLW_GYRO_CMP"),
 	_flow_z_offset(this, "FLW_OFF_Z"),
-	_flow_xy_stddev(this, "FLW_XY"),
-	_flow_xy_d_stddev(this, "FLW_XY_D"),
+	_flow_scale(this, "FLW_SCALE"),
 	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
+	_land_z_stddev(this, "LAND_Z"),
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
@@ -131,6 +136,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_init_sonar(0),
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
+	_time_last_land(0),
 
 	// initialization flags
 	_receivedGps(false),
@@ -141,18 +147,13 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowInitialized(false),
 	_visionInitialized(false),
 	_mocapInitialized(false),
+	_landInitialized(false),
 
 	// reference altitudes
 	_altOrigin(0),
 	_altOriginInitialized(false),
 	_baroAltOrigin(0),
 	_gpsAltOrigin(0),
-	_visionOrigin(),
-	_mocapOrigin(),
-
-	// flow integration
-	_flowX(0),
-	_flowY(0),
 
 	// status
 	_validXY(false),
@@ -171,6 +172,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarFault(FAULT_NONE),
 	_visionFault(FAULT_NONE),
 	_mocapFault(FAULT_NONE),
+	_landFault(FAULT_NONE),
 
 	// loop performance
 	_loop_perf(),
@@ -178,7 +180,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_x(), _u(), _P()
+	_x(), _u(), _P(), _R_att(), _eul()
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -266,10 +268,6 @@ void BlockLocalPositionEstimator::update()
 	// 	_x(X_y) = 0;
 	// 	// reset Z or not? _x(X_z) = 0;
 
-	// 	// reset flow integral
-	// 	_flowX = 0;
-	// 	_flowY = 0;
-
 	// 	// we aren't moving, all velocities are zero
 	// 	_x(X_vx) = 0;
 	// 	_x(X_vy) = 0;
@@ -294,6 +292,11 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
+	bool landUpdated = (
+				   (_sub_land.get().landed ||
+				    ((!_sub_armed.get().armed) && (!_sub_land.get().freefall)))
+				   && (!(_lidarInitialized || _mocapInitialized || _visionInitialized || _sonarInitialized))
+				   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE));
 
 	// get new data
 	updateSubscriptions();
@@ -305,17 +308,23 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// is xy valid?
-	bool xy_stddev_ok = sqrtf(math::max(_P(X_x, X_x), _P(X_y, X_y))) < _xy_pub_thresh.get();
+	bool vxy_stddev_ok = false;
+
+	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
+		vxy_stddev_ok = true;
+	}
 
 	if (_validXY) {
 		// if valid and gps has timed out, set to not valid
-		if (!xy_stddev_ok && !_gpsInitialized) {
+		if (!vxy_stddev_ok && !_gpsInitialized) {
 			_validXY = false;
 		}
 
 	} else {
-		if (xy_stddev_ok) {
-			_validXY = true;
+		if (vxy_stddev_ok) {
+			if (_flowInitialized || _gpsInitialized || _visionInitialized || _mocapInitialized) {
+				_validXY = true;
+			}
 		}
 	}
 
@@ -380,6 +389,7 @@ void BlockLocalPositionEstimator::update()
 		// don't want it to take too long
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit x, x(%d) not finite", i);
 			break;
 		}
 	}
@@ -491,6 +501,15 @@ void BlockLocalPositionEstimator::update()
 
 		} else {
 			mocapCorrect();
+		}
+	}
+
+	if (landUpdated) {
+		if (!_landInitialized) {
+			landInit();
+
+		} else {
+			landCorrect();
 		}
 	}
 
@@ -673,6 +692,23 @@ void BlockLocalPositionEstimator::publishLocalPos()
 {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	// publish local position
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
@@ -684,11 +720,19 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().v_z_valid = _validZ;
 		_pub_lpos.get().x = xLP(X_x); 	// north
 		_pub_lpos.get().y = xLP(X_y);  	// east
-		_pub_lpos.get().z = xLP(X_z); 	// down
+
+		if (_pub_agl_z.get()) {
+			_pub_lpos.get().z = -_aglLowPass.getState(); // agl
+
+		} else {
+			_pub_lpos.get().z = xLP(X_z); 	// down
+		}
+
 		_pub_lpos.get().vx = xLP(X_vx); // north
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
-		_pub_lpos.get().yaw = _sub_att.get().yaw;
+
+		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _validXY;
 		_pub_lpos.get().z_global = _baroInitialized;
 		_pub_lpos.get().ref_timestamp = _timeStamp;
@@ -703,8 +747,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		// so that if terrain estimation fails there isn't a
 		// sudden altitude jump
 		_pub_lpos.get().dist_bottom_valid = _validZ;
-		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_lpos.get().eph = eph;
+		_pub_lpos.get().epv = epv;
 		_pub_lpos.update();
 	}
 }
@@ -751,6 +795,23 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
 	float alt = -xLP(X_z) + _altOrigin;
 
+	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
+	float vxy_stddev = sqrtf(_P(X_vx, X_vx) + _P(X_vy, X_vy));
+	float epv = sqrtf(_P(X_z, X_z));
+	float eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+	float eph_thresh = 3.0f;
+	float epv_thresh = 3.0f;
+
+	if (vxy_stddev < _vxy_pub_thresh.get()) {
+		if (eph > eph_thresh) {
+			eph = eph_thresh;
+		}
+
+		if (epv > epv_thresh) {
+			epv = epv_thresh;
+		}
+	}
+
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
 	    PX4_ISFINITE(xLP(X_vz))) {
@@ -762,9 +823,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_n = xLP(X_vx);
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
-		_pub_gpos.get().yaw = _sub_att.get().yaw;
-		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_gpos.get().yaw = _eul(2);
+		_pub_gpos.get().eph = eph;
+		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _validTZ;
 		_pub_gpos.get().dead_reckoning = !_validXY && !_xyTimeout;
@@ -814,18 +875,17 @@ void BlockLocalPositionEstimator::updateSSStates()
 {
 	// derivative of velocity is accelerometer acceleration
 	// (in input matrix) - bias (in body frame)
-	Matrix3f R_att(_sub_att.get().R);
-	_A(X_vx, X_bx) = -R_att(0, 0);
-	_A(X_vx, X_by) = -R_att(0, 1);
-	_A(X_vx, X_bz) = -R_att(0, 2);
+	_A(X_vx, X_bx) = -_R_att(0, 0);
+	_A(X_vx, X_by) = -_R_att(0, 1);
+	_A(X_vx, X_bz) = -_R_att(0, 2);
 
-	_A(X_vy, X_bx) = -R_att(1, 0);
-	_A(X_vy, X_by) = -R_att(1, 1);
-	_A(X_vy, X_bz) = -R_att(1, 2);
+	_A(X_vy, X_bx) = -_R_att(1, 0);
+	_A(X_vy, X_by) = -_R_att(1, 1);
+	_A(X_vy, X_bz) = -_R_att(1, 2);
 
-	_A(X_vz, X_bx) = -R_att(2, 0);
-	_A(X_vz, X_by) = -R_att(2, 1);
-	_A(X_vz, X_bz) = -R_att(2, 2);
+	_A(X_vz, X_bx) = -_R_att(2, 0);
+	_A(X_vz, X_by) = -_R_att(2, 1);
+	_A(X_vz, X_bz) = -_R_att(2, 2);
 }
 
 void BlockLocalPositionEstimator::updateSSParams()
@@ -869,11 +929,13 @@ void BlockLocalPositionEstimator::predict()
 	// state or covariance
 	if (!_validXY && !_validZ) { return; }
 
-	if (integrate && _sub_att.get().R_valid) {
-		Matrix3f R_att(_sub_att.get().R);
+	if (integrate) {
+		matrix::Quaternion<float> q(&_sub_att.get().q[0]);
+		_eul = matrix::Euler<float>(q);
+		_R_att = matrix::Dcm<float>(q);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 		// note, bias is removed in dynamics function
-		_u = R_att * a;
+		_u = _R_att * a;
 		_u(U_az) += 9.81f; // add g
 
 	} else {
@@ -905,4 +967,27 @@ void BlockLocalPositionEstimator::predict()
 
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
+}
+
+int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
+{
+	float t_delay = 0;
+	uint8_t i_hist = 0;
+
+	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
+		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
+
+		if (t_delay > delay) {
+			break;
+		}
+	}
+
+	*periods = i_hist;
+
+	if (t_delay > DELAY_MAX) {
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] delayed data too old: %8.4f", double(t_delay));
+		return -1;
+	}
+
+	return OK;
 }

@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include "apps.h"
 #include "px4_middleware.h"
+#include "px4_posix.h"
+#include "px4_log.h"
 #include "DriverFramework.hpp"
 #include <termios.h>
 #include <sys/stat.h>
@@ -191,6 +193,14 @@ static void print_prompt()
 
 static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
+	static apps_map_type apps;
+	static bool initialized = false;
+
+	if (!initialized) {
+		init_app_map(apps);
+		initialized = true;
+	}
+
 	// command is appargs[0]
 	string command = appargs[0];
 
@@ -217,7 +227,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 		}
 
 	} else if (command.compare("help") == 0) {
-		list_builtins();
+		list_builtins(apps);
 
 	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
@@ -358,12 +368,16 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	bool symlinks_needed = true;
+
 	if (positional_arg_count == 1) { //data path is optional
 		commands_file = data_path;
-		data_path = ".";
+		symlinks_needed = false;
+
+	} else {
+		cout << "data path: " << data_path << endl;
 	}
 
-	cout << "data path: " << data_path << endl;
 	cout << "commands file: " << commands_file << endl;
 
 	if (commands_file.size() < 1) {
@@ -377,32 +391,34 @@ int main(int argc, char **argv)
 	}
 
 	// create sym-links
-	vector<string> path_sym_links;
-	path_sym_links.push_back("ROMFS");
-	path_sym_links.push_back("posix-configs");
-	path_sym_links.push_back("test_data");
+	if (symlinks_needed) {
+		vector<string> path_sym_links;
+		path_sym_links.push_back("ROMFS");
+		path_sym_links.push_back("posix-configs");
+		path_sym_links.push_back("test_data");
 
-	for (int i = 0; i < path_sym_links.size(); i++) {
-		string path_sym_link = path_sym_links[i];
-		//cout << "path sym link: " << path_sym_link << endl;
-		string src_path = data_path + "/" + path_sym_link;
-		string dest_path =  pwd() + "/" +  path_sym_link;
+		for (int i = 0; i < path_sym_links.size(); i++) {
+			string path_sym_link = path_sym_links[i];
+			//cout << "path sym link: " << path_sym_link << endl;
+			string src_path = data_path + "/" + path_sym_link;
+			string dest_path =  pwd() + "/" +  path_sym_link;
 
-		PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-		if (dirExists(path_sym_link)) { continue; }
+			if (dirExists(path_sym_link)) { continue; }
 
-		// create sym-links
-		int ret = symlink(src_path.c_str(), dest_path.c_str());
+			// create sym-links
+			int ret = symlink(src_path.c_str(), dest_path.c_str());
 
-		if (ret != 0) {
-			PX4_ERR("Error creating symlink %s -> %s",
-				src_path.c_str(), dest_path.c_str());
-			return ret;
+			if (ret != 0) {
+				PX4_ERR("Error creating symlink %s -> %s",
+					src_path.c_str(), dest_path.c_str());
+				return ret;
 
-		} else {
-			PX4_DEBUG("Successfully created symlink %s -> %s",
-				  src_path.c_str(), dest_path.c_str());
+			} else {
+				PX4_DEBUG("Successfully created symlink %s -> %s",
+					  src_path.c_str(), dest_path.c_str());
+			}
 		}
 	}
 

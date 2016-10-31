@@ -50,9 +50,10 @@
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
 	next(nullptr),
 	_topic(topic),
-	_instance(instance),
 	_fd(-1),
+	_instance(instance),
 	_published(false),
+	_subscribe_from_beginning(false),
 	_last_pub_check(0)
 {
 }
@@ -157,15 +158,6 @@ MavlinkOrbSubscription::is_published()
 		return true;
 	}
 
-	// This is a workaround for this issue:
-	// https://github.com/PX4/Firmware/issues/5438
-#if defined(__PX4_LINUX) || defined(__PX4_QURT)
-
-	if (_fd < 0) {
-		_fd = orb_subscribe_multi(_topic, _instance);
-	}
-
-#else
 	// Telemetry can sustain an initial published check at 10 Hz
 	hrt_abstime now = hrt_absolute_time();
 
@@ -176,14 +168,24 @@ MavlinkOrbSubscription::is_published()
 	// We are checking now
 	_last_pub_check = now;
 
-	// If it does not exist its not published
-	if (orb_exists(_topic, _instance)) {
-		return false;
-
-	} else if (_fd < 0) {
+#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE)
+	// Snapdragon has currently no support for orb_exists, therefore
+	// we're not using it.
+	if (_fd < 0) {
 		_fd = orb_subscribe_multi(_topic, _instance);
 	}
+#else
+	// We don't want to subscribe to anything that does not exist
+	// in order to save memory and file descriptors.
+	// However, for some topics like vehicle_command_ack, we want to subscribe
+	// from the beginning in order not to miss the first publish respective advertise.
+	if (!_subscribe_from_beginning && orb_exists(_topic, _instance)) {
+		return false;
+	}
 
+	if (_fd < 0) {
+		_fd = orb_subscribe_multi(_topic, _instance);
+	}
 #endif
 
 	bool updated;
@@ -194,4 +196,10 @@ MavlinkOrbSubscription::is_published()
 	}
 
 	return _published;
+}
+
+void
+MavlinkOrbSubscription::subscribe_from_beginning(bool from_beginning)
+{
+	_subscribe_from_beginning = from_beginning;
 }

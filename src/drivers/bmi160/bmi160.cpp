@@ -19,7 +19,7 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 									 };
 
 BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
-	SPI("BMI160", path_accel, bus, device, SPIDEV_MODE3, BMI160_LOW_BUS_SPEED),
+	SPI("BMI160", path_accel, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
 	_gyro(new BMI160_gyro(this, path_gyro)),
 	_whoami(0),
 	_call{},
@@ -55,8 +55,8 @@ BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, spi_dev_e
 	_gyro_filter_x(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / BMI160_ACCEL_MAX_RATE),
-	_gyro_int(1000000 / BMI160_GYRO_MAX_RATE, true),
+	_accel_int(1000000 / BMI160_ACCEL_MAX_PUBLISH_RATE),
+	_gyro_int(1000000 / BMI160_GYRO_MAX_PUBLISH_RATE, true),
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
@@ -907,12 +907,9 @@ BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 uint8_t
-BMI160::read_reg(unsigned reg, uint32_t speed)
+BMI160::read_reg(unsigned reg)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
-
-	// general register transfer at low clock speed
-	set_frequency(speed);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -923,9 +920,6 @@ uint16_t
 BMI160::read_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
-
-	// general register transfer at low clock speed
-	set_frequency(BMI160_LOW_BUS_SPEED);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -940,9 +934,6 @@ BMI160::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	// general register transfer at low clock speed
-	set_frequency(BMI160_LOW_BUS_SPEED);
-
 	transfer(cmd, nullptr, sizeof(cmd));
 }
 
@@ -951,7 +942,7 @@ BMI160::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val;
 
-	val = read_reg(reg, BMI160_LOW_BUS_SPEED);
+	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -1049,7 +1040,7 @@ BMI160::set_gyro_range(unsigned max_dps)
 	} else if (max_dps <= 2000) {
 		max_gyro_dps = 2000;
 		lsb_per_dps = 16.4;
-		setbits |= BMI_GYRO_RANGE_1000_DPS;
+		setbits |= BMI_GYRO_RANGE_2000_DPS;
 
 	} else {
 		return -EINVAL;
@@ -1101,7 +1092,7 @@ BMI160::check_registers(void)
 {
 	uint8_t v;
 
-	if ((v = read_reg(_checked_registers[_checked_next], BMI160_LOW_BUS_SPEED)) !=
+	if ((v = read_reg(_checked_registers[_checked_next])) !=
 	    _checked_values[_checked_next]) {
 		_checked_bad[_checked_next] = v;
 
@@ -1167,9 +1158,7 @@ BMI160::measure()
 	 */
 	bmi_report.cmd = BMIREG_GYR_X_L | DIR_READ;
 
-	set_frequency(BMI160_LOW_BUS_SPEED);
-
-	uint8_t		status = read_reg(BMIREG_STATUS, BMI160_LOW_BUS_SPEED);
+	uint8_t		status = read_reg(BMIREG_STATUS);
 
 	if (OK != transfer((uint8_t *)&bmi_report, ((uint8_t *)&bmi_report), sizeof(bmi_report))) {
 		return;
@@ -1189,8 +1178,8 @@ BMI160::measure()
 	_last_accel[2] = bmi_report.accel_z;
 	_got_duplicate = false;
 
-	uint8_t temp_l = read_reg(BMIREG_TEMP_0, BMI160_LOW_BUS_SPEED);
-	uint8_t temp_h = read_reg(BMIREG_TEMP_1, BMI160_LOW_BUS_SPEED);
+	uint8_t temp_l = read_reg(BMIREG_TEMP_0);
+	uint8_t temp_h = read_reg(BMIREG_TEMP_1);
 
 	report.temp = ((temp_h << 8) + temp_l);
 
@@ -1376,7 +1365,7 @@ BMI160::print_info()
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < BMI160_NUM_CHECKED_REGISTERS; i++) {
-		uint8_t v = read_reg(_checked_registers[i], BMI160_LOW_BUS_SPEED);
+		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
 			::printf("reg %02x:%02x should be %02x\n",

@@ -35,10 +35,9 @@ px4_add_module(
 	MAIN oreoled
 	STACK_MAIN 1024
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		oreoled.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

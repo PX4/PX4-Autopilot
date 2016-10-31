@@ -51,6 +51,7 @@
 #include <sys/ioctl.h>
 #include <systemlib/err.h>
 #include <fcntl.h>
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
 #include "drivers/drv_pwm_output.h"
@@ -60,12 +61,6 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub) {
 	struct battery_status_s battery;
 	memset(&battery,0,sizeof(battery));
@@ -74,14 +69,14 @@ int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub) {
 
 	if (battery.voltage_filtered_v > 3.0f && !(hrt_absolute_time() - battery.timestamp > 500000)) {
 		mavlink_log_info(mavlink_log_pub, "Please disconnect battery and try again!");
-		return ERROR;
+		return PX4_ERROR;
 	}
-	return OK;
+	return PX4_OK;
 }
 
 int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed)
 {
-	int	return_code = OK;
+	int	return_code = PX4_OK;
 
 	int	fd = -1;
 
@@ -119,19 +114,19 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
-	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to disable safety switch");
 		goto Error;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to arm system");
 		goto Error;
 	}
 
 	/* tell IO to switch off safety without using the safety switch */
-	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != OK) {
+	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to force safety off");
 		goto Error;
 	}
@@ -175,26 +170,26 @@ Out:
 		orb_unsubscribe(batt_sub);
 	}
 	if (fd != -1) {
-		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != OK) {
+		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Safety switch still off");
 		}
-		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != OK) {
+		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Servos still armed");
 		}
-		if (px4_ioctl(fd, PWM_SERVO_CLEAR_ARM_OK, 0) != OK) {
+		if (px4_ioctl(fd, PWM_SERVO_CLEAR_ARM_OK, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Safety switch still deactivated");
 		}
 		px4_close(fd);
 	}
 	armed->in_esc_calibration_mode = false;
 
-	if (return_code == OK) {
+	if (return_code == PX4_OK) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
 	}
 
 	return return_code;
 
 Error:
-	return_code = ERROR;
+	return_code = PX4_ERROR;
 	goto Out;
 }

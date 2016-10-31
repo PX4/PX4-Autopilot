@@ -1,0 +1,86 @@
+/* definitions of builtin command list - automatically generated, do not edit */
+#include "px4_posix.h"
+#include "px4_log.h"
+
+#include "apps.h"
+
+#include <cstdio>
+#include <map>
+#include <string>
+
+#include <cstdlib>
+
+extern "C" {
+
+${builtin_apps_decl_string}
+int shutdown_main(int argc, char *argv[]);
+int list_tasks_main(int argc, char *argv[]);
+int list_files_main(int argc, char *argv[]);
+int list_devices_main(int argc, char *argv[]);
+int list_topics_main(int argc, char *argv[]);
+int sleep_main(int argc, char *argv[]);
+
+}
+
+extern void px4_show_devices(void);
+
+void init_app_map(apps_map_type &apps)
+{
+${builtin_apps_string}
+	apps["shutdown"] = shutdown_main;
+	apps["list_tasks"] = list_tasks_main;
+	apps["list_files"] = list_files_main;
+	apps["list_devices"] = list_devices_main;
+	apps["list_topics"] = list_topics_main;
+	apps["sleep"] = sleep_main;
+}
+
+void list_builtins(apps_map_type &apps)
+{
+	PX4_INFO("Builtin Commands:\n");
+	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it)
+		PX4_INFO("%s : 0x%x\n", it->first.c_str(), it->second);
+}
+
+int shutdown_main(int argc, char *argv[])
+{
+	printf("Shutting down\n");
+	exit(0);
+}
+
+int list_tasks_main(int argc, char *argv[])
+{
+	px4_show_tasks();
+	return 0;
+}
+
+int list_devices_main(int argc, char *argv[])
+{
+	px4_show_devices();
+	return 0;
+}
+
+int list_topics_main(int argc, char *argv[])
+{
+	px4_show_topics();
+	return 0;
+}
+
+int list_files_main(int argc, char *argv[])
+{
+	px4_show_files();
+	return 0;
+}
+
+int sleep_main(int argc, char *argv[])
+{
+        if (argc != 2) {
+           PX4_WARN( "Usage: sleep <seconds>" );
+           return 1;
+        }
+
+        unsigned long usecs = 1000000UL * atol(argv[1]);
+        printf("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
+        usleep(usecs);
+        return 0;
+}

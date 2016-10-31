@@ -106,6 +106,9 @@ __EXPORT int io_timer_handler3(int irq, void *context);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
+
+__EXPORT int io_timer_init_timer(unsigned timer);
+
 __EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
 __EXPORT int io_timer_set_enable(bool state, io_timer_channel_mode_t mode,
 				 io_timer_channel_allocation_t masks);

@@ -71,10 +71,24 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 
+#include <matrix/math.hpp>
+
 /* process-specific header files */
 #include "params.h"
 
 /* Prototypes */
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+extern "C" int parameters_init(struct param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+extern "C" int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Daemon management function.
@@ -85,7 +99,7 @@
  * the command line to one particular process or the need for bg/fg
  * ^Z support by the shell.
  */
-__EXPORT int ex_fixedwing_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int ex_fixedwing_control_main(int argc, char *argv[]);
 
 /**
  * Mainloop of daemon.
@@ -162,13 +176,17 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	/*
 	 * Calculate roll error and apply P gain
 	 */
-	float roll_err = att->roll - att_sp->roll_body;
+
+	matrix::Eulerf att_euler = matrix::Quatf(att->q);
+	matrix::Eulerf att_sp_euler = matrix::Quatf(att_sp->q_d);
+
+	float roll_err = att_euler.phi() - att_sp_euler.phi();
 	actuators->control[0] = roll_err * p.roll_p;
 
 	/*
 	 * Calculate pitch error and apply P gain
 	 */
-	float pitch_err = att->pitch - att_sp->pitch_body;
+	float pitch_err = att_euler.theta() - att_sp_euler.theta();
 	actuators->control[1] = pitch_err * p.pitch_p;
 }
 
@@ -182,18 +200,29 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 
 	float bearing = get_bearing_to_next_waypoint(pos->lat, pos->lon, sp->lat, sp->lon);
 
+	matrix::Eulerf att_euler = matrix::Quatf(att->q);
+
 	/* calculate heading error */
-	float yaw_err = att->yaw - bearing;
+	float yaw_err = att_euler.psi() - bearing;
 	/* apply control gain */
-	att_sp->roll_body = yaw_err * p.hdng_p;
+	float roll_body = yaw_err * p.hdng_p;
 
 	/* limit output, this commonly is a tuning parameter, too */
-	if (att_sp->roll_body < -0.6f) {
-		att_sp->roll_body = -0.6f;
+	if (roll_body < -0.6f) {
+		roll_body = -0.6f;
 
 	} else if (att_sp->roll_body > 0.6f) {
-		att_sp->roll_body = 0.6f;
+		roll_body = 0.6f;
 	}
+
+	matrix::Eulerf att_spe(roll_body, 0, bearing);
+
+	matrix::Quatf qd(att_spe);
+
+	att_sp->q_d[0] = qd(0);
+	att_sp->q_d[1] = qd(1);
+	att_sp->q_d[2] = qd(2);
+	att_sp->q_d[3] = qd(3);
 }
 
 /* Main Thread */
@@ -262,7 +291,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 
 	/* publish actuator controls with zero values */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
 
@@ -350,7 +379,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				}
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
-				if (isfinite(manual_sp.z) &&
+				if (PX4_ISFINITE(manual_sp.z) &&
 				    (manual_sp.z >= 0.6f) &&
 				    (manual_sp.z <= 1.0f)) {
 				}
@@ -362,10 +391,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
 				/* sanity check and publish actuator outputs */
-				if (isfinite(actuators.control[0]) &&
-				    isfinite(actuators.control[1]) &&
-				    isfinite(actuators.control[2]) &&
-				    isfinite(actuators.control[3])) {
+				if (PX4_ISFINITE(actuators.control[0]) &&
+				    PX4_ISFINITE(actuators.control[1]) &&
+				    PX4_ISFINITE(actuators.control[2]) &&
+				    PX4_ISFINITE(actuators.control[3])) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
@@ -380,7 +409,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	/* kill all outputs */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
 
@@ -456,6 +485,3 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 	usage("unrecognized command");
 	exit(1);
 }
-
-
-

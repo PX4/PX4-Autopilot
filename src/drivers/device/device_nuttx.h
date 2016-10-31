@@ -209,8 +209,7 @@ protected:
 	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	int		_irq;
-	bool		_irq_attached;
+	int		_irq; /**< if non-zero, it's a valid IRQ */
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
@@ -456,7 +455,7 @@ private:
 
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
-	unsigned	_open_count;		/**< number of successful opens */
+	uint16_t	_open_count;		/**< number of successful opens */
 
 	struct pollfd	*_pollset[_max_pollwaiters];
 

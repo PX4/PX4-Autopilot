@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 #include <errno.h>
 #include <semaphore.h>
+#include <math.h>
 
 #include <sys/stat.h>
 

@@ -184,6 +184,15 @@ public:
 	 */
 	virtual void			groups_required(uint32_t &groups) = 0;
 
+	/**
+	 * @brief      Empty method, only implemented for MultirotorMixer and MixerGroup class.
+	 *
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
+	 */
+	virtual void 			set_max_delta_out_once(float delta_out_max) {};
+
+
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -311,6 +320,18 @@ public:
 	 * @return			Zero on successful load, nonzero otherwise.
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
+
+	/**
+	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
+	 *             the maximum allowed change of the output values per cycle.
+	 *             The value is only valid for one cycle, in order to have continuous
+	 *             slew rate limiting this function needs to be called before every call
+	 *             to mix().
+	 *
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
+	 */
+	virtual void 			set_max_delta_out_once(float delta_out_max);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -518,17 +539,33 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 
+	/**
+	 * @brief      Update slew rate parameter. This tells the multicopter mixer
+	 *             the maximum allowed change of the output values per cycle.
+	 *             The value is only valid for one cycle, in order to have continuous
+	 *             slew rate limiting this function needs to be called before every call
+	 *             to mix().
+	 *
+	 * @param[in]  delta_out_max  Maximum delta output.
+	 *
+	 */
+	virtual void 			set_max_delta_out_once(float delta_out_max) {_delta_out_max = delta_out_max;}
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
 	float				_idle_speed;
 
+	float 				_delta_out_max;
+
 	orb_advert_t			_limits_pub;
 	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+	float 				*_outputs_prev = nullptr;
 
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);

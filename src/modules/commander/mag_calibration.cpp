@@ -42,6 +42,7 @@
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <stdio.h>
@@ -59,12 +60,6 @@
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 static const char *sensor_name = "mag";
 static constexpr unsigned max_mags = 3;
@@ -111,7 +106,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	mscale_null.z_offset = 0.0f;
 	mscale_null.z_scale = 1.0f;
 
-	int result = OK;
+	int result = PX4_OK;
 
 	// Determine which mags are available and reset each
 
@@ -128,39 +123,39 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 		// Reset mag id to mag not available
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
 		result = param_set_no_notification(param_find(str), &(device_ids[cur_mag]));
-		if (result != OK) {
+		if (result != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, "[cal] Unable to reset CAL_MAG%u_ID", cur_mag);
 			break;
 		}
 #else
 		(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
 		result = param_set(param_find(str), &mscale_null.x_offset);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
 		result = param_set(param_find(str), &mscale_null.y_offset);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
 		result = param_set(param_find(str), &mscale_null.z_offset);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
 		result = param_set(param_find(str), &mscale_null.x_scale);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
 		result = param_set(param_find(str), &mscale_null.y_scale);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
 		result = param_set(param_find(str), &mscale_null.z_scale);
-		if (result != OK) {
+		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 #endif
@@ -181,18 +176,18 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 		// Reset mag scale
 		result = px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
 
-		if (result != OK) {
+		if (result != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, cur_mag);
 		}
 
 		/* calibrate range */
-		if (result == OK) {
+		if (result == PX4_OK) {
 			result = px4_ioctl(fd, MAGIOCCALIBRATE, fd);
 
-			if (result != OK) {
+			if (result != PX4_OK) {
 				calibration_log_info(mavlink_log_pub, "[cal] Skipped scale calibration, sensor %u", cur_mag);
 				/* this is non-fatal - mark it accordingly */
-				result = OK;
+				result = PX4_OK;
 			}
 		}
 
@@ -201,11 +196,11 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	// Calibrate all mags at the same time
-	if (result == OK) {
+	if (result == PX4_OK) {
 		switch (mag_calibrate_all(mavlink_log_pub)) {
 			case calibrate_return_cancelled:
 				// Cancel message already displayed, we're done here
-				result = ERROR;
+				result = PX4_ERROR;
 				break;
 
 			case calibrate_return_ok:
@@ -215,7 +210,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 				/* if there is a any preflight-check system response, let the barrage of messages through */
 				usleep(200000);
 
-				if (result == OK) {
+				if (result == PX4_OK) {
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 					usleep(20000);
 					calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
@@ -680,7 +675,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				}
 
 				if (result == calibrate_return_ok) {
-					if (px4_ioctl(fd_mag, MAGIOCGSCALE, (long unsigned int)&mscale) != OK) {
+					if (px4_ioctl(fd_mag, MAGIOCGSCALE, (long unsigned int)&mscale) != PX4_OK) {
 						calibration_log_critical(mavlink_log_pub, "[cal] ERROR: failed to get current calibration #%u", cur_mag);
 						result = calibrate_return_error;
 					}
@@ -693,7 +688,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.z_offset = sphere_z[cur_mag];
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
-					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != OK) {
+					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != PX4_OK) {
 						calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
 						result = calibrate_return_error;
 					}
@@ -713,22 +708,22 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					/* set parameters */
 
 					(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(device_ids[cur_mag])));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_ids[cur_mag])));
 					(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_offset)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.x_offset)));
 					(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_offset)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.y_offset)));
 					(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
 
 					// FIXME: scaling is not used right now on QURT
 #ifndef __PX4_QURT
 					(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
 					(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
 #endif
 
 					if (failed) {

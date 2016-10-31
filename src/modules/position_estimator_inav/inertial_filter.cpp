@@ -5,14 +5,14 @@
  *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  */
 
-#include <math.h>
-
+#include "px4_defines.h"
 #include "inertial_filter.h"
+#include <cmath>
 
 void inertial_filter_predict(float dt, float x[2], float acc)
 {
-	if (isfinite(dt)) {
-		if (!isfinite(acc)) {
+	if (PX4_ISFINITE(dt)) {
+		if (!PX4_ISFINITE(acc)) {
 			acc = 0.0f;
 		}
 
@@ -23,7 +23,7 @@ void inertial_filter_predict(float dt, float x[2], float acc)
 
 void inertial_filter_correct(float e, float dt, float x[2], int i, float w)
 {
-	if (isfinite(e) && isfinite(w) && isfinite(dt)) {
+	if (PX4_ISFINITE(e) && PX4_ISFINITE(w) && PX4_ISFINITE(dt)) {
 		float ewdt = e * w * dt;
 		x[i] += ewdt;
 

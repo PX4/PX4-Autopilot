@@ -15,7 +15,6 @@ uint8 RC_INPUT_SOURCE_PX4IO_SUMD = 13
 
 uint8 RC_INPUT_MAX_CHANNELS = 18 	# Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
 
-uint64 timestamp_publication		# publication time
 uint64 timestamp_last_signal		# last valid reception time
 uint32 channel_count			# number of channels actually being seen
 int32 rssi				# receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 100: full reception

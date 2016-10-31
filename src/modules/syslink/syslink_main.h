@@ -43,7 +43,18 @@
 #include "syslink.h"
 #include "crtp.h"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
+
+typedef enum {
+	BAT_DISCHARGING = 0,
+	BAT_CHARGING = 1,
+	BAT_CHARGED = 2
+} battery_state;
+
+
 class SyslinkBridge;
+class SyslinkMemory;
 
 class Syslink
 {
@@ -57,9 +68,16 @@ public:
 	int set_channel(uint8_t channel);
 	int set_address(uint64_t addr);
 
+
+	int pktrate;
+	int nullrate;
+	int rxrate;
+	int txrate;
+
 private:
 
 	friend class SyslinkBridge;
+	friend class SyslinkMemory;
 
 	int open_serial(const char *dev);
 
@@ -82,11 +100,23 @@ private:
 	int _syslink_task;
 	bool _task_running;
 
+	int _count;
+	int _null_count;
+	int _count_in;
+	int _count_out;
+	hrt_abstime _lasttime;
+	hrt_abstime _lasttxtime; // Last time a radio message was sent
+	hrt_abstime _lastrxtime; // Last time a radio message was recieved
+
 	int _fd;
+
+	// For receiving raw syslink messages to send from other processes
+	ringbuffer::RingBuffer _queue;
 
 	// Stores data that was needs to be written as a raw message
 	ringbuffer::RingBuffer _writebuffer;
 	SyslinkBridge *_bridge;
+	SyslinkMemory *_memory;
 
 	orb_advert_t _battery_pub;
 	orb_advert_t _rc_pub;
@@ -97,6 +127,13 @@ private:
 	Battery _battery;
 
 	int32_t _rssi;
+	battery_state _bstate;
+
+	px4_sem_t radio_sem;
+	px4_sem_t memory_sem;
+
+	syslink_message_t radio_msg;
+	syslink_message_t memory_msg;
 
 	static int task_main_trampoline(int argc, char *argv[]);
 
@@ -132,5 +169,38 @@ private:
 	// Stores data that was received from syslink but not yet read by another driver
 	ringbuffer::RingBuffer _readbuffer;
 
+
+};
+
+
+class SyslinkMemory : public device::CDev
+{
+
+public:
+	SyslinkMemory(Syslink *link);
+	virtual ~SyslinkMemory();
+
+	virtual int	init();
+
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+
+private:
+	friend class Syslink;
+
+	Syslink *_link;
+
+	int _activeI;
+
+	syslink_message_t msgbuf;
+
+	uint8_t scan();
+	void getinfo(int i);
+
+	int read(int i, uint16_t addr, char *buf, int length);
+	int write(int i, uint16_t addr, const char *buf, int length);
+
+	void sendAndWait();
 
 };

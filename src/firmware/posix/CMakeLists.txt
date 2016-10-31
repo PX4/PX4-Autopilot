@@ -1,7 +1,7 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 px4_posix_generate_builtin_commands(
-	OUT apps.h
+	OUT apps
 	MODULE_LIST ${module_libraries})
 
 if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
@@ -19,7 +19,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 		SOURCES
 			px4muorb_stub.c
 			${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
-			apps.h
+			apps.cpp
 		LINK_LIBS
 			-Wl,--start-group
 			${module_libraries}
@@ -39,9 +39,9 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 elseif ("${BOARD}" STREQUAL "rpi")
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
-		apps.h
+		apps.cpp
 		)
 
 	target_link_libraries(px4
@@ -66,9 +66,9 @@ elseif ("${BOARD}" STREQUAL "bebop")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
-		apps.h
+		apps.cpp
 		)
 
 	if (NOT APPLE)
@@ -96,10 +96,11 @@ elseif ("${BOARD}" STREQUAL "bebop")
 
 else()
 
-	add_executable(px4
+	px4_add_executable(px4
 		${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp
-		apps.h
+		apps.cpp
 		)
+
 	if (NOT APPLE)
 		target_link_libraries(px4
 			-Wl,--start-group
@@ -151,6 +152,7 @@ set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set(viewers none jmavsim gazebo replay)
 set(debuggers none gdb lldb ddd valgrind)
 set(models none iris iris_opt_flow tailsitter standard_vtol plane solo typhoon_h480)
+set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
 		foreach(model ${models})
@@ -179,12 +181,20 @@ foreach(viewer ${viewers})
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				)
+			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
 				add_dependencies(${_targ_name} sitl_gazebo)
 			endif()
 		endforeach()
 	endforeach()
 endforeach()
+
+px4_join(OUT posix_vmd_make_target_list LIST ${all_posix_vmd_make_targets} GLUE "\\n")
+add_custom_target(list_vmd_make_targets
+	COMMAND sh -c "printf \"${posix_vmd_make_target_list}\\n\""
+	COMMENT "List of acceptable '${CONFIG}' <viewer_model_debugger> targets:"
+	VERBATIM
+	)
 
 #=============================================================================
 # install

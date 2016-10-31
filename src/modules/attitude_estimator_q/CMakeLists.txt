@@ -35,7 +35,6 @@ px4_add_module(
 	MODULE modules__attitude_estimator_q
 	MAIN attitude_estimator_q
 	COMPILE_FLAGS
-		-Os
 	STACK_MAIN 1200
 	STACK_MAX 1600
 	SRCS
@@ -43,4 +42,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

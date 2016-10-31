@@ -166,24 +166,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	R(4, 4) = var_vxy;
 	R(5, 5) = var_vz;
 
-	// get delayed x and P
-	float t_delay = 0;
-	int i_hist = 0;
+	// get delayed x
+	uint8_t i_hist = 0;
 
-	for (i_hist = 1; i_hist < HIST_LEN; i_hist++) {
-		t_delay = 1.0e-6f * (_timeStamp - _tDelay.get(i_hist)(0, 0));
-
-		if (t_delay > _gps_delay.get()) {
-			break;
-		}
-	}
-
-	// if you are 3 steps past the delay you wanted, this
-	// data is probably too old to use
-	if (t_delay > GPS_DELAY_MAX) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] gps delayed data too old: %8.4f", double(t_delay));
-		return;
-	}
+	if (getDelayPeriods(_gps_delay.get(), &i_hist)  < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 
@@ -203,9 +189,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (beta > BETA_TABLE[n_y_gps]) {
 		if (_gpsFault < FAULT_MINOR) {
 			if (beta > 3.0f * BETA_TABLE[n_y_gps]) {
-				mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
-								 double(r(0)*r(0) / S_I(0, 0)),  double(r(1)*r(1) / S_I(1, 1)), double(r(2)*r(2) / S_I(2, 2)),
-								 double(r(3)*r(3) / S_I(3, 3)),  double(r(4)*r(4) / S_I(4, 4)), double(r(5)*r(5) / S_I(5, 5)));
+				mavlink_log_critical(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
+						     double(r(0)*r(0) / S_I(0, 0)),  double(r(1)*r(1) / S_I(1, 1)), double(r(2)*r(2) / S_I(2, 2)),
+						     double(r(3)*r(3) / S_I(3, 3)),  double(r(4)*r(4) / S_I(4, 4)), double(r(5)*r(5) / S_I(5, 5)));
 			}
 
 			_gpsFault = FAULT_MINOR;
@@ -232,7 +218,7 @@ void BlockLocalPositionEstimator::gpsCheckTimeout()
 		if (_gpsInitialized) {
 			_gpsInitialized = false;
 			_gpsStats.reset();
-			mavlink_and_console_log_critical(&mavlink_log_pub, "[lpe] GPS timeout ");
+			mavlink_log_critical(&mavlink_log_pub, "[lpe] GPS timeout ");
 		}
 	}
 }

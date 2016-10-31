@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 5000
 	COMPILE_FLAGS
 		-DMAVLINK_FTP_UNIT_TEST
-		-Os
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp
@@ -46,4 +45,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

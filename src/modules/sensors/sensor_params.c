@@ -2545,6 +2545,33 @@ PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 PARAM_DEFINE_INT32(RC_MAP_TRANS_SW, 0);
 
 /**
+ * Landing gear switch channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
+/**
  * AUX1 Passthrough RC Channel
  *
  * Default function: Camera pitch
@@ -2977,6 +3004,24 @@ PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
 PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.25f);
 
 /**
+ * Threshold for the landing gear switch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.25f);
+
+/**
  * PWM input channel that provides RSSI.
  *
  * 0: do not read RSSI from input channel
@@ -3198,3 +3243,18 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);
+
+/**
+ * Minimum motor rise time (slew rate limit).
+ *
+ * Minimum time allowed for the motor input signal to pass through
+ * a range of 1000 PWM units. A value x means that the motor signal
+ * can only go from 1000 to 2000 PWM in maximum x seconds.
+ *
+ * Zero means that slew rate limiting is disabled.
+ *
+ * @min 0.0
+ * @unit s/(1000*PWM)
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);

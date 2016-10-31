@@ -79,7 +79,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_airspeed_sub(-1),
 	_battery_status_sub(-1),
 	_vehicle_cmd_sub(-1),
-	_vehicle_status_sub(-1),
 	_tecs_status_sub(-1),
 	_land_detected_sub(-1),
 
@@ -113,7 +112,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_airspeed, 0, sizeof(_airspeed));
 	memset(&_batt_status, 0, sizeof(_batt_status));
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
-	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_tecs_status, 0, sizeof(_tecs_status));
 	memset(&_land_detected, 0, sizeof(_land_detected));
 
@@ -417,21 +415,6 @@ VtolAttitudeControl::vehicle_cmd_poll()
 }
 
 /**
-* Check for vehicle status updates.
-*/
-void
-VtolAttitudeControl::vehicle_status_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub , &_vehicle_status);
-	}
-}
-
-/**
 * Check for TECS status updates.
 */
 void
@@ -641,7 +624,6 @@ void VtolAttitudeControl::task_main()
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
-	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
 	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
@@ -721,7 +703,6 @@ void VtolAttitudeControl::task_main()
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
-		vehicle_status_poll();
 		tecs_status_poll();
 		land_detected_poll();
 
@@ -735,6 +716,12 @@ void VtolAttitudeControl::task_main()
 
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+			} else if (_vtol_type->get_mode() == TRANSITION_TO_MC) {
+				/* We want to make sure that a mode change (manual>auto) during the back transition
+				 * doesn't result in an unsafe state. This prevents the instant fall back to
+				 * fixed-wing on the switch from manual to auto */
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			}
 		}
 
@@ -768,10 +755,11 @@ void VtolAttitudeControl::task_main()
 				fill_fw_att_rates_sp();
 			}
 
-		} else if (_vtol_type->get_mode() == TRANSITION) {
+		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
 			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
+			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
 
 			bool got_new_data = false;
 
@@ -842,7 +830,7 @@ VtolAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
-					   1100,
+					   1200,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 					   nullptr);
 

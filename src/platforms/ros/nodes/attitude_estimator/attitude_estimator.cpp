@@ -75,21 +75,6 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	msg_v_att.q[2] = quat(2);
 	msg_v_att.q[3] = quat(3);
 
-	math::Matrix<3, 3> rot = quat.to_dcm();
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			PX4_R(msg_v_att.R, i, j) = rot(i, j);
-		}
-	}
-
-	msg_v_att.R_valid = true;
-
-	math::Vector<3> euler = rot.to_euler();
-	msg_v_att.roll = euler(0);
-	msg_v_att.pitch = euler(1);
-	msg_v_att.yaw = euler(2);
-
 	//XXX this is in inertial frame
 	// msg_v_att.rollspeed = (float)msg->twist[index].angular.x;
 	// msg_v_att.pitchspeed = -(float)msg->twist[index].angular.y;
@@ -118,21 +103,6 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr &msg)
 	msg_v_att.q[1] = quat(1);
 	msg_v_att.q[2] = quat(2);
 	msg_v_att.q[3] = quat(3);
-
-	math::Matrix<3, 3> rot = quat.to_dcm();
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			PX4_R(msg_v_att.R, i, j) = rot(i, j);
-		}
-	}
-
-	msg_v_att.R_valid = true;
-
-	math::Vector<3> euler = rot.to_euler();
-	msg_v_att.roll = euler(0);
-	msg_v_att.pitch = euler(1);
-	msg_v_att.yaw = euler(2);
 
 	msg_v_att.rollspeed = (float)msg->angular_velocity.x;
 	msg_v_att.pitchspeed = -(float)msg->angular_velocity.y;

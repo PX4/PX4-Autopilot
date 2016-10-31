@@ -47,9 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -126,6 +123,13 @@ __BEGIN_DECLS
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
 
+/* Tone alarm output : These are only applicable when the buzzer deck is attached */
+#define TONE_ALARM_TIMER	5	/* timer 5 */
+#define TONE_ALARM_CHANNEL 3	/* channel 3 */
+#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN2)
+#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN2)
+#define GPIO_TONE_ALARM_NEG (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN3)
+
 /* PWM
 *
 * Four PWM motor outputs are configured.
@@ -161,8 +165,7 @@ __BEGIN_DECLS
 
 #define BOARD_FMU_GPIO_TAB { {0, 0, 0}, }
 
-
-
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types
@@ -212,9 +215,6 @@ extern void board_peripheral_reset(int ms);
 int nsh_archinitialize(void);
 #endif
 
-
-
-
 /****************************************************************************
  * Name: board_i2c_initialize
  *
@@ -224,7 +224,6 @@ int nsh_archinitialize(void);
  ****************************************************************************/
 
 int board_i2c_initialize(void);
-
 
 #endif /* __ASSEMBLY__ */
 

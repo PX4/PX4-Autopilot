@@ -200,3 +200,13 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	/* nothing more in the buffer for us now */
 	return ret;
 }
+
+void MixerGroup::set_max_delta_out_once(float delta_out_max)
+{
+	Mixer	*mixer = _first;
+
+	while (mixer != nullptr) {
+		mixer->set_max_delta_out_once(delta_out_max);
+		mixer = mixer->_next;
+	}
+}

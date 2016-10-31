@@ -92,13 +92,6 @@
 #define MB12XX_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
 #define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -251,7 +244,7 @@ MB12XX::~MB12XX()
 int
 MB12XX::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -728,12 +721,6 @@ MB12XX::print_info()
  */
 namespace mb12xx
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 MB12XX	*g_dev;
 

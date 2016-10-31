@@ -841,11 +841,11 @@ protected:
 
 		if (_att_sub->update(&_att_time, &att)) {
 			mavlink_attitude_t msg;
-
+			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.time_boot_ms = att.timestamp / 1000;
-			msg.roll = att.roll;
-			msg.pitch = att.pitch;
-			msg.yaw = att.yaw;
+			msg.roll = euler.phi();
+			msg.pitch = euler.theta();
+			msg.yaw = euler.psi();
 			msg.rollspeed = att.rollspeed;
 			msg.pitchspeed = att.pitchspeed;
 			msg.yawspeed = att.yawspeed;
@@ -1014,10 +1014,10 @@ protected:
 
 		if (updated) {
 			mavlink_vfr_hud_t msg;
-
+			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
-			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
+			msg.heading = _wrap_2pi(euler.psi()) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
 
 			if (_pos_time > 0) {
@@ -1707,6 +1707,15 @@ protected:
 			est_msg.time_usec = est.timestamp;
 			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
 			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+			est_msg.mag_ratio = est.mag_test_ratio;
+			est_msg.vel_ratio = est.vel_test_ratio;
+			est_msg.pos_horiz_ratio = est.pos_test_ratio;
+			est_msg.pos_vert_ratio = est.hgt_test_ratio;
+			est_msg.hagl_ratio = est.hagl_test_ratio;
+			est_msg.tas_ratio = est.tas_test_ratio;
+			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
+			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
+			est_msg.flags = est.solution_status_flags;
 
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
@@ -2163,11 +2172,11 @@ protected:
 				for (unsigned i = 0; i < 8; i++) {
 					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
 						if (i < n) {
-							/* scale PWM out 900..2100 us to 0..1 for rotors */
+							/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for rotors */
 							out[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 						} else {
-							/* scale PWM out 900..2100 us to -1..1 for other channels */
+							/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
 							out[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 						}
 
@@ -2183,11 +2192,11 @@ protected:
 				for (unsigned i = 0; i < 8; i++) {
 					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
 						if (i != 3) {
-							/* scale PWM out 900..2100 us to -1..1 for normal channels */
+							/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 							out[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 						} else {
-							/* scale PWM out 900..2100 us to 0..1 for throttle */
+							/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
 							out[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 						}
 
@@ -2575,7 +2584,11 @@ protected:
 			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
-			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+			if (att_sp.q_d_valid) {
+				memcpy(&msg.q[0], &att_sp.q_d[0], sizeof(msg.q));
+			} else {
+				mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+			}
 
 			msg.body_roll_rate = att_rates_sp.roll;
 			msg.body_pitch_rate = att_rates_sp.pitch;
@@ -2645,7 +2658,7 @@ protected:
 			/* send RC channel data and RSSI */
 			mavlink_rc_channels_t msg;
 
-			msg.time_boot_ms = rc.timestamp_publication / 1000;
+			msg.time_boot_ms = rc.timestamp / 1000;
 			msg.chancount = rc.channel_count;
 			msg.chan1_raw = (rc.channel_count > 0) ? rc.values[0] : UINT16_MAX;
 			msg.chan2_raw = (rc.channel_count > 1) ? rc.values[1] : UINT16_MAX;
@@ -3196,21 +3209,17 @@ protected:
 			updated = true;
 
 			if (status.is_vtol) {
-				if (status.is_rotary_wing) {
-					if (status.in_transition_mode) {
-						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+				if (!status.in_transition_mode && status.is_rotary_wing) {
+					_msg.vtol_state = MAV_VTOL_STATE_MC;
 
-					} else {
-						_msg.vtol_state = MAV_VTOL_STATE_MC;
-					}
+				} else if (!status.in_transition_mode){
+					_msg.vtol_state = MAV_VTOL_STATE_FW;
 
-				} else {
-					if (status.in_transition_mode) {
-						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+				} else if (status.in_transition_mode && status.in_transition_to_fw) {
+					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
 
-					} else {
-						_msg.vtol_state = MAV_VTOL_STATE_FW;
-					}
+				} else if (status.in_transition_mode) {
+					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
 				}
 			}
 		}

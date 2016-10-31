@@ -38,6 +38,7 @@
 
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_defines.h>
 
 #include "rc_calibration.h"
 #include "commander_helper.h"
@@ -50,12 +51,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -66,7 +61,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (!changed) {
 		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
@@ -108,10 +103,10 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
 		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	mavlink_log_info(mavlink_log_pub, "trim cal done");
 	px4_close(sub_man);
-	return OK;
+	return PX4_OK;
 }

@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	STACK_MAX 1300
 	SRCS
-		main.c
+		main.cpp
 		params.c
 	DEPENDS
 		platforms__common

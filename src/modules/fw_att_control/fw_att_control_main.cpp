@@ -108,7 +108,7 @@ public:
 	/**
 	 * Start the main task.
 	 *
-	 * @return	OK on success.
+	 * @return	PX4_OK on success.
 	 */
 	int		start();
 
@@ -344,12 +344,6 @@ private:
 namespace att_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 FixedwingAttitudeControl	*g_control = nullptr;
 }
 
@@ -583,7 +577,7 @@ FixedwingAttitudeControl::parameters_update()
 	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
 	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
-	return OK;
+	return PX4_OK;
 }
 
 void
@@ -881,11 +875,11 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaps by default to manual if valid */
 			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabs(_parameters.flaps_scale) > 0.01) {
+			    && fabsf(_parameters.flaps_scale) > 0.01f) {
 				flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
 
 			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabs(_parameters.flaps_scale) > 0.01) {
+				   && fabsf(_parameters.flaps_scale) > 0.01f) {
 				flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
 			}
 
@@ -902,11 +896,11 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaperons by default to manual if valid */
 			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabs(_parameters.flaperon_scale) > 0.01) {
+			    && fabsf(_parameters.flaperon_scale) > 0.01f) {
 				flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
 
 			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabs(_parameters.flaperon_scale) > 0.01) {
+				   && fabsf(_parameters.flaperon_scale) > 0.01f) {
 				flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
 			}
 
@@ -1051,7 +1045,8 @@ FixedwingAttitudeControl::task_main()
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
-					_actuators.control[0] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
+					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll :
+							_parameters.trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
@@ -1063,7 +1058,8 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float pitch_u = _pitch_ctrl.control_bodyrate(control_input);
-					_actuators.control[1] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
+					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch :
+							_parameters.trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
@@ -1095,10 +1091,11 @@ FixedwingAttitudeControl::task_main()
 						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					}
 
-					_actuators.control[2] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
+					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
+							_parameters.trim_yaw;
 
 					/* add in manual rudder control */
-					_actuators.control[2] += yaw_manual;
+					_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
 
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
@@ -1112,10 +1109,10 @@ FixedwingAttitudeControl::task_main()
 
 					/* throttle passed through if it is finite and if no engine failure was
 					 * detected */
-					_actuators.control[3] = (PX4_ISFINITE(throttle_sp) &&
-								 !(_vehicle_status.engine_failure ||
-								   _vehicle_status.engine_failure_cmd)) ?
-								throttle_sp : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
+							!(_vehicle_status.engine_failure ||
+							  _vehicle_status.engine_failure_cmd)) ?
+							throttle_sp : 0.0f;
 
 					if (!PX4_ISFINITE(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
@@ -1162,6 +1159,7 @@ FixedwingAttitudeControl::task_main()
 			_actuators.control[actuator_controls_s::INDEX_FLAPS] = _flaps_applied;
 			_actuators.control[5] = _manual.aux1;
 			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = _flaperons_applied;
+			// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
 			_actuators.control[7] = _manual.aux3;
 
 			/* lazily publish the setpoint only once available */
@@ -1221,7 +1219,7 @@ FixedwingAttitudeControl::start()
 		return -errno;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 int fw_att_control_main(int argc, char *argv[])
@@ -1245,7 +1243,7 @@ int fw_att_control_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != att_control::g_control->start()) {
+		if (PX4_OK != att_control::g_control->start()) {
 			delete att_control::g_control;
 			att_control::g_control = nullptr;
 			warn("start failed");

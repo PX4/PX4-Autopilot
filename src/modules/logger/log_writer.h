@@ -33,109 +33,143 @@
 
 #pragma once
 
-#include <px4.h>
-#include <stdint.h>
-#include <pthread.h>
-#include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
+#include "log_writer_file.h"
+#include "log_writer_mavlink.h"
 
 namespace px4
 {
 namespace logger
 {
 
+/**
+ * @class LogWriter
+ * Manages starting, stopping & writing of logged data using the configured backend.
+ */
 class LogWriter
 {
 public:
-	LogWriter(size_t buffer_size);
+
+	/** bitfield to specify a backend */
+	typedef uint8_t Backend;
+	static constexpr Backend BackendFile = 1 << 0;
+	static constexpr Backend BackendMavlink = 1 << 1;
+	static constexpr Backend BackendAll = BackendFile | BackendMavlink;
+
+	LogWriter(Backend configured_backend, size_t file_buffer_size, unsigned int queue_size);
 	~LogWriter();
 
 	bool init();
 
-	/**
-	 * start the thread
-	 * @param thread will be set to the created thread on success
-	 * @return 0 on success, error number otherwise (@see pthread_create)
-	 */
-	int thread_start(pthread_t &thread);
+	Backend backend() const { return _backend; }
 
+	/** stop all running threads and wait for them to exit */
 	void thread_stop();
 
-	void start_log(const char *filename);
+	void start_log_file(const char *filename);
 
-	void stop_log();
+	void stop_log_file();
+
+	void start_log_mavlink();
+
+	void stop_log_mavlink();
 
 	/**
-	 * Write data to be logged. The caller must call lock() before calling this.
-	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
-	 * @return true on success, false if not enough space in the buffer left
+	 * whether logging is currently active or not (any of the selected backends).
 	 */
-	bool write(void *ptr, size_t size, uint64_t dropout_start = 0);
+	bool is_started() const;
+
+	/**
+	 * whether logging is currently active or not for a specific backend.
+	 */
+	bool is_started(Backend query_backend) const;
+
+	/**
+	 * Write a single ulog message (including header). The caller must call lock() before calling this.
+	 * @param dropout_start timestamp when lastest dropout occured. 0 if no dropout at the moment.
+	 * @return 0 on success (or if no logging started),
+	 *         -1 if not enough space in the buffer left (file backend), -2 mavlink backend failed
+	 */
+	int write_message(void *ptr, size_t size, uint64_t dropout_start = 0);
+
+	/**
+	 * Select a backend, so that future calls to write_message() only write to the selected
+	 * sel_backend, until unselect_write_backend() is called.
+	 * @param backend
+	 */
+	void select_write_backend(Backend sel_backend);
+	void unselect_write_backend() { select_write_backend(BackendAll); }
+
+	/* file logging methods */
 
 	void lock()
 	{
-		pthread_mutex_lock(&_mtx);
+		if (_log_writer_file) { _log_writer_file->lock(); }
 	}
 
 	void unlock()
 	{
-		pthread_mutex_unlock(&_mtx);
+		if (_log_writer_file) { _log_writer_file->unlock(); }
 	}
 
 	void notify()
 	{
-		pthread_cond_broadcast(&_cv);
+		if (_log_writer_file) { _log_writer_file->notify(); }
 	}
 
-	size_t get_total_written() const
+	size_t get_total_written_file() const
 	{
-		return _total_written;
+		if (_log_writer_file) { return _log_writer_file->get_total_written(); }
+
+		return 0;
 	}
 
-	size_t get_buffer_size() const
+	size_t get_buffer_size_file() const
 	{
-		return _buffer_size;
+		if (_log_writer_file) { return _log_writer_file->get_buffer_size(); }
+
+		return 0;
 	}
 
-	size_t get_buffer_fill_count() const
+	size_t get_buffer_fill_count_file() const
 	{
-		return _count;
+		if (_log_writer_file) { return _log_writer_file->get_buffer_fill_count(); }
+
+		return 0;
+	}
+
+
+	/**
+	 * Indicate to the underlying backend whether future write_message() calls need a reliable
+	 * transfer. Needed for header integrity.
+	 */
+	void set_need_reliable_transfer(bool need_reliable)
+	{
+		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
+
+		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable); }
+	}
+
+	bool need_reliable_transfer() const
+	{
+		if (_log_writer_file) { return _log_writer_file->need_reliable_transfer(); }
+
+		if (_log_writer_mavlink) { return _log_writer_mavlink->need_reliable_transfer(); }
+
+		return false;
 	}
 
 private:
-	static void *run_helper(void *);
 
-	void run();
+	LogWriterFile *_log_writer_file = nullptr;
+	LogWriterMavlink *_log_writer_mavlink = nullptr;
 
-	size_t get_read_ptr(void **ptr, bool *is_part);
+	LogWriterFile *_log_writer_file_for_write =
+		nullptr; ///< pointer that is used for writing, to temporarily select write backends
+	LogWriterMavlink *_log_writer_mavlink_for_write = nullptr;
 
-	void mark_read(size_t n)
-	{
-		_count -= n;
-	}
-
-	/**
-	 * Write to the buffer but assuming there is enough space
-	 */
-	inline void write_no_check(void *ptr, size_t size);
-
-	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
-	static constexpr size_t	_min_write_chunk = 4096;
-
-	int			_fd = -1;
-	uint8_t 	*_buffer = nullptr;
-	const size_t	_buffer_size;
-	size_t			_head = 0; ///< next position to write to
-	size_t			_count = 0; ///< number of bytes in _buffer to be written
-	size_t		_total_written = 0;
-	bool		_should_run = false;
-	bool		_running = false;
-	bool 		_exit_thread = false;
-	pthread_mutex_t		_mtx;
-	pthread_cond_t		_cv;
-	perf_counter_t _perf_write;
-	perf_counter_t _perf_fsync;
+	const Backend _backend;
 };
+
 
 }
 }

@@ -65,7 +65,8 @@ struct Params {
 enum mode {
 	ROTARY_WING = 0,
 	FIXED_WING,
-	TRANSITION,
+	TRANSITION_TO_FW,
+	TRANSITION_TO_MC,
 	EXTERNAL
 };
 
@@ -160,7 +161,6 @@ protected:
 	struct vehicle_local_position_s			*_local_pos;
 	struct airspeed_s 				*_airspeed;					// airspeed
 	struct battery_status_s 			*_batt_status; 				// battery status
-	struct vehicle_status_s 			*_vehicle_status;			// vehicle status from commander app
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 

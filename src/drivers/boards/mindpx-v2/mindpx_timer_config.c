@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Airmind nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -67,7 +67,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_bit = RCC_APB1ENR_TIM4EN,
 		.clock_freq = STM32_APB1_TIM4_CLKIN,
 		.first_channel_index = 4,
-		.last_channel_index = 5,
+		.last_channel_index = 7,
 		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM4
 	}
@@ -107,6 +107,14 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
 	},
 	{
+		.gpio_out = GPIO_TIM4_CH1OUT,
+		.gpio_in  = GPIO_TIM4_CH1IN,
+		.timer_index = 1,
+		.timer_channel = 1,
+		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
+		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
+	},
+	{
 		.gpio_out = GPIO_TIM4_CH2OUT,
 		.gpio_in  = GPIO_TIM4_CH2IN,
 		.timer_index = 1,
@@ -121,41 +129,43 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.timer_channel = 3,
 		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
-	}
-//	{
-//		.gpio = GPIO_TIM4_CH4OUT,
-//		.timer_index = 1,
-//		.timer_channel = 4,
-//		.default_value = 1000,
-//	}
-};
-
-__EXPORT const struct io_timers_t led_pwm_timers[1] = {
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN,
-	}
-};
-
-__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = {
-	{
-		.gpio_out = LED_TIM3_CH3OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 3,
 	},
 	{
-		.gpio_out = LED_TIM3_CH2OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 2,
-	},
-	{
-		.gpio_out = LED_TIM3_CH4OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
+		.gpio_out = GPIO_TIM4_CH4OUT,
+		.gpio_in  = GPIO_TIM4_CH4IN,
+		.timer_index = 1,
 		.timer_channel = 4,
+		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
+		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
 	}
 };
+
+// __EXPORT const struct io_timers_t led_pwm_timers[1] = {
+// 	{
+// 		.base = STM32_TIM3_BASE,
+// 		.clock_register = STM32_RCC_APB1ENR,
+// 		.clock_bit = RCC_APB1ENR_TIM3EN,
+// 		.clock_freq = STM32_APB1_TIM3_CLKIN,
+// 	}
+// };
+
+// __EXPORT const struct timer_io_channels_t led_pwm_channels[3] = {
+// 	{
+// 		.gpio_out = LED_TIM3_CH3OUT,
+// 		.gpio_in  = 0,
+// 		.timer_index = 0,
+// 		.timer_channel = 3,
+// 	},
+// 	{
+// 		.gpio_out = LED_TIM3_CH2OUT,
+// 		.gpio_in  = 0,
+// 		.timer_index = 0,
+// 		.timer_channel = 2,
+// 	},
+// 	{
+// 		.gpio_out = LED_TIM3_CH4OUT,
+// 		.gpio_in  = 0,
+// 		.timer_index = 0,
+// 		.timer_channel = 4,
+// 	}
+// };

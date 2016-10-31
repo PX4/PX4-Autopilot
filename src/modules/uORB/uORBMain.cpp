@@ -43,7 +43,9 @@ extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 static uORB::DeviceMaster *g_dev = nullptr;
 static void usage()
 {
-	PX4_INFO("Usage: uorb 'start', 'status'");
+	PX4_INFO("Usage: uorb 'start', 'status', 'top [-a] [<filter1> [<filter2> ...]]'");
+	PX4_INFO("       -a: print all instead of only currently publishing topics");
+	PX4_INFO("       <filter>: topic(s) to match (implies -a)");
 }
 
 int
@@ -95,6 +97,17 @@ uorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (g_dev != nullptr) {
 			g_dev->printStatistics(true);
+
+		} else {
+			PX4_INFO("uorb is not running");
+		}
+
+		return OK;
+	}
+
+	if (!strcmp(argv[1], "top")) {
+		if (g_dev != nullptr) {
+			g_dev->showTop(argv + 2, argc - 2);
 
 		} else {
 			PX4_INFO("uorb is not running");

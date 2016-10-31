@@ -323,7 +323,7 @@ void handle_message(mavlink_message_t *rc_message)
 {
 	mavlink_rc_channels_t rc;
 	mavlink_msg_rc_channels_decode(rc_message, &rc);
-	_rc.timestamp_publication = hrt_absolute_time();
+	_rc.timestamp = hrt_absolute_time();
 	_rc.timestamp_last_signal = hrt_absolute_time();
 	_rc.channel_count = rc.chancount;
 	_rc.rc_lost = false;

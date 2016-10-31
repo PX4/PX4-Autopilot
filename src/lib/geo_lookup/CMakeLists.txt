@@ -33,10 +33,9 @@
 px4_add_module(
 	MODULE lib__geo_lookup
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		geo_mag_declination.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

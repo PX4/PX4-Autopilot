@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(TOOLS_ERROR_MSG 
+set(TOOLS_ERROR_MSG
 		"The FC_ADDON must be installed and the environment variable FC_ADDON must be set"
 		"(e.g. export FC_ADDON=${HOME}/Qualcomm/addon)")
 
@@ -53,7 +53,7 @@ px4_add_module(
 	MAIN mpu9x50
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os -Weffc++
+		-Weffc++
 	SRCS
 		mpu9x50_main.cpp
 		mpu9x50_params.c
@@ -61,10 +61,10 @@ px4_add_module(
 		platforms__common
 	)
 
-set(module_external_libraries 
+set(module_external_libraries
 	${module_external_libraries}
 	libmpu9x50
 	CACHE INTERNAL "module_external_libraries"
 	)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

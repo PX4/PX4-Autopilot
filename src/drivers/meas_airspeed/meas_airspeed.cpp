@@ -399,12 +399,6 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 namespace meas_airspeed
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
-
 MEASAirspeed	*g_dev = nullptr;
 
 void	start(int i2c_bus);

@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__pca8574
 	MAIN pca8574
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		pca8574.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

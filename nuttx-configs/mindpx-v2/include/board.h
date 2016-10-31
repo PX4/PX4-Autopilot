@@ -93,7 +93,7 @@
  *
  * PLL source is HSE
  * PLL_VCO = (STM32_HSE_FREQUENCY / PLLM) * PLLN
- *         = (25,000,000 / 25) * 336
+ *         = (8,000,000 / 8) * 336
  *         = 336,000,000
  * SYSCLK  = PLL_VCO / PLLP
  *         = 336,000,000 / 2 = 168,000,000
@@ -199,8 +199,8 @@
 /*
  * UARTs.
  */
-#define GPIO_USART1_RX	GPIO_USART1_RX_1	/* console in from IO */
-#define GPIO_USART1_TX	0			/* USART1 is RX-only */
+#define GPIO_USART1_RX	GPIO_USART1_RX_2	/* RC_INPUT */
+#define GPIO_USART1_TX	GPIO_USART1_TX_2
 
 #define GPIO_USART2_RX	GPIO_USART2_RX_2
 #define GPIO_USART2_TX	GPIO_USART2_TX_2
@@ -215,8 +215,8 @@
 #define GPIO_UART4_RX	GPIO_UART4_RX_1
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
 
-#define GPIO_USART6_RX	GPIO_USART6_RX_1
-#define GPIO_USART6_TX	GPIO_USART6_TX_1
+#define GPIO_USART6_RX	GPIO_USART6_RX_2
+#define GPIO_USART6_TX	GPIO_USART6_TX_2
 
 #define GPIO_UART7_RX	GPIO_UART7_RX_1
 #define GPIO_UART7_TX	GPIO_UART7_TX_1
@@ -231,12 +231,9 @@
  * CAN
  *
  * CAN1 is routed to the onboard transceiver.
- * CAN2 is routed to the expansion connector.
  */
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_3
-#define GPIO_CAN2_RX	GPIO_CAN2_RX_1
-#define GPIO_CAN2_TX	GPIO_CAN2_TX_2
 
 /*
  * I2C
@@ -261,7 +258,7 @@
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
  */
 #define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
+#define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_2|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_SCK	(GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)
 
 #define GPIO_SPI2_MISO	(GPIO_SPI2_MISO_1|GPIO_SPEED_50MHz)
