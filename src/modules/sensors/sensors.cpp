@@ -585,7 +585,7 @@ private:
 	/** //ADDED BY DEAFRO
 	* Check if we shall perform sysID manoeuvres
 	*/
-	void check_sysid_manoeuvre(manual_control_stepoint_s *manual);
+	void check_sysid_manoeuvre(manual_control_setpoint_s *manual);
 };
 
 namespace sensors
