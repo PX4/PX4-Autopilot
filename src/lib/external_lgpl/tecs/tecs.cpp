@@ -474,6 +474,13 @@ void TECS::_update_pitch(void)
 	float integ7_err_max = (gainInv * (_PITCHmaxf + math::radians(5.0f))) - temp;
 	_integ7_state = constrain(_integ7_state, integ7_err_min, integ7_err_max);
 
+	// if the specific engergy balance correction term produces a demanded pitch value which exceeds the aircraft pitch limits
+	// then zero the integrator. Not doing so can lead to the integrator value being shifted to large unwanted values due to the
+	// constraint right above this comment
+	if (SEB_correction / gainInv > (_PITCHmaxf + math::radians(10.0f)) || SEB_correction / gainInv < (_PITCHminf - math::radians(10.0f))) {
+		_integ7_state = 0.0f;
+	}
+
 	// Calculate pitch demand from specific energy balance signals
 	_pitch_dem_unc = (temp + _integ7_state) / gainInv;
 
@@ -591,7 +598,6 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 
 	// Calculate the height demand
 	_update_height_demand(hgt_dem, baro_altitude);
-
 
 	// Calculate specific energy quantitiues
 	_update_energies();
