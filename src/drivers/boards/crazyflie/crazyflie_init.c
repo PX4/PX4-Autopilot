@@ -116,17 +116,6 @@ __END_DECLS
  ****************************************************************************/
 
 /************************************************************************************
- * Name: board_peripheral_reset
- *
- * Description:
- *
- ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-
-}
-
-/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -195,7 +184,7 @@ __EXPORT int nsh_archinitialize(void)
 	result = board_i2c_initialize();
 
 	if (result != OK) {
-		//led_on(1);
+		led_on(LED_RED);
 		return -ENODEV;
 	}
 
