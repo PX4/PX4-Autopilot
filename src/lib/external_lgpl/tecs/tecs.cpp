@@ -583,14 +583,15 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	// Calculate Specific Total Energy Rate Limits
 	_update_STE_rate_lim();
 
+	// Detect underspeed condition
+	_detect_underspeed();
+
 	// Calculate the speed demand
 	_update_speed_demand();
 
 	// Calculate the height demand
 	_update_height_demand(hgt_dem, baro_altitude);
 
-	// Detect underspeed condition
-	_detect_underspeed();
 
 	// Calculate specific energy quantitiues
 	_update_energies();
