@@ -212,7 +212,7 @@ private:
 		SensorData()
 			: last_best_vote(0),
 			  subscription_count(0),
-			  voter(SENSOR_COUNT_MAX),
+			  voter(1),
 			  last_failover_count(0)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
@@ -2266,6 +2266,13 @@ Sensors::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_d
 	for (unsigned i = 0; i < group_count; i++) {
 		if (sensor_data.subscription[i] < 0) {
 			sensor_data.subscription[i] = orb_subscribe_multi(meta, i);
+
+			if (i > 0) {
+				/* the first always exists, but for each further sensor, add a new validator */
+				if (!sensor_data.voter.add_new_validator()) {
+					PX4_ERR("failed to add validator for sensor %s %i", meta->o_name, i);
+				}
+			}
 		}
 
 		int32_t priority;
