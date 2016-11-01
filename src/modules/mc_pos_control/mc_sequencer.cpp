@@ -6,6 +6,9 @@
 static const struct seq_entry_s hover[] {
 	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
 };
+static const struct sequence hover_seq {
+	sizeof(hover) / sizeof(seq_entry_s), hover
+};
 
 static const struct seq_entry_s coord_turn[] {
 	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f},
@@ -60,7 +63,10 @@ static const struct seq_entry_s tilt_lr[] {
 static const struct sequence tilt_lr_seq {
 	sizeof(tilt_lr) / sizeof(seq_entry_s), tilt_lr
 };
-static const struct sequence *cur_sequence = &two_point_roll_seq;
+
+// compile-time selection of sequence to be executed and SITL repetition interval
+static const struct sequence *cur_sequence = &coord_turn_seq;
+#define TRIG_INTVL 30.0F
 
 /*
  * Execute a sequence of commands: each command is a seq_entry_s struct specifying
@@ -97,6 +103,7 @@ void prog_sequence(
 
 	float cur_time = (double)hrt_absolute_time() / 1e6;
 	static float start_sequence = -1.0f;
+	static float end_sequence = -1.0f;
 	static float start_time = cur_time;
 
 	static uint8_t seq_switch_last = manual_control_setpoint_s::SWITCH_POS_OFF;
@@ -117,16 +124,15 @@ void prog_sequence(
 
 #else
 	// for SITL, simulate seq_switch activation
-#define TRIG_INTVL 10.0F
 	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
 
 	if (seq_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		if ((cur_time - start_sequence) > TRIG_INTVL) {
+		if ((cur_time - end_sequence) > TRIG_INTVL) {
 			seq_switch = manual_control_setpoint_s::SWITCH_POS_ON;
 			PX4_DEBUG("seq_switch on: at %f", (double) cur_time);
 
 		} else if (fmodf((cur_time - start_sequence), 2.0f) < 0.015f) {
-			PX4_DEBUG("seq countdown: %5.3f", (double)(TRIG_INTVL - (cur_time - start_sequence)));
+			PX4_DEBUG("seq countdown: %5.3f", (double)(TRIG_INTVL - (cur_time - end_sequence)));
 		}
 	}
 
@@ -225,9 +231,10 @@ void prog_sequence(
 		case IDLE:
 			// initialize sequencer
 			seq_index = -1;
+			end_sequence = cur_time;
 			seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
 			PX4_DEBUG("sequence end at %6.3f, duration: %6.3f",
-				  (double) cur_time,
+				  (double) end_sequence,
 				  (double)(cur_time - start_sequence));
 			PX4_DEBUG("enter IDLE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
 			break;
