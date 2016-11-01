@@ -87,9 +87,7 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-//#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
 #include "mc_sequencer.h"
-//#endif
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -2151,7 +2149,6 @@ MulticopterPositionControl::task_main()
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-//#if defined CONFIG_ARCH_BOARD_SITL || defined CONFIG_ARCH_BOARD_PX4FMU_V3 || defined CONFIG_ARCH_BOARD_PX4FMU_V4
 				/* If ACRO attitude control mode */
 				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) {
 
@@ -2159,33 +2156,32 @@ MulticopterPositionControl::task_main()
 					float pitchRate = -_manual.x * _params.acro_pitchRate_max;
 					float yawRate = _manual.r * _params.acro_yawRate_max;
 
-					// attitude setpoint rotation matrix
-					matrix::Dcm<float> R_sp(matrix::Quatf(_att_sp.q_d));
+					// attitude setpoint quaternion
+					matrix::Quatf R_sp(_att_sp.q_d);
 
 
 					/* the control sequencer overrides manual inputs
 					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
 					 */
-#ifdef JUST_FLIPS
-					flip_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
-#else
 					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
 
-#endif
-
-					/* limit setpoint lead angle */
 					float tilt_error = 0.0f;
 					float yaw_error = 0.0f;
-//					math::Quaternion q_cur(_ctrl_state.q);
-//					math::Matrix<3, 3> R_cur = q_cur.to_dcm();
-//					math::Vector<3> zb(R_cur.data[2]);
-//					math::Vector<3> zsp(R_sp.data[2]);
-//					tilt_error = acosf(zb * zsp);
-//					math::Vector<3> xb(R_cur.data[0]);
-//					math::Vector<3> xsp(R_sp.data[0]);
-//					yaw_error = acosf(xb * xsp);
 
-					/* update attitude setpoint rotation matrix */
+#undef LIMIT_LEAD_ANGLE
+#ifdef LIMIT_LEAD_ANGLE
+					/* limit setpoint lead angle */
+					math::Quaternion q_cur(_ctrl_state.q);
+					math::Matrix<3, 3> R_cur = q_cur.to_dcm();
+					math::Vector<3> zb(R_cur.data[2]);
+					math::Vector<3> zsp(R_sp.data[2]);
+					tilt_error = acosf(zb * zsp);
+					math::Vector<3> xb(R_cur.data[0]);
+					math::Vector<3> xsp(R_sp.data[0]);
+					yaw_error = acosf(xb * xsp);
+#endif
+
+					/* update attitude setpoint quaternion */
 					/* interpret roll/pitch/yaw inputs as rate demands */
 					float dRoll = 0.0f;
 					float dPitch = 0.0f;
@@ -2200,12 +2196,13 @@ MulticopterPositionControl::task_main()
 						dYaw = yawRate * dt;
 					}
 
-					matrix::Dcmf R_xy(matrix::Eulerf(dRoll, dPitch, 0.0f));
-					matrix::Dcmf R_z(matrix::Eulerf(0.0f, 0.0f, dYaw));
+					matrix::Quatf R_xy(matrix::Eulerf(dRoll, dPitch, 0.0f));
+					matrix::Quatf R_z(matrix::Eulerf(0.0f, 0.0f, dYaw));
 
-					R_sp = R_z * R_sp;
-					R_sp = R_sp * R_xy;
-					R_sp.renormalize();
+					// chaining order for quaternion rotations is reversed
+					R_sp = R_sp * R_z;
+					R_sp = R_xy * R_sp;
+					R_sp.normalize();
 
 					matrix::Eulerf eulerAngles(R_sp);
 					_att_sp.roll_body = eulerAngles.phi();
