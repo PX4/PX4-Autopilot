@@ -45,6 +45,9 @@
 
 class __EXPORT DataValidatorGroup {
 public:
+	/**
+	 * @param siblings initial number of DataValidator's. Must be > 0.
+	 */
 	DataValidatorGroup(unsigned siblings);
 	virtual ~DataValidatorGroup();
 

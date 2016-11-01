@@ -41,7 +41,6 @@
 
 #include "data_validator_group.h"
 #include <ecl/ecl.h>
-#include <cassert>
 
 DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first(nullptr),
@@ -50,7 +49,6 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first_failover_time(0),
 	_toggle_count(0)
 {
-	assert(siblings > 0);
 	DataValidator *next = _first;
 
 	for (unsigned i = 0; i < siblings; i++) {
