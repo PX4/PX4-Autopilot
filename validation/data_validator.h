@@ -136,7 +136,14 @@ public:
 	 *
 	 * @param timeout_interval_us The timeout interval in microseconds
 	 */
-	void			set_timeout(uint64_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
+	void			set_timeout(uint32_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
+
+	/**
+	 * Get the timeout value
+	 *
+	 * @return The timeout interval in microseconds
+	 */
+	uint32_t			get_timeout() const { return _timeout_interval; }
 	
 	/**
 	 * Data validator error states 
@@ -150,8 +157,8 @@ public:
 
 private:
 	uint32_t _error_mask;			/**< sensor error state */
+	uint32_t _timeout_interval;		/**< interval in which the datastream times out in us */
 	uint64_t _time_last;			/**< last timestamp */
-	uint64_t _timeout_interval;		/**< interval in which the datastream times out in us */
 	uint64_t _event_count;			/**< total data counter */
 	uint64_t _error_count;			/**< error count */
 	int _error_density;			/**< ratio between successful reads and errors */
@@ -169,6 +176,6 @@ private:
 	static const constexpr unsigned VALUE_EQUAL_COUNT_MAX = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */
-	DataValidator(const DataValidator&);
-	DataValidator operator=(const DataValidator&);
+	DataValidator(const DataValidator&) = delete;
+	DataValidator operator=(const DataValidator&) = delete;
 };

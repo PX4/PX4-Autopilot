@@ -44,8 +44,8 @@
 
 DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_error_mask(ERROR_FLAG_NO_ERROR),
-	_time_last(0),
 	_timeout_interval(20000),
+	_time_last(0),
 	_event_count(0),
 	_error_count(0),
 	_error_density(0),

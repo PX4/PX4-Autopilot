@@ -64,7 +64,7 @@ DataValidatorGroup::~DataValidatorGroup()
 }
 
 void
-DataValidatorGroup::set_timeout(uint64_t timeout_interval_us)
+DataValidatorGroup::set_timeout(uint32_t timeout_interval_us)
 {
 	DataValidator *next = _first;
 

@@ -113,7 +113,7 @@ public:
 	 *
 	 * @param timeout_interval_us The timeout interval in microseconds
 	 */
-	void			set_timeout(uint64_t timeout_interval_us);
+	void			set_timeout(uint32_t timeout_interval_us);
 
 private:
 	DataValidator *_first;		/**< sibling in the group */
