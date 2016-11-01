@@ -41,6 +41,7 @@
 
 #include "data_validator_group.h"
 #include <ecl/ecl.h>
+#include <cassert>
 
 DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first(nullptr),
@@ -49,6 +50,7 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first_failover_time(0),
 	_toggle_count(0)
 {
+	assert(siblings > 0);
 	DataValidator *next = _first;
 
 	for (unsigned i = 0; i < siblings; i++) {
@@ -56,6 +58,7 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	}
 
 	_first = next;
+	_timeout_interval_us = _first->get_timeout();
 }
 
 DataValidatorGroup::~DataValidatorGroup()
@@ -67,6 +70,15 @@ DataValidatorGroup::~DataValidatorGroup()
 	}
 }
 
+DataValidator *DataValidatorGroup::add_new_validator()
+{
+	DataValidator *validator = new DataValidator(_first);
+	if (!validator) {
+		return nullptr;
+	}
+	_first = validator;
+	_first->set_timeout(_timeout_interval_us);
+	return _first;
 }
 
 void
@@ -78,6 +90,7 @@ DataValidatorGroup::set_timeout(uint32_t timeout_interval_us)
 		next->set_timeout(timeout_interval_us);
 		next = next->sibling();
 	}
+	_timeout_interval_us = timeout_interval_us;
 }
 
 void

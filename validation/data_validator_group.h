@@ -49,6 +49,12 @@ public:
 	virtual ~DataValidatorGroup();
 
 	/**
+	 * Create a new Validator (with index equal to the number of currently existing validators)
+	 * @return the newly created DataValidator or nullptr on error
+	 */
+	DataValidator *add_new_validator();
+
+	/**
 	 * Put an item into the validator group.
 	 *
 	 * @param index		Sensor index
@@ -117,6 +123,7 @@ public:
 
 private:
 	DataValidator *_first;		/**< sibling in the group */
+	uint32_t _timeout_interval_us; /**< currently set timeout */
 	int _curr_best;		/**< currently best index */
 	int _prev_best;		/**< the previous best index */
 	uint64_t _first_failover_time;	/**< timestamp where the first failover occured or zero if none occured */
