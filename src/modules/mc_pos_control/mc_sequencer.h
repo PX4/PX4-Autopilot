@@ -50,8 +50,23 @@ struct seq_entry_s {
 };
 
 struct sequence {
-	const int N_entries;
-	const struct seq_entry_s *entries;
+	int N_entries;
+	struct seq_entry_s *entries;
+
+	sequence(int n) : N_entries(n)
+	{
+		entries = (seq_entry_s *) malloc(sizeof(seq_entry_s) * N_entries);
+	}
+	~sequence()
+	{
+		free((void *)entries);
+	}
 };
+
+enum sequence_set { hover, coord_turn, pitch_flip, roll_flip, two_point_roll, tilt_lr };
+
+sequence *get_sequence(sequence_set entry);
+
+void prog_sequence_init(enum sequence_set seq, float trigger_interval);
 
 #endif

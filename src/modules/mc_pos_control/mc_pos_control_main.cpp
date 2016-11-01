@@ -278,14 +278,7 @@ private:
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
-
-	// counters for reset events on position and velocity states
-	// they are used to identify a reset event
-	uint8_t _z_reset_counter;
-	uint8_t _xy_reset_counter;
-	uint8_t _vz_reset_counter;
-	uint8_t _vxy_reset_counter;
-	uint8_t _heading_reset_counter;
+	bool _sequencer_initialized;
 
 	/**
 	 * Update our local parameter cache.
@@ -427,6 +420,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
+	_sequencer_initialized(false)
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -2154,6 +2148,11 @@ MulticopterPositionControl::task_main()
 					/* the control sequencer overrides manual inputs
 					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
 					 */
+					if (!_sequencer_initialized) {
+						_sequencer_initialized = true;
+						prog_sequence_init(sequence_set::pitch_flip, 5.0f);
+					}
+
 					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
 
 					float tilt_error = 0.0f;
