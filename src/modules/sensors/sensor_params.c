@@ -35,6 +35,7 @@
  * @file sensor_params.c
  *
  * Parameters defined by the sensors task.
+ * ç”±ä¼ æ„Ÿå™¨ä»»åŠ¡å®šä¹‰çš„å‚æ•°
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@px4.io>
@@ -43,6 +44,7 @@
 
 /**
  * ID of the board this parameter set was calibrated on.
+ * æ­¤å‚æ•°è®¾ç½®è¦æ ¡å‡†çš„é£æ§æ¿çš„ID
  *
  * @group Sensor Calibration
  */
@@ -3046,17 +3048,16 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
 
 /**
  * Set the disarmed PWM for MAIN outputs
- * ÉèÖÃÎ´½âËøÊ±µÄPWMÖ÷Í¨µÀÊä³ö
+ * è®¾ç½®æœªè§£é”æ—¶ä¸»é€šé“è¾“å‡ºçš„PWM
  *
  * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
  * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
- * ÖØÒª:ĞŞ¸Ä´ËÖµĞèÒªÖØÆôÉúĞ§
+ * æ³¨æ„ï¼šæ”¹å˜æ­¤å‚æ•°åç³»ç»Ÿéœ€è¦é‡å¯ä¸€æ¬¡æ‰èƒ½ç”Ÿæ•ˆã€‚
  *
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
- * ÕâÊÇ×Ô¼İÒÇÔÚÎ´½âËøÊ±µÄPWMÂö³åÊä³ö
- * ¸Ã²ÎÊıµÄÖ÷ÒªÓÃÍ¾ÊÇµ±µçµ÷Î´½âËøÊ±ÈÃËûÃÇ±£³Ösilence
+ * è¿™æ˜¯è‡ªé©¾ä»ªåœ¨æœªè§£é”çŠ¶æ€ä¸‹çš„PWMè„‰å†²è¾“å‡ºã€‚ä¸»è¦ç”¨é€”æ˜¯ä½¿ç”µæœºåœ¨æœªè§£é”æ—¶é™æ­¢ä¸åŠ¨ã€‚
  *
  * @reboot_required true
  *

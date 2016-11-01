@@ -56,6 +56,7 @@
 #include <drivers/drv_hrt.h>
 
 /*
+ * 等距方位投影
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */

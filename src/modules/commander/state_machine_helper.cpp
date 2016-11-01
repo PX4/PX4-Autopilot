@@ -389,6 +389,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	case commander_state_s::MAIN_STATE_POSCTL:
 
 		/* need at minimum local position estimate */
+		//也就是只要Local 或 Global 其中一个定位有效，即可切换 POSCTL
 		if (status_flags->condition_local_position_valid ||
 		    status_flags->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;

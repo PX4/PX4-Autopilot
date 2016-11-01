@@ -35,6 +35,7 @@
  * @file commander.cpp
  *
  * Main state machine / business logic
+ * 主要状态机/商业逻辑
  *
  * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
  * @author Lorenz Meier		<lorenz@px4.io>
