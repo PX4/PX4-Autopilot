@@ -379,11 +379,15 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-	/* configure the timer to update at 328.125 kHz (recommended) */
-	rARR(timer) = 255;
+#if defined(PX4_IO_TIMER_ALTERNATE_RATE)
+
+	/* Override the rate to a constant that could be provided by the board */
+
+	rARR(timer) = PX4_IO_TIMER_ALTERNATE_RATE;
 #else
+
 	/* configure the timer to update at the desired rate */
+
 	rARR(timer) = 1000000 / rate;
 #endif
 
@@ -432,15 +436,12 @@ int io_timer_init_timer(unsigned timer)
 			rBDTR(timer) = ATIM_BDTR_MOE;
 		}
 
-#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-		/* configure the timer to free-run at timer frequency */
-		rPSC(timer) = 0;
-#else
-		/* configure the timer to free-run at 1MHz */
+		/* If the timer clock source provided as clock_freq is the STM32_APBx_TIMx_CLKIN
+		 * then configure the timer to free-run at 1MHz.
+		 * Otherwize, other frequencies are attainable by adjusting .clock_freq accordingly.
+		 */
 
 		rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
-#endif
-
 
 		/*
 		 * Note we do the Standard PWM Out init here
