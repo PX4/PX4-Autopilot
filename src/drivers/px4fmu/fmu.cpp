@@ -1429,7 +1429,6 @@ PX4FMU::cycle()
 						   false, false, frame_drops);
 					_rc_scan_locked = true;
 				}
-				_rc_scan_locked = true;
 			}
 
 		} else {
