@@ -135,17 +135,6 @@ private:
 	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
 	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
-	int	_sensors_sub = -1;
-	int	_gps_sub = -1;
-	int	_airspeed_sub = -1;
-	int	_params_sub = -1;
-	int 	_optical_flow_sub = -1;
-	int 	_range_finder_sub = -1;
-	int 	_ev_pos_sub = -1;
-	int	_actuator_armed_sub = -1;
-	int	_vehicle_land_detected_sub = -1;
-	int _status_sub = -1;
-
 	bool	_prev_landed = true;	// landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
@@ -390,20 +379,20 @@ void Ekf2::print_status()
 void Ekf2::task_main()
 {
 	// subscribe to relevant topics
-	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	_range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
-	_ev_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	int range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
+	int ev_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	px4_pollfd_struct_t fds[2] = {};
-	fds[0].fd = _sensors_sub;
+	fds[0].fd = sensors_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _params_sub;
+	fds[1].fd = params_sub;
 	fds[1].events = POLLIN;
 
 	// initialise parameter cache
@@ -419,7 +408,7 @@ void Ekf2::task_main()
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
 	vision_position_estimate_s ev = {};
-	vehicle_status_s _vehicle_status = {};
+	vehicle_status_s vehicle_status = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -437,7 +426,7 @@ void Ekf2::task_main()
 		if (fds[1].revents & POLLIN) {
 			// read from param to clear updated flag
 			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
 			updateParams();
 
 			// fetch sensor data in next loop
@@ -456,37 +445,37 @@ void Ekf2::task_main()
 		bool vision_position_updated = false;
 		bool vehicle_status_updated = false;
 
-		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
+		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
 
-		orb_check(_status_sub, &vehicle_status_updated);
+		orb_check(status_sub, &vehicle_status_updated);
 
 		if (vehicle_status_updated) {
-			orb_copy(ORB_ID(vehicle_status), _status_sub, &_vehicle_status);
+			orb_copy(ORB_ID(vehicle_status), status_sub, &vehicle_status);
 		}
 
-		orb_check(_gps_sub, &gps_updated);
+		orb_check(gps_sub, &gps_updated);
 
 		if (gps_updated) {
-			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
+			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		}
 
-		orb_check(_airspeed_sub, &airspeed_updated);
+		orb_check(airspeed_sub, &airspeed_updated);
 
 		if (airspeed_updated) {
-			orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
+			orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
 		}
 
-		orb_check(_optical_flow_sub, &optical_flow_updated);
+		orb_check(optical_flow_sub, &optical_flow_updated);
 
 		if (optical_flow_updated) {
-			orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow);
+			orb_copy(ORB_ID(optical_flow), optical_flow_sub, &optical_flow);
 		}
 
-		orb_check(_range_finder_sub, &range_finder_updated);
+		orb_check(range_finder_sub, &range_finder_updated);
 
 		if (range_finder_updated) {
-			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
+			orb_copy(ORB_ID(distance_sensor), range_finder_sub, &range_finder);
 
 			if (range_finder.min_distance >= range_finder.current_distance
 			    || range_finder.max_distance <= range_finder.current_distance) {
@@ -494,10 +483,10 @@ void Ekf2::task_main()
 			}
 		}
 
-		orb_check(_ev_pos_sub, &vision_position_updated);
+		orb_check(ev_pos_sub, &vision_position_updated);
 
 		if (vision_position_updated) {
-			orb_copy(ORB_ID(vision_position_estimate), _ev_pos_sub, &ev);
+			orb_copy(ORB_ID(vision_position_estimate), ev_pos_sub, &ev);
 		}
 
 		// in replay mode we are getting the actual timestamp from the sensor topic
@@ -562,7 +551,7 @@ void Ekf2::task_main()
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
-		bool fuse_airspeed = airspeed_updated && !_vehicle_status.is_rotary_wing
+		bool fuse_airspeed = airspeed_updated && !vehicle_status.is_rotary_wing
 				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s && _arspFusionThreshold.get() >= 0.1f;
 
 		if (fuse_airspeed) {
@@ -620,10 +609,10 @@ void Ekf2::task_main()
 			_ekf.setExtVisionData(ev.timestamp, &ev_data);
 		}
 
-		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
+		orb_check(vehicle_land_detected_sub, &vehicle_land_detected_updated);
 
 		if (vehicle_land_detected_updated) {
-			orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected);
+			orb_copy(ORB_ID(vehicle_land_detected), vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
 		}
 
@@ -1021,6 +1010,16 @@ void Ekf2::task_main()
 			}
 		}
 	}
+
+	orb_unsubscribe(sensors_sub);
+	orb_unsubscribe(gps_sub);
+	orb_unsubscribe(airspeed_sub);
+	orb_unsubscribe(params_sub);
+	orb_unsubscribe(optical_flow_sub);
+	orb_unsubscribe(range_finder_sub);
+	orb_unsubscribe(ev_pos_sub);
+	orb_unsubscribe(vehicle_land_detected_sub);
+	orb_unsubscribe(status_sub);
 
 	delete ekf2::instance;
 	ekf2::instance = nullptr;
