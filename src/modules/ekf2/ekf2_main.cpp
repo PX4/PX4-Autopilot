@@ -629,17 +629,20 @@ void Ekf2::task_main()
 
 		// run the EKF update and output
 		if (_ekf.update()) {
-			// generate vehicle attitude quaternion data
-			struct vehicle_attitude_s att = {};
-			_ekf.copy_quaternion(att.q);
-			matrix::Quaternion<float> q(att.q[0], att.q[1], att.q[2], att.q[3]);
+
+			matrix::Quaternion<float> q;
+			_ekf.copy_quaternion(q.data());
+
+			float velocity[3];
+			_ekf.get_velocity(velocity);
+
+			float gyro_rad[3];
 
 			// generate control state data
 			control_state_s ctrl_state = {};
 			float gyro_bias[3] = {};
 			_ekf.get_gyro_bias(gyro_bias);
 			ctrl_state.timestamp = hrt_absolute_time();
-			float gyro_rad[3];
 			gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
 			gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
 			gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
@@ -648,8 +651,6 @@ void Ekf2::task_main()
 			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
 
 			// Velocity in body frame
-			float velocity[3];
-			_ekf.get_velocity(velocity);
 			Vector3f v_n(velocity);
 			matrix::Dcm<float> R_to_body(q.inversed());
 			Vector3f v_b = R_to_body * v_n;
@@ -682,12 +683,9 @@ void Ekf2::task_main()
 
 			// compute lowpass filtered horizontal acceleration
 			acceleration = R_to_body.transpose() * acceleration;
-			_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) + acceleration(
-						1) * acceleration(1));
+			_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
+					acceleration(1) * acceleration(1));
 			ctrl_state.horz_acc_mag = _acc_hor_filt;
-
-			float vel[3] = {};
-			_ekf.get_velocity(vel);
 
 			ctrl_state.airspeed_valid = false;
 
@@ -702,7 +700,7 @@ void Ekf2::task_main()
 
 			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
 				if (_ekf.local_position_is_valid()) {
-					ctrl_state.airspeed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+					ctrl_state.airspeed = sqrtf(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]);
 					ctrl_state.airspeed_valid = true;
 				}
 
@@ -720,7 +718,8 @@ void Ekf2::task_main()
 			}
 
 
-			// generate remaining vehicle attitude data
+			// generate vehicle attitude quaternion data
+			struct vehicle_attitude_s att = {};
 			att.timestamp = hrt_absolute_time();
 
 			att.q[0] = q(0);
@@ -753,9 +752,9 @@ void Ekf2::task_main()
 			lpos.z = pos[2];
 
 			// Velocity of body origin in local NED frame (m/s)
-			lpos.vx = vel[0];
-			lpos.vy = vel[1];
-			lpos.vz = vel[2];
+			lpos.vx = velocity[0];
+			lpos.vy = velocity[1];
+			lpos.vz = velocity[2];
 
 			// TODO: better status reporting
 			lpos.xy_valid = _ekf.local_position_is_valid();
@@ -779,7 +778,7 @@ void Ekf2::task_main()
 			float terrain_vpos;
 			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);
 			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
-			lpos.dist_bottom_rate = -vel[2]; // Distance to bottom surface (ground) change rate
+			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
 			lpos.surface_bottom_timestamp	= hrt_absolute_time(); // Time when new bottom surface found
 
 			// TODO: uORB definition does not define what these variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
@@ -797,10 +796,10 @@ void Ekf2::task_main()
 				orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
 			}
 
-			// generate and publish global position data
-			struct vehicle_global_position_s global_pos = {};
-
 			if (_ekf.global_position_is_valid()) {
+				// generate and publish global position data
+				struct vehicle_global_position_s global_pos = {};
+
 				global_pos.timestamp = hrt_absolute_time(); // Time of this estimate, in microseconds since system start
 				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
@@ -811,9 +810,9 @@ void Ekf2::task_main()
 
 				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
 
-				global_pos.vel_n = vel[0]; // Ground north velocity, m/s
-				global_pos.vel_e = vel[1]; // Ground east velocity, m/s
-				global_pos.vel_d = vel[2]; // Ground downside velocity, m/s
+				global_pos.vel_n = velocity[0]; // Ground north velocity, m/s
+				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
+				global_pos.vel_d = velocity[2]; // Ground downside velocity, m/s
 
 				global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
 
