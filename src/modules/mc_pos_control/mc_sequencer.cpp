@@ -3,70 +3,70 @@
 #include "mc_sequencer.h"
 
 // TODO: make sure this gets stored in codespace ROM to avoid wasting RAM
-static const struct seq_entry_s hover[] {
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
-};
-static const struct sequence hover_seq {
-	sizeof(hover) / sizeof(seq_entry_s), hover
-};
 
-static const struct seq_entry_s coord_turn[] {
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f},
-	{Seq_state::RATE, 0.8f, 0.0f, 0.0f, 0.785f, { -0.707f, 0.0f, 0.0f}, 26.0f},
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
-};
-static const struct sequence coord_turn_seq {
-	sizeof(coord_turn) / sizeof(seq_entry_s), coord_turn
-};
+sequence *get_sequence(sequence_set entry)
+{
+	struct sequence *result = nullptr;
 
-static const struct seq_entry_s pitch_flip[] {
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
-	{Seq_state::RATE, 0.2f, 0.0f, M_TWOPI_F, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f},
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f},
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
-};
-static const struct sequence pitch_flip_seq {
-	sizeof(pitch_flip) / sizeof(seq_entry_s), pitch_flip
-};
+	switch (entry) {
+	case hover:
+		result = (sequence *) new sequence(1);
+		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		break;
 
-static const struct seq_entry_s roll_flip[] {
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
-	{Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f},
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f},
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
-};
-static const struct sequence roll_flip_seq {
-	sizeof(roll_flip) / sizeof(seq_entry_s), roll_flip
-};
+	case coord_turn:
+		result = (sequence *) new sequence(3);
+		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.8f, 0.0f, 0.0f, 0.785f, { -0.707f, 0.0f, 0.0f}, 26.0f};
+		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		break;
 
-static const struct seq_entry_s two_point_roll[] {
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
+	case pitch_flip:
+		result = (sequence *) new sequence(4);
+		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.8f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0f, M_TWOPI_F, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.6f};
+		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		break;
 
-	{Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
+	case roll_flip:
+		result = (sequence *) new sequence(4);
+		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
+		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		break;
 
-	{Seq_state::RATE, 0.2f, 0.0F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
+	case two_point_roll:
+		result = (sequence *) new sequence(6);
+		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[3] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[4] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
+		result->entries[5] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		break;
 
-	{Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
+	case tilt_lr:
+		result = (sequence *) new sequence(3);
+		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+		break;
+	}
 
-	{Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f},
-	{Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f}
-};
-static const struct sequence two_point_roll_seq {
-	sizeof(two_point_roll) / sizeof(seq_entry_s), two_point_roll
-};
+	return result;
+}
 
-static const struct seq_entry_s tilt_lr[] {
-	{Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f},
-	{Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f},
-	{Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f}
-};
-static const struct sequence tilt_lr_seq {
-	sizeof(tilt_lr) / sizeof(seq_entry_s), tilt_lr
-};
+// runtime selection of sequence to be executed and SITL repetition interval
+static struct sequence *cur_sequence = nullptr;
+static float trigger_interval = 10.0f;
 
-// compile-time selection of sequence to be executed and SITL repetition interval
-static const struct sequence *cur_sequence = &coord_turn_seq;
-#define TRIG_INTVL 30.0F
+void prog_sequence_init(enum sequence_set seq, float intvl)
+{
+	cur_sequence = get_sequence(seq);
+	trigger_interval = intvl;
+}
 
 /*
  * Execute a sequence of commands: each command is a seq_entry_s struct specifying
@@ -108,6 +108,8 @@ void prog_sequence(
 
 	static uint8_t seq_switch_last = manual_control_setpoint_s::SWITCH_POS_OFF;
 
+	if (cur_sequence == nullptr) { return; }
+
 #if !defined CONFIG_ARCH_BOARD_SITL
 
 	/* if seq_switch is on, begin substituting sequencer
@@ -127,12 +129,12 @@ void prog_sequence(
 	static uint8_t seq_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
 
 	if (seq_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		if ((cur_time - end_sequence) > TRIG_INTVL) {
+		if ((cur_time - end_sequence) > trigger_interval) {
 			seq_switch = manual_control_setpoint_s::SWITCH_POS_ON;
 			PX4_DEBUG("seq_switch on: at %f", (double) cur_time);
 
 		} else if (fmodf((cur_time - start_sequence), 2.0f) < 0.015f) {
-			PX4_DEBUG("seq countdown: %5.3f", (double)(TRIG_INTVL - (cur_time - end_sequence)));
+			PX4_DEBUG("seq countdown: %5.3f", (double)(trigger_interval - (cur_time - end_sequence)));
 		}
 	}
 
@@ -255,7 +257,7 @@ void prog_sequence(
 							    att_sp.yaw_body)); //seq_entry.target_euler[2]));
 
 			q_end.from_euler(seq_entry.target_euler[0], seq_entry.target_euler[1],
-					 seq_entry.target_euler[2]);
+					 att_sp.yaw_body); //seq_entry.target_euler[2]));
 
 			PX4_DEBUG("enter ATTITUDE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
 //			printf("R_sp:\n"); R_sp.print();
