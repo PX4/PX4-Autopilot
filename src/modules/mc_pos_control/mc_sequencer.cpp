@@ -9,11 +9,6 @@ sequence *get_sequence(sequence_set entry)
 	struct sequence *result = nullptr;
 
 	switch (entry) {
-	case hover:
-		result = (sequence *) new sequence(1);
-		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-		break;
-
 	case coord_turn:
 		result = (sequence *) new sequence(3);
 		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f};
@@ -21,38 +16,43 @@ sequence *get_sequence(sequence_set entry)
 		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
 		break;
 
-	case pitch_flip:
-		result = (sequence *) new sequence(4);
-		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.8f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0f, M_TWOPI_F, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.6f};
-		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-		break;
-
-	case roll_flip:
-		result = (sequence *) new sequence(4);
-		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
-		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-		break;
-
-	case two_point_roll:
-		result = (sequence *) new sequence(6);
-		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[3] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[4] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
-		result->entries[5] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-		break;
-
-	case tilt_lr:
-		result = (sequence *) new sequence(3);
-		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-		break;
+//	case roll_flip:
+//		result = (sequence *) new sequence(4);
+//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+//		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
+//		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+//		break;
+//
+//	case hover:
+//		result = (sequence *) new sequence(1);
+//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+//		break;
+//
+//	case pitch_flip:
+//		result = (sequence *) new sequence(4);
+//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.8f};
+//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0f, M_TWOPI_F, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+//		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.6f};
+//		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+//		break;
+//
+//	case two_point_roll:
+//		result = (sequence *) new sequence(6);
+//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[3] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[4] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
+//		result->entries[5] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
+//		break;
+//
+//	case tilt_lr:
+//		result = (sequence *) new sequence(3);
+//		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
+//		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
+//		break;
 	}
 
 	return result;

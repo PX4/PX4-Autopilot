@@ -63,7 +63,9 @@ struct sequence {
 	}
 };
 
-enum sequence_set { hover, coord_turn, pitch_flip, roll_flip, two_point_roll, tilt_lr };
+enum sequence_set { coord_turn
+//	, roll_flip, hover, pitch_flip, two_point_roll, tilt_lr
+		  };
 
 sequence *get_sequence(sequence_set entry);
 
