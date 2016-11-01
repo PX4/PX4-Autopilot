@@ -60,6 +60,12 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 
 DataValidatorGroup::~DataValidatorGroup()
 {
+	while (_first) {
+		DataValidator* next = _first->sibling();
+		delete (_first);
+		_first = next;
+	}
+}
 
 }
 
