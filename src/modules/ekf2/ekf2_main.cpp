@@ -627,105 +627,109 @@ void Ekf2::task_main()
 
 			float gyro_rad[3];
 
-			// generate control state data
-			control_state_s ctrl_state = {};
-			float gyro_bias[3] = {};
-			_ekf.get_gyro_bias(gyro_bias);
-			ctrl_state.timestamp = hrt_absolute_time();
-			gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
-			gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
-			gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
-			ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
-			ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
-			ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
+			{
+				// generate control state data
+				control_state_s ctrl_state = {};
+				float gyro_bias[3] = {};
+				_ekf.get_gyro_bias(gyro_bias);
+				ctrl_state.timestamp = hrt_absolute_time();
+				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
+				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
+				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
+				ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
+				ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
+				ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
 
-			// Velocity in body frame
-			Vector3f v_n(velocity);
-			matrix::Dcm<float> R_to_body(q.inversed());
-			Vector3f v_b = R_to_body * v_n;
-			ctrl_state.x_vel = v_b(0);
-			ctrl_state.y_vel = v_b(1);
-			ctrl_state.z_vel = v_b(2);
+				// Velocity in body frame
+				Vector3f v_n(velocity);
+				matrix::Dcm<float> R_to_body(q.inversed());
+				Vector3f v_b = R_to_body * v_n;
+				ctrl_state.x_vel = v_b(0);
+				ctrl_state.y_vel = v_b(1);
+				ctrl_state.z_vel = v_b(2);
 
 
-			// Local Position NED
-			float position[3];
-			_ekf.get_position(position);
-			ctrl_state.x_pos = position[0];
-			ctrl_state.y_pos = position[1];
-			ctrl_state.z_pos = position[2];
+				// Local Position NED
+				float position[3];
+				_ekf.get_position(position);
+				ctrl_state.x_pos = position[0];
+				ctrl_state.y_pos = position[1];
+				ctrl_state.z_pos = position[2];
 
-			// Attitude quaternion
-			ctrl_state.q[0] = q(0);
-			ctrl_state.q[1] = q(1);
-			ctrl_state.q[2] = q(2);
-			ctrl_state.q[3] = q(3);
+				// Attitude quaternion
+				ctrl_state.q[0] = q(0);
+				ctrl_state.q[1] = q(1);
+				ctrl_state.q[2] = q(2);
+				ctrl_state.q[3] = q(3);
 
-			// Acceleration data
-			matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
+				// Acceleration data
+				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
 
-			float accel_bias[3];
-			_ekf.get_accel_bias(accel_bias);
-			ctrl_state.x_acc = acceleration(0) - accel_bias[0];
-			ctrl_state.y_acc = acceleration(1) - accel_bias[1];
-			ctrl_state.z_acc = acceleration(2) - accel_bias[2];
+				float accel_bias[3];
+				_ekf.get_accel_bias(accel_bias);
+				ctrl_state.x_acc = acceleration(0) - accel_bias[0];
+				ctrl_state.y_acc = acceleration(1) - accel_bias[1];
+				ctrl_state.z_acc = acceleration(2) - accel_bias[2];
 
-			// compute lowpass filtered horizontal acceleration
-			acceleration = R_to_body.transpose() * acceleration;
-			_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
-					acceleration(1) * acceleration(1));
-			ctrl_state.horz_acc_mag = _acc_hor_filt;
+				// compute lowpass filtered horizontal acceleration
+				acceleration = R_to_body.transpose() * acceleration;
+				_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
+						acceleration(1) * acceleration(1));
+				ctrl_state.horz_acc_mag = _acc_hor_filt;
 
-			ctrl_state.airspeed_valid = false;
+				ctrl_state.airspeed_valid = false;
 
-			// use estimated velocity for airspeed estimate
-			if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
-				// use measured airspeed
-				if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
-				    && airspeed.timestamp > 0) {
-					ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-					ctrl_state.airspeed_valid = true;
+				// use estimated velocity for airspeed estimate
+				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
+					// use measured airspeed
+					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
+					    && airspeed.timestamp > 0) {
+						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+						ctrl_state.airspeed_valid = true;
+					}
+
+				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+					if (_ekf.local_position_is_valid()) {
+						ctrl_state.airspeed = sqrtf(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]);
+						ctrl_state.airspeed_valid = true;
+					}
+
+				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
+					// do nothing, airspeed has been declared as non-valid above, controllers
+					// will handle this assuming always trim airspeed
 				}
 
-			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
-				if (_ekf.local_position_is_valid()) {
-					ctrl_state.airspeed = sqrtf(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]);
-					ctrl_state.airspeed_valid = true;
+				// publish control state data
+				if (_control_state_pub == nullptr) {
+					_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+
+				} else {
+					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 				}
-
-			} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-				// do nothing, airspeed has been declared as non-valid above, controllers
-				// will handle this assuming always trim airspeed
-			}
-
-			// publish control state data
-			if (_control_state_pub == nullptr) {
-				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-			} else {
-				orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 			}
 
 
-			// generate vehicle attitude quaternion data
-			struct vehicle_attitude_s att = {};
-			att.timestamp = hrt_absolute_time();
+			{
+				// generate vehicle attitude quaternion data
+				struct vehicle_attitude_s att = {};
+				att.timestamp = hrt_absolute_time();
 
-			att.q[0] = q(0);
-			att.q[1] = q(1);
-			att.q[2] = q(2);
-			att.q[3] = q(3);
+				att.q[0] = q(0);
+				att.q[1] = q(1);
+				att.q[2] = q(2);
+				att.q[3] = q(3);
 
-			att.rollspeed = gyro_rad[0];
-			att.pitchspeed = gyro_rad[1];
-			att.yawspeed = gyro_rad[2];
+				att.rollspeed = gyro_rad[0];
+				att.pitchspeed = gyro_rad[1];
+				att.yawspeed = gyro_rad[2];
 
-			// publish vehicle attitude data
-			if (_att_pub == nullptr) {
-				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+				// publish vehicle attitude data
+				if (_att_pub == nullptr) {
+					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
-			} else {
-				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
+				} else {
+					orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
+				}
 			}
 
 			// generate vehicle local position data
@@ -884,29 +888,31 @@ void Ekf2::task_main()
 		}
 
 		// publish estimator innovation data
-		struct ekf2_innovations_s innovations = {};
-		innovations.timestamp = hrt_absolute_time();
-		_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-		_ekf.get_mag_innov(&innovations.mag_innov[0]);
-		_ekf.get_heading_innov(&innovations.heading_innov);
-		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-		_ekf.get_flow_innov(&innovations.flow_innov[0]);
-		_ekf.get_hagl_innov(&innovations.hagl_innov);
+		{
+			struct ekf2_innovations_s innovations = {};
+			innovations.timestamp = hrt_absolute_time();
+			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+			_ekf.get_mag_innov(&innovations.mag_innov[0]);
+			_ekf.get_heading_innov(&innovations.heading_innov);
+			_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+			_ekf.get_flow_innov(&innovations.flow_innov[0]);
+			_ekf.get_hagl_innov(&innovations.hagl_innov);
 
-		_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+			_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+			_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
+			_ekf.get_heading_innov_var(&innovations.heading_innov_var);
+			_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+			_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
+			_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
-		_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+			_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
-		if (_estimator_innovations_pub == nullptr) {
-			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+			if (_estimator_innovations_pub == nullptr) {
+				_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 
-		} else {
-			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+			} else {
+				orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+			}
 		}
 
 		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
