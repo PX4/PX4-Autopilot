@@ -169,6 +169,7 @@ void Ekf::fuseAirspeed()
 			KH[row][23] = Kfusion[row] * H_TAS[23];
 		}
 
+		float KHP[_k_num_states][_k_num_states];
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				float tmp = KH[row][4] * P[4][column];

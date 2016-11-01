@@ -239,7 +239,6 @@ private:
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
 	float KH[_k_num_states][_k_num_states]; // intermediate variable for the covariance update
-	float KHP[_k_num_states][_k_num_states]; // intermediate variable for the covariance update
 
 	float _vel_pos_innov[6];	// innovations: 0-2 vel,  3-5 pos
 	float _vel_pos_innov_var[6];	// innovation variances: 0-2 vel, 3-5 pos
