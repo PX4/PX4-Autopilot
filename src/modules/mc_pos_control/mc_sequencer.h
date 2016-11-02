@@ -39,12 +39,9 @@ struct seq_entry_s {
 	Seq_state type;
 	float thrust;
 
-	// rates are in radians/second (independent of parameter values)
-	float rollRate;
-	float pitchRate;
-	float yawRate;
-
-	float target_euler[3];
+	// rate values are in radians/second (independent of parameter values)
+	// attitude values are in radians
+	float rpy_vals[3];
 
 	float delay;
 };
