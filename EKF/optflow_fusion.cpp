@@ -433,6 +433,7 @@ void Ekf::fuseOptFlow()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
+		float KH[_k_num_states][_k_num_states];
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column <= 6; column++) {
 				KH[row][column] = gain[row] * H_LOS[obs_index][column];

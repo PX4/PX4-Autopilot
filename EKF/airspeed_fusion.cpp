@@ -161,6 +161,7 @@ void Ekf::fuseAirspeed()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
+		float KH[_k_num_states][_k_num_states];
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			KH[row][4] = Kfusion[row] * H_TAS[4];
 			KH[row][5] = Kfusion[row] * H_TAS[5];

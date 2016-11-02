@@ -309,6 +309,7 @@ void Ekf::fuseMag()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
+		float KH[_k_num_states][_k_num_states];
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column <= 3; column++) {
 				KH[row][column] = Kfusion[row] * H_MAG[column];
@@ -638,6 +639,7 @@ void Ekf::fuseHeading()
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
+	float KH[_k_num_states][_k_num_states];
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column <= 3; column++) {
 			KH[row][column] = Kfusion[row] * H_YAW[column];
@@ -775,6 +777,7 @@ void Ekf::fuseDeclination()
 	// first calculate expression for KHP
 	// then calculate P - KHP
 	// take advantage of the empty columns in KH to reduce the number of operations
+	float KH[_k_num_states][_k_num_states];
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 16; column <= 17; column++) {
 			KH[row][column] = Kfusion[row] * H_DECL[column];
