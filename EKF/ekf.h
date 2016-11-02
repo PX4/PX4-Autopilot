@@ -438,6 +438,10 @@ private:
 	// return true if successful
 	bool resetMagHeading(Vector3f &mag_init);
 
+	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
+	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
+	bool realignYawGPS();
+
 	// calculate the magnetic declination to be used by the alignment and fusion processing
 	void calcMagDeclination();
 

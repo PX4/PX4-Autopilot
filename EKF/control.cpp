@@ -946,7 +946,7 @@ void Ekf::controlBetaFusion()
 		if (!_control_status.flags.wind) {
 			// activate the wind states
 			_control_status.flags.wind = true;
-			// reset the timout timers to prevent repeated resets
+			// reset the timeout timers to prevent repeated resets
 			_time_last_beta_fuse = _time_last_imu;
 			_time_last_arsp_fuse = _time_last_imu;
 			// reset the wind speed states and corresponding covariances
@@ -996,7 +996,7 @@ void Ekf::controlMagFusion()
 		_flt_mag_align_complete = false;
 	}
 
-	// checs for new magnetometer data tath has fallen beind the fusion time horizon
+	// check for new magnetometer data that has fallen behind the fusion time horizon
 	if (_mag_data_ready) {
 
 		// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
@@ -1049,9 +1049,16 @@ void Ekf::controlMagFusion()
 			if (use_3D_fusion) {
 				if (!_control_status.flags.mag_3D) {
 					if (!_flt_mag_align_complete) {
-						// if transitioning into 3-axis fusion mode for the first time, we need to initialise the yaw angle and field states
-						_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-						_flt_mag_align_complete = true;
+						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
+						// if we are doing wind estimation and using the zero sideslip assumotion, then it is reasonable to assume the plane is flying forward
+						bool zeroSideslipValid = _control_status.flags.fuse_beta;
+						if (zeroSideslipValid) {
+							_flt_mag_align_complete = _control_status.flags.yaw_align = realignYawGPS();
+
+						} else {
+							_flt_mag_align_complete = _control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+
+						}
 					} else {
 						// reset the mag field covariances
 						zeroRows(P, 16, 21);
