@@ -11,8 +11,8 @@ sequence *get_sequence(sequence_set entry)
 	switch (entry) {
 	case coord_turn:
 		result = (sequence *) new sequence(3);
-		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.5f, -0.25f, 0.0f}, 0.0f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.8f, 0.0f, 0.0f, 0.785f, { -0.707f, 0.0f, 0.0f}, 26.0f};
+		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.6f, 0.65f, -0.25f, 0.4f, {0.0f, 0.0f, 0.0f}, 1.0f};
+		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.7f, 0.0f, 0.0f, 0.73f, {0.0f, 0.0f, 0.0f}, 26.0f};
 		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
 		break;
 

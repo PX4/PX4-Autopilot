@@ -2159,7 +2159,7 @@ MulticopterPositionControl::task_main()
 					 */
 					if (!_sequencer_initialized) {
 						_sequencer_initialized = true;
-						prog_sequence_init(sequence_set::coord_turn, 5.0f);
+						prog_sequence_init(sequence_set::coord_turn, 25.0f);
 					}
 
 					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
