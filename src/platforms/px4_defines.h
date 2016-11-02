@@ -180,9 +180,11 @@ using ::isfinite;
 #  define PX4_TICKS_PER_SEC 1000L
 #  define SIOCDEVPRIVATE 999999
 
-// HEXAGON defines isfinite() erroneously as a macro even for C++.
+// HEXAGON's isfinite() is erroneously defined as a macro even for C++,
+// using std::isfinite (using ::isfinite) which is a function, but which
+// appears to be broken because of undefined symbols (ie, _Dtest (C linkage)).
 #  undef PX4_ISFINITE
-#  define PX4_ISFINITE(x) isfinite(x)
+#  define PX4_ISFINITE(x) __builtin_isfinite(x)
 
 #else // __PX4_QURT
 
