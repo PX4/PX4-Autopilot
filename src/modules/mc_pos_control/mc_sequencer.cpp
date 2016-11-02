@@ -13,7 +13,7 @@ sequence *get_sequence(sequence_set entry)
 		result = (sequence *) new sequence(3);
 		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.6f, {0.7f, -0.25f, 0.4f}, 1.0f};
 		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.7f, {0.0f, 0.0f, 0.73f}, 26.0f};
-		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, {0.0f, 0.0f, 0.0f}, 0.0f};
+		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, {0.0f, 0.0f, NAN}, 0.0f};
 		break;
 
 //	case roll_flip:
@@ -99,7 +99,8 @@ void prog_sequence(
 
 	static math::Quaternion q_end;
 	static math::Quaternion q_cur;
-	static math::Vector<3> euler_end;
+
+	static float rpy_rates[3] = {0.0f};
 
 	float cur_time = (double)hrt_absolute_time() / 1e6;
 	static float start_sequence = -1.0f;
@@ -191,9 +192,9 @@ void prog_sequence(
 	case DELAY: {
 			// set rates
 			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
-			rollRate = seq_entry.rpy_vals[0];
-			pitchRate = seq_entry.rpy_vals[1];
-			yawRate = seq_entry.rpy_vals[2];
+			rollRate = rpy_rates[0];
+			pitchRate = rpy_rates[1];
+			yawRate = rpy_rates[2];
 
 			// delay
 			if (cur_time >= (start_time + seq_entry.delay)) {
@@ -244,26 +245,30 @@ void prog_sequence(
 		case RATE:
 			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
 			// set rates
-			rollRate = seq_entry.rpy_vals[0];
-			pitchRate = seq_entry.rpy_vals[1];
-			yawRate = seq_entry.rpy_vals[2];
+			rpy_rates[0] = seq_entry.rpy_vals[0];
+			rpy_rates[1] = seq_entry.rpy_vals[1];
+			rpy_rates[2] = seq_entry.rpy_vals[2];
 			PX4_DEBUG("enter RATE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
 			break;
 
 		case ATTITUDE:
 			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
 
-			// set target attitude
-			R_sp = matrix::Quatf(matrix::Eulerf(seq_entry.rpy_vals[0], seq_entry.rpy_vals[1],
-							    att_sp.yaw_body)); //seq_entry.rpy_vals[2]));
+			// set target attitude: ignore yaw/yawRate if NaN
+			{
+				float rpy_array[3] = {seq_entry.rpy_vals[0], seq_entry.rpy_vals[1], att_sp.yaw_body};
 
-			q_end.from_euler(seq_entry.rpy_vals[0], seq_entry.rpy_vals[1],
-					 att_sp.yaw_body); //seq_entry.rpy_vals[2]));
+				if (PX4_ISFINITE(seq_entry.rpy_vals[2])) {
+					rpy_array[2] = seq_entry.rpy_vals[2];
+				}
 
+				R_sp = matrix::Quatf(matrix::Eulerf(rpy_array[0], rpy_array[1], rpy_array[2]));
+				q_end.from_euler(rpy_array[0], rpy_array[1], rpy_array[2]);
+			}
 			PX4_DEBUG("enter ATTITUDE state: %d at %6.3f, thrust: %6.3f", cur_state, (double) cur_time, (double)att_sp.thrust);
 //			printf("R_sp:\n"); R_sp.print();
-//			printf("q_end: "); q_end.print();
-//			printf("target Euler angles: "); q_end.to_euler().print();
+			printf("q_end: "); q_end.print();
+			printf("target Euler angles: "); q_end.to_euler().print();
 			break;
 
 		case DELAY:
