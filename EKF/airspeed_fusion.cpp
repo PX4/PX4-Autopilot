@@ -161,23 +161,22 @@ void Ekf::fuseAirspeed()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		float KH[_k_num_states][_k_num_states];
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			KH[row][4] = Kfusion[row] * H_TAS[4];
-			KH[row][5] = Kfusion[row] * H_TAS[5];
-			KH[row][6] = Kfusion[row] * H_TAS[6];
-			KH[row][22] = Kfusion[row] * H_TAS[22];
-			KH[row][23] = Kfusion[row] * H_TAS[23];
-		}
-
 		float KHP[_k_num_states][_k_num_states];
+		float KH[5];
 		for (unsigned row = 0; row < _k_num_states; row++) {
+
+			KH[0] = Kfusion[row] * H_TAS[4];
+			KH[1] = Kfusion[row] * H_TAS[5];
+			KH[2] = Kfusion[row] * H_TAS[6];
+			KH[3] = Kfusion[row] * H_TAS[22];
+			KH[4] = Kfusion[row] * H_TAS[23];
+
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				float tmp = KH[row][4] * P[4][column];
-				tmp += KH[row][5] * P[5][column];
-				tmp += KH[row][6] * P[6][column];
-				tmp += KH[row][22] * P[22][column];
-				tmp += KH[row][23] * P[23][column];
+				float tmp = KH[0] * P[4][column];
+				tmp += KH[1] * P[5][column];
+				tmp += KH[2] * P[6][column];
+				tmp += KH[3] * P[22][column];
+				tmp += KH[4] * P[23][column];
 				KHP[row][column] = tmp;
 			}
 		}
