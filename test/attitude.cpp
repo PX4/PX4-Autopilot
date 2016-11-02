@@ -96,40 +96,62 @@ int main()
     Quatf q2(dcm_check);
     TEST(isEqual(q2, q_check));
 
+    // dcm renormalize
+    Dcmf A = eye<float, 3>();
+    Dcmf R(euler_check);
+    for (int i = 0; i < 1000; i++) {
+        A = R * A;
+    }
+    A.renormalize();
+    float err = 0.0f;
+    for (int row = 0; row < 3; row++) {
+        matrix::Vector3f rvec(A._data[row]);
+        err += fabsf(1.0f - rvec.length());
+    }
+    TEST(err < eps);
+
     // constants
-    double deg2rad = M_PI/180.0;
-    double rad2deg = 180.0/M_PI;
+    double deg2rad = M_PI / 180.0;
+    double rad2deg = 180.0 / M_PI;
 
     // euler dcm round trip check
-    for (int roll=-90; roll<=90; roll+=90) {
-        for (int pitch=-90; pitch<=90; pitch+=90) {
-            for (int yaw=-179; yaw<=180; yaw+=90) {
+    for (int roll = -90; roll <= 90; roll += 90) {
+        for (int pitch = -90; pitch <= 90; pitch += 90) {
+            for (int yaw = -179; yaw <= 180; yaw += 90) {
                 // note if theta = pi/2, then roll is set to zero
                 int roll_expected = roll;
                 int yaw_expected = yaw;
+
                 if (pitch == 90) {
                     roll_expected = 0;
                     yaw_expected = yaw - roll;
+
                 } else if (pitch == -90) {
                     roll_expected = 0;
                     yaw_expected = yaw + roll;
                 }
-                if (yaw_expected < -180) yaw_expected += 360;
-                if (yaw_expected > 180) yaw_expected -= 360;
+
+                if (yaw_expected < -180) {
+                    yaw_expected += 360;
+                }
+
+                if (yaw_expected > 180) {
+                    yaw_expected -= 360;
+                }
 
                 //printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
                 Euler<double> euler_expected(
-                    deg2rad*double(roll_expected),
-                    deg2rad*double(pitch),
-                    deg2rad*double(yaw_expected));
+                    deg2rad * double(roll_expected),
+                    deg2rad * double(pitch),
+                    deg2rad * double(yaw_expected));
                 Euler<double> euler(
-                    deg2rad*double(roll),
-                    deg2rad*double(pitch),
-                    deg2rad*double(yaw));
+                    deg2rad * double(roll),
+                    deg2rad * double(pitch),
+                    deg2rad * double(yaw));
                 Dcm<double> dcm_from_euler(euler);
                 //dcm_from_euler.print();
                 Euler<double> euler_out(dcm_from_euler);
-                TEST(isEqual(rad2deg*euler_expected, rad2deg*euler_out));
+                TEST(isEqual(rad2deg * euler_expected, rad2deg * euler_out));
 
                 Eulerf eulerf_expected(
                     float(deg2rad)*float(roll_expected),
@@ -160,14 +182,14 @@ int main()
     // quaternion derivate
     Quatf q1(0, 1, 0, 0);
     Vector<float, 4> q1_dot = q1.derivative(Vector3f(1, 2, 3));
-    float data_q_dot_check[] = {-0.5f, 0.0f, -1.5f, 1.0f};
+    float data_q_dot_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
     Vector<float, 4> q1_dot_check(data_q_dot_check);
     TEST(isEqual(q1_dot, q1_dot_check));
 
     // quaternion product
     Quatf q_prod_check(
         0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
-    TEST(isEqual(q_prod_check, q_check*q_check));
+    TEST(isEqual(q_prod_check, q_check * q_check));
     q_check *= q_check;
     TEST(isEqual(q_prod_check, q_check));
 
@@ -225,7 +247,7 @@ int main()
     q = Quatf(cosf(1.0f / 2), 0.0f, sinf(1.0f / 2), 0.0f);
     rot = q.to_axis_angle();
     TEST(fabsf(rot(0)) < eps);
-    TEST(fabsf(rot(1) -1.0f) < eps);
+    TEST(fabsf(rot(1) - 1.0f) < eps);
     TEST(fabsf(rot(2)) < eps);
 
     // get rotation axis from quaternion (zero rotation)
@@ -247,8 +269,10 @@ int main()
     // Quaternion initialisation per array
     float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
     Quaternion<float>q_from_array(q_array);
-    for(int i = 0; i < 4; i++)
+
+    for (int i = 0; i < 4; i++) {
         TEST(fabsf(q_from_array(i) - q_array[i]) < eps);
+    }
 
     // axis angle
     AxisAnglef aa_true(Vector3f(1.0f, 2.0f, 3.0f));
@@ -292,7 +316,7 @@ int main()
     // check consistentcy of quaternion and dcm product
     Dcmf dcm3(Eulerf(1, 2, 3));
     Dcmf dcm4(Eulerf(4, 5, 6));
-    Dcmf dcm34 = dcm3*dcm4;
+    Dcmf dcm34 = dcm3 * dcm4;
     TEST(isEqual(Eulerf(Quatf(dcm4)*Quatf(dcm3)), Eulerf(dcm34)));
 };
 

@@ -81,16 +81,17 @@ public:
      *
      * @param q quaternion to set dcm to
      */
-    Dcm(const Quaternion<Type> & q) {
+    Dcm(const Quaternion<Type> &q)
+    {
         Dcm &dcm = *this;
         Type a = q(0);
         Type b = q(1);
         Type c = q(2);
         Type d = q(3);
-        Type aSq = a*a;
-        Type bSq = b*b;
-        Type cSq = c*c;
-        Type dSq = d*d;
+        Type aSq = a * a;
+        Type bSq = b * b;
+        Type cSq = c * c;
+        Type dSq = d * d;
         dcm(0, 0) = aSq + bSq - cSq - dSq;
         dcm(0, 1) = 2 * (b * c - a * d);
         dcm(0, 2) = 2 * (a * c + b * d);
@@ -111,7 +112,8 @@ public:
      *
      * @param euler euler angle instance
      */
-    Dcm(const Euler<Type> & euler) {
+    Dcm(const Euler<Type> &euler)
+    {
         Dcm &dcm = *this;
         Type cosPhi = Type(cos(euler.phi()));
         Type sinPhi = Type(sin(euler.phi()));
@@ -143,18 +145,29 @@ public:
      *
      * @param euler euler angle instance
      */
-    Dcm(const AxisAngle<Type> & aa) {
+    Dcm(const AxisAngle<Type> &aa)
+    {
         Dcm &dcm = *this;
         dcm = Quaternion<Type>(aa);
     }
 
-    Vector<Type, 3> vee() const {    // inverse to Vector.hat() operation
+    Vector<Type, 3> vee() const      // inverse to Vector.hat() operation
+    {
         const Dcm &A(*this);
         Vector<Type, 3> v;
-        v(0) = -A(1,2);
-        v(1) =  A(0,2);
-        v(2) = -A(0,1);
+        v(0) = -A(1, 2);
+        v(1) =  A(0, 2);
+        v(2) = -A(0, 1);
         return v;
+    }
+
+    void renormalize()
+    {
+        /* renormalize rows */
+        for (int row = 0; row < 3; row++) {
+            matrix::Vector3f rvec(this->_data[row]);
+            this->setRow(row, rvec.normalized());
+        }
     }
 };
 
