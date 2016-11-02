@@ -140,7 +140,7 @@ void prog_sequence(
 
 #endif
 
-	// perform state transitions
+	// perform state actions
 	switch (cur_state) {
 
 	case IDLE: {
@@ -162,6 +162,7 @@ void prog_sequence(
 	case RATE: {
 			// immediate transition to delay state
 			cur_state = DELAY;
+			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
 			break;
 		}
 
@@ -241,6 +242,7 @@ void prog_sequence(
 			break;
 
 		case RATE:
+			att_sp.thrust = seq_entry.thrust;	// this does not persist across calls
 			// set rates
 			rollRate = seq_entry.rpy_vals[0];
 			pitchRate = seq_entry.rpy_vals[1];
@@ -266,7 +268,7 @@ void prog_sequence(
 
 		case DELAY:
 			PX4_DEBUG("enter DELAY state, duration: %6.3f at %6.3f, thrust: %6.3f", (double)seq_entry.delay, (double) cur_time,
-				  (double)att_sp.thrust);
+				  (double)seq_entry.thrust);
 			break;
 
 		case NEXT_ENTRY:
