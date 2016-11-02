@@ -3328,7 +3328,7 @@ PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
  * Define the sysID manoeuvre
  *
  * @min 0
- * @max 7
+ * @max 10
  * @value 0 Disabled
  * @value 1 Step/Ramp in roll
  * @value 2 Step/Ramp in pitch
