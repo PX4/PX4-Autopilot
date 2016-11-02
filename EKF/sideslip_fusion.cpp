@@ -189,7 +189,7 @@ void Ekf::fuseSideslip()
 		_innov_check_fail_status.flags.reject_sideslip = true;
 		return;
 
-        } else {
+	} else {
                 _innov_check_fail_status.flags.reject_sideslip = false;
 
         }
@@ -200,28 +200,30 @@ void Ekf::fuseSideslip()
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
+	float KHP[_k_num_states][_k_num_states];
+	float KH[9];
 	for (unsigned row = 0; row < _k_num_states; row++) {
-		KH[row][0] = Kfusion[row] * H_BETA[0];
-		KH[row][1] = Kfusion[row] * H_BETA[1];
-		KH[row][2] = Kfusion[row] * H_BETA[2];
-		KH[row][3] = Kfusion[row] * H_BETA[3];
-		KH[row][4] = Kfusion[row] * H_BETA[4];
-		KH[row][5] = Kfusion[row] * H_BETA[5];
-		KH[row][6] = Kfusion[row] * H_BETA[6];
-		KH[row][22] = Kfusion[row] * H_BETA[22];
-		KH[row][23] = Kfusion[row] * H_BETA[23];
-	}
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
+		KH[0] = Kfusion[row] * H_BETA[0];
+		KH[1] = Kfusion[row] * H_BETA[1];
+		KH[2] = Kfusion[row] * H_BETA[2];
+		KH[3] = Kfusion[row] * H_BETA[3];
+		KH[4] = Kfusion[row] * H_BETA[4];
+		KH[5] = Kfusion[row] * H_BETA[5];
+		KH[6] = Kfusion[row] * H_BETA[6];
+		KH[7] = Kfusion[row] * H_BETA[22];
+		KH[8] = Kfusion[row] * H_BETA[23];
+
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[row][0] * P[0][column];
-			tmp += KH[row][1] * P[1][column];
-			tmp += KH[row][2] * P[2][column];
-			tmp += KH[row][3] * P[3][column];
-			tmp += KH[row][4] * P[4][column];
-			tmp += KH[row][6] * P[6][column];
-			tmp += KH[row][22] * P[22][column];
-			tmp += KH[row][23] * P[23][column];
+			float tmp = KH[0] * P[0][column];
+			tmp += KH[1] * P[1][column];
+			tmp += KH[2] * P[2][column];
+			tmp += KH[3] * P[3][column];
+			tmp += KH[4] * P[4][column];
+			tmp += KH[5] * P[5][column];
+			tmp += KH[6] * P[6][column];
+			tmp += KH[7] * P[22][column];
+			tmp += KH[8] * P[23][column];
 			KHP[row][column] = tmp;
 		}
 	}
