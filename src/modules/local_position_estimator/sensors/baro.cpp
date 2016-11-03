@@ -60,6 +60,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 	Matrix<float, n_y_baro, n_x> C;
 	C.setZero();
 	C(Y_baro_z, X_z) = -1; // measured altitude, negative down dir.
+	C(Y_baro_z, X_bb) = 1; // baro bias
 
 	Matrix<float, n_y_baro, n_y_baro> R;
 	R.setZero();
