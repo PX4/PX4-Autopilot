@@ -173,10 +173,6 @@
 #define PWM_DEFAULT_MAX 255
 #define PWM_LOWEST_MAX 255
 
-/* Override the io timers to update at 328.125 kHz (recommended) */
-
-#define PX4_IO_TIMER_ALTERNATE_RATE     255
-
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
