@@ -48,7 +48,6 @@
 #include <drivers/drv_mixer.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/mixer/mixer_load.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 
@@ -155,22 +154,6 @@ int initialize_mixer(const char *mixer_filename)
 	} else {
 		PX4_ERR("Unable to load config file.");
 	}
-
-	PX4_WARN("Using default mixer.");
-
-	/* Mixer file loading failed, fall back to default mixer configuration for
-	* QUAD_X airframe. */
-	float roll_scale = 1;
-	float pitch_scale = 1;
-	float yaw_scale = 1;
-	float deadband = 0;
-	MultirotorMixer *mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-			MultirotorGeometry::QUAD_X,
-			roll_scale, pitch_scale, yaw_scale, deadband);
-	_mixer_group->add_mixer(mixer);
-
-	// TODO: temporary hack to make this compile
-	(void)_config_index[0];
 
 	if (_mixer_group->count() <= 0) {
 		PX4_ERR("Mixer initialization failed");
