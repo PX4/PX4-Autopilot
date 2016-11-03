@@ -577,6 +577,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 			}
 
 			memcpy(s->val.p, val, param_size(param));
+			params_changed = true;
 			break;
 
 		default:
