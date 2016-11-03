@@ -58,11 +58,11 @@ volatile bool _task_should_exit = false;
 static bool _is_running = false;
 
 static const int NUM_PWM = 4;
-static char _device[32] = "/sys/class/pwm/pwmchip0";
+static char _device[64] = "/sys/class/pwm/pwmchip0";
 static int  _pwm_fd[NUM_PWM];
 
 static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
+static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
 
 // subscriptions
 int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -140,19 +140,19 @@ int initialize_mixer(const char *mixer_filename)
 
 	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
 
-	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
+	// PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
 	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
 		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
-			PX4_INFO("Successfully initialized mixer from config file");
+			PX4_INFO("Successfully initialized mixer from config file %s", mixer_filename);
 			return 0;
 
 		} else {
-			PX4_ERR("Unable to parse from mixer config file");
+			PX4_ERR("Unable to parse from mixer config file %s", mixer_filename);
 		}
 
 	} else {
-		PX4_ERR("Unable to load config file.");
+		PX4_ERR("Unable to load config file %s", mixer_filename);
 	}
 
 	if (_mixer_group->count() <= 0) {
@@ -286,7 +286,7 @@ void task_main(int argc, char *argv[])
 	}
 
 	// Set up mixer
-	if (initialize_mixer(MIXER_FILENAME) < 0) {
+	if (initialize_mixer(_mixer_filename) < 0) {
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
@@ -448,7 +448,11 @@ void stop()
 
 void usage()
 {
-	PX4_INFO("usage: pwm_out start -d /sys/class/pwm/pwmchip0");
+	PX4_INFO("usage: pwm_out start [-d pwmdevice] -m mixerfile");
+	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation");
+	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
+	PX4_INFO("       -m mixerfile : path to mixerfile");
+	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/AERT.main.mix)");
 	PX4_INFO("       pwm_out stop");
 	PX4_INFO("       pwm_out status");
 }
@@ -460,7 +464,6 @@ extern "C" __EXPORT int navio_sysfs_pwm_out_main(int argc, char *argv[]);
 
 int navio_sysfs_pwm_out_main(int argc, char *argv[])
 {
-	const char *device = nullptr;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
@@ -474,11 +477,14 @@ int navio_sysfs_pwm_out_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			device = myoptarg;
-			strncpy(navio_sysfs_pwm_out::_device, device, sizeof(navio_sysfs_pwm_out::_device));
+			strncpy(navio_sysfs_pwm_out::_device, myoptarg, sizeof(navio_sysfs_pwm_out::_device));
+			break;
+
+		case 'm':
+			strncpy(navio_sysfs_pwm_out::_mixer_filename, myoptarg, sizeof(navio_sysfs_pwm_out::_mixer_filename));
 			break;
 		}
 	}
