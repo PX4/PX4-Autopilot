@@ -475,20 +475,6 @@ void TECS::_update_pitch(void)
 		SEB_correction += _PITCHminf * gainInv;
 	}
 
-	// Apply max and min values for integrator state that will allow for no more than
-	// 10deg of saturation. This allows for some pitch variation due to gusts before the
-	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
-	float integ7_err_min = (gainInv * (_PITCHminf - math::radians(10.0f))) - SEB_correction;
-	float integ7_err_max = (gainInv * (_PITCHmaxf + math::radians(10.0f))) - SEB_correction;
-	_integ7_state = constrain(_integ7_state, integ7_err_min, integ7_err_max);
-
-	// if the specific engergy balance correction term produces a demanded pitch value which exceeds the aircraft pitch limits
-	// then zero the integrator. Not doing so can lead to the integrator value being shifted to large unwanted values due to the
-	// constraint right above this comment
-	if (SEB_correction / gainInv > (_PITCHmaxf + math::radians(10.0f)) || SEB_correction / gainInv < (_PITCHminf - math::radians(10.0f))) {
-		_integ7_state = 0.0f;
-	}
-
 	// Calculate pitch demand from specific energy balance signals
 	_pitch_dem_unc = (SEB_correction + _integ7_state) / gainInv;
 
