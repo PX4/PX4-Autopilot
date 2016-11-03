@@ -127,7 +127,8 @@ struct mission_item_s {
 		loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
 		force_heading : 1,				/**< heading needs to be reached ***/
 		altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
-		autocontinue : 1;				/**< true if next waypoint should follow after this one */
+		autocontinue : 1,				/**< true if next waypoint should follow after this one */
+		disable_mc_yaw : 1;				/**< weathervane mode */
 	};
 };
 #pragma pack(pop)
