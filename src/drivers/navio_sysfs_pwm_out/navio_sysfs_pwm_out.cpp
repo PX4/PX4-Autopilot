@@ -263,9 +263,12 @@ void subscribe()
 		if (_groups_required & (1 << i)) {
 			PX4_DEBUG("subscribe to actuator_controls_%d", i);
 			_controls_subs[i] = orb_subscribe(_controls_topics[i]);
+
+		} else {
+			_controls_subs[i] = -1;
 		}
 
-		if (_controls_subs[i] > 0) {
+		if (_controls_subs[i] >= 0) {
 			_poll_fds[_poll_fds_num].fd = _controls_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
@@ -322,7 +325,7 @@ void task_main(int argc, char *argv[])
 		unsigned poll_id = 0;
 
 		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_controls_subs[i] > 0) {
+			if (_controls_subs[i] >= 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_controls_topics[i], _controls_subs[i], &_controls[i]);
 				}
@@ -370,7 +373,6 @@ void task_main(int argc, char *argv[])
 				       pwm,
 				       &_pwm_limit);
 
-
 			if (_armed.lockdown) {
 				send_outputs_pwm(disarmed_pwm);
 
@@ -384,6 +386,10 @@ void task_main(int argc, char *argv[])
 			} else {
 				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 			}
+
+		} else {
+			PX4_ERR("Could not mix output! Exiting...");
+			_task_should_exit = true;
 		}
 
 		bool updated;
@@ -397,8 +403,8 @@ void task_main(int argc, char *argv[])
 	pwm_deinitialize();
 
 	for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_controls_subs[i] > 0) {
-			::close(_controls_subs[i]);
+		if (_controls_subs[i] >= 0) {
+			orb_unsubscribe(_controls_subs[i]);
 		}
 	}
 
