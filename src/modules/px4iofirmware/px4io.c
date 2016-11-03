@@ -86,7 +86,6 @@ static volatile uint8_t msg_next_out, msg_next_in;
 static char msg[NUM_MSG][40];
 
 static void heartbeat_blink(void);
-static void ring_blink(void);
 
 /*
  * add a debug message to be printed on the console
@@ -131,65 +130,6 @@ heartbeat_blink(void)
 {
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
-}
-
-static void
-ring_blink(void)
-{
-#ifdef GPIO_LED4
-
-	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
-		LED_RING(1);
-		return;
-	}
-
-	// XXX this led code does have
-	// intentionally a few magic numbers.
-	const unsigned max_brightness = 118;
-
-	static unsigned counter = 0;
-	static unsigned brightness = max_brightness;
-	static unsigned brightness_counter = 0;
-	static unsigned on_counter = 0;
-
-	if (brightness_counter < max_brightness) {
-
-		bool on = ((on_counter * 100) / brightness_counter + 1) <= ((brightness * 100) / max_brightness + 1);
-
-		// XXX once led is PWM driven,
-		// remove the ! in the line below
-		// to return to the proper breathe
-		// animation / pattern (currently inverted)
-		LED_RING(!on);
-		brightness_counter++;
-
-		if (on) {
-			on_counter++;
-		}
-
-	} else {
-
-		if (counter >= 62) {
-			counter = 0;
-		}
-
-		int n;
-
-		if (counter < 32) {
-			n = counter;
-
-		} else {
-			n = 62 - counter;
-		}
-
-		brightness = (n * n) / 8;
-		brightness_counter = 0;
-		on_counter = 0;
-		counter++;
-	}
-
-#endif
 }
 
 static uint64_t reboot_time;
@@ -408,8 +348,6 @@ user_start(int argc, char *argv[])
 		perf_begin(controls_perf);
 		controls_tick();
 		perf_end(controls_perf);
-
-		ring_blink();
 
 		check_reboot();
 
