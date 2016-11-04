@@ -46,7 +46,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
+#include <systemlib/mixer/mixer_load.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
@@ -67,7 +67,7 @@ volatile bool _task_should_exit = false;
 static bool _is_running = false;
 
 static const int NUM_PWM = 4;
-static char _device[32] = "/dev/pwm-1";
+static char _device[64] = "/dev/pwm-1";
 
 // pwm configuration with start pin 27
 static const int PIN_GPIO = 27;
@@ -79,21 +79,31 @@ static struct ::dspal_pwm *_pwm;
 int _fd = -1;
 
 static const int FREQUENCY_PWM = 500;
-static const char *MIXER_FILENAME = "";
+static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
 
 
 // subscriptions
-int     _controls_sub;
-int     _armed_sub;
+int	_controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+int	_armed_sub;
 
 // publications
 orb_advert_t    _outputs_pub = nullptr;
 orb_advert_t    _rc_pub = nullptr;
 
 // topic structures
-actuator_controls_s _controls;
+actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+orb_id_t _controls_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 actuator_outputs_s  _outputs;
 actuator_armed_s    _armed;
+
+// polling
+uint8_t _poll_fds_num = 0;
+px4_pollfd_struct_t _poss_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+
+// control group
+uint32_t	_groups_required = 0;
+uint32_t	_groups_subscribed = 0;
+
 
 pwm_limit_t     _pwm_limit;
 
@@ -102,7 +112,7 @@ int32_t _pwm_disarmed;
 int32_t _pwm_min;
 int32_t _pwm_max;
 
-MultirotorMixer *_mixer = nullptr;
+MixerGroup *_mixer_group = nullptr;
 
 void usage();
 
