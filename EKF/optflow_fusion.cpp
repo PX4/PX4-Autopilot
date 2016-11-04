@@ -433,23 +433,26 @@ void Ekf::fuseOptFlow()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		float KH[_k_num_states][_k_num_states];
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column <= 6; column++) {
-				KH[row][column] = gain[row] * H_LOS[obs_index][column];
-			}
-		}
-
 		float KHP[_k_num_states][_k_num_states];
+		float KH[7];
 		for (unsigned row = 0; row < _k_num_states; row++) {
+
+			KH[0] = gain[row] * H_LOS[obs_index][0];
+			KH[1] = gain[row] * H_LOS[obs_index][1];
+			KH[2] = gain[row] * H_LOS[obs_index][2];
+			KH[3] = gain[row] * H_LOS[obs_index][3];
+			KH[4] = gain[row] * H_LOS[obs_index][4];
+			KH[5] = gain[row] * H_LOS[obs_index][5];
+			KH[6] = gain[row] * H_LOS[obs_index][6];
+
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				float tmp = KH[row][0] * P[0][column];
-				tmp += KH[row][1] * P[1][column];
-				tmp += KH[row][2] * P[2][column];
-				tmp += KH[row][3] * P[3][column];
-				tmp += KH[row][4] * P[4][column];
-				tmp += KH[row][5] * P[5][column];
-				tmp += KH[row][6] * P[6][column];
+				float tmp = KH[0] * P[0][column];
+				tmp += KH[1] * P[1][column];
+				tmp += KH[2] * P[2][column];
+				tmp += KH[3] * P[3][column];
+				tmp += KH[4] * P[4][column];
+				tmp += KH[5] * P[5][column];
+				tmp += KH[6] * P[6][column];
 				KHP[row][column] = tmp;
 			}
 		}
