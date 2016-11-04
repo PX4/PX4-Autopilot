@@ -405,8 +405,8 @@ void Ekf::controlGpsFusion()
 
 		}
 	} else {
-		// handle the case where we do not have GPS and have not been using it for an extended period
-		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6)) {
+		// handle the case where we do not have GPS and have not been using it for an extended period, but are still relying on it
+		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6) && _control_status.flags.gps) {
 			// if we don't have a source of aiding to constrain attitude drift,
 			// then we need to switch to the non-aiding mode, zero the velocity states
 			// and set the synthetic GPS position to the current estimate
