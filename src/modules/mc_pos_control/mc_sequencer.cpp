@@ -2,7 +2,7 @@
 
 #include "mc_sequencer.h"
 
-// TODO: make sure this gets stored in codespace ROM to avoid wasting RAM
+#define SEQ_ENTRY(type, thrust, delay, r, p, y) (seq_entry_s {Seq_state::type, thrust, {r,p,y}, delay})
 
 sequence *get_sequence(sequence_set entry)
 {
@@ -11,48 +11,52 @@ sequence *get_sequence(sequence_set entry)
 	switch (entry) {
 	case coord_turn:
 		result = (sequence *) new sequence(3);
-		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.6f, {0.7f, -0.25f, 0.4f}, 1.0f};
-		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.7f, {0.0f, 0.0f, 0.73f}, 26.0f};
-		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, {0.0f, 0.0f, NAN}, 0.0f};
+		result->entries[0] = SEQ_ENTRY(RATE, 0.6f, 1.0f, 0.7f, -0.25f, 0.4f);
+		result->entries[1] = SEQ_ENTRY(RATE, 0.7f, 26.0f, 0.0f, 0.0f, 0.73f);
+		result->entries[2] = SEQ_ENTRY(ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, NAN);
 		break;
 
-//	case roll_flip:
-//		result = (sequence *) new sequence(4);
-//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-//		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
-//		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-//		break;
-//
-//	case hover:
-//		result = (sequence *) new sequence(1);
-//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-//		break;
-//
-//	case pitch_flip:
-//		result = (sequence *) new sequence(4);
-//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.8f};
-//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0f, M_TWOPI_F, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-//		result->entries[2] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.6f};
-//		result->entries[3] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-//		break;
-//
-//	case two_point_roll:
-//		result = (sequence *) new sequence(6);
-//		result->entries[0] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.2f, 0.0F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[3] = seq_entry_s {Seq_state::RATE, 0.2f, M_TWOPI_F, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[4] = seq_entry_s {Seq_state::ATTITUDE, 0.8f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.25f};
-//		result->entries[5] = seq_entry_s {Seq_state::ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f};
-//		break;
-//
-//	case tilt_lr:
-//		result = (sequence *) new sequence(3);
-//		result->entries[0] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		result->entries[1] = seq_entry_s {Seq_state::RATE, 0.4f, -1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 1.0f};
-//		result->entries[2] = seq_entry_s {Seq_state::RATE, 0.4f, 1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}, 0.5f};
-//		break;
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_SITL)
+
+	case roll_flip:
+		result = (sequence *) new sequence(4);
+		result->entries[0] = SEQ_ENTRY(ATTITUDE, 0.9f, 0.6f, 0.0f, 0.3f, NAN);
+		result->entries[1] = SEQ_ENTRY(RATE, 0.2f, 1.0f, M_TWOPI_F, 0.0f, 0.0f);
+		result->entries[2] = SEQ_ENTRY(RATE, 0.9f, 0.5f, 0.0f, 0.0f, 0.0f);
+		result->entries[3] = SEQ_ENTRY(ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, NAN);
+		break;
+
+	case hover:
+		result = (sequence *) new sequence(1);
+		result->entries[0] = SEQ_ENTRY(ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+
+	case pitch_flip:
+		result = (sequence *) new sequence(4);
+		result->entries[0] = SEQ_ENTRY(ATTITUDE, 0.8f, 0.8f, 0.0f, 0.0f, 0.0f);
+		result->entries[1] = SEQ_ENTRY(RATE, 0.2f, 1.0f, 0.0f, M_TWOPI_F, 0.0f);
+		result->entries[2] = SEQ_ENTRY(ATTITUDE, 0.8f, 0.6f, 0.0f, 0.0f, 0.0f);
+		result->entries[3] = SEQ_ENTRY(ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+
+	case two_point_roll:
+		result = (sequence *) new sequence(6);
+		result->entries[0] = SEQ_ENTRY(ATTITUDE, 0.8f, 0.5f, 0.0f, 0.0f, 0.0f);
+		result->entries[1] = SEQ_ENTRY(RATE, 0.2f, 0.5f, M_TWOPI_F, 0.0f, 0.0f);
+		result->entries[2] = SEQ_ENTRY(RATE, 0.2f, 0.5f, 0.0F, 0.0f, 0.0f);
+		result->entries[3] = SEQ_ENTRY(RATE, 0.2f, 0.5f, M_TWOPI_F, 0.0f, 0.0f);
+		result->entries[4] = SEQ_ENTRY(ATTITUDE, 0.8f, 0.25f, 0.0f, 0.0f, 0.0f);
+		result->entries[5] = SEQ_ENTRY(ATTITUDE, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+
+	case tilt_lr:
+		result = (sequence *) new sequence(3);
+		result->entries[0] = SEQ_ENTRY(RATE, 0.4f, 0.5f, 1.0f, 0.0f, 0.0f);
+		result->entries[1] = SEQ_ENTRY(RATE, 0.4f, 1.0f, -1.0f, 0.0f, 0.0f);
+		result->entries[2] = SEQ_ENTRY(RATE, 0.4f, 1.0f, 0.5f, 0.0f, 0.0f);
+		break;
+
+#endif
 	}
 
 	return result;
