@@ -68,7 +68,18 @@ class MavlinkLogStreaming():
         ''' main loop reading messages '''
         measure_time_start = timer()
         measured_data = 0
+
+        next_heartbeat_time = timer()
         while True:
+
+            # handle heartbeat sending
+            heartbeat_time = timer()
+            if heartbeat_time > next_heartbeat_time:
+                self.debug('sending heartbeat')
+                self.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                        mavutil.mavlink.MAV_AUTOPILOT_GENERIC, 0, 0, 0)
+                next_heartbeat_time = heartbeat_time + 1
+
             m, first_msg_start, num_drops = self.read_message()
             if m is not None:
                 self.process_streamed_ulog_data(m, first_msg_start, num_drops)
