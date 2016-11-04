@@ -208,7 +208,7 @@ private:
 	control::BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamExtFloat _mag_noise;		// measurement noise used for 3-axis magnetoemter fusion (Gauss)
 	control::BlockParamExtFloat _eas_noise;		// measurement noise used for airspeed fusion (std m/s)
-	control::BlockParamExtFloat _beta_noise;		// synthetic sideslip noise (m/s)
+	control::BlockParamExtFloat _beta_noise;	// synthetic sideslip noise (m/s)
 	control::BlockParamExtFloat _mag_declination_deg;// magnetic declination in degrees
 	control::BlockParamExtFloat _heading_innov_gate;// innovation gate for heading innovation test
 	control::BlockParamExtFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
