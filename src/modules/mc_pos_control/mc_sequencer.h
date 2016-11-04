@@ -11,8 +11,6 @@
 #include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
 
-//#define NOT_FMU_V2 1
-
 /*
  * Perform a programmed sequence with specified target attitudes
  *
