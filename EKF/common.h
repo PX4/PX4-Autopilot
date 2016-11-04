@@ -326,9 +326,9 @@ struct parameters {
 		tas_innov_gate = 5.0f;		
   		eas_noise = 1.4f;	
 
-  		// sysntetic sideslip fusion
+		// synthetic sideslip fusion
  		beta_innov_gate = 5.0f;
- 		beta_noise = 0.5f;
+		beta_noise = 0.3f;
  		beta_avg_ft_us = 1000000.0f; //1 Hz		
 
 		// range finder fusion
