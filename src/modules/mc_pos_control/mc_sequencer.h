@@ -11,6 +11,8 @@
 #include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
 
+//#define NOT_FMU_V2 1
+
 /*
  * Perform a programmed sequence with specified target attitudes
  *
@@ -61,7 +63,9 @@ struct sequence {
 };
 
 enum sequence_set { coord_turn
-//	, roll_flip, hover, pitch_flip, two_point_roll, tilt_lr
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_SITL)
+, roll_flip, hover, pitch_flip, two_point_roll, tilt_lr
+#endif
 		  };
 
 sequence *get_sequence(sequence_set entry);
