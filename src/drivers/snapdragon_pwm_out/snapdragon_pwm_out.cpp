@@ -60,7 +60,7 @@
 
 
 
-namespace snapdragon_pwm_out
+namespace snapdragon_pwm
 {
 static px4_task_t _task_handle = -1;
 volatile bool _task_should_exit = false;
@@ -76,9 +76,11 @@ static struct ::dspal_pwm _pwm_gpio[NUM_PWM];
 static struct ::dspal_pwm_ioctl_update_buffer *_update_buffer;
 static struct ::dspal_pwm *_pwm;
 
+int _fd = -1;
 
 static const int FREQUENCY_PWM = 500;
 static const char *MIXER_FILENAME = "";
+
 
 // subscriptions
 int     _controls_sub;
@@ -107,8 +109,6 @@ void usage();
 void start();
 
 void stop();
-
-int pwm_write_sysfs(char *path, int value);
 
 int pwm_initialize(const char *device);
 
@@ -194,37 +194,17 @@ int initialize_mixer(const char *mixer_filename)
 	}
 }
 
-int pwm_write_sysfs(char *path, int value)
-{
-	int fd = ::open(path, O_WRONLY | O_CLOEXEC);
-	int n;
-	char data[16];
 
-	if (fd == -1) {
-		return -errno;
-	}
-
-	n = ::snprintf(data, sizeof(data), "%u", value);
-
-	if (n > 0) {
-		n = ::write(fd, data, n);	// This n is not used, but to avoid a compiler error.
-	}
-
-	::close(fd);
-
-	return 0;
-}
 
 int pwm_initialize(const char *device)
 {
 	/*
 	 * open PWM device
 	 */
-	int fd = -1;
 	int i = 0;
-	fd = px4_open(_device, O_RDWR | O_NOCTTY);
+	_fd = px4_open(_device, O_RDWR | O_NOCTTY);
 
-	if (fd < 0) {
+	if (_fd < 0) {
 		PX4_ERR("failed to open PWM device!");
 		return -1;
 	}
@@ -240,26 +220,30 @@ int pwm_initialize(const char *device)
 	 * description of signal
 	 */
 	_signal_definition.num_gpios = NUM_PWM;
-	_signal_definition.period_in_usecs = 1e6 * 1/FREQUENCY_PWM;
+	_signal_definition.period_in_usecs = 1e6/FREQUENCY_PWM;
 	_signal_definition.pwm_signal = _pwm_gpio;
 
 
 	/*
 	 * send signal description to DSP
 	 */
-	if (::ioctl(fd, PWM_IOCTL_SIGNAL_DEFINITION, &_signal_definition) != 0) {
+	if (::ioctl(_fd, PWM_IOCTL_SIGNAL_DEFINITION, &_signal_definition) != 0) {
 		PX4_ERR("failed to send signal to DSP");
 		return -1;
 	}
 
 	/*
-	 * retrive update buffer
+	 * retrive shared update buffer to make immediate changed in width of the pulse
 	 */
-	if (ioctl(fd, PWM_IOCTL_GET_UPDATE_BUFFER, &_update_buffer) != 0)
+	if (::ioctl(_fd, PWM_IOCTL_GET_UPDATE_BUFFER, &_update_buffer) != 0)
 	{
 		PX4_ERR("failed to receive update buffer ");
 		return -1;
 	}
+	_pwm = &_update_buffer->pwm_signal[0];
+	//_update_buffer->reserved_1 = 0;
+
+
 
 
 	return 0;
@@ -267,22 +251,20 @@ int pwm_initialize(const char *device)
 
 void pwm_deinitialize()
 {
-	for (int i = 0; i < NUM_PWM; ++i) {
-		if (_pwm_fd[i] != -1) {
-			::close(_pwm_fd[i]);
-		}
-	}
+	/*
+	 * close device ID
+	 */
+	close(_fd);
+
 }
 
 void send_outputs_pwm(const uint16_t *pwm)
 {
-	int n;
-	char data[16];
-
-	//convert this to duty_cycle in ns
+	/*
+	 * send pwm in us: ToDo: is it in us?
+	 */
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
-		n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
-		n = ::write(_pwm_fd[i], data, n);	// This n is not used, but to avoid a compiler error.
+		_pwm[i].pulse_width_in_usecs = pwm[i];
 	}
 }
 
@@ -323,6 +305,7 @@ void task_main(int argc, char *argv[])
 	// Main loop
 	while (!_task_should_exit) {
 
+		/* wait up to 10ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
 
 		/* Timed out, do a periodic check for _task_should_exit. */
@@ -338,12 +321,15 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
+		/* check if there is data to read */
 		if (fds[0].revents & POLLIN) {
+
+
 			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
 
 			_outputs.timestamp = _controls.timestamp;
 
-			/* do mixing */
+			/* do  mixing for virtual control group */
 			_outputs.noutputs = _mixer->mix(_outputs.output,
 							0 /* not used */,
 							NULL);
@@ -461,9 +447,9 @@ void usage()
 } // namespace navio_sysfs_pwm_out
 
 /* driver 'main' command */
-extern "C" __EXPORT int navio_sysfs_pwm_out_main(int argc, char *argv[]);
+extern "C" __EXPORT int snapdragon_pwm_main(int argc, char *argv[]);
 
-int navio_sysfs_pwm_out_main(int argc, char *argv[])
+int snapdragon_pwm_main(int argc, char *argv[])
 {
 	const char *device = nullptr;
 	int ch;
@@ -483,43 +469,43 @@ int navio_sysfs_pwm_out_main(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(navio_sysfs_pwm_out::_device, device, sizeof(navio_sysfs_pwm_out::_device));
+			strncpy(snapdragon_pwm::_device, device, sizeof(snapdragon_pwm::_device));
 			break;
 		}
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &navio_sysfs_pwm_out::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &navio_sysfs_pwm_out::_pwm_min);
-	param_get(param_find("PWM_MAX"), &navio_sysfs_pwm_out::_pwm_max);
+	param_get(param_find("PWM_DISARMED"), &snapdragon_pwm::_pwm_disarmed);
+	param_get(param_find("PWM_MIN"), &snapdragon_pwm::_pwm_min);
+	param_get(param_find("PWM_MAX"), &snapdragon_pwm::_pwm_max);
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		if (navio_sysfs_pwm_out::_is_running) {
+		if (snapdragon_pwm::_is_running) {
 			PX4_WARN("pwm_out already running");
 			return 1;
 		}
 
-		navio_sysfs_pwm_out::start();
+		snapdragon_pwm::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (!navio_sysfs_pwm_out::_is_running) {
+		if (!snapdragon_pwm::_is_running) {
 			PX4_WARN("pwm_out is not running");
 			return 1;
 		}
 
-		navio_sysfs_pwm_out::stop();
+		snapdragon_pwm::stop();
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("pwm_out is %s", navio_sysfs_pwm_out::_is_running ? "running" : "not running");
+		PX4_WARN("pwm_out is %s", snapdragon_pwm::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
-		navio_sysfs_pwm_out::usage();
+		snapdragon_pwm::usage();
 		return 1;
 	}
 
