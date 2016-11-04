@@ -18,7 +18,8 @@ try:
 except:
     print("Failed to import pymavlink.")
     print("You may need to install it with 'pip install pymavlink pyserial'")
-    exit(-1)
+    print("")
+    raise
 from argparse import ArgumentParser
 
 

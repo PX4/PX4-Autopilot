@@ -17,8 +17,9 @@ try:
     from pymavlink import mavutil
 except:
     print("Failed to import pymavlink.")
-    print("You may need to install it with 'pip install pymavlink'")
-    exit(-1)
+    print("You may need to install it with 'pip install pymavlink pyserial'")
+    print("")
+    raise
 from argparse import ArgumentParser
 
 
