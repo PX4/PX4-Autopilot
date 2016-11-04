@@ -682,7 +682,7 @@ bool MatrixTest::vectorAssignmentTests(void)
 
 bool MatrixTest::dcmRenormTests(void)
 {
-	bool verbose = false;
+	bool verbose = true;
 
 	Dcm<float> A = eye<float, 3>();
 	Euler<float> euler(0.1f, 0.2f, 0.3f);
@@ -717,7 +717,7 @@ bool MatrixTest::dcmRenormTests(void)
 		printf("renorm error: %e\n", (double)err);
 	}
 
-	static const float eps = 1e-7f;
+	static const float eps = 1e-6f;
 	ut_test(err < eps);
 
 	return true;
