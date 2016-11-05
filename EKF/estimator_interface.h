@@ -273,8 +273,21 @@ protected:
 
 	parameters _params;		// filter parameters
 
-	static const uint8_t OBS_BUFFER_LENGTH = 10;	// defines how many measurement samples we can buffer
-	static const uint8_t IMU_BUFFER_LENGTH = 30;	// defines how many imu samples we can buffer
+	/*
+	 OBS_BUFFER_LENGTH defines how many observations (non-IMU measurements) we can buffer
+	 which sets the maximum frequency at which we can process non-IMU measurements. Measurements that
+	 arrive too soon after the previous measurement will not be processed.
+	 max freq (Hz) = (OBS_BUFFER_LENGTH - 1) / (IMU_BUFFER_LENGTH * FILTER_UPDATE_PERIOD_MS * 0.001)
+	 This can be adjusted to match the max sensor data rate plus some margin for jitter.
+	*/
+	uint8_t OBS_BUFFER_LENGTH;
+	/*
+	IMU_BUFFER_LENGTH defines how many IMU samples we buffer which sets the time delay from current time to the
+	EKF fusion time horizon and therefore the maximum sensor time offset relative to the IMU that we can compensate for.
+	max sensor time offet (msec) =  IMU_BUFFER_LENGTH * FILTER_UPDATE_PERIOD_MS
+	This can be adjusted to a value that is FILTER_UPDATE_PERIOD_MS longer than the maximum observation time delay.
+	*/
+	uint8_t IMU_BUFFER_LENGTH;
 	static const unsigned FILTER_UPDATE_PERIOD_MS = 10;	// ekf prediction period in milliseconds
 
 	unsigned _min_obs_interval_us; // minimum time interval between observations that will guarantee data is not lost (usec)

@@ -48,6 +48,8 @@
 
 
 EstimatorInterface::EstimatorInterface():
+	OBS_BUFFER_LENGTH(10),
+	IMU_BUFFER_LENGTH(30),
 	_min_obs_interval_us(0),
 	_dt_imu_avg(0.0f),
 	_imu_ticks(0),
@@ -340,6 +342,22 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
+	// find the maximum time delay required to compensate for
+	uint16_t max_time_delay_ms = math::max(_params.mag_delay_ms,
+					 math::max(_params.range_delay_ms,
+					     math::max(_params.gps_delay_ms,
+						 math::max(_params.flow_delay_ms,
+						     math::max(_params.ev_delay_ms,
+							 math::max(_params.airspeed_delay_ms, _params.baro_delay_ms))))));
+
+	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
+	IMU_BUFFER_LENGTH = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
+
+	// set the observaton buffer length to handle the minimum time of arrival between observations
+	OBS_BUFFER_LENGTH = (max_time_delay_ms / _params.sensor_interval_min_ms) + 1;
+
+	ECL_INFO("EKF IMU buffer length = %i",(int)IMU_BUFFER_LENGTH);
+	ECL_INFO("EKF observation buffer length = %i",(int)OBS_BUFFER_LENGTH);
 
 	if (!(_imu_buffer.allocate(IMU_BUFFER_LENGTH) &&
 	      _gps_buffer.allocate(OBS_BUFFER_LENGTH) &&

@@ -173,6 +173,7 @@ struct parameters {
 	// measurement source control
 	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 	int vdist_sensor_type;		// selects the primary source for height data
+	int sensor_interval_min_ms;	// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
 
 	// measurement time delays
 	float mag_delay_ms;		// magnetometer measurement delay relative to the IMU (msec)
@@ -275,6 +276,7 @@ struct parameters {
 		// measurement source control
 		fusion_mode = MASK_USE_GPS;
 		vdist_sensor_type = VDIST_SENSOR_BARO;
+		sensor_interval_min_ms = 20;
 
 		// measurement time delays
 		mag_delay_ms = 0.0f;
