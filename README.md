@@ -25,23 +25,23 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
 
 ## Maintenance Team
 
-  * Lorenz Meier (lorenz@px4.io) - PX4 Maintainer
-  * Dev Call - Mark Whitehorn, Ramon Roche
-  * Communication Architecture - Beat Kueng, Julian Oes
-  * UI / UX - Gus Grubba
-  * Multicopter Flight Control - Dennis Mannhart, Matthias Grob
-  * VTOL Flight Control - Roman Bapst, Andreas Antener, Sander Smeets
-  * Fixed Wing Flight Control - Daniel Agar, Paul Riseborough
-  * Racers - Mark Whitehorn
-  * OS / drivers - David Sidrane
-  * UAVCAN / Industrial - Pavel Kirienko
-  * State Estimation - James Goppert, Paul Riseborough
+  * Project / Founder - [Lorenz Meier](http://github.com/LorenzMeier)
+  * Dev Call - [Mark Whitehorn](http://github.com/kd0aij), [Ramon Roche](http://github.com/mrpollo)
+  * Communication Architecture - [Beat Kueng](http://github.com/bkueng), [Julian Oes](http://github.com/JulianOes)
+  * UI / UX - [Gus Grubba](http://github.com/dogmaphobic)
+  * Multicopter Flight Control - [Dennis Mannhart](http://github.com/Stifael), [Matthias Grob](http://github.com/MaEtUgR)
+  * VTOL Flight Control - [Roman Bapst](http://github.com/tumbili), [Andreas Antener](http://github.com/AndreasAntener), [Sander Smeets](http://github.com/sanderux)
+  * Fixed Wing Flight Control - [Daniel Agar](http://github.com/dagar), [Paul Riseborough](http://github.com/priseborough)
+  * Racers - [Mark Whitehorn](http://github.com/kd0aij)
+  * OS / drivers - [David Sidrane](http://github.com/david_s5)
+  * UAVCAN / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
+  * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
   * VIO - Christoph Tobler
-  * Obstacle Avoidance - Vilhjalmur Vilhjalmsson
-  * Snapdragon - Mark Charlebois, Julian Oes
-  * Intel Aero - Lucas de Marchi, Simone Guscetti
-  * Raspberry Pi / Navio - Beat Kueng
-  * Parrot Bebop - Michael Schaeuble
+  * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](http://github.com/vilhjalmur89)
+  * Snapdragon - [Mark Charlebois](http://github.com/mcharleb)
+  * Intel Aero - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
+  * Raspberry Pi / Navio - [Beat Kueng](http://github.com/bkueng)
+  * Parrot Bebop - [Michael Schaeuble](http://github.com/eyeam3)
 
 ## Supported Hardware
 
