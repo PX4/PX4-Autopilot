@@ -37,8 +37,9 @@
 *
 */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
+#include <board_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -60,7 +61,6 @@
 #include <drivers/stm32/drv_io_timer.h>
 
 
-#include <board_config.h>
 
 #if defined(BOARD_HAS_LED_PWM)
 #define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))

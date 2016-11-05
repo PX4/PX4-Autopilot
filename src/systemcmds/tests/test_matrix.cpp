@@ -29,6 +29,7 @@ private:
 	bool vector2Tests();
 	bool vector3Tests();
 	bool vectorAssignmentTests();
+	bool dcmRenormTests();
 };
 
 bool MatrixTest::run_tests(void)
@@ -49,6 +50,7 @@ bool MatrixTest::run_tests(void)
 	ut_run_test(vector2Tests);
 	ut_run_test(vector3Tests);
 	ut_run_test(vectorAssignmentTests);
+	ut_run_test(dcmRenormTests);
 
 	return (_tests_failed == 0);
 }
@@ -674,6 +676,49 @@ bool MatrixTest::vectorAssignmentTests(void)
 	ut_test(fabsf(m(0, 0) - 1) < eps);
 	ut_test(fabsf(m(1, 1) - 2) < eps);
 	ut_test(fabsf(m(2, 2) - 3) < eps);
+
+	return true;
+}
+
+bool MatrixTest::dcmRenormTests(void)
+{
+	bool verbose = true;
+
+	Dcm<float> A = eye<float, 3>();
+	Euler<float> euler(0.1f, 0.2f, 0.3f);
+	Dcm<float> R(euler);
+
+	// demonstrate need for renormalization
+	for (int i = 0; i < 1000; i++) {
+		A = R * A;
+	}
+
+	float err = 0.0f;
+
+	if (verbose) {
+		for (int row = 0; row < 3; row++) {
+			matrix::Vector3f rvec(A._data[row]);
+			err += fabsf(1.0f - rvec.length());
+		}
+
+		printf("error: %e\n", (double)err);
+	}
+
+	A.renormalize();
+
+	err = 0.0f;
+
+	for (int row = 0; row < 3; row++) {
+		matrix::Vector3f rvec(A._data[row]);
+		err += fabsf(1.0f - rvec.length());
+	}
+
+	if (verbose) {
+		printf("renorm error: %e\n", (double)err);
+	}
+
+	static const float eps = 1e-6f;
+	ut_test(err < eps);
 
 	return true;
 }

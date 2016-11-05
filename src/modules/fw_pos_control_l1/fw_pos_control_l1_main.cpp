@@ -1032,7 +1032,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 		const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
 
-	if (pos_sp_triplet.current.valid && !(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+	if (pos_sp_triplet.current.valid && !_l1_control.circle_mode()) {
 
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));

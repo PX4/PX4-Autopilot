@@ -2356,6 +2356,11 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
 
+	if (_mavlink_ulog) {
+		_mavlink_ulog->stop();
+		_mavlink_ulog = nullptr;
+	}
+
 	warnx("exiting channel %i", (int)_channel);
 
 	return OK;

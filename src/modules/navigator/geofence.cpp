@@ -126,6 +126,11 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 	}
 }
 
+bool Geofence::inside(const struct mission_item_s &mission_item)
+{
+	return inside(mission_item.lat, mission_item.lon, mission_item.altitude);
+}
+
 bool Geofence::inside(double lat, double lon, float altitude)
 {
 		float max_horizontal_distance = _param_max_hor_distance.get();

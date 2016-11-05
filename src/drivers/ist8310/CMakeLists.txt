@@ -31,15 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__crazyflie
+	MODULE drivers__ist8310
+	MAIN ist8310
+	STACK_MAIN 1200
+	COMPILE_FLAGS
+		-Weffc++
+		-Os
 	SRCS
-		../common/board_name.c
-		../common/board_dma_alloc.c
-		crazyflie_init.c
-		crazyflie_usb.c
-		crazyflie_led.c
-		crazyflie_timer_config.c
-		crazyflie_i2c.cpp
+		ist8310.cpp
 	DEPENDS
 		platforms__common
 	)
