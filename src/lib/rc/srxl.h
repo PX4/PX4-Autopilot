@@ -20,6 +20,15 @@
 
 #pragma once
 
+
+
+
+
+#ifdef TEST_MAIN_PROGRAM
+
+
+#else
+
 __BEGIN_DECLS
 
 /*
@@ -30,3 +39,5 @@ __BEGIN_DECLS
 __EXPORT int srxl_decode(uint64_t timestamp_us, uint8_t byte, uint8_t *num_values, uint16_t *values, uint16_t max_values, bool *failsafe_state);
 
 __END_DECLS
+
+#endif
