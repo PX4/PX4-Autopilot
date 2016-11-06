@@ -119,7 +119,13 @@ MixerGroup::set_trims(uint16_t *values, unsigned n)
 	unsigned index = 0;
 
 	while ((mixer != nullptr) && (index < n)) {
-		/* hardwired assumption that PWM output range is [1000, 2000] usec */
+		/*
+		 * hardwired assumption that PWM output range is [1000, 2000] usec
+		 *
+		 * This only works with SimpleMixer::set_trim(float) which always returns the value one,
+		 * but the only other existing implementation is MultirotorMixer, which ignores
+		 * the trim value.
+		 */
 		float offset = ((float)values[index] - 1500) / 500;
 
 		/* to be safe, clamp offset to range of [-100, 100] usec */
@@ -127,6 +133,7 @@ MixerGroup::set_trims(uint16_t *values, unsigned n)
 
 		if (offset >  0.2f) { offset =  0.2f; }
 
+		debug("set trim: %d, offset: %5.3f", values[index], (double)offset);
 		index += mixer->set_trim(offset);
 		mixer = mixer->_next;
 	}

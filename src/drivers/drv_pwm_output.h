@@ -114,14 +114,14 @@ __BEGIN_DECLS
 /**
  * Default trim PWM in us
  */
-#define PWM_DEFAULT_TRIM 0
+#define PWM_DEFAULT_TRIM 1500
 
 /**
  * Lowest PWM allowed as the maximum PWM
  */
 #define PWM_LOWEST_MAX 200
 
-#endif // PX4_PWM_ALTERNATE_RANGES
+#endif // not PX4_PWM_ALTERNATE_RANGES
 
 /**
  * Do not output a channel with this value
@@ -222,10 +222,10 @@ struct pwm_output_rc_config {
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
-/** set the maximum PWM value the output will send */
+/** set the TRIM value the output will send */
 #define PWM_SERVO_SET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 20)
 
-/** get the maximum PWM value the output will send */
+/** get the TRIM value the output will send */
 #define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
 
 /** set the number of servos in (unsigned)arg - allows change of
