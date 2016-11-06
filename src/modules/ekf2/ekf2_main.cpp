@@ -185,6 +185,7 @@ private:
 
 	parameters *_params;	// pointer to ekf parameter struct (located in _ekf class instance)
 
+	control::BlockParamExtInt _obs_dt_min_ms;
 	control::BlockParamExtFloat _mag_delay_ms;
 	control::BlockParamExtFloat _baro_delay_ms;
 	control::BlockParamExtFloat _gps_delay_ms;
@@ -313,6 +314,7 @@ Ekf2::Ekf2():
 	_lp_yaw_rate(250.0f, 20.0f),
 	_ekf(),
 	_params(_ekf.getParamHandle()),
+	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
 	_baro_delay_ms(this, "EKF2_BARO_DELAY", false, _params->baro_delay_ms),
 	_gps_delay_ms(this, "EKF2_GPS_DELAY", false, _params->gps_delay_ms),
@@ -548,16 +550,16 @@ void Ekf2::task_main()
 			if ((sensors.timestamp + sensors.magnetometer_timestamp_relative) != _timestamp_mag_us) {
 				_timestamp_mag_us = sensors.timestamp + sensors.magnetometer_timestamp_relative;
 
-				// If the time last used by the EKF is less than 50msec, then accumulate the
+				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the 50msec is reached.
 				_mag_time_sum_ms += _timestamp_mag_us / 1000;
 				_mag_sample_count++;
 				_mag_data_sum[0] += sensors.magnetometer_ga[0];
 				_mag_data_sum[1] += sensors.magnetometer_ga[1];
 				_mag_data_sum[2] += sensors.magnetometer_ga[2];
-				uint64_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
+				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
-				if (mag_time_ms - _mag_time_ms_last_used > 50) {
+				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
 					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
 					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv , _mag_data_sum[1] *mag_sample_count_inv , _mag_data_sum[2] *mag_sample_count_inv};
 					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
@@ -581,14 +583,14 @@ void Ekf2::task_main()
 			if ((sensors.timestamp + sensors.baro_timestamp_relative) != _timestamp_balt_us) {
 				_timestamp_balt_us = sensors.timestamp + sensors.baro_timestamp_relative;
 
-				// If the time last used by the EKF is less than 50msec, then accumulate the
+				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the 50msec is reached.
 				_balt_time_sum_ms += _timestamp_balt_us / 1000;
 				_balt_sample_count++;
 				_balt_data_sum += sensors.baro_alt_meter;
-				uint64_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
+				uint32_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
 
-				if (balt_time_ms - _balt_time_ms_last_used > 50) {
+				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
 					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, &balt_data_avg);
 					_balt_time_ms_last_used = balt_time_ms;
