@@ -379,8 +379,18 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_sensors.timestamp = replay_part1.time_ref;
 		_sensors.gyro_integral_dt = replay_part1.gyro_integral_dt;
 		_sensors.accelerometer_integral_dt = replay_part1.accelerometer_integral_dt;
-		_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
-		_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+		// If the magnetometer timestamp is zero, then there is no valid data
+		if (replay_part1.magnetometer_timestamp == 0) {
+			_sensors.magnetometer_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+		} else {
+			_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
+		}
+		// If the barometer timestamp is zero then there is no valid data
+		if (replay_part1.baro_timestamp == 0) {
+			_sensors.baro_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+		} else {
+			_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+		}
 		_sensors.gyro_rad[0] = replay_part1.gyro_x_rad;
 		_sensors.gyro_rad[1] = replay_part1.gyro_y_rad;
 		_sensors.gyro_rad[2] = replay_part1.gyro_z_rad;
