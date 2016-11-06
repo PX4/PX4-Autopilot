@@ -149,7 +149,8 @@ private:
 	float _balt_data_sum;			// summed barometric altitude readings (m)
 	uint64_t _balt_time_sum_ms;		// summed barometric altitude time stamps (msec)
 	uint8_t _balt_sample_count = 0;		// number of barometric altitude measurements summed
-	uint32_t _balt_time_ms_last_used = 0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
+	uint32_t _balt_time_ms_last_used =
+		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
 
 	int	_sensors_sub = -1;
 	int	_gps_sub = -1;
@@ -549,16 +550,17 @@ void Ekf2::task_main()
 
 				// If the time last used by the EKF is less than 50msec, then accumulate the
 				// data and push the average when the 50msec is reached.
-				_mag_time_sum_ms += _timestamp_mag_us/1000;
+				_mag_time_sum_ms += _timestamp_mag_us / 1000;
 				_mag_sample_count++;
 				_mag_data_sum[0] += sensors.magnetometer_ga[0];
 				_mag_data_sum[1] += sensors.magnetometer_ga[1];
 				_mag_data_sum[2] += sensors.magnetometer_ga[2];
 				uint64_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
+
 				if (mag_time_ms - _mag_time_ms_last_used > 50) {
 					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
-					float mag_data_avg_ga[3] = {_mag_data_sum[0]*mag_sample_count_inv , _mag_data_sum[1]*mag_sample_count_inv , _mag_data_sum[2]*mag_sample_count_inv};
-					_ekf.setMagData(1000*(uint64_t)mag_time_ms, mag_data_avg_ga);
+					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv , _mag_data_sum[1] *mag_sample_count_inv , _mag_data_sum[2] *mag_sample_count_inv};
+					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
 					_mag_time_ms_last_used = mag_time_ms;
 					_mag_time_sum_ms = 0;
 					_mag_sample_count = 0;
@@ -581,13 +583,14 @@ void Ekf2::task_main()
 
 				// If the time last used by the EKF is less than 50msec, then accumulate the
 				// data and push the average when the 50msec is reached.
-				_balt_time_sum_ms += _timestamp_balt_us/1000;
+				_balt_time_sum_ms += _timestamp_balt_us / 1000;
 				_balt_sample_count++;
 				_balt_data_sum += sensors.baro_alt_meter;
 				uint64_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
+
 				if (balt_time_ms - _balt_time_ms_last_used > 50) {
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
-					_ekf.setBaroData(1000*(uint64_t)balt_time_ms, &balt_data_avg);
+					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, &balt_data_avg);
 					_balt_time_ms_last_used = balt_time_ms;
 					_balt_time_sum_ms = 0;
 					_balt_sample_count = 0;
