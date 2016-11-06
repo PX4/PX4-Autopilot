@@ -644,7 +644,7 @@ PX4FMU::set_mode(Mode mode)
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
-	DEVICE_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
+	PX4_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 		for (unsigned group = 0; group < _max_actuators; group++) {
@@ -720,12 +720,12 @@ PX4FMU::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
+			PX4_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
 		if (unsub_groups & (1 << i)) {
-			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
+			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -761,6 +761,8 @@ PX4FMU::update_pwm_rev_mask()
 void
 PX4FMU::update_pwm_trims()
 {
+	PX4_DEBUG("update_pwm_trims");
+
 	if (_mixers == nullptr) {
 		PX4_WARN("no mixers defined");
 
@@ -779,13 +781,13 @@ PX4FMU::update_pwm_trims()
 			if (param_h != PARAM_INVALID) {
 				param_get(param_h, &ival);
 				values[i] = ival;
-				PX4_INFO("aux trim %d %d", i, values[i]);
+				PX4_DEBUG("%s: %d", pname, values[i]);
 			}
 		}
 
 		/* copy the trim values to the mixer offsets */
 		unsigned n_out = _mixers->set_trims(values, _max_actuators);
-		PX4_INFO("set %d trims", n_out);
+		PX4_DEBUG("set %d trims", n_out);
 	}
 }
 
@@ -1019,7 +1021,7 @@ PX4FMU::cycle()
 			update_rate_in_ms = 100;
 		}
 
-		DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
+		PX4_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
@@ -1159,7 +1161,7 @@ PX4FMU::cycle()
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
 			// TODO: remove trim_pwm parameter
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
-				       _trim_pwm, _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
+				       _disarmed_pwm, _min_pwm, _max_pwm, _trim_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 			/* overwrite outputs in case of lockdown with disarmed PWM values */
@@ -1664,7 +1666,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	default:
-		DEVICE_DEBUG("not in a PWM mode");
+		PX4_DEBUG("not in a PWM mode");
 		break;
 	}
 
@@ -1680,6 +1682,8 @@ int
 PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
+
+	PX4_DEBUG("fmu ioctl cmd: %d, arg: %ld", cmd, arg);
 
 	lock();
 
@@ -1931,12 +1935,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			/* discard if too many values are sent */
 			if (pwm->channel_count > _max_actuators) {
+				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
 				ret = -EINVAL;
 				break;
 			}
 
 			/* copy the trim values to the mixer offsets */
 			_mixers->set_trims(pwm->values, pwm->channel_count);
+			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
 
 			break;
 		}
@@ -2292,7 +2298,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					DEVICE_DEBUG("mixer load failed with %d", ret);
+					PX4_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;
@@ -2301,7 +2307,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
-					PX4_INFO("loaded mixers \n%s\n", buf);
+					PX4_DEBUG("loaded mixers \n%s\n", buf);
 				}
 			}
 
