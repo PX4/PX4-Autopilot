@@ -8,6 +8,16 @@ function fatal
 	exit 1
 }
 
+# Make sure we're not having a broken gawk.
+AWK_VERSION=$(awk -V | head -n 1)
+if [[ $AWK_VERSION =~ ^GNU\ Awk\ 4\.[0-9]+\.[0-9]+ ]]; then
+	AWK_VERSION=$(echo $AWK_VERSION | sed -e 's/GNU Awk \(4\.[0-9]*\.[0-9]*\).*/\1/')
+	if [[ $AWK_VERSION =~ ^4\.0*([2-9]+|1\.0*[2-9]+) ]]; then
+		fatal "Your version of awk ($AWK_VERSION) is broken. Please use version 4.1.1 or lower."
+	fi
+fi
+echo "AWK_VERSION=$AWK_VERSION"
+
 # Find out what the base directory is.
 BASEDIR="$(dirname $(dirname $(readlink -en "$0")))"
 echo "BASEDIR=\"$BASEDIR\""
@@ -864,7 +874,7 @@ function fixup_header
 	fi
 }
 
-if [ $debug -ne 0 ]; then
+if [ $non_option_arguments -ne 0 ]; then
 	fixup_header $1
 	exit
 fi
