@@ -259,10 +259,10 @@ bool Ekf::initialiseFilter(void)
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
 			// don't start using data until we can be certain all bad initial data has been flushed
-			if (_mag_counter == OBS_BUFFER_LENGTH+1) {
+			if (_mag_counter == (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 				// initialise filter states
 				_mag_filt_state = _mag_sample_delayed.mag;
-			} else if (_mag_counter > OBS_BUFFER_LENGTH+1) {
+			} else if (_mag_counter > (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 				// noise filter the data
 				_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
 			}
@@ -306,10 +306,10 @@ bool Ekf::initialiseFilter(void)
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
-				if (_hgt_counter == OBS_BUFFER_LENGTH+1) {
+				if (_hgt_counter == (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 					// initialise filter states
 					_rng_filt_state = _range_sample_delayed.rng;
-				} else if (_hgt_counter > OBS_BUFFER_LENGTH+1) {
+				} else if (_hgt_counter > (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 					// noise filter the data
 					_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
 				}
@@ -330,10 +330,10 @@ bool Ekf::initialiseFilter(void)
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
 				// don't start using data until we can be certain all bad initial data has been flushed
-				if (_hgt_counter == OBS_BUFFER_LENGTH+1) {
+				if (_hgt_counter == (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 					// initialise filter states
 					_baro_hgt_offset = _baro_sample_delayed.hgt;
-				} else if (_hgt_counter > OBS_BUFFER_LENGTH+1) {
+				} else if (_hgt_counter > (uint8_t)(OBS_BUFFER_LENGTH + 1)) {
 					// noise filter the data
 					_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 				}
