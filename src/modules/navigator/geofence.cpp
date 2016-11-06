@@ -131,40 +131,40 @@ bool Geofence::inside(const struct mission_item_s &mission_item)
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-		float max_horizontal_distance = _param_max_hor_distance.get();
-		float max_vertical_distance = _param_max_ver_distance.get();
+	float max_horizontal_distance = _param_max_hor_distance.get();
+	float max_vertical_distance = _param_max_ver_distance.get();
 
-		if (max_horizontal_distance > 1 || max_vertical_distance > 1) {
-			if (_home_pos_set) {
-				float dist_xy = -1.0f;
-				float dist_z = -1.0f;
-				get_distance_to_point_global_wgs84(lat, lon, altitude,
-								   _home_pos.lat, _home_pos.lon, _home_pos.alt,
-								   &dist_xy, &dist_z);
+	if (max_horizontal_distance > 1 || max_vertical_distance > 1) {
+		if (_home_pos_set) {
+			float dist_xy = -1.0f;
+			float dist_z = -1.0f;
+			get_distance_to_point_global_wgs84(lat, lon, altitude,
+							   _home_pos.lat, _home_pos.lon, _home_pos.alt,
+							   &dist_xy, &dist_z);
 
-				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
-					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-										 "Geofence exceeded max vertical distance by %.1f m",
-									         (double)(dist_z - max_vertical_distance));
-						_last_vertical_range_warning = hrt_absolute_time();
-					}
-
-					return false;
+			if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
+				if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "Geofence exceeded max vertical distance by %.1f m",
+							     (double)(dist_z - max_vertical_distance));
+					_last_vertical_range_warning = hrt_absolute_time();
 				}
 
-				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
-					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-										 "Geofence exceeded max horizontal distance by %.1f m",
-									         (double)(dist_xy - max_horizontal_distance));
-						_last_horizontal_range_warning = hrt_absolute_time();
-					}
+				return false;
+			}
 
-					return false;
+			if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
+				if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "Geofence exceeded max horizontal distance by %.1f m",
+							     (double)(dist_xy - max_horizontal_distance));
+					_last_horizontal_range_warning = hrt_absolute_time();
 				}
+
+				return false;
 			}
 		}
+	}
 
 	bool inside_fence = inside_polygon(lat, lon, altitude);
 
