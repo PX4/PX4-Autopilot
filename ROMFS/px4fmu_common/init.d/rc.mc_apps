@@ -8,11 +8,12 @@
 #---------------------------------------
 # Estimator group selction
 #
-# INAV
+# INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
 then
-	attitude_estimator_q start
-	position_estimator_inav start
+	echo "ERROR [init] Estimator INAV deprecated. Using LPE"
+	param set SYS_MC_EST_GROUP 1
+	param save
 fi
 
 # LPE

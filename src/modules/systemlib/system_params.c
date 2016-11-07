@@ -95,11 +95,10 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  *
  * Set the group of estimators used for multicopters and vtols
  *
- * @value 0 position_estimator_inav, attitude_estimator_q
  * @value 1 local_position_estimator, attitude_estimator_q
  * @value 2 ekf2
  *
- * @min 0
+ * @min 1
  * @max 2
  * @reboot_required true
  * @group System
