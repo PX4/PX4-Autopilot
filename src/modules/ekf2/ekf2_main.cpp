@@ -152,17 +152,6 @@ private:
 	uint32_t _balt_time_ms_last_used =
 		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
 
-	int	_sensors_sub = -1;
-	int	_gps_sub = -1;
-	int	_airspeed_sub = -1;
-	int	_params_sub = -1;
-	int 	_optical_flow_sub = -1;
-	int 	_range_finder_sub = -1;
-	int 	_ev_pos_sub = -1;
-	int	_actuator_armed_sub = -1;
-	int	_vehicle_land_detected_sub = -1;
-	int _status_sub = -1;
-
 	bool	_prev_landed = true;	// landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
