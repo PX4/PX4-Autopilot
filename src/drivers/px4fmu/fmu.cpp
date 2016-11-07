@@ -70,6 +70,7 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
@@ -232,6 +233,8 @@ private:
 
 	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 
+	perf_counter_t	_ctl_latency;
+
 	static bool	arm_nothrottle()
 	{
 		return ((_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode);
@@ -340,7 +343,9 @@ PX4FMU::PX4FMU() :
 	_safety_off(false),
 	_safety_disabled(false),
 	_to_safety(nullptr),
-	_mot_t_max(0.0f)
+	_mot_t_max(0.0f),
+	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
+
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -400,6 +405,8 @@ PX4FMU::~PX4FMU()
 
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
+
+	perf_free(_ctl_latency);
 
 	g_fmu = nullptr;
 }
@@ -1036,9 +1043,6 @@ PX4FMU::cycle()
 	/* check if anything updated */
 	int ret = ::poll(_poll_fds, _poll_fds_num, 0);
 
-	/* log if main actuator updated and sync */
-	int main_out_latency = 0;
-
 	/* this would be bad... */
 	if (ret < 0) {
 		DEVICE_LOG("poll error %d", errno);
@@ -1048,6 +1052,7 @@ PX4FMU::cycle()
 //			warnx("no PWM: failsafe");
 
 	} else {
+		perf_begin(_ctl_latency);
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
@@ -1057,20 +1062,29 @@ PX4FMU::cycle()
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
-					/* main outputs */
+#if defined(DEBUG_BUILD)
+
+					static int main_out_latency = 0;
+					static int sum_latency = 0;
+					static uint64_t last_cycle_time = 0;
+
 					if (i == 0) {
-//						main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
-//						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
+						uint64_t now = hrt_absolute_time();
+						uint64_t latency = now - _controls[i].timestamp;
 
-						/* do only correct within the current phase */
-						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
-							main_out_latency = SCHEDULE_INTERVAL;
-						}
+						if (latency > main_out_latency) { main_out_latency = latency; }
 
-						if (main_out_latency < 250) {
-							main_out_latency = 0;
+						sum_latency += latency;
+
+						if ((now - last_cycle_time) >= 1000000) {
+							last_cycle_time = now;
+							PX4_DEBUG("pwm max latency: %d, avg: %5.3f", main_out_latency, (double)(sum_latency / 100.0));
+							main_out_latency = latency;
+							sum_latency = 0;
 						}
 					}
+
+#endif
 				}
 
 				poll_id++;
@@ -1089,7 +1103,10 @@ PX4FMU::cycle()
 				_pwm_limit.state = PWM_LIMIT_STATE_ON;
 			}
 		}
+	} // poll_fds
 
+	/* run the mixers on every cycle */
+	{
 		/* can we mix? */
 		if (_mixers != nullptr) {
 
@@ -1177,8 +1194,10 @@ PX4FMU::cycle()
 			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
+			perf_end(_ctl_latency);
 		}
 	}
+//	} // poll_fds
 
 	_cycle_timestamp = hrt_absolute_time();
 
@@ -1557,8 +1576,11 @@ PX4FMU::cycle()
 		_rc_scan_locked = false;
 	}
 
-	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
-		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
+	/*
+	 * schedule next cycle
+	 */
+	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
+//		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 }
 
 void PX4FMU::work_stop()
