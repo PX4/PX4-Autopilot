@@ -43,6 +43,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_accel.h>
@@ -247,6 +248,7 @@ private:
 		,
 		_rc_channels_pub(nullptr),
 		_attitude_pub(nullptr),
+		_gpos_pub(nullptr),
 		_actuator_outputs_sub{},
 		_vehicle_attitude_sub(-1),
 		_manual_sub(-1),
@@ -317,6 +319,7 @@ private:
 	// uORB publisher handlers
 	orb_advert_t _rc_channels_pub;
 	orb_advert_t _attitude_pub;
+	orb_advert_t _gpos_pub;
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES];

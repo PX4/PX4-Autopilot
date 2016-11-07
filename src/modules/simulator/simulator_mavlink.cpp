@@ -397,6 +397,25 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			int hilstate_multi;
 			orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
 		}
+
+		/* position/ velocity */
+		struct vehicle_global_position_s hil_gpos = {};
+		{
+			hil_gpos.time_utc_usec = timestamp;
+			hil_gpos.lat = hil_state.lat;
+			hil_gpos.lon = hil_state.lon;
+			hil_gpos.alt = hil_state.alt;
+
+			hil_gpos.vel_n = hil_state.vx;
+			hil_gpos.vel_e = hil_state.vy;
+			hil_gpos.vel_d = hil_state.vz;
+
+			// always publish ground truth attitude message
+			int hilstate_multi_pos;
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hilstate_multi_pos,
+					 ORB_PRIO_HIGH);
+		}
+
 		break;
 	}
 
