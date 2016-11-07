@@ -2074,8 +2074,12 @@ MulticopterPositionControl::task_main()
 					// to calculate the new desired roll and pitch angles
 					// R_tilt can be written as a function of the new desired roll and pitch
 					// angles. we get three equations and have to solve for 2 unknowns
-					_att_sp.pitch_body = asinf(z_roll_pitch_sp(0));
-					_att_sp.roll_body = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
+					_att_sp.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
+					float sin_pitch = sinf(_att_sp.pitch_body)；
+					if (sin_pitch != 0)
+						_att_sp.roll_body = atan2f(-z_roll_pitch_sp(1), z_roll_pitch_sp(0)/sin_pitch);
+					else
+						_att_sp.roll_body = atan2f(-z_roll_pitch_sp(1), z_roll_pitch_sp(2)/cos(_att_sp.pitch_body));
 				}
 
 				/* copy quaternion setpoint to attitude setpoint topic */
