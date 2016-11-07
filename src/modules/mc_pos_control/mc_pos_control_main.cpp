@@ -938,13 +938,14 @@ MulticopterPositionControl::control_offboard(float dt)
 		}
 
 		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
-			/* We control altitude */
+			/* control altitude as it is enabled */
 			_pos_sp(2) = _pos_sp_triplet.current.z;
 			_run_alt_control = true;
 
 		} else if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
-			/* Control altitude */
+			/* control altitude because full position control is enabled */
 			_pos_sp(2) = _pos_sp_triplet.current.z;
+			_run_alt_control = true;
 
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* reset alt setpoint to current altitude if needed */
