@@ -48,8 +48,8 @@
 
 
 EstimatorInterface::EstimatorInterface():
-	OBS_BUFFER_LENGTH(10),
-	IMU_BUFFER_LENGTH(30),
+	_obs_buffer_length(10),
+	_imu_buffer_length(30),
 	_min_obs_interval_us(0),
 	_dt_imu_avg(0.0f),
 	_imu_ticks(0),
@@ -140,7 +140,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 		// calculate the minimum interval between observations required to guarantee no loss of data
 		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us)/(OBS_BUFFER_LENGTH - 1);
+		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us)/(_obs_buffer_length - 1);
 
 	} else {
 		_imu_updated = false;
@@ -351,36 +351,36 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 							 math::max(_params.airspeed_delay_ms, _params.baro_delay_ms))))));
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
-	IMU_BUFFER_LENGTH = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
+	_imu_buffer_length = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
 
 	// set the observaton buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
 	uint16_t ekf_delay_ms = max_time_delay_ms + (int)(ceil((float)max_time_delay_ms * 0.5f));
-	OBS_BUFFER_LENGTH = (ekf_delay_ms / _params.sensor_interval_min_ms) + 1;
+	_obs_buffer_length = (ekf_delay_ms / _params.sensor_interval_min_ms) + 1;
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
-	OBS_BUFFER_LENGTH = math::min(OBS_BUFFER_LENGTH,IMU_BUFFER_LENGTH);
+	_obs_buffer_length = math::min(_obs_buffer_length,_imu_buffer_length);
 
-	ECL_INFO("EKF IMU buffer length = %i",(int)IMU_BUFFER_LENGTH);
-	ECL_INFO("EKF observation buffer length = %i",(int)OBS_BUFFER_LENGTH);
+	ECL_INFO("EKF IMU buffer length = %i",(int)_imu_buffer_length);
+	ECL_INFO("EKF observation buffer length = %i",(int)_obs_buffer_length);
 
-	if (!(_imu_buffer.allocate(IMU_BUFFER_LENGTH) &&
-	      _gps_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _mag_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _baro_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _range_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _ext_vision_buffer.allocate(OBS_BUFFER_LENGTH) &&
-	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
+	if (!(_imu_buffer.allocate(_imu_buffer_length) &&
+	      _gps_buffer.allocate(_obs_buffer_length) &&
+	      _mag_buffer.allocate(_obs_buffer_length) &&
+	      _baro_buffer.allocate(_obs_buffer_length) &&
+	      _range_buffer.allocate(_obs_buffer_length) &&
+	      _airspeed_buffer.allocate(_obs_buffer_length) &&
+	      _flow_buffer.allocate(_obs_buffer_length) &&
+	      _ext_vision_buffer.allocate(_obs_buffer_length) &&
+	      _output_buffer.allocate(_imu_buffer_length))) {
 		ECL_ERR("EKF buffer allocation failed!");
 		unallocate_buffers();
 		return false;
 	}
 
 	// zero the data in the observation buffers
-	for (int index=0; index < OBS_BUFFER_LENGTH; index++) {
+	for (int index=0; index < _obs_buffer_length; index++) {
 		gpsSample gps_sample_init = {};
 		_gps_buffer.push(gps_sample_init);
 		magSample mag_sample_init = {};
@@ -398,7 +398,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 
 	// zero the data in the imu data and output observer state buffers
-	for (int index=0; index < IMU_BUFFER_LENGTH; index++) {
+	for (int index=0; index < _imu_buffer_length; index++) {
 		imuSample imu_sample_init = {};
 		_imu_buffer.push(imu_sample_init);
 		outputSample output_sample_init = {};
