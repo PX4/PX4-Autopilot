@@ -74,7 +74,7 @@ public:
 	 */
 	int update(const hrt_abstime t);
 	virtual const char *get_name() const = 0;
-	virtual uint8_t get_id() = 0;
+	virtual uint16_t get_id() = 0;
 
 	/**
 	 * @return true if steam rate shouldn't be adjusted
