@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/home_position.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -139,6 +140,7 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int 		_home_pos_sub;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -157,6 +159,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+	struct home_position_s 				_home_pos;
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -187,6 +190,8 @@ private:
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
+		param_t land_final_approach_alt;
+		param_t land_final_approach_speed;
 		param_t tko_speed;
 		param_t tilt_max_land;
 		param_t man_roll_max;
@@ -211,6 +216,8 @@ private:
 		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
+		float land_final_approach_alt;
+		float land_final_approach_speed;
 		float tko_speed;
 		float tilt_max_land;
 		float man_roll_max;
@@ -368,6 +375,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+	_home_pos_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -385,6 +393,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_global_vel_sp{},
+	_home_pos{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_vel_x_deriv(this, "VELD"),
@@ -463,6 +472,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
+	_params_handles.land_final_approach_alt	= param_find("MPC_FNA_ALT");
+	_params_handles.land_final_approach_speed	= param_find("MPC_FNA_SPD");
 	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
@@ -530,6 +541,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
+		param_get(_params_handles.land_final_approach_alt, &_params.land_final_approach_alt);
+		param_get(_params_handles.land_final_approach_speed, &_params.land_final_approach_speed);
 		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
@@ -617,6 +630,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* takeoff and land velocities should not exceed maximum */
 		_params.tko_speed = fminf(_params.tko_speed, _params.vel_max_up);
 		_params.land_speed = fminf(_params.land_speed, _params.vel_max_down);
+		_params.land_final_approach_speed = fminf(_params.land_final_approach_speed, _params.land_speed);
 	}
 
 	return OK;
@@ -691,6 +705,13 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
+
+	orb_check(_home_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+	}
+
 }
 
 float
@@ -1239,7 +1260,7 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
-
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	parameters_update(true);
 
@@ -1556,6 +1577,14 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
+
+					if (_home_pos.timestamp > 0 && _params.land_final_approach_alt > FLT_EPSILON) {
+						float rel_alt = _home_pos.z - _local_pos.z;
+
+						if (rel_alt < _params.land_final_approach_alt) {
+							_vel_sp(2) = _params.land_final_approach_speed;
+						}
+					}
 				}
 
 				/* special thrust setpoint generation for takeoff from ground */
