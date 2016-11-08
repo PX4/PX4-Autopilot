@@ -224,6 +224,7 @@ private:
 	orb_advert_t _control_state_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
+	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
