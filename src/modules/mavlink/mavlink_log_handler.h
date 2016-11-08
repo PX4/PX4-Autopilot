@@ -99,7 +99,7 @@ public:
 
 	// Overrides from MavlinkStream
 	const char     *get_name(void) const;
-	uint8_t         get_id(void);
+	uint16_t        get_id(void);
 	unsigned        get_size(void);
 	void            send(const hrt_abstime t);
 

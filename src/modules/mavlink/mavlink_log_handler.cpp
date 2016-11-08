@@ -125,7 +125,7 @@ MavlinkLogHandler::get_name(void) const
 }
 
 //-------------------------------------------------------------------
-uint8_t
+uint16_t
 MavlinkLogHandler::get_id(void)
 {
 	return MAVLINK_MSG_ID_LOG_ENTRY;

@@ -72,7 +72,7 @@ MavlinkFTP::get_name(void) const
 	return "MAVLINK_FTP";
 }
 
-uint8_t
+uint16_t
 MavlinkFTP::get_id(void)
 {
 	return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL;
