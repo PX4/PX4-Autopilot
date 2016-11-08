@@ -359,7 +359,10 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
 
-/** Final approach altitude
+/**
+ * Final approach altitude
+ *
+ * Slow down landing descent to final approach speed if below final approach altitude.
  *
  * @unit meters
  * @min 0.0
@@ -377,6 +380,14 @@ PARAM_DEFINE_FLOAT(MPC_FNA_ALT, 0.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_FNA_SPD, 0.3f);
+
+/**
+ * Final approach: use terrain estimate only if available
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_FNA_USE_TER, 0);
 
 /**
  * Takeoff climb rate

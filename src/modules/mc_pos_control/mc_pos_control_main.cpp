@@ -192,6 +192,7 @@ private:
 		param_t land_speed;
 		param_t land_final_approach_alt;
 		param_t land_final_approach_speed;
+		param_t land_final_approach_terrain;
 		param_t tko_speed;
 		param_t tilt_max_land;
 		param_t man_roll_max;
@@ -218,6 +219,7 @@ private:
 		float land_speed;
 		float land_final_approach_alt;
 		float land_final_approach_speed;
+		int land_final_approach_terrain;
 		float tko_speed;
 		float tilt_max_land;
 		float man_roll_max;
@@ -474,6 +476,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.land_final_approach_alt	= param_find("MPC_FNA_ALT");
 	_params_handles.land_final_approach_speed	= param_find("MPC_FNA_SPD");
+	_params_handles.land_final_approach_terrain	= param_find("MPC_FNA_USE_TER");
 	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
@@ -543,6 +546,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_final_approach_alt, &_params.land_final_approach_alt);
 		param_get(_params_handles.land_final_approach_speed, &_params.land_final_approach_speed);
+		param_get(_params_handles.land_final_approach_terrain, &_params.land_final_approach_terrain);
 		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
@@ -1578,11 +1582,21 @@ MulticopterPositionControl::task_main()
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 
-					if (_home_pos.timestamp > 0 && _params.land_final_approach_alt > FLT_EPSILON) {
-						float rel_alt = _home_pos.z - _local_pos.z;
+					/* slow down further before ground */
+					if (_params.land_final_approach_alt > FLT_EPSILON) {
+						if (_local_pos.dist_bottom_valid) {
+							/* use terrain estimate if possible */
+							if (_local_pos.dist_bottom < _params.land_final_approach_alt) {
+								_vel_sp(2) = _params.land_final_approach_speed;
+							}
 
-						if (rel_alt < _params.land_final_approach_alt) {
-							_vel_sp(2) = _params.land_final_approach_speed;
+						} else if (_home_pos.timestamp > 0 && _params.land_final_approach_terrain != 0) {
+							/* use relative altitude if use of terrain estimate is not forced */
+							float rel_alt = _home_pos.z - _local_pos.z;
+
+							if (rel_alt < _params.land_final_approach_alt) {
+								_vel_sp(2) = _params.land_final_approach_speed;
+							}
 						}
 					}
 				}
