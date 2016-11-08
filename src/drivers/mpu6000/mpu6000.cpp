@@ -2082,7 +2082,7 @@ namespace mpu6000
 MPU6000	*g_dev_int; // on internal bus
 MPU6000	*g_dev_ext; // on external bus
 
-void	start(bool, enum Rotation, int range, int device_type);
+void	start(bool external_bus, enum Rotation, int range, int device_type, spi_dev_e cs);
 void	stop(bool);
 void	test(bool);
 void	reset(bool);
@@ -2099,7 +2099,7 @@ void	usage();
  * or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation, int range, int device_type)
+start(bool external_bus, enum Rotation rotation, int range, int device_type, spi_dev_e cs)
 {
 	int fd;
 	MPU6000 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
@@ -2115,22 +2115,12 @@ start(bool external_bus, enum Rotation rotation, int range, int device_type)
 	/* create the driver */
 	if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-# if defined(PX4_SPIDEV_EXT_ICM)
-		spi_dev_e cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_EXT_MPU : PX4_SPIDEV_EXT_ICM);
-# else
-		spi_dev_e cs = (spi_dev_e) PX4_SPIDEV_EXT_MPU;
-# endif
 		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_EXT, path_accel, path_gyro, cs, rotation, device_type);
 #else
 		errx(0, "External SPI not available");
 #endif
 
 	} else {
-#if defined(PX4_SPIDEV_ICM)
-		spi_dev_e cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_MPU : PX4_SPIDEV_ICM);
-#else
-		spi_dev_e cs = (spi_dev_e) PX4_SPIDEV_MPU;
-#endif
 		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, cs, rotation, device_type);
 	}
 
@@ -2367,9 +2357,29 @@ usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
 	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -M 6000|20608 (default 6000)");
-	warnx("    -R rotation");
+	warnx("    -X");
+	warnx("        Sensor is on external bus.");
+	warnx("    -T <sensor_type>");
+	warnx("        Sensor type. 6000 for MPU6000, 20608 for ICM-20608.");
+	warnx("    -R <rotation>");
+	warnx("        Sensor rotation. See pixhawk.org/sensor_orientation");
+	warnx("    -S <chip_select>");
+	warnx("        Specifies how the chip select lines will be configured. If");
+	warnx("        not specified, will be guessed based on bus and type. Values:");
+	warnx("            %u: PX4_SPIDEV_MPU", PX4_SPIDEV_MPU);
+#if defined(PX4_SPIDEV_ICM)
+	warnx("            %u: PX4_SPIDEV_ICM", PX4_SPIDEV_ICM);
+#endif
+	warnx("            %u: PX4_SPIDEV_ACCEL_MAG", PX4_SPIDEV_ACCEL_MAG);
+#ifdef PX4_SPI_BUS_EXT
+	warnx("            %u: PX4_SPIDEV_EXT_MPU", PX4_SPIDEV_EXT_MPU);
+#if defined(PX4_SPIDEV_EXT_ICM)
+	warnx("            %u: PX4_SPIDEV_EXT_ICM", PX4_SPIDEV_EXT_ICM);
+#endif
+	warnx("            %u: PX4_SPIDEV_EXT_ACCEL_MAG", PX4_SPIDEV_EXT_ACCEL_MAG);
+#endif
+	warnx("    -a <range>");
+	warnx("        Specifies full-scale range in G. Defaults to 16G.");
 }
 
 } // namespace
@@ -2377,6 +2387,8 @@ usage()
 int
 mpu6000_main(int argc, char *argv[])
 {
+	bool cs_auto = true;
+	spi_dev_e cs;
 	bool external_bus = false;
 	int device_type = 6000;
 	int ch;
@@ -2384,7 +2396,7 @@ mpu6000_main(int argc, char *argv[])
 	int accel_range = 16;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "T:XR:a:")) != EOF) {
+	while ((ch = getopt(argc, argv, "T:S:XR:a:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
@@ -2402,9 +2414,35 @@ mpu6000_main(int argc, char *argv[])
 			accel_range = atoi(optarg);
 			break;
 
+		case 'S':
+			cs = (spi_dev_e)atoi(optarg);
+			cs_auto = false;
+			break;
+
 		default:
 			mpu6000::usage();
 			exit(0);
+		}
+	}
+
+	if (cs_auto) {
+		if (external_bus) {
+#ifdef PX4_SPI_BUS_EXT
+# if defined(PX4_SPIDEV_EXT_ICM)
+			cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_EXT_MPU : PX4_SPIDEV_EXT_ICM);
+# else
+			cs = (spi_dev_e) PX4_SPIDEV_EXT_MPU;
+# endif
+#else
+			errx(0, "External SPI not available");
+#endif
+
+		} else {
+#if defined(PX4_SPIDEV_ICM)
+			cs = (spi_dev_e)(device_type == 6000 ? PX4_SPIDEV_MPU : PX4_SPIDEV_ICM);
+#else
+			cs = (spi_dev_e) PX4_SPIDEV_MPU;
+#endif
 		}
 	}
 
@@ -2415,7 +2453,7 @@ mpu6000_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(external_bus, rotation, accel_range, device_type);
+		mpu6000::start(external_bus, rotation, accel_range, device_type, cs);
 	}
 
 	if (!strcmp(verb, "stop")) {
