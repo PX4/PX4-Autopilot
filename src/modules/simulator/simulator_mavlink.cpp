@@ -397,6 +397,75 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			int hilstate_multi;
 			orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
 		}
+
+		/* global position */
+		struct vehicle_global_position_s hil_gpos = {};
+		{
+			hil_gpos.timestamp = timestamp;
+
+			hil_gpos.time_utc_usec = timestamp;
+			hil_gpos.lat = hil_state.lat;
+			hil_gpos.lon = hil_state.lon;
+			hil_gpos.alt = hil_state.alt;
+
+			hil_gpos.vel_n = hil_state.vx;
+			hil_gpos.vel_e = hil_state.vy;
+			hil_gpos.vel_d = hil_state.vz;
+
+			// always publish ground truth attitude message
+			int hil_gpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+		/* local position */
+		struct vehicle_local_position_s hil_lpos = {};
+		{
+			hil_lpos.timestamp = timestamp;
+
+			double lat = hil_state.lat * 1e-7;
+			double lon = hil_state.lon * 1e-7;
+
+			if (!_hil_local_proj_inited) {
+				_hil_local_proj_inited = true;
+				map_projection_init(&_hil_local_proj_ref, lat, lon);
+				_hil_ref_timestamp = timestamp;
+				_hil_ref_lat = lat;
+				_hil_ref_lon = lon;
+				_hil_ref_alt = hil_state.alt / 1000.0f;;
+			}
+
+			float x;
+			float y;
+			map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+			hil_lpos.timestamp = timestamp;
+			hil_lpos.xy_valid = true;
+			hil_lpos.z_valid = true;
+			hil_lpos.v_xy_valid = true;
+			hil_lpos.v_z_valid = true;
+			hil_lpos.x = x;
+			hil_lpos.y = y;
+			hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+			hil_lpos.vx = hil_state.vx / 100.0f;
+			hil_lpos.vy = hil_state.vy / 100.0f;
+			hil_lpos.vz = hil_state.vz / 100.0f;
+			matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+			hil_lpos.yaw = euler.psi();
+			hil_lpos.xy_global = true;
+			hil_lpos.z_global = true;
+			hil_lpos.ref_lat = _hil_ref_lat;
+			hil_lpos.ref_lon = _hil_ref_lon;
+			hil_lpos.ref_alt = _hil_ref_alt;
+			hil_lpos.ref_timestamp = _hil_ref_timestamp;
+
+			// always publish ground truth attitude message
+			int hil_lpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+
+
 		break;
 	}
 
