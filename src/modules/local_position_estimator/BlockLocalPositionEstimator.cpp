@@ -408,12 +408,16 @@ void BlockLocalPositionEstimator::update()
 	for (int i = 0; i < n_x; i++) {
 		for (int j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(_P(i, j))) {
+				mavlink_and_console_log_info(&mavlink_log_pub,
+							     "[lpe] reinit P (%d, %d) not finite", i, j);
 				reinit_P = true;
 			}
 
 			if (i == j) {
 				// make sure diagonal elements are positive
 				if (_P(i, i) <= 0) {
+					mavlink_and_console_log_info(&mavlink_log_pub,
+								     "[lpe] reinit P (%d, %d) negative", i, j);
 					reinit_P = true;
 				}
 
@@ -430,7 +434,6 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	if (reinit_P) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] reinit P");
 		initP();
 	}
 
@@ -837,16 +840,19 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 void BlockLocalPositionEstimator::initP()
 {
 	_P.setZero();
-	_P(X_x, X_x) = 2 * EST_STDDEV_XY_VALID; // initialize to twice valid condition
-	_P(X_y, X_y) = 2 * EST_STDDEV_XY_VALID;
-	_P(X_z, X_z) = 2 * EST_STDDEV_Z_VALID;
-	_P(X_vx, X_vx) = 1;
-	_P(X_vy, X_vy) = 1;
-	_P(X_vz, X_vz) = 1;
+	// initialize to twice valid condition
+	_P(X_x, X_x) = 2 * EST_STDDEV_XY_VALID * EST_STDDEV_XY_VALID;
+	_P(X_y, X_y) = 2 * EST_STDDEV_XY_VALID * EST_STDDEV_XY_VALID;
+	_P(X_z, X_z) = 2 * EST_STDDEV_Z_VALID * EST_STDDEV_Z_VALID;
+	_P(X_vx, X_vx) = 2 * _vxy_pub_thresh.get() * _vxy_pub_thresh.get();
+	_P(X_vy, X_vy) = 2 * _vxy_pub_thresh.get() * _vxy_pub_thresh.get();
+	// use vxy thresh for vz init as well
+	_P(X_vz, X_vz) = 2 * _vxy_pub_thresh.get() * _vxy_pub_thresh.get();
+	// initialize bias uncertainty to small values to keep them stable
 	_P(X_bx, X_bx) = 1e-6;
 	_P(X_by, X_by) = 1e-6;
 	_P(X_bz, X_bz) = 1e-6;
-	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID;
+	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID * EST_STDDEV_TZ_VALID;
 }
 
 void BlockLocalPositionEstimator::initSS()

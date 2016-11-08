@@ -46,19 +46,23 @@ void BlockLocalPositionEstimator::landCorrect()
 	Matrix<float, n_y_land, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
-	C(Y_land_z, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_land_z, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_land_vx, X_vx) = 1;
+	C(Y_land_vy, X_vy) = 1;
+	C(Y_land_agl, X_z) = -1; // measured altitude, negative down dir.
+	C(Y_land_agl, X_tz) = 1; // measured altitude, negative down dir.
 
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
 	R.setZero();
-	R(0, 0) = _land_z_stddev.get() * _land_z_stddev.get();
+	R(Y_land_vx, Y_land_vx) = 0.1;
+	R(Y_land_vy, Y_land_vy) = 0.1;
+	R(Y_land_agl, Y_land_agl) = _land_z_stddev.get() * _land_z_stddev.get();
 
 	// residual
 	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * _P * C.transpose()) + R);
 	Vector<float, n_y_land> r = y - C * _x;
-	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = R(0, 0);
+	_pub_innov.get().hagl_innov = r(Y_land_agl);
+	_pub_innov.get().hagl_innov_var = R(Y_land_agl, Y_land_agl);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
