@@ -157,8 +157,10 @@ private:
 	 * @param msgId the message ID of to change the interval of
 	 * @param interval the interval in us to send the message at
 	 * @param data_rate the total link data rate in bytes per second
+	 *
+	 * @return PX4_OK on success, PX4_ERROR on fail
 	 */
-	void set_message_interval(int msgId, float interval, int data_rate = -1);
+	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
 	/**

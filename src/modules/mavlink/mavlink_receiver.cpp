@@ -375,11 +375,17 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+			int ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
+						       cmd_mavlink.param2, cmd_mavlink.param3);
 
 			vehicle_command_ack_s command_ack;
 			command_ack.command = cmd_mavlink.command;
-			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			if (ret == PX4_OK) {
+				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			} else {
+				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			}
+
 
 			int instance;
 			orb_publish_auto(ORB_ID(vehicle_command_ack), &_command_ack_pub, &command_ack, &instance, ORB_PRIO_DEFAULT);
@@ -1492,9 +1498,13 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
 }
 
-void
+int
 MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 {
+	if (msgId == 0) {
+		return PX4_ERROR;
+	}
+
 	if (data_rate > 0) {
 		_mavlink->set_data_rate(data_rate);
 	}
@@ -1514,6 +1524,9 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 		// don't publish a default rate so for now let's pick a default rate of zero.
 	}
 
+	bool found_id = false;
+
+
 	// The interval between two messages is in microseconds.
 	// Set to -1 to disable and 0 to request default rate
 	if (msgId != 0) {
@@ -1522,10 +1535,13 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 
 			if (msgId == item->get_id()) {
 				_mavlink->configure_stream_threadsafe(item->get_name(), rate);
+				found_id = true;
 				break;
 			}
 		}
 	}
+
+	return (found_id ? PX4_OK : PX4_ERROR);
 }
 
 void
