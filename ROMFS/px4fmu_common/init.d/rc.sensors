@@ -10,6 +10,11 @@ then
 	fi
 
 else
+	if ver hwcmp AEROFC_V1
+	# Aero FC uses separate driver
+	then
+	else
+
 	if ver hwcmp CRAZYFLIE
 	then
 	# Crazyflie uses separate driver
@@ -40,6 +45,8 @@ else
 	# Blacksheep telemetry
 	if bst start
 	then
+	fi
+
 	fi
 fi
 
