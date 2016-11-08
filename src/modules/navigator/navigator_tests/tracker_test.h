@@ -7,5 +7,9 @@
 
 #define TRACKER_TEST_LOOKAHEAD
 
+#if defined(_POSIX_VERSION)
+// Omit some tests on small systems to save flash memory
+#define TRACKER_TEST_LONG_PATHS
+#endif
 
 bool trackerTest(void);

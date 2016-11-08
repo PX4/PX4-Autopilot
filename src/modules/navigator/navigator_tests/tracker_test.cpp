@@ -50,6 +50,8 @@ DEFINE_TEST(simpleJumps, 25, 24, 4, 3, 2, 1, 0) {
     #include "simple_jumps.path"
 };
 
+
+#ifdef TRACKER_TEST_LONG_PATHS
 DEFINE_TEST(longPath1) {
     #include "long_path1.path"
 };
@@ -57,6 +59,7 @@ DEFINE_TEST(longPath1) {
 DEFINE_TEST(longPath2) {
     #include "long_path2.path"
 };
+#endif
 
 
 class TrackerTest : public UnitTest
@@ -153,8 +156,10 @@ const TrackerTest::test_t TrackerTest::test_cases[] = {
     USE_TEST(largeNodes),
     USE_TEST(fromSim),
     USE_TEST(simpleJumps),
+#ifdef TRACKER_TEST_LONG_PATHS
     USE_TEST(longPath1),
     USE_TEST(longPath2)
+#endif
 };
 
 TrackerTest::line_test_t TrackerTest::line_test_cases[] = {
