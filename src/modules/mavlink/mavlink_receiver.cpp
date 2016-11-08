@@ -82,6 +82,8 @@
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
+#include <uORB/topics/vehicle_command_ack.h>
+
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
@@ -128,6 +130,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_transponder_report_pub(nullptr),
 	_control_state_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
+	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -373,6 +376,13 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 			set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+			vehicle_command_ack_s command_ack;
+			command_ack.command = cmd_mavlink.command;
+			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+			int instance;
+			orb_publish_auto(ORB_ID(vehicle_command_ack), &_command_ack_pub, &command_ack, &instance, ORB_PRIO_DEFAULT);
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 			get_message_interval((int)cmd_mavlink.param1);
@@ -2097,15 +2107,15 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 		}
 	}
-	
+
 	/* control state */
 	control_state_s ctrl_state = {};
 	matrix::Quaternion<float> q(hil_state.attitude_quaternion);
 	matrix::Dcm<float> R_to_body(q.inversed());
-	
+
 	//Time
 	ctrl_state.timestamp = hrt_absolute_time();
-	
+
 	//Roll Rates:
 	//ctrl_state: body angular rate (rad/s, x forward/y right/z down)
 	//hil_state : body frame angular speed (rad/s)
@@ -2120,7 +2130,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	float y;
 	double lat = hil_state.lat * 1e-7;
 	double lon = hil_state.lon * 1e-7;
-	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);	
+	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
 	ctrl_state.x_pos = x;
 	ctrl_state.y_pos = y;
 	ctrl_state.z_pos = hil_state.alt / 1000.0f;
@@ -2130,7 +2140,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	ctrl_state.q[1] = q(1);
 	ctrl_state.q[2] = q(2);
 	ctrl_state.q[3] = q(3);
-	
+
 	// Velocity
 	//ctrl_state: velocity in body frame (x forward/y right/z down)
 	//hil_state : Ground Speed in NED expressed as m/s * 100
