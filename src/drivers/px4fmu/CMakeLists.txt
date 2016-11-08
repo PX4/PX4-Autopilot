@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__px4fmu
 	MAIN fmu
 	STACK_MAIN 1200
-	COMPILE_FLAGS -DDEBUG_BUILD
+	COMPILE_FLAGS
 	SRCS
 		fmu.cpp
 		px4fmu_params.c
