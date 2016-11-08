@@ -386,9 +386,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 			}
 
+			if (_command_ack_pub == nullptr) {
+				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
-			int instance;
-			orb_publish_auto(ORB_ID(vehicle_command_ack), &_command_ack_pub, &command_ack, &instance, ORB_PRIO_DEFAULT);
+			} else {
+				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+			}
 
 		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 			get_message_interval((int)cmd_mavlink.param1);
