@@ -399,19 +399,19 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values == 0) {
-				/* allow 0 - turns the trim option off */
-				r_page_servo_control_trim[offset] = 0;
-
-			} else if (*values > PWM_HIGHEST_MAX) {
-				r_page_servo_control_trim[offset] = PWM_HIGHEST_MAX;
-
-			} else if (*values < PWM_LOWEST_MAX) {
-				r_page_servo_control_trim[offset] = PWM_LOWEST_MAX;
-
-			} else {
-				r_page_servo_control_trim[offset] = *values;
-			}
+//			if (*values == 0) {
+//				/* allow 0 - turns the trim option off */
+//				r_page_servo_control_trim[offset] = 0;
+//
+//			} else if (*values > PWM_HIGHEST_MAX) {
+//				r_page_servo_control_trim[offset] = PWM_HIGHEST_MAX;
+//
+//			} else if (*values < PWM_LOWEST_MAX) {
+//				r_page_servo_control_trim[offset] = PWM_LOWEST_MAX;
+//
+//			} else {
+			r_page_servo_control_trim[offset] = *values;
+//			}
 
 			offset++;
 			num_values--;

@@ -133,90 +133,98 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
 /**
  * Trim value for main output channel 1
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM1, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM1, 0);
 
 /**
  * Trim value for main output channel 2
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM2, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM2, 0);
 
 /**
  * Trim value for main output channel 3
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM3, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM3, 0);
 
 /**
  * Trim value for main output channel 4
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM4, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM4, 0);
 
 /**
  * Trim value for main output channel 5
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM5, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM5, 0);
 
 /**
  * Trim value for main output channel 6
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM6, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM6, 0);
 
 /**
  * Trim value for main output channel 7
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM7, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
 
 /**
  * Trim value for main output channel 8
  *
- * Set to neutral period in usec
+ * Set to normalized offset
  *
- * @min 1400
- * @max 1600
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_TRIM8, 1500);
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
 
 /**
  * S.BUS out
