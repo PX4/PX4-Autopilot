@@ -114,7 +114,7 @@ __BEGIN_DECLS
 /**
  * Default trim PWM in us
  */
-#define PWM_DEFAULT_TRIM 1500
+#define PWM_DEFAULT_TRIM 0
 
 /**
  * Lowest PWM allowed as the maximum PWM

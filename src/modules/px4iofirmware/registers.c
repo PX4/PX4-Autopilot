@@ -260,10 +260,10 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_MAX, PWM_D
 /**
  * PAGE 108
  *
- * trim PWM values for center position
+ * trim values for center position
  *
  */
-uint16_t		r_page_servo_control_trim[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM };
+int16_t		r_page_servo_control_trim[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM };
 
 /**
  * PAGE 109
