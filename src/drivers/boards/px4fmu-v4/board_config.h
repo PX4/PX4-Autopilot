@@ -120,7 +120,11 @@ __BEGIN_DECLS
 
 #define PX4_SPI_BUS_SENSORS	1
 #define PX4_SPI_BUS_RAMTRON	2
+#ifdef PIXRACER_BETA_BOARD
+#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
+#else
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_RAMTRON
+#endif
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
@@ -134,9 +138,6 @@ __BEGIN_DECLS
  * use 3 for the barometer to differentiate
  */
 #define PX4_SPIDEV_BARO			3
-#if (PX4_SPIDEV_BARO == SPIDEV_FLASH)
-#error PX4_SPIDEV_BARO must not be equal to SPIDEV_FLASH as they share the same bus
-#endif
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
