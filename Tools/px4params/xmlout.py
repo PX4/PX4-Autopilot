@@ -25,7 +25,7 @@ class XMLOutput():
         xml_version = ET.SubElement(xml_parameters, "parameter_version_major")
         xml_version.text = "1"
         xml_version = ET.SubElement(xml_parameters, "parameter_version_minor")
-        xml_version.text = "11"
+        xml_version.text = "12"
         importtree = ET.parse(inject_xml_file_name)
         injectgroups = importtree.getroot().findall("group")
         for igroup in injectgroups:

@@ -775,19 +775,19 @@ PX4FMU::update_pwm_trims()
 
 	} else {
 
-		uint16_t values[_max_actuators] = {};
+		int16_t values[_max_actuators] = {};
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			char pname[16];
-			int32_t ival;
+			float pval;
 
 			/* fill the struct from parameters */
 			sprintf(pname, "PWM_AUX_TRIM%d", i + 1);
 			param_t param_h = param_find(pname);
 
 			if (param_h != PARAM_INVALID) {
-				param_get(param_h, &ival);
-				values[i] = ival;
+				param_get(param_h, &pval);
+				values[i] = (int16_t)(10000 * pval);
 				PX4_DEBUG("%s: %d", pname, values[i]);
 			}
 		}
@@ -1176,9 +1176,8 @@ PX4FMU::cycle()
 			uint16_t pwm_limited[_max_actuators];
 
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
-			// TODO: remove trim_pwm parameter
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
-				       _disarmed_pwm, _min_pwm, _max_pwm, _trim_pwm, outputs, pwm_limited, &_pwm_limit);
+				       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 			/* overwrite outputs in case of lockdown with disarmed PWM values */
@@ -1963,7 +1962,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			/* copy the trim values to the mixer offsets */
-			_mixers->set_trims(pwm->values, pwm->channel_count);
+			_mixers->set_trims((int16_t *)pwm->values, pwm->channel_count);
 			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
 
 			break;

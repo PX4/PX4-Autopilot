@@ -338,7 +338,7 @@ public:
 	 * Invoke the set_offset method of each mixer in the group
 	 * for each value in page r_page_servo_control_trim
 	 */
-	unsigned set_trims(uint16_t *v, unsigned n);
+	unsigned set_trims(int16_t *v, unsigned n);
 
 	unsigned set_trim(float trim)
 	{
