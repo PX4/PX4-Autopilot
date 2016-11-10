@@ -145,6 +145,7 @@ then
 	set FMU_MODE pwm
 	set AUX_MODE pwm
 	set MAVLINK_F default
+	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
@@ -547,7 +548,7 @@ then
 		# but this works for now
 		if param compare SYS_COMPANION 10
 		then
-			frsky_telemetry start -d /dev/ttyS2
+			frsky_telemetry start -d $MAVLINK_COMPANION_DEVICE
 		fi
 		if param compare SYS_COMPANION 20
 		then
@@ -556,38 +557,39 @@ then
 		fi
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 80000 -x
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 921600 -m onboard -r 80000 -x
 		fi
 		if param compare SYS_COMPANION 57600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 5000 -x
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 57600 -m onboard -r 5000 -x
 		fi
 		if param compare SYS_COMPANION 157600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 57600 -m osd -r 1000
 		fi
 		if param compare SYS_COMPANION 257600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 57600 -m magic -r 5000 -x
 		fi
 		if param compare SYS_COMPANION 319200
 		then
-			mavlink start -d /dev/ttyS2 -b 19200 -r 1000
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 19200 -r 1000
 		fi
 		if param compare SYS_COMPANION 338400
 		then
-			mavlink start -d /dev/ttyS2 -b 38400 -r 1000
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 38400 -r 1000
 		fi
 		if param compare SYS_COMPANION 357600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 57600 -r 1000
 		fi
 		if param compare SYS_COMPANION 1921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -r 20000
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 921600 -r 20000
 		fi
 	fi
 
+	unset MAVLINK_COMPANION_DEVICE
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
