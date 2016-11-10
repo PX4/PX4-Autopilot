@@ -510,6 +510,8 @@ void Logger::add_default_topics()
 {
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("vehicle_attitude_groundtruth", 10);
+	add_topic("vehicle_global_position_groundtruth", 100);
+	add_topic("vehicle_local_position_groundtruth", 100);
 #endif
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
