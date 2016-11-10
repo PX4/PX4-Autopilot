@@ -370,7 +370,6 @@ void task_main(int argc, char *argv[])
 				       disarmed_pwm,
 				       min_pwm,
 				       max_pwm,
-				       trim_pwm,
 				       _outputs.output,
 				       pwm,
 				       &_pwm_limit);

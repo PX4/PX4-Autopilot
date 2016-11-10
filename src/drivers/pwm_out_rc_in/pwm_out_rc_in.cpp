@@ -439,7 +439,7 @@ void task_main(int argc, char *argv[])
 
 			// TODO FIXME: pre-armed seems broken
 			pwm_limit_calc(_armed.armed, false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask,
-				       disarmed_pwm, min_pwm, max_pwm, trim_pwm, _outputs.output, pwm, &_pwm_limit);
+				       disarmed_pwm, min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 
 			send_outputs_mavlink(pwm, 4);
