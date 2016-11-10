@@ -587,6 +587,10 @@ then
 		then
 			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 921600 -r 20000
 		fi
+		if param compare SYS_COMPANION 1500000
+		then
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 1500000 -m onboard -r 10000 -x
+		fi
 	fi
 
 	unset MAVLINK_COMPANION_DEVICE
